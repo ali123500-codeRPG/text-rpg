@@ -1,6 +1,6 @@
 // The rules every trigger meets, wherever it comes from: a stage plan's seeds (validate.ts) or a beat a Weaver check-in adds
 // to a running scenario (SC8, engine/scenarioEnd.ts). One function, so both read the same rules.
-import { ORDER_TYPES } from '../types';
+import { ORDER_TYPES, WAY_ORDERS } from '../types';
 import type { GameState, StagePlan, TriggerWhen } from '../types';
 
 export const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
@@ -27,6 +27,8 @@ export function triggerErrors(_state: GameState | null, t: StagePlan['seeds']['t
   // one order per trigger: `then` is a single order template
   if (!t.then || Array.isArray(t.then) || typeof t.then.type !== 'string') out.push(`trigger ${t.id}: then holds exactly one order`);
   else if (!(ORDER_TYPES as readonly string[]).includes(t.then.type)) out.push(`trigger ${t.id}: then.type ${t.then.type} unknown; known: ${ORDER_TYPES.join(', ')}`);
+  else if (WAY_ORDERS.includes(t.then.type) && (t.then.target === '$player' || (!!t.then.target && refs.isActor(t.then.target))))
+    out.push(`trigger ${t.id}: ${t.then.type} opens a lock on a way, so its target is a zone, never a person (there is no stealing)`);
   if (t.once !== undefined && typeof t.once !== 'boolean') out.push(`trigger ${t.id}: once is true or false`);
   return out;
 }

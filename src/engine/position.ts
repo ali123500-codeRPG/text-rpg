@@ -267,6 +267,10 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
   /** a person in the zone, or a way out of it: where it is and what the story calls it */
   const point = (ref: string): { at: Pos; actor?: string; label?: string; here?: boolean } | null => {
     const who = actorById(state, ref);
+    if (who && spot.lastSeen) { // BG-125: where the player last perceived them, never where they are now
+      const j = state.player.journal, at = j?.lastSpot?.[who.id];
+      return at && j?.lastKnown?.[who.id] === z.id ? { at, label: 'the spot where you last saw them' } : null;
+    }
     if (who) { const s = spotOf(state, who); return s.pos ? { at: s.pos, actor: who.id, label: who.label, here: s.zone === z.id } : null; }
     const at = wayPoint(state, z.id, ref, from);
     return at ? { at, label: z.links.find((l) => l.to === ref)!.label } : null;

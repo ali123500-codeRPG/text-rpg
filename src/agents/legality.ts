@@ -1,7 +1,7 @@
 // Legality checks on accepted agent outputs (Leak prevention, validation and failure handling).
 // Parser: against PlayerView. Planner / Responder / Voice: against the actor's own view.
 import type { ActorView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
-import { SPEECH_ACTIONS } from '../types';
+import { SPEECH_ACTIONS, WAY_ORDERS } from '../types';
 import { TIME_OF_DAY } from '../scales';
 import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
@@ -59,8 +59,11 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     // BG-19 (runs 37, 38): "the back of the cellar" came as awayFrom the cellar itself: the back is away from the way in
     const cameIn = view.cameFrom?.[0]?.zone;
     if (spot.awayFrom === out.move.toZone && cameIn && there?.links.some((l) => l.to === cameIn)) out.move.spot = { awayFrom: cameIn };
-    const ref = (id: string) => actors.has(id) || !!there?.links.some((l) => l.to === id);
+    // BG-125: someone out of sight now is gone to where the player last perceived them
+    const lastSeen = (id: string) => !actors.has(id) && !!view.lastSeen?.some((l) => l.id === id);
+    const ref = (id: string) => actors.has(id) || lastSeen(id) || !!there?.links.some((l) => l.to === id);
     const sp = out.move.spot!;
+    if (sp.near && lastSeen(sp.near)) out.move.spot = { ...sp, lastSeen: true };
     const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => sp[k]);
     const ok = keys.length === 1 && (sp.side ? !!compassOf(sp.side) : ref((sp.near ?? sp.awayFrom)!));
     // BG-31 (run 40): on a move to another zone the spot is only where to stop there; one that can't be checked (a zone
@@ -83,6 +86,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
       illegal.push(`action.target ${a.target}`);
     // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
+    else if (WAY_ORDERS.includes(a.type) && a.target !== null && !zones.has(a.target)) illegal.push(`action.target ${a.target}`); // BG-128: a lock is on a way
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
     if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish') a.skill = '';
@@ -171,6 +175,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   let orderError: NpcLegality['orderError'] = null;
   const knows = (id: string) => k.actors.has(id) || k.zones.has(id) || k.own.has(id) || k.ground.has(id) || k.seenGear.has(id);
   if (a.target !== null && !knows(a.target)) orderError = world.has(a.target) ? 'view_leak' : 'invalid_target';
+  else if (WAY_ORDERS.includes(a.type) && a.target !== null && !k.zones.has(a.target)) orderError = 'invalid_target'; // BG-128
 
   if (a.item !== null && !k.own.has(a.item) && !k.ground.has(a.item)) {
     errors.push('invalid_gear');

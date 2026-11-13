@@ -182,7 +182,8 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
 /** across a counter, fence or rail from zone `a` into the next zone `b`: see and reach across it (edge kind Low) */
 export function reachesAcross(state: GameState, a: string, b: string): boolean {
   const A = zoneById(state, a), B = zoneById(state, b);
-  return !!A && !!B && A.links.some((l) => l.to === B.id) && reachesOver(A, B, getLibrary().edgeKinds ?? {});
+  // BG-124: only across a way that is seen through (a counter, a rail), never a door
+  return !!A && !!B && A.links.some((l) => l.to === B.id && seesAcross(state, l)) && reachesOver(A, B, getLibrary().edgeKinds ?? {});
 }
 
 /** BG-95: one rule for who knows whose name, player and NPC alike: their own, a public figure's (knownOnSight), a
