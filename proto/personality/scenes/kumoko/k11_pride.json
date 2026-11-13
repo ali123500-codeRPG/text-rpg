@@ -1,0 +1,117 @@
+{
+ "case": "VT-S11",
+ "pass": "Buys Pride this turn (takes the skill), even with misgivings about its cost. Does not refuse it, and does not keep the points to wait and see. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 110,
+  "time": {
+   "day": 12,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "safe_ledge",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "lava_field",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a fire lizard"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has climbed into the lava-filled middle layer and evolved into a small poison spider in a safe, cool spot.",
+   "The voice in her head offers her a skill for all her saved skill points: Pride. It makes her levels and skills grow far faster, but it comes from a set named after the deadly sins, it unlocks dark and unholy magic she knows nothing about, and the voice does not say what else it costs. She cannot buy anything else with these points for a long time."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "safe_ledge",
+    "links": [
+     {
+      "to": "lava_field",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "lava_field",
+    "links": [
+     {
+      "to": "safe_ledge",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "safe_ledge",
+    "name": "cool ledge",
+    "look": "a ledge out of reach of the heat, where nothing has followed her",
+    "cover": "full",
+    "light": "dim",
+    "links": [
+     {
+      "to": "lava_field",
+      "label": "down to the lava field",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "lava_field",
+    "name": "lava field",
+    "look": "a field of cracked black rock and glowing lava",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "safe_ledge",
+      "label": "up to the cool ledge",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a fire lizard",
+    "pronouns": "it",
+    "zone": "lava_field",
+    "level": "partial",
+    "activityLook": "basking far off on the lava field, paying her no attention"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

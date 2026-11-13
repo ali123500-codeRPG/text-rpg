@@ -1,0 +1,117 @@
+{
+ "case": "VT-S9",
+ "pass": "Eats the grub this turn (any action whose intent is eating it), even with dread or disgust at the poison. Does not leave it to keep looking for safer food, and does not just wait. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 75,
+  "time": {
+   "day": 8,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "hollow",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "weak with hunger",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "hollow",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a fat pale grub, the one creature down here weaker than her"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has hidden in the lower layer for days. Everything here is far stronger than her except these grubs, and she has eaten nothing.",
+   "Her appraisal says the grubs are deadly poisonous. She has a little poison resistance, which grows each time she survives poison. Without food she will starve soon."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "hollow",
+    "links": [
+     {
+      "to": "tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "tunnel",
+    "links": [
+     {
+      "to": "hollow",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "hollow",
+    "name": "rock hollow",
+    "look": "a low hollow under a ledge, out of sight of the main tunnel",
+    "cover": "full",
+    "light": "dark",
+    "links": [
+     {
+      "to": "tunnel",
+      "label": "out to the tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "tunnel",
+    "name": "tunnel",
+    "look": "a wide tunnel where big monsters pass",
+    "cover": "none",
+    "light": "dim",
+    "links": [
+     {
+      "to": "hollow",
+      "label": "back to the hollow",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a fat pale grub, the one creature down here weaker than her",
+    "pronouns": "it",
+    "zone": "hollow",
+    "level": "full",
+    "activityLook": "wriggling slowly on the rock beside her, unable to flee"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

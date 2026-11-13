@@ -1,0 +1,162 @@
+{
+ "case": "VT-S10",
+ "pass": "Fights the troop: attacks, poisons or webs them, including from a choke point such as the crack behind her. Does not try to break through the ring and run, does not hide without fighting, and does not freeze or wait. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 82,
+  "time": {
+   "day": 9,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "crack_mouth",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "lightly hurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "cave_floor",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "a troop of dozens of screaming monkeys, each one about her strength"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 81,
+    "zone": "cave_floor",
+    "level": "full",
+    "cue": "sight",
+    "kind": "attack",
+    "actorId": "player",
+    "target": "wyn",
+    "outcome": "hit"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn killed a lone monkey for food. Its scream brought the whole troop.",
+   "Dozens of monkeys now close in on every side. They never stop once they are angry. Behind her is only a narrow dead-end crack. Each level she gains heals her."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "crack_mouth",
+    "links": [
+     {
+      "to": "cave_floor",
+      "sight": true
+     },
+     {
+      "to": "crack",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "crack",
+    "links": [
+     {
+      "to": "crack_mouth",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "cave_floor",
+    "links": [
+     {
+      "to": "crack_mouth",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "crack_mouth",
+    "name": "crack mouth",
+    "look": "the mouth of a narrow dead-end crack in the wall; only one monkey at a time could fit",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "cave_floor",
+      "label": "out to the cave floor",
+      "sight": true
+     },
+     {
+      "to": "crack",
+      "label": "back into the crack",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "crack",
+    "name": "dead-end crack",
+    "look": "a narrow crack that ends in solid rock",
+    "cover": "full",
+    "light": "dark",
+    "links": [
+     {
+      "to": "crack_mouth",
+      "label": "out to the mouth",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "cave_floor",
+    "name": "cave floor",
+    "look": "an open cave floor, now full of monkeys",
+    "cover": "none",
+    "light": "dim",
+    "links": [
+     {
+      "to": "crack_mouth",
+      "label": "to the crack mouth",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a troop of dozens of screaming monkeys, each one about her strength",
+    "pronouns": "it",
+    "zone": "cave_floor",
+    "level": "full",
+    "activityLook": "pouring in from every side, closing the ring around her"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

@@ -1,0 +1,168 @@
+{
+ "case": "VT-S8",
+ "pass": "Stays out of the wyrm's way: hides, keeps still, or slips off quietly, perhaps while the fleeing monsters draw its eye. Does not attack it, and does not move toward it. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 60,
+  "time": {
+   "day": 7,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "rubble",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "cavern",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a colossal earth wyrm, armoured in rock plates"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Humans burned Wyn out of her web home; fleeing them, she fell down a shaft into the labyrinth's lower layer, where every monster is far stronger than her.",
+   "A huge earth wyrm has just come into the cavern and is tearing apart the monsters around it. It has not noticed her yet."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "rubble",
+    "links": [
+     {
+      "to": "cavern",
+      "sight": true
+     },
+     {
+      "to": "side_tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "cavern",
+    "links": [
+     {
+      "to": "rubble",
+      "sight": true
+     },
+     {
+      "to": "side_tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "side_tunnel",
+    "links": [
+     {
+      "to": "rubble",
+      "sight": true
+     },
+     {
+      "to": "cavern",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "rubble",
+    "name": "rubble pile",
+    "look": "fallen rocks at the foot of the shaft, full of gaps a small spider could squeeze into",
+    "cover": "full",
+    "light": "dark",
+    "links": [
+     {
+      "to": "cavern",
+      "label": "out into the cavern",
+      "sight": true
+     },
+     {
+      "to": "side_tunnel",
+      "label": "a narrow side tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "cavern",
+    "name": "great cavern",
+    "look": "a vast cavern littered with dead monsters",
+    "cover": "none",
+    "light": "dim",
+    "links": [
+     {
+      "to": "rubble",
+      "label": "back to the rubble",
+      "sight": true
+     },
+     {
+      "to": "side_tunnel",
+      "label": "across to the side tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "side_tunnel",
+    "name": "side tunnel",
+    "look": "a narrow crack leading away from the cavern",
+    "cover": "partial",
+    "light": "dark",
+    "links": [
+     {
+      "to": "rubble",
+      "label": "back to the rubble",
+      "sight": true
+     },
+     {
+      "to": "cavern",
+      "label": "out into the cavern",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a colossal earth wyrm, armoured in rock plates",
+    "pronouns": "it",
+    "zone": "cavern",
+    "level": "full",
+    "activityLook": "crushing a monster in its jaws while others scatter in every direction"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

@@ -1,0 +1,162 @@
+{
+ "case": "VT-S12",
+ "pass": "Goes after the catfish with a trick from safety: poison bait, poison balls or poison thrown or spat from the shore, or another ploy that makes it swallow or meet her poison. Does not fight it in plain melee, does not go into the lava, and does not turn back from the lake path. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 125,
+  "time": {
+   "day": 13,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "shore_rock",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "lava_lake",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "a giant catfish that swims in lava"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 124,
+    "zone": "shore_rock",
+    "level": "full",
+    "cue": "sight",
+    "kind": "attack",
+    "actorId": "player",
+    "target": "wyn",
+    "outcome": "dodged"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "The only way onward runs along the shore of a lava lake. Giant catfish leap out of the lava and snap at anything on the shore.",
+   "Her thread burns up near lava, so webs are useless here. She can now make her own poison, in drops or balls, and she wants the levels these fish would give her."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "shore_rock",
+    "links": [
+     {
+      "to": "lava_lake",
+      "sight": true
+     },
+     {
+      "to": "shore_path",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "lava_lake",
+    "links": [
+     {
+      "to": "shore_rock",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "shore_path",
+    "links": [
+     {
+      "to": "shore_rock",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "shore_rock",
+    "name": "shore rock",
+    "look": "a raised rock at the lake edge, a few steps from the lava",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "lava_lake",
+      "label": "into the lava lake",
+      "sight": true
+     },
+     {
+      "to": "shore_path",
+      "label": "along the shore path",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "lava_lake",
+    "name": "lava lake",
+    "look": "a lake of molten rock",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "shore_rock",
+      "label": "to the shore rock",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "shore_path",
+    "name": "shore path",
+    "look": "a narrow path along the lake edge, the only way on",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "shore_rock",
+      "label": "back to the shore rock",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a giant catfish that swims in lava",
+    "pronouns": "it",
+    "zone": "lava_lake",
+    "level": "full",
+    "activityLook": "circling just under the lava surface by the shore, mouth gaping"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

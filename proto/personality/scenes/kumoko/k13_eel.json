@@ -1,0 +1,117 @@
+{
+ "case": "VT-S13",
+ "pass": "Gets out of sight before resting or evolving: crawls into the eel's body or another hidden spot this turn. Does not evolve or sleep out in the open, and does not move on to hunt or explore while hurt. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 140,
+  "time": {
+   "day": 15,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "shore",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "badly hurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "shore",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "the huge dead body of a lava eel, hollowed out by her bites"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has just killed a giant lava eel after a long, hard fight, using a new skill that showed her its moves a few seconds ahead. She is badly hurt.",
+   "She can evolve now, into a much stronger form, but evolving puts her into a helpless sleep for hours. Other fire monsters roam this shore. The eel's body is big enough to crawl inside."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "shore",
+    "links": [
+     {
+      "to": "tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "tunnel",
+    "links": [
+     {
+      "to": "shore",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "shore",
+    "name": "lava shore",
+    "look": "an open stretch of black rock by the lava",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "tunnel",
+      "label": "into a side tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "tunnel",
+    "name": "side tunnel",
+    "look": "a tunnel leading on into the middle layer",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "shore",
+      "label": "back to the shore",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "the huge dead body of a lava eel, hollowed out by her bites",
+    "pronouns": "it",
+    "zone": "shore",
+    "level": "full",
+    "activityLook": "lying dead on the shore, its body big and hollow"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}
