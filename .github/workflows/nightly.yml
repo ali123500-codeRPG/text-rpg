@@ -1,0 +1,21 @@
+name: Nightly
+# TQ2: the large soak run, new seeds every night (a failure prints its world and seed to replay)
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/soak
+        env:
+          SOAK_SEEDS: 25
+          SOAK_TURNS: 200
+          SOAK_FIRST_SEED: ${{ github.run_number }}000
