@@ -264,6 +264,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       busy = true;
       if (/^end\b/i.test(text)) ending = { as: 'resolved', name: 'resolved' }; // the ending's rule draws while the turn runs (SD1)
       emit();
+      // "punch the man": the game asks back which man, naming the guard and the field, to show the tappable names (no turn)
+      if (/^(i )?punch the man\b/i.test(text)) { lines = [...lines, { turn: t, kind: 'clarify', text: 'Which man do you mean to punch: the village guard by the door, or do you mean the slime?' }]; busy = false; emit(); return; }
       await new Promise((r) => setTimeout(r, 600));
       ending = null;
       const ended = /^end\b/i.test(text) ? endTurn(state) : null;
