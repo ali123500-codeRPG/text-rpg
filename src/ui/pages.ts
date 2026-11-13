@@ -6,7 +6,7 @@ import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
-import { achLevel, achXp, achievementName, earnedAtText } from '../engine/xp';
+import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
 import { rewardName, rewardPos } from '../ruleset/achRewards';
 import { CONFIG } from '../config';
@@ -42,11 +42,12 @@ type Spec = {
   top?: (redraw: () => void) => HTMLElement; // above the title: the page's sub-tabs
   lead?: (s: GameState) => HTMLElement; // under the title, above the tiles: the Inventory's equipment panel
   noTiles?: true; // no visibility tiles: the table alone (the Inventory, where the boxes only repeated the group counts)
+  startOpen?: true; // every group starts open, so the rows themselves show; a heading the player closes stays closed
 };
 
 export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: () => void } {
   const picks: Record<string, VisState> = {};
-  const open = new Set<string>();
+  const open = new Set<string>(), seen = new Set<string>();
   const sort = { key: spec.cols[0].key, dir: 0 as 0 | 1 | -1 };
   const el = h('main');
   const how = h('p', { class: 'how', hidden: true });
@@ -55,6 +56,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, spec.title), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const all = spec.groups(s);
+    if (spec.startOpen) for (const g of all) if (!seen.has(g.id)) { seen.add(g.id); open.add(g.id); }
     const tileOf = spec.tileOf;
     const shown = tileOf ? all.map((g) => ({ ...g, rows: g.rows.filter((r) => visPass(tileOf(s, r), picks)) })).filter((g) => g.rows.length) : all.filter((g) => visPass(g.id, picks));
     const onOpen = (id: string) => {
@@ -76,7 +78,8 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     const count = shown.reduce((a, g) => a + g.rows.length, 0);
     const hint = picked.length
       ? [h('span', {}, `${plural(count, spec.noun[0], spec.noun[1])} shown · `), h('button', { class: 'hs-btn-text', type: 'button', style: 'min-height:0', onclick: () => { for (const k of Object.keys(picks)) delete picks[k]; update(); } }, 'Clear')]
-      : spec.noTiles ? 'Click a heading to open its rows.' : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
+      : spec.noTiles ? 'Click a heading to open its rows.' : spec.startOpen ? 'Click one to see how it is earned. Click a box: once for Shown, twice for Left out, three times to clear.'
+        : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
     el.replaceChildren(
       ...(spec.top ? [spec.top(update)] : []),
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
@@ -493,7 +496,9 @@ export function achievementsPage(api: GameApi) {
     get empty() { return scars ? 'No scars yet.' : 'No achievements yet. Defeat foes, win fights, strike deals and explore.'; },
     get panelTitle() { return scars ? 'Scar' : 'Achievement'; },
     top: (redraw) => h('div', { class: 'pk-tabs', role: 'tablist' }, tab(false, 'Achievements', redraw), tab(true, 'Scars', redraw)),
+    startOpen: true,
     cols: [{ key: 'name', title: 'Name' }, { key: 'state', title: 'State' }, { key: 'turn', title: 'Earned' }],
+    detail: (s, id) => achievementDetail(s, id),
     groups: (s) => {
       const lib = getLibrary().achievements ?? {};
       const mine = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars);
@@ -513,6 +518,45 @@ export function achievementsPage(api: GameApi) {
       return scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, ${xp} XP` : `${xp} XP earned this way`;
     },
   });
+}
+
+/** the chain an achievement belongs to, lowest level first: each row's `after` names the level below it */
+export function achievementChain(key: string): string[] {
+  const lib = getLibrary().achievements ?? {};
+  const down: string[] = [];
+  for (let k: string | undefined = key; k && lib[k] && !down.includes(k); k = lib[k].after) down.unshift(k);
+  const chain = [...down];
+  for (let k = key; ;) {
+    const next = Object.keys(lib).find((n) => lib[n].after === k && !chain.includes(n));
+    if (!next) break;
+    chain.push(next); k = next;
+  }
+  return chain;
+}
+
+/** the side panel for an earned achievement: how it is earned, when you earned it, what it pays, and every level of its chain
+ * with how each is earned and whether you have it */
+export function achievementDetail(s: GameState, id: string): PanelRow[] {
+  const a = (s.player.progression?.achievements ?? []).find((x) => x.id === id);
+  if (!a?.key) return [];
+  const info = achievementInfo(s, a);
+  const rows: PanelRow[] = [
+    { k: 'How it is earned', v: cap(info.earnedAt) },
+    { k: 'You earned it', v: info.why },
+    { k: 'Reward', v: [`Level ${info.levelName} · ${info.xp} XP`, ...info.rewards].join(' · ') },
+  ];
+  const levels = achievementLevels(s, a.key, a.of);
+  if (levels.length > 1) rows.push({ k: 'Every level', v: h('ol', { class: 'ach-chain' }, levels.map((l) =>
+    h('li', { class: l.got ? 'got' : '' }, h('b', {}, l.name), ` · ${l.earnedAt} · Level ${l.level}`, l.got ? ' · earned' : ''))) });
+  return rows;
+}
+
+/** every level of an achievement's chain for one kind (`of`): its name, how it is earned, its reward level, and whether you have it */
+export function achievementLevels(s: GameState, key: string, of?: string): { name: string; earnedAt: string; level: string; got: boolean }[] {
+  const lib = getLibrary().achievements ?? {};
+  const mine = s.player.progression?.achievements ?? [];
+  return achievementChain(key).map((k) => ({ name: achievementName(s, { id: '', key: k, of }), earnedAt: cap(earnedAtText(s, lib[k], of)),
+    level: rewardName(achLevel(lib[k], of)), got: mine.some((m) => m.key === k && (m.of ?? '') === (of ?? '')) }));
 }
 
 // ---------- Journal (Voyage U26, U28) ----------

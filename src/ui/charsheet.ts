@@ -6,7 +6,7 @@ import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { defenseItem } from '../ruleset/gear';
-import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
+import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { essenceSlots, essenceText } from '../engine/essence';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
@@ -118,11 +118,8 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
-    personalityBlock(p),
-    h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Achievements'),
-      (p.progression?.achievements ?? []).length
-        ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`, a.replacedBy ? ' · replaced by the next level' : ''))
-        : h('span', {}, 'None yet')));
+    // earned achievements live on their own page (Achievements in the rail), not on the card
+    personalityBlock(p));
 }
 
 /** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. A class at
