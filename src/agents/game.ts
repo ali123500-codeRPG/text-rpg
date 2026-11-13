@@ -26,7 +26,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { LIGHT_SLEEPER } from '../engine/sleep';
-import { actorById, zoneById } from '../engine/relations';
+import { actorById, isActive, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
@@ -827,9 +827,11 @@ function zoneDistances(s: GameState, from: string): Map<string, number> {
 export function plannerActors(s: GameState): string[] {
   const dist = zoneDistances(s, s.player.zone);
   const dealt = (s.hidden.agreements ?? []).flatMap((g) => g.parties).filter((id) => id !== s.player.id && !s.pending.engaged.includes(id));
-  return [...s.pending.engaged, ...new Set(dealt)]
+  const errand = (a: Actor) => (a.mind?.errandUntil ?? -Infinity) > s.turn; // BG-180: a deed it said it was doing, run by code or not
+  const errands = s.actors.filter((a) => errand(a) && isActive(a)).map((a) => a.id);
+  return [...new Set([...s.pending.engaged, ...dealt, ...errands])]
     .map((id) => s.actors.find((a) => a.id === id))
-    .filter((a): a is Actor => !!a && a.mind?.control === 'agent' && a.mind.moraleState !== 'broken' && !a.asleep) // NW20: a sleeper is not asked
+    .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep) // NW20: a sleeper is not asked
     .sort((a, b) => (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
 }

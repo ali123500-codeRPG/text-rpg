@@ -501,6 +501,7 @@ const DEFAULTS = {
   GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item
   // ---- Part 2 engine ----
   LIE_PLAIN_GAP: 2, // BF8: a lie seen through by this many tiers or more is plainly a lie; a narrower win gives the hint
+  ERRAND_TURNS: 3, // BG-180: after an NPC answers someone with a deed under way, it gets Planner calls this many turns (a hold ends it)
   AGENT_STAY_TURNS: 3, // BF11: a place an NPC's own agent moved it to holds this many turns, unless its agent decides again
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)
   MAX_PLANNER_CALLS: 3, // Q2 (D-18)

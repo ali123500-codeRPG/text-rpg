@@ -163,6 +163,10 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
     const a = actorById(state, ev.actorId), o = ctx.orders.get(ev.actorId), near = a && o ? reachOf(state, a, o) : null;
     if (a && near) ev.metres = Math.round(Math.max(0, distM(state, a, near.at) - near.m) * 10) / 10;
   }
+  // BG-181: an NPC keeps its last wasted try (and why) in mind until it next does that kind of thing
+  const m = actorById(state, ev.actorId)?.mind, tried = ctx.orders.get(ev.actorId)?.type;
+  if (m && tried && ev.kind === 'wasted' && ev.reason) m.lastWasted = { turn: state.turn, action: tried, reason: ev.reason };
+  else if (m?.lastWasted && ev.kind === m.lastWasted.action) delete m.lastWasted;
   // BG-132: one order's words are said once a turn, whichever of its events carries them first
   if (ev.line && ev.bark && ctx.events.some((e) => e.actorId === ev.actorId && e.line?.text === ev.line!.text)) { delete ev.line; delete ev.bark; }
   // BF3: a whisper to someone it does not reach, even after stepping up, is said low enough for them to hear; BG-154: to
@@ -755,6 +759,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
   } else {
     applyHealing(state, t, row.id);
+    t.core.condition.tended = { turn: state.turn, by: a.id, itemId: inst.itemId }; // BG-181: the binding shows
     inst.qty = (inst.qty ?? 1) - 1;
     if (inst.qty <= 0) a.core.inventory.splice(a.core.inventory.indexOf(inst), 1);
     ev.effects.push({ kind: 'healed', actorId: t.id, data: { source: row.id } });

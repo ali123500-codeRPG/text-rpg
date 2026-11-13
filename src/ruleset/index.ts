@@ -444,6 +444,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   const add = lostBefore + (counted / hp) * 100;
   const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : deathsDoor(state, T, T.core.condition.hpLostPct, add); // a destroyed essential part kills
   T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
+  if (counted > 0) delete T.core.condition.tended; // BG-181: a new wound is not tended
   // achievements count the player's HP lost as a flat number (the health % lost of total HP)
   if (T === state.player && T.core.condition.hpLostPct > lostBefore) tally(state, 'hp_lost', { add: ((T.core.condition.hpLostPct - lostBefore) / 100) * hp });
   const levelAfter = healthLevel(T);
