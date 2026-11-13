@@ -34,7 +34,10 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const zones = new Set([view.zone.id, ...view.zone.links.map((l) => l.to), ...view.zones.map((z) => z.id)]);
   const actors = new Set(view.actors.map((a) => a.id));
   // BG-61: someone the player was just talking with can be spoken to though out of sight (a voice through a barred door)
-  const talking = new Set([...actors, ...(view.talkingWith ?? []).map((t) => t.id)]);
+  // OA3 (runs 93b, 96b): someone out of sight now can be spoken to on a turn whose move goes to where they were last seen
+  // ("I go back inside and ask Marta ..."): the words are said after the walk, to whoever is really there
+  const goingTo = (l: { zone: string }) => !!intent.move && !intent.move.after && intent.move.toZone === l.zone;
+  const talking = new Set([...actors, ...(view.talkingWith ?? []).map((t) => t.id), ...(view.lastSeen ?? []).filter(goingTo).map((l) => l.id)]);
   const isSpeechType = (t: string) => (SPEECH_ACTIONS as readonly string[]).includes(t);
   const dead = new Set(view.actors.filter((a) => a.health === 'dead').map((a) => a.id));
   const own = view.player.inventory;

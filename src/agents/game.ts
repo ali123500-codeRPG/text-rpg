@@ -328,14 +328,14 @@ export function createGame(deps: GameDeps): Game {
     }
     const rngBefore = s.rngState;
     const rng = createRng(s.rngState);
-    const quick = engine.quickWord(s, intent); // A15: a line beside a fight action, replied to for free
+    const quick = engine.quickWord(s, intent); // A15 in a fight, OA1 asides outside one: a line beside a deed, replied to for free
     const speech = !!intent.action && ((SPEECH_ACTIONS as readonly string[]).includes(intent.action.type) || quick) && !!intent.addressees?.length;
     const spokespeople = speech ? engine.selectSpokespeople(s, intent) : [];
     if (spokespeople.length) s.stage.partner = spokespeople[0]; // OQ-27 (c): sticky partner for the next lines
     const agentOutputs: AcceptedAgentOutput[] = [];
     let exchange: ExchangeSpeech | undefined;
     if (spokespeople.length) {
-      if (!quick) s.mode = 'dialogue';
+      if (!quick || s.mode !== 'tactical') s.mode = 'dialogue';
       for (const id of spokespeople) {
         const bg = background.get(id);
         if (bg && !bg.collected) drop(bg, 'unused');
