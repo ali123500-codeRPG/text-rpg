@@ -5,7 +5,7 @@ import { personalityText } from '../ruleset/personality';
 import { ageText, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -22,6 +22,7 @@ import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, is
 import { knownDestinations } from '../engine/trail';
 import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
+import { contentsOf, wornPack } from '../engine/containers';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
@@ -77,8 +78,17 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
-    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })), // SE8
+    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name, ...containerOf(state, i, viewer) })), // SE8
   };
+}
+/** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
+function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: ItemInstance[] = i.contents ?? []): { container?: ContainerView } {
+  if (!itemDef(state, i.itemId).container) return {};
+  const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const } : {};
+  const key = viewer && i.lock && viewer.core.inventory.some((k) => k.opens?.includes(i.id)) ? { key: true as const } : {};
+  const shows = !viewer || i.open;
+  return { container: { ...(i.open ? { open: true as const } : {}), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
+    ...(shows ? { contents: inside.map((c) => ({ id: c.id, name: itemDef(state, c.itemId).name })) } : {}) } };
 }
 const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));
 
@@ -110,12 +120,13 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
       ...(d.stackable ? { qty: i.qty ?? 1 } : {}),
+      ...(d.container && !wornPack(i) ? containerOf(state, { ...i, open: true }, a) : {}), // CT3: one's own sack is always open to one
     };
   });
 }
 
-/** Part 5 §8: held items, shield and armor by look; accessories only when visible; concealed only once revealed; stowed
- * only once found (SE11) */
+/** Part 5 §8: held items, shield and armor by look; accessories only when visible; concealed only once revealed; a worn
+ * pack (CT7); stowed only once found (SE11), or once its pack stands open */
 function seenGear(state: GameState, a: Actor, revealed: string[]): SeenGearView[] {
   const out: SeenGearView[] = [];
   for (const i of a.core.inventory) {
@@ -123,8 +134,9 @@ function seenGear(state: GameState, a: Actor, revealed: string[]): SeenGearView[
     const d = itemDef(state, i.itemId);
     if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried' }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
-    const where = slot.startsWith('grip:') ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : slot.startsWith('acc:') && d.visible ? 'accessory' : null;
-    if (where) out.push({ id: i.id, name: d.name, look: d.look, where });
+    const where = slot.startsWith('grip:') ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : slot.startsWith('acc:') && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
+    // CT5/CT7: a worn pack shows; once opened (its wearer downed or yielded), what it holds shows in it
+    if (where) out.push({ id: i.id, name: d.name, look: d.look, where, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
   }
   return out;
 }
@@ -597,7 +609,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.spot ? { spot: e.spot } : {}),
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
-      ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: { what: e.way.barrier ? barrierName(state.barriers![e.way.barrier]) : 'way', did: WAY_WORDS[e.way.did], to: zoneById(state, e.way.to)?.name ?? e.way.to } } : {}),
+      ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: wayWords(state, e.way) } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(full && e.toGo ? { toGo: e.toGo } : {}),
@@ -642,6 +654,11 @@ function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<Weaver
     remembered: state.actors.filter((a) => state.stage.zoneIds.includes(a.zone)).flatMap((a) =>
       (state.hidden.memory[a.id] ?? []).filter((m) => m.turn >= f.startTurn).map((m) => ({ who: a.id, turn: m.turn, text: m.text }))),
   };
+}
+/** SD3–SD5, BA2: what was done at a barrier, or (CT3) at a container's lock, for the Narrator */
+function wayWords(state: GameState, w: NonNullable<GameEvent['way']>): NonNullable<NarrationEvent['way']> {
+  const box = !w.barrier ? itemName(state, w.to) : undefined;
+  return { what: w.barrier ? barrierName(state.barriers![w.barrier]) : box ? `${box}'s lock` : 'way', did: WAY_WORDS[w.did], to: box ?? zoneById(state, w.to)?.name ?? w.to };
 }
 /** SD3–SD5, BA2: what was done at a barrier, for the Narrator */
 const WAY_WORDS: Record<WayDid, string> = {
@@ -714,7 +731,8 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
   // D-220: the Weaver placing Threadbound items is parked, so they stay out of its catalog
-  const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).filter((i) => !i.threadbound).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
+  const box = (i: ItemDef) => (i.container ? { container: i.container.worn ? 'worn' : i.container.fixed ? 'fixed' : 'carried' } : {}); // CT2
+  const items = new Map<string, { id: string; name: string; kind: string; boon: number; container?: string }>(Object.values(lib.items).filter((i) => !i.threadbound).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i), ...box(i) }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
   return {
     tier: tierName({ tier: state.stage.tier, ...(state.stage.tierBeyond ? { beyond: state.stage.tierBeyond } : {}) }),

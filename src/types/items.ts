@@ -38,6 +38,9 @@ export type ItemDef = {
   /** D-218 Threadbound item: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
    * grant's perk is theirs once they have earned its achievement (src/ruleset/threadboundItems.ts) */
   threadbound?: { rank: import('../scales').ThreadboundRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // rank: TB11, its Rank (THREADBOUND_RANKS)
+  /** CT1: it holds other items. worn: a pack worn on the back (CT7: its wearer's stowed items are its contents); fixed:
+   * it stands in a zone and can't be picked up (a chest); neither: carried or set down (a sack) */
+  container?: { worn?: true; fixed?: true };
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
@@ -86,10 +89,21 @@ export type ItemInstance = {
   at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
   hiddenAt?: import('./core').TierRoll; // SE8/SE9: lying hidden: a search must beat this outcome tier to find it (a tie gives a hint)
   knownTo?: string[]; // SE8: who knows where a hidden item lies (its stasher, anyone who saw it stashed or found it)
+  /** CT1: a container's contents (a worn pack has none of its own: its wearer's stowed items are in it) */
+  contents?: ItemInstance[];
+  /** CT1/CT4: the actor a container belongs to; opening or taking from it while they are up and watching is theft */
+  owner?: string;
+  /** CT3: a container's lid stands open: its contents can be seen and taken */
+  open?: true;
+  /** CT3: a locked container: a key naming it (opens) or a Lockpicking roll at its grade opens it, as a lock on a way (BA2) */
+  lock?: { locked: boolean };
+  grade?: import('./core').Grade;
+  beyond?: Record<string, number>; // BA2, as on a barrier
+  work?: Record<string, number>; // BA2, as on a barrier
 };
 
 export type GearOp = {
   op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon'; // summon: TB6, the player's own Threadbound item, from wherever it is
   item: string; // item instance id
-  from?: string; // actor id (pick up from a downed actor) ; absent = ground
+  from?: string; // actor id (pick up from a downed or yielded actor); absent = the ground or an open container (CT3)
 };

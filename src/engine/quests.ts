@@ -20,7 +20,7 @@ export const isOpen = (q: Quest) => q.state === 'active' || q.state === 'ready';
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
 const whole = (n: number | null | undefined, min = 1) => Math.max(min, Math.floor(n ?? min));
 const norm = (s: string) => s.trim().toLowerCase().replace(/s$/, '');
-const instances = (state: GameState) => [...allActors(state).flatMap((a) => a.core.inventory), ...state.zones.flatMap((z) => z.groundItems)];
+const instances = (state: GameState) => [...allActors(state).flatMap((a) => a.core.inventory), ...state.zones.flatMap((z) => z.groundItems)].flatMap((i) => [i, ...(i.contents ?? [])]); // CT1: and what containers hold
 
 /** a library row by id, or by its name (singular or plural) */
 function libKey(rows: Record<string, { name: string }> | undefined, t: string): string | undefined {

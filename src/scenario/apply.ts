@@ -21,7 +21,8 @@ import { buildActorView } from '../views';
 import { actorById, atLeast, isActive, zoneById } from '../engine/relations';
 import { startSpar } from '../engine/spar';
 import type { PlanContext, PlanError } from './index';
-import { stageFrontiers, tidyRewards } from './validate';
+import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
+import { wornPack } from '../engine/containers';
 import { requirement } from '../ruleset/requirements';
 import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
@@ -377,6 +378,26 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (holder) holder.core.inventory.push({ id: `key_${b.id}_${holder.id}`, itemId: IT.key, opens: [b.id] });
   }
 
+  // ---- CT2: containers (a worn pack is put on by a carrier who wears none), their owners, locks and keys ----
+  const boxes = new Map<string, { inst: ItemInstance; holder?: Actor }>();
+  const tc = tidyContainers(state, plan);
+  if (tc.notes.length) state.log.push({ turn, code: 'container_repaired', detail: { notes: tc.notes.map((e) => e.message) } });
+  for (const c of tc.containers) {
+    const inst: ItemInstance = { id: `ct${turn}_${c.key}`, itemId: c.item, ...(c.owner ? { owner: actorRef(c.owner) } : {}),
+      ...(c.locked ? { lock: { locked: true }, grade: c.locked.grade ?? 'minor' } : {}) };
+    const pl = c.place as { carriedBy?: string; groundIn?: string };
+    const holder = pl.carriedBy !== undefined ? actorById(state, actorRef(pl.carriedBy)) : undefined;
+    if (holder) {
+      if (itemDef(state, c.item).container?.worn && !holder.core.inventory.some(wornPack)) inst.equippedIn = ['pack'];
+      holder.core.inventory.push(inst);
+    } else zoneById(state, zoneRef(pl.groundIn!))!.groundItems.push(inst);
+    boxes.set(c.key, { inst, ...(holder ? { holder } : {}) });
+    for (const k of c.locked?.keys ?? []) {
+      const kh = actorById(state, actorRef(k));
+      if (kh) kh.core.inventory.push({ id: `key_${inst.id}_${kh.id}`, itemId: IT.key, opens: [inst.id] });
+    }
+  }
+
   // ---- rewards ----
   const { rewards, notes } = tidyRewards(state, plan);
   if (notes.length) state.log.push({ turn, code: 'reward_repaired', detail: { notes: notes.map((e) => e.message) } });
@@ -386,8 +407,11 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const qty = r.qty ?? 1;
     const id = `rw${turn}_${i}_${itemId}`;
     const insts: ItemInstance[] = def.stackable ? [{ id, itemId, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId }));
-    const pl = r.place as { carriedBy?: string; groundIn?: string; hiddenAt?: Tier };
-    if (pl.carriedBy !== undefined) actorById(state, actorRef(pl.carriedBy))!.core.inventory.push(...insts);
+    const pl = r.place as { carriedBy?: string; groundIn?: string; hiddenAt?: Tier; in?: string };
+    const box = pl.in !== undefined ? boxes.get(pl.in) : undefined;
+    // CT7: what goes into a worn pack is its wearer's stowed gear; into any other container, its contents
+    if (box) { if (box.holder && wornPack(box.inst)) box.holder.core.inventory.push(...insts); else (box.inst.contents ??= []).push(...insts); }
+    else if (pl.carriedBy !== undefined) actorById(state, actorRef(pl.carriedBy))!.core.inventory.push(...insts);
     else zoneById(state, zoneRef(pl.groundIn!))!.groundItems.push(...insts.map((x) => (pl.hiddenAt ? { ...x, hiddenAt: { tier: pl.hiddenAt }, knownTo: [] } : x))); // SE8
   });
 

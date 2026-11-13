@@ -6,7 +6,8 @@ import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
 import { working } from '../ruleset/body';
-import { actorById, isActive, zoneById } from './relations';
+import { actorById, isActive, stance, zoneById } from './relations';
+import { inContainer, packUp, wearIfNone, wornPack } from './containers';
 import { withinGrip, type Located, type Pos } from './position';
 import { gripReachM } from '../ruleset/body';
 export { gripReachM };
@@ -21,14 +22,18 @@ export function gripParts(state: GameState, actor: Actor): string[] {
 /** SE8: a hidden ground item `a` doesn't know of: out of its view and its reach until a search finds it */
 export const hiddenFrom = (i: ItemInstance, a: { id: string }): boolean => !!i.hiddenAt && !i.knownTo?.includes(a.id);
 
-/** FR2: where a pick-up op's item is: on a downed actor (their spot) or on the ground (its point; one placed with no point
- * lies at its zone's centre, as spotOf reads a spot with none) */
-export function pickUpAt(state: GameState, op: GearOp): Located | null {
-  if (op.from) { const src = actorById(state, op.from); return src && !isActive(src) ? src : null; }
+/** FR2: where a pick-up op's item is: on a downed actor, or (CT5) in the pack of one yielded to the taker (their spot);
+ * on the ground (its point; one placed with no point lies at its zone's centre, as spotOf reads a spot with none); or
+ * (CT3) in an open container (where it stands) */
+export function pickUpAt(state: GameState, op: GearOp, taker?: Actor): Located | null {
+  if (op.from) { const src = actorById(state, op.from); return src && (!isActive(src) || (!!taker && yieldedTo(state, src, taker))) ? src : null; }
   const z = state.zones.find((x) => x.groundItems.some((i) => i.id === op.item));
   const it = z?.groundItems.find((i) => i.id === op.item);
-  return z && it ? { zone: z.id, ...(it.at ? { pos: it.at } : {}) } : null;
+  if (z && it) return { zone: z.id, ...(it.at ? { pos: it.at } : {}) };
+  return taker ? inContainer(state, taker, op.item)?.c.at ?? null : null;
 }
+/** CT5: `src` yielded to `taker` and wears a pack: its pack (what it carries stowed) is open to them */
+const yieldedTo = (state: GameState, src: Actor, taker: Actor) => stance(state, src, taker) === 'yielded' && src.core.inventory.some(wornPack);
 
 function usableFreeHands(state: GameState, actor: Actor): string[] {
   const bad = new Set(partStates(state, actor).filter((p) => !working(p.state)).map((p) => p.id));
@@ -88,17 +93,24 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         if (ok) res.summoned.push(op.item);
         break;
       case 'pick_up': {
-        // FR2: within grip reach of where it lies (BG-85), on a downed actor or on the ground
-        const at = pickUpAt(state, op);
-        const list = !at || !withinGrip(state, actor, at) ? undefined : op.from ? actorById(state, op.from)!.core.inventory : zoneById(state, at.zone)?.groundItems;
+        // FR2: within grip reach of where it lies (BG-85), on a downed actor or on the ground; CT3: in an open container
+        const at = pickUpAt(state, op, actor);
+        const src = op.from ? actorById(state, op.from) : undefined;
+        const ground = at && !op.from ? zoneById(state, at.zone)?.groundItems : undefined;
+        const list = !at || !withinGrip(state, actor, at) ? undefined
+          : src ? src.core.inventory : ground?.some((x) => x.id === op.item) ? ground : inContainer(state, actor, op.item)?.list;
         const i = list?.findIndex((x) => x.id === op.item && !hiddenFrom(x, actor)) ?? -1;
-        if (list && i >= 0) {
+        const fixed = i >= 0 && !!itemDef(state, list![i].itemId).container?.fixed; // CT1: a chest stays where it stands
+        const guarded = i >= 0 && !!src && isActive(src) && !!list![i].equippedIn?.length; // CT5: a yielded owner's pack only
+        if (list && i >= 0 && !fixed && !guarded) {
           const [it] = list.splice(i, 1);
+          if (src && wornPack(it)) packUp(src, it); // CT7: a pack taken off its wearer takes what it holds
           delete it.equippedIn;
           delete it.at;
           delete it.hiddenAt;
           delete it.knownTo;
           actor.core.inventory.push(it);
+          wearIfNone(state, actor, it);
           res.picked.push({ itemId: it.id, from: op.from });
           ok = true;
         }

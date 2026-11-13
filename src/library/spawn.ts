@@ -185,7 +185,7 @@ export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyType
 
 /** The starter kit: after creation the player gets, for each gear class, the highest-level item tagged 'starter'
  * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
- * that weapon takes two hands; worn: the highest-level armor met. The rest is carried. */
+ * that weapon takes two hands; worn: the highest-level armor met, and a plain pack (CT7) that holds the rest. */
 export function starterKit(a: Actor): ItemInstance[] {
   const lib = getLibrary();
   const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
@@ -208,7 +208,7 @@ export function starterKit(a: Actor): ItemInstance[] {
     if (d.shield) inst.pools = { shield: 100 };
     if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
     return inst;
-  });
+  }).concat({ id: 'player_pack', itemId: IT.pack, equippedIn: ['pack'] }); // CT7: a worn pack holds what they carry
 }
 
 /** a new sheet's standing defense from raw skill: the highest of block, parry and dodge (ties in that order). With a
