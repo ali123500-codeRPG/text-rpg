@@ -1,6 +1,6 @@
 // 191 Threadbound items (D-218): the Varo's Loop, one of a kind. It binds to the first who wears it; while its owner
-// wears it, each ability opens once the owner has earned its event-roll achievement. Every ability widens the event roll
-// both ways: wider natural edges, more tiers past each Critical, a spread die, and two armed actives.
+// wears it, each ability opens once the owner has earned its event-roll achievement. Its passives widen the event roll
+// both ways (wider natural edges, more tiers past each Critical, a spread die); its two actives fire by themselves on essence rolls.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { intent, play } from './w4-kit';
@@ -8,7 +8,8 @@ import { ruleset, tierName } from '../../src/ruleset';
 import { tierReach } from '../../src/ruleset/achRewards';
 import { syncThreadboundItemPerks } from '../../src/ruleset/threadboundItems';
 import { applyGearOps } from '../../src/engine/gear';
-import { perkMoveBlock } from '../../src/engine/perkMoves';
+import { offerRoll } from '../../src/engine/essence';
+import { PERK_MOVES } from '../../src/ruleset';
 import { tidyRewards } from '../../src/scenario/validate';
 import { advanceClock } from '../../src/time';
 import { ACH } from '../../src/library/achievementIds';
@@ -86,30 +87,25 @@ describe('191 the Varo\'s Loop', () => {
     expect(tierName(ev(s, 30))).toBe('Failure'); // 50.5 − 20.5 × 1.5 = 19.75
   });
 
-  it('Call the Toss: a free move that arms the next event roll to keep the die farther from the middle, once a day', () => {
+  it('Call the Toss fires by itself on an essence offer roll and keeps the die farther from the middle, once a day', () => {
     const s = worn([ACH.event_crit_2]);
-    expect(perkMoveBlock(s, s.player, PK.call_the_toss, null)).toBeNull();
-    play(s, { intent: intent({ perkMove: { perk: PK.call_the_toss, target: null } } as never) });
-    const inst = s.player.core.inventory.find((i) => i.id === LOOP)!;
-    expect(inst.armed).toBe(PK.call_the_toss);
-    expect(perkMoveBlock(s, s.player, PK.call_the_toss, null)).toBe('already_armed');
-    const r = ev(s, 55, 12);
-    expect(r.roll).toBe(12);
-    expect(r.armed).toBe(PK.call_the_toss);
-    expect(inst.armed).toBeUndefined();
-    expect(ev(s, 55, 12).roll).toBe(55); // used up
-    expect(perkMoveBlock(s, s.player, PK.call_the_toss, null)).toBe('cooldown');
+    const by = { state: s, actor: s.player };
+    expect(PERK_MOVES[PK.call_the_toss]).toBeUndefined(); // not a move any more
+    expect(offerRoll(forcedRng([55, 99]), 80, by)).toEqual({ grade: 'rare', past: 0 }); // 99 is farther from 50.5 than 55
+    expect(offerRoll(forcedRng([55, 99]), 80, by)).toBeNull(); // cooling down: 55 alone is a Near Miss
     advanceClock(s, 1440);
-    expect(perkMoveBlock(s, s.player, PK.call_the_toss, null)).toBeNull();
+    expect(offerRoll(forcedRng([55, 99]), 80, by)).toEqual({ grade: 'rare', past: 0 });
+    expect(ruleset.eventRoll(s.player, s, forcedRng([55, 99])).roll).toBe(55); // event rolls are untouched
   });
 
-  it('All or Nothing lands only on the Critical tiers', () => {
-    const s = worn([ACH.event_crit_3]);
-    const inst = s.player.core.inventory.find((i) => i.id === LOOP)!;
-    inst.armed = PK.all_or_nothing;
-    expect(tierName(ev(s, 51))).toBe('Critical Success');
-    inst.armed = PK.all_or_nothing;
-    expect(tierName(ev(s, 50))).toBe('Critical Failure');
+  it('All or Nothing fires first and lands an essence roll only on the Critical tiers; one ability per roll', () => {
+    const s = worn([ACH.event_crit_2, ACH.event_crit_3]);
+    const by = { state: s, actor: s.player };
+    expect(offerRoll(forcedRng([51]), 80, by)).toEqual({ grade: 'rare', past: 0 }); // All or Nothing
+    expect(offerRoll(forcedRng([55, 99]), 80, by)).toEqual({ grade: 'rare', past: 0 }); // now Call the Toss
+    expect(offerRoll(forcedRng([55, 99]), 80, by)).toBeNull(); // both cooling down
+    const t = worn([ACH.event_crit_3]);
+    expect(offerRoll(forcedRng([50]), 80, { state: t, actor: t.player })).toBeNull(); // Critical Failure: nothing
   });
 
   it('the Weaver does not place Threadbound items (D-220) and cannot mint one', () => {

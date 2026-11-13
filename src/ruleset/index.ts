@@ -183,16 +183,11 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
 // Part 1 §4: read on the normal roll table (MARGIN_BANDS, ER3), the margin being total − 50 with the placeholder base
 function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollResult['modifiers'] = []): EventRollResult {
   const modifiers = [...eventRollMods(state, actor), ...extra];
-  // D-218 variance perks (Threadbound items): wider natural edges, a spread die, and an armed active ability used up here
+  // D-218 variance perks (Threadbound items): wider natural edges and a spread die
   const perks = actor.core.perks.filter((p) => !p.dormant).map((p) => getLibrary().perks[p.perkId]).filter((x) => !!x);
   const edges = perks.reduce((n, x) => n + (x.eventEdges ?? 0), 0);
   const spread = Math.max(1, ...perks.map((x) => x.eventSpread ?? 1));
-  const inst = actor.core.inventory.find((i) => i.armed && i.boundTo === actor.id);
-  const armed = inst?.armed;
-  const arm = armed ? getLibrary().perks[armed]?.eventArm?.kind : undefined;
-  if (inst) delete inst.armed;
-  let d = rng.d100();
-  if (arm === 'farther') { const d2 = rng.d100(); if (Math.abs(d2 - 50.5) > Math.abs(d - 50.5)) d = d2; }
+  const d = rng.d100();
   const margin = 50.5 + (d - 50.5) * spread + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
   // past the Critical tiers only as far as perks and achievements open (tierUnlocks). Each tier opened widens the natural
   // critical range by EVENT_CRIT_NATURALS: with one opened above, 96-100 is Critical Success+ and 91-95 Critical Success
@@ -201,7 +196,7 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   // D-218 Loose Odds: the `edges` naturals just inside the critical range (however wide opened tiers make it) shift a tier outward
   const hi = 100 - (reach.up ? B * (reach.up + 1) : CONFIG.NATURAL_EDGE), lo = reach.down ? B * (reach.down + 1) : CONFIG.NATURAL_EDGE;
   const loose = d > hi - edges && d <= hi ? 1 : d > lo && d <= lo + edges ? -1 : 0;
-  let level = (arm === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(margin)) + naturalEdge(d) + loose;
+  let level = band(margin) + naturalEdge(d) + loose;
   if (reach.up && d > 100 - B * (reach.up + 1)) level = Math.max(level, top + reach.up - Math.floor((100 - d) / B));
   if (reach.down && d <= B * (reach.down + 1)) level = Math.min(level, -reach.down + Math.floor((d - 1) / B));
   level = Math.max(-reach.down, Math.min(top + reach.up, level));
@@ -209,7 +204,7 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   // the chains count how far past Critical you have reached: 1 = Critical, 2 = one + or −, and so on
   if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits', { to: 1 + (beyond ?? 0) });
   if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails', { to: 1 - (beyond ?? 0) });
-  return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers, ...(armed ? { armed } : {}) };
+  return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
 }
 
 /** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the
