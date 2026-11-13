@@ -84,7 +84,10 @@ export type SeenActor = {
   gear: SeenGearView[];
   wares?: WareView[]; // a seller the player sees, at the player's prices
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
+  doing?: DoingView; // AT11a: a long action it is at (full sight only)
 };
+/** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
+export type DoingView = { what: string; done: number; left: number };
 
 // ---------- PlayerView: Agent Parser ----------
 export type PlayerView = {
@@ -94,6 +97,7 @@ export type PlayerView = {
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
     summonable?: { id: string; name: string }[]; // TB6: the player's Threadbound items not on them (gear op summon)
+    doing?: DoingView; // AT2/AT11a: the long action the player is at (the same order again carries it on)
     perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound

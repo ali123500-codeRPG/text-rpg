@@ -414,6 +414,7 @@ Settled by Ali 13/11/2026 on the Action Time pages (part one https://claude.ai/a
 
 **What the player sees (AT11a, AT49; stage 4)**
 - The Play screen shows what each perceived character is doing: done, or the time left. An active move order shows with its goal and time left. Only what the player perceives; seconds and minutes only.
+- **Built so far (engine side).** A long action under way shows in the views as `doing` {what (the Action times row's name), done, left (whole seconds)}: on each fully seen actor (SeenActor.doing, in the PlayerView and NPC views) and on the player (PlayerView.player.doing; src/engine/busy.ts doingOf). The Parser is told (rule 23) that the same action again carries it on. The active move order waits for walks that carry on (AT49, stage 3).
 
 ### Game state model
 

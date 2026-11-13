@@ -1,5 +1,6 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import { actionRow } from '../ruleset/actionTime';
+import { doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
@@ -228,6 +229,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, revealedTo(viewer, a.id)),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
+      ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
     });
   }
   return out;
@@ -387,6 +389,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
+      ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p),
@@ -663,7 +666,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)

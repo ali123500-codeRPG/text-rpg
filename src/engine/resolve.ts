@@ -13,6 +13,7 @@ import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
+import { busyNow } from './busy';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
@@ -1256,8 +1257,6 @@ function mainLeft(ctx: Ctx, a: Actor): number {
 const busyKey = (row: DurationDef, o: Order): string => (o.type === 'attack' ? row.id : `${row.id}|${o.item ?? ''}|${o.target ?? ''}`);
 /** AT6/AT28: what is left of a long action broken off (or set aside) at this progress; lost when the row names nothing */
 const breakBand = (b: NonNullable<Actor['busy']>): string => actionRow(b.row)?.onBreak?.find((x) => b.done / b.need <= x.upTo + T_EPS)?.then ?? 'lost';
-/** AT47: an actor at a long action that goes on by itself (not paused) */
-export const busyNow = (a: Actor): boolean => !!a.busy && !a.busy.paused;
 /** AT47: the order that carries a long action on */
 const busyOrder = (a: Actor): Order => ({ actorId: a.id, type: a.busy!.order.type, target: a.busy!.order.target, item: a.busy!.order.item, skill: null, intent: 'busy', source: 'routine' });
 

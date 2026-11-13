@@ -10,7 +10,8 @@ import { DU } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
 import { actionRow, actionSeconds } from '../../src/ruleset/actionTime';
 import { plannerActors } from '../../src/agents/game';
-import { busyNow } from '../../src/engine/resolve';
+import { busyNow } from '../../src/engine/busy';
+import { buildPlayerView } from '../../src/views';
 import type { GameState } from '../../src/types';
 
 const fightReady = () => {
@@ -37,6 +38,7 @@ describe('270 long actions', () => {
       const ev = play(s, { intent: bandage() });
       expect(ev.find((e) => e.actorId === 'player' && e.kind === 'busy')?.busy).toMatchObject({ done: i * CONFIG.FIGHT_TURN_S, need });
       expect(s.player.core.condition.hpLostPct).toBeCloseTo(30, 1); // only natural recovery
+      expect(buildPlayerView(s).player.doing).toEqual({ what: 'Bandage', done: i * CONFIG.FIGHT_TURN_S, left: need - i * CONFIG.FIGHT_TURN_S }); // stage 4
     }
     play(s, { intent: bandage() });
     expect(s.player.busy).toBeUndefined();
@@ -68,6 +70,7 @@ describe('270 long actions', () => {
     play(s, { intent: intent(), agentOutputs: [plannerOut('guard_1', act('attack', 'player'))] });
     expect(g.busy?.row).toBe(DU.span_crossbow);
     expect(g.busy?.paused).toBeUndefined();
+    expect(buildPlayerView(s).actors.find((x) => x.id === 'guard_1')?.doing?.what).toBe('Span a crossbow'); // stage 4: what the player sees them at
     expect(plannerActors(s)).not.toContain('guard_1');
     const before = g.busy!.done;
     play(s, { intent: intent() }); // no Planner output: the spanning goes on
