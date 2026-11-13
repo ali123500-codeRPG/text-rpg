@@ -63,6 +63,19 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('coming back to Play from another page shows the latest lines (BG-191)', async () => {
+    await page.setViewportSize({ width: 1400, height: 420 }); // a short window, so the story overflows
+    for (let n = 1; n <= 4; n++) await turn('look around', n);
+    await nav('Bugs');
+    await page.getByPlaceholder(/What went wrong/).waitFor();
+    await nav('Play');
+    await page.getByText(/^Turn 4 /).waitFor();
+    const gap = await page.locator('.story').evaluate((s) => s.scrollHeight - s.scrollTop - s.clientHeight);
+    expect(await page.locator('.story').evaluate((s) => s.scrollHeight > s.clientHeight)).toBe(true);
+    expect(gap).toBeLessThan(40);
+    expect(errors).toEqual([]);
+  });
+
   it('opens the Inventory with its Coin line and no summary boxes', async () => {
     await nav('Inventory');
     await page.getByText(/^Coin: /).waitFor();

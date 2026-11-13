@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-191
+
+**What was wrong:** On coming back to Play from another page (Ali came from Bugs), the story opened at the top instead of at the latest lines. Leaving Play takes the story off the screen, and the browser forgets where it was scrolled.
+
+**What was done:** Coming back to Play now always opens the story at the latest lines. A browser test plays a few turns in a short window, goes to Bugs and back, and checks the story is at the bottom.
+
+**Fixed by:** [PR #689](https://github.com/ali123500-codeRPG/text-rpg/pull/689)
+
 ## BG-189
 
 **What was wrong:** Action-time playtest run-100-at-rester, turns 9-16: after the fight the player bandaged and rested in 6 s fight turns for about ten turns, so a 40 s bandage looked like it never finished. Wick, who had punched the player and gone out to the lane, stood there silent, out of sight and earshot, but was still engaged with the player; fightInSenses took the player's own engaged pair as "a fight they can hear" by probing it at a loud noise.
