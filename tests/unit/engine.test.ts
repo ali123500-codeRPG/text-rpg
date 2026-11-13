@@ -118,6 +118,7 @@ vi.mock('../../src/minds', () => {
     routineOrder: (v: { self: { id: string } }) => o(v, 'idle', 'routine'),
     followMove: () => null,
     staying: () => false,
+    openToHands: () => false,
     fallbackOrder: (v: { self: { id: string } }) => o(v, 'hold', 'fallback'),
     brokenOrder: (v: { self: { id: string } }) => o(v, 'hold', 'broken'),
     bindTemplate: (tpl: Order, v: { self: { id: string } }, ctx: { triggerZone?: string; source: Order['source']; triggerId?: string }) => ({

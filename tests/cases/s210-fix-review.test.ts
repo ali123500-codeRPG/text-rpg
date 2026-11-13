@@ -4,7 +4,7 @@
 // BG-91 (BG-76: part-state names).
 import { expect, it } from 'vitest';
 import type { GameEvent, Intent } from '../../src/types';
-import { createRng, makeVillage, place, ScriptedClaude } from '../harness';
+import { beside, createRng, makeVillage, place, ScriptedClaude } from '../harness';
 import { resolveSpeech, resolveTurn, selectSpokespeople } from '../../src/engine';
 import { approachMove, speakingSpot } from '../../src/engine/merge';
 import { hearsOrder } from '../../src/engine/trade';
@@ -20,6 +20,7 @@ import { intent, play } from './w4-kit';
 
 it('BG-83: the player\'s words in a conversation are said, and heard, at the volume chosen', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
+  beside(s, 'patron_1', 'player', 0.5); // near enough for a whisper (BF3/BG-154 raise one that would not carry)
   for (const v of ['whisper', 'shout'] as const) {
     const i = intent({ action: { type: 'talk', skill: SK.persuasion }, spoken: 'A word.', addressees: ['patron_1'], volume: v });
     const sp = selectSpokespeople(s, i);

@@ -62,12 +62,15 @@ export function noteFighting(state: GameState, events: GameEvent[]): void {
     }
   }
   for (const a of allActors(state)) for (const [id, b] of Object.entries(a.mind?.knowledge ?? {})) {
-    if (!atLeast(b.status, 'hunting')) continue;
-    const other = actorById(state, id);
-    const back = other?.mind?.knowledge?.[a.id];
-    const last = Math.max(b.closedTurn ?? -Infinity, back?.status === 'engaged' ? (back.closedTurn ?? -Infinity) : -Infinity);
-    if (state.turn - last >= CONFIG.ENGAGEMENT_END_TURNS) b.status = 'tracking';
+    if (atLeast(b.status, 'hunting') && state.turn - fightRenewed(state, a, id) >= CONFIG.ENGAGEMENT_END_TURNS) b.status = 'tracking';
   }
+}
+
+/** the last turn `a`'s hunt or fight with `id` was kept alive: by `a` closing in or striking, or by the other side still
+ * fighting `a` (the one rule the engine and the turn checker share) */
+export function fightRenewed(state: GameState, a: Actor, id: string): number {
+  const b = a.mind?.knowledge?.[id], back = actorById(state, id)?.mind?.knowledge?.[a.id];
+  return Math.max(b?.closedTurn ?? -Infinity, back?.status === 'engaged' ? (back.closedTurn ?? -Infinity) : -Infinity);
 }
 
 /** an ally of the player: not the player, not hostile to them, and fighting (or fought by) someone who is fighting the player.

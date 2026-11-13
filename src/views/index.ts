@@ -583,10 +583,12 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   const heard: NarrationView['heard'] = [];
   const seen = seenActors(state, p, events);
   const seenIds = new Set(seen.filter((x) => x.level === 'full').map((x) => x.id));
+  const comings = new Map<string, string[]>(); // BF2e: a long turn's legs the player noticed, by who walked them
   for (const e of events) {
     const per = e.perception[me];
     if (!per) continue;
     const full = per.level === 'full';
+    if (e.summed) { comings.set(e.actorId, [...(comings.get(e.actorId) ?? []), legWords(state, e, full)]); continue; }
     const changes = visibleChanges(state, e.effects, me);
     if ((e.kind === 'threshold_crossed' || e.kind === 'part_state_changed') && !changes.length) continue; // hidden change
     const speaker = full || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
@@ -623,6 +625,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(full && e.toGo ? { toGo: e.toGo } : {}),
+      ...(full && e.round ? { round: `${e.round.way}: ${e.round.shut}` } : {}),
       ...(forWhom ? { for: forWhom } : {}),
       ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),
@@ -646,10 +649,24 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     ...((offered) => offered.length ? { essences: offered } : {})((p.progression?.essenceOffers ?? []).filter((o) => o.turn === state.turn)
       .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
     // essences that appeared this turn and failed their quality roll: they show, then fade
+    ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings) } : {}),
     ...((faded) => faded.length ? { essencesFaded: faded } : {})(state.log.filter((l) => l.turn === state.turn && l.code === 'essence_faded')
       .map((l) => String((l.detail as { essence?: string } | undefined)?.essence ?? ''))
       .map((id) => ({ name: getLibrary().essences?.[id]?.name ?? id, story: getLibrary().essences?.[id]?.story ?? '' }))),
   };
+}
+
+/** BF2e: one leg of a long turn as noticed: where they went (seen), or only that someone moved off (heard) */
+function legWords(state: GameState, e: GameEvent, full: boolean): string {
+  const to = zoneById(state, e.zone)?.name ?? e.zone;
+  if (!full) return 'moved about, heard but not seen';
+  return e.fromZone ? `went from ${zoneById(state, e.fromZone)?.name ?? e.fromZone} into ${to}` : `crossed ${to} toward ${zoneById(state, e.heading ?? '')?.name ?? 'the way out'}`;
+}
+/** BF2e3/BF2e4: one line per person noticed, legs in order, up to LONG_TURN_LINES; the rest "others came and went" */
+function cameAndWent(state: GameState, me: string, comings: Map<string, string[]>): string[] {
+  const lines = [...comings].map(([id, legs]) => `${legs.every((l) => l.startsWith('moved about')) ? 'someone' : callName(state, me, id)} ${[...new Set(legs)].join(', then ')}`);
+  const n = CONFIG.LONG_TURN_LINES;
+  return lines.length > n ? [...lines.slice(0, n), 'others came and went'] : lines;
 }
 
 // ---------- WeaverView ----------

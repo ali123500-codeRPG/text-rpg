@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, handsOn, staying, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, handsOn, openToHands, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -32,7 +32,7 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, zoneById } from './relations';
+import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -160,9 +160,10 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   const { state, rng } = ctx;
   // BG-132: one order's words are said once a turn, whichever of its events carries them first
   if (ev.line && ev.bark && ctx.events.some((e) => e.actorId === ev.actorId && e.line?.text === ev.line!.text)) { delete ev.line; delete ev.bark; }
-  // BF3: a whisper to someone it does not reach, even after stepping up, is said low enough for them to hear
-  const to = ev.line?.volume === 'whisper' ? actorById(state, ev.line.to ?? (ev.kind === 'speak' ? ev.target ?? '' : '')) : undefined;
-  if (to && to.id !== ev.actorId) {
+  // BF3: a whisper to someone it does not reach, even after stepping up, is said low enough for them to hear; BG-154: to
+  // each one it is for (line.to, the target of a speak, everyone it addresses)
+  const tos = ev.line?.volume === 'whisper' ? [ev.line.to, ev.kind === 'speak' ? ev.target : undefined, ...(ev.speech?.addressees ?? [])] : [];
+  for (const to of new Set(tos.map((id) => id && actorById(state, id)).filter((x): x is Actor => !!x && x.id !== ev.actorId))) {
     const n = carryingNoise(state, ev, to);
     if (NOISE.pos(n) > NOISE.pos(ev.noise)) { ev.noise = n; logCode(state, 'whisper_raised', { actorId: ev.actorId, to: to.id, noise: n }); }
   }
@@ -295,6 +296,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   const from = a.zone, fromPos = a.pos && { ...a.pos };
   // SD3–SD5: a barrier not open to the walker on the next way: walk up to it, then open it (a key, the bolt's side) or try it
   const gate = gateAhead(state, a, goal.zone);
+  const round = roundShut(state, a, goal.zone);
   const walked = walkLeg(state, a, goal, metres, stopShort, a, !!gate);
   if (walked === null) return null;
   if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate, withBark ? o : undefined); // an NPC tries a shut way once
@@ -302,10 +304,17 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
   const leg = { metres: Math.round(walked * 10) / 10, ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot) } : {}) };
-  let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
+  let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}), ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return walked;
+}
+
+/** BG-148: the way straight into `goal` that the walker knows is shut, when its walk goes round it instead: never silent */
+function roundShut(state: GameState, a: Actor, goal: string): { way: string; shut: 'blocked' | 'barred' | 'locked' } | undefined {
+  const l = zoneById(state, a.zone)?.links.find((x) => x.to === goal), b = barrierOn(state, l);
+  if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || wayPath(state, a.zone, goal, a)?.[0] === goal) return undefined;
+  return { way: l.label, shut: shutBy(b, a, a.zone) };
 }
 
 /** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding) */
@@ -1121,6 +1130,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
+  if (o.type === 'search' && t && t !== a && openToHands(a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
   if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5): the grabber's
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
@@ -1222,14 +1232,15 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
       if (gate) openWay(gate.b, a, a.zone);
       const from = a.zone, at: Located = { zone: a.zone, ...(a.pos ? { pos: { ...a.pos } } : {}) };
       const r = walkLeg(state, a, { zone: d.zone }, left, 0, a);
-      if (r && onLeg) onLeg(a, at, r, d.zone); // BF2: a leg anyone could see or hear is a walk like any other
+      const crossed = r !== null && (r > 0 || a.zone !== from); // BG-151: a doorway underfoot is crossed in 0 m
+      if (crossed && onLeg) onLeg(a, at, r, d.zone); // BF2: a leg anyone could see or hear is a walk like any other
       if (gate && was) {
         const through = a.zone === gate.to;
         if (gate.b.lock && was.locked) gate.b.lock.locked = true; // the key turns again on either side
         if (gate.b.bar && was.drawn && !through) gate.b.bar.drawn = true; // still on the bolt's side: slid back again
         if (through) logCode(state, 'catch_up_way', { actorId: a.id, barrier: gate.b.id, from, to: gate.to, ...(was.drawn ? { leftUnbarred: true } : {}) });
       }
-      if (!r) break;
+      if (!crossed) break;
       left -= r;
     }
     if (a.zone !== start) logCode(state, 'caught_up', { actorId: a.id, from: start, to: a.zone }); // a silent jump (BF2)
@@ -1254,6 +1265,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const active = state.actors.filter(isActive);
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
+  (state.scratch.agentRun as string[]).push(...fired.map((o) => o.actorId)); // BG-151: a trigger's order moved them too
   const orders = mergeOrders(state, input, views, fired, rng);
   const playerOrder = isAsleep(state.player) ? asleepOrder(state.player) : fromIntent(state, input.intent, input.aimed); // NW18: asleep, your turn passes
   const imp = input.intent?.action?.improvised;
@@ -1364,14 +1376,16 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
-  // BF2a-d: on an action's turn each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent).
-  // BF2e: longer turns (a trade, a rest, a wait) stay a silent jump until how they are summed up is settled.
+  // BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
+  // turn (a trade, a rest, a wait) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none
   const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
-  const legEvents = catchMin <= (getLibrary().durations?.[DU.action]?.minutes ?? 0) ? (m: Actor, from: Located, metres: number, toward: string) => {
-    const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }) };
+  const long = catchMin > (getLibrary().durations?.[DU.action]?.minutes ?? 0);
+  const legEvents = !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
+    const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
     emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
   } : undefined;
-  if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legEvents); // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
+  if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legEvents);
+  if (long) for (const e of ctx.events) if (e.kind === 'move' && e.actorId !== state.player.id && !e.line) e.summed = true; // BF2e3: their own move is in their one line too // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
   settleSleepers(state); // NW20: NPCs fall asleep and wake by their routines
   // NW18: still asleep and nobody hostile near any more (they left, or never woke you): the rest of the night runs on
   if (state.night && isAsleep(state.player) && !state.scratch?.nightStopped && !hostilesNear(state, state.player).length) runNight(ctx);
