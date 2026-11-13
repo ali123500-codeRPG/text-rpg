@@ -544,7 +544,8 @@ export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
 }
 
 /** PY2: only a Trader-class actor sells. Known goods are stocked into its inventory (qty 1 when left out) and known
- * services listed, up to WARES_CAP lines; anything else is dropped and logged. */
+ * services listed, up to WARES_CAP lines; anything else is dropped and logged. BG-210: a returning Trader keeps what it
+ * has: goods are topped up to the listed count, never added on top, and the purse comes only the first time it sells. */
 function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast'][number]['wares']>, turn: number): void {
   const dropped: string[] = [];
   if (!a.core.classes.some((c) => c.classId === CL.trader)) {
@@ -557,16 +558,17 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
   for (const g of w.items ?? []) {
     const def = known(g.item);
     if (!def || g.item === IT.coin || items.length + services.length >= CONFIG.WARES_CAP) { dropped.push(String(g.item)); continue; }
-    const qty = Math.max(1, Math.floor(g.qty ?? 1));
+    const have = a.core.inventory.filter((i) => i.itemId === g.item).reduce((n, i) => n + (i.qty ?? 1), 0);
+    const qty = Math.max(1, Math.floor(g.qty ?? 1)) - have;
     const id = `ware${turn}_${a.id}_${g.item}`;
-    a.core.inventory.push(...(def.stackable ? [{ id, itemId: g.item, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId: g.item }))));
+    if (qty > 0) a.core.inventory.push(...(def.stackable ? [{ id, itemId: g.item, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId: g.item }))));
     if (!items.includes(g.item)) items.push(g.item);
   }
   for (const s of w.services ?? []) {
     if (!getLibrary().services?.[s] || items.length + services.length >= CONFIG.WARES_CAP) dropped.push(String(s));
     else if (!services.includes(s)) services.push(s);
   }
+  if (!a.wares) a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse, once
   a.wares = { items, services };
-  a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse
   if (dropped.length) state.log.push({ turn, code: 'wares_dropped', detail: { actorId: a.id, dropped } });
 }
