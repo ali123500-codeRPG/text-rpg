@@ -74,7 +74,7 @@ export function templateMinimums(t: NpcTemplate): Record<string, number> {
   return min;
 }
 
-/** Unique generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
+/** Rolled generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
   const raw: Record<string, number> = { [SK.resolve]: t.resolve, ...templateMinimums(t) }; // class floors included // MB30: the template sets starting Resolve
   let points = t.level * CONFIG.POINTS_PER_LEVEL + t.bonusPoints;
@@ -110,8 +110,8 @@ function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?:
 
 export function spawnNpc(state: GameState | null, templateId: string, opts: SpawnOpts, rng?: Rng): Actor {
   const t = npcTemplate(state, templateId);
-  if (t.generation === 'unique' && !rng) throw new Error(`unique template ${t.id} needs the seeded rng`);
-  const skills = t.generation === 'unique'
+  if (t.generation === 'rolled' && !rng) throw new Error(`rolled template ${t.id} needs the seeded rng`);
+  const skills = t.generation === 'rolled'
     ? rollUniqueSkills(t, rng!)
     // Q3: copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
     : rollUniqueSkills(t, createRng(templateSeed(t.id)));
@@ -139,8 +139,8 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       personality: opts.personality ?? structuredClone(t.personality), // PL11, PL12: the template's points, or the Weaver's pick on them
       ...npcBornDay(state, t, opts.id, opts.ageStage),
     },
-    // GAP: unique NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
-    ...(t.generation === 'unique' ? { progression: {
+    // GAP: rolled NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
+    ...(t.generation === 'rolled' ? { progression: {
       startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
       potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: Math.floor(t.level / 2), marks: [],
     } } : {}),

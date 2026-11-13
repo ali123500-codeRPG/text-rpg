@@ -928,7 +928,7 @@ function essencesView(): HTMLElement[] {
   const fromText = (e: EssenceDef): Node | string => e.from.deed
     ? 'A deed: a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences. It is built on the skill you used most in that scenario.'
     : h('span', {}, 'Beating a notable ', e.from.race ? link('races', e.from.race, lib.races?.[e.from.race]?.name ?? e.from.race) : e.from.bodyType ? link('bodyTypes', e.from.bodyType, lib.bodyTypes[e.from.bodyType]?.name ?? e.from.bodyType) : '?',
-      ` foe: one whose power is at least ${Math.round(C.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or unique NPC. Each such foe rolls once, ever. A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.`);
+      ` foe: one whose power is at least ${Math.round(C.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC. Each such foe rolls once, ever. A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.`);
   const split = (e: EssenceDef) => { const w = e.skills.reduce((n, x) => n + x.weight, 0) || 1;
     return e.skills.length ? e.skills.map((x) => `${skillName(x.skill)} ${Math.round((x.weight / w) * 100)}%`).join(', ') : 'the skill you used most in the scenario, all of it'; };
   const all = Object.values(lib.essences ?? {});

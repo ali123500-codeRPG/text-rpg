@@ -45,7 +45,7 @@ describe('player creation', () => {
 });
 
 describe('unique generation', () => {
-  const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', classId: undefined, generation: 'unique' as const };
+  const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', classId: undefined, generation: 'rolled' as const };
   // MB30: Resolve from personality comes on top of the minimums and level points
   const sum = (s: Record<string, { raw: number }>) => Object.entries(s).reduce((n, [k, e]) => n + (k === SK.resolve ? 0 : e.raw), 0);
 
@@ -70,7 +70,7 @@ describe('unique generation', () => {
     const opts = { id: 'b1', zone: 'z', placeId: 'p', bandId: 'x' };
     expect(() => spawnNpc(null, 'bandit', opts)).toThrow(/seeded rng/);
     const b = spawnNpc(null, 'bandit', opts, createRng(5));
-    expect(b.core.generation).toBe('unique');
+    expect(b.core.generation).toBe('rolled');
     expect(b.core.skills).toEqual(rollUniqueSkills(bandit, createRng(5)));
     expect(b.progression!.unspentPerkPoints).toBe(Math.floor(bandit.level / 2));
     // Q3: copies get level points too, with a fixed per-template seed, so every guard is alike

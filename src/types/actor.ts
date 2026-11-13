@@ -77,7 +77,7 @@ export type Core = {
   raceId?: LibraryRef;
   bodyTypeId: LibraryRef;
   templateId?: LibraryRef;
-  generation?: 'unique' | 'copy';
+  generation?: 'rolled' | 'copy';
   skills: Record<LibraryRef, SkillEntry>;
   classes: ClassEntry[];
   perks: OwnedPerk[];
@@ -206,16 +206,16 @@ export type NpcTemplate = {
   id: LibraryRef;
   raceId: LibraryRef; // BR5: the body type comes from the race
   classId?: LibraryRef;
-  generation: 'unique' | 'copy';
+  generation: 'rolled' | 'copy';
   minimums: Record<LibraryRef, number>;
   level: number;
   bonusPoints: number;
   focus: { treeId: LibraryRef; skill: LibraryRef }[];
   resolve: number; // starting Resolve (MB30)
   personality: Personality; // PL11: Nerve, trait and value points
-  /** a unique NPC's title ("the Butler"), given with its name in CHARACTER */
+  /** a rolled NPC's title ("the Butler"), given with its name in CHARACTER */
   title?: string;
-  /** a unique NPC's hand-written if-then lines, given right after Nerve in its personality line */
+  /** a rolled NPC's hand-written if-then lines, given right after Nerve in its personality line */
   signatures?: string[];
   loadout?: LibraryRef[];
   potential?: number;

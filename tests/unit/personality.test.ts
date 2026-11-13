@@ -93,13 +93,13 @@ describe('personality', () => {
     a.core.bornDay = bornDayFor(s, 7);
     expect(personalityText(s, a, 'Calm')).toBe('Nerve: Timid (keeps out of danger when they can; Calm right now). Mature at heart (thinks before acting, keeps a cool head, owns their mistakes), but very curious (wants to know how things work, asks and pokes) and a bit deceitful (bends the truth when it suits them). Drives: knowledge first (studies, practises and seeks out learning), then loyalty (stands by their friends and their own). Tensions: old head on young shoulders (talks and plans like a grown-up, though still a child); wary but dangerous (avoids danger, yet hits hard when pushed).');
   });
-  it('a unique NPC gets its template\'s signatures after Nerve and its title with its name; a copy gets neither', () => {
+  it('a rolled NPC gets its template\'s signatures after Nerve and its title with its name; a copy gets neither', () => {
     const s = makeVillage(), t = getLibrary().templates[TP.guard], g = s.actors.find((x) => x.id === 'guard_1')!;
     t.title = 'the Gatekeeper'; t.signatures = ['Never leaves the gate unwatched.'];
     try {
       expect(personalityText(s, g, 'Calm')).not.toContain('Never leaves');
       expect(buildOppositionView(s, g.id).title).toBeUndefined();
-      g.core.generation = 'unique';
+      g.core.generation = 'rolled';
       expect(personalityText(s, g, 'Calm')).toMatch(/^Nerve: [^.]+\. Never leaves the gate unwatched\. Mature at heart/);
       const v = buildOppositionView(s, g.id);
       expect(formatOppositionView(v)).toContain(`"name":"${v.self.name}, the Gatekeeper"`);

@@ -40,7 +40,7 @@ describe('207 essences', () => {
     const s = makeVillage(), foe = slime(s);
     foe.core.skills[SK.endurance] = { raw: 60, state: 'normal' };
     foe.core.skills[SK.tremor] = { raw: 30, state: 'normal' };
-    foe.core.generation = 'unique'; // notable whatever its power
+    foe.core.generation = 'rolled'; // notable whatever its power
     offersFromDefeats(s, [foe], dice(1, 100)); // appears on 1, quality 100
     expect(offers(s)).toHaveLength(1);
     const o = offers(s)[0];
@@ -107,13 +107,13 @@ describe('207 essences', () => {
 
   it('appearance and quality are separate rolls: no appearance, nothing; an essence that appears and fails its quality roll fades', () => {
     const s = makeVillage(), foe = slime(s);
-    foe.core.generation = 'unique';
+    foe.core.generation = 'rolled';
     const codes = () => s.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code);
     offersFromDefeats(s, [foe], dice(CONFIG.ESSENCE_APPEAR_CHANCE.foe + 1, 100)); // the appearance roll misses
     expect(offers(s)).toHaveLength(0);
     expect(codes()).toEqual([]);
     const other = makeVillage(), foe2 = slime(other);
-    foe2.core.generation = 'unique';
+    foe2.core.generation = 'rolled';
     offersFromDefeats(other, [foe2], dice(1, 10)); // appears, then the quality roll fails: it fades
     expect(other.player.progression!.essenceOffers ?? []).toHaveLength(0);
     expect(other.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code)).toEqual(['essence_appeared', 'essence_faded']);

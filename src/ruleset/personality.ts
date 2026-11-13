@@ -104,11 +104,11 @@ export function tensionsOf(state: GameState, a: Actor, p = personalityOf(a)): Te
 
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
-/** PL4, PL9: the line the agent reads in CHARACTER: Nerve with its hint and the mood, a unique NPC's signatures, the
+/** PL4, PL9: the line the agent reads in CHARACTER: Nerve with its hint and the mood, a rolled NPC's signatures, the
  * archetype with its "but" traits, the top drives and the tensions. The morale level is the mood; the tier never moves with it. */
 export function personalityText(state: GameState, a: Actor, morale: string): string {
   const p = personalityOf(a), lib = getLibrary(), axes = lib.personalityAxes ?? {}, line = nerveLine(p);
-  const t = a.core.generation === 'unique' && a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined;
+  const t = a.core.generation === 'rolled' && a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined;
   const arch = archetypeOf(p), buts = butsOf(p, arch).map(({ axis, v }) => `${strength(v)}${v < 0 ? axes[axis].low : axes[axis].high} (${v < 0 ? axes[axis].lowHint : axes[axis].highHint})`);
   const drives = p.values.slice(0, CONFIG.DRIVES_SHOWN).filter((v) => lib.values?.[v]);
   const tensions = tensionsOf(state, a, p).slice(0, CONFIG.TENSIONS_SHOWN);

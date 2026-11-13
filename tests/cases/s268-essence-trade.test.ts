@@ -1,6 +1,6 @@
 // 268 Passing on essences (AT75, ES1–ES7): an offer the player hasn't taken can be given to someone in reach with room
-// (a unique NPC's slots), or sold at the buying price for its value (one equation with items) to a seller, who may hold it to
-// sell on, or to a unique NPC with room.
+// (a rolled NPC's slots), or sold at the buying price for its value (one equation with items) to a seller, who may hold it to
+// sell on, or to a rolled NPC with room.
 import { describe, expect, it } from 'vitest';
 import { now } from '../../src/time';
 import type { Actor, GameState } from '../../src/types';
@@ -16,7 +16,7 @@ import { essenceValue, giveEssence, sellEssence } from '../../src/engine/essence
 import { coins } from '../../src/engine/trade';
 
 const offer = (s: GameState) => { (s.player.progression!.essenceOffers ??= []).push({ essence: ES.gate_habit, grade: 'common', points: { [SK.eyesight]: 4, [SK.parry]: 3 }, turn: s.turn, from: 'a guard', source: 'foe', untilMin: now(s) + 10 }); };
-const unique = (a: Actor) => { a.core.generation = 'unique'; a.progression = { startingTotal: 0, potential: { base: 300, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [] }; };
+const unique = (a: Actor) => { a.core.generation = 'rolled'; a.progression = { startingTotal: 0, potential: { base: 300, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [] }; };
 const purse = (a: Actor, n: number) => { a.core.inventory = a.core.inventory.filter((i) => i.itemId !== IT.coin); a.core.inventory.push({ id: `purse_${a.id}`, itemId: IT.coin, qty: n }); };
 
 describe('268 passing on essences', () => {
@@ -24,7 +24,7 @@ describe('268 passing on essences', () => {
     expect(essenceValue({ points: { a: 4, b: 3 } })).toBe(7 * CONFIG.ITEM_VALUE.skillPoint * CONFIG.ESSENCE_VALUE_MULT);
   });
 
-  it('ES3/ES4: a gift goes into a unique NPC\'s slot with no yes needed; someone without a record, or out of reach, can\'t take it', () => {
+  it('ES3/ES4: a gift goes into a rolled NPC\'s slot with no yes needed; someone without a record, or out of reach, can\'t take it', () => {
     const s = makeVillage(), wim = s.actors.find((a) => a.id === 'patron_1')!;
     beside(s, 'patron_1', 'player');
     offer(s);
@@ -56,7 +56,7 @@ describe('268 passing on essences', () => {
     expect(mags.essenceStock?.map((e) => e.essence)).toEqual([ES.gate_habit]);
   });
 
-  it('ES6: a unique NPC who is no seller buys one into a free slot; anyone else doesn\'t buy', () => {
+  it('ES6: a rolled NPC who is no seller buys one into a free slot; anyone else doesn\'t buy', () => {
     const s = makeVillage(), wim = s.actors.find((a) => a.id === 'patron_1')!;
     beside(s, 'patron_1', 'player');
     purse(wim, 500);
