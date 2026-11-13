@@ -1,7 +1,7 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group; the Inventory has none),
 // figures that can't be filtered in a text line under them, then the grouped table.
 import { PART_STATES, THREADBOUND_RANKS } from '../scales';
-import type { GameApi, GameState, Quest } from '../types';
+import type { GameApi, GameState, ItemInstance, Quest } from '../types';
 import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
@@ -15,11 +15,12 @@ import { gripWord, kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
-import { closePanel, groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
+import { closePanel, groupedTable, playDraft, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
+import { wornPack } from '../engine/containers';
 import { coins, coinWords } from '../engine/trade';
 import { gripParts } from '../engine/gear';
 import { countWords } from '../engine/trade';
@@ -252,15 +253,36 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
 /** the Inventory page's coin, in words as the play sheet and the Coin row say it: "Coin: 1 silver and 6 copper", never a bare count */
 export const coinLine = (s: GameState) => `Coin: ${coinWords(coins(s.player))}`;
 
+/** CT1: what a carried container holds, nested containers' contents after them, each with its path ("Pouch › Ring") and the
+ * container it sits in. A worn pack's contents are the stowed items, listed in the table already. */
+type Inside = { it: ItemInstance; path: string; box: ItemInstance };
+export function insideOf(s: GameState, box: ItemInstance, path = ''): Inside[] {
+  return (box.contents ?? []).flatMap((it) => {
+    const name = titleCase(safe(() => itemDef(s, it.itemId).name) ?? it.itemId), here = path ? `${path} › ${name}` : name;
+    return [{ it, path: here, box }, ...insideOf(s, it, here)];
+  });
+}
+const carriedBoxes = (s: GameState) => s.player.core.inventory.filter((i) => safe(() => itemDef(s, i.itemId).container) && !wornPack(i));
+const allInside = (s: GameState) => carriedBoxes(s).flatMap((b) => insideOf(s, b));
+const holdsText = (b: ItemInstance) => (b.contents?.length ? `Holds ${plural(b.contents.length, 'item')}` : 'Empty');
+
 export function inventoryPage(api: GameApi) {
   return listPage(api, {
     title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
     focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
     lead: (s) => equipment(api, s),
     detail: (s, id) => {
-      const it = s.player.core.inventory.find((i) => i.id === id);
+      const inside = allInside(s).find((x) => x.it.id === id);
+      const it = s.player.core.inventory.find((i) => i.id === id) ?? inside?.it;
       if (!it) return [];
       const rows = itemRows(s, it);
+      // CT1: something in a carried container: where it is, and Take out, which drafts the order on Play (a pick-up)
+      if (inside) {
+        const boxName = safe(() => itemDef(s, inside.box.itemId).name) ?? 'container', name = safe(() => itemDef(s, it.itemId).name) ?? it.itemId;
+        rows.splice(rows.length - 1, 0, { k: 'Inside', v: `Your ${boxName.toLowerCase()}` },
+          { k: 'Take out', v: h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'take-out', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
+            onclick: () => { playDraft.text = `I take the ${name.toLowerCase()} out of my ${boxName.toLowerCase()}`; closePanel(); location.hash = 'play'; } }, 'Take it out') });
+      }
       const heal = healItems(s, s.player).find((x) => x.itemId === it.itemId);
       if (heal) {
         const r = heal.row;
@@ -289,17 +311,28 @@ export function inventoryPage(api: GameApi) {
         const pools = it.pools ? Object.entries(it.pools).map(([k, v]) => `${k} ${v}%`).join(', ') : 'Whole';
         const need = d ? requirement(d) : null;
         const needs = need ? `Needs ${needText(need)}` : '';
-        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: pools },
+        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: d?.container ? holdsText(it) : pools },
           ...(need ? { tones: { needs: shortBy(p, d!) > 0 ? 'bad' as const : 'muted' as const } } : {}) });
         groups.set(id, g);
       });
-      return [...groups.values()].map((g) => {
+      // CT1: each carried container that holds something gets its own group of what is inside, nested containers' contents included
+      const boxes = carriedBoxes(s).filter((b) => b.contents?.length).map((b, k) => {
+        const name = safe(() => itemDef(s, b.itemId).name) ?? 'container';
+        return { id: `in:${b.id}`, title: `In your ${name.toLowerCase()}`, color: 'c4', order: k, how: `What your ${name.toLowerCase()} holds. Click one to take it out.`,
+          rows: insideOf(s, b).map((x, n) => ({ id: x.it.id, sortKey: n, cells: { name: x.path, needs: '', qty: String(x.it.qty ?? 1),
+            cond: safe(() => itemDef(s, x.it.itemId).container) ? holdsText(x.it) : x.it.pools ? Object.entries(x.it.pools).map(([k2, v]) => `${k2} ${v}%`).join(', ') : 'Whole' } })) };
+      });
+      const inBoxes = boxes.map((g) => {
+        const qty = g.rows.reduce((a, r) => a + +r.cells.qty, 0);
+        return { id: g.id, title: g.title, color: g.color, rows: g.rows, combined: { qty: String(qty), cond: '', needs: '' }, value: String(qty), unit: unitOf(qty, 'item'), sub: 'inside', how: g.how };
+      });
+      return [...[...groups.values()].map((g) => {
         const qty = g.rows.reduce((a, r) => a + +r.cells.qty, 0);
         const cs = [...new Set(g.rows.map((r) => r.cells.cond))];
         const ns = [...new Set(g.rows.map((r) => r.cells.needs))], ts = [...new Set(g.rows.map((r) => r.tones?.needs))];
         return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: 'in your pack', combined: { qty: String(qty), cond: cs.length === 1 ? cs[0] : 'Mixed', needs: ns.length === 1 ? ns[0] : '' },
           ...(ns.length === 1 && ts.length === 1 && ts[0] ? { combinedTones: { needs: ts[0] } } : {}) };
-      }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title));
+      }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title)), ...inBoxes];
     },
     line: coinLine, noTiles: true,
   });
