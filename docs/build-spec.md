@@ -1379,7 +1379,7 @@ Return only JSON matching the schema.
 
 ### Opening narration
 
-At scenario setup step 8, code adds to the turn's events an arrival event for the player and a presence event for each actor the player perceives on arrival, computed by computePerception (level full or partial, with a cue). Agent Narrator also receives the player's zone and the zones linked to it with sight (frontiers by label), and visible state per Part 3. Every full presence event must be listed in "narrated" (fact check); partial ones may be left out. Each presence event carries the actor's current activity look, which is public text.
+At scenario setup step 8, code adds to the turn's events an arrival event for the player and a presence event for each actor the player perceives on arrival, computed by computePerception (level full or partial, with a cue). Agent Narrator also receives the player's zone and the zones linked to it with sight (frontiers by label), and visible state per Part 3. Every full presence event must be listed in "narrated" (fact check); partial ones may be left out. Each presence event carries the actor's current activity look, which is public text. A look of keeping out of sight (an activity seen only from close) is not shown for someone in a talk who is not stealthy: talking openly, they are plainly not hiding (BG-133).
 
 Never in NarrationView: the tier, grades or event roll; the event summary, Weaver note, plans, triggers or secrets; opening beliefs or attention; or any tone or mood hint derived from the tier.
 
@@ -3229,6 +3229,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-121 | Run 80: Marda said "follow me round to the kitchen", walked there and went straight back to her counter as the player came in. | BF4 a (Ali): an agent's headTo can lead someone; the NPC waits there until they come or LEAD_WAIT_TURNS (2) pass. | Fixed in PR #602 |
 | BG-129 | Run 86: the slime job closed as handed in when the player spoke to Marta, though she never saw the kill; she refused to pay for a job the game called done. | BF6 (Ali: no magic knowledge): talking hands a job in only if the giver perceived the deed; else the giver judges the player's report (questEnd done for any job). | Fixed in PR #602 |
 | BG-132 | Run 77f, turn 33: Wennick's whispered reply rode on a dropped move as two hold barks with no listener, so the player 1 m away heard nothing. | A dialogue call's line is for the player (line.to), so a whisper leans in whatever carries it; one order's words are said once a turn. | Fixed in PR #602 |
+| BG-133 | Run 90, turns 26-28: Dov's refuge routine kept him "cowering" while he sat in the open on his log talking with the player 1 m away, so the narrator said he was hiding in the thorns. | A keeping-out-of-sight look is not shown for someone in a talk who is not stealthy. When a refuge cower should end is question BF7. | Fixed in PR #n |
+| BG-134 | Runs 91 and 92: the Parser wrote "deferred" in its own words (an actor id, "the player", its own notes), and that text was offered back to the player as what they put off. | Parser rule 2: deferred is written as the player would type it next turn, in their voice, people named as the player knows them, never ids, "the player" or notes. | Fixed in PR #n |
 
 ## Check on release
 

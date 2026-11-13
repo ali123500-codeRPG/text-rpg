@@ -130,9 +130,17 @@ function seenGear(state: GameState, a: Actor, revealed: string[]): SeenGearView[
 }
 
 /** the activity look an actor shows in this turn's events the viewer perceived fully */
-function lookOf(events: GameEvent[], viewerId: string, actorId: string): string | undefined {
+function lookOf(state: GameState, events: GameEvent[], viewerId: string, actorId: string): string | undefined {
   const e = [...events].reverse().find((x) => x.actorId === actorId && x.activity && x.perception[viewerId]?.level === 'full');
-  return e?.activity ? activity(e.activity).look : undefined;
+  return e ? eventLook(state, e) : undefined;
+}
+
+/** BG-133: the look of an event's activity. A look of keeping out of sight (an activity seen only from close) is not shown
+ * for someone in a talk who is not stealthy: talking openly, they are plainly not hiding. */
+function eventLook(state: GameState, e: GameEvent): string | undefined {
+  if (!e.activity) return undefined;
+  const d = activity(e.activity), a = actorById(state, e.actorId);
+  return d.visibility === 'close' && a?.engagement?.kinds.includes('talk') && a.posture !== 'stealthy' ? undefined : d.look;
 }
 
 /** LI2b Read Their Face: the viewer sees the stance toward it of anyone who spoke to it this scenario */
@@ -187,7 +195,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const crippled = parts.filter((p) => p.state === 'crippled').map((p) => p.id);
     const destroyed = parts.filter((p) => p.state === 'destroyed').map((p) => p.id);
     const damaged = parts.filter((p) => p.state === 'damaged').map((p) => p.id);
-    const look = lookOf(events, viewer.id, a.id);
+    const look = lookOf(state, events, viewer.id, a.id);
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(stageOf(state, a) ? { age: stageOf(state, a)! } : {}), // AG16: the life stage, never the number
@@ -570,7 +578,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const speaker = full || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
     const hears = !!e.line && hearsWords(per);
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
-    const look = full && e.activity ? activity(e.activity).look : undefined;
+    const look = full ? eventLook(state, e) : undefined;
     const name = full && e.kind !== 'attack' ? (e.service ? getLibrary().services?.[e.service]?.name : e.itemId ? itemName(state, e.itemId) : undefined) : undefined;
     const item = e.itemId && instanceItem(state, e.itemId) === IT.coin && e.qty ? coinWords(e.qty) : name && e.qty && e.qty > 1 ? `${e.qty} ${name}` : name; // PY9: coin in coin words
     const forWhom = full && e.for ? eventTarget(state, me, e.for, new Set([...seenIds, e.for])) : undefined;
