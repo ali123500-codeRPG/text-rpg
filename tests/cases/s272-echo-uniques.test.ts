@@ -3,7 +3,11 @@
 // in the Weaver's catalog with its power and hidden past; beaten, it always offers an essence two tiers up, never below Common.
 import { describe, expect, it } from 'vitest';
 import type { GameState, Rng } from '../../src/types';
-import { makeVillage } from '../harness';
+import { ScriptedClaude, makeVillage } from '../harness';
+import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
+import { memoryStore, saveTurn } from '../../src/save';
+import { librarySends } from '../../src/save/sends';
+import type { TurnRecord, UniqueSheet } from '../../src/types';
 import { getLibrary, itemDef, setLibrary } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
 import { echoSheet, isEcho, uniqueInWorld, uniqueTemplate } from '../../src/library/echo';
@@ -124,5 +128,31 @@ describe('272 echo uniques', () => {
     const e = spawnEcho(s);
     offersFromDefeats(s, [e], dice(1)); // no appearance roll: the one die is the quality roll
     expect(s.player.progression!.essenceOffers).toEqual([expect.objectContaining({ grade: 'common', from: e.names.current })]);
+  });
+
+  it('HF34 a: "Send to NPC template" saves the fallen hero\'s echo sheet to the send list; once in the library, the card says so', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    const s = makeVillage();
+    s.player.core.condition.hpLostPct = 100;
+    await saveTurn(store, s, { storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] } as TurnRecord);
+    expect(await g.resume()).toBe(true);
+    await g.reset();
+    expect(await g.sendHero('nobody')).toEqual({ error: expect.any(String) });
+    const r = await g.sendHero(s.storyId);
+    expect(r).toEqual({ id: `unique_${s.storyId}` });
+    const [send] = await librarySends(store);
+    const sheet = send.data.sheet as UniqueSheet;
+    expect(send).toMatchObject({ kind: 'unique', storyId: s.storyId, name: s.player.names.current });
+    expect(sheet).toMatchObject({ origin: 'echo', name: s.player.names.current, from: s.storyId });
+    expect(sheet.past).toContain(`Fell on day`);
+    expect(sheet.gear.every((x) => x.soulbound)).toBe(true);
+    expect((await g.hallOfFame())[0]).toMatchObject({ sent: true });
+    const lib = getLibrary();
+    setLibrary({ ...lib, templates: { ...lib.templates, [ECHO]: uniqueTemplate(ECHO, RC.human, 'a grim swordsman', sheet) } });
+    const card = (await g.hallOfFame())[0];
+    expect(card.inLibrary).toBe(true);
+    expect(card.sent).toBeUndefined();
   });
 });

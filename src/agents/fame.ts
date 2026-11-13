@@ -8,6 +8,14 @@ import { dayOf, now } from '../time';
 
 const TOP_SKILLS = 8;
 
+/** HF2: an echo's hidden past for the Weaver and the Narrator, from its Hall of fame entry */
+export function echoPast(f: FameEntry): string {
+  const who = `${f.name}${f.title ? `, ${f.title}` : ''}: level ${f.level}${f.classes.length ? ` ${f.classes.map((c) => `${c.name} ${c.level}`).join(', ')}` : ''}, ${f.defeats} defeated.`;
+  const did = [f.achievements.length ? `Achievements: ${f.achievements.join(', ')}.` : '', f.scars.length ? `Scars: ${f.scars.join(', ')}.` : ''].filter(Boolean).join(' ');
+  const d = f.downedBy, blow = d ? (d.unseen ? ', struck down by someone never seen' : `, struck down by ${d.by}${d.weapon ? `'s ${d.weapon}` : ''}${d.part ? ` to the ${d.part}` : ''}`) : '';
+  return [who, did, `Fell on day ${f.day} at ${f.place || 'an unknown place'}${blow}.`].filter(Boolean).join(' ');
+}
+
 /** `place`: where the character fell, in words (placeName in game.ts) */
 export function fameEntry(s: GameState, lines: LogLine[], place: string, at: string): FameEntry {
   const lib = getLibrary(), p = s.player;

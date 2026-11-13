@@ -744,6 +744,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .fame-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
 .fame-h h2 { margin: 0; font-size: 22px; }
 .fame-h small { font-weight: 400; color: var(--muted); }
+.fame-send { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
 .fame-cause { font: italic 16px/1.5 var(--font-story); }
 .fame-list p:last-child { display: flex; flex-wrap: wrap; gap: 4px; }
 

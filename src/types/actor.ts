@@ -266,6 +266,8 @@ export type UniqueSheet = {
   essences?: HeldEssence[];
   /** HF2: hidden from the player: who it was and how it fell, for the Weaver and the Narrator */
   past: string;
+  /** the story it was sent from (its Hall of fame card shows it is in the library) */
+  from?: string;
 };
 
 export type Journal = {

@@ -67,7 +67,9 @@ export type ScenarioGains = {
 };
 
 /** a hall-of-fame row: the fallen character, whose story it was, and its story id */
-export type FallenCharacter = import('./state').FameEntry & { owner: import('./state').StoryOwner; storyId: string };
+export type FallenCharacter = import('./state').FameEntry & { owner: import('./state').StoryOwner; storyId: string;
+  /** HF34 a: sent with "Send to NPC template" (waiting for Claude's PR), or already a unique in the library */
+  sent?: true; inLibrary?: true };
 
 /** the blow that dropped the player, in words the player knows: by = the attacker as perceived ('someone' if unseen) */
 export type DownedBy = { by: string; weapon: string | null; part: string | null; outcome: string; unseen?: true };
@@ -118,6 +120,8 @@ export interface GameApi {
   resume(owner?: import('./state').StoryOwner): Promise<boolean>;
   /** autopilot: the agent's next command and one short line of commentary, or null when the call failed */
   hallOfFame(): Promise<FallenCharacter[]>; // archived stories whose character fell, newest first
+  /** HF34 a: "Send to NPC template": the fallen character's echo sheet goes on the library send list; the page then wakes Claude */
+  sendHero(storyId: string): Promise<{ id: string } | { error: string }>;
   /** files the player's own bug report (code player_report) with the story, turn and last lines; resolves to its BG id */
   reportBug(note: string): Promise<string | null>;
   /** the open bugs, newest first */

@@ -33,7 +33,9 @@ import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
-import { fameEntry } from './fame';
+import { echoPast, fameEntry } from './fame';
+import { echoSheet } from '../library/echo';
+import { librarySends, saveSend, sendId } from '../save/sends';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import type { GuidedCtx } from './crossroads';
 
@@ -726,7 +728,22 @@ export function createGame(deps: GameDeps): Game {
     validateBuild,
     newStory,
     resume,
-    hallOfFame: () => save.listFallen(store),
+    async hallOfFame() {
+      const [fallen, sends] = await Promise.all([save.listFallen(store), librarySends(store).catch(() => [])]);
+      const inLib = new Set(Object.values(getLibrary().templates).map((t) => t.unique?.from).filter(Boolean));
+      const sent = new Set(sends.map((x) => x.storyId));
+      return fallen.map((f) => ({ ...f, ...(inLib.has(f.storyId) ? { inLibrary: true as const } : sent.has(f.storyId) ? { sent: true as const } : {}) }));
+    },
+    async sendHero(storyId) {
+      const f = (await save.listFallen(store)).find((x) => x.storyId === storyId);
+      if (!f) return { error: 'That character is not in the Hall of fame.' };
+      const st = await save.loadStory(store, storyId, getLibrary()).then((r) => r.state).catch(() => null);
+      if (!st) return { error: 'Their story no longer loads, so their sheet can’t be read.' };
+      const id = sendId('unique', storyId);
+      const sheet = { ...echoSheet(st, st.player, id, echoPast(f)), from: storyId };
+      await saveSend(store, { id, kind: 'unique', storyId, name: f.name, at: new Date(clock.now()).toISOString(), data: { raceId: st.player.core.raceId, label: st.player.label, sheet } });
+      return { id };
+    },
     reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
