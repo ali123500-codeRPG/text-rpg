@@ -1,12 +1,13 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group; the Inventory has none),
 // figures that can't be filtered in a text line under them, then the grouped table.
-import { PART_STATES } from '../scales';
+import { PART_STATES, THREADBOUND_RANKS } from '../scales';
 import type { GameApi, GameState, Quest } from '../types';
 import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
-import { achLevel, achXp, achievementName } from '../engine/xp';
+import { achLevel, achXp, achievementName, earnedAtText } from '../engine/xp';
+import { earned } from '../ruleset/threadboundItems';
 import { rewardName, rewardPos } from '../ruleset/achRewards';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
@@ -112,7 +113,7 @@ const KIND_GROUP: Record<string, [string, string, string]> = {
 const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
 
 /** an item's exact stats: the Inventory's side panel and the equipment panel's hover card share these rows */
-export function itemRows(s: GameState, it: { itemId: string }): PanelRow[] {
+export function itemRows(s: GameState, it: { itemId: string; boundTo?: string }): PanelRow[] {
   const d = safe(() => itemDef(s, it.itemId));
   if (!d) return [];
   const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
@@ -132,6 +133,26 @@ export function itemRows(s: GameState, it: { itemId: string }): PanelRow[] {
       : `${needText(need)} (met)`) });
   }
   rows.push({ k: 'Bulk', v: String(d.bulk) });
+  if (d.threadbound) rows.push(...threadboundRows(s, it, d.threadbound));
+  return rows;
+}
+
+/** A Threadbound item's powers: each one shows the deed (achievement) that wakes it and what that deed asks, but what the
+ * power does stays hidden until it wakes; then it is named, since it is the owner's perk from then on. Only for its owner,
+ * or before it is bound to anyone. */
+function threadboundRows(s: GameState, it: { boundTo?: string }, tb: NonNullable<ReturnType<typeof itemDef>['threadbound']>): PanelRow[] {
+  const p = s.player, lib = getLibrary(), mine = !it.boundTo || it.boundTo === p.id;
+  const rows: PanelRow[] = [{ k: 'Threadbound', v: `${THREADBOUND_RANKS.name(tb.rank)} · ${it.boundTo === p.id ? 'bound to you' : it.boundTo ? 'bound to someone else' : 'binds to whoever wears it first'}` }];
+  if (!mine) return rows;
+  const woke = tb.grants.filter((g) => earned(p, g.achievement)).length;
+  rows.push({ k: 'Powers', v: `${woke} of ${tb.grants.length} awake. Each wakes with a deed; what a power does stays hidden until then.` });
+  for (const g of tb.grants) {
+    const a = lib.achievements?.[g.achievement];
+    const deed = a ? `“${a.name}”: ${earnedAtText(s, a)}` : g.achievement;
+    rows.push(earned(p, g.achievement)
+      ? { k: 'Awake', v: `${lib.perks[g.perk]?.name ?? g.perk} · woken by ${deed}` }
+      : { k: 'Sealed', v: `A hidden power · wakes with ${deed}` });
+  }
   return rows;
 }
 

@@ -13,6 +13,7 @@ import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { functionName, groupName, groupsOf } from '../library/functionNames';
 import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
+import { tierName } from '../ruleset';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
 import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
@@ -389,6 +390,10 @@ const fmtCount = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
  * every screen shows for "earned at" (a row pinned to one healing source names it; an every-N row names its level). */
 export function earnedAtText(state: GameState, d: AchievementDef, of?: string): string {
   const n = d.every && of && Number.isFinite(+of) ? +of : d.count;
+  // a tier past Critical Success or Failure reads as the tier's own name ("an event roll at Critical Success+"), not as a
+  // count of steps
+  const end = d.rule === 'event_crits' ? TIERS.keys[TIERS.keys.length - 1] : d.rule === 'event_crit_fails' ? TIERS.keys[0] : null;
+  if (end && n !== undefined && !d.every) return `an event roll at ${tierName({ tier: end, beyond: (end === TIERS.keys[0] ? -1 : 1) * Math.max(0, n - 1) })}`;
   let what = (n === 1 ? ACH_RULE_ONE[d.rule] : undefined) ?? ACH_RULE_TEXT[d.rule] ?? d.rule;
   if (d.only) what = what.replace(/ \(.*\)$/, '').replace(/\bone source$/, sourceRowName(d, d.only));
   if (d.every) what = what.replace(/, again at every multiple$/, '');
