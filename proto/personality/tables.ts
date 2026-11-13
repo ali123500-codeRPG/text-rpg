@@ -21,22 +21,29 @@ export const AXIS_ENDS: Record<Axis, { low: [string, string]; high: [string, str
 export const TRAIT_WORDS: [number, string][] = [[70, 'very '], [40, ''], [20, 'a bit ']];
 
 /**
- * Archetypes: a whole-profile target on the six axes (missing axes are 0) and a hint.
- * The character's archetype is the row with the smallest average gap; ties go to the earlier row.
+ * Archetypes: a whole-person target, matched on the six axes, the Nerve axis and the drives.
+ * Missing axes and nerve are 0. `values` are the drives the type lives by.
+ * The character's archetype is the row with the smallest gap (see ARCHETYPE_* weights); ties go to the earlier row.
  * Targets are placeholders.
  */
-export const ARCHETYPES: { key: string; name: string; target: Partial<Axes>; hint: string }[] = [
+export const ARCHETYPES: { key: string; name: string; target: Partial<Axes>; nerve?: number; values?: string[]; hint: string }[] = [
   { key: 'ordinary', name: 'Ordinary', target: {}, hint: 'an everyday sort, nothing to extremes' },
-  { key: 'prideful', name: 'Prideful', target: { pride: 70, temper: 20 }, hint: 'won\'t back down in front of others, takes insults personally' },
-  { key: 'mature', name: 'Mature', target: { discipline: 60, temper: -40, honesty: 20 }, hint: 'thinks before acting, keeps a cool head, owns their mistakes' },
-  { key: 'childish', name: 'Childish', target: { discipline: -70, temper: 30, sociability: 40, curiosity: 40 }, hint: 'acts on impulse, sulks when crossed' },
-  { key: 'honourable', name: 'Honourable', target: { honesty: 70, pride: 40, discipline: 30 }, hint: 'keeps their word and answers any insult to their name' },
-  { key: 'schemer', name: 'Schemer', target: { honesty: -60, discipline: 50, temper: -20, sociability: 20 }, hint: 'plans ahead, lies patiently, uses people' },
-  { key: 'bully', name: 'Bully', target: { pride: 60, temper: 60, honesty: -30, curiosity: -20 }, hint: 'picks on the weak, backs down from the strong' },
-  { key: 'loner', name: 'Loner', target: { sociability: -60 }, hint: 'keeps to themself and relies on no one; dodges group ties and promises rather than argue about them' },
-  { key: 'busybody', name: 'Busybody', target: { sociability: 60, curiosity: 60, discipline: -20 }, hint: 'pokes into other people\'s business and passes on what they learn' },
-  { key: 'free_spirit', name: 'Free spirit', target: { discipline: -60, sociability: 50 }, hint: 'lives for the moment, laughs off trouble, hates being tied down' },
+  { key: 'prideful', name: 'Prideful', target: { pride: 70, temper: 20 }, nerve: 20, values: ['reputation', 'glory'], hint: 'won\'t back down in front of others, takes insults personally' },
+  { key: 'mature', name: 'Mature', target: { discipline: 60, temper: -40, honesty: 20 }, values: ['duty', 'order'], hint: 'thinks before acting, keeps a cool head, owns their mistakes' },
+  { key: 'childish', name: 'Childish', target: { discipline: -70, temper: 30, sociability: 40, curiosity: 40 }, nerve: 20, values: ['pleasure', 'adventure'], hint: 'acts on impulse, sulks when crossed' },
+  { key: 'honourable', name: 'Honourable', target: { honesty: 70, pride: 40, discipline: 30 }, nerve: 20, values: ['justice', 'loyalty', 'duty'], hint: 'keeps their word and answers any insult to their name' },
+  { key: 'schemer', name: 'Schemer', target: { honesty: -60, discipline: 50, temper: -20, sociability: 20 }, nerve: -20, values: ['power', 'wealth'], hint: 'plans ahead, lies patiently, uses people' },
+  { key: 'bully', name: 'Bully', target: { pride: 60, temper: 60, honesty: -30, curiosity: -20 }, values: ['power'], hint: 'picks on the weak, backs down from the strong' },
+  { key: 'loner', name: 'Loner', target: { sociability: -60 }, values: ['freedom', 'safety'], hint: 'keeps to themself and relies on no one; dodges group ties and promises rather than argue about them' },
+  { key: 'busybody', name: 'Busybody', target: { sociability: 60, curiosity: 60, discipline: -20 }, values: ['reputation'], hint: 'pokes into other people\'s business and passes on what they learn' },
+  { key: 'free_spirit', name: 'Free spirit', target: { discipline: -60, sociability: 50 }, nerve: 40, values: ['freedom', 'pleasure', 'desire'], hint: 'lives for the moment, laughs off trouble, hates being tied down' },
 ];
+/** the archetype gap: six axes and Nerve count 1 each, the drive fit counts ARCHETYPE_VALUE_WEIGHT */
+export const ARCHETYPE_VALUE_WEIGHT = 2;
+/** drive fit for a type with no values (Ordinary): the same as a type none of whose values they hold */
+export const ARCHETYPE_NO_VALUES_GAP = 100;
+/** how much a drive counts by its rank (first drive 1, second 0.8...) */
+export const DRIVE_RANK_WEIGHT = [1, 0.8, 0.6, 0.4, 0.3, 0.2];
 
 /** a "but" needs at least this many points on the axis, and this gap from the archetype's target */
 export const BUT_MIN = 20;

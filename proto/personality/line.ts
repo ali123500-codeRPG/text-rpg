@@ -1,6 +1,6 @@
 // Personality line prototype: builds the CHARACTER personality line from points, with no hand-written parts.
 import {
-  AXES, AXIS_ENDS, ARCHETYPES, BUT_GAP, BUT_MIN, BUTS_SHOWN, DRIVES_SHOWN, NERVE_LEAN, NERVE_LINES, NERVE_PLUS_EVERY,
+  AXES, AXIS_ENDS, ARCHETYPES, ARCHETYPE_NO_VALUES_GAP, ARCHETYPE_VALUE_WEIGHT, DRIVE_RANK_WEIGHT, BUT_GAP, BUT_MIN, BUTS_SHOWN, DRIVES_SHOWN, NERVE_LEAN, NERVE_LINES, NERVE_PLUS_EVERY,
   NERVE_TIER_FROM, TENSIONS, TENSIONS_SHOWN, TRAIT_WORDS, VALUES, type Axes, type Axis, type Facts,
 } from './tables';
 
@@ -30,10 +30,24 @@ export interface Character {
 
 const target = (a: (typeof ARCHETYPES)[number], axis: Axis) => a.target[axis] ?? 0;
 
-/** average gap from each archetype, nearest first (ties keep table order) */
-export function archetypeGaps(axes: Axes) {
-  return ARCHETYPES.map((a, i) => ({ a, i, gap: AXES.reduce((s, ax) => s + Math.abs(axes[ax] - target(a, ax)), 0) / AXES.length }))
-    .sort((x, y) => x.gap - y.gap || x.i - y.i);
+/** how far the character's drives are from a type's values: 0 = the type's values are their top drives, 100 = none of them */
+export function driveGap(drives: string[], values: string[] | undefined) {
+  if (!values?.length) return ARCHETYPE_NO_VALUES_GAP;
+  const w = (i: number) => DRIVE_RANK_WEIGHT[i] ?? DRIVE_RANK_WEIGHT[DRIVE_RANK_WEIGHT.length - 1];
+  const got = values.reduce((s, v) => s + (drives.includes(v) ? w(drives.indexOf(v)) : 0), 0);
+  const k = Math.min(values.length, drives.length);
+  const best = Array.from({ length: k }, (_, i) => w(i)).reduce((a, b) => a + b, 0);
+  return best ? 100 * (1 - got / best) : ARCHETYPE_NO_VALUES_GAP;
+}
+
+/** gap from each archetype over the six axes, Nerve and drives, nearest first (ties keep table order) */
+export function archetypeGaps(c: Pick<Character, 'axes' | 'nerve' | 'drives'>) {
+  return ARCHETYPES.map((a, i) => {
+    const axes = AXES.reduce((s, ax) => s + Math.abs(c.axes[ax] - target(a, ax)), 0);
+    const nerveGap = Math.abs(c.nerve - (a.nerve ?? 0));
+    const drives = driveGap(c.drives, a.values);
+    return { a, i, axes: axes / AXES.length, nerve: nerveGap, drives, gap: (axes + nerveGap + ARCHETYPE_VALUE_WEIGHT * drives) / (AXES.length + 1 + ARCHETYPE_VALUE_WEIGHT) };
+  }).sort((x, y) => x.gap - y.gap || x.i - y.i);
 }
 
 /** axes far enough from the archetype to say "but": strong enough, far from the target, and not just a weaker version of it */
@@ -71,7 +85,7 @@ const list = (xs: string[]) => xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1)
 
 /** everything the line is made from, for the explain report */
 export function parts(c: Character) {
-  const gaps = archetypeGaps(c.axes);
+  const gaps = archetypeGaps(c);
   const arch = c.archetype ? ARCHETYPES.find((a) => a.key === c.archetype)! : gaps[0].a;
   if (!arch) throw new Error(`unknown archetype ${c.archetype}`);
   for (const d of c.drives) if (!VALUES[d]) throw new Error(`unknown value ${d}`);
