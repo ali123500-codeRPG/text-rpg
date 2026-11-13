@@ -591,16 +591,16 @@ export function prototypeLibrary(): Library {
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: the story may name the thread; never numbers.
     essences: {
       [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.unarmed_natural, weight: 2 }, { skill: SK.tremor, weight: 1 }], // EN5: slimes have no Endurance
-        story: 'Something slow and unhurried settles low in your gut, a strand of the slime\'s patience tied into your own. Pain arrives later than it used to.' },
+        story: 'A strand of the slime\'s slow patience knots into yours. Footsteps reach you through the floor before your ears catch them, and your body starts to feel like the weapon.' },
       [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if someone else\'s long watches were knotted into yours.' },
       [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
-      // EN6: placeholder rows so the barkeep and the tavern patron each carry one; stories are placeholders for the lore thread
+      // EN6: placeholder rows so the barkeep and the tavern patron each carry one
       [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
-        story: 'Prices start to sound like opening moves. You hear the give in a seller\'s voice before they know it is there.' },
+        story: 'A haggler\'s ear has knotted into yours. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
       [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
-        story: 'Your fists feel easier at your sides, and so do your words. Half a fight is talking your way into it, or out.' },
+        story: 'Someone\'s long nights of tavern brawls have tied into your own. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
       [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
         story: 'What you did again and again here has pulled tight and held. Something in you will remember it.' },
     },
