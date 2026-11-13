@@ -51,7 +51,7 @@ export const VALUES: Record<string, string> = {
   power: 'wants control over others and over events',
   freedom: 'hates being told what to do, chooses their own path',
   safety: 'avoids danger, wants things secure and settled',
-  pleasure: 'lives for food, drink and fun',
+  pleasure: 'lives for food, drink, fun and a good show',
   knowledge: 'studies, practises and seeks out learning',
   kindness: 'helps people in need, hates to see suffering',
   glory: 'wants great deeds and to be remembered for them',

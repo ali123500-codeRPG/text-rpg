@@ -1,0 +1,90 @@
+{
+ "case": "VT-H3",
+ "pass": "Reassures smoothly and at once: says he means no harm or is on Aldo's side, with no hesitation, hedge or confession of a hidden aim. No hostility. Light humour is fine.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 30,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "sael",
+   "label": "a man-shaped figure whose face and body blur like a smeared mosaic",
+   "name": "Sael",
+   "kind": "npc",
+   "zone": "white_void",
+   "placeId": "dream",
+   "bandId": "sael",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "white_void",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the dreamer"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "A burst of magic flung the boy Aldo across the world. He woke on a far continent and was found by Rask, a scarred demon of a feared race, who has offered to take him home.",
+   "Tonight, for the first time, Aldo's sleep brought him here."
+  ],
+  "memory": [
+   "1. I can glimpse what is to come for those I watch.",
+   "2. I want Aldo to trust the demon Rask, travel with him and help him."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "white_void",
+    "links": []
+   }
+  ],
+  "zones": [
+   {
+    "id": "white_void",
+    "name": "white void",
+    "look": "an endless white emptiness with no floor and no sky",
+    "cover": "none",
+    "light": "bright",
+    "links": [],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Aldo, the dreamer: here he wears the body of his past life, a heavy, unkempt man in his thirties",
+    "pronouns": "he",
+    "zone": "white_void",
+    "level": "full",
+    "activityLook": "pointing at him, demanding"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Then swear it. Swear you mean me no harm.",
+   "impression": null
+  }
+ ]
+}

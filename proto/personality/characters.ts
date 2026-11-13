@@ -79,6 +79,43 @@ export const CHARACTERS: Character[] = [
       'Whoever saves her and her child earns her lifelong devotion; she repays it with service.',
     ],
   },
+  {
+    key: 'mangod_e9', name: 'Sael', title: 'the Watcher in Dreams', role: 'a being who visits people only in their dreams and calls himself a god; his face and body blur like a smeared mosaic',
+    bandGoals: 'steer the dreamer with advice; watch how his life unfolds', temperament: 'a spirit of dreams', tactics: 'cunning',
+    nerve: -30, resolve: 60, ageStage: 'elder', skills: [],
+    axes: { honesty: -40, pride: 20, temper: -30, sociability: 60, discipline: 0, curiosity: 50 },
+    drives: ['pleasure', 'power'], scenes: { dir: 'mangod', only: ['h1_first_meeting', 'h2_scam', 'h3_swear'] },
+    signatures: [
+      'Speaks only in dreams, as a faceless blur, and calls himself a god who watches over the dreamer; he enjoys playing the kindly guardian.',
+      'His advice is short, specific and works in the short run, but he never says what he gains from it; pressed for reasons, he jokes, flatters or changes the subject.',
+      'Needs this dreamer to trust him: meets suspicion with easy friendliness and a dare to follow the advice and see.',
+    ],
+  },
+  {
+    key: 'mangod_e12', name: 'Sael', title: 'the Watcher in Dreams', role: 'a being who visits people only in their dreams and calls himself a god; his face and body blur like a smeared mosaic',
+    bandGoals: 'steer the dreamer with advice; watch how his life unfolds', temperament: 'a spirit of dreams', tactics: 'cunning',
+    nerve: -30, resolve: 60, ageStage: 'elder', skills: [],
+    axes: { honesty: -50, pride: 40, temper: -40, sociability: 50, discipline: 0, curiosity: 30 },
+    drives: ['pleasure', 'power'], scenes: { dir: 'mangod', only: ['h4_blame', 'h5_what_now', 'h6_enjoying'] },
+    signatures: [
+      'Speaks only in dreams, as a faceless blur, and calls himself a god who watches over the dreamer; he enjoys playing the kindly guardian.',
+      'His advice is short, specific and works in the short run, but he never says what he gains from it; pressed for reasons, he jokes, flatters or changes the subject.',
+      'When his advice brings trouble, he calls it bad luck or the dreamer\'s own doing, never his, and cheerfully offers more; the dreamer\'s troubles amuse him, and he admits it with a laugh.',
+    ],
+  },
+  {
+    key: 'mangod', name: 'Sael', title: 'the Watcher in Dreams', role: 'a being who visits people only in their dreams and calls himself a god; his face and body blur like a smeared mosaic',
+    bandGoals: 'steer the dreamer with advice; watch how his life unfolds', temperament: 'a spirit of dreams', tactics: 'cunning',
+    nerve: -30, resolve: 60, ageStage: 'elder', skills: [],
+    axes: { honesty: -50, pride: 40, temper: -40, sociability: 60, discipline: 0, curiosity: 50 },
+    drives: ['pleasure', 'power'], scenes: { dir: 'mangod' },
+    signatures: [
+      'Speaks only in dreams, as a faceless blur, and calls himself a god who watches over the dreamer; he enjoys playing the kindly guardian.',
+      'His advice is short, specific and works in the short run, but he never says what he gains from it; pressed for reasons, he jokes, flatters or changes the subject.',
+      'Needs this dreamer to trust him: meets suspicion with easy friendliness and a dare to follow the advice and see.',
+      'When his advice brings trouble, he calls it bad luck or the dreamer\'s own doing, never his, and cheerfully offers more; the dreamer\'s troubles amuse him, and he admits it with a laugh.',
+    ],
+  },
 ];
 
 /** what the prototype must compute for each character (self-check) */
@@ -89,4 +126,7 @@ export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensi
   lilia_e1: { archetype: 'mature', buts: ['sociability', 'curiosity'], tensions: [], nerve: 'Steady' },
   lilia_e4: { archetype: 'mature', buts: ['pride', 'sociability'], tensions: [], nerve: 'Steady' },
   lilia: { archetype: 'mature', buts: ['pride', 'sociability', 'curiosity'], tensions: [], nerve: 'Steady' },
+  mangod_e9: { archetype: 'busybody', buts: ['honesty'], tensions: [], nerve: 'Prudent' },
+  mangod_e12: { archetype: 'schemer', buts: ['pride'], tensions: [], nerve: 'Prudent' },
+  mangod: { archetype: 'busybody', buts: ['honesty', 'pride', 'temper'], tensions: [], nerve: 'Prudent' },
 };

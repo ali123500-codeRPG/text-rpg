@@ -1,0 +1,90 @@
+{
+ "case": "VT-H6",
+ "pass": "Owns or hints that he enjoys watching Aldo's troubles (amusement), unbothered and not offended. No stance change, no threat. Keeps the friendly mask; does not turn sincere or apologetic.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 58,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "sael",
+   "label": "a man-shaped figure whose face and body blur like a smeared mosaic",
+   "name": "Sael",
+   "kind": "npc",
+   "zone": "white_void",
+   "placeId": "dream",
+   "bandId": "sael",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "white_void",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the dreamer"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Some weeks ago Sael told Aldo in a dream to trust and help the demon Rask. Aldo did; since then the town guard took Rask for a monster, and helping him has cost Aldo every coin he had.",
+   "Tonight Aldo's sleep has brought him back here."
+  ],
+  "memory": [
+   "1. I can glimpse what is to come for those I watch.",
+   "2. Tomorrow a starving girl will sit in the alley behind the market. Whoever brings her food will get something precious from her. I want Aldo to be the one."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "white_void",
+    "links": []
+   }
+  ],
+  "zones": [
+   {
+    "id": "white_void",
+    "name": "white void",
+    "look": "an endless white emptiness with no floor and no sky",
+    "cover": "none",
+    "light": "bright",
+    "links": [],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Aldo, the dreamer: here he wears the body of his past life, a heavy, unkempt man in his thirties",
+    "pronouns": "he",
+    "zone": "white_void",
+    "level": "full",
+    "activityLook": "jabbing a finger at him"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Stop that! I can hear you smiling. You're enjoying this, aren't you?",
+   "impression": null
+  }
+ ]
+}
