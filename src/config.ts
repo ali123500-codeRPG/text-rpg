@@ -521,6 +521,8 @@ const DEFAULTS = {
 
 export type Config = typeof DEFAULTS;
 export const CONFIG: Config = structuredClone(DEFAULTS);
+/** a new story's settings (difficulty is not a setting: it comes from who is there and the event roll, CS10) */
+export const defaultSettings = (): { showMechanics: boolean; tone: string } => ({ showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone });
 export function resetConfig(): void {
   Object.assign(CONFIG, structuredClone(DEFAULTS));
 }
