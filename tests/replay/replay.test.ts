@@ -17,7 +17,7 @@ import { getLibrary } from '../../src/library';
 import { TURN_CHECK } from '../../src/save/turnCheck';
 
 type Answer = { agent: string; actorId?: string; turn: number; output?: unknown };
-type Run = { run: string; from: number; docs: Record<string, string>; steps: { input: string; answers: Answer[] }[] };
+type Run = { run: string; from: number; head?: boolean; docs: Record<string, string>; steps: { input: string; answers: Answer[] }[] };
 
 const DIR = 'tests/replay/runs';
 /** "<run> step <n>" -> why today's rules refuse a line the run accepted */
@@ -60,15 +60,26 @@ describe('replay set (TQ3)', () => {
       const store = memoryStore(() => clock.now());
       for (const [k, v] of Object.entries(r.docs)) store.docs.set(k, v);
       const storyId = Object.keys(r.docs).find((k) => /^stories\/[^/]+$/.test(k))!.split('/')[1];
-      try {
-        await restoreBackup(store, storyId, r.from, getLibrary());
-      } catch (e) {
-        return t.skip(`${r.run}: its backup no longer loads (${(e as Error).message.slice(0, 120)})`); // old saves need not load; shown as skipped
+      // a resumed run whose log no backup covers carries the saved story as it resumed (head), not a backup
+      if (!r.head) {
+        try {
+          await restoreBackup(store, storyId, r.from, getLibrary());
+        } catch (e) {
+          return t.skip(`${r.run}: its backup no longer loads (${(e as Error).message.slice(0, 120)})`); // old saves need not load; shown as skipped
+        }
       }
       const client = replayClient(r.steps);
       const refused: string[] = [];
       const game = createGame({ client, clock, store, director: createDirector(clock) });
-      expect(await game.resume()).toBe(true);
+      let resumed = false;
+      try {
+        resumed = await game.resume();
+      } catch (e) {
+        if (r.head) return t.skip(`${r.run}: its saved story no longer loads (${(e as Error).message.slice(0, 120)})`);
+        throw e;
+      }
+      if (!resumed && r.head) return t.skip(`${r.run}: its saved story no longer loads`);
+      expect(resumed).toBe(true);
       for (const [n, s] of r.steps.entries()) {
         if (game.fell() || game.notices().some((x) => x.kind === 'stop_play')) break;
         client.at = n;
