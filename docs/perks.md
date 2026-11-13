@@ -392,6 +392,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## Higher milestone
 
+### Light Sleeper (Earshot) · NW14
+
+*Story:* You sleep with one ear open. A step on the stair, a hand on the latch: someone who means you harm has to get past your hearing before they can catch you asleep.
+
+- **Kind:** Always on
+- **Trigger:** Someone hostile to the sleeping owner is in its zone: when they arrive, and at the start of each turn while they stay.
+- **Conditions:** The owner is asleep.
+- **Effect:** The owner makes a hearing check. Against someone sneaking it is their stealth against the owner's hearing; against someone moving openly its difficulty comes from how much noise they make (quieter is harder). Passed, the owner wakes and is aware of them.
+- **Lasts:** Each time someone hostile is near.
+
 ### Find the Gap (Light weapons) · B1
 
 *Story:* There is a gap in every guard, and you see it. With any attack, aiming at a small body part costs you only half the usual penalty.
