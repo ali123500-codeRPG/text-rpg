@@ -233,6 +233,7 @@ export type NarrationEvent = {
   heading?: string; // BG-22: a leg within `where` on the way to another zone: that zone's name
   round?: string; // BG-148: a way the walk goes round because it is known to be shut, and why
   toGo?: number; // BG-47: with heading, metres still to walk to the way into it: not there yet
+  busy?: { doing: string; done: number; left: number }; // AT2/AT17: a long action still going (kind busy): what, seconds done and to go
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes

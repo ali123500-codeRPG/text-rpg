@@ -19,7 +19,7 @@ import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
 import { distM, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
+import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -151,8 +151,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       if (!m || m.mode.tree !== 'ranged') return of(DU.blow);
       if (m.mode.thrown) return of(DU.throw);
       const it = inv(m.itemId), def = it ? itemDef(state, it.itemId) : undefined;
-      const span = def?.spanTime ? actionRow(def.spanTime) : undefined;
-      return of(def?.shotTime ?? DU.bow_light, span ? actionSeconds(span) : 0);
+      // AT11c: a crossbow spans, then shoots: one long action under the spanning row (its focus, its work kept when broken off)
+      const span = def?.spanTime ? actionRow(def.spanTime) : undefined, shot = of(def?.shotTime ?? DU.bow_light);
+      return span && shot ? { row: span, seconds: actionSeconds(span) + shot.seconds } : shot;
     }
     case 'use_item': {
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
@@ -613,6 +614,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   if (spar) checkOut(state, spar); // SP4: at the limit, the fighter is out: a later blow on it is a real attack (SP7)
   ev.tier = res.attack.tier;
   ev.attack = res;
+  breakFocus(ctx, t, ev, t.core.condition.hpLostPct > before.lost);
   if (m.mode.thrown && dropToGround(state, a, m.itemId, t.zone, t.pos)) { // it lands where they stand, hit or miss
     ev.effects.push({ kind: 'item_landed', actorId: a.id, data: { itemId: m.itemId, zone: t.zone } });
   }
@@ -1154,7 +1156,7 @@ function step(ctx: Ctx, id: string): void {
   if (trip) return doTravel(ctx, a, o, trip);
   // AE1/ZP3/AT19: a shot or a throw that locks movement takes its seconds of move time too. One that reaches from here takes
   // that move time first, and the move goes only on what is left; one that doesn't is dropped and the move stands
-  const cost = orderCost(state, a, o);
+  let cost = orderCost(state, a, o);
   let lockPaid = false;
   if (o.type === 'attack' && rangedHere(state, a, o)) {
     if (inReach(state, a, o)) {
@@ -1208,6 +1210,13 @@ function step(ctx: Ctx, id: string): void {
   // AT48: the main action finishes after the walk that led to it and the gear ops before it
   const pools = slotsOf(ctx, a);
   if (!o.moveAfter) ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, pools.walkedS));
+  // AT2/AT17: an action longer than the turn goes on over turns; one that ends this turn spends only what is left of it
+  if (a.busy && (!cost || ctx.spoke.has(id))) setAside(state, a);
+  if (cost && !ctx.spoke.has(id)) {
+    const long = longAction(ctx, a, o, cost);
+    if (long === 'busy') { if (o.moveAfter && !turned) move(false); return; }
+    cost = long;
+  }
   ctx.at = (ctx.clock.get(id) ?? 0) + Math.min(cost?.seconds ?? pools.main, pools.main);
   if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && moved && !o.line)) doMain(ctx, a, o);
   if (o.moveAfter && !turned) move(false); // AE3: act, then move
@@ -1218,6 +1227,60 @@ function step(ctx: Ctx, id: string): void {
 function mainLeft(ctx: Ctx, a: Actor): number {
   const s = slotsOf(ctx, a);
   return Math.max(0, Math.min(s.main, ctx.turnS + s.carried.main - (ctx.clock.get(a.id) ?? 0)));
+}
+
+/** AT2/AT17: what makes a long action the same one again: its row, and for anything but an attack its item and target (a
+ * crossbow's spanning goes on whoever it is aimed at) */
+const busyKey = (row: DurationDef, o: Order): string => (o.type === 'attack' ? row.id : `${row.id}|${o.item ?? ''}|${o.target ?? ''}`);
+/** AT6/AT28: what is left of a long action broken off (or set aside) at this progress; lost when the row names nothing */
+const breakBand = (b: NonNullable<Actor['busy']>): string => actionRow(b.row)?.onBreak?.find((x) => b.done / b.need <= x.upTo + T_EPS)?.then ?? 'lost';
+/** AT47: an actor at a long action that goes on by itself (not paused) */
+export const busyNow = (a: Actor): boolean => !!a.busy && !a.busy.paused;
+/** AT47: the order that carries a long action on */
+const busyOrder = (a: Actor): Order => ({ actorId: a.id, type: a.busy!.order.type, target: a.busy!.order.target, item: a.busy!.order.item, skill: null, intent: 'busy', source: 'routine' });
+
+/** AT2/AT17/AT45: an action longer than a whole fight turn's time is a long action: it goes on turn after turn (the actor
+ * busy) and takes effect when its seconds are done. Returns the seconds still to spend when it finishes this turn (or the
+ * cost unchanged for a short action), or 'busy' when it took all the time left and goes on. Outside a fight a turn lasts
+ * the whole action, so only work kept from before counts. Another order sets a long action aside: its work is kept when
+ * its row keeps it (AT6/AT28), else lost. */
+function longAction(ctx: Ctx, a: Actor, o: Order, cost: { row: DurationDef; seconds: number }): { row: DurationDef; seconds: number } | 'busy' {
+  const { state } = ctx;
+  const key = busyKey(cost.row, o);
+  if (a.busy && a.busy.key !== key) setAside(state, a);
+  const cur = a.busy?.key === key ? a.busy : undefined;
+  // words are said in the turn they are ordered, all at once: a long line takes the turn's time (its share on a break waits)
+  if (isSpeech(o.type)) return cost;
+  if (state.mode !== 'tactical') { delete a.busy; return cur ? { ...cost, seconds: Math.max(0, cur.need - cur.done) } : cost; }
+  const s = slotsOf(ctx, a);
+  if (!cur && cost.seconds <= ctx.turnS + s.carried.main + T_EPS) return cost;
+  const need = cur?.need ?? cost.seconds, done = cur?.done ?? 0, left = mainLeft(ctx, a);
+  if (need - done <= left + T_EPS) { delete a.busy; return { ...cost, seconds: need - done }; }
+  useMain(ctx, a, { row: cost.row, seconds: left });
+  ctx.finished.delete(a.id);
+  a.busy = { row: cost.row.id, key, order: { type: o.type, target: o.target, item: o.item ?? null }, done: done + left, need, turn: state.turn };
+  emit(ctx, bark(mk(ctx, a, 'busy', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), busy: { row: cost.row.id, done: a.busy.done, need } }), o));
+  return 'busy';
+}
+/** AT6/AT28: an actor turns to something else: a long action's work stays only when its row keeps it at this progress */
+function setAside(state: GameState, a: Actor): void {
+  const b = a.busy!;
+  if (breakBand(b) === 'kept') b.paused = true;
+  else delete a.busy;
+  logCode(state, 'busy_set_aside', { actorId: a.id, row: b.row, done: b.done, need: b.need, kept: !!a.busy });
+}
+/** AT25/AT57: an attack aimed at someone at a long action breaks it by the row's focus: careful (and deep) on any attack,
+ * hit or miss; steady on a hit that wounds; reflex never. What is left goes by its progress (AT6/AT28): kept or lost.
+ * GAP: share, misfire and fires wait for rows that use them in a fight (rest, talk and spells are not long here). */
+function breakFocus(ctx: Ctx, t: Actor, ev: GameEvent, wounded: boolean): void {
+  if (!busyNow(t)) return;
+  const b = t.busy!, focus = actionRow(b.row)?.focus ?? 'reflex';
+  if (!(FOCUS.pos(focus) >= FOCUS.pos('careful') || (focus === 'steady' && wounded))) return;
+  const then = breakBand(b);
+  if (then === 'kept') b.paused = true;
+  else delete t.busy;
+  ev.effects.push({ kind: 'broke_off', actorId: t.id, data: { row: b.row, done: b.done, need: b.need, then } });
+  logCode(ctx.state, 'busy_broken', { actorId: t.id, row: b.row, done: b.done, need: b.need, then });
 }
 
 /** AT78/AT48: an attack order repeats while the actor has main time for another one, each next blow or shot resolving in
@@ -1490,6 +1553,11 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
   }
   if (isActive(state.player)) orders.set(state.player.id, playerOrder);
+  // AT47: an NPC at a long action carries on with it unless its agent was asked anyway or a trigger fired for it
+  for (const [id, o] of orders) {
+    const x = actorById(state, id);
+    if (x && x !== state.player && busyNow(x) && o.source !== 'trigger' && !usableAgentOutputs(input).some((u) => u.actorId === id)) orders.set(id, busyOrder(x));
+  }
   // NW12/NW20: a sleeper does nothing (its agent is not asked); NW21: an awake band member who sees someone hostile
   // shouts to wake its sleeping bandmates
   for (const id of [...orders.keys()]) { const x = actorById(state, id); if (x && x !== state.player && isAsleep(x)) orders.set(id, asleepOrder(x)); }

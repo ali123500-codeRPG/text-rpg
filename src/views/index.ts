@@ -1,4 +1,5 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { actionRow } from '../ruleset/actionTime';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
@@ -294,6 +295,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'found_secret') out.push(`${by} catches something ${who} would rather keep hidden`); // SE17: the secret itself shows once known
     if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
+    if (f.kind === 'broke_off') out.push(`${who} ${own ? 'are' : 'is'} broken off ${(actionRow(String(f.data.row))?.name ?? 'what they were doing').toLowerCase()}${f.data.then === 'kept' ? ', the work so far kept' : ', the work lost'}`); // AT6/AT25
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
     if (f.kind === 'still_held') out.push(`${who} fails to break free of ${by}`);
     if (f.kind === 'slipped_grab') out.push(`${who} slips ${by}'s grab`); // BF5
@@ -643,6 +645,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(full && e.toGo ? { toGo: e.toGo } : {}),
+      ...(full && e.busy && e.kind === 'busy' ? { busy: { doing: actionRow(e.busy.row)?.name ?? e.busy.row, done: Math.round(e.busy.done), left: Math.round(e.busy.need - e.busy.done) } } : {}),
       ...(full && e.round ? { round: `${e.round.way}: ${e.round.shut}` } : {}),
       ...(forWhom ? { for: forWhom } : {}),
       ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),

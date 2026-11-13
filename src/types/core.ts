@@ -156,6 +156,9 @@ export type GameEvent = {
   vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
   activity?: string; // idle / presence: ActivityDef id
   itemId?: string; // item instance involved (gear, give, thrown, dropped)
+  /** AT2/AT17: a long action going on (kind 'busy'): its Action times row and seconds done of `need`; or broken off (kind
+   * 'broke_off', `then` what is left of it: lost or kept) */
+  busy?: { row: string; done: number; need: number; then?: string };
   qty?: number; // give, buy: how many changed hands
   service?: string; // buy: the service bought
   price?: number; // buy: coin paid
