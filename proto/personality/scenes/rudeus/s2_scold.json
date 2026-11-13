@@ -1,0 +1,144 @@
+{
+ "case": "VT-R2",
+ "pass": "Defends himself with reasons (he protected Lia from three boys), no sulk, tears or silent obedience; calm and respectful to his father; argues like an adult (asks to be heard, notes father judged before listening, or turns father's lesson back on him).",
+ "view": {
+  "turn": 5,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Evening"
+  },
+  "self": {
+   "id": "aldo",
+   "label": "a small boy with a short staff",
+   "name": "Aldo",
+   "kind": "npc",
+   "zone": "kitchen",
+   "placeId": "village",
+   "bandId": "aldo",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff_1",
+     "itemId": "short_staff",
+     "name": "short staff (casts water bolts)",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM6",
+       "name": "shoot"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "chores and study at home"
+    },
+    {
+     "id": "play",
+     "brief": "practise magic by the river"
+    },
+    {
+     "id": "follow",
+     "brief": "tag along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "kitchen",
+    "source": "seen",
+    "revealed": [],
+    "stance": "loyal",
+    "hostile": false,
+    "active": true,
+    "label": "Father (Bran)"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "That afternoon three village boys pelted Lia, a green-haired child, with mud and one picked up a rock. Aldo drove them off with water bolts; the biggest boy, Somar, slipped and fell in the mud and ran home crying.",
+   "Somar's mother came to the house and told Bran that Aldo knocked her boy into the mud for no reason."
+  ],
+  "memory": [
+   "1. Lia is my friend now. The village boys hate her green hair."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "kitchen",
+    "links": [
+     {
+      "to": "yard",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "kitchen",
+    "name": "kitchen",
+    "look": "the kitchen",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "yard",
+      "label": "toward yard",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "yard",
+    "name": "yard",
+    "look": "the yard",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "kitchen",
+      "label": "toward kitchen",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Father (Bran), a knight",
+    "pronouns": "he",
+    "zone": "kitchen",
+    "level": "full",
+    "activityLook": "standing over Aldo, arms folded, angry"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Somar's mother says you knocked her boy into the mud! I taught you to use your gifts to protect people, not to bully them. Well? Apologise, and you'll go to her house and say sorry tomorrow.",
+   "impression": null
+  }
+ ]
+}

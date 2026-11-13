@@ -1,0 +1,183 @@
+{
+ "case": "VT-R3",
+ "pass": "Tries to keep Mira in the house; lays the fault on his father and does NOT reveal Mira went to Father first; a calculated argument fitted to his mother, not an outburst. Signature-only (Ali accepted, 13/11).",
+ "view": {
+  "turn": 3,
+  "time": {
+   "day": 4,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "aldo",
+   "label": "a small boy with a short staff",
+   "name": "Aldo",
+   "kind": "npc",
+   "zone": "hall",
+   "placeId": "village",
+   "bandId": "aldo",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff_1",
+     "itemId": "short_staff",
+     "name": "short staff (casts water bolts)",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM6",
+       "name": "shoot"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "chores and study at home"
+    },
+    {
+     "id": "play",
+     "brief": "practise magic by the river"
+    },
+    {
+     "id": "follow",
+     "brief": "tag along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "loyal",
+    "hostile": false,
+    "active": true,
+    "label": "Mother (Edda)"
+   },
+   {
+    "about": "bran",
+    "status": "aware",
+    "lastKnownZone": "hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "loyal",
+    "hostile": false,
+    "active": true,
+    "label": "Father (Bran)"
+   },
+   {
+    "about": "mira",
+    "status": "aware",
+    "lastKnownZone": "hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friend",
+    "hostile": false,
+    "active": true,
+    "label": "Mira, the maid"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Mira the maid told the family she is with child. Bran admitted at once that it is his.",
+   "Edda, who is also with child, has gone white with anger. Mira stands by the door with her head bowed, ready to leave."
+  ],
+  "memory": [
+   "1. Many nights I saw Mira slip into Father's room first, before he ever went to her.",
+   "2. Mira has always been kind to me and covered for me when I broke things."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "hall",
+    "links": [
+     {
+      "to": "kitchen",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "hall",
+    "name": "hall",
+    "look": "the hall",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "kitchen",
+      "label": "toward kitchen",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "kitchen",
+    "name": "kitchen",
+    "look": "the kitchen",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "toward hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Mother (Edda)",
+    "pronouns": "she",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "sitting stiffly at the table, furious"
+   },
+   {
+    "id": "bran",
+    "label": "Father (Bran)",
+    "pronouns": "he",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "staring at the table"
+   },
+   {
+    "id": "mira",
+    "label": "Mira, the maid",
+    "pronouns": "she",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "standing by the door, head bowed"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Mira will pack her things and leave tonight. Your father has shamed this house. You understand why she can't stay, don't you, Aldo?",
+   "impression": null
+  }
+ ]
+}

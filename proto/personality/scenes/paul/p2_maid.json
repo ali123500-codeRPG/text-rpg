@@ -1,0 +1,148 @@
+{
+ "case": "VT-P2",
+ "pass": "Flirts or is clearly taken with her (compliment on looks, teasing, over-friendly charm); stays light, no pressure or unwanted touching; still answers or shows her around.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 5,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "doran",
+   "label": "a broad-shouldered man with a longsword",
+   "name": "Doran",
+   "kind": "npc",
+   "zone": "kitchen",
+   "placeId": "village",
+   "bandId": "doran",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "parry",
+   "gear": [
+    {
+     "id": "sword_1",
+     "itemId": "longsword",
+     "name": "longsword",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM8",
+       "name": "slash"
+      },
+      {
+       "id": "AM12",
+       "name": "thrust"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "time at home with the family"
+    },
+    {
+     "id": "patrol",
+     "brief": "walk the village fields and fences"
+    },
+    {
+     "id": "train",
+     "brief": "sword drills in the yard"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "secrets": [],
+  "alreadyHappened": [],
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "kitchen",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a young woman, the new maid"
+   }
+  ],
+  "earlier": [
+   "Selene is at the market with Aldo this morning."
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a pretty young woman in a maid's apron",
+    "pronouns": "she",
+    "zone": "kitchen",
+    "level": "full",
+    "activityLook": "curtsying at the kitchen door with a bundle of her things"
+   }
+  ],
+  "map": [
+   {
+    "id": "kitchen",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "kitchen",
+    "name": "kitchen",
+    "look": "the kitchen",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "toward hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hall",
+    "name": "hall",
+    "look": "the hall",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "kitchen",
+      "label": "toward kitchen",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ]
+ },
+ "dialogue": [
+  {
+   "spoken": "Good morning, sir. I'm Tessa, the new maid. Where would you like me to start?",
+   "impression": null
+  }
+ ]
+}

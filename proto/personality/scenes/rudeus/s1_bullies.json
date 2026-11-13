@@ -1,0 +1,249 @@
+{
+ "case": "VT-R1",
+ "pass": "Acts this turn to stop the bullying (speaks to or threatens the boys, shoots from range, or shields Lia), not just chatting with the stranger; no fists or melee charge; composed, grown-up wording for a seven-year-old.",
+ "view": {
+  "turn": 2,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "aldo",
+   "label": "a small boy with a short staff",
+   "name": "Aldo",
+   "kind": "npc",
+   "zone": "river_field",
+   "placeId": "village",
+   "bandId": "aldo",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff_1",
+     "itemId": "short_staff",
+     "name": "short staff (casts water bolts)",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM6",
+       "name": "shoot"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "chores and study at home"
+    },
+    {
+     "id": "play",
+     "brief": "practise magic by the river"
+    },
+    {
+     "id": "follow",
+     "brief": "tag along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "river_field",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a traveller"
+   },
+   {
+    "about": "boy_1",
+    "status": "aware",
+    "lastKnownZone": "river_field",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a big village boy"
+   },
+   {
+    "about": "boy_2",
+    "status": "aware",
+    "lastKnownZone": "river_field",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a village boy"
+   },
+   {
+    "about": "boy_3",
+    "status": "aware",
+    "lastKnownZone": "river_field",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a village boy"
+   },
+   {
+    "about": "lia",
+    "status": "aware",
+    "lastKnownZone": "river_field",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a small green-haired child"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 1,
+    "zone": "river_field",
+    "level": "full",
+    "cue": "sight",
+    "kind": "attack",
+    "actorId": "boy_1",
+    "target": "lia",
+    "outcome": "threw a clod of mud that hit the green-haired child in the back"
+   },
+   {
+    "id": "e2",
+    "turn": 1,
+    "zone": "river_field",
+    "level": "full",
+    "cue": "hearing",
+    "kind": "talk",
+    "actorId": "boy_2",
+    "target": "lia",
+    "outcome": "shouted \"Demon hair! Go back to the woods!\""
+   },
+   {
+    "id": "e3",
+    "turn": 1,
+    "zone": "river_field",
+    "level": "full",
+    "cue": "sight",
+    "kind": "other",
+    "actorId": "boy_3",
+    "outcome": "picked up a rock"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Turn 1: three village boys pelted a small green-haired child with mud and called them a demon; the child is crouched in the mud, crying, and the biggest boy has a rock in his hand."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "river_field",
+    "links": [
+     {
+      "to": "village_lane",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "river_field",
+    "name": "river field",
+    "look": "the river_field",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village_lane",
+      "label": "toward village_lane",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "village_lane",
+    "name": "village lane",
+    "look": "the village_lane",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "river_field",
+      "label": "toward river_field",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a traveller",
+    "pronouns": "he",
+    "zone": "river_field",
+    "level": "full",
+    "activityLook": "watching from the path"
+   },
+   {
+    "id": "boy_1",
+    "label": "a big village boy",
+    "pronouns": "he",
+    "zone": "river_field",
+    "level": "full",
+    "activityLook": "weighing a rock in his hand"
+   },
+   {
+    "id": "boy_2",
+    "label": "a village boy",
+    "pronouns": "he",
+    "zone": "river_field",
+    "level": "full",
+    "activityLook": "laughing"
+   },
+   {
+    "id": "boy_3",
+    "label": "a village boy",
+    "pronouns": "he",
+    "zone": "river_field",
+    "level": "full",
+    "activityLook": "scooping more mud"
+   },
+   {
+    "id": "lia",
+    "label": "a small green-haired child",
+    "pronouns": "she",
+    "zone": "river_field",
+    "level": "full",
+    "activityLook": "crouched in the mud, crying"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Rough game those boys are playing. Not your business though, eh, little one?",
+   "impression": null
+  }
+ ]
+}

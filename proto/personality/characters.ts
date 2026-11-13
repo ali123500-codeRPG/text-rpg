@@ -1,0 +1,52 @@
+// Test characters for the personality line prototype. Names are blind renames so the model can't lean on the anime.
+import type { Character } from './line';
+
+export const CHARACTERS: Character[] = [
+  {
+    key: 'kishirika', name: 'Ysolde', title: 'Great Empress of the Under-Realm', role: 'a small horned girl in chains',
+    bandGoals: 'find her next meal; go wherever looks interesting', temperament: 'a wanderer', tactics: 'simple',
+    nerve: 40, resolve: 150,
+    axes: { honesty: 50, pride: 80, temper: 20, sociability: 60, discipline: -80, curiosity: 60 },
+    drives: ['pleasure', 'gratitude'], ageStage: 'child', skills: [],
+    signatures: [
+      'When someone feeds or helps her, she repays it at once, far beyond its worth.',
+      'When doubted, she boasts louder and laughs it off.',
+      'When a fight starts, she laughs at the danger and keeps out of it.',
+    ],
+  },
+  {
+    key: 'rudeus', name: 'Aldo', title: 'the Wizard-Child', role: 'a seven-year-old boy who can already cast magic',
+    bandGoals: 'practise magic; look after his friends and family', temperament: 'a village child', tactics: 'simple',
+    nerve: -40, resolve: 20,
+    axes: { honesty: -30, pride: -20, temper: -40, sociability: -20, discipline: 60, curiosity: 70 },
+    drives: ['knowledge', 'loyalty'], ageStage: 'child',
+    skills: [{ name: 'water magic (staff stand-in)', value: 50, fight: true, attack: true }],
+    signatures: [
+      'Inside he is a grown man reborn as a child, who wasted his first life: he means to live properly this time, and dreads ending up a failure again.',
+      'When someone weaker is picked on, he steps in, though he was bullied once himself and still fears a real fight.',
+      'Has a grown man\'s wandering eye: notices pretty women, and is clumsy about hiding it.',
+      'In a family quarrel he steers everyone with careful words to the outcome he wants, even if someone else must take the blame.',
+    ],
+  },
+  {
+    key: 'paul', name: 'Doran', title: 'Swordsman of Three Schools', role: 'a village knight in his twenties, once an adventurer, with a longsword at his hip',
+    bandGoals: 'keep the village safe; enjoy life with his family', temperament: 'a village knight', tactics: 'skilled',
+    nerve: 50, resolve: 60,
+    axes: { honesty: 50, pride: 50, temper: 30, sociability: 60, discipline: -50, curiosity: 0 },
+    drives: ['desire', 'family'], ageStage: 'adult',
+    skills: [{ name: 'longsword', value: 65, fight: true, attack: true }],
+    signatures: [
+      'Can\'t keep his eyes off a pretty woman, even with a wife at home, and is cheerfully shameless about it.',
+      'Dotes loudly on his son and wants him to grow up a swordsman like him.',
+      'When his skill is doubted, he wants to prove it with a blade in hand, grinning.',
+      'Ran away from a noble house as a boy: hates stiff manners and anyone who lectures him about duty.',
+    ],
+  },
+];
+
+/** what the prototype must compute for each character (self-check) */
+export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensions: string[]; nerve: string }> = {
+  kishirika: { archetype: 'childish', buts: ['pride', 'honesty'], tensions: ['unshakeable_scatterbrained', 'bold_unbacked'], nerve: 'Death-defying+' },
+  rudeus: { archetype: 'mature', buts: ['curiosity', 'honesty'], tensions: ['old_head', 'wary_dangerous'], nerve: 'Timid' },
+  paul: { archetype: 'free_spirit', buts: ['honesty', 'pride'], tensions: ['home_temptation', 'talent_undisciplined'], nerve: 'Bold' },
+};

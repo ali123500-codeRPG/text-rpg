@@ -1,0 +1,146 @@
+{
+ "case": "VT-K2",
+ "pass": "Proud retort; childish huff; no violence; at most a brief grudge (one step colder is fine).",
+ "view": {
+  "turn": 3,
+  "time": {
+   "day": 2,
+   "timeOfDay": "Evening"
+  },
+  "self": {
+   "id": "ysolde",
+   "label": "a small horned girl in chains",
+   "name": "Ysolde",
+   "kind": "npc",
+   "zone": "market_stalls",
+   "placeId": "harbour_market",
+   "bandId": "ysolde",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [
+    {
+     "id": "wander",
+     "brief": "drift through town looking for food and anything interesting"
+    },
+    {
+     "id": "follow",
+     "brief": "tag along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "market_stalls",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a swordsman"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "secrets": [
+   {
+    "id": "s_eyes",
+    "text": "She carries a dozen magic eyes in her body and can put one into someone else's head, giving them its sight."
+   }
+  ],
+  "map": [
+   {
+    "id": "market_stalls",
+    "links": [
+     {
+      "to": "harbour_quay",
+      "sight": true
+     },
+     {
+      "to": "back_alley",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "market_stalls",
+    "name": "market stalls",
+    "look": "the market_stalls",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "harbour_quay",
+      "label": "toward harbour_quay",
+      "sight": true
+     },
+     {
+      "to": "back_alley",
+      "label": "toward back_alley",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "harbour_quay",
+    "name": "harbour quay",
+    "look": "the harbour_quay",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "market_stalls",
+      "label": "toward market_stalls",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "back_alley",
+    "name": "back alley",
+    "look": "the back_alley",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "market_stalls",
+      "label": "toward market_stalls",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a swordsman",
+    "pronouns": "he",
+    "zone": "market_stalls",
+    "level": "full",
+    "activityLook": "standing by the skewer stall"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Out of my way, brat. Go beg somewhere else.",
+   "impression": null
+  }
+ ]
+}

@@ -1,0 +1,138 @@
+{
+ "case": "VT-R5",
+ "pass": "Polite and helpful with grown-up manners; curious: asks her something. Full mode only: a light hint of a grown man's wandering eye.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 6,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "aldo",
+   "label": "a small boy with a short staff",
+   "name": "Aldo",
+   "kind": "npc",
+   "zone": "village_lane",
+   "placeId": "village",
+   "bandId": "aldo",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff_1",
+     "itemId": "short_staff",
+     "name": "short staff (casts water bolts)",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM6",
+       "name": "shoot"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "chores and study at home"
+    },
+    {
+     "id": "play",
+     "brief": "practise magic by the river"
+    },
+    {
+     "id": "follow",
+     "brief": "tag along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "village_lane",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a young woman traveller"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "village_lane",
+    "links": [
+     {
+      "to": "knight_house",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "village_lane",
+    "name": "village lane",
+    "look": "the village_lane",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "knight_house",
+      "label": "toward knight_house",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "knight_house",
+    "name": "knight's house",
+    "look": "the knight_house",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village_lane",
+      "label": "toward village_lane",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a young woman traveller in travel leathers, with a staff",
+    "pronouns": "she",
+    "zone": "village_lane",
+    "level": "full",
+    "activityLook": "smiling down at Aldo"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Hello there, little one. Is this the way to the knight's house? I've come about a tutoring post.",
+   "impression": null
+  }
+ ]
+}

@@ -1,0 +1,148 @@
+{
+ "case": "VT-P5",
+ "pass": "Tries to make it right (sheepish charm, apology, or reassurance he loves her); no threats, storming off or turning cold; no elaborate lie.",
+ "view": {
+  "turn": 3,
+  "time": {
+   "day": 9,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "doran",
+   "label": "a broad-shouldered man with a longsword",
+   "name": "Doran",
+   "kind": "npc",
+   "zone": "bedroom",
+   "placeId": "village",
+   "bandId": "doran",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "parry",
+   "gear": [
+    {
+     "id": "sword_1",
+     "itemId": "longsword",
+     "name": "longsword",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM8",
+       "name": "slash"
+      },
+      {
+       "id": "AM12",
+       "name": "thrust"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "time at home with the family"
+    },
+    {
+     "id": "patrol",
+     "brief": "walk the village fields and fences"
+    },
+    {
+     "id": "train",
+     "brief": "sword drills in the yard"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "secrets": [],
+  "alreadyHappened": [],
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "bedroom",
+    "source": "seen",
+    "revealed": [],
+    "stance": "loyal",
+    "hostile": false,
+    "active": true,
+    "label": "Selene, his wife"
+   }
+  ],
+  "earlier": [
+   "That afternoon at the bakery, Doran laughed with the baker's daughter, his hand on her waist. Selene saw it from across the street."
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Selene, his wife",
+    "pronouns": "she",
+    "zone": "bedroom",
+    "level": "full",
+    "activityLook": "standing with her arms crossed, eyes hard"
+   }
+  ],
+  "map": [
+   {
+    "id": "bedroom",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "bedroom",
+    "name": "bedroom",
+    "look": "the bedroom",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "toward hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hall",
+    "name": "hall",
+    "look": "the hall",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "bedroom",
+      "label": "toward bedroom",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ]
+ },
+ "dialogue": [
+  {
+   "spoken": "I saw you with the baker's daughter today. Laughing, with your hand on her waist. Explain.",
+   "impression": null
+  }
+ ]
+}

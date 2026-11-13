@@ -1,0 +1,178 @@
+{
+ "case": "VT-P1",
+ "pass": "Delighted and proud of his son, with some boast or claim on it; cheerful and loud, not worried about the wall; warm toward his wife, banter not a quarrel. Full mode only (VT-P6): says or hints his son should learn the sword too.",
+ "view": {
+  "turn": 2,
+  "time": {
+   "day": 3,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "doran",
+   "label": "a broad-shouldered man with a longsword",
+   "name": "Doran",
+   "kind": "npc",
+   "zone": "yard",
+   "placeId": "village",
+   "bandId": "doran",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "parry",
+   "gear": [
+    {
+     "id": "sword_1",
+     "itemId": "longsword",
+     "name": "longsword",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM8",
+       "name": "slash"
+      },
+      {
+       "id": "AM12",
+       "name": "thrust"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "time at home with the family"
+    },
+    {
+     "id": "patrol",
+     "brief": "walk the village fields and fences"
+    },
+    {
+     "id": "train",
+     "brief": "sword drills in the yard"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 1,
+    "zone": "yard",
+    "level": "full",
+    "cue": "sight",
+    "kind": "other",
+    "actorId": "aldo",
+    "outcome": "cast a ball of water that blew a hole through the wall of the house"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "secrets": [],
+  "alreadyHappened": [],
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "yard",
+    "source": "seen",
+    "revealed": [],
+    "stance": "loyal",
+    "hostile": false,
+    "active": true,
+    "label": "Selene, his wife"
+   },
+   {
+    "about": "aldo",
+    "status": "aware",
+    "lastKnownZone": "yard",
+    "source": "seen",
+    "revealed": [],
+    "stance": "loyal",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, his three-year-old son"
+   }
+  ],
+  "earlier": [
+   "Turn 1: Doran was doing sword drills in the yard when his three-year-old son Aldo cast a water spell that blew a hole in the house wall."
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Selene, his wife",
+    "pronouns": "she",
+    "zone": "yard",
+    "level": "full",
+    "activityLook": "hugging Aldo, glowing with pride"
+   },
+   {
+    "id": "aldo",
+    "label": "Aldo, his three-year-old son",
+    "pronouns": "he",
+    "zone": "yard",
+    "level": "full",
+    "activityLook": "looking at the hole in the wall"
+   }
+  ],
+  "map": [
+   {
+    "id": "yard",
+    "links": [
+     {
+      "to": "house",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "yard",
+    "name": "yard",
+    "look": "the yard",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "house",
+      "label": "toward house",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "house",
+    "name": "house",
+    "look": "the house",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "yard",
+      "label": "toward yard",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ]
+ },
+ "dialogue": [
+  {
+   "spoken": "Doran, did you see that? Our son cast magic! At three! He's going to be a great mage. I'm writing for a tutor today.",
+   "impression": null
+  }
+ ]
+}

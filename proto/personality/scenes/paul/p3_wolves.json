@@ -1,0 +1,146 @@
+{
+ "case": "VT-P3",
+ "pass": "No flirting and no talk of women; takes it on boldly (goes himself or leads the hunt); pride in his skill or a light, unworried manner.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 7,
+   "timeOfDay": "Day"
+  },
+  "self": {
+   "id": "doran",
+   "label": "a broad-shouldered man with a longsword",
+   "name": "Doran",
+   "kind": "npc",
+   "zone": "porch",
+   "placeId": "village",
+   "bandId": "doran",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "parry",
+   "gear": [
+    {
+     "id": "sword_1",
+     "itemId": "longsword",
+     "name": "longsword",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM8",
+       "name": "slash"
+      },
+      {
+       "id": "AM12",
+       "name": "thrust"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "time at home with the family"
+    },
+    {
+     "id": "patrol",
+     "brief": "walk the village fields and fences"
+    },
+    {
+     "id": "train",
+     "brief": "sword drills in the yard"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "secrets": [],
+  "alreadyHappened": [],
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "porch",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "old Harl, the village headman"
+   }
+  ],
+  "earlier": [],
+  "seen": [
+   {
+    "id": "player",
+    "label": "an old grey-bearded man leaning on a stick",
+    "pronouns": "he",
+    "zone": "porch",
+    "level": "full",
+    "activityLook": "out of breath from hurrying"
+   }
+  ],
+  "map": [
+   {
+    "id": "porch",
+    "links": [
+     {
+      "to": "lane",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "porch",
+    "name": "porch",
+    "look": "the porch",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "lane",
+      "label": "toward lane",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "lane",
+    "name": "lane",
+    "look": "the lane",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "porch",
+      "label": "toward porch",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ]
+ },
+ "dialogue": [
+  {
+   "spoken": "Sir Doran! Wolves took two sheep from the east pasture last night, and the shepherd swears he saw at least five. The men are scared to go out there. What should we do?",
+   "impression": null
+  }
+ ]
+}

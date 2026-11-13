@@ -1,0 +1,146 @@
+{
+ "case": "VT-P4",
+ "pass": "Proud and amused, not wounded; answers the challenge (spar, show of skill, or cocky boast); no real, lethal attack.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 8,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "doran",
+   "label": "a broad-shouldered man with a longsword",
+   "name": "Doran",
+   "kind": "npc",
+   "zone": "village_square",
+   "placeId": "village",
+   "bandId": "doran",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "parry",
+   "gear": [
+    {
+     "id": "sword_1",
+     "itemId": "longsword",
+     "name": "longsword",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM8",
+       "name": "slash"
+      },
+      {
+       "id": "AM12",
+       "name": "thrust"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "time at home with the family"
+    },
+    {
+     "id": "patrol",
+     "brief": "walk the village fields and fences"
+    },
+    {
+     "id": "train",
+     "brief": "sword drills in the yard"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "secrets": [],
+  "alreadyHappened": [],
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "village_square",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a young mercenary"
+   }
+  ],
+  "earlier": [],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a cocky young mercenary with a sword",
+    "pronouns": "he",
+    "zone": "village_square",
+    "level": "full",
+    "activityLook": "smirking at Doran, thumb on his sword hilt"
+   }
+  ],
+  "map": [
+   {
+    "id": "village_square",
+    "links": [
+     {
+      "to": "lane",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "village_square",
+    "name": "village square",
+    "look": "the village_square",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "lane",
+      "label": "toward lane",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "lane",
+    "name": "lane",
+    "look": "the lane",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village_square",
+      "label": "toward village_square",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ]
+ },
+ "dialogue": [
+  {
+   "spoken": "So you're the famous knight of this mud village? A farm knight. You've gone soft, old man. I bet you can't even lift that sword anymore.",
+   "impression": null
+  }
+ ]
+}

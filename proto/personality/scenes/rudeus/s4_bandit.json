@@ -1,0 +1,191 @@
+{
+ "case": "VT-R4",
+ "pass": "Shows fear (small or shaky voice, hangs back, wants away or help), no boasting; no melee charge, if he fights it is from range; does something purposeful.",
+ "view": {
+  "turn": 2,
+  "time": {
+   "day": 2,
+   "timeOfDay": "Dusk"
+  },
+  "self": {
+   "id": "aldo",
+   "label": "a small boy with a short staff",
+   "name": "Aldo",
+   "kind": "npc",
+   "zone": "forest_road",
+   "placeId": "village",
+   "bandId": "aldo",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff_1",
+     "itemId": "short_staff",
+     "name": "short staff (casts water bolts)",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "AM6",
+       "name": "shoot"
+      }
+     ]
+    }
+   ],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "chores and study at home"
+    },
+    {
+     "id": "play",
+     "brief": "practise magic by the river"
+    },
+    {
+     "id": "follow",
+     "brief": "tag along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "forest_road",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a merchant"
+   },
+   {
+    "about": "bandit_1",
+    "status": "aware",
+    "lastKnownZone": "forest_road",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "a ragged man with a knife"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 1,
+    "zone": "forest_road",
+    "level": "full",
+    "cue": "sight",
+    "kind": "attack",
+    "actorId": "bandit_1",
+    "target": "player",
+    "outcome": "grabbed the merchant by the collar and put a knife to him"
+   },
+   {
+    "id": "e2",
+    "turn": 1,
+    "zone": "forest_road",
+    "level": "full",
+    "cue": "hearing",
+    "kind": "intimidate",
+    "actorId": "bandit_1",
+    "target": "aldo",
+    "outcome": "snarled \"You, brat, turn out your pockets or I'll cut you next.\""
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Turn 1: on the forest road at dusk, a ragged man with a knife jumped out, grabbed a merchant by the collar and threatened Aldo too."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "forest_road",
+    "links": [
+     {
+      "to": "village_gate",
+      "sight": true
+     },
+     {
+      "to": "deep_woods",
+      "sight": false
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "forest_road",
+    "name": "forest road",
+    "look": "the forest_road",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village_gate",
+      "label": "toward village_gate",
+      "sight": true
+     },
+     {
+      "to": "deep_woods",
+      "label": "toward deep_woods",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "village_gate",
+    "name": "village gate",
+    "look": "the village_gate",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "forest_road",
+      "label": "toward forest_road",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a merchant",
+    "pronouns": "he",
+    "zone": "forest_road",
+    "level": "full",
+    "activityLook": "held by the collar, a knife at his throat"
+   },
+   {
+    "id": "bandit_1",
+    "label": "a ragged man with a knife",
+    "pronouns": "he",
+    "zone": "forest_road",
+    "level": "full",
+    "activityLook": "holding the merchant, glaring at Aldo"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Run, boy! Get help!",
+   "impression": null
+  }
+ ]
+}
