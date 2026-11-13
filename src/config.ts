@@ -213,6 +213,8 @@ const DEFAULTS = {
   RESOLVE_MARK_PCT: 10,
   /** others' morale shows (as words) from this level down (MB16), like HEALTH_SHOWN_FROM */
   MORALE_SHOWN_FROM: 'afraid',
+  /** the sheet's morale bar spells out the stakes (roll penalty, what Broken stops) from this level down */
+  MORALE_HINT_FROM: 'terrified',
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
   // ---- game clock (T1-T8); durations per action are the library's durations table ----
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)

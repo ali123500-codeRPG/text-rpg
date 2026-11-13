@@ -365,6 +365,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-hptrack i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bg); }
 /* MB11: the morale bar sits under health in its own colour */
 .cs-morale b { background: var(--c5); }
+/* the morale stakes line (from Terrified down) and how long Broken lasts */
+.cs-mhint { display: block; margin-top: var(--space-1); padding-left: var(--space-2); border-left: 2px solid var(--c5); font-size: 12px; line-height: 1.45; color: var(--muted); }
+.cs-mhint.broken { border-left-width: 3px; color: var(--text); }
+.cs-mhint b { font-weight: 700; }
 .cs-mbar { display: grid; gap: var(--space-1); }
 /* MB40: after /yield: who took it, who is deciding, who fights on */
 .cs-yield { display: grid; gap: 2px; padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in oklch, var(--warn) 50%, transparent); border-radius: var(--r-md); background: var(--warn-soft); font-size: 13px; }
@@ -765,6 +769,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* M-30: a body part that became Crippled or Destroyed, the red mirror of "Patched up" */
 .hcard.wcard { border-color: color-mix(in oklch, var(--danger) 60%, transparent); background: var(--danger-soft); color: var(--text); font-weight: 700; }
 .hcard.wcard .x { color: var(--danger); }
+.hcard.ncard { border-color: color-mix(in oklch, var(--c5) 60%, transparent); background: color-mix(in srgb, var(--c5) 16%, var(--surface)); color: var(--text); font-weight: 700; }
+.hcard.ncard .x { color: var(--c5); }
+.hcard.ncard .hl { font-weight: 400; color: var(--text); }
+.rrow.nerve > span:last-child { color: var(--danger); }
 /* M-36: level and XP on the play sheet */
 .cs-xp { display: grid; gap: var(--space-1); }
 .cs-xp .cs-bar > b { background: var(--scenario-mark); }

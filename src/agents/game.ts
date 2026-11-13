@@ -3,6 +3,7 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import { gripWord } from '../ruleset/gear';
 import { coins } from '../engine/trade';
+import { moraleLevel } from '../ruleset/morale';
 import { IT } from '../library/itemIds';
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
@@ -299,7 +300,7 @@ export function createGame(deps: GameDeps): Game {
     const submitAt = clock.now();
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
-    const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player);
+    const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player), brokenBefore = moraleLevel(s.player) === 'broken';
     const partsBefore = partStates(s, s.player);
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
@@ -384,11 +385,11 @@ export function createGame(deps: GameDeps): Game {
     for (const b of checkTurn(s, before, events)) s.log.push({ turn: s.turn, code: 'turn_check', detail: { ...b } });
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, partsBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -443,7 +444,10 @@ export function createGame(deps: GameDeps): Game {
     const ways = wayRows(s, events);
     // the turn's change in coin, shown as its own row (coin is left out of the gear rows)
     const coin = rec.coinBefore === undefined ? 0 : coins(s.player) - rec.coinBefore;
-    const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
+    // MB12: the player's nerve broke this turn, or an attack was refused because it is broken (shown again after a reload)
+    const nerveBroke = rec.brokenBefore === false && moraleLevel(s.player) === 'broken';
+    const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken');
+    const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(nerveBroke ? { nerveBroke: true as const } : {}), ...(nerveRefused ? { nerveRefused: true as const } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
