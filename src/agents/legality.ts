@@ -136,7 +136,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     out.gear = out.gear.filter((op) => {
       const ok = op.op === 'summon' ? !!view.player.summonable?.some((x) => x.id === op.item) : op.op === 'pick_up'
         ? ground.has(op.item) || items.has(op.item) && !own.some((i) => i.id === op.item) || (!!op.from && actors.has(op.from) && view.actors.find((x) => x.id === op.from)!.gear.some((g) => g.id === op.item || inside(g.container).includes(op.item)))
-        : own.some((i) => i.id === op.item);
+        : own.some((i) => i.id === op.item) && (!op.into || (op.op === 'stow' && boxes.has(op.into))); // PI1: into a container the player knows
       if (!ok) gearErrors.push(`gear ${op.op} ${op.item}`);
       return ok;
     });
@@ -161,6 +161,7 @@ export function knownIds(view: NpcViewBase) {
   const zones = new Set([...view.map.flatMap((z) => [z.id, ...z.links.map((l) => l.to)]), ...view.zones.map((z) => z.id), view.self.zone]);
   const own = new Set(view.self.gear.map((g) => g.id));
   const ground = new Set(view.zones.flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...(g.container?.contents?.map((x) => x.id) ?? [])]))); // BF13: what an open container shows lies there too
+  for (const g of view.self.gear) for (const x of g.container?.contents ?? []) ground.add(x.id); // PI1: what is in one's own sack is taken out with pick_up
   const seenGear = new Set(view.seen.flatMap((s) => s.gear.map((g) => g.id)));
   return { actors, zones, own, ground, seenGear };
 }
@@ -206,7 +207,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   }
   if (out.gear) {
     out.gear = out.gear.filter((op) => {
-      const ok = op.op === 'pick_up' ? k.ground.has(op.item) || (!!op.from && k.actors.has(op.from) && k.seenGear.has(op.item)) : k.own.has(op.item);
+      const ok = op.op === 'pick_up' ? k.ground.has(op.item) || (!!op.from && k.actors.has(op.from) && k.seenGear.has(op.item)) : k.own.has(op.item) && (!op.into || (op.op === 'stow' && (k.own.has(op.into) || k.ground.has(op.into))));
       if (!ok) errors.push('invalid_gear');
       return ok;
     });

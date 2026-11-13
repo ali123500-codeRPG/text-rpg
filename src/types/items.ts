@@ -116,4 +116,5 @@ export type GearOp = {
   qty?: number; // set_down: how many of a stack (all of it when left out)
   item: string; // item instance id
   from?: string; // actor id (pick up from a downed or yielded actor); absent = the ground or an open container (CT3)
+  into?: string; // stow: a container to put it in (one carried, or an open one within reach); absent = stowed on you
 };
