@@ -73,7 +73,7 @@ export function soundCarries(state: GameState, observer: Actor, at: Located, noi
 }
 
 /** BG-89: event kinds that touch their target */
-const CONTACT = new Set(['attack', 'give', 'break_free']);
+const CONTACT = new Set(['attack', 'give', 'break_free', 'restrain']);
 
 /** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
 export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
