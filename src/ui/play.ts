@@ -107,6 +107,31 @@ export function whoDistance(a: PlayerView['actors'][number], pv: PlayerView): st
   return [`${m(a.distanceM)} away`, where, reach].filter(Boolean).join(' · ');
 }
 
+/** a clarifying question's phrases the player can tap: people (seen now or earlier), zones and items the view names, matched
+ * with or without articles ("the lean man in the patched coat" finds "a lean man in a patched coat"); longest first, never
+ * overlapping. Each gives where it sits in the text and the words to answer with (the text's own wording). */
+export function clarifyPicks(text: string, pv: PlayerView): { start: number; end: number; phrase: string }[] {
+  const ART = '(?:(?:a|an|the)\\s+)?';
+  const names = [
+    ...pv.actors.flatMap((a) => [a.name, a.label]), ...(pv.lastSeen ?? []).map((x) => x.name),
+    ...pv.zones.map((z) => z.name), ...(pv.known ?? []).map((z) => z.name),
+    ...pv.player.inventory.map((i) => i.name), ...pv.zone.groundItems.map((i) => i.name),
+  ].filter((x): x is string => !!x);
+  const words = [...new Set(names.map((n) => n.toLowerCase().replace(/^(a|an|the)\s+/, '').trim()))]
+    .filter((n) => n.length >= 3).sort((a, b) => b.length - a.length);
+  const out: { start: number; end: number; phrase: string }[] = [];
+  for (const n of words) {
+    const body = n.split(/\s+/).filter((w) => !/^(a|an|the)$/.test(w)).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join(`\\s+${ART}`);
+    const re = new RegExp(`\\b${ART}${body}\\b`, 'gi');
+    for (const m of text.matchAll(re)) {
+      const start = m.index!, end = start + m[0].length;
+      if (out.some((o) => start < o.end && end > o.start)) continue;
+      out.push({ start, end, phrase: m[0] });
+    }
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
+
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
   [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
@@ -466,6 +491,25 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return h('p', { class: 'pbreak end', 'data-end': end.as }, h('b', {}, cap(end.name)), place ? h('span', {}, ` · ${place}`) : null);
   }
 
+  /** the clarify text with its tappable phrases; a tap fills the box with the order it asks about plus the phrase */
+  function clarifyParts(l: LogLine): (Node | string)[] {
+    const st = api.state();
+    const picks = st ? clarifyPicks(l.text, buildPlayerView(st)) : [];
+    const out: (Node | string)[] = [];
+    let at = 0;
+    for (const p of picks) {
+      out.push(l.text.slice(at, p.start), h('button', { type: 'button', class: 'clar-pick', 'data-chip': 'clarify', title: 'Answer with this: fills the box with your order and this. Nothing is sent until Send',
+        onclick: () => {
+          const all = api.lines(), i = all.indexOf(l);
+          const asked = all.slice(0, i < 0 ? all.length : i).reverse().find((x) => x.kind === 'player')?.text ?? '';
+          pick(asked ? `${asked} (${p.phrase})` : p.phrase);
+        } }, p.phrase));
+      at = p.end;
+    }
+    out.push(l.text.slice(at));
+    return out;
+  }
+
   function entry(l: LogLine, s: GameState | null, prev: LogLine | null): HTMLElement {
     let e = entries.get(l);
     if (e) return e;
@@ -473,6 +517,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else if (l.kind === 'command' && l.text === UNDONE) e = h('p', { class: 'ln-command' }, `Turn ${l.turn} undone. Dice are not rolled back.`);
     // a command's reply (/stats) marks tagged skills with ✦; on screen it is the sheet's mark, which says Tagged on hover
     else if (l.kind === 'command') e = h('p', { class: 'ln-command' }, ...l.text.split(TAG_MARK).flatMap((x, i) => (i ? [tag(), x] : [x])));
+    // a clarifying question: the people, places and things it names can be tapped, to answer with the order again plus that
+    else if (l.kind === 'clarify') e = h('p', { class: 'ln-clarify' }, ...clarifyParts(l));
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
       // SD1: a turn that ended a scenario: the old scenario's closing line, then the ending's rule, then the new scenario's opening
