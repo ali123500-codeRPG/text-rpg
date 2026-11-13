@@ -39,8 +39,8 @@ export function replayTurn(stateBefore: GameState, rec: TurnRecord, deps: Replay
     .map((l) => ({ agent: l.agent, actorId: l.actorId!, output: l.output }) as AcceptedAgentOutput)
     .sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0)); // actor-id order, never call order
   if (record.eventRoll && !deps.replayScenarioStart) throw new ReplayRefused(`turn ${record.turn} started a scenario: replay needs the scenario director`);
-  // story start (turn 0) is scenario setup alone: no turn resolves
-  if (record.eventRoll && record.turn === 0) return { state, events: deps.replayScenarioStart!(state, record, rng), rngState: rng.state };
+  // story start is scenario setup alone: no turn resolves (turn 0, or after the world's last turn in a carried-on world)
+  if (record.eventRoll && (record.opening || record.turn === 0)) return { state, events: deps.replayScenarioStart!(state, record, rng), rngState: rng.state };
   deps.startTurn?.(state);
   const spokespeople = [...new Set(used.filter((l) => l.agent === 'responder' || l.agent === 'voice').map((l) => l.actorId!))];
   const exchange = intent && spokespeople.length && deps.resolveSpeech ? deps.resolveSpeech(state, intent, spokespeople, rng) : undefined;

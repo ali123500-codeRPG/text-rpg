@@ -85,12 +85,14 @@ export class ScenarioDirector {
     this.lastEventRoll = eventRoll;
     this.held.clear();
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
+    // HF26: a new character standing nowhere yet, in a world that already has ground
+    const arrive = !state.player.zone && state.places.some((p) => p.zones.length);
     const label = frontierKey ? zoneById(state, state.player.zone)?.links.find((l) => l.to === frontierKey)?.label : undefined;
     beginScenario(state, eventRoll.tier, eventRoll.beyond);
-    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
+    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scenario-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
+    const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
     const planned = await this.plan(state, ctx, target, deadline);
     const res = { ...this.finish(state, ctx, planned, rng, entry), eventRoll };
     if (frontierKey && entry === 'stealthy') stealthyArrival(state, rng);
@@ -99,7 +101,6 @@ export class ScenarioDirector {
 
   /** Story start: setup alone, as turn 0; returns the opening events (also pushed to state.events). The pipeline saves turn 0 and makes the one Narrator call. */
   async storyStart(state: GameState, rng: Rng): Promise<ScenarioResult & { events: GameEvent[] }> {
-    state.turn = 0;
     const r = await this.startScenario(state, rng, 'open');
     const events = openingEvents(state, rng);
     state.events.push(...events);
