@@ -67,8 +67,12 @@ const OUT = arg('out', 'playtest-out');
 const RESUME = arg('resume', '');
 // GAP: the artifact's `sample` picks the model per tier on claude.ai; this mapping is ours.
 const TIER_MODEL: Record<string, string> = { quick: 'claude-haiku-5-5', default: 'claude-sonnet-5-5', complex: 'claude-opus-5-5' };
+/** --call-model ID / --call-effort low|medium|high: every game call (not the player agent) on this model and effort, to compare setups */
+const CALL_MODEL = arg('call-model', '');
+const CALL_EFFORT = arg('call-effort', '');
 
-function claudeCli(prompt: string, model: string, effort?: string): Promise<{ text: string; truncated: boolean; error?: string }> {
+type CliUsage = { ms?: number; ttftMs?: number; usage?: unknown; costUsd?: number };
+function claudeCli(prompt: string, model: string, effort?: string): Promise<{ text: string; truncated: boolean; error?: string } & CliUsage> {
   const args = ['-p', '--output-format', 'json', '--model', model, '--tools', '', '--setting-sources', '',
     '--system-prompt', 'Follow the instructions in the user message exactly. Reply with only what they ask for.'];
   if (effort) args.push('--effort', effort);
@@ -81,7 +85,7 @@ function claudeCli(prompt: string, model: string, effort?: string): Promise<{ te
       try {
         const j = JSON.parse(out);
         if (j.is_error) return resolve({ text: '', truncated: false, error: String(j.result ?? j.subtype) });
-        resolve({ text: String(j.result ?? ''), truncated: j.stop_reason === 'max_tokens' });
+        resolve({ text: String(j.result ?? ''), truncated: j.stop_reason === 'max_tokens', ms: j.duration_api_ms, ttftMs: j.ttft_ms, usage: j.usage, costUsd: j.total_cost_usd });
       } catch { resolve({ text: '', truncated: false, error: (err || out).slice(0, 300) }); }
     });
     p.stdin.end(prompt);
@@ -94,9 +98,11 @@ let fixtureLeft = process.argv.includes('--fixture') ? 1 : 0;
 const cliClient: ClaudeClient = {
   async call(req: ClaudeRequest): Promise<ClaudeResponse> {
     if (fixtureLeft && req.agent === 'weaver') { fixtureLeft--; return { ok: true, value: villageStagePlan(), truncated: false, modelTierApplied: 'complex', modelApplied: 'fixture' }; }
-    const model = req.model ?? TIER_MODEL[req.modelTier ?? 'default'];
+    const model = CALL_MODEL || (req.model ?? TIER_MODEL[req.modelTier ?? 'default']);
+    const effort = CALL_EFFORT || req.effort;
     calls++;
-    const r = await claudeCli(req.input.map((m) => m.content).join('\n\n'), model, req.effort);
+    const r = await claudeCli(req.input.map((m) => m.content).join('\n\n'), model, effort);
+    appendFileSync(join(OUT, 'calls.jsonl'), JSON.stringify({ agent: req.agent, model, effort, ms: r.ms, ttftMs: r.ttftMs, usage: r.usage, costUsd: r.costUsd, error: r.error }) + '\n');
     if (r.error || (req.json && !parseTolerant(r.text).ok)) appendFileSync(join(OUT, 'call-errors.log'), `${req.agent} ${model}: ${r.error ?? r.text.slice(0, 2000)}\n---\n`);
     if (r.error) return { ok: false, error: /rate|limit|usage/i.test(r.error) ? 'rate_limited' : 'upstream_error', message: r.error };
     const meta = { truncated: r.truncated, modelTierApplied: req.modelTier ?? 'default', modelApplied: model };
