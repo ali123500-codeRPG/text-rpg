@@ -913,6 +913,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .cs-sk .n small.off, small.off { display: inline; font-size: 11px; font-weight: 400; color: var(--faint); cursor: help; }
 /* a skill that went up this turn, under the turn's prose */
 .skill-up { color: var(--scenario-mark); font-weight: 600; }
+.coin-up { color: var(--scenario-mark); font-weight: 600; }
+.coin-down { color: var(--danger); font-weight: 600; }
 /* TV7: a road tile's track, end to end, with you at your point along it */
 .map-road-track line { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 10 6; }
 .map-road-track text { fill: var(--muted); font-size: 11px; font-weight: 700; }

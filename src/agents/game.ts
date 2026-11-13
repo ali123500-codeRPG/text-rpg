@@ -2,6 +2,8 @@
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import { gripWord } from '../ruleset/gear';
+import { coins } from '../engine/trade';
+import { IT } from '../library/itemIds';
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor, WayDid,
@@ -297,7 +299,7 @@ export function createGame(deps: GameDeps): Game {
     const submitAt = clock.now();
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
-    const gearBefore = gearSnap(s, s.player);
+    const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player);
     const partsBefore = partStates(s, s.player);
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
@@ -382,11 +384,11 @@ export function createGame(deps: GameDeps): Game {
     for (const b of checkTurn(s, before, events)) s.log.push({ turn: s.turn, code: 'turn_check', detail: { ...b } });
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, partsBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, partsBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -439,7 +441,9 @@ export function createGame(deps: GameDeps): Game {
     // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)
     const wounds = rec.partsBefore ? partsWorse(rec.partsBefore, partStates(s, s.player)) : [];
     const ways = wayRows(s, events);
-    const where = { ...(gear.length ? { gear } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
+    // the turn's change in coin, shown as its own row (coin is left out of the gear rows)
+    const coin = rec.coinBefore === undefined ? 0 : coins(s.player) - rec.coinBefore;
+    const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
@@ -936,12 +940,13 @@ export function partsWorse(before: { id: string; state: PartState }[], after: { 
     .map((p) => ({ id: p.id, from: was.get(p.id)!, to: p.state }));
 }
 
-/** the player's gear as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */
+/** the player's gear (coin aside) as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */
 export type GearSnap = Map<string, { name: string; where: string; qty: number }>;
 const handWord = (slot: string) => gripWord(slot.replace(/^grip:/, ''));
 export function gearSnap(s: GameState, p: Actor): GearSnap {
   const gear: GearSnap = new Map();
   for (const i of p.core.inventory) {
+    if (i.itemId === IT.coin) continue; // coin has its own row: LogLine.coin
     const hands = (i.equippedIn ?? []).filter((x) => x.startsWith('grip:'));
     let name = i.itemId;
     try { name = itemDef(s, i.itemId).name; } catch { /* an unknown item keeps its id */ }
