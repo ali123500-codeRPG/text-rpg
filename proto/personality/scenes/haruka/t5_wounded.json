@@ -1,0 +1,155 @@
+{
+ "case": "VT-T5",
+ "pass": "Helps the wounded this turn (a potion, healing or getting them safe) and does not run. Shows he means to deal with the killer, in words or plan, not to flee from him.",
+ "view": {
+  "turn": 30,
+  "time": {
+   "day": 16,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "trail",
+   "placeId": "omui_woods",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    },
+    {
+     "id": "potions",
+     "itemId": "mushroom_potion",
+     "name": "mushroom potion",
+     "kind": "consumable",
+     "equippedIn": [],
+     "modes": [],
+     "qty": 6
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "trail",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a big classmate in torn armour, one of the jocks"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Ren slipped out of town and found his classmates, the jocks, hurt on the trail.",
+   "He brewed healing potions from mushrooms he gathered."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "trail",
+    "links": [
+     {
+      "to": "thicket",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "thicket",
+    "links": [
+     {
+      "to": "trail",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "trail",
+    "name": "forest trail",
+    "look": "a trail through the woods outside town, blood on the grass",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "thicket",
+      "label": "toward a dark thicket",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "thicket",
+    "name": "thicket",
+    "look": "dense brush where the trail narrows",
+    "cover": "full",
+    "light": "dim",
+    "links": [
+     {
+      "to": "trail",
+      "label": "back to the trail",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a big classmate in torn armour, one of the jocks",
+    "pronouns": "he",
+    "zone": "trail",
+    "level": "full",
+    "activityLook": "slumped against a tree, bleeding badly"
+   },
+   {
+    "id": "jocks",
+    "label": "three more jocks",
+    "pronouns": "they",
+    "zone": "trail",
+    "level": "full",
+    "activityLook": "lying hurt on the grass"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Ren... it was Varo, in a hood. He killed the delinquents, all of them. He's too strong. Run!",
+   "impression": null
+  }
+ ]
+}

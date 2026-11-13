@@ -1,0 +1,155 @@
+{
+ "case": "VT-T6",
+ "pass": "Stands and fights: attacks or uses a trick this turn. Does not run, beg or surrender. No grand heroic speech: dry, mocking or few words.",
+ "view": {
+  "turn": 31,
+  "time": {
+   "day": 16,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "trail",
+   "placeId": "omui_woods",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    },
+    {
+     "id": "potions",
+     "itemId": "mushroom_potion",
+     "name": "mushroom potion",
+     "kind": "consumable",
+     "equippedIn": [],
+     "modes": [],
+     "qty": 6
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "trail",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "a classmate in a dark hood, a bloody sword in hand"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Varo, a classmate, killed the delinquents and wounded the jocks. Ren has just healed the jocks.",
+   "Varo is far higher level than Ren."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "trail",
+    "links": [
+     {
+      "to": "thicket",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "thicket",
+    "links": [
+     {
+      "to": "trail",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "trail",
+    "name": "forest trail",
+    "look": "a trail through the woods outside town, blood on the grass",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "thicket",
+      "label": "toward a dark thicket",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "thicket",
+    "name": "thicket",
+    "look": "dense brush where the trail narrows",
+    "cover": "full",
+    "light": "dim",
+    "links": [
+     {
+      "to": "trail",
+      "label": "back to the trail",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a classmate in a dark hood, a bloody sword in hand",
+    "pronouns": "he",
+    "zone": "trail",
+    "level": "full",
+    "activityLook": "walking toward him, grinning"
+   },
+   {
+    "id": "jocks",
+    "label": "four wounded jocks",
+    "pronouns": "they",
+    "zone": "trail",
+    "level": "full",
+    "activityLook": "lying behind Ren, too hurt to stand"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Well, the loner. Level nine and walking around alone? I killed the delinquents, and I'll kill you too.",
+   "impression": null
+  }
+ ]
+}

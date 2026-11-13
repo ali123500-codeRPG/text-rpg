@@ -33,6 +33,7 @@ export const ARCHETYPES: { key: string; name: string; target: Partial<Axes>; hin
   { key: 'honourable', name: 'Honourable', target: { honesty: 70, pride: 40, discipline: 30 }, hint: 'keeps their word and answers any insult to their name' },
   { key: 'schemer', name: 'Schemer', target: { honesty: -60, discipline: 50, temper: -20, sociability: 20 }, hint: 'plans ahead, lies patiently, uses people' },
   { key: 'bully', name: 'Bully', target: { pride: 60, temper: 60, honesty: -30, curiosity: -20 }, hint: 'picks on the weak, backs down from the strong' },
+  { key: 'loner', name: 'Loner', target: { sociability: -60 }, hint: 'keeps to themself and relies on no one; dodges group ties and promises rather than argue about them' },
   { key: 'busybody', name: 'Busybody', target: { sociability: 60, curiosity: 60, discipline: -20 }, hint: 'pokes into other people\'s business and passes on what they learn' },
   { key: 'free_spirit', name: 'Free spirit', target: { discipline: -60, sociability: 50 }, hint: 'lives for the moment, laughs off trouble, hates being tied down' },
 ];

@@ -1,0 +1,166 @@
+{
+ "case": "VT-T1",
+ "pass": "Helps them this turn: fights the goblins, heals, or pulls the boys out. Does not leave them. No grand heroic speech.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 5,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "forest_clearing",
+   "placeId": "great_forest",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "forest_clearing",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a bespectacled classmate, one of the nerds"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 1,
+    "zone": "forest_clearing",
+    "level": "full",
+    "cue": "sight",
+    "kind": "attack",
+    "actorId": "goblins",
+    "target": "player",
+    "outcome": "grazed"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Ren's whole class was summoned to this world. He arrived last and got the leftover skills.",
+   "He has lived alone in the forest for days, avoiding his classmates."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "forest_clearing",
+    "links": [
+     {
+      "to": "deep_woods",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "deep_woods",
+    "links": [
+     {
+      "to": "forest_clearing",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "forest_clearing",
+    "name": "forest clearing",
+    "look": "a sunny clearing in a deep forest, ringed by tall trees",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "deep_woods",
+      "label": "into the deep woods",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "deep_woods",
+    "name": "deep woods",
+    "look": "thick old forest, dim under the canopy",
+    "cover": "full",
+    "light": "dim",
+    "links": [
+     {
+      "to": "forest_clearing",
+      "label": "back to the clearing",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a bespectacled classmate, one of the nerds",
+    "pronouns": "he",
+    "zone": "forest_clearing",
+    "level": "full",
+    "activityLook": "backing away from goblins with a short sword"
+   },
+   {
+    "id": "nerds",
+    "label": "two more classmates, nerds like him",
+    "pronouns": "they",
+    "zone": "forest_clearing",
+    "level": "full",
+    "activityLook": "fighting off goblins, panting"
+   },
+   {
+    "id": "goblins",
+    "label": "four goblins with clubs",
+    "pronouns": "they",
+    "zone": "forest_clearing",
+    "level": "full",
+    "activityLook": "swinging clubs at the three boys"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Ren?! Is that you? Goblins, four of them! Help us!",
+   "impression": null
+  }
+ ]
+}

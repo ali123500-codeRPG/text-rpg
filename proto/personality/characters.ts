@@ -155,6 +155,48 @@ export const CHARACTERS: Character[] = [
       'Never gives up: cornered by something far stronger and faster, she knows she cannot outrun it, so she stands and fights with every trick she has and keeps hunting for a way to win.',
     ],
   },
+  {
+    key: 'haruka_p1', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
+    bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
+    nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 30, fight: true, attack: true }],
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka', only: ['t1_goblins', 't2_party', 't3_subjugate'] },
+    signatures: [
+      'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
+      'Claims he would rather be alone and won\'t join any party, yet always steps in when a classmate is in danger.',
+      'Barely remembers classmates\' names and calls them by their cliques: the nerds, the flashy girls, the jocks.',
+      'Hates having power over people: anything that makes others obey him, he wants gone at once.',
+    ],
+  },
+  {
+    key: 'haruka_p2', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
+    bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
+    nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 50, fight: true, attack: true }],
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka', only: ['t4_stay', 't5_wounded', 't6_varo'] },
+    signatures: [
+      'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
+      'Claims he would rather be alone and won\'t join any party, yet always steps in when a classmate is in danger.',
+      'Barely remembers classmates\' names and calls them by their cliques: the nerds, the flashy girls, the jocks.',
+      'Wants to live alone in the woods on his own terms; when the class representative holds him back, he dodges, makes excuses and slips away.',
+      'Fights with tricks and luck rather than strength, and once someone has killed his classmates, he does not let them walk away.',
+    ],
+  },
+  {
+    key: 'haruka', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
+    bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
+    nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 50, fight: true, attack: true }],
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka' },
+    signatures: [
+      'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
+      'Claims he would rather be alone and won\'t join any party, yet always steps in when a classmate is in danger.',
+      'Barely remembers classmates\' names and calls them by their cliques: the nerds, the flashy girls, the jocks.',
+      'Hates having power over people: anything that makes others obey him, he wants gone at once.',
+      'Wants to live alone in the woods on his own terms; when the class representative holds him back, he dodges, makes excuses and slips away.',
+      'Fights with tricks and luck rather than strength, and once someone has killed his classmates, he does not let them walk away.',
+    ],
+  },
 ];
 
 /** what the prototype must compute for each character (self-check) */
@@ -168,7 +210,10 @@ export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensi
   mangod_e9: { archetype: 'busybody', buts: ['honesty'], tensions: [], nerve: 'Prudent' },
   mangod_e12: { archetype: 'schemer', buts: ['pride'], tensions: [], nerve: 'Prudent' },
   mangod: { archetype: 'busybody', buts: ['honesty', 'pride', 'temper'], tensions: [], nerve: 'Prudent' },
-  kumoko_e1: { archetype: 'busybody', buts: ['sociability'], tensions: [], nerve: 'Careful' },
-  kumoko_e8: { archetype: 'ordinary', buts: ['curiosity', 'sociability', 'discipline'], tensions: ['wary_dangerous'], nerve: 'Cool-headed' },
-  kumoko: { archetype: 'ordinary', buts: ['curiosity', 'sociability'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
+  kumoko_e1: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Careful' },
+  kumoko_e8: { archetype: 'loner', buts: ['curiosity', 'discipline'], tensions: ['wary_dangerous'], nerve: 'Cool-headed' },
+  kumoko: { archetype: 'loner', buts: ['curiosity'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
+  haruka_p1: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
+  haruka_p2: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
+  haruka: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
 };
