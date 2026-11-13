@@ -16,13 +16,17 @@ const SPEAK_TONE = ` The story's tone is ${CONFIG.STYLE.tone}: let it color how 
 /** OQ-29 (NT1, NT2): an agent-run NPC presses the player with a speech roll */
 // BG-93: one rule for every speaker's line: only the words said aloud
 const LINE_RULE = (n: number) => `\n${n}. Your line holds only the words you say aloud: no actions, gestures or stage directions (*takes a bite*, [laughs]). Put what you do in action and its intent.
+   Your line never says you do something this turn that your action does not do: handing something over (a drink on the house) is
+   give with the item from your inventory, stepping aside or going somewhere is a move, and coming along with the player is the
+   follow routine. If you will only do it later, say it as a promise ("I'll pour you one").
    A whisper carries only to someone within arm's reach (${CONFIG.WHISPER_REACH_M} m, distanceM in your view): to anyone further off, speak normally or step up to them first.`;
 const PUSH_RULE = (n: number) => `\n${n}. To press the player to do or believe something, speak with type persuade (win them round), deceive (a lie
    you need them to believe), intimidate (a threat) or barter (haggle over a price) instead of talk, with target the
    player and your words in the line. The player answers it with a roll. Use it only when you truly press them; everyday
    talk stays talk, except a lie: any line you know is false, however casually said, is deceive, so it can be caught.`;
 const FOLLOW_RULE = (n: number) => `\n${n}. To come along with the player, when you agree to, switch your routine to "follow": from then on you walk after
-   them every turn, beside whatever else you do, until you switch back to one of your own routines. Make the deal too, so
+   them every turn, beside whatever else you do, until you switch back to one of your own routines. Going somewhere with the
+   player is follow, never headTo to where they are going: they may stop or turn on the way. Make the deal too, so
    you remember why you are going.`;
 const WAY_RULE = (n: number) => `\n${n}. A way in your zones may have a "way": a door, gate, grate, hatch or rubble. You walk through it if you carry its
    key ("key") or its bar is on your side. To open a lock without the key, the action is "pick" with the zone the way leads to.
@@ -31,7 +35,8 @@ const WAY_RULE = (n: number) => `\n${n}. A way in your zones may have a "way": a
 const HEAD_RULE = (n: number) => `\n${n}. To go somewhere further than one move (home, the market, out by the east road), set headTo to that zone
    or frontier id from your view: from then on you walk there by yourself, one way at a time, and go back to your routine
    once you arrive. Your move this turn is still the first step. Leave headTo null when you are staying or only moving one step.
-   When you take someone along ("follow me"), set lead to their id: once there you wait for them a little while, and act when they come.`;
+   When you take someone along ("follow me", "come outside"), set lead to their id, even for a single step: once there you wait for them a
+   little while, and act when they come.`;
 /** SP1–SP7: sparring (Planner, Responder, Voice) */
 const SPAR_RULE = (n: number) => `\n${n}. A spar is a fight every fighter agrees to aloud, to test each other: blows land for real, but nobody turns
    hostile. Give "spar" only when every fighter accepted aloud this turn and your line says so: sides lists each side's
@@ -131,7 +136,7 @@ awareness = what the character knows: "unaware"|"suspicious"|"aware" (hostility 
 tier = ${words(TIERS)}
 Public text (every name, label, appearance, look, link label and knows text) is at most ${CONFIG.TEXT_CAP} characters; hidden notes are cut at ${CONFIG.NOTE_CAP}.
 A look describes the place itself, what stays put (walls, furniture, light, smells): never people, or what someone is doing there, since they can leave. Put people in the cast.
-No word or phrase from hiddenTerms or any secret's leakTerms may appear in public text, so list only words that public text never uses.
+No word or phrase from hiddenTerms or any secret's leakTerms may appear in public text, so list only words that public text never uses: names and telling phrases (\"the silver ring\", \"Varo's loop\"), never an everyday word with other meanings (lift, picks, partner, fence).
 Terms match whole words only.
 Grades must fit the tier: ${gradesFitText()}.
 A zone is one open space, however big: a room, a yard, a hall, a square, a field. Build each open space as ONE zone with its size, never several zones to show distance. Start a new zone only where a barrier stands between two parts (a wall, door, gate, counter, fence or steps). People stand at real positions in metres inside a zone and code places them, so distance needs no extra zones.

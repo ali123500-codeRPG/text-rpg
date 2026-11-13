@@ -1172,6 +1172,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true):
     const d = desiredState(buildActorView(state, a.id));
     if (!d || d.zone === a.zone) continue;
     let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
+    const start = a.zone;
     for (let i = 0; i < 100 && left > 0.01 && a.zone !== d.zone; i++) {
       const gate = gateAhead(state, a, d.zone);
       const unseen = !!gate && state.player.zone !== a.zone && state.player.zone !== gate.to;
@@ -1189,6 +1190,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true):
       if (!r) break;
       left -= r;
     }
+    if (a.zone !== start) logCode(state, 'caught_up', { actorId: a.id, from: start, to: a.zone }); // a silent jump (BF2)
   }
 }
 

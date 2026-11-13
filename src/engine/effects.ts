@@ -135,6 +135,9 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     const switched = !!routineId && switchRoutine(state, a, routineId, 'agent');
     if (switched && spokes.has(a.id)) calmBandmatesSwitch(state, a.id, routineId!, ctx.heardExchange);
     // NW2: after any switch, so the walk goes back to the routine it just picked
-    if (o.output.headTo) headTo(state, a, o.output.headTo, 'agent', o.output.lead ?? undefined);
+    // BG-139: leading someone a single step (lead with no headTo) is a walk to where this turn's move goes, so it waits there
+    const step = o.output.action.type === 'move' ? o.output.action.target : 'move' in o.output ? o.output.move?.toZone : null;
+    const goal = o.output.headTo ?? (o.output.lead && step ? step : null);
+    if (goal) headTo(state, a, goal, 'agent', o.output.lead ?? undefined);
   }
 }

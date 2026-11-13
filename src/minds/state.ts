@@ -69,7 +69,7 @@ export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent'
     log(state, 'invalid_head_to', { actorId: actor.id, dest, by });
     return false;
   }
-  if (dest === actor.zone) return true;
+  if (dest === actor.zone && !lead) return true; // BG-139: one leading someone waits where it is, even there already
   if (lead && actorById(state, lead)) mind.leading = { id: lead }; // BF4
   else delete mind.leading;
   if (mind.routine?.id !== HEAD_TO) {
