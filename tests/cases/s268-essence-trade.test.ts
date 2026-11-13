@@ -2,6 +2,7 @@
 // (a unique NPC's slots), or sold at the buying price for its value (one equation with items) to a seller, who may hold it to
 // sell on, or to a unique NPC with room.
 import { describe, expect, it } from 'vitest';
+import { now } from '../../src/time';
 import type { Actor, GameState } from '../../src/types';
 import { makeVillage } from '../harness';
 import { beside } from '../harness/village';
@@ -14,7 +15,7 @@ import { essenceSkill } from '../../src/ruleset/perks';
 import { essenceValue, giveEssence, sellEssence } from '../../src/engine/essence';
 import { coins } from '../../src/engine/trade';
 
-const offer = (s: GameState) => { (s.player.progression!.essenceOffers ??= []).push({ essence: ES.gate_habit, grade: 'common', points: { [SK.eyesight]: 4, [SK.parry]: 3 }, turn: s.turn, from: 'a guard', source: 'foe', until: s.turn + 10 }); };
+const offer = (s: GameState) => { (s.player.progression!.essenceOffers ??= []).push({ essence: ES.gate_habit, grade: 'common', points: { [SK.eyesight]: 4, [SK.parry]: 3 }, turn: s.turn, from: 'a guard', source: 'foe', untilMin: now(s) + 10 }); };
 const unique = (a: Actor) => { a.core.generation = 'unique'; a.progression = { startingTotal: 0, potential: { base: 300, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [] }; };
 const purse = (a: Actor, n: number) => { a.core.inventory = a.core.inventory.filter((i) => i.itemId !== IT.coin); a.core.inventory.push({ id: `purse_${a.id}`, itemId: IT.coin, qty: n }); };
 

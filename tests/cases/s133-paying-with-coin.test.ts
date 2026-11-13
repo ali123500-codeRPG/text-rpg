@@ -88,6 +88,7 @@ it('133e clinic care is bought, then used by resting in the clinic', () => {
   play(s, { intent: intent({ action: { type: 'rest' } }) });
   expect(c.hpLostPct).toBeGreaterThan(0); // unpaid: the plain rest row
   s.clocks = {};
+  delete s.turnEnds; // the clock starts over
   play(s, { intent: intent({ action: { type: 'buy', target: 'trader', item: `service:${SV.clinic}` } }) });
   expect(s.player.paid).toEqual([HL.clinic]);
   play(s, { intent: intent({ action: { type: 'rest' } }) });

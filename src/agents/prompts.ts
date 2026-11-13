@@ -3,6 +3,7 @@
 // written from the spec's output notation, and appended to the fixed part (still fixed, never per turn).
 
 import { CONFIG } from '../config';
+import { spanText } from '../time';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scenario/validate';
@@ -125,7 +126,7 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
  "spars"?:[{"sides":[[cast key|actor id]],"cruel"?:true}],
  "scenario"?:{"question":string,"scale":${words(SCENARIO_SCALES)},"endings":[{"when":endCheck,"as":"resolved"|"lost"|"left"|"escaped"|"interrupted","text":string}]}}
 scenario is required when WEAVER_VIEW.target.kind is "scenario", and left out for a frontier. question: the one hidden question this scenario turns on (will the slimes be driven off, will the guard let the player through).
-scale: how big the situation is, at any tier: ${SCENARIO_SCALES.keys.map((k) => { const c = CONFIG.SCENARIO_SCALE[k]; return `${k} (${c.budgetTurns ? `about ${c.budgetTurns} turns` : `about ${c.budgetDays} days`}, ${c.places === Infinity ? 'any number of' : `at most ${c.places}`} place${c.places === 1 ? '' : 's'})`; }).join(', ')}. A road meeting is a moment or a situation. ${SCENARIO_SCALES.keys.filter((k) => SCENARIO_SCALES.pos(k) >= SCENARIO_SCALES.pos(CONFIG.SCENARIO_HOLDS_FROM as never)).join(' and ')} scenarios hold smaller scenarios inside them: if WEAVER_VIEW.outerScenario is set, this scenario is one of those, and the bigger one carries on after it.
+scale: how big the situation is, at any tier: ${SCENARIO_SCALES.keys.map((k) => { const c = CONFIG.SCENARIO_SCALE[k]; return `${k} (about ${spanText(c.budgetMin)} of game time, ${c.places === Infinity ? 'any number of' : `at most ${c.places}`} place${c.places === 1 ? '' : 's'})`; }).join(', ')}. A road meeting is a moment or a situation. ${SCENARIO_SCALES.keys.filter((k) => SCENARIO_SCALES.pos(k) >= SCENARIO_SCALES.pos(CONFIG.SCENARIO_HOLDS_FROM as never)).join(' and ')} scenarios hold smaller scenarios inside them: if WEAVER_VIEW.outerScenario is set, this scenario is one of those, and the bigger one carries on after it.
 endings: ${CONFIG.SCENARIO_ENDINGS_MIN} to ${CONFIG.SCENARIO_ENDINGS_MAX} ways the question can be answered or left behind; code checks them every turn and ends the scenario when one is met. text is a hidden line on what it means.
 endCheck = {"kind":"band_out","band"} (every member down, broken or gone) | {"kind":"reach","place":place or zone} | {"kind":"leave","place":place or zone} | {"kind":"find","actor"} (seen clearly) | {"kind":"hold","item":itemId} (the player has it) | {"kind":"deliver","item":itemId,"to":actor} | {"kind":"time","at":${words(TIME_OF_DAY)}} | {"kind":"judged"} (only when code cannot check it: you decide it later)
 Rest, sleep and waiting never end a scenario. WEAVER_VIEW.lastScenarios says how the last scenarios went: write their aftermath into this plan (who is angry, who moved on, what changed).

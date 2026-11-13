@@ -8,7 +8,7 @@ import type { Located } from '../engine/position';
 import { sightLevel } from './sight';
 import { seeingM } from '../engine/position';
 export { hearingOf, openAirReachM, soundDb } from './noise';
-import { zoneLight } from '../time';
+import { now, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
@@ -278,15 +278,22 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
   }
 }
 
-/** one step down when lastSeenTurn is older than DECAY_TURNS. */
-// GAP: "one step per DECAY_TURNS" read statelessly: a belief steps down at ages D+1, 2D+1, 3D+1 ... (called once per turn).
+/** AT73/AT80: with no new sight or sound, a belief steps down one level after DECAY_AWARE_S game seconds (aware, or tracking)
+ * or DECAY_SUSPICIOUS_S (suspicious), each step counted from the one before; any new sign (lastSeenTurn) restarts it. Only the
+ * alertness fades: what it learned stays.
+ * GAP: tracking (left by a lost chase or a quiet fight) fades like aware, as before; hunting and engaged are noteFighting's. */
 export function applyBeliefDecay(state: GameState): void {
-  const D = CONFIG.DECAY_TURNS;
   for (const a of allActors(state)) {
     for (const b of Object.values(a.mind?.knowledge ?? {})) {
       if (b.lastSeenTurn === undefined || b.status === 'unaware' || atLeast(b.status, 'hunting')) continue; // YD6: noteFighting drops those
-      const age = state.turn - b.lastSeenTurn;
-      if (age > D && (age - 1) % D === 0) b.status = AWARENESS.at(AWARENESS.pos(b.status) - 1);
+      let from = Math.max(turnTime(state, b.lastSeenTurn), b.fadedAt ?? -Infinity);
+      for (;;) {
+        const wait = (b.status === 'suspicious' ? CONFIG.DECAY_SUSPICIOUS_S : CONFIG.DECAY_AWARE_S) / 60;
+        if (b.status === 'unaware' || now(state) - from < wait) break;
+        from += wait;
+        b.status = AWARENESS.at(AWARENESS.pos(b.status) - 1);
+        b.fadedAt = from;
+      }
     }
   }
 }

@@ -68,9 +68,23 @@ export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** QT28: quests' own reward levels; XP per level is CONFIG.QUEST_REWARD_XP, the level from CONFIG.QUEST_GAIN_LEVEL */
 export const QUEST_REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type QuestRewardLevel = (typeof QUEST_REWARD_LEVELS.keys)[number];
+/** AT25/AT57: an action's focus, what breaks it from outside, least first: reflex (nothing, too quick), steady (a hit that
+ * wounds), careful (any attack aimed at the actor), deep (also anyone coming near, AT67) */
+export const FOCUS = scale([['reflex', 'Reflex'], ['steady', 'Steady'], ['careful', 'Careful'], ['deep', 'Deep']]);
+export type FocusKey = (typeof FOCUS.keys)[number];
+/** AT26/AT57: whether the actor may choose to stop an action: any time, never (sleep), or until a share of its progress */
+export const STOPS = scale([['any', 'Any time'], ['until', 'Until a share'], ['never', 'Never']]);
+export type StopKey = (typeof STOPS.keys)[number];
+/** AT27: what an action gives: the whole effect at the end, in proportion, or points along the way */
+export const OUTPUTS = scale([['end', 'At the end'], ['share', 'In proportion'], ['steps', 'In steps']]);
+export type OutputKey = (typeof OUTPUTS.keys)[number];
+/** AT6/AT28: what is left of an action broken off: nothing, the work kept for later, its share, a misfire (a Misfires row),
+ * or the whole effect */
+export const BREAKS = scale([['lost', 'Lost'], ['kept', 'Kept'], ['share', 'Its share'], ['misfire', 'Misfires'], ['fires', 'Fires']]);
+export type BreakKey = (typeof BREAKS.keys)[number];
 /** SC2: scenario scales, smallest first. Each scale's budget and space are levers in CONFIG.SCENARIO_SCALE, keyed by key;
  * a new scale is a new row here and a row there. */
-export const SCENARIO_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['venture', 'Venture']]);
+export const SCENARIO_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['journey', 'Journey'], ['venture', 'Venture']]);
 export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
 /** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
  * the scenario's ground), near (the ground and up to CHASE_NEAR_M metres past its edge by the walking path), far (anywhere, through frontiers after the player).

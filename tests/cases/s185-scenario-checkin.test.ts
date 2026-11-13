@@ -13,6 +13,7 @@ import { isBugCode } from '../../src/save/bugs';
 import { checkCheckin } from '../../src/agents/schema';
 import { FIXED } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
+import { advanceClock } from '../../src/time';
 
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
 const calm = () => makeVillage({ without: ['slime_1', 'slime_2'] });
@@ -22,19 +23,19 @@ const codes = (s: GameState) => s.log.map((l) => l.code);
 const beat = (id: string): Trigger => ({ id, ownerId: 'trader', when: { type: 'quiet_turns', turns: 3 }, then: { type: 'talk', target: '$player', skill: null, intent: 'news' } as Trigger['then'], once: true });
 
 describe('185 budget and code endings (SC2, SC12)', () => {
-  it('the budget leaves out turns spent fighting', () => {
+  it('the budget is game time, fights included (AT83)', () => {
     const s = makeVillage();
     frame(s);
     s.turn += 6;
-    expect(budgetUsed(s, s.stage.scenario!)).toBeCloseTo(6 / CONFIG.SCENARIO_SCALE.moment.budgetTurns!);
-    s.stage.scenario!.fightTurns = 6;
-    expect(budgetUsed(s, s.stage.scenario!)).toBe(0);
+    expect(budgetUsed(s, s.stage.scenario!)).toBe(0); // turns alone use none of it
+    advanceClock(s, 6);
+    expect(budgetUsed(s, s.stage.scenario!)).toBeCloseTo(6 / CONFIG.SCENARIO_SCALE.moment.budgetMin);
   });
   it('at twice the budget code ends the scenario as worn out, after any fight, and files a bug', () => {
     const s = makeVillage();
     frame(s, 'moment', [{ when: { kind: 'judged' }, as: 'resolved', text: '' }, { when: { kind: 'judged' }, as: 'lost', text: '' }]);
     s.stage.scenario!.lastCheckin = s.turn; // no check-in in the way
-    s.turn += CONFIG.SCENARIO_OVERRUN_MULT * CONFIG.SCENARIO_SCALE.moment.budgetTurns! + 1; // +1: this turn is a fight turn
+    advanceClock(s, CONFIG.SCENARIO_OVERRUN_MULT * CONFIG.SCENARIO_SCALE.moment.budgetMin);
     actor(s, 'slime_1').mind!.knowledge.player = { status: 'engaged', source: 'seen', revealed: [] } as never;
     checkScenarioEnd(s, []);
     expect(s.stage.ending?.as).toBe('worn_out');
@@ -64,7 +65,8 @@ describe('185 when a check-in is asked (SC8)', () => {
     s.turn += 1;
     checkScenarioEnd(s, []);
     expect(s.stage.checkinDue).toBeUndefined(); // too soon after the last one
-    s.turn = s.stage.scenario!.startTurn + CONFIG.SCENARIO_SCALE.moment.budgetTurns!;
+    s.turn += CONFIG.CHECKIN_GAP_TURNS;
+    advanceClock(s, CONFIG.SCENARIO_SCALE.moment.budgetMin);
     checkScenarioEnd(s, []);
     expect(s.stage.checkinDue).toBe('budget');
     expect(s.stage.scenario!.overTime).toBe(true);
@@ -79,7 +81,8 @@ describe('185 when a check-in is asked (SC8)', () => {
     frame(s);
     s.stage.scenario!.checkins = CONFIG.CHECKIN_MAX_PER_SCENARIO;
     s.stage.scenario!.lastCheckin = s.turn;
-    s.turn = s.stage.scenario!.startTurn + CONFIG.SCENARIO_SCALE.moment.budgetTurns!;
+    s.turn += CONFIG.CHECKIN_GAP_TURNS;
+    advanceClock(s, CONFIG.SCENARIO_SCALE.moment.budgetMin);
     checkScenarioEnd(s, []);
     expect(s.stage.checkinDue).toBe('budget');
     const d = new ScenarioDirector({ weave: async () => null, clock: new VirtualClock(), checkin: async () => null });

@@ -15,6 +15,8 @@ import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { createRng } from '../harness';
 import type { ContestResult, GameState, RollResult } from '../../src/types';
+import { ago } from '../harness/time';
+import { engagementEndS } from '../../src/ruleset/actionTime';
 
 const roll = (actorId: string, tier: RollResult['tier']): RollResult =>
   ({ actorId, skill: SK.intimidation, d100: 50, margin: 0, tier, natural: 0, modifiers: [], tierShifts: [] });
@@ -62,7 +64,8 @@ it('146c one rule both ways: Shaken and Swayed scale with the gap, the bigger st
   expect(applySpeech(g, s.player, 'intimidate', won('guard_1', 'player', 0))).toEqual({});
   expect(applySpeech(g, s.player, 'deceive', won('guard_1', 'player', 1))).toEqual({ tell: true });
   expect(applySpeech(g, s.player, 'deceive', won('guard_1', 'player', -1))).toEqual({});
-  s.player.engagement = { start: 0, last: 1 - CONFIG.ENGAGEMENT_END_TURNS, kinds: ['talk'] };
+  s.player.engagement = { start: 0, last: s.pending.turn - 1, kinds: ['talk'] };
+  ago(s, s.pending.turn - 1, engagementEndS());
   play(s);
   expect(s.player.pressure).toBeUndefined();
 });
@@ -121,7 +124,8 @@ it('146g a repeat try of the same kind at the same listener costs the speaker 15
   pushContest(st, guard, 'intimidate', createRng(1));
   expect(pushContest(st, guard, 'intimidate', createRng(1)).a.modifiers).toContainEqual({ source: 'Repeat try', type: 'situational', value: -CONFIG.REPEAT_TRY });
   expect(guard.speechTries).toEqual({ player: { intimidate: 2 } });
-  s.player.engagement = { start: 0, last: 1 - CONFIG.ENGAGEMENT_END_TURNS, kinds: ['talk'] };
+  s.player.engagement = { start: 0, last: s.pending.turn - 1, kinds: ['talk'] };
+  ago(s, s.pending.turn - 1, engagementEndS());
   play(s);
   expect(s.player.speechTries).toBeUndefined(); // tries end with the engagement
 });

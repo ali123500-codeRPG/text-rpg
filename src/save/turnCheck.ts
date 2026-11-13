@@ -10,6 +10,8 @@ import { healthLevel } from '../ruleset/body';
 import { buildActorView, buildNarrationView, buildPlayerView } from '../views';
 import { toPages } from './pages';
 import { checkInvariants, newReport } from './checks';
+import { secondsSince } from '../time';
+import { engagementEndS } from '../ruleset/actionTime';
 
 /** what the turn started from: where everyone stood and who was dead */
 export type TurnSnap = { zones: Record<string, string>; dead: string[]; scenario: number };
@@ -82,10 +84,11 @@ const RULES: Record<string, (c: Ctx) => string[]> = {
       ...(seen.has(e.id) ? [`${e.id} used twice`] : (seen.add(e.id), [])),
     ]);
   },
-  /** an engagement, or a hunt, that nothing renewed for ENGAGEMENT_END_TURNS turns has ended (BG-5) */
+  /** an engagement, or a hunt, that nothing renewed for ENGAGEMENT_END (engagementEndS) has ended (BG-5); hunts are dropped before the
+   * turn's time passes, so they are judged at the end of the turn before */
   fight_ends: ({ s }) => allActors(s).flatMap((a) => [
-    ...(a.engagement && s.turn - a.engagement.last >= CONFIG.ENGAGEMENT_END_TURNS ? [`${a.id} engagement from turn ${a.engagement.last} still open`] : []),
-    ...Object.entries(a.mind?.knowledge ?? {}).filter(([id, b]) => (b.status === 'engaged' || b.status === 'hunting') && b.closedTurn !== undefined && s.turn - fightRenewed(s, a, id) > CONFIG.ENGAGEMENT_END_TURNS)
+    ...(a.engagement && secondsSince(s, a.engagement.last) >= engagementEndS() ? [`${a.id} engagement from turn ${a.engagement.last} still open`] : []),
+    ...Object.entries(a.mind?.knowledge ?? {}).filter(([id, b]) => (b.status === 'engaged' || b.status === 'hunting') && b.closedTurn !== undefined && secondsSince(s, fightRenewed(s, a, id), s.turn - 1) >= engagementEndS())
       .map(([id, b]) => `${a.id} still ${b.status} ${id} since turn ${fightRenewed(s, a, id)}`),
   ]),
   /** the load checks hold mid-play too: one player, one current class, slots, grips, worn covers, stacks */

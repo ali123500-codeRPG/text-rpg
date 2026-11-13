@@ -18,6 +18,7 @@ import { triggerHolds } from '../../src/engine/triggers';
 import { TIERS } from '../../src/scales';
 import { CONFIG } from '../../src/config';
 import { TP } from '../../src/library/templateIds';
+import { ago, tick, turnsFor } from '../harness/time';
 
 /** a running scenario whose ground is `ground` (no endings of its own) */
 const scenario = (s: GameState, ground: string[]) => {
@@ -82,14 +83,15 @@ describe('190 chases and free roam', () => {
     expect(pursuers(s)).toEqual([]);
   });
 
-  it('CH7/SC23: unseen for CHASE_LOST_TURNS turns, pursuers drop to tracking, remember it, and off the ground the scenario ends as escaped', () => {
+  it('CH7/SC23: unseen for CHASE_LOST_S, pursuers drop to tracking, remember it, and off the ground the scenario ends as escaped', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     scenario(s, ['tav_common']);
     s.turn = 10;
-    const wim = hunts(s, 'patron_1', 10 - CONFIG.CHASE_LOST_TURNS + 1, 'street_door');
+    const wim = hunts(s, 'patron_1', 10, 'street_door');
+    tick(s, CONFIG.CHASE_LOST_S - 1);
     updateChase(s);
     expect(wim.mind!.knowledge.player!.status).toBe('hunting');
-    s.turn += 1;
+    tick(s, 1);
     updateChase(s);
     expect(wim.mind!.knowledge.player).toMatchObject({ status: 'tracking', lostTurn: s.turn });
     expect(s.hidden.memory.patron_1!.at(-1)!.text).toBe(CHASE_LOST_MEMORY);
@@ -105,6 +107,7 @@ describe('190 chases and free roam', () => {
     scenario(s, ['tav_common', 'tav_counter', 'tav_cellar']);
     s.turn = 10;
     const wim = hunts(s, 'patron_1', 5, 'street_door');
+    ago(s, 5, CONFIG.CHASE_LOST_S);
     place(s, 'patron_1', 'street_door');
     updateChase(s);
     expect(s.stage.ending).toBeUndefined();

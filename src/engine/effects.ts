@@ -154,8 +154,8 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     const step = o.output.action.type === 'move' ? o.output.action.target : 'move' in o.output ? o.output.move?.toZone : null;
     const goal = o.output.headTo ?? (o.output.lead && step ? step : null);
     if (goal) headTo(state, a, goal, 'agent', o.output.lead ?? undefined);
-    // BF11: a place its own agent moved it to holds AGENT_STAY_TURNS, until its agent decides again
-    if (a.mind) { if (!goal && step && step === a.zone) a.mind.stay = { zone: step, until: state.turn + CONFIG.AGENT_STAY_TURNS }; else delete a.mind.stay; }
+    // BF11: a place its own agent moved it to holds AGENT_STAY_S, until its agent decides again
+    if (a.mind) { if (!goal && step && step === a.zone) a.mind.stay = { zone: step, since: state.turn }; else delete a.mind.stay; }
     // BG-180: an answer with a deed under way (a walk to fetch, an open, a lead) keeps it thinking for ERRAND_TURNS; its own hold ends that
     const deed = !WORDS_ONLY.has(o.output.action.type) || !!step || !!goal;
     if (a.mind && o.agent !== 'planner' && deed) a.mind.errandUntil = state.turn + CONFIG.ERRAND_TURNS;

@@ -163,7 +163,7 @@ export type Progression = {
 /** an essence: its row, the grade its quality roll gave, and the true skill it adds (its points, split by the row's weights) */
 export type HeldEssence = { essence: LibraryRef; grade: import('../scales').EssenceGradeKey; points: Record<LibraryRef, number>; turn: Turn; from?: string };
 /** an essence on offer: where it came from (a beaten foe's name, or the scenario's ending) and the last turn it can be taken */
-export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; until: Turn };
+export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; /** AT75: game minutes it waits until */ untilMin: number };
 export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } };
 
 export type Mind = {
@@ -188,7 +188,7 @@ export type Mind = {
   headBack?: RoutineRun;
   /** BF4: on head_to, who it leads there; at the end it waits for them (since: the turn it got there) */
   leading?: { id: string; since?: number };
-  stay?: { zone: string; until: number }; // BF11: a place its own agent moved it to holds until this turn
+  stay?: { zone: string; since: number }; // BF11: a place its own agent moved it to holds AGENT_STAY_S from this turn
   lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, until it does that kind of thing
   errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
   routines?: string[];

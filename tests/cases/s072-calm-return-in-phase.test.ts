@@ -5,6 +5,8 @@ import { makeVillage, createRng } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
 import { installRoutines, updateAlarms, desiredState } from '../../src/minds';
 import { buildActorView } from '../../src/views';
+import { tick, turnsFor } from '../harness/time';
+import { CONFIG } from '../../src/config';
 
 it('72 Calm return in phase: alarmed on turn 10, calm on turn 16, back to work with the original anchor', () => {
   const s = makeVillage();
@@ -19,11 +21,12 @@ it('72 Calm return in phase: alarmed on turn 10, calm on turn 16, back to work w
   updateAlarms(s, [attack]);
   expect(w.mind!.routine).toEqual({ id: 'flee_to_refuge_alert', anchorTurn: 10, at: 420 });
   expect(desiredState(buildActorView(s, 'worker'))!.zone).toBe('street_door');
-  for (s.turn = 11; s.turn <= 15; s.turn++) {
+  for (let i = 1; i < turnsFor(CONFIG.DECAY_AWARE_S, 60); i++) {
+    tick(s, 60);
     updateAlarms(s, []);
     expect(w.mind!.routine!.id).toBe('flee_to_refuge_alert');
   }
-  s.turn = 16;
+  tick(s, 60);
   updateAlarms(s, []);
   expect(w.mind!.routine).toEqual(original);
 });

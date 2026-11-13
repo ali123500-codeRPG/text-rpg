@@ -10,6 +10,8 @@ import type { ArmorWeightKey, LifeStageKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
 
+/** AT12: armour on or off locks movement, is careful work in steps, and keeps what is done when broken off */
+const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
@@ -300,7 +302,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
     effects: [{ kind: 'skill', skill: SK.thievery, value: 25, active: 'inUse', scope: 'withItem' }] },
-  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
+  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true, heal: HL.draught },
   // generic bases for minted items with no close match, and for scenario objects the player grabs (loot L2, L3)
   { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('light', 1) } },
@@ -591,6 +593,8 @@ export function prototypeLibrary(): Library {
       [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, composure: CP.rest, reach: 'damaged', revivesDead: false, inFight: false },
       [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, composure: CP.clinic, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
       [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false, inFight: true },
+      // AT10 (placeholder): a healing draught, 25% of health and parts up to Damaged, any time
+      [HL.draught]: { id: HL.draught, name: 'Healing draught', hpPct: 25, partPct: 25, reach: 'damaged', revivesDead: false, inFight: true },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
       [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
       // never applied itself: healing straight from a perk (Second Wind) is counted here for achievements; Fast Healer counts as natural recovery
@@ -664,13 +668,54 @@ export function prototypeLibrary(): Library {
       [FR.own_part_destroyed]: { id: FR.own_part_destroyed, name: 'A part of yours is Destroyed', cost: 0, rolled: true, part: 'destroyed',
         partCostOf: { fear: FR.own_part_crippled, mult: 1.5 } },
     },
-    // Game clock (T1): minutes per action; placeholders
+    // The Action times table (T1, AT1, AT11, AT12): seconds at a time factor of 1, for a skill-50 professional, from the real
+    // references on the Action Time pages (action-time/action-time-research.md). Unset: no movement lock, focus reflex, stop
+    // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
-      [DU.fight_turn]: { id: DU.fight_turn, name: 'Fight turn', minutes: 0.1 },
-      [DU.action]: { id: DU.action, name: 'Move, talk or other action', minutes: 1 },
-      [DU.trade]: { id: DU.trade, name: 'Trade', minutes: 10, orders: ['barter', 'buy', 'sell'] },
-      [DU.rest]: { id: DU.rest, name: 'Rest', minutes: 60, orders: ['rest'] },
-      [DU.sleep]: { id: DU.sleep, name: 'Sleep', minutes: 480 },
+      [DU.action]: { id: DU.action, name: 'Move, talk or other action', seconds: 60 },
+      [DU.trade]: { id: DU.trade, name: 'Trade', seconds: 10 * 60, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
+      [DU.rest]: { id: DU.rest, name: 'Rest', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
+      [DU.sleep]: { id: DU.sleep, name: 'Sleep', seconds: 8 * 60 * 60, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
+      [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', seconds: 0, focus: 'deep' },
+      // attacks (AT11a-e): a melee or unarmed blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own
+      [DU.blow]: { id: DU.blow, name: 'Melee or unarmed blow', seconds: 3, attack: true },
+      [DU.throw]: { id: DU.throw, name: 'Throw', seconds: 3, attack: true, locksMove: true },
+      [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', seconds: 5, attack: true, locksMove: true, focus: 'steady' },
+      [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', seconds: 6, attack: true, locksMove: true, focus: 'steady' },
+      [DU.crossbow_shot]: { id: DU.crossbow_shot, name: 'Crossbow shot', seconds: 2, attack: true, locksMove: true, focus: 'steady' },
+      // spanning stays done when broken off: a spanned crossbow stays loaded (AT11c b)
+      [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', seconds: 4, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', seconds: 8, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', seconds: 28, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
+      [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', seconds: 1 },
+      [DU.talk]: { id: DU.talk, name: 'Talking (a word)', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
+      // gear and things in hand (AT11h-j)
+      [DU.draw]: { id: DU.draw, name: 'Draw a weapon', seconds: 1 },
+      [DU.stow]: { id: DU.stow, name: 'Stow a weapon', seconds: 2 },
+      [DU.swap]: { id: DU.swap, name: 'Swap weapons', seconds: 3 },
+      [DU.pick_up_reach]: { id: DU.pick_up_reach, name: 'Pick up within reach', seconds: 1 },
+      [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', seconds: 4, locksMove: true },
+      [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', seconds: 2 },
+      // ways (AT11k-l): you stop at the door; picking keeps its work and is sped by Lockpicking (BA2)
+      [DU.door]: { id: DU.door, name: 'Open or close a door', seconds: 1, locksMove: true },
+      [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', seconds: 2, locksMove: true },
+      [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', seconds: 4, locksMove: true },
+      [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', seconds: 60, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
+        speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },
+      // care (AT11m-n): a bandage broken off is not used up
+      [DU.bandage]: { id: DU.bandage, name: 'Bandage', seconds: 40, locksMove: true, focus: 'careful' },
+      [DU.drink]: { id: DU.drink, name: 'Drink a potion', seconds: 3 },
+      // senses (AT11o)
+      [DU.hide]: { id: DU.hide, name: 'Hide', seconds: 2, locksMove: true },
+      [DU.look]: { id: DU.look, name: 'Look around', seconds: 3, focus: 'steady' },
+      // armour on and off with help (AT12): each piece counts once on; heavy alone takes ARMOR_ALONE_MULT times as long
+      [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', seconds: 2 * 60, ...ARMOR_TIME },
+      [DU.armor_light_off]: { id: DU.armor_light_off, name: 'Take off light armour', seconds: 60, ...ARMOR_TIME },
+      [DU.armor_medium_on]: { id: DU.armor_medium_on, name: 'Put on medium armour', seconds: 60, ...ARMOR_TIME },
+      [DU.armor_medium_off]: { id: DU.armor_medium_off, name: 'Take off medium armour', seconds: 30, ...ARMOR_TIME },
+      [DU.armor_heavy_on]: { id: DU.armor_heavy_on, name: 'Put on heavy armour', seconds: 10 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
+      [DU.armor_heavy_off]: { id: DU.armor_heavy_off, name: 'Take off heavy armour', seconds: 3 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
     },
     // Humans and elves for now, identical but for lifespan
     // AG3–AG6: years at which each life stage starts. Human from real references (adolescence 13, majority 18, middle age 40,

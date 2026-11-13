@@ -1,8 +1,7 @@
 // RD7/ZP2: how fast an actor moves. One place: its body type's real speeds, slowed by worn armor (a flat m/s, then a
 // share), times a movement speed factor (1 today; perks, statuses and mounts plug in here later).
 import { CONFIG } from '../config';
-import { DU } from '../library/tableIds';
-import { actorBody, getLibrary, itemDef } from '../library';
+import { actorBody, itemDef } from '../library';
 import type { Actor, GameState } from '../types';
 
 /** the movement speed factor: every speed is multiplied by it (1 until movement speed effects exist) */
@@ -22,7 +21,7 @@ export function moveSpeed(state: GameState, a: Actor): { walk: number; run: numb
 /** CO13/ZP2: the metres one slot of movement covers in a fight turn (the Fight turn duration). A move slot walks; a main
  * slot spent moving (a dash: the move costs both actions) runs the rest of the turn (run − walk). */
 export function slotMetres(state: GameState, a: Actor, paid: 'move' | 'main'): number {
-  const seconds = (getLibrary().durations?.[DU.fight_turn]?.minutes ?? 0.1) * 60;
+  const seconds = CONFIG.FIGHT_TURN_S;
   const s = moveSpeed(state, a);
   return (paid === 'move' ? s.walk : s.run - s.walk) * seconds;
 }

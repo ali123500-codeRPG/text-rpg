@@ -110,6 +110,8 @@ export type GameState = {
   stage: StageInfo;
   scenarioCaps: { promotions: number; minted: number };
   clocks: Record<string, number>;
+  /** AT15: game minutes each recent turn ended, by turn (time.ts turnTime): timers count game time from turn stamps */
+  turnEnds?: Record<number, number>;
   flags: Record<string, string | number | boolean>;
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
@@ -187,6 +189,7 @@ export type EnginePage = {
   yielding?: PlayerYield;
   mercy?: PlayerMercy;
   barriers?: Record<string, import('./core').Barrier>;
+  turnEnds?: Record<number, number>;
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */

@@ -5,7 +5,7 @@ import { TIERS } from '../scales';
 import { itemDef } from '../library';
 import { hiddenFrom } from '../engine/gear';
 import { CONFIG } from '../config';
-import { now, timeOfDay } from '../time';
+import { now, secondsSince, timeOfDay } from '../time';
 import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
@@ -84,8 +84,8 @@ export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent'
 }
 
 /** NW2: a head_to walk that got where it was going goes back to the routine it had, from there (end of turn) */
-/** BF11: an NPC its own agent moved somewhere stays there while it holds (AGENT_STAY_TURNS): no routine walk, no catch-up */
-export const staying = (state: GameState, a: Actor): boolean => !!a.mind?.stay && a.mind.stay.zone === a.zone && state.turn <= a.mind.stay.until;
+/** BF11: an NPC its own agent moved somewhere stays there while it holds (AGENT_STAY_S): no routine walk, no catch-up */
+export const staying = (state: GameState, a: Actor): boolean => !!a.mind?.stay && a.mind.stay.zone === a.zone && secondsSince(state, a.mind.stay.since) < CONFIG.AGENT_STAY_S;
 
 export function headArrivals(state: GameState): void {
   for (const a of state.actors) {
@@ -93,8 +93,8 @@ export function headArrivals(state: GameState): void {
     if (m?.routine?.id !== HEAD_TO) continue;
     const dest = m.slots?.dest;
     if ((Array.isArray(dest) ? dest[0] : dest) !== a.zone) continue;
-    // BF4: leading someone, it waits there until they come or LEAD_WAIT_TURNS pass
-    if (m.leading && actorById(state, m.leading.id)?.zone !== a.zone && state.turn - (m.leading.since ??= state.turn) < CONFIG.LEAD_WAIT_TURNS) continue;
+    // BF4: leading someone, it waits there until they come or LEAD_WAIT_S pass
+    if (m.leading && actorById(state, m.leading.id)?.zone !== a.zone && secondsSince(state, m.leading.since ??= state.turn) < CONFIG.LEAD_WAIT_S) continue;
     delete m.leading;
     if (m.headBack) m.routine = m.headBack;
     else delete m.routine;
@@ -117,7 +117,7 @@ const hasBinding = (b: string | string[] | undefined) => (Array.isArray(b) ? b.l
 /**
  * Calm bandmates [Proposed] (Dialogue turn rules): when a spokesperson's output switches its routine, calm, code-run
  * bandmates who perceived the exchange switch to the same routine. The one rule for this; the engine calls it.
- * GAP: "calm" read as not engaged, alarm not armed, and no attack or alarm perceived within DECAY_TURNS.
+ * GAP: "calm" read as not engaged, alarm not armed, and no attack or alarm perceived within DECAY_AWARE_S.
  */
 export function calmBandmatesSwitch(state: GameState, spokespersonId: string, routineId: string, heard: (actorId: string) => boolean): string[] {
   const sp = actorById(state, spokespersonId);
@@ -134,7 +134,7 @@ export function calmBandmatesSwitch(state: GameState, spokespersonId: string, ro
 export function isCalm(state: GameState, a: Actor): boolean {
   const alarm = a.mind?.alarm;
   const last = alarm?.lastAlarmTurn;
-  return !isEngaged(state, a) && !alarm?.armed && (last === undefined || state.turn - last >= CONFIG.DECAY_TURNS);
+  return !isEngaged(state, a) && !alarm?.armed && secondsSince(state, last) >= CONFIG.DECAY_AWARE_S;
 }
 
 const ALARM_KINDS = new Set(['attack', 'alarm']);
@@ -178,7 +178,7 @@ export function updateAlarms(state: GameState, events: GameEvent[]): void {
       continue;
     }
     const alarm = a.mind.alarm;
-    if (!alarm?.armed || (alarm.lastAlarmTurn !== undefined && state.turn - alarm.lastAlarmTurn < CONFIG.DECAY_TURNS)) continue; // BF1: armed from the start has no alarm to wait out
+    if (!alarm?.armed || (alarm.lastAlarmTurn !== undefined && secondsSince(state, alarm.lastAlarmTurn) < CONFIG.DECAY_AWARE_S)) continue; // BF1: armed from the start has no alarm to wait out
     // calm: back to the saved routine with its saved anchor
     if (alarm.returnTo) {
       a.mind.routine = { ...alarm.returnTo };

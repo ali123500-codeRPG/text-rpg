@@ -6,6 +6,7 @@ import { CONFIG } from '../../src/config';
 import { spawnNpc } from '../../src/library/spawn';
 import { installRoutines, switchRoutine, desiredState, updateAlarms, alertOrders } from '../../src/minds';
 import { buildActorView } from '../../src/views';
+import { ago, tick, turnsFor } from '../harness/time';
 
 it('71 Alert keeps the wait: wait_alert in the same zone, back to wait after DECAY_TURNS', () => {
   const s = makeVillage({ playerZone: 'field_mid' });
@@ -20,8 +21,10 @@ it('71 Alert keeps the wait: wait_alert in the same zone, back to wait after DEC
   expect(c.mind!.routine).toEqual({ id: 'wait_alert', anchorTurn: 5, at: 420 });
   expect(desiredState(buildActorView(s, 'comp'))).toEqual({ zone: 'field_edge', activity: 'stand_watch' });
   expect(alertOrders(s, [buildActorView(s, 'comp')])).toEqual([]); // companions' onAlert is null
-  for (s.turn = 6; s.turn < 5 + CONFIG.DECAY_TURNS; s.turn++) updateAlarms(s, []);
+  tick(s, CONFIG.DECAY_AWARE_S - 1);
+  updateAlarms(s, []);
   expect(c.mind!.routine!.id).toBe('wait_alert');
+  tick(s, 1);
   updateAlarms(s, []);
   expect(c.mind!.routine).toEqual(anchor);
   expect(desiredState(buildActorView(s, 'comp'))!.zone).toBe('field_edge');

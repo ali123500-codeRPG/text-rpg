@@ -50,7 +50,7 @@ import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
-import { minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
+import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
@@ -666,7 +666,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     if (o.type === 'sleep') {
       // NW12/NW15: the night: alone, the sleep row; with companions, one watch each. "Sleep" again during a night that
       // was stopped (on watch, or after someone came and went) carries it on.
-      const sleepMin = getLibrary().durations?.[DU.sleep]?.minutes ?? 0;
+      const sleepMin = (getLibrary().durations?.[DU.sleep]?.seconds ?? 0) / 60;
       if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
       logCode(state, 'night_started', { actorId: a.id, end: state.night.end, watches: state.night.watches });
       runNight(ctx);
@@ -734,11 +734,11 @@ function runNight(ctx: Ctx): number {
   return minutes;
 }
 
-/** T1: a fight turn, else the durations row naming the order type, else the default action row (DU) */
+/** T1: a fight turn (FIGHT_TURN_S), else the Action times row naming the order type, else the default action row (DU) */
 function turnMinutes(state: GameState, o: Order): number {
   const rows = getLibrary().durations ?? {};
-  if (state.mode === 'tactical') return rows[DU.fight_turn]?.minutes ?? 0;
-  return (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows[DU.action])?.minutes ?? 0;
+  if (state.mode === 'tactical') return CONFIG.FIGHT_TURN_S / 60;
+  return ((Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows[DU.action])?.seconds ?? 0) / 60;
 }
 
 /** H2/H3: using a carried item that names a healing source applies that row and uses one up; works in a fight only
@@ -913,7 +913,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   }
   const need = pickSeconds(eff);
   if (state.mode === 'tactical') {
-    const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + (getLibrary().durations?.[DU.fight_turn]?.minutes ?? 0.1) * 60);
+    const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + CONFIG.FIGHT_TURN_S);
     if (work < need || !tierAtLeast(r.tier, 'success')) return emit(ctx, way(tierAtLeast(r.tier, 'success') ? 'picking' : 'not_yet', extra));
   } else {
     const extraMin = need / 60 - turnMinutes(state, o);
@@ -1411,7 +1411,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
   // turn (a trade, a rest, a wait) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none
   const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
-  const long = catchMin > (getLibrary().durations?.[DU.action]?.minutes ?? 0);
+  const long = catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
   const legEvents = !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
     const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
     emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
@@ -1426,7 +1426,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
   else if (state.mercy && state.mercy.turn < state.turn) (settleMercy(state) && healthLevel(state.player) !== 'dead' ? wakeUp(state, 'player_spared') : logCode(state, 'player_fell', { lethal: true })); // D-239
-  updateChase(state); // CH6/CH7: pursuers follow through frontiers; a chase lost for CHASE_LOST_TURNS turns ends
+  updateChase(state); // CH6/CH7: pursuers follow through frontiers; a chase lost for CHASE_LOST_S ends
   noteHappened(state, ctx.events, defeated); // BG-41: what the check-in judges a judged ending from
   checkScenarioEnd(state, ctx.events); // SC7/SC13: the scenario's endings, held while fighting, chased or talking; SC16 its ground
   checkRoam(state, ctx.events); // SD2 a/CH2: in free roam, what happened this turn may start a new scenario
@@ -1448,6 +1448,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   releaseHolds(state, allActors(state));
   noteGains(state); // D-226: this turn's raises go on the scenario's gains summary
   if (state.stage.breakCause) closeScenario(state, rng); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
+  noteTurnEnd(state); // AT15: timers count game time from turn stamps
   state.events.push(...ctx.events);
   return ctx.events;
 }
@@ -1485,13 +1486,14 @@ function learned(state: GameState): number {
 }
 
 /**
- * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset). A stall (STALL_TURNS quiet turns
+ * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset), never one in a fight (AT76). A stall (STALL_TURNS quiet turns
  * with no beat left) marks the scenario to end as worn out, and free roam starts (SD2 a). Rest, sleep and time skips
  * never end a scenario (SC4, SC9).
  */
 function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number): void {
   const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
-  state.stage.quiet = quiet ? (state.stage.quiet ?? 0) + 1 : 0;
+  // AT76: a quiet turn in a fight (a standoff) is not the story stalling: it neither counts nor resets
+  state.stage.quiet = !quiet ? 0 : (state.stage.quiet ?? 0) + (state.mode === 'tactical' ? 0 : 1);
   if (state.stage.breakCause || state.stage.roam) return; // SD2 a: no stall in free roam, since no scenario runs
   if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) {
     state.stage.breakCause = 'story_beat';

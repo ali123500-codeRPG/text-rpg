@@ -1,7 +1,7 @@
 // Sparring (SP1–SP11): a spar is a pact between sides that lets them hit each other while nobody's stance changes.
 // It starts in talk (an NPC records it, like a deal) or in the Weaver's stage plan. A fighter is out once it yields or
 // reaches the spar's limit on the health track; the last side with anyone left in wins. Blows do their normal damage.
-// The spar ends early on a scenario break, after ENGAGEMENT_END_TURNS turns with no blow between sides, or when anyone
+// The spar ends early on a scenario break, after ENGAGEMENT_END (engagementEndS) with no blow between sides, or when anyone
 // outside it attacks a fighter, or a fighter attacks anyone outside it (that attack is a real one).
 import type { Actor, GameEvent, GameState, Spar } from '../types';
 import { CONFIG } from '../config';
@@ -10,6 +10,8 @@ import { actorById, isActive } from './relations';
 import { logCode } from './effects';
 import { tally } from './xp';
 import { HEALTH_LEVELS, type HealthLevelKey } from '../scales';
+import { secondsSince } from '../time';
+import { engagementEndS } from '../ruleset/actionTime';
 
 /** SP4: the health level that puts a fighter out: SPAR_LIMIT, or Incapacitated in a cruel spar (both fighters accepted it) */
 export const sparLimit = (sp: Spar): HealthLevelKey => (sp.cruel ? 'incapacitated' : CONFIG.SPAR_LIMIT);
@@ -82,6 +84,6 @@ export function updateSpars(state: GameState, events: GameEvent[]): void {
     const left = sp.sides.filter((s) => s.some((id) => !(id in sp.out)));
     if (left.length <= 1) endSpar(state, sp, 'won', left[0] ?? []);
     else if (state.stage.breakCause) endSpar(state, sp, 'scenario_break');
-    else if (state.turn - sp.last >= CONFIG.ENGAGEMENT_END_TURNS) endSpar(state, sp, 'quiet');
+    else if (secondsSince(state, sp.last) >= engagementEndS()) endSpar(state, sp, 'quiet');
   }
 }
