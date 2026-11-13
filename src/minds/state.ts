@@ -367,18 +367,20 @@ export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { 
   const known = revealedTo(a, t.id);
   const unknown = t.core.inventory.filter((i) => !known.includes(`item:${i.id}`));
   let r: RollResult | undefined, found: ItemInstance[];
+  // BG-178: what one found before and is still there is found again; only new finds need hands on or a roll
+  const hiddenGear = (i: ItemInstance) => !!i.equippedIn?.length && !!itemDef(state, i.itemId).hiddenAt;
+  const again = t.core.inventory.filter((i) => known.includes(`item:${i.id}`) && (hiddenGear(i) || !i.equippedIn?.length));
   if (handsOn(state, a, t)) found = unknown.filter((i) => itemDef(state, i.itemId).concealed || !i.equippedIn?.length);
   else {
-    const hidden = unknown.filter((i) => i.equippedIn?.length && itemDef(state, i.itemId).hiddenAt);
-    if (!hidden.length) return { found: [] };
-    const roll = r = sightRoll(state, a, zoneById(state, t.zone), rng);
-    found = hidden.filter((i) => tierLevel(roll) > TIERS.pos(itemDef(state, i.itemId).hiddenAt!));
+    const hidden = unknown.filter(hiddenGear);
+    const roll = hidden.length ? (r = sightRoll(state, a, zoneById(state, t.zone), rng)) : undefined;
+    found = hidden.filter((i) => roll && tierLevel(roll) > TIERS.pos(itemDef(state, i.itemId).hiddenAt!));
   }
   for (const i of found) {
     if (a.kind === 'player') ((a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never).revealed ??= []).push(`item:${i.id}`);
     else updateBeliefs(state, { kind: 'reveal', observerId: a.id, aboutId: t.id, fact: `item:${i.id}` });
   }
-  return { ...(r ? { r } : {}), found };
+  return { ...(r ? { r } : {}), found: [...again, ...found] };
 }
 
 export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void {
