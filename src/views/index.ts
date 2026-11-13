@@ -154,6 +154,7 @@ const personVisibility = (a: Actor, events: GameEvent[]): VisibilityKey =>
  * within clear sight, 'someone' within a glimpse, beyond that not at all; dark zones give partial. NPCs perceive the player
  * only once aware. */
 function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state.events): SeenActor[] {
+  if (viewer.asleep) return []; // NW12/NW20: asleep, it sees no one
   const zones = perceivedZoneIds(state, viewer.zone);
   const out: SeenActor[] = [];
   for (const a of allActors(state)) {

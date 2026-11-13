@@ -32,7 +32,7 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { armThreadboundItem, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { NEEDS, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -56,6 +56,7 @@ import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
+import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
@@ -157,6 +158,7 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
 
 function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | AttackResult, perceived = false): void {
   const { state, rng } = ctx;
+  wakeByEvent(state, ev); // NW18: a blow or a loud noise wakes sleepers first, so they hear what woke them
   if (!perceived) ev.perception = computePerception(ev, state, rng);
   noteSightings(ev, state);
   updateBeliefs(state, { kind: 'event', event: ev, result });
@@ -317,6 +319,18 @@ function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhea
   return 'spent';
 }
 
+/** BG-111: where an order's move goes: its zone, or the spot in it (beside someone, by a way out, a side) with the walk's
+ * stop-short and words. The one rule for every walk an order makes: the player's, an NPC's in turn, a spokesperson's in the
+ * exchange. */
+function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: { stopShort?: number; toward?: string; spot?: string } } {
+  const sp = o.move && o.moveSpot ? spotPoint(state, o.move, o.moveSpot, a) : null;
+  if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: a.id, to: o.move, spot: o.moveSpot });
+  return {
+    goal: sp ? { zone: o.move!, pos: sp.pos } : { zone: o.move! },
+    opts: sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {},
+  };
+}
+
 /** ZP2: walks toward `goal` on move slots: each slot walks slotMetres of it (a move slot walks; a main slot spent on it, a
  * dash, runs the rest of the turn), one leg at a time, until it gets there, the slots run out, or the move is spent or
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
@@ -416,7 +430,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
   ev.perception = computePerception(ev, state, rng);
   // BG-25: someone down can't defend: the blow lands as on someone unaware
-  let surprised = !isActive(t);
+  let surprised = !isActive(t) || isAsleep(t); // NW14: a sleeper is struck as unaware (Never Surprised doesn't help it)
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
   if (!surprised && !atLeast(beliefStatus(state, t, a), 'suspicious')) {
     surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise);
@@ -608,23 +622,75 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       return emit(ctx, ev);
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
-    const minutes = o.type === 'sleep' ? getLibrary().durations?.[DU.sleep]?.minutes ?? 0 : minutesUntil(t, until);
-    passTime(state, minutes);
-    logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     if (o.type === 'sleep') {
-      // Sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
-      for (let i = 0; i < Math.floor(minutes / CONFIG.REST_COOLDOWN_MIN); i++) applyHealing(state, a, restRow(state, a));
-      state.clocks[`rest:${a.id}`] = now(state);
-    }
+      // NW12/NW15: the night: alone, the sleep row; with companions, one watch each. "Sleep" again during a night that
+      // was stopped (on watch, or after someone came and went) carries it on.
+      const sleepMin = getLibrary().durations?.[DU.sleep]?.minutes ?? 0;
+      if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
+      logCode(state, 'night_started', { actorId: a.id, end: state.night.end, watches: state.night.watches });
+      runNight(ctx);
+    } else passTime(state, minutesUntil(t, until));
+    const minutes = now(state) - t;
+    logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } }); // SC4/SC9: a time skip never ends the scenario
   }
   emit(ctx, ev);
 }
 
+/** NW18: what a sleeper does on its turn: nothing, asleep */
+const asleepOrder = (a: Actor): Order => ({ actorId: a.id, type: 'idle', target: null, skill: null, intent: 'asleep', source: a.kind === 'player' ? 'player' : 'routine', activity: 'sleep' });
+
 /** the clock moves on; natural recovery runs for that time (H12–H15) */
 function passTime(state: GameState, minutes: number): void {
   advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
   passiveHealing(state, minutes);
+}
+
+/** NW12/NW15/NW18: the player's night runs on. The clock steps SLEEP_STEP_MIN at a time (to the next change of watch
+ * at most): everyone moves on toward their routines (catchUp), sleeps or keeps watch by the plan, and NPCs sleep by
+ * their routines. It stops when someone hostile to the player arrives in the player's zone: the clock has moved on only
+ * that far, they are there, and each light sleeper there may hear them (NW14). The player's sleep heals a rest per
+ * REST_COOLDOWN_MIN asleep and counts as the last rest. Returns the minutes it ran. */
+function runNight(ctx: Ctx): number {
+  const { state, rng } = ctx;
+  const p = state.player;
+  const n = state.night;
+  if (!n) return 0;
+  const t0 = now(state);
+  const noiseOf = (x: Actor) => armorNoise(state, x, 'move', SENSE.move[0]);
+  let present = new Set(hostilesNear(state, p).map((x) => x.id));
+  applyNightPhase(state);
+  while (now(state) < n.end && !n.woke.includes(p.id) && isActive(p)) {
+    const t = now(state);
+    const step = Math.max(1, Math.min(CONFIG.SLEEP_STEP_MIN, nextChange(n, t) - t));
+    const slept = isAsleep(p);
+    passTime(state, step);
+    catchUp(state, step, false);
+    if (slept) {
+      n.slept += step;
+      for (const due = Math.floor(n.slept / CONFIG.REST_COOLDOWN_MIN); n.heals < due; n.heals++) applyHealing(state, p, restRow(state, p));
+    }
+    applyNightPhase(state);
+    settleSleepers(state);
+    const here = hostilesNear(state, p);
+    const came = here.filter((x) => !present.has(x.id));
+    if (came.length) {
+      logCode(state, 'sleep_stopped', { actorId: p.id, by: came.map((x) => x.id) });
+      (state.scratch ??= {}).nightStopped = true; // the next turn starts with them there
+      for (const s of allActors(state).filter((x) => isAsleep(x) && x.zone === p.zone)) for (const x of came) if (wakeCheck(state, s, x, noiseOf(x), rng)) break;
+      break;
+    }
+    present = new Set(here.map((x) => x.id));
+  }
+  if (n.slept) state.clocks[`rest:${p.id}`] = now(state);
+  // the night is over at its end, or for the player once something woke them (NW18); companions sleep on to their time
+  if (now(state) >= n.end) {
+    for (const id of n.members) { const m = actorById(state, id); if (m?.asleep?.until !== undefined) wake(state, m, 'rested'); }
+    delete state.night;
+  } else if (n.woke.includes(p.id)) delete state.night;
+  const minutes = now(state) - t0;
+  (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + minutes;
+  return minutes;
 }
 
 /** T1: a fight turn, else the durations row naming the order type, else the default action row (DU) */
@@ -853,11 +919,9 @@ function step(ctx: Ctx, id: string): void {
   // CO13/ZP2: a move slot walks slotMetres(…'move') toward the move's zone, and with no main action planned (hold) a main
   // slot runs slotMetres(…'main') more once the move slots run out: a dash (AE2), which a lame actor can't make
   // BG-12: a move to a spot walks to that point of the zone (beside someone, by a way out, the far side, a compass side)
-  const sp = o.move && o.moveSpot ? spotPoint(state, o.move, o.moveSpot, a) : null;
-  if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: id, to: o.move, spot: o.moveSpot });
   const move = (mainToo: boolean) => {
-    const goal: Located = sp ? { zone: o.move!, pos: sp.pos } : { zone: o.move! };
-    const opts = sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {};
+    if (!o.move) return;
+    const { goal, opts } = moveGoal(state, a, o);
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
@@ -1030,13 +1094,14 @@ function noteWalked(state: GameState, a: Actor, m: number): void {
  * time, as far as it could walk in that time at the travel pace (travelSpeed), less what its own move already walked:
  * one jump, no Claude calls. It stops at a shut way or an unbuilt frontier, and a road is walked by its length. Healing
  * already counts minutes. GAP: a way it holds the key to stops it too (it would need to open and shut it unseen). */
-export function catchUp(state: GameState, minutes: number, agentRun: Set<string> = new Set()): void {
+export function catchUp(state: GameState, minutes: number, deductWalked = true): void {
   if (minutes <= 0) return;
-  const walked = (state.scratch?.walked ?? {}) as Record<string, number>;
+  const walked = (deductWalked ? state.scratch?.walked ?? {} : {}) as Record<string, number>;
+  const agentRun = new Set((state.scratch?.agentRun as string[] | undefined) ?? []);
   for (const a of [...state.actors].sort((x, y) => x.id.localeCompare(y.id))) {
     const m = a.mind;
     // an NPC whose agent chose its move this turn keeps it: the catch-up is for routine time
-    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isEngaged(state, a) || a.heldBy || m.moraleState) continue;
+    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState) continue;
     const d = desiredState(buildActorView(state, a.id));
     if (!d || d.zone === a.zone) continue;
     let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
@@ -1053,8 +1118,10 @@ export function catchUp(state: GameState, minutes: number, agentRun: Set<string>
 export type FrontierWait = { actorId: string; frontier: string };
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
-  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; } // NW3/NW11: this turn's only
+  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; } // NW3/NW11: this turn's only
+  (state.scratch ??= {}).agentRun = usableAgentOutputs(input).map((o) => o.actorId); // NW11: their agent moved them this turn
   const clockStart = now(state);
+  wakeChecksNear(state, (x) => armorNoise(state, x, 'move', SENSE.move[0]), rng); // NW18: a light sleeper may hear someone hostile near
   noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   placeAll(state); // ZP1: anyone new on stage, or moved by a scenario, gets a spot in their zone
   delete state.stage.encounter; // TV4: an encounter's scenario has placed its people by now
@@ -1066,7 +1133,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
   const orders = mergeOrders(state, input, views, fired, rng);
-  const playerOrder = fromIntent(state, input.intent, input.aimed);
+  const playerOrder = isAsleep(state.player) ? asleepOrder(state.player) : fromIntent(state, input.intent, input.aimed); // NW18: asleep, your turn passes
   const imp = input.intent?.action?.improvised;
   if (imp && playerOrder.type === 'attack' && !playerOrder.item && isActive(state.player)) {
     // loot L3: the grabbed object is minted and drawn (swap stows held weapons) before the attack
@@ -1074,6 +1141,10 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
   }
   if (isActive(state.player)) orders.set(state.player.id, playerOrder);
+  // NW12/NW20: a sleeper does nothing (its agent is not asked); NW21: an awake band member who sees someone hostile
+  // shouts to wake its sleeping bandmates
+  for (const id of [...orders.keys()]) { const x = actorById(state, id); if (x && x !== state.player && isAsleep(x)) orders.set(id, asleepOrder(x)); }
+  for (const c of wakeCalls(state)) orders.set(c.actorId, c);
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
@@ -1098,9 +1169,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     // BG-58: walk over, then speak: the player's move comes first and the words are said from where it ends, as an NPC's
     const po = playerOrder;
     if (po.move && !po.moveAfter && !po.way && !input.quickWord) {
-      const sp = po.moveSpot ? spotPoint(state, po.move, po.moveSpot, state.player) : null;
-      const goal: Located = sp ? { zone: po.move, pos: sp.pos } : { zone: po.move };
-      const opts = sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {};
+      const { goal, opts } = moveGoal(state, state.player, po);
       if (!walk(ctx, state.player, goal, po, (n) => (n === 0 ? useMoveSlot(ctx, state.player, false) : null), opts)) logCode(state, 'move_dropped', { actorId: state.player.id, to: po.move });
       po.move = null;
     }
@@ -1134,7 +1203,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
         useMain(ctx, a);
         // move, then talk: the move comes first and the line is said from where it ends
         if (o.move && !o.moveAfter) {
-          if (!walk(ctx, a, { zone: o.move }, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null))) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+          const { goal, opts } = moveGoal(state, a, o); // BG-111: stepping up to whisper ends beside the player, as everywhere
+          if (!walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
           o.move = null;
         }
         doSpeak(ctx, a, o);
@@ -1143,7 +1213,10 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     }
   }
 
-  for (const id of ordered) if (!ctx.acted.has(id)) step(ctx, id);
+  // NW12: the player's wait or sleep goes last, so everyone has acted on this turn's orders before the clock moves on
+  const skipsTime = (id: string) => id === state.player.id && ['wait', 'sleep'].includes(orders.get(id)?.type ?? '');
+  for (const id of ordered) if (!ctx.acted.has(id) && !skipsTime(id)) step(ctx, id);
+  for (const id of ordered) if (!ctx.acted.has(id) && skipsTime(id)) step(ctx, id);
 
   noteFighting(state, ctx.events); // YD6: blows engage, closing in hunts, quiet turns drop both
   applyBeliefDecay(state);
@@ -1169,7 +1242,10 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
-  catchUp(state, now(state) - clockStart, new Set(usableAgentOutputs(input).map((o) => o.actorId))); // NW11: the turn's time moves everyone on toward their schedule
+  if (!state.scratch?.nightStopped) catchUp(state, now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0)); // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
+  settleSleepers(state); // NW20: NPCs fall asleep and wake by their routines
+  // NW18: still asleep and nobody hostile near any more (they left, or never woke you): the rest of the night runs on
+  if (state.night && isAsleep(state.player) && !state.scratch?.nightStopped && !hostilesNear(state, state.player).length) runNight(ctx);
   headArrivals(state); // NW2: a head_to walk the catch-up brought there
   updateQuests(state, ctx.events, defeated);
   noteZonesSeen(state);
