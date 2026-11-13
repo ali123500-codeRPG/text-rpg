@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-209
+
+**What was wrong:** Found by the new Threadbound end-to-end test. An achievement earned while a scenario runs is only granted when the scenario ends. The ability it opens on a Threadbound item (for example Call the Toss on Varo's Loop) then showed up one turn late, because the game hands out item abilities before it closes the scenario. A perk that an achievement completes through a perk link had the same one-turn delay.
+
+**What was done:** Right after a scenario closes, the game hands out the player's Threadbound item abilities and linked perks again, so they arrive on the same turn as the achievement. The end-to-end test checks it.
+
+**Fixed by:** [PR #707](https://github.com/ali123500-codeRPG/text-rpg/pull/707)
+
 ## BG-191
 
 **What was wrong:** On coming back to Play from another page (Ali came from Bugs), the story opened at the top instead of at the latest lines. Leaving Play takes the story off the screen, and the browser forgets where it was scrolled.
