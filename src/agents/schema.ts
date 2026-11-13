@@ -60,7 +60,7 @@ const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool, pace: oneOf(TRAVEL_PACES.keys),
     spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str }, ['near', 'awayFrom', 'side'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
   action: nul(obj<NonNullable<Intent['action']>>({
-    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick'] as const),
+    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'search', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
     target: nul(str),
     targetPart: nul(str),

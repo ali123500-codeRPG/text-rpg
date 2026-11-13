@@ -226,6 +226,8 @@ export type PerkDef = {
   improveRolls?: { below: number; rolls: number };
   freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
+  searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach), while owned and active
+  searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
   /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open) */
   augments?: { from: string; skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
   /** true skill added to every aura skill (the skills the game's auras roll, src/library/auras.ts) */
@@ -329,7 +331,8 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
+  | 'searchArea' | 'searchReach';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -354,6 +357,8 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   tierUnlocks?: TierUnlock[];
   freeLevels?: number; // free levels: this many level-ups that cost no XP (taken like any level, src/engine/xp.ts spendXp)
   bonusLevels?: number; // bonus levels: this many character levels that no class gets (perk points on even levels; no class perks)
+  searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach)
+  searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;

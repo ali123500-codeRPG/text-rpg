@@ -692,7 +692,7 @@ function standIns(): HTMLElement[] {
       h('li', {}, 'Each one is multiplied by its own tier multiplier, plus true skill, gear and perks as usual. The highest value rolls.'),
       h('li', {}, 'Light and other situation modifiers come from the skill that rolls (fnRoller), so Tremor ignores darkness.')),
     row('Functions checked this way', `FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}`),
-    row('Rolls that use them', 'sneak and hide contests (stealthDetect) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
+    row('Rolls that use them', 'sneak and hide contests (stealthDetect), searches (searchFor) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
     row('After the roll', link('perks', PK.curiouser, 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
   const fnCards = FUNCTION_ROLLS.map((f) => {
     const rows = fnSkills(f).map((id) => ({ id, tier: CONFIG.SKILL_TIER_MULT[lib.skills[id].tier] })).sort((a, b) => b.tier - a.tier);

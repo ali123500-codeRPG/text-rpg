@@ -381,6 +381,7 @@ const act = (id: string, look: string, attention: ActivityDef['attention'], nois
   ({ id, look, attention, noise, visibility });
 export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('stand_watch', 'keeping watch', 'alert', 'silent', 'normal'),
+  act('search', 'searching', 'alert', 'quiet', 'normal'), // SE16: an alert sweep searches at each stop
   act('walk', 'walking', 'normal', 'quiet', 'normal'),
   act('work', 'hard at work', 'normal', 'normal', 'normal'),
   act('tend_counter', 'tending the counter', 'normal', 'quiet', 'normal'),
@@ -414,7 +415,7 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   sched('hold_post_alert', 'Holds the post on alert', true, [['post', 'long', 'stand_watch']], undefined, null),
   timed(sched('patrol', 'Walks the beat by day; drinks in the evening, sleeps at night', true, [['route', 'short', 'walk']], 'search_route_alert', { ...CALL_HELP }), ...OFF_DUTY),
   timed(sched('night_patrol', 'Walks the beat from dusk to dawn; sleeps by day', true, [['route', 'short', 'walk']], 'search_route_alert', { ...CALL_HELP }), DAY_SLEEP),
-  sched('search_route_alert', 'Sweeps the beat fast, on alert', true, [['route', 'brief', 'stand_watch']], undefined, null),
+  sched('search_route_alert', 'Sweeps the beat fast, searching at each stop, on alert', true, [['route', 'brief', 'search']], undefined, null),
   // RT3: the tavern closes when the night starts
   timed(sched('tend_bar', 'Works behind the bar from morning to evening; sleeps at night', true, [['counter', 'long', 'tend_counter']], 'flee_to_refuge_alert', null),
     at(['night', 'dawn'], [['bed', 'long', 'sleep']])),
