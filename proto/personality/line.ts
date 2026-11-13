@@ -29,6 +29,8 @@ export interface Character {
 }
 
 const target = (a: (typeof ARCHETYPES)[number], axis: Axis) => a.target[axis] ?? 0;
+/** a character's points on an axis; an axis left out counts as 0 */
+export const pts = (axes: Axes, axis: Axis) => axes[axis] ?? 0;
 
 /** how far the character's drives are from a type's values: 0 = the type's values are their top drives, 100 = none of them */
 export function driveGap(drives: string[], values: string[] | undefined) {
@@ -43,7 +45,7 @@ export function driveGap(drives: string[], values: string[] | undefined) {
 /** gap from each archetype over the six axes, Nerve and drives, nearest first (ties keep table order) */
 export function archetypeGaps(c: Pick<Character, 'axes' | 'nerve' | 'drives'>) {
   return ARCHETYPES.map((a, i) => {
-    const axes = AXES.reduce((s, ax) => s + Math.abs(c.axes[ax] - target(a, ax)), 0);
+    const axes = AXES.reduce((s, ax) => s + Math.abs(pts(c.axes, ax) - target(a, ax)), 0);
     const nerveGap = Math.abs(c.nerve - (a.nerve ?? 0));
     const drives = driveGap(c.drives, a.values);
     return { a, i, axes: axes / AXES.length, nerve: nerveGap, drives, gap: (axes + nerveGap + ARCHETYPE_VALUE_WEIGHT * drives) / (AXES.length + 1 + ARCHETYPE_VALUE_WEIGHT) };
@@ -52,7 +54,7 @@ export function archetypeGaps(c: Pick<Character, 'axes' | 'nerve' | 'drives'>) {
 
 /** axes far enough from the archetype to say "but": strong enough, far from the target, and not just a weaker version of it */
 export function buts(axes: Axes, a: (typeof ARCHETYPES)[number]) {
-  return AXES.map((ax, i) => ({ ax, i, v: axes[ax], t: target(a, ax), gap: Math.abs(axes[ax] - target(a, ax)) }))
+  return AXES.map((ax, i) => ({ ax, i, v: pts(axes, ax), t: target(a, ax), gap: Math.abs(pts(axes, ax) - target(a, ax)) }))
     .filter((b) => Math.abs(b.v) >= BUT_MIN && b.gap >= BUT_GAP && (Math.sign(b.v) !== Math.sign(b.t) || Math.abs(b.v) > Math.abs(b.t)))
     .sort((x, y) => y.gap - x.gap || x.i - y.i)
     .slice(0, BUTS_SHOWN);
@@ -76,7 +78,7 @@ export function nerve(c: Pick<Character, 'nerve' | 'resolve'>) {
 export function facts(c: Character): Facts {
   const best = (ok: (s: Character['skills'][number]) => boolean) => Math.max(0, ...c.skills.filter(ok).map((s) => s.value));
   return {
-    nerveLine: nerve(c).line, resolve: c.resolve, axes: c.axes, drives: c.drives, ageStage: c.ageStage,
+    nerveLine: nerve(c).line, resolve: c.resolve, axes: Object.fromEntries(AXES.map((ax) => [ax, pts(c.axes, ax)])) as Facts['axes'], drives: c.drives, ageStage: c.ageStage,
     bestSkill: best(() => true), bestFight: best((s) => !!s.fight), bestAttack: best((s) => !!s.attack),
   };
 }

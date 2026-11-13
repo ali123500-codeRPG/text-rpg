@@ -3,9 +3,10 @@
 // src/library (personalityAxes, values, personalityTypes) and src/scales.ts, and line.ts replaces personalityText.
 // Every table is keyed; display words and hints live only here.
 
-export const AXES = ['honesty', 'pride', 'temper', 'sociability', 'discipline', 'curiosity'] as const;
+export const AXES = ['honesty', 'pride', 'temper', 'sociability', 'discipline', 'curiosity', 'levity'] as const;
 export type Axis = (typeof AXES)[number];
-export type Axes = Record<Axis, number>;
+/** levity is optional on a character and counts as 0 (no word) when left out */
+export type Axes = Record<Exclude<Axis, 'levity'>, number> & { levity?: number };
 
 /** the word and a short behaviour hint for each end of each axis */
 export const AXIS_ENDS: Record<Axis, { low: [string, string]; high: [string, string] }> = {
@@ -15,6 +16,7 @@ export const AXIS_ENDS: Record<Axis, { low: [string, string]; high: [string, str
   sociability: { low: ['quiet', 'keeps to themself, says little'], high: ['talkative', 'chatters, makes friends easily, fills silences'] },
   discipline: { low: ['impulsive', 'acts first, thinks later'], high: ['disciplined', 'keeps to plans and habits, finishes what they start'] },
   curiosity: { low: ['set in their ways', 'sticks to what they know, distrusts the new'], high: ['curious', 'wants to know how things work, asks and pokes'] },
+  levity: { low: ['earnest', 'takes things seriously, rarely jokes'], high: ['playful', 'jokes and teases, makes light of serious things'] },
 };
 
 /** strength words by |points|, highest first (TRAIT_WORDS) */
@@ -93,7 +95,7 @@ export const NERVE_PLUS_EVERY = 50;
 export interface Facts {
   nerveLine: 'cautious' | 'steady' | 'daring';
   resolve: number;
-  axes: Axes;
+  axes: Record<Axis, number>;
   drives: string[];
   ageStage: 'child' | 'youth' | 'adult' | 'elder';
   /** best raw skill of any kind, best fighting skill, best skill that attacks */
