@@ -577,9 +577,10 @@ function instanceItem(state: GameState, instanceId: string): string | undefined 
   }
   return undefined;
 }
+/** an event's item by name: an instance id, or (BG-168: a use_item, a stack used up) the item's own id */
 function itemName(state: GameState, instanceId: string): string | undefined {
-  const id = instanceItem(state, instanceId);
-  return id ? itemDef(state, id).name : undefined;
+  const id = instanceItem(state, instanceId) ?? instanceId;
+  try { return itemDef(state, id).name; } catch { return undefined; }
 }
 
 /** events: this turn's events (the builder keeps only those the player perceived). */
