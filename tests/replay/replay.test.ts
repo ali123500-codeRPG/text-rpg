@@ -14,25 +14,33 @@ import { createDirector } from '../../src/agents/director';
 import { memoryStore } from '../../src/save/store';
 import { restoreBackup } from '../../src/save';
 import { getLibrary } from '../../src/library';
+import { TURN_CHECK } from '../../src/save/turnCheck';
 
 type Answer = { agent: string; actorId?: string; turn: number; output?: unknown };
 type Run = { run: string; from: number; docs: Record<string, string>; steps: { input: string; answers: Answer[] }[] };
 
 const DIR = 'tests/replay/runs';
+/** "<run> step <n>" -> why today's rules refuse a line the run accepted */
+const REFUSED_ON_PURPOSE: Record<string, string> = {};
 const runs = (readdirSync(DIR) as string[]).filter((f) => f.endsWith('.json.gz')).map((f) => JSON.parse(String(gunzipSync(readFileSync(`${DIR}/${f}`)))) as Run);
 const turnOf = (req: ClaudeRequest) => Number(/"turn":(\d+)/.exec(req.input.at(-1)?.content ?? '')?.[1] ?? NaN);
 
-/** answers each call with the logged answer for its agent, actor and turn (else the next one for that agent and actor);
- *  a call nobody logged, or one that failed then, fails now */
-function replayClient(answers: Answer[]): ClaudeClient & { used: number } {
-  const left = [...answers];
+/** answers each call with the logged answer for its agent and actor from the step being replayed (else from the next
+ *  step: a Planner runs in the background before the next input); a call nobody logged, or one that failed then, fails
+ *  now. Matching by step, not turn number, keeps a replay in step with its log after a line today's rules refuse. */
+function replayClient(steps: Run['steps']): ClaudeClient & { used: number; at: number } {
+  const pools = steps.map((s) => [...s.answers]);
   const client = {
     used: 0,
+    at: 0,
     async call(req: ClaudeRequest): Promise<ClaudeResponse> {
       const same = (a: Answer) => a.agent === req.agent && (a.actorId ?? '') === (req.actorId ?? '');
       const t = turnOf(req);
-      const i = left.findIndex((a) => same(a) && a.turn === t) >= 0 ? left.findIndex((a) => same(a) && a.turn === t) : Number.isNaN(t) ? left.findIndex(same) : -1;
-      const a = i >= 0 ? left.splice(i, 1)[0] : undefined;
+      let a: Answer | undefined;
+      for (const pool of [pools[client.at], pools[client.at + 1]].filter(Boolean)) {
+        const i = pool.findIndex((x) => same(x) && x.turn === t) >= 0 ? pool.findIndex((x) => same(x) && x.turn === t) : pool.findIndex(same);
+        if (i >= 0) { a = pool.splice(i, 1)[0]; break; }
+      }
       if (a?.output === undefined) return { ok: false, error: 'upstream_error', message: 'replay: no logged answer' };
       client.used++;
       return { ok: true, value: structuredClone(a.output) };
@@ -42,9 +50,12 @@ function replayClient(answers: Answer[]): ClaudeClient & { used: number } {
 }
 
 describe('replay set (TQ3)', () => {
-  it('has runs', () => expect(runs.length).toBeGreaterThan(0));
+  it('has runs, and a broken world rule throws here (strict turn checker)', () => {
+    expect(runs.length).toBeGreaterThan(0);
+    expect(TURN_CHECK.strict).toBe(true);
+  });
   for (const r of runs) {
-    it(`${r.run}: ${r.steps.length} steps from turn ${r.from} replay with no throw and no broken world rule`, async () => {
+    it(`${r.run}: ${r.steps.length} steps from turn ${r.from} replay with no throw and no broken world rule`, async (t) => {
       const clock = new VirtualClock();
       const store = memoryStore(() => clock.now());
       for (const [k, v] of Object.entries(r.docs)) store.docs.set(k, v);
@@ -52,21 +63,31 @@ describe('replay set (TQ3)', () => {
       try {
         await restoreBackup(store, storyId, r.from, getLibrary());
       } catch (e) {
-        return console.log(`${r.run}: its backup no longer loads (${(e as Error).message.slice(0, 120)}); skipped`); // old saves need not load
+        return t.skip(`${r.run}: its backup no longer loads (${(e as Error).message.slice(0, 120)})`); // old saves need not load; shown as skipped
       }
-      const client = replayClient(r.steps.flatMap((s) => s.answers));
+      const client = replayClient(r.steps);
+      const refused: string[] = [];
       const game = createGame({ client, clock, store, director: createDirector(clock) });
       expect(await game.resume()).toBe(true);
       for (const [n, s] of r.steps.entries()) {
         if (game.fell() || game.notices().some((x) => x.kind === 'stop_play')) break;
+        client.at = n;
+        const turn = game.state()!.turn;
         try {
           await game.submit(s.input, { aimed: s.input.startsWith('/aim') });
           await game.settle();
         } catch (e) {
           throw new Error(`${r.run} step ${n + 1} ("${s.input.slice(0, 80)}"): ${(e as Error).message}`);
         }
+        const then = s.answers.find((a) => a.agent === 'parser')?.output as { clarify?: unknown } | undefined;
+        // until the world parts from the run's (new ground the Weaver built in the background then is fallback ground now)
+        if (game.notices().some((x) => x.kind === 'scenario_fallback')) continue;
+        if (!s.input.startsWith('/') && then && !then.clarify && game.state()!.turn === turn) refused.push(`step ${n + 1} "${s.input.slice(0, 60)}"`);
       }
       expect(client.used).toBeGreaterThan(0);
+      // a line the game took then and refuses now is a regression (BG-169 was one) unless a rule changed on purpose:
+      // then name it in REFUSED_ON_PURPOSE with the reason
+      expect(refused.filter((x) => !REFUSED_ON_PURPOSE[`${r.run} ${x.split(' "')[0]}`]), 'accepted in the run, refused now').toEqual([]);
     }, 120_000);
   }
 });
