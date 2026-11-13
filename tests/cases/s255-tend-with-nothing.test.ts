@@ -16,7 +16,7 @@ it('a use with no item carried is wasted, saying why', () => {
   const ev = play(s, { intent: intent({ action: { type: 'use_item', item: null, target: 'patron_1' } }) });
   expect(ev.find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('no_item');
   expect(ev.some((e) => e.kind === 'use_item')).toBe(false);
-  expect(RESPONDER_INSTRUCTIONS).toContain('A shut one is opened first');
+  expect(RESPONDER_INSTRUCTIONS).toContain('A shut one (its container says shut) is opened first');
 });
 
 it('someone the player meant to go to, put off after they left, is told as not there', () => {

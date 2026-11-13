@@ -2,7 +2,7 @@
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import { gripWord } from '../ruleset/gear';
-import { coins } from '../engine/trade';
+import { coins, countWords } from '../engine/trade';
 import { moraleLevel } from '../ruleset/morale';
 import { IT } from '../library/itemIds';
 import type { AgentName, StoryOwner, TierRoll,
@@ -504,7 +504,7 @@ export function createGame(deps: GameDeps): Game {
           + (off.length ? ` Also used, not on your sheet yet: ${off.join(', ')}.` : '') + (key ? ` (${key})` : ''));
       }
       case 'inv':
-        return say(s.player.core.inventory.map((i) => `${nameOf(s, i.itemId)}${i.qty ? ` ×${i.qty}` : ''}${i.equippedIn?.length ? ` (${i.equippedIn.join(', ')})` : ''}`).join('; ') || 'You carry nothing.');
+        return say(s.player.core.inventory.map((i) => `${countWords(i.itemId, nameOf(s, i.itemId), i.qty)}${i.equippedIn?.length ? ` (${i.equippedIn.join(', ')})` : ''}`).join('; ') || 'You carry nothing.');
       case 'quests': {
         const open = s.quests.filter(isOpen);
         return say(open.length ? open.map((q) => [q.text, views.questGoalText(s, q), q.state === 'ready' ? QUEST_STATE_NAME.ready : '', dueText(q), payText(s, q)].filter(Boolean).join(' · ')).join('\n') : 'No active quests.');

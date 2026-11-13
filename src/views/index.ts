@@ -31,7 +31,7 @@ import { summonableThreadboundItems } from '../ruleset/threadboundItems';
 import { barkOnly, beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
 import { skillName } from '../library/skillNames';
 import { offeredRoutines } from '../minds/routines';
-import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
+import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
 import { PK } from '../library/perkIds';
@@ -88,7 +88,7 @@ function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: 
   const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const } : {};
   const key = viewer && i.lock && viewer.core.inventory.some((k) => k.opens?.includes(i.id)) ? { key: true as const } : {};
   const shows = !viewer || i.open;
-  return { container: { ...(i.open ? { open: true as const } : {}), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
+  return { container: { ...(i.open ? { open: true as const } : { shut: true as const }), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
     ...(shows ? { contents: inside.map((c) => ({ id: c.id, name: itemDef(state, c.itemId).name })) } : {}) } };
 }
 const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));
@@ -263,6 +263,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
     ...(e.overheard?.includes(viewer.id) ? { tell: tellFor(viewer) } : {}), // LI5a Overheard
+    ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
   };
 }
 
@@ -648,7 +649,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     events: out,
     player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
-      gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
+      gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
     heard,
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}) })),

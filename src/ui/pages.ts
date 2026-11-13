@@ -21,6 +21,7 @@ import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
 import { coins, coinWords } from '../engine/trade';
 import { gripParts } from '../engine/gear';
+import { countWords } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
 
 type Spec = {
@@ -158,7 +159,7 @@ function showTip(s: GameState, it: InvItem, at: HTMLElement) {
   if (!d) return;
   tipEl ??= document.body.appendChild(h('div', { class: 'itip', role: 'tooltip', hidden: true }));
   tipEl.dataset.kind = d.kind;
-  tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(d.name), it.qty && it.qty > 1 ? h('span', {}, ` ×${it.qty}`) : ''),
+  tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, d.name, it.qty))),
     h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])));
   tipEl.hidden = false;
   const r = at.getBoundingClientRect(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
