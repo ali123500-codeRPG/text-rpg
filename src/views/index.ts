@@ -291,6 +291,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
       out.push(f.data.on ? `${by} finds ${names} on ${who}, left there for now` : `${who} finds ${names} hidden here, left there for now`); // BG-178: found is not taken
     }
     if (f.kind === 'found_nothing') out.push(!f.data.on ? `${by} finds nothing here` : f.data.held ? `${by} finds nothing on ${who}` : `${by} sees nothing on ${who}; going through their things needs a hold on them`); // BG-142
+    if (f.kind === 'found_secret') out.push(`${by} catches something ${who} would rather keep hidden`); // SE17: the secret itself shows once known
     if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);

@@ -109,6 +109,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
           delete it.at;
           delete it.hiddenAt;
           delete it.knownTo;
+          delete it.hiderSkill;
           actor.core.inventory.push(it);
           wearIfNone(state, actor, it);
           res.picked.push({ itemId: it.id, from: op.from });
