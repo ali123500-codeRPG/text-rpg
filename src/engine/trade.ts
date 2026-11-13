@@ -20,6 +20,9 @@ const GOODS = 'goods:';
 const SERVICE = 'service:';
 
 /** PY9: a coin amount in coin words, largest coin first ("1 silver and 5 copper") */
+/** BG-176: an item and its count as words: coin in coin words (1 silver and 6 copper), anything else name ×n */
+export const countWords = (itemId: string, name: string, qty?: number): string => itemId === IT.coin && qty ? coinWords(qty) : `${name}${qty && qty > 1 ? ` ×${qty}` : ''}`;
+
 export function coinWords(n: number): string {
   let left = Math.max(0, Math.floor(n));
   const parts: string[] = [];
