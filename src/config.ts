@@ -81,10 +81,10 @@ const DEFAULTS = {
   /** a flawed skill's cap is SKILL_CAP minus this */
   FLAW_CAP_PENALTY: 25,
   /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder; with GROWTH_GAIN
-   * below, about two points a roll at raw 50) */
+   * below, about 1.6 points a roll at raw 50) */
   GROWTH_ROLL_NEEDED: 90,
   /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
-  GROWTH_GAIN: { success: 3, great_success: 4, critical_success: 5 } as Partial<Record<Tier, number>>,
+  GROWTH_GAIN: { success: 2, great_success: 3, critical_success: 4 } as Partial<Record<Tier, number>>,
   /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
   GROWTH_GAIN_PAST_CRIT: 1,
   /** SG2 a: natural edges (01–05, 96–100) do not move the improvement roll's tier: no skill grows from the die face

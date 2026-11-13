@@ -69,7 +69,7 @@ A Flaw is something the character functionally struggles to improve: its cap is 
 
 **Limits:**
 
-- 100 is the mortal limit for raw skill (SKILL\_CAP); a tagged skill's limit is 125 (TAG\_CAP\_BONUS 25, EG16). **The improvement roll** (Skill Gain Roll Options, SG1 C, Ali 12/11/2026) is read off the tier table: margin = d100 + (cap − raw − Burden) − GROWTH\_ROLL\_NEEDED (90, placeholder), and the tier sets the gain: Success +3, Great Success +4, Critical Success +5 (Ali, 13/11/2026: each +2), plus 1 per band past it (GROWTH\_GAIN, GROWTH\_GAIN\_PAST\_CRIT, placeholders). The room left below the cap is the bonus, so the roll gets harder smoothly with no wall, and raw never passes its cap. A flawed skill's cap is 75 (FLAW\_CAP\_PENALTY 25, Ali 12/11/2026); tags and flaws move only the cap, and every state rolls one d100. A tagged skill has no Burden, and each skill's own cap is in the roll too (GROWTH\_CAP\_IN\_ROLL, SG3 a), so a tagged skill at 100 rolls like an untagged 75 and a flawed skill at 50 like an untagged 75. Natural edges do not move the roll (GROWTH\_NATURAL\_EDGES off, SG2 a; LF4: no natural roll forces a gain). Odds of any gain with no Burden: 86% at raw 25, 61% at 50, 36% at 75, 12% at 99; average gain about 3.3, 2.2, 1.2 and 0.1 a roll (the cap clips it at 99). Scaling: past the cap raw does not grow by training; perks, achievements and gear still carry true and effective skill to 150, 200 and beyond. Workaround mechanics for raw come later (D-6).
+- 100 is the mortal limit for raw skill (SKILL\_CAP); a tagged skill's limit is 125 (TAG\_CAP\_BONUS 25, EG16). **The improvement roll** (Skill Gain Roll Options, SG1 C, Ali 12/11/2026) is read off the tier table: margin = d100 + (cap − raw − Burden) − GROWTH\_ROLL\_NEEDED (90, placeholder), and the tier sets the gain: Success +2, Great Success +3, Critical Success +4 (Ali, 13/11/2026: each +2, then pulled back 1), plus 1 per band past it (GROWTH\_GAIN, GROWTH\_GAIN\_PAST\_CRIT, placeholders). The room left below the cap is the bonus, so the roll gets harder smoothly with no wall, and raw never passes its cap. A flawed skill's cap is 75 (FLAW\_CAP\_PENALTY 25, Ali 12/11/2026); tags and flaws move only the cap, and every state rolls one d100. A tagged skill has no Burden, and each skill's own cap is in the roll too (GROWTH\_CAP\_IN\_ROLL, SG3 a), so a tagged skill at 100 rolls like an untagged 75 and a flawed skill at 50 like an untagged 75. Natural edges do not move the roll (GROWTH\_NATURAL\_EDGES off, SG2 a; LF4: no natural roll forces a gain). Odds of any gain with no Burden: 86% at raw 25, 61% at 50, 36% at 75, 12% at 99; average gain about 2.4, 1.6, 0.8 and 0.1 a roll (the cap clips it at 99). Scaling: past the cap raw does not grow by training; perks, achievements and gear still carry true and effective skill to 150, 200 and beyond. Workaround mechanics for raw come later (D-6).
 - Soft cap on raw skill and hard cap on effective skill. Values and behaviour are *placeholders*.
 
 **Three skill values** (Ali, 07/11/2026):
@@ -197,9 +197,9 @@ In each round, every skill with rolls left makes one (SG1 C):
   Flawed : Margin = d100 + (Cap - Skill - Burden) - 90
   Read Margin on the tier table (natural edges do not move it: SG2 a, LF4)
      Near Miss or worse   +0
-     Success              +3
-     Great Success        +4
-     Critical Success     +5, +1 per band past it (GROWTH_GAIN, GROWTH_GAIN_PAST_CRIT)
+     Success              +2
+     Great Success        +3
+     Critical Success     +4, +1 per band past it (GROWTH_GAIN, GROWTH_GAIN_PAST_CRIT)
   Skill never passes Cap.
   (All-XXX checks run at scenario end, not here: LF3)
 
