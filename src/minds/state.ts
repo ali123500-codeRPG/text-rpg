@@ -1,15 +1,15 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, ContestResult, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Zone } from '../types';
+import type { Actor, ActorView, ContestResult, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
 import { TIERS } from '../scales';
-import { itemDef } from '../library';
+import { getLibrary, itemDef } from '../library';
 import { hiddenFrom } from '../engine/gear';
 import { CONFIG } from '../config';
 import { now, secondsSince, timeOfDay } from '../time';
 import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
-import { markUse, ruleset, situational, fnRoller, tierLevel, usableModes, defaultMode, modeSkill, effectiveSkill } from '../ruleset';
+import { markUse, ruleset, situational, fnRoller, tierLevel, trueSkill, usableModes, defaultMode, modeSkill, effectiveSkill } from '../ruleset';
 import { rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
 import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
@@ -335,10 +335,19 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
   return won;
 }
 
-/** a sight function roll by `a` in the light at `at` (SE2: a search looks for things by sight) */
-function sightRoll(state: GameState, a: Actor, at: Zone | undefined, rng: Rng): RollResult {
-  return ruleset.roll({ actorId: a.id, skill: SENSE_SKILL[FN.sight], ...situational(state, fnRoller(state, a, FN.sight), { light: at, actor: a }), fn: FN.sight, rollKind: 'perception' }, state, rng);
+/** a sense function roll by `a` in the light at `at` (SE2: a search looks for things by sight) */
+function senseRoll(state: GameState, a: Actor, fn: Sense, at: Zone | undefined, rng: Rng): RollResult {
+  return ruleset.roll({ actorId: a.id, skill: SENSE_SKILL[fn], ...situational(state, fnRoller(state, a, fn), { light: at, actor: a }), fn, rollKind: 'perception' }, state, rng);
 }
+const sightRoll = (state: GameState, a: Actor, at: Zone | undefined, rng: Rng): RollResult => senseRoll(state, a, FN.sight, at, rng);
+/** SE25 b table: the skill a hidden-at tier stands for when no one did the hiding */
+export const tierSkill = (t: Tier | TierRoll): number =>
+  Math.max(0, CONFIG.HIDDEN_TIER_SUCCESS_SKILL + CONFIG.HIDDEN_TIER_SKILL_STEP * (tierLevel(t) - TIERS.pos('success')));
+/** SE25 a: an item search or a stash learns like a check against one number (marks stay invisible, SE7) */
+export const markAgainst = (state: GameState, a: Actor, r: RollResult, opposition: number): void =>
+  markUse(state, a, r.skill, { actorId: a.id, skill: r.skill, ...(r.asked ? { asked: r.asked } : {}), target: opposition, passed: true, modifiers: [] });
+/** SE25 a: a hidden item's level to learn against: its stasher's stealth skill, else its hidden-at tier on the table */
+const itemLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hiddenAt!);
 /** SE8: one sight roll against every hidden ground item in reach that the searcher doesn't know of: beating an item's
  * hidden-at tier finds it, the same tier only hints that something here was moved, below it nothing. Nothing hidden: no
  * roll (SE6). */
@@ -350,6 +359,7 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
   const r = sightRoll(state, a, z, rng);
   const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));
   for (const i of found) (i.knownTo ??= []).push(a.id);
+  markAgainst(state, a, r, Math.max(...hidden.map(itemLevel))); // SE25: against the best-hidden thing searched for
   log(state, 'search_items', { actorId: a.id, tier: r.tier, hidden: hidden.length, found: found.length });
   return { r, found, hint: !found.length && hidden.some((i) => tierLevel(r) === tierLevel(i.hiddenAt!)) };
 }
@@ -375,12 +385,33 @@ export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { 
     const hidden = unknown.filter(hiddenGear);
     const roll = hidden.length ? (r = sightRoll(state, a, zoneById(state, t.zone), rng)) : undefined;
     found = hidden.filter((i) => roll && tierLevel(roll) > TIERS.pos(itemDef(state, i.itemId).hiddenAt!));
+    if (roll) markAgainst(state, a, roll, Math.max(...hidden.map((i) => tierSkill(itemDef(state, i.itemId).hiddenAt!)))); // SE25
   }
   for (const i of found) {
     if (a.kind === 'player') ((a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never).revealed ??= []).push(`item:${i.id}`);
     else updateBeliefs(state, { kind: 'reveal', observerId: a.id, aboutId: t.id, fact: `item:${i.id}` });
   }
   return { ...(r ? { r } : {}), found: [...again, ...found] };
+}
+
+/** SE17: a player's search aimed at someone also rolls, once per sense, for that person's unrevealed check_passed secrets
+ * of a sight or hearing skill; each one the roll reaches (its minTier or better) is revealed. None of them: no roll. */
+export function searchSecrets(state: GameState, a: Actor, t: Actor, rng: Rng): { r?: RollResult; found: string[] } {
+  if (a.id !== state.player.id) return { found: [] }; // secrets are player knowledge
+  const j = (a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never);
+  const skills = getLibrary().skills, found: string[] = [];
+  let r: RollResult | undefined;
+  for (const fn of [FN.sight, FN.hearing] as Sense[]) {
+    const ss = state.hidden.secrets.filter((s) => s.revealWhen.type === 'check_passed' && s.revealWhen.againstActorId === t.id &&
+      !j.secretsKnown.includes(s.id) && !!skills[s.revealWhen.skill]?.functions.includes(fn));
+    if (!ss.length) continue;
+    const roll = senseRoll(state, a, fn, zoneById(state, t.zone), rng);
+    const min = (s: (typeof ss)[number]) => (s.revealWhen as { minTier: Tier }).minTier;
+    markAgainst(state, a, roll, Math.max(...ss.map((s) => tierSkill(min(s))))); // SE25: a secret's minTier on the table
+    const got = ss.filter((s) => tierLevel(roll) >= TIERS.pos(min(s)));
+    if (got.length) { r = roll; found.push(...got.map((s) => s.id)); j.secretsKnown.push(...got.map((s) => s.id)); }
+  }
+  return { ...(r ? { r } : {}), found };
 }
 
 export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void {

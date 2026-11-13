@@ -89,6 +89,7 @@ export type ItemInstance = {
   at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
   hiddenAt?: import('./core').TierRoll; // SE8/SE9: lying hidden: a search must beat this outcome tier to find it (a tie gives a hint)
   knownTo?: string[]; // SE8: who knows where a hidden item lies (its stasher, anyone who saw it stashed or found it)
+  hiderSkill?: number; // SE25 a: the stasher's true stealth skill when it was stashed: a search learns against it
   /** CT1: a container's contents (a worn pack has none of its own: its wearer's stowed items are in it) */
   contents?: ItemInstance[];
   /** CT1/CT4: the actor a container belongs to; opening or taking from it while they are up and watching is theft */

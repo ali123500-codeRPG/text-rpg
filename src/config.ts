@@ -178,6 +178,10 @@ const DEFAULTS = {
   SEARCH_M2_PER_FIGHT_M: 120,
   /** SE14 b: Look around is also a search against anyone hiding in its range, this many tiers down */
   LOOK_SEARCH_SHIFT: -1,
+  /** SE25: what an item search learns against when no one did the hiding (a Weaver-hidden item, concealed gear): a
+   * hidden-at tier counts as this skill at Success, and this much more for each tier step above it (less below, never under 0) */
+  HIDDEN_TIER_SUCCESS_SKILL: 50,
+  HIDDEN_TIER_SKILL_STEP: 25,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */

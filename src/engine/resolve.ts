@@ -19,11 +19,11 @@ import { travel, travelSpeed, tripGoal } from './travel';
 import { distM, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, handsOn, openToHands, staying, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, handsOn, openToHands, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
@@ -827,6 +827,12 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push({ kind: 'found_items', actorId: t?.id ?? a.id, data: { by: a.id, items: items.found.map((i) => i.id), ...(t ? { on: true } : {}) } });
   }
   if (items.hint) ev.effects.push({ kind: 'disturbed', actorId: a.id, data: {} });
+  // SE17: a person searched may give up a secret a sight or hearing roll can reveal
+  const secrets = t && atLeast(beliefStatus(state, a, t), 'aware') ? searchSecrets(state, a, t, rng) : { found: [] };
+  if (secrets.found.length) {
+    ev.roll ??= secrets.r;
+    ev.effects.push({ kind: 'found_secret', actorId: t!.id, data: { by: a.id, secrets: secrets.found } });
+  }
   // BG-142: a search always ends in an outcome; nothing found reads the same whether nothing was there or it was missed (SE6)
   if (!ev.effects.length && !tied) ev.effects.push({ kind: 'found_nothing', actorId: t?.id ?? a.id, data: { by: a.id, ...(t ? { on: true, held: handsOn(state, a, t) } : {}) } });
   emit(ctx, ev);
@@ -844,9 +850,13 @@ function doStash(ctx: Ctx, a: Actor, o: Order): void {
   dropToGround(state, a, inst.id, a.zone);
   inst.hiddenAt = { tier: r.tier, ...(r.beyond ? { beyond: r.beyond } : {}) };
   inst.knownTo = [a.id];
+  inst.hiderSkill = trueSkill(a, r.skill); // SE25 a: a search learns against this
   const ev = bark(mk(ctx, a, 'stash', { itemId: inst.id, roll: r, tier: r.tier }), o);
   emit(ctx, ev);
-  for (const [id, p] of Object.entries(ev.perception)) if (p.level === 'full' && p.cue === 'sight' && !inst.knownTo.includes(id)) inst.knownTo.push(id);
+  const watchers = Object.entries(ev.perception).filter(([id, p]) => p.level === 'full' && p.cue === 'sight' && id !== a.id).map(([id]) => actorById(state, id)).filter((w): w is Actor => !!w);
+  for (const w of watchers) if (!inst.knownTo.includes(w.id)) inst.knownTo.push(w.id);
+  // SE25 a: a stash learns against the best sight skill watching it; unwatched, it learns nothing
+  if (watchers.length) markAgainst(state, a, r, Math.max(...watchers.map((w) => trueSkill(w, fnRoller(state, w, FN.sight)))));
 }
 
 /** the barrier on the way from `a`'s zone to `to`, and that link */
