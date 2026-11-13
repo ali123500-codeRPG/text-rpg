@@ -19,6 +19,7 @@ import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
+import { coins, coinWords } from '../engine/trade';
 import { gripParts } from '../engine/gear';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
 
@@ -225,6 +226,9 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
     status);
 }
 
+/** the Inventory page's coin, in words as the play sheet and the Coin row say it: "Coin: 1 silver and 6 copper", never a bare count */
+export const coinLine = (s: GameState) => `Coin: ${coinWords(coins(s.player))}`;
+
 export function inventoryPage(api: GameApi) {
   return listPage(api, {
     title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
@@ -274,10 +278,7 @@ export function inventoryPage(api: GameApi) {
           ...(ns.length === 1 && ts.length === 1 && ts[0] ? { combinedTones: { needs: ts[0] } } : {}) };
       }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title));
     },
-    line: (s) => {
-      const coin = s.player.core.inventory.filter((i) => i.itemId === IT.coin).reduce((a, i) => a + (i.qty ?? 1), 0);
-      return `Coin ${coin}`;
-    },
+    line: coinLine,
   });
 }
 

@@ -78,6 +78,13 @@ describe('Journal page (U9)', async () => {
     s.player.journal!.namesKnown.push('slime_2');
     expect(journalPeople(s).find((p) => p.id === 'slime_2')).toMatchObject({ where: 'Not in view' });
   });
+  it('the Inventory page names coin in words, never a bare count (a player tried to pay four silver from "coin ×16")', async () => {
+    const { coinLine } = await import('../../src/ui/pages');
+    const { coinWords, coins } = await import('../../src/engine/trade');
+    const s = makeVillage();
+    expect(coinLine(s)).toBe(`Coin: ${coinWords(coins(s.player))}`);
+    expect(coinLine(s)).not.toMatch(/^Coin:? \d+$/);
+  });
   it('places: where the character is and the places above it, plus places of witnessed facts', () => {
     const s = makeVillage();
     const names = journalPlaces(s).map((p) => p.id);
