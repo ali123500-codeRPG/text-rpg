@@ -21,8 +21,8 @@ import { stealthSkill } from '../minds/state';
 import { actorById, allActors, atLeast, hostile, isActive, isAsleep, isEngaged, zoneById } from './relations';
 import { logCode } from './effects';
 
-/** NW14: the perk that lets a sleeper wake to a hearing check */
-export const LIGHT_SLEEPER = PK.keen_ear;
+/** NW14: the perk that lets a sleeper wake to a hearing check (Earshot's 60 perk) */
+export const LIGHT_SLEEPER = PK.light_sleeper;
 export const lightSleeper = (a: Actor): boolean => hasPerk(a, LIGHT_SLEEPER);
 
 /** NW18: what wakes a sleeper. blow: struck; noise: a loud noise heard; heard: Light Sleeper's hearing check passed;
