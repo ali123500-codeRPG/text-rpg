@@ -205,6 +205,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     player.core.condition.fatigue = { debt: 6, line: 8 }; // a long day's walk and the fight with the slime (FT20)
+    guard.core.condition.fatigue = { debt: barMax(guard) * 0.62, line: 0 }; // Bren stood the night watch and has not slept: Exhausted, so Who's here shows it (FT17)
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scenario: 1 },
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
