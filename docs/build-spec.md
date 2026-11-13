@@ -296,7 +296,7 @@ Rules for dialogue turns:
 - **Planner calls:** an addressed spokesperson's background Planner call is cancelled once the Parser returns a dialogue intent, never on a clarify question; a result that arrives anyway is logged as unused. Engaged actors elsewhere keep their Planner calls.
 - **Triggers:** a turn-start trigger fired for a spokesperson is shown to its dialogue call as already committed. The trigger's order is its action, and the call's line is kept only as a bark. A mid-turn trigger may replace a spokesperson's other action before it resolves; a reply already spoken stands.
 - **Barks:** words spoken alongside a non-speech main action are a bark, not speech, and make no dialogue turn.
-- **Calm bandmates \[Proposed\]:** when a spokesperson's output switches its routine, calm, code-run bandmates who perceived the exchange switch to the same routine next turn. A bandmate switches only if that routine id is in its own routines list and every slot the routine reads is bound for it; otherwise it keeps its routine and code logs routine\_skip. Engaged bandmates decide through their own Planner or combat list.
+- **Calm bandmates \[Proposed\]:** when a spokesperson's output switches its routine, calm, code-run bandmates who perceived the exchange switch to the same routine next turn. A bandmate switches only if that routine id is in its own routines list and every slot the routine reads is bound for it; otherwise it keeps its routine and code logs routine\_skip. Engaged bandmates decide through their own Planner or combat list. Calm means not engaged, no alarm armed, and no attack or alarm perceived within DECAY\_AWARE\_S (CS2).
 - **Timing:** dialogue results are shown no earlier than DIALOGUE\_WINDOW (config) after submit, set at or above the Responder's usual latency, so guarded and ordinary NPCs answer in the same time.
 
 #### Dialogue input
@@ -1322,6 +1322,14 @@ Runs inside the turn that calls scenarioBreak, after resolveTurn and before the 
 8. Code builds the opening perception events (Opening narration), saves the turn (Part 4 §10) and computes the first turn (Architecture step 1).
 9. The turn's Agent Narrator call narrates the arrival with the turn's other events.
 
+Setup details (CS2):
+
+- At story start the player has no zone on the stage yet and starts in the plan's first zone. Their place has no node yet either: code makes a bare one so the Weaver's plan and the fallback can use its id.
+- Someone the Weaver brings back (a cast entry naming an actor already in the world) keeps their names; a name in the plan is ignored.
+- A seeded trigger whose owner has no plan gets an empty plan (no goal, no steps) to hold it.
+- A stage extension keeps the scenario's challenge and gain; its event summary is added after the scenario's, and its hidden terms join the stage's.
+- A scenario that starts at a place with no saved zones and no frontier gets one empty zone named after the place.
+
 Story start has no triggering turn: setup runs alone, is saved as turn 0, and one opening Agent Narrator call narrates it. Until turn 0 is saved, the build is kept at pending/start; reopening the game with it there starts the opening again (Ali, 08/11/2026). Turn 0's premise and starting place come from the story's setting, chosen per story (D-1).
 
 **First build:** the premise is the config value STORY\_PREMISE, "A swordsman arrives at a village troubled by slimes", and the story starts in the village tavern.
@@ -1578,7 +1586,7 @@ Ali, 11–13/11/2026, SE1–SE25 (questions page "Search redesign"); fight reach
 
 When the player attacks an actor that is unaware of them, code resolves the ambush before the blow:
 
-1. The player makes one ambush roll, contested separately against the perception roll of the target and of every other observer who could perceive the attack. Which skill makes the ambush roll is a ruleset matter (stub).
+1. The player makes one ambush roll, contested separately against the perception roll of the target and of every other observer who could perceive the attack. Which skill makes the ambush roll is a ruleset matter (stub). The perception is the attack event's own if it was already worked out, otherwise it is worked out then, before the blow (CS2).
 2. **Player beats the target: surprise.** The target keeps its routine order this turn. The target's defense roll takes the unaware situational modifier (value placeholder). The ruleset may also apply an unaware tag to its initiative.
 3. **Target wins: failed ambush.** The target becomes aware before the blow and defends normally. Its onAlert fires: this turn if it hasn't acted, otherwise next turn unless it then has an agent order. It is engaged from the next turn, and a significant target's Planner order outranks onAlert. Running a Planner for failed ambushes in the same turn is deferred (D-36).
 4. **A witness wins.** It becomes aware and its onAlert fires the same way. If it is hostile to the player it is engaged from the next turn; otherwise it is alarmed.
@@ -1587,7 +1595,7 @@ When the player attacks an actor that is unaware of them, code resolves the ambu
 #### Alarm
 
 - A non-engaged actor that perceives an attack or an alarm becomes alarmed. The onAlert order of the routine it is following fires once (Hidden state persistence). Code saves that routine and its anchor in Mind.alarm.returnTo, and the actor switches to that routine's alert variant, anchored at the current turn.
-- It calms after DECAY\_TURNS turns with no attack or alarm perceived and returns to the routine in returnTo with its saved anchor, so a schedule continues in phase. An actor whose routine has no alert variant keeps that routine throughout. If an agent switches the actor's routine while it is alarmed, the switch stands and returnTo is cleared.
+- It calms after DECAY\_AWARE\_S (120 game seconds) with no attack or alarm perceived and returns to the routine in returnTo with its saved anchor, so a schedule continues in phase. An actor whose routine has no alert variant keeps that routine throughout. If an agent switches the actor's routine while it is alarmed, the switch stands and returnTo is cleared. The return to routine uses the timer only, but the alarm stays armed (its onAlert does not fire again) while the actor still knows of someone it is wary of (CS2).
 
 ### Latency and cost
 
@@ -2210,7 +2218,9 @@ The gap ladder is binding (gap = defense tier − attack tier; a gap past ±5 us
 | +4 | 0× | 0.2× |
 | +5 | 0× | 0.15× |
 
-At −4 and −5 the named-part move also applies, anywhere **\[Proposed\]**. A part forbidden by the defense sends the hit to the general area.
+At −4 and −5 the named-part move also applies, anywhere **\[Proposed\]**. A part forbidden by the defense sends the hit to the general area. Off the shield, a block or parry from +1 up keeps the 0 row's limit: Non-essential parts only, else the general area (CS2).
+
+The outcome and location thresholds live in CONFIG.HIT\_GAPS beside GAP\_LADDER (CS3): a dodge that wins by +1 is grazed; a block or parry from +1 is blocked (a shield from 0, and it takes the hit); a hit at −4 is a heavy hit and at −5 or worse a crushing hit; the named-part move works at −2 if adjacent and at −3 or worse anywhere; essential parts are off limits from 0 up for a dodge and from −1 up for a block or parry.
 
 ### Reach, range, cover and light
 
@@ -2909,7 +2919,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 
 - **Class table.** In Part 3, Weapons, armor and shields (ruleset config): damage and hit by class, and block's tier gap counts one less against heavy.
 - **Skills.** Combat-Melee, Combat-Ranged and Combat-Unarmed trees, each with three skills. The skill of an attack is the tree plus the class (melee\_heavy, ranged\_light). The three Combat-Unarmed skills are placeholders that behave the same for now, sharing one unarmed profile (*placeholder*: 15 damage, +10 hit). A natural attack uses its own class's damage and hit instead (Part 3, Weapons, armor and shields): the humanoid's punch is class punch, the slime's slam is class slam. Worn hand gear such as gauntlets may change unarmed damage later (D-97).
-- **Attack modes.** A weapon lists one or more modes, each with its own tree, class, reach and hands, plus optional bonuses on top of the class table (damageAdj, hitAdj). Dagger: melee light, and Throw. **The Throw action** (Ali, 10/11/2026): the throw's rules live on the Throw row of the attack modes table (`attackModes`), so every weapon that lists Throw gets them and nothing is coded into the gear. Reach (RD6, Ali 11/11/2026): each throw mode's own throw range in metres (CONFIG.THROW\_M), aimed at a man-sized target: spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m), knife 7 (the longest standard distance in European knife-throwing rules), improvised 5 (placeholder, no source); a throwing axe would be 12 (the francisca). Perks' `throwReach` adds metres, and gear `modeReach` turns it into links once: spear 2, knife and improvised 0 (their own zone until positions exist). Roll: the first **combined skills roll**: THROW\_BLEND weapon (0.75) × the weapon's own effective skill (its gear class skill: a dagger Light weapons) + THROW\_BLEND ranged (0.25) × the effective ranged skill of the same class (Light ranged). Each part takes its own stand-ins and only the gear that boosts its own skill, and both skills that rolled can learn. `AttackMode.blend` carries a combined roll, so later actions can use one too. A thrown item leaves the thrower's hands and lands on the ground of the target's zone, hit or miss (item\_landed), where anyone can pick it up. \[Proposed\]
+- **Attack modes.** A weapon lists one or more modes, each with its own tree, class, reach and hands, plus optional bonuses on top of the class table (damageAdj, hitAdj). The class hit and hitAdj are added together into one gear modifier at full value; the class hit has no modifier type of its own (CS2). Dagger: melee light, and Throw. **The Throw action** (Ali, 10/11/2026): the throw's rules live on the Throw row of the attack modes table (`attackModes`), so every weapon that lists Throw gets them and nothing is coded into the gear. Reach (RD6, Ali 11/11/2026): each throw mode's own throw range in metres (CONFIG.THROW\_M), aimed at a man-sized target: spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m), knife 7 (the longest standard distance in European knife-throwing rules), improvised 5 (placeholder, no source); a throwing axe would be 12 (the francisca). Perks' `throwReach` adds metres, and gear `modeReach` turns it into links once: spear 2, knife and improvised 0 (their own zone until positions exist). Roll: the first **combined skills roll**: THROW\_BLEND weapon (0.75) × the weapon's own effective skill (its gear class skill: a dagger Light weapons) + THROW\_BLEND ranged (0.25) × the effective ranged skill of the same class (Light ranged). Each part takes its own stand-ins and only the gear that boosts its own skill, and both skills that rolled can learn. `AttackMode.blend` carries a combined roll, so later actions can use one too. A thrown item leaves the thrower's hands and lands on the ground of the target's zone, hit or miss (item\_landed), where anyone can pick it up. \[Proposed\]
 - **Reach.** Each mode has a real reach in metres (`reachM`, from real weapons): fist 0.7, dagger 1.0, short sword 1.3, arming sword 1.6, greataxe 2.2, greatsword 2.3, spear 2.8; shortbow 50, flatbow and light crossbow 60, recurve and stirrup crossbow 70, crossbow 80, longbow 90 (effective ranges against a man, not the longest shot). Reach is compared in metres with the distance to the target with sight between them (sightDistM): a spear reaches 2.8 m into the next zone across a doorway, a sword only 1.6 m. Ranged modes take the range modifiers in Part 3 (Reach, range, cover and light). Item value counts reach per metre (ITEM_VALUE.reachM, ZR7). \[Proposed\]
 - **Thrown.** A thrown mode moves the item to the ground of the target's zone. There is no other ammunition.
 - **Natural attacks.** A body type lists the natural attack modes its shape always has, and a race may add its own (BR3). A mode tied to a Strike part follows Part 3's Strike role (Damaged −10, Crippled unavailable). A humanoid's unarmed mode has no part. \[Proposed\]
@@ -2922,7 +2932,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 - **Protection.** One reduction and one multiplier per armor item. Placeholders: light 2 and ×0.8, medium 4 and ×0.65, heavy 6 and ×0.55.
 - **Armor pools.** An armor item may add a pool to a covered part (a heavy helm on the head). The pool is a fixed number of points on the item entry, the same whoever wears it. After protection, damage drains that pool first; the rest reaches the part. The pool never counts on the health track. An empty pool absorbs nothing until repaired (D-89). \[Proposed\]
 - **Shields.** A held shield adds its Non-essential part to the holder, off the hit table; a block at gap 0 or better sends the hit to it (Part 3, Weapons, armor and shields). Its pool is a fixed number of points on the item entry, the same in any hand. The pool's state is saved on the item instance, so damage survives swaps. A Destroyed shield is lost.
-- **Natural armor.** A race may list natural armor with the same fields (BR6). It stacks with worn armor: worn first, then natural.
+- **Natural armor.** A race may list natural armor with the same fields (BR6). It stacks with worn armor: worn first, then natural. A natural-armor pool has no saved state yet, so it absorbs nothing (parked: D-256).
 - **Damage step** (replaces Part 3's damage roll):
 
 ```
@@ -3257,6 +3267,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-252 | A character reset while standing stays in their world as an NPC | 2 | Parked | Ali (13/11/2026, WP1 b, "park c for after permanent NPCs are a thing"): today a character reset while standing leaves the world for good with everything they carried. Parked: they stay there as a permanent NPC with a mind, routines and goals. **Options.** a once permanent NPCs exist (D-148), the reset turns the character into one where they stood; b they leave as now. Belongs to the worlds thread. |
 | D-253 | NPCs loot bodies they come across | 2, 3 | Parked | Ali (13/11/2026, WP6 a, "c parked"): today only the foes who downed a world's last character loot that body, once, when the world is carried on. Parked: any NPC may strip any body it comes across, at any time, by personality (greedy, poor or hostile characters take; others leave it or tell someone). **Options.** a a planner rule plus a code helper offering a body's things to the NPC who finds it; b code-only looting by personality at scenario end; c only the WP6 a looting (as built). Belongs to the worlds thread. |
 | D-254 | Container capacity | 5 | Parked | Parked by Ali (13/11/2026): "park idea for inventory size, with this setup I like it". With gear carried in containers (CT1), each container holds a limited amount (by bulk), so what a character carries is bounded by the packs and sacks they have. Builds on D-84 (carry limit and encumbrance); CT6 a keeps capacity unlimited today. |
+| D-256 | Natural-armor pools | 5 | Parked | Ali (13/11/2026, leftover scan CS2 a): a race's natural armor may list a pool like worn armor, but the pool has no saved state, so today it absorbs nothing. Build it when a race needs one. |
 
 ## Bug log
 

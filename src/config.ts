@@ -134,6 +134,19 @@ const DEFAULTS = {
     // PA3 (placeholders): cuts less than Block at small gaps, stops the blow fully from +3; a failed parry punishes harder
     parry: { [-10]: 5, [-9]: 4.5, [-8]: 4, [-7]: 3.5, [-6]: 3, [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0.65, 3: 0, 4: 0, 5: 0 },
   } as Record<DefenseKind, Record<number, number>>,
+  /** the gap ladder's outcome and location thresholds (Part 3, Defense), beside GAP_LADDER's multipliers */
+  HIT_GAPS: {
+    graze: 1, // a dodge that wins by this or more (and still takes a share of the blow) is grazed
+    blockFrom: 1, // a block or parry at this gap or better is blocked ...
+    shieldFrom: 0, // ... and a block with a shield from this gap, which then takes the hit
+    heavy: -4, // a hit at this gap or worse is a heavy hit
+    crushing: -5, // ... and at this gap or worse a crushing hit
+    movesAdjacent: -2, // at this gap or worse a hit moves to the named part if it is adjacent ...
+    movesAnywhere: -3, // ... and at this gap or worse to the named part anywhere
+    noEssentialFrom: { dodge: 0, block: -1, parry: -1 }, // from this gap up a hit never lands on an essential part
+    nonEssentialOnlyFrom: { block: 0, parry: 0 }, // from this gap up a block or parry lets it land on non-essential parts only
+  } as { graze: number; blockFrom: number; shieldFrom: number; heavy: number; crushing: number; movesAdjacent: number; movesAnywhere: number;
+    noEssentialFrom: Record<DefenseKind, number>; nonEssentialOnlyFrom: Record<'block' | 'parry', number> },
   DODGE_VS_MISSILE: 10,
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)

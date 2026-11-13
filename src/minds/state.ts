@@ -117,7 +117,7 @@ const hasBinding = (b: string | string[] | undefined) => (Array.isArray(b) ? b.l
 /**
  * Calm bandmates [Proposed] (Dialogue turn rules): when a spokesperson's output switches its routine, calm, code-run
  * bandmates who perceived the exchange switch to the same routine. The one rule for this; the engine calls it.
- * GAP: "calm" read as not engaged, alarm not armed, and no attack or alarm perceived within DECAY_AWARE_S.
+ * Calm means not engaged, no alarm armed, and no attack or alarm perceived within DECAY_AWARE_S (CS2).
  */
 export function calmBandmatesSwitch(state: GameState, spokespersonId: string, routineId: string, heard: (actorId: string) => boolean): string[] {
   const sp = actorById(state, spokespersonId);
@@ -184,7 +184,7 @@ export function updateAlarms(state: GameState, events: GameEvent[]): void {
       a.mind.routine = { ...alarm.returnTo };
       delete alarm.returnTo;
     }
-    // GAP: the armed flag also needs "unaware of every wary actor" (Hidden state persistence); the routine return uses the timer only (Alarm).
+    // the routine return uses the timer only (Alarm); the armed flag also waits until they know of no wary actor (Hidden state persistence, CS2)
     if (!leftUnaware) {
       alarm.armed = false;
       delete alarm.onAlertDue;
@@ -451,7 +451,7 @@ function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefin
 export function resolveAmbush(state: GameState, attackerId: string, targetId: string, attackEvent: GameEvent, rng: Rng): { surprised: boolean } {
   const attacker = actorById(state, attackerId);
   if (!attacker) return { surprised: false };
-  // GAP: perception before the blow: use the event's if already computed, else compute it now.
+  // perception before the blow: the event's own if already worked out, else worked out now (CS2)
   // Every active NPC that could perceive the attack, including those unaware of the attacker (left out of computePerception).
   const perception: GameEvent['perception'] = Object.keys(attackEvent.perception).length ? { ...attackEvent.perception } : { ...computePerception(attackEvent, state, rng) };
   for (const o of state.actors) {

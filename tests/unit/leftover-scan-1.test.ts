@@ -4,7 +4,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { CONFIG, resetConfig } from '../../src/config';
-import { band, toContest } from '../../src/ruleset';
+import { band, ruleset, toContest } from '../../src/ruleset';
+import { IT } from '../../src/library/itemIds';
+import { SK } from '../../src/library/skillIds';
+import { makeVillage, place, forcedRng } from '../harness';
 import { cap } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
 import type { Actor, RollResult } from '../../src/types';
@@ -33,6 +36,24 @@ describe('leftover scan round 1', () => {
     expect(band(72)).toBe(5);
     resetConfig();
     expect(band(72)).toBe(4);
+  });
+
+  it('CS3: the hit outcome thresholds are read from CONFIG.HIT_GAPS', () => {
+    // the s078 blow: gap −6 against the slime's dodge (makeVillage resets CONFIG, so the change comes after it)
+    const blow = (gaps: Partial<typeof CONFIG.HIT_GAPS>) => {
+      const s = makeVillage();
+      place(s, 'player', 'field_mid');
+      s.player.core.skills[SK.melee_medium].raw = 60;
+      CONFIG.HIT_GAPS = { ...CONFIG.HIT_GAPS, ...gaps };
+      return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([100, 3, 50]));
+    };
+    expect(blow({})).toMatchObject({ gap: -6, outcome: 'crushing_hit' });
+    expect(blow({ crushing: -7 })).toMatchObject({ gap: -6, outcome: 'heavy_hit' });
+    expect(blow({ heavy: -7, crushing: -8 })).toMatchObject({ gap: -6, outcome: 'full_hit' });
+  });
+
+  it('CS2: scanned files keep no GAP notes (each was settled into the spec)', () => {
+    expect(SCANNED.filter((f) => /\bGAP:/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
   });
 
   it('cap capitalises the first letter only', () => {

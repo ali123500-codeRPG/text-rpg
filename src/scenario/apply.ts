@@ -256,7 +256,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const startZone = state.player.zone; // CH1: the zone the player stood in when the scenario began is ground
   // an extension's entry, or (CH3 a) a scenario started in free roam by crossing an unbuilt frontier
   if (ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0], !ctx.ahead);
-  // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
+  // at story start the player has no zone on the stage yet; it starts in the plan's first zone (CS2)
   const storyStart = !!firstZone && !state.stage.zoneIds.includes(state.player.zone);
   if (storyStart) moveTo(state, state.player, firstZone!);
   else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
@@ -285,7 +285,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       a = actorById(state, c.actor)!;
       reused.add(a);
       a.label = c.label;
-      // GAP: a reused actor keeps its names; the plan's name is ignored.
+      // someone brought back keeps their names; the plan's name is ignored (CS2)
     } else {
       const t = npcTemplate(state, c.template!);
       const personality = c.personality ? personalityFrom(t.personality, c.personality) : undefined; // PL12
@@ -365,7 +365,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   }
   for (const t of plan.seeds.triggers) {
     const b = trig(t);
-    // GAP: a seeded trigger whose owner has no plan gets an empty-goal plan to hold it.
+    // a seeded trigger whose owner has no plan gets an empty-goal plan to hold it (CS2)
     (state.hidden.plans[b.ownerId] ??= { goal: '', steps: [], triggers: [], createdTurn: turn }).triggers.push(b);
   }
   for (const s of plan.seeds.secrets) {
@@ -424,7 +424,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // ---- hidden stage, note, cast notes ----
   const hs = state.hidden.stage;
   if (ctx.kind === 'scenario') state.hidden.stage = { eventSummary: plan.event.summary, challenge: plan.event.challenge, gain: plan.event.gain, hiddenTerms: [...plan.hiddenTerms] };
-  // GAP: an extension keeps the scenario's grades; its summary is appended and its hiddenTerms join the stage's.
+  // an extension keeps the scenario's grades; its summary is appended and its hiddenTerms join the stage's (CS2)
   else state.hidden.stage = { ...hs, eventSummary: [hs.eventSummary, plan.event.summary].filter(Boolean).join(' / '), hiddenTerms: [...new Set([...hs.hiddenTerms, ...plan.hiddenTerms])] };
   state.hidden.weaverNote = plan.weaverNote;
   // SC1/SC2/SC7: a new scenario's question, scale and endings, plan keys mapped to ids
@@ -458,7 +458,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (storyStart) startAtDoor(state, ctx.placeId); // BG-49: the story opens with the player at the door
 }
 
-/** GAP: at story start the player's place has no node yet; a bare one is made so the Weaver's plan (and the fallback) can use its id. */
+/** At story start the player's place has no node yet (CS2); a bare one is made so the Weaver's plan (and the fallback) can use its id. */
 export function ensurePlace(state: GameState, placeId: string): Place {
   let place = state.places.find((p) => p.id === placeId);
   if (!place) {
@@ -492,7 +492,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
   } else {
     if (place?.zones.length) for (const z of place.zones) putOnStage(state, z);
     else if (place) {
-      // GAP: a scenario start at a place with no saved zones and no frontier gets one empty zone named after the place.
+      // a scenario start at a place with no saved zones and no frontier gets one empty zone named after the place (CS2)
       const taken = new Set(state.places.flatMap((p) => p.zones.map((z) => z.id)));
       const zone = bareZone(freshId(`${place.id}_area`, taken), place.id, place.names.current);
       place.zones.push(zone);

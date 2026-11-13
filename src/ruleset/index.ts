@@ -114,13 +114,19 @@ export function ladder(type: DefenseKind, gap: number): number {
   return CONFIG.GAP_LADDER[type][Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap))];
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
+// a dodge's +1 graze never lands on an essential part, like the tie (OQ-17 settled); off the shield, block and parry from +1 up keep the
+// gap-0 limit (CS2)
 function locRule(type: DefenseKind, g: number): LocRule {
-  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled)
-  return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block and parry +1..+5 off-shield keep the gap-0 limit
+  const H = CONFIG.HIT_GAPS;
+  if (type !== 'dodge' && g >= H.nonEssentialOnlyFrom[type]) return 'non_essential_only';
+  return g >= H.noEssentialFrom[type] ? 'no_essential' : 'any';
 }
+/** how far a hit may move toward the named part at this gap */
+const moveReach = (g: number): 'anywhere' | 'adjacent' | '' =>
+  g <= CONFIG.HIT_GAPS.movesAnywhere ? 'anywhere' : g <= CONFIG.HIT_GAPS.movesAdjacent ? 'adjacent' : '';
 function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
   const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
-  return [ladder(type, g), locRule(type, g), g <= -3 ? 'anywhere' : g === -2 ? 'adjacent' : '', shield && g >= 0].join('|');
+  return [ladder(type, g), locRule(type, g), moveReach(g), shield && g >= CONFIG.HIT_GAPS.shieldFrom].join('|');
 }
 
 /** sources whose removal alone changes the roll's tier index; natural edges listed as lucky/fumble */
@@ -234,7 +240,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
   if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // 40/80/120 perk aimMult (none uses it today)
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
-  // GAP: the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value
+  // the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value (CS2)
   const hit = cls.hit + (mode.hitAdj ?? 0);
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
@@ -312,9 +318,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     defense: defDeciding,
     gap: gapShifts.filter((s) => rowKey(type, gap - s.value, shield) !== rowKey(type, gap, shield)).map((s) => s.source),
   };
+  const H = CONFIG.HIT_GAPS;
   let outcome: AttackResult['outcome'] =
-    multiplier === 0 ? (type === 'parry' ? 'parried' : 'dodged') : type === 'dodge' && g === 1 ? 'grazed' : type !== 'dodge' && (g >= 1 || (g === 0 && shield)) ? 'blocked'
-      : g <= -5 ? 'crushing_hit' : g === -4 ? 'heavy_hit' : 'full_hit';
+    multiplier === 0 ? (type === 'parry' ? 'parried' : 'dodged') : type === 'dodge' && g >= H.graze ? 'grazed' : type !== 'dodge' && (g >= H.blockFrom || (shield && g >= H.shieldFrom)) ? 'blocked'
+      : g <= H.crushing ? 'crushing_hit' : g <= H.heavy ? 'heavy_hit' : 'full_hit';
   // PA4: a parry at PARRY_STRIKE_GAP or better earns a free strike back (the engine makes it); PA7 Answer the Blow lowers it with a medium weapon
   const strikeAt = CONFIG.PARRY_STRIKE_GAP - (mediumParry && hasPerk(D, PK.answer_the_blow) ? CONFIG.ANSWER_THE_BLOW_DROP : 0);
   const strike = type === 'parry' && !ranged && gap >= strikeAt ? { strikeBack: true as const } : {};
@@ -323,7 +330,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 5. location
   let location: string;
   let locationHow: AttackResult['locationHow'];
-  if (shield && g >= 0) {
+  if (shield && g >= H.shieldFrom) {
     location = 'shield';
     locationHow = 'shield';
   } else {
@@ -338,7 +345,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
       locationHow = 'rolled';
     }
     const named = req.targetPart;
-    if (exists(named) && named !== location && (g <= -3 || (g === -2 && adjacent(state, D, location, named)))) {
+    const reach = moveReach(g);
+    if (exists(named) && named !== location && (reach === 'anywhere' || (reach === 'adjacent' && adjacent(state, D, location, named)))) {
       location = named;
       locationHow = 'redirected';
     }
@@ -418,7 +426,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     worn.pools = { ...worn.pools, [result.location]: ((left - absorbed) / poolPts) * 100 };
     dmg -= absorbed;
   }
-  // GAP: natural-armor pools have no saved state yet, so they absorb nothing
+  // natural-armor pools have no saved state yet, so they absorb nothing (parked: D-256)
   if (dmg <= 0 && general <= 0) return out;
   dmg = Math.max(0, dmg);
 
