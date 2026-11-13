@@ -321,6 +321,7 @@ export function createGame(deps: GameDeps): Game {
     const unclear = engine.unclearAddressee(s, intent, pv.actors.map((a) => a.id));
     if (unclear) {
       lines.push({ turn: s.turn, kind: 'clarify', text: `Who do you speak to: ${orList(unclear.map((id) => seenName(pv, id)))}?` });
+      lastLog = [...turnLog]; // BG-143: every clarify keeps the turn's log, so the Parser output that led here can be seen
       return;
     }
     const rngBefore = s.rngState;

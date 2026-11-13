@@ -101,13 +101,15 @@ describe('roads (TV3, TV4)', () => {
     expect(road.rect!.y).toBeGreaterThan(zoneOf(s, plan.zones.find((z) => z.key === 'street_door')!.name)!.rect!.y); // north of the street
   });
 
-  it('only a road takes a length or danger; a bad word fails validation', () => {
+  it('only a road takes a length or danger (dropped elsewhere, BG-141); a bad word on a road fails validation', () => {
     const s = toStoryStart(makeVillage());
     const plan = villageStagePlan();
     plan.zones[0].length = 'hour';
     plan.zones[1].danger = 'wild';
     plan.zones.push({ key: 'r', place: plan.zones[0].place, kind: ZK.road, name: 'a road', look: 'a road', length: 'forever', danger: 'deadly', links: [] });
-    expect(validateStagePlan(s, plan, ctx).filter((e) => e.code === 'bad_zone')).toHaveLength(4);
+    const errs = validateStagePlan(s, plan, ctx);
+    expect(errs.filter((e) => e.code === 'bad_zone')).toHaveLength(2);
+    expect(errs.filter((e) => e.code === 'road_fields_dropped' && e.repaired)).toHaveLength(2);
     expect(roadShape(2.5, undefined)).toEqual({ area: 2500 * CONFIG.ROAD_WIDTH_M, aspect: 2500 / CONFIG.ROAD_WIDTH_M, danger: 'quiet' });
   });
 });
