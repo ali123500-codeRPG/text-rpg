@@ -12,6 +12,7 @@ export const BUG_CODES = new Set([
   'view_leak', 'invalid_target', 'unlisted_reveal', 'planner_late', 'agent_fallback', 'call_failed', 'refused', 'invalid_json',
   'weaver_off_catalog', 'weaver_fallback', 'weaver_timeout', 'routine_fallback', 'routine_skip', 'reward_repaired', 'quest_goal_gap',
   'scenario_overrun', 'scenario_stalled', 'checkin_failed', // SC12/SC14: code ended a scenario, or a Weaver check-in failed
+  'turn_check', // TQ1: a world rule broke after a turn (src/save/turnCheck.ts)
 ]);
 export const isBugCode = (code: string): boolean => code.startsWith('invalid_') || BUG_CODES.has(code);
 export type BugReport = { code: string; storyId: string; turn: number; [k: string]: unknown };

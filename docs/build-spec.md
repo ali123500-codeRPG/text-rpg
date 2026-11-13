@@ -1659,6 +1659,10 @@ Decided by Ali, 10/11/2026 (Motion Rules Review, answers Q1–Q4; it replaces th
 - **M-73** Every animation must be interruptible and must end in exactly the state a skip would produce.
 - **M-74** Every element is set to its final state first, and the animation plays on top of it. A value animates only when it differs between the screen before and after the turn, never because the screen redrew, and a redraw never restarts or cuts short a running beat.
 
+### Turn checker
+
+TQ1 (Ali, 13/11/2026): world rules checked after every turn, whatever feature ran (src/save/turnCheck.ts, one rule per line in RULES). In tests a broken rule fails the test (the w4-kit play() helper and every createGame turn); in a playtest it stops the run and writes turn-check.log; in the game it is filed as bug code turn\_check and play goes on. Rules: real\_zone, inside\_zone, move\_event (a zone change has a move, a ride on the player's travel, or a logged caught\_up), dead\_still, event\_refs, fight\_ends, invariants (the load checks: one player, one current class, slots, grips, worn covers, stacks), one\_item\_one\_place, condition\_range, links\_real, view\_pronouns, heard\_only. A rule an open bug breaks in named tests is listed under that BG in tests/harness/turnCheckSetup.ts until its fix lands. A new feature adds its own rule.
+
 ### Case tests
 
 One hundred and three tests: the original eight, updated, eight for the rev. 2 changes, ten for Explore mode, twenty for scenario setup, fourteen for the actor-control review, one for scenario-plan bands, thirteen for the routines review, ten for the hit roll, fourteen for gear and five for fallback behavior. Each runs against logged agent outputs, so it is repeatable.
@@ -3101,7 +3105,7 @@ The play page's Bugs page (Ali, 11/11/2026): Report bug files the player's note 
 
 Every bug found or reported, in any thread or in play, gets a fixed number (BG-n). Numbers come from one counter, `bugs_meta/counter` in the play page's db: the game takes the next one when it files a bug, and a thread that finds a bug takes the next one there too (read the counter, write next + 1 pinned to the version read), so a number is never shared or reused. Always mention a bug by its BG-n.
 
-The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: any `invalid_` code, and view\_leak, invalid\_target, unlisted\_reveal, planner\_late, agent\_fallback, call\_failed, refused, invalid\_json, weaver\_off\_catalog, weaver\_fallback, weaver\_timeout, routine\_fallback, routine\_skip, reward\_repaired and quest\_goal\_gap (src/save/bugs.ts BUG\_CODES). Plain game outcomes, such as a blocked move or a refused sale, are not bugs. A build thread that reviews a filed bug adds it to this table, sets its db status (open, fixed or wont\_fix), and names the PR that fixes it.
+The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: any `invalid_` code, and view\_leak, invalid\_target, unlisted\_reveal, planner\_late, agent\_fallback, call\_failed, refused, invalid\_json, weaver\_off\_catalog, weaver\_fallback, weaver\_timeout, routine\_fallback, routine\_skip, reward\_repaired, quest\_goal\_gap and turn\_check (src/save/bugs.ts BUG\_CODES). Plain game outcomes, such as a blocked move or a refused sale, are not bugs. A build thread that reviews a filed bug adds it to this table, sets its db status (open, fixed or wont\_fix), and names the PR that fixes it.
 
 | BG | Bug | Found | Status | Fixed by |
 | --- | --- | --- | --- | --- |

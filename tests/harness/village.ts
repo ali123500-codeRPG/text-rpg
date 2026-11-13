@@ -108,13 +108,15 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     withRoutine(npc(TP.slime, 'slime_1', 'field_mid', 'slimes', 'slime'), 'slime_wander', { route: ['field_mid', 'field_far'], post: 'field_far' }),
     withRoutine(npc(TP.slime, 'slime_2', 'field_far', 'slimes', 'slime'), 'slime_wander', { route: ['field_far', 'field_mid'], post: 'field_mid' }),
   ];
+  // pronouns as every stage plan gives them, so the turn checker's view_pronouns rule has something to check (TQ1, F7)
+  for (const a of actors) a.pronouns = ({ guard_1: 'he', trader: 'she', patron_1: 'he' } as const)[a.id as 'trader'] ?? 'it';
   actors = actors.filter((a) => !opts.without?.includes(a.id));
   const zoneIds = places.flatMap((p) => p.zones.map((z) => z.id));
   const seed = opts.seed ?? 12345;
   const state: GameState = {
     storyId, turn: 1, mode: 'explore',
     zones: places.flatMap((p) => p.zones),
-    player: recommendedPlayer(storyId, playerZone, zoneOf(playerZone).placeId),
+    player: { ...recommendedPlayer(storyId, playerZone, zoneOf(playerZone).placeId), pronouns: 'he' },
     actors,
     bands: villageBands(),
     hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'moderate', hiddenTerms: [] } },

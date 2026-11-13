@@ -3,6 +3,7 @@ import type { GameEvent, GameState, Intent, NpcAction } from '../../src/types';
 import type { AcceptedAgentOutput, TurnInput } from '../../src/engine';
 import { computePending, firedOrders, resolveTurn } from '../../src/engine';
 import { createRng } from '../harness';
+import { checkTurn, snapTurn } from '../../src/save/turnCheck';
 
 export type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
 export const intent = ({ action, ...p }: IntentArg = {}): Intent => ({
@@ -21,7 +22,9 @@ export function play(s: GameState, inp: Partial<TurnInput> = {}, seed = s.turn *
   s.turn = s.pending.turn;
   s.events = [];
   s.log = [];
+  const before = snapTurn(s);
   const ev = resolveTurn(s, { intent: null, aimed: false, agentOutputs: [], spokespeople: [], fired: firedOrders(s), ...inp }, createRng(seed));
+  checkTurn(s, before, ev); // TQ1: every world rule holds after the turn
   computePending(s);
   return ev;
 }
