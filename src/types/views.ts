@@ -13,7 +13,7 @@ export type PartState = PartStateKey;
 /** CT1/CT3: a container as a viewer knows it: open or shut, with a lock (and the viewer's key to it), and what is inside
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. */
 /** shut: a shut one (BG-175), so a mind knows to open it */
-export type ContainerView = { open?: true; shut?: true; lock?: 'locked' | 'unlocked'; key?: true; contents?: { id: string; name: string }[]; owner?: string };
+export type ContainerView = { open?: true; shut?: true; lock?: 'locked' | 'unlocked'; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack
 export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
@@ -251,6 +251,7 @@ export type NarrationEvent = {
   pressed?: { how?: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
   overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
+  into?: string; // put_in: the container's name
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words

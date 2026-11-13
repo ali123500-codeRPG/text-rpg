@@ -8,7 +8,7 @@ import { healthLevel, partStates } from '../ruleset';
 import { logCode } from './effects';
 import { working } from '../ruleset/body';
 import { actorById, isActive, stance, zoneById } from './relations';
-import { inContainer, packUp, wearIfNone, wornPack } from './containers';
+import { findContainer, inContainer, isContainer, packUp, theft, wearIfNone, wornPack } from './containers';
 import { withinGrip, type Located, type Pos } from './position';
 import { gripReachM } from '../ruleset/body';
 export { gripReachM };
@@ -50,11 +50,11 @@ function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
   return true;
 }
 
-export type GearResult = { picked: { itemId: string; from?: string }[]; summoned: string[]; setDown: { itemId: string; qty?: number }[]; invalid: GearOp[] };
+export type GearResult = { picked: { itemId: string; from?: string }[]; summoned: string[]; setDown: { itemId: string; qty?: number }[]; putIn: { itemId: string; into: string; qty?: number }[]; invalid: GearOp[] };
 
 /** free gear ops at the actor's initiative, before its action. Invalid ops are skipped and reported. */
 export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | null | undefined): GearResult {
-  const res: GearResult = { picked: [], summoned: [], setDown: [], invalid: [] };
+  const res: GearResult = { picked: [], summoned: [], setDown: [], putIn: [], invalid: [] };
   for (const op of ops ?? []) {
     const inst = actor.core.inventory.find((i) => i.id === op.item);
     let ok = false;
@@ -63,10 +63,17 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         // BG-24: drawing what is already in hand is nothing to do, not a mistake
         ok = !!inst && (!!inst.equippedIn?.some((s) => s.startsWith('grip:')) || draw(state, actor, inst));
         break;
-      case 'stow':
+      case 'stow': {
+        if (op.into) { // PI1: into a container one carries, or an open one within reach
+          const put = inst ? putInto(state, actor, inst, op.into, op.qty) : null;
+          ok = !!put;
+          if (put) res.putIn.push({ itemId: put.id, into: op.into, ...(put.qty ? { qty: put.qty } : {}) });
+          break;
+        }
         ok = !!inst?.equippedIn?.some((s) => s.startsWith('grip:'));
         if (ok) delete inst!.equippedIn;
         break;
+      }
       case 'swap': {
         if (!inst || inst.equippedIn?.length) break;
         const held = actor.core.inventory.filter((i) => i.equippedIn?.some((s) => s.startsWith('grip:')));
@@ -149,6 +156,30 @@ export function fadeSoulbound(state: GameState, a: Actor): void {
   const gone = a.core.inventory.filter((i) => i.soulbound);
   a.core.inventory = a.core.inventory.filter((i) => !i.soulbound);
   logCode(state, 'soulbound_faded', { actorId: a.id, items: gone.map((i) => i.itemId) });
+}
+
+/** PI1–PI4: put `inst` (held or stowed, never worn) into a container: one `a` carries (a worn pack holds what is stowed, so
+ * that is a plain stow, CT7), or one standing open within grip reach that is not someone else's to guard. A container never
+ * goes inside another, and what goes in must fit (CONFIG.CONTAINER_HOLDS, in bulk). `qty` puts in part of a stack. Returns the
+ * instance now inside (a stack joins one of its kind) and how many, or null. */
+export function putInto(state: GameState, a: Actor, inst: ItemInstance, intoId: string, qty?: number): { id: string; qty?: number } | null {
+  const c = findContainer(state, intoId);
+  if (!c || c.inst === inst || isContainer(state, inst) || inst.equippedIn?.some((s) => !s.startsWith('grip:'))) return null;
+  if (c.holder ? c.holder !== a : !c.inst.open || theft(state, a, c) || !withinGrip(state, a, c.at)) return null;
+  if (wornPack(c.inst)) { delete inst.equippedIn; return { id: inst.id }; }
+  const d = itemDef(state, inst.itemId), have = inst.qty ?? 1, n = qty == null || !d.stackable ? have : Math.floor(qty);
+  if (n < 1 || n > have) return null;
+  const list = (c.inst.contents ??= []);
+  const used = list.reduce((t, i) => t + itemDef(state, i.itemId).bulk, 0);
+  const stack = d.stackable ? list.find((x) => x.itemId === inst.itemId) : undefined;
+  if (!stack && used + d.bulk > (CONFIG.CONTAINER_HOLDS[c.inst.itemId] ?? 0)) return null;
+  if (n < have) inst.qty = have - n;
+  else a.core.inventory.splice(a.core.inventory.indexOf(inst), 1);
+  if (stack) { stack.qty = (stack.qty ?? 1) + n; return { id: stack.id, qty: n }; }
+  const moved: ItemInstance = n < have ? { id: `${inst.id}_in_${state.turn}`, itemId: inst.itemId, qty: n } : inst;
+  delete moved.equippedIn;
+  list.push(moved);
+  return { id: moved.id, ...(d.stackable ? { qty: n } : {}) };
 }
 
 /** remove an instance from an actor's inventory onto a zone's ground, lying at `at` (default: where the actor stands) */
