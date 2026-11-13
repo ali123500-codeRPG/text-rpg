@@ -89,7 +89,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if (WAY_ORDERS.includes(a.type) && a.target !== null && !zones.has(a.target)) illegal.push(`action.target ${a.target}`); // BG-128: a lock is on a way
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
-    if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish') a.skill = '';
+    if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish' || a.type === 'search') a.skill = ''; // SE2: a search rolls the better sense
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     // a buy, or haggling over one, names a ware of the seller it targets (goods:… / service:…), not an item the player can reach

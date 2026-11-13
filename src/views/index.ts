@@ -255,6 +255,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
       if (own || healthShows(to, sharp) || readsHealthOf(actorById(state, viewerId), actorById(state, f.actorId))) out.push(`${who} is ${HEALTH_LEVELS.name(to)}`);
     }
     const by = f.data.by ? callName(state, viewerId, String(f.data.by)) : '';
+    if (f.kind === 'found') out.push(`${by} finds ${who} hiding`); // SE3: a search won
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
     if (f.kind === 'still_held') out.push(`${who} fails to break free of ${by}`);

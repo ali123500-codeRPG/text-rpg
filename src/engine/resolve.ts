@@ -10,7 +10,7 @@ import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/mor
 import { bestReward } from '../ruleset/achRewards';
 import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp } from './barriers';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -67,7 +67,7 @@ const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'pick_up']);
 /** first build: checks only change beliefs (OQ-22). */
-const CHECK_TYPES = new Set(['observe', 'interact', 'use_item', 'other', 'search']);
+const CHECK_TYPES = new Set(['observe', 'interact', 'use_item', 'other']);
 
 /** D-34 stub: every player action is major. */
 export function isMajorAction(_event: GameEvent): boolean {
@@ -761,10 +761,12 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scenario difficulty', type: 'situational' as const, value: gradeMod(target) }] : []),
       ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
     ];
-    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn: noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight }, state, rng); // function roll
+    const fn = noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight;
+    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn }, state, rng); // function roll
     ev.roll = r;
     ev.tier = r.tier;
     if (tierAtLeast(r.tier, 'success')) lookAround(state);
+    ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn }))); // SE14: also a weak search
     ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
   } else if (o.skill && CHECK_TYPES.has(o.type)) {
     result = ruleset.check({ actorId: a.id, skill: o.skill, target: o.target ?? undefined, modifiers: [] }, state, rng);
@@ -773,6 +775,18 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     ruleset.recordUse(a, result.skill, result, state);
   }
   emit(ctx, ev, result);
+}
+
+const foundEffects = (a: Actor, won: { found: Actor }[]): Effect[] => won.map(({ found }) => ({ kind: 'found', actorId: found.id, data: { by: a.id } }));
+/** SE1/SE3/SE6/SE16/SE19: a search is the main action, the same for everyone: a contest against everyone hiding in reach
+ * (searchFor), or against the one person named. With nothing hidden nothing is rolled, a lost roll reads the same as an
+ * empty spot, and the dice show only with a find (SE6). */
+function doSearch(ctx: Ctx, a: Actor, o: Order): void {
+  const ev = bark(withActivity(ctx, a, mk(ctx, a, 'search', { target: o.target ?? undefined }), o.activity), o);
+  const won = searchFor(ctx.state, a, ev, ctx.rng, o.target && actorById(ctx.state, o.target) ? { only: o.target } : {});
+  if (won.length) ev.contest = won[0].r;
+  ev.effects.push(...foundEffects(a, won));
+  emit(ctx, ev);
 }
 
 /** the barrier on the way from `a`'s zone to `to`, and that link */
@@ -855,6 +869,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doRest(ctx, a, o);
     case 'pick':
       return doPick(ctx, a, o);
+    case 'search':
+      return doSearch(ctx, a, o);
     case 'hide':
       // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
       return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));

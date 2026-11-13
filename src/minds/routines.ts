@@ -133,7 +133,7 @@ export function routineOrder(view: ActorView): Order {
   if (!d) return order(view, 'hold', 'routine', 'hold');
   const into = headFrontier(view);
   if (into) return order(view, 'move', 'routine', `walk into ${into}`, { target: into, activity: d.activity });
-  if (d.zone === view.self.zone) return order(view, 'idle', 'routine', d.activity, { activity: d.activity });
+  if (d.zone === view.self.zone) return order(view, d.activity === 'search' ? 'search' : 'idle', 'routine', d.activity, { activity: d.activity }); // SE16
   const path = mapPath(view.map, view.self.zone, d.zone);
   if (!path) return order(view, 'idle', 'routine', UNREACHABLE, { activity: d.activity });
   return order(view, 'move', 'routine', `walk toward ${d.zone}`, { target: path[0], activity: d.activity });

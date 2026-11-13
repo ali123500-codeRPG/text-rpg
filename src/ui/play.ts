@@ -122,7 +122,7 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
       ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Vanish ${l.label}`, note: 'breaks sight' }))] },
     { group: 'Use', items: [
       ...heldN.map((n) => ({ text: `Stow ${the(n)}`, note: 'free' })), ...stowedN.map((n) => ({ text: `Draw ${the(n)}`, note: 'free' })),
-      ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free' })), ...(pv.player.summonable ?? []).map((x) => ({ text: `Summon ${x.name}`, note: 'free' })), { text: 'Look around' }] },
+      ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free' })), ...(pv.player.summonable ?? []).map((x) => ({ text: `Summon ${x.name}`, note: 'free' })), { text: 'Look around' }, { text: 'Search', note: 'your action' }] },
     ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.flatMap(({ id: p, inRange }) => PERK_SOLO_IDEA[p] ? [PERK_SOLO_IDEA[p]] : PERK_IDEA[p]
       ? people.filter((a) => inRange?.includes(a.id)).map((a) => ({ text: PERK_IDEA[p].text(names[people.indexOf(a)]), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ group: g.group, items: 'all' in g ? g.items : g.items.slice(0, 3) }));

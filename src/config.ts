@@ -167,6 +167,16 @@ const DEFAULTS = {
    * visibilityLevels rows); null = nothing to see. Sight distance is never under NEAREST_M (seeingM), so a level made
    * out only nearer than that (faint) is at most glimpsed. A dark zone caps sight at partial. */
   SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
+  // ---- searching (SE20, SE21, SE24, SA8; placeholders) ----
+  /** SE20: what one search covers outside a fight at the base skill: the game's room size (a tavern common room) */
+  SEARCH_AREA_M2: 60,
+  /** SE21 b: the search area grows in a straight line with the rolling sense's effective skill: area × skill ÷ this */
+  SEARCH_AREA_SKILL_BASE: 50,
+  /** SA8 b: a fight turn (6 s) reaches search area ÷ this metres (0.5 m at skill 50, 1 m at 100); searchReach adds this
+   * many m² of area per metre (SE24) */
+  SEARCH_M2_PER_FIGHT_M: 120,
+  /** SE14 b: Look around is also a search against anyone hiding in its range, this many tiers down */
+  LOOK_SEARCH_SHIFT: -1,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */

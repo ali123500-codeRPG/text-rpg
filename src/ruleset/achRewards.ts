@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -122,18 +122,19 @@ export function tierReach(a: Actor, roll: RollKind | undefined): { up: number; d
   const sum = (side: TierUnlock['side']) => all.filter((u) => u.side === side).reduce((n, u) => n + u.steps, 0);
   return { up: sum('up'), down: sum('down') };
 }
-/** free or bonus levels earned: every current achievement's along its chain, plus every active owned perk's.
- * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets. */
-export function levelsEarned(a: Actor, f: 'freeLevels' | 'bonusLevels'): number {
+/** a reward that adds up over every source: every current achievement's along its chain, plus every active owned perk's.
+ * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets; searchArea
+ * and searchReach widen a search (SE24). */
+export function rewardSum(a: Actor, f: 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach'): number {
   const perks = getLibrary().perks ?? {};
   return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, f), 0)
     + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + (perks[p.perkId]?.[f] ?? 0), 0);
 }
-export const freeLevelsEarned = (a: Actor) => levelsEarned(a, 'freeLevels');
+export const freeLevelsEarned = (a: Actor) => rewardSum(a, 'freeLevels');
 /** free levels earned and not yet taken */
-export const freeLevelsOwed = (a: Actor) => Math.max(0, levelsEarned(a, 'freeLevels') - (a.progression?.freeLevelsTaken ?? 0));
+export const freeLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'freeLevels') - (a.progression?.freeLevelsTaken ?? 0));
 /** bonus levels earned and not yet taken */
-export const bonusLevelsOwed = (a: Actor) => Math.max(0, levelsEarned(a, 'bonusLevels') - (a.progression?.bonusLevelsTaken ?? 0));
+export const bonusLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'bonusLevels') - (a.progression?.bonusLevelsTaken ?? 0));
 
 /** the display lines of one reward written on a row */
 function linesOf(d: AchievementDef, f: AchievementReward): string[] {
@@ -158,6 +159,8 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'tierUnlocks': return (d.tierUnlocks ?? []).map((u) => tierUnlockLine(u));
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
     case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
+    case 'searchArea': return [`+${d.searchArea}% on your search area and fight-turn search reach`];
+    case 'searchReach': return [`+${d.searchReach} m of fight-turn search reach (+${d.searchReach! * CONFIG.SEARCH_M2_PER_FIGHT_M} m² of search area)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
     case 'personality': return personalityLines(d.personality);
     case 'personalityByKind': return Object.entries(d.personalityByKind ?? {}).flatMap(([kind, add]) => personalityLines(add).map((l) => `${l} when earned with ${kindLabel(d, kind)}`));

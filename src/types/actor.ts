@@ -147,8 +147,8 @@ export type Progression = {
   /** alternate capstones the player may swap in for a class's default, by class id; set when the class reaches
    * its top level with those alternates' conditions met, and cleared by a swap */
   capstoneOptions?: Record<LibraryRef, LibraryRef[]>;
-  freeLevelsTaken?: number; // free levels already taken (owed = levelsEarned(a, 'freeLevels') − this)
-  bonusLevelsTaken?: number; // bonus levels already taken: character levels outside every class (owed = levelsEarned(a, 'bonusLevels') − this)
+  freeLevelsTaken?: number; // free levels already taken (owed = rewardSum(a, 'freeLevels') − this)
+  bonusLevelsTaken?: number; // bonus levels already taken: character levels outside every class (owed = rewardSum(a, 'bonusLevels') − this)
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   /** growth proposal 2.5: essences held (at most essenceSlots), and essences on offer (each until its turn, or a new scenario) */
   essences?: HeldEssence[];
