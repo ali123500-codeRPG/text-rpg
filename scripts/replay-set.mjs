@@ -25,10 +25,13 @@ for (const dir of process.argv.slice(2)) {
     keep = Object.fromEntries(Object.entries(docs).filter(([k]) => k === story || k === path || k.startsWith(`${path}/parts/`)));
   } else {
     const src = resumedFrom(dir);
-    if (!src || src.step < firstTurn - 1) { console.log(`${name}: no backup the log covers and no world it resumed from, skipped`); continue; }
+    // the game turn it resumed after (the store's step counts playtest inputs, not turns)
+    const headDoc = src && Object.entries(src.docs).find(([k]) => /^stories\/[^/]+\/control\/head$/.test(k));
+    const turn = headDoc ? Number(/"turn":(\d+)/.exec(headDoc[1])?.[1] ?? NaN) : NaN;
+    if (!(turn >= firstTurn - 1)) { console.log(`${name}: no backup the log covers and no world it resumed from, skipped`); continue; }
     // the saved story as the run resumed it (its head and pages; not its turn records, backups or story text)
     keep = Object.fromEntries(Object.entries(src.docs).filter(([k]) => /^stories\/[^/]+(\/(pages|control)(\/|$)|$)/.test(k)));
-    from = src.step;
+    from = turn;
     head = true;
   }
   const steps = all.filter((x) => x.answers.some((a) => a.turn > from));
