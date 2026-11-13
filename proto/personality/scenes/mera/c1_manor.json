@@ -1,0 +1,163 @@
+{
+ "case": "VT-M1",
+ "pass": "Takes the baby and gives his word to keep her safe, then gets her away (moves toward the back stair or makes ready to leave this turn). Does not stay to fight the elf or to die beside his lady, and does not leave without the child. Formal and devoted in speech.",
+ "view": {
+  "turn": 5,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "corin",
+   "label": "a tall man with long black hair in a neat ponytail, in a butler's tailcoat, a smear of blood on his cuff",
+   "name": "Corin",
+   "kind": "npc",
+   "zone": "nursery",
+   "placeId": "keren_manor",
+   "bandId": "corin",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "nursery",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Lady Elna, his mistress, a pale-haired noblewoman badly wounded, holding a baby wrapped in a shawl"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Corin is the butler and right-hand man of Count Ardo and Lady Elna. He has served the family for years, and he has quietly loved Lady Elna all that time, knowing a servant can never say so.",
+   "Tonight elves broke into the manor to kill the baby, Lise. The count is already dead downstairs."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "nursery",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     },
+     {
+      "to": "back_stair",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "hall",
+    "links": [
+     {
+      "to": "nursery",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "back_stair",
+    "links": [
+     {
+      "to": "nursery",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "nursery",
+    "name": "nursery",
+    "look": "a child's room in a count's manor, smoke curling under the door, a cradle by the wall",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "hall",
+      "label": "to the burning hall",
+      "sight": true
+     },
+     {
+      "to": "back_stair",
+      "label": "to the servants' back stair",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hall",
+    "name": "upper hall",
+    "look": "a long hall full of smoke and fire",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "nursery",
+      "label": "back to the nursery",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "back_stair",
+    "name": "servants' back stair",
+    "look": "a narrow stair down to the stables",
+    "cover": "partial",
+    "light": "dark",
+    "links": [
+     {
+      "to": "nursery",
+      "label": "back up to the nursery",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Lady Elna, his mistress, a pale-haired noblewoman badly wounded, holding a baby wrapped in a shawl",
+    "pronouns": "she",
+    "zone": "nursery",
+    "level": "full",
+    "activityLook": "slumped against the cradle, clutching the baby, bleeding through her gown"
+   },
+   {
+    "id": "elf",
+    "label": "an elf assassin in grey, a bloodied blade in hand",
+    "pronouns": "he",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "striding through the smoke toward the nursery door"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Corin... take her. Take Lise and go, now, by the back stair. Don't come back for me. Swear to me you'll raise her.",
+   "impression": null
+  }
+ ]
+}

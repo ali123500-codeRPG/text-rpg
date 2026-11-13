@@ -381,6 +381,56 @@ export const CHARACTERS: Character[] = [
     drives: ['safety', 'family', 'knowledge'], scenes: { dir: 'nyra' },
     signatures: [],
   },
+  {
+    key: 'mera_1', name: 'Corin', title: 'the Butler', role: 'the butler and right-hand man of a count\'s household; a human',
+    bandGoals: 'raise and protect Lise; serve the Demon Lord', temperament: 'a loyal retainer', tactics: 'cautious',
+    nerve: -20, resolve: 30, ageStage: 'adult', skills: [{ name: 'sword', value: 30, fight: true, attack: true }],
+    axes: { honesty: 50, pride: -30, temper: -40, sociability: 0, discipline: 70, curiosity: 0, levity: -40 },
+    drives: ['duty', 'loyalty', 'family'], scenes: { dir: 'mera', only: ['c1_manor'] },
+    signatures: [
+      "Swore to his dying masters that he would raise their daughter Lise; she comes before his rank, his pride and his own life.",
+      "Polite and formal with everyone, high or low: a butler first, whatever else he becomes.",
+    ],
+  },
+  {
+    key: 'mera_2', name: 'Corin', title: 'the Butler', role: 'a former butler, newly turned into a vampire, travelling with the Demon Lord\'s band as guardian of his late masters\' daughter',
+    bandGoals: 'raise and protect Lise; serve the Demon Lord', temperament: 'a loyal retainer', tactics: 'cautious',
+    nerve: -10, resolve: 50, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }, { name: 'dark magic', value: 30, fight: true, attack: true }],
+    axes: { honesty: 50, pride: -40, temper: -30, sociability: -10, discipline: 70, curiosity: 0, levity: -50 },
+    drives: ['loyalty', 'duty', 'family'], scenes: { dir: 'mera', only: ['c2_order'] },
+    signatures: [
+      "Swore to his dying masters that he would raise their daughter Lise; she comes before his rank, his pride and his own life.",
+      "Polite and formal with everyone, high or low: a butler first, whatever else he becomes.",
+      "Loyal to the Demon Lord without condition: he carries out hard orders even when he thinks them wrong, says so plainly, and takes the guilt on himself.",
+    ],
+  },
+  {
+    key: 'mera_3', name: 'Corin', title: 'the Butler', role: 'a vampire, Commander of the Fourth Demon Army, and still the butler and guardian of his late masters\' daughter',
+    bandGoals: 'raise and protect Lise; serve the Demon Lord', temperament: 'a loyal retainer', tactics: 'cautious',
+    nerve: 0, resolve: 80, ageStage: 'adult', skills: [{ name: 'sword', value: 80, fight: true, attack: true }, { name: 'dark magic', value: 60, fight: true, attack: true }],
+    axes: { honesty: 50, pride: -40, temper: -40, sociability: 0, discipline: 80, curiosity: 0, levity: -40 },
+    drives: ['loyalty', 'family', 'duty'], scenes: { dir: 'mera', only: ['c3_retreat'] },
+    signatures: [
+      "Swore to his dying masters that he would raise their daughter Lise; she comes before his rank, his pride and his own life.",
+      "Polite and formal with everyone, high or low: a butler first, whatever else he becomes.",
+      "Sells himself short: calls himself a man of no talent, a jack of all trades and master of none, among monsters far stronger than he is.",
+      "Respects a strong enemy, and withdraws from a fight he does not need to win rather than risk leaving Lise unguarded; then he trains harder.",
+    ],
+  },
+  {
+    key: 'mera_ultimate', name: 'Corin', title: 'the Butler', role: 'a butler turned vampire, later Commander of the Fourth Demon Army, and always the guardian of his late masters\' daughter',
+    bandGoals: 'raise and protect Lise; serve the Demon Lord', temperament: 'a loyal retainer', tactics: 'cautious',
+    nerve: -10, resolve: 70, ageStage: 'adult', skills: [{ name: 'sword', value: 80, fight: true, attack: true }, { name: 'dark magic', value: 60, fight: true, attack: true }],
+    axes: { honesty: 50, pride: -40, temper: -40, sociability: 0, discipline: 70, curiosity: 0, levity: -40 },
+    drives: ['loyalty', 'duty', 'family'], scenes: { dir: 'mera' },
+    signatures: [
+      "Swore to his dying masters that he would raise their daughter Lise; she comes before his rank, his pride and his own life.",
+      "Polite and formal with everyone, high or low: a butler first, whatever else he becomes.",
+      "Loyal to the Demon Lord without condition: he carries out hard orders even when he thinks them wrong, says so plainly, and takes the guilt on himself.",
+      "Sells himself short: calls himself a man of no talent, a jack of all trades and master of none, among monsters far stronger than he is.",
+      "Respects a strong enemy, and withdraws from a fight he does not need to win rather than risk leaving Lise unguarded; then he trains harder.",
+    ],
+  },
 ];
 
 /** what the prototype must compute for each character (self-check) */
@@ -414,4 +464,8 @@ export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensi
   nyra: { archetype: 'childish', buts: ['levity', 'honesty'], tensions: [], nerve: 'Fearless' },
   blend_avg: { archetype: 'loner', buts: [], tensions: ['wary_dangerous'], nerve: 'Prudent' },
   blend_strong: { archetype: 'loner', buts: ['curiosity', 'levity', 'pride'], tensions: ['wary_dangerous'], nerve: 'Cool-headed' },
+  mera_1: { archetype: 'mature', buts: ['levity'], tensions: [], nerve: 'Timid' },
+  mera_2: { archetype: 'mature', buts: ['levity', 'pride'], tensions: [], nerve: 'Steady' },
+  mera_3: { archetype: 'mature', buts: ['pride', 'levity'], tensions: [], nerve: 'Unbreakable' },
+  mera_ultimate: { archetype: 'mature', buts: ['pride', 'levity'], tensions: [], nerve: 'Stalwart' },
 };

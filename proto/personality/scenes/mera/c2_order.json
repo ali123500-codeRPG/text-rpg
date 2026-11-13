@@ -1,0 +1,122 @@
+{
+ "case": "VT-M2",
+ "pass": "Accepts the order and will carry it out: no refusal, no bargaining it down, no plan to spare the village behind her back. Says plainly that it is wrong or that he will carry the guilt for it. No relish or cruelty.",
+ "view": {
+  "turn": 40,
+  "time": {
+   "day": 200,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "corin",
+   "label": "a pale man with long black hair in a ponytail, pointed ears and red eyes, a butler's coat under a dark cloak",
+   "name": "Corin",
+   "kind": "npc",
+   "zone": "camp",
+   "placeId": "hill_country",
+   "bandId": "corin",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "camp",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Corin was turned into a vampire the night his masters died. He now travels with the Demon Lord Nyra, who took him and young Lise under her protection. He owes her everything and has sworn her his loyalty.",
+   "The hill village below sheltered two young fighters who attacked Nyra's band. Wyn, Nyra's quiet white-haired ally, wants the village gone."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "camp",
+    "links": [
+     {
+      "to": "ridge",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "ridge",
+    "links": [
+     {
+      "to": "camp",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "camp",
+    "name": "war camp",
+    "look": "a camp of black tents in rough hill country, soldiers sharpening blades",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "ridge",
+      "label": "up to the ridge",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "ridge",
+    "name": "ridge",
+    "look": "a ridge overlooking a hill village of round huts, smoke rising from cook fires",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "camp",
+      "label": "back down to the camp",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's",
+    "pronouns": "she",
+    "zone": "camp",
+    "level": "full",
+    "activityLook": "sitting on a supply crate, swinging her legs, not smiling"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "That village hid the two who attacked us. Wyn wants it wiped out, every one of them, so nobody shelters them again. You'll lead it tonight, Corin. Any problem with that?",
+   "impression": null
+  }
+ ]
+}

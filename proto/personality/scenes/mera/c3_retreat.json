@@ -1,0 +1,164 @@
+{
+ "case": "VT-M3",
+ "pass": "Orders a withdrawal or holds the line; does not order the storm and does not go after the two himself. Speaks of the two fighters with respect, calmly, without rage. Saying he must grow stronger, or putting Lise first, is a plus; running himself down is a plus.",
+ "view": {
+  "turn": 80,
+  "time": {
+   "day": 400,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "corin",
+   "label": "a pale man with long black hair in a ponytail, red eyes, a butler's coat under a commander's black cloak, a fresh cut across his cheek",
+   "name": "Corin",
+   "kind": "npc",
+   "zone": "line",
+   "placeId": "human_front",
+   "bandId": "corin",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "line",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "his lieutenant, a burly demon officer in black plate"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Corin is now Commander of the Fourth Demon Army, and still the butler and guardian of young Lise, who serves in the army too.",
+   "He has just fought two young human fighters, Kiro and Asha, at the fortress gate. They are far weaker than him but fought well together, and one of them cut his cheek. Long ago, on orders, he destroyed the village that sheltered them, and they hate him for it.",
+   "The day's goal was only to test the fortress."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "line",
+    "links": [
+     {
+      "to": "fort_gate",
+      "sight": true
+     },
+     {
+      "to": "rear",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "fort_gate",
+    "links": [
+     {
+      "to": "line",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "rear",
+    "links": [
+     {
+      "to": "line",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "line",
+    "name": "battle line",
+    "look": "a muddy field outside a stone fortress, bodies and broken spears in the grass",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "fort_gate",
+      "label": "toward the fortress gate",
+      "sight": true
+     },
+     {
+      "to": "rear",
+      "label": "back to the rear",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "fort_gate",
+    "name": "fortress gate",
+    "look": "the gate of a human fortress, two young fighters standing ready in front of it",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "line",
+      "label": "back to the field",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "rear",
+    "name": "rear lines",
+    "look": "the demon army's rear, tents and wagons",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "line",
+      "label": "forward to the battle line",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "his lieutenant, a burly demon officer in black plate",
+    "pronouns": "he",
+    "zone": "line",
+    "level": "full",
+    "activityLook": "pointing at the fortress gate with his axe"
+   },
+   {
+    "id": "kiro",
+    "label": "two young human fighters, a boy with a spear and a girl with a bow",
+    "pronouns": "they",
+    "zone": "fort_gate",
+    "level": "full",
+    "activityLook": "breathing hard, weapons up, watching him"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Commander, you're bleeding! Those two brats marked you! Give the word and we storm the gate and drag them out by the hair!",
+   "impression": null
+  }
+ ]
+}
