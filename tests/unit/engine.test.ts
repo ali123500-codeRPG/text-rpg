@@ -185,11 +185,11 @@ describe('turn start (computePending)', () => {
     expect(computePending(s).fired).toEqual([]);
     expect(s.hidden.plans.guard_1.triggers).toHaveLength(1);
   });
-  it('mode is tactical with an engaged actor, side-neutral', () => {
+  it('an engaged actor gets a Planner call, side-neutral; a standoff away from the player keeps normal turns (BF14)', () => {
     expect(computePending(s).mode).toBe('explore');
     place(s, 'slime_1', 'gate_inner');
     actor(s, 'guard_1').mind!.knowledge.slime_1 = { status: 'suspicious', source: 'seen', revealed: [] };
-    expect(computePending(s)).toMatchObject({ mode: 'tactical', engaged: ['guard_1'] });
+    expect(computePending(s)).toMatchObject({ mode: 'explore', engaged: ['guard_1'] });
   });
 });
 

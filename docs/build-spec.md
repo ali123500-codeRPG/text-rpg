@@ -1108,11 +1108,11 @@ Code picks the mode each turn; agents run only when someone needs a mind. Ordina
 
 | Mode | When code enters it | Pipeline | Claude calls per turn |
 | --- | --- | --- | --- |
-| Explore | No engaged actor, and no one is being spoken to | Parser → engine → Narrator | 2 |
+| Explore | No fight concerns the player, and no one is being spoken to | Parser → engine → Narrator, plus background Planners for engaged actors | 2 |
 | Dialogue | The Parser's main action is speech addressed to NPCs | Parser → speech check → one Responder or Voice call per spokesperson, in parallel → engine → Narrator | 2 plus one per spokesperson (at most MAX\_SPOKESPEOPLE), plus background Planners for engaged actors |
-| Tactical | At least one engaged actor | Background Planner per engaged significant actor; Parser → engine → Narrator | 2 plus one per engaged significant actor, capped by MAX\_PLANNER\_CALLS |
+| Tactical | A fight concerns the player (BF14): someone fighting them knows they are there, or they can perceive a fight (blows traded, or a spar) | Background Planner per engaged significant actor; Parser → engine → Narrator | 2 plus one per engaged significant actor, capped by MAX\_PLANNER\_CALLS |
 
-Engaged is side-neutral: an actor is engaged when it believes in an active actor it is hostile to, so allies fighting bandits make a turn Tactical too.
+Engaged is side-neutral: an actor is engaged when it believes in an active actor it is hostile to, so allies facing bandits get Planner calls too. Whether the turn is Tactical follows the player only (BF14, Ali, 13/11/2026): a standoff or a fight the player cannot perceive keeps normal turns.
 
 Modes are chosen per turn inside a scenario (Scenarios); a scenario can open in any mode.
 
@@ -1736,7 +1736,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 51 | Impression only | A deceive check reaches the dialogue call as an impression; the logged input contains no action type |
 | 52 | Two bands addressed | Two spokesperson calls run in parallel, each with its own impression; replies resolve in initiative order |
 | 53 | Calm bandmates \[Proposed\] | A Voice spokesperson switches to a leave routine; a calm bandmate who heard follows next turn; one who didn't keeps its routine |
-| 54 | Allies engage | Guards hostile to bandits engage them without the player present; the turn is Tactical and the guards get Planner calls |
+| 54 | Allies engage | Guards hostile to bandits engage them without the player present; the guards get Planner calls, and with the player away the turn stays Explore (BF14) |
 | 55 | Companion follows | The player moves two zones; a following companion walks one link per turn toward its believed zone, never jumping |
 | 56 | Back to the post | A guard pulled off its post walks back and takes up the zone and activity its routine gives for the current turn (from its anchorTurn) |
 | 57 | Inert when down | An incapacitated guard gets no order, its ambush trigger doesn't fire, it isn't engaged, and addressing it makes no dialogue call |
@@ -3303,6 +3303,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-176 | Runs 81c t34-40 and 97c: the purse read "coin ×16" in /inv and the gear line the agents read, so a player kept trying to pay four silver. | Every item count reads through countWords, which says coin in coin words (1 silver and 6 copper); also the inventory tooltip. | Fixed in PR #631 |
 | BG-177 | Run 97f t31-41: Wen, held in a real fight, said "Enough, I yield" with yields set, but an NPC's yields only left a spar (invalid_spar_yield); the fight went on and Bram killed him. Sibling: grabbing someone one already holds was wasted as already_held and told as someone else's grip. | An NPC's yield in a real fight surrenders, as a surrender from fear does (loseNerve, one function); in a spar it leaves the spar; the NPC prompt offers it. The wasted reason is already_holding. | Fixed in PR #633 |
 | BG-178 | Run 97f t44-47: the player searched Wen's body and found a key and coin, left them, searched again and was told nothing, while Bram's search found both; the first find was told as the key in the player's palm. | What a searcher found before and is still there is found again (searchPerson); a find reads as left there for now, never taken. | Fixed in PR #633 |
+| BG-179 | Run 79f t35: Brenn sat drinking near people his band is hostile to, in another building; nobody struck anyone, yet the game went into fight turns, which dropped the player's words said beside an action to Ness. | BF14 a: the mode is Tactical only while a fight concerns the player (fightTurns: someone fighting them knows they are there, or they can perceive blows or a spar). Engaged actors elsewhere still get Planner calls. | Fixed in PR #635 |
 
 ## Check on release
 
