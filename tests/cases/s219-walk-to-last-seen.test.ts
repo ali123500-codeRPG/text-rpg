@@ -12,6 +12,7 @@ it('BG-125: walking to someone last seen in the room goes where they were last s
   const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
   s.zones.find((z) => z.id === 'tav_common')!.rect = { x: 0, y: 0, w: 12, d: 8 };
   const w = place(s, 'patron_1', 'tav_common');
+  w.pronouns = 'he';
   s.player.zone = 'tav_common'; s.player.pos = { x: -5, y: 0 };
   w.pos = { x: 4, y: 3 };
   play(s, { intent: intent({ action: { type: 'observe', target: null } }) }); // the player sees him there
@@ -19,6 +20,7 @@ it('BG-125: walking to someone last seen in the room goes where they were last s
   w.posture = 'stealthy'; w.pos = { x: 4, y: -3 }; delete s.player.journal!.clearSight!.patron_1; // he slips off unseen
   const v = buildPlayerView(s);
   expect(v.actors.some((a) => a.id === 'patron_1')).toBe(false);
+  expect(v.lastSeen?.find((l) => l.id === 'patron_1')?.pronouns).toBe(w.pronouns); // BG-130: never guessed from the name
   const r = checkParserLegality({ ...intent({ move: { toZone: 'tav_common', spot: { near: 'patron_1' } } }), action: null }, v);
   expect(r.illegal).toEqual([]);
   expect(r.intent.move!.spot).toMatchObject({ near: 'patron_1', lastSeen: true });
