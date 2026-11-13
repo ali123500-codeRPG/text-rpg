@@ -11,7 +11,7 @@ import type { AttackOutcome, ScenarioFrame, Tier,
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
-import { timeView, zoneLight, clockSet, now, timeOfDay } from '../time';
+import { timeView, zoneLight, clockSet, now, timeOfDay, durationText } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
 import { seeingM, sideFrom, sightDistM } from '../engine/position';
 import { sightLevel } from '../perception/sight';
@@ -268,9 +268,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
       const d = f.data as { metres: number; minutes: number; pace: string; night: boolean; stop: string };
       const km = distText(d.metres);
-      const h = Math.floor(d.minutes / 60), m = d.minutes % 60;
       const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
-      out.push(`${who} travel${own ? '' : 's'} ${km} in ${[h ? `${h} h` : '', m || !h ? `${m} min` : ''].filter(Boolean).join(' ')} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
+      out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
     }
     if (f.kind === 'part_state_changed') {
       const to = f.data.to as PartState;
