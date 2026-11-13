@@ -29,7 +29,7 @@ const NARRATION = [
 ];
 
 /** a canned exchange of blows on the fake page: the player loses health and the right arm, and gains Block, XP and coin */
-function fightTurn(st: GameState): Partial<LogLine> {
+function fightTurn(st: GameState, out = 'heavy hit'): Partial<LogLine> {
   const p = st.player;
   p.core.condition.hpLostPct = Math.min(99, p.core.condition.hpLostPct + 35);
   p.core.condition.parts.right_arm = -10;
@@ -44,7 +44,8 @@ function fightTurn(st: GameState): Partial<LogLine> {
   if (shield) shield.pools = { ...shield.pools, shield: Math.min(40, (shield.pools?.shield ?? 100) - 60) };
   return {
     text: 'The slime rears and lashes down. You get the shield up late; the blow tears past it and something in your right arm gives with a wet crack. You answer anyway, a heavy cut that opens its side. It sags, steaming, and coins spill from its gut into the grass.',
-    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: 'heavy hit, body' },
+    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: `${out}, body`,
+      strike: { target: 'a slime', weapon: 'arming sword', changes: ['the slime is Wounded'] } }, // the strike card on Play
     incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your block', tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
     changes: [{ kind: 'combat', text: 'Slime → you · crushing hit, right arm' }, { kind: 'combat', text: 'You → slime · heavy hit, body' }, { kind: 'condition', text: 'Your right arm is crippled' }],
     wounds: [{ id: 'right_arm', from: 'healthy', to: 'crippled' }], gains: { [SK.block]: 2 }, coin: 15,
@@ -279,7 +280,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
-      const hurt = /^attack\b/i.test(text) ? fightTurn(state) : null;
+      // "attack" lands a heavy hit; "attack hard" a crushing one and "attack light" a full one, to show the strike card's tiers
+      const hurt = /^attack\b/i.test(text) ? fightTurn(state, /hard/i.test(text) ? 'crushing hit' : /light/i.test(text) ? 'full hit' : 'heavy hit') : null;
       // "travel" adds a road west of the village and sets you partway along it, to show your point on the road on the Map (TV7)
       if (/^travel\b/i.test(text)) {
         if (!state.places.some((x) => x.id === 'west_road')) {

@@ -89,6 +89,8 @@ export type LineCheck = {
   tier: Tier; beyond?: number;
   against?: { what: string; tier: Tier; beyond?: number }; // the defense or the other side of a contest, e.g. "its dodge"
   result: string; // "full hit, body", "you win the exchange"
+  /** the player's own attack: whom, with what, and what the player saw it change (the strike card on Play) */
+  strike?: { target: string; weapon: string | null; changes: string[] };
 };
 
 export type Notice =
