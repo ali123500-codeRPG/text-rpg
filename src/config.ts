@@ -71,20 +71,20 @@ const DEFAULTS = {
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
-  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (3: marks 1, 4, 7...).
+  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (2: marks 1, 3, 5...).
    * Infinity: one roll per skill per engagement. */
-  MARK_STACK_EVERY: 3,
+  MARK_STACK_EVERY: 2,
   /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
   SKILL_CAP: 100,
   /** EG16: a tagged skill's cap is SKILL_CAP plus this */
   TAG_CAP_BONUS: 25,
   /** a flawed skill's cap is SKILL_CAP minus this */
   FLAW_CAP_PENALTY: 25,
-  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder: 90 keeps
-   * the old speed through the human range, about one point a roll at raw 50) */
+  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder; with GROWTH_GAIN
+   * below, about two points a roll at raw 50) */
   GROWTH_ROLL_NEEDED: 90,
   /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
-  GROWTH_GAIN: { success: 1, great_success: 2, critical_success: 3 } as Partial<Record<Tier, number>>,
+  GROWTH_GAIN: { success: 3, great_success: 4, critical_success: 5 } as Partial<Record<Tier, number>>,
   /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
   GROWTH_GAIN_PAST_CRIT: 1,
   /** SG2 a: natural edges (01–05, 96–100) do not move the improvement roll's tier: no skill grows from the die face
