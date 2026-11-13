@@ -15,6 +15,7 @@ export type ItemDef = {
   stackable?: true;
   consumable?: true;
   concealed?: true;
+  hiddenAt?: import('./core').Tier; // SE9: worn concealed, a look over its wearer must beat this outcome tier to spot it (SE11)
   visible?: true;
   slot?: 'armor' | 'accessory';
   hands?: 1 | 2;
@@ -83,6 +84,8 @@ export type ItemInstance = {
   boundTo?: string; // D-218: a Threadbound item's owner (actor id)
   usedAt?: Record<string, number>; // D-218: game minute each active ability last fired, by perk id
   at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
+  hiddenAt?: import('./core').TierRoll; // SE8/SE9: lying hidden: a search must beat this outcome tier to find it (a tie gives a hint)
+  knownTo?: string[]; // SE8: who knows where a hidden item lies (its stasher, anyone who saw it stashed or found it)
 };
 
 export type GearOp = {

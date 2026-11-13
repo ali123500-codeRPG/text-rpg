@@ -1,15 +1,18 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, ContestResult, GameEvent, GameState, Order, Rng, RollResult, Zone } from '../types';
+import type { Actor, ActorView, ContestResult, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Zone } from '../types';
+import { TIERS } from '../scales';
+import { itemDef } from '../library';
+import { hiddenFrom } from '../engine/gear';
 import { CONFIG } from '../config';
 import { now, timeOfDay } from '../time';
 import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
-import { actorById, allActors, atLeast, isActive, isEngaged, sparring, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, fnRoller, tierLevel, usableModes, defaultMode, modeSkill, effectiveSkill } from '../ruleset';
 import { rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
-import { distM, seeingM, withinM } from '../engine/position';
+import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk } from '../ruleset/perks';
 import { bindTemplate, expandSteps, HEAD_TO, offeredRoutines, slotsRead } from './routines';
 import { SK, SENSE_SKILL } from '../library/skillIds';
@@ -285,7 +288,7 @@ export const searchAreaM2 = (a: Actor, skill: number): number =>
   Math.max(0, CONFIG.SEARCH_AREA_M2 * skill / CONFIG.SEARCH_AREA_SKILL_BASE * (1 + rewardSum(a, 'searchArea') / 100) + rewardSum(a, 'searchReach') * CONFIG.SEARCH_M2_PER_FIGHT_M);
 /** SE1/SE20: `h` is in what a search by `a` covers: the searcher's own area, all of it when it is no bigger than the search
  * area, else the search area around the searcher; a fight turn only area ÷ SEARCH_M2_PER_FIGHT_M metres around it (SA8 b) */
-function inSearch(state: GameState, a: Actor, h: Actor, area: number): boolean {
+function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean {
   if (h.zone !== a.zone) return false;
   if (state.mode === 'tactical') return withinM(distM(state, a, h), area / CONFIG.SEARCH_M2_PER_FIGHT_M);
   const z = zoneById(state, a.zone);
@@ -322,6 +325,51 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     else if (r.gap === 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'suspicious', event: at });
   }
   return won;
+}
+
+/** a sight function roll by `a` in the light at `at` (SE2: a search looks for things by sight) */
+function sightRoll(state: GameState, a: Actor, at: Zone | undefined, rng: Rng): RollResult {
+  return ruleset.roll({ actorId: a.id, skill: SENSE_SKILL[FN.sight], ...situational(state, fnRoller(state, a, FN.sight), { light: at, actor: a }), fn: FN.sight, rollKind: 'perception' }, state, rng);
+}
+/** SE8: one sight roll against every hidden ground item in reach that the searcher doesn't know of: beating an item's
+ * hidden-at tier finds it, the same tier only hints that something here was moved, below it nothing. Nothing hidden: no
+ * roll (SE6). */
+export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollResult; found: ItemInstance[]; hint: boolean } {
+  const z = zoneById(state, a.zone);
+  const area = searchAreaM2(a, senseSkill(state, a, FN.sight));
+  const hidden = (z?.groundItems ?? []).filter((i) => hiddenFrom(i, a) && inSearch(state, a, { zone: a.zone, ...(i.at ? { pos: i.at } : {}) }, area));
+  if (!hidden.length) return { found: [], hint: false };
+  const r = sightRoll(state, a, z, rng);
+  const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));
+  for (const i of found) (i.knownTo ??= []).push(a.id);
+  log(state, 'search_items', { actorId: a.id, tier: r.tier, hidden: hidden.length, found: found.length });
+  return { r, found, hint: !found.length && hidden.some((i) => tierLevel(r) === tierLevel(i.hiddenAt!)) };
+}
+/** SE11: patting someone down needs their consent or force: within grip reach of someone down, asleep, surrendered or
+ * held by the searcher */
+export const handsOn = (state: GameState, a: Actor, t: Actor): boolean =>
+  withinGrip(state, a, t) && (!isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id);
+/** what `a` has found of someone's gear ('item:<instance id>'): the player's journal, an NPC's belief */
+export const revealedTo = (a: Actor, about: string): string[] => (a.kind === 'player' ? a.journal?.revealed : a.mind?.knowledge[about]?.revealed) ?? [];
+/** SE11: searching a person. Hands-on finds all their gear, concealed and stowed, with no roll; anyone else is only looked
+ * over: one sight roll against each concealed item they wear, found when it beats the item's hidden-at tier. Nothing to
+ * find: no roll. What is found is revealed to the searcher. */
+export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { r?: RollResult; found: ItemInstance[] } {
+  const known = revealedTo(a, t.id);
+  const unknown = t.core.inventory.filter((i) => !known.includes(`item:${i.id}`));
+  let r: RollResult | undefined, found: ItemInstance[];
+  if (handsOn(state, a, t)) found = unknown.filter((i) => itemDef(state, i.itemId).concealed || !i.equippedIn?.length);
+  else {
+    const hidden = unknown.filter((i) => i.equippedIn?.length && itemDef(state, i.itemId).hiddenAt);
+    if (!hidden.length) return { found: [] };
+    const roll = r = sightRoll(state, a, zoneById(state, t.zone), rng);
+    found = hidden.filter((i) => tierLevel(roll) > TIERS.pos(itemDef(state, i.itemId).hiddenAt!));
+  }
+  for (const i of found) {
+    if (a.kind === 'player') ((a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never).revealed ??= []).push(`item:${i.id}`);
+    else updateBeliefs(state, { kind: 'reveal', observerId: a.id, aboutId: t.id, fact: `item:${i.id}` });
+  }
+  return { ...(r ? { r } : {}), found };
 }
 
 export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void {

@@ -18,6 +18,9 @@ export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
 }
 
+/** SE8: a hidden ground item `a` doesn't know of: out of its view and its reach until a search finds it */
+export const hiddenFrom = (i: ItemInstance, a: { id: string }): boolean => !!i.hiddenAt && !i.knownTo?.includes(a.id);
+
 /** FR2: where a pick-up op's item is: on a downed actor (their spot) or on the ground (its point; one placed with no point
  * lies at its zone's centre, as spotOf reads a spot with none) */
 export function pickUpAt(state: GameState, op: GearOp): Located | null {
@@ -88,11 +91,13 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         // FR2: within grip reach of where it lies (BG-85), on a downed actor or on the ground
         const at = pickUpAt(state, op);
         const list = !at || !withinGrip(state, actor, at) ? undefined : op.from ? actorById(state, op.from)!.core.inventory : zoneById(state, at.zone)?.groundItems;
-        const i = list?.findIndex((x) => x.id === op.item) ?? -1;
+        const i = list?.findIndex((x) => x.id === op.item && !hiddenFrom(x, actor)) ?? -1;
         if (list && i >= 0) {
           const [it] = list.splice(i, 1);
           delete it.equippedIn;
           delete it.at;
+          delete it.hiddenAt;
+          delete it.knownTo;
           actor.core.inventory.push(it);
           res.picked.push({ itemId: it.id, from: op.from });
           ok = true;

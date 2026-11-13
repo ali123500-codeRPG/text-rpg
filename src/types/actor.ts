@@ -218,6 +218,7 @@ export type NpcTemplate = {
 };
 
 export type Journal = {
+  revealed?: string[]; // SE11: others' concealed or stowed gear the player has found ('item:<instance id>'), as NPC beliefs' revealed
   secretsKnown: string[];
   factsWitnessed: FactId[];
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
