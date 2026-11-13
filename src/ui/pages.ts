@@ -534,6 +534,12 @@ export function journalPeople(s: GameState): { id: string; name: string; label: 
   });
 }
 
+/** the names the character has heard of people who weren't there (PlayerView.heardOf), less anyone already in People */
+export function heardOfNames(s: GameState, people = journalPeople(s)): string[] {
+  const known = new Set(people.map((p) => p.name.toLowerCase()));
+  return (safe(() => buildPlayerView(s))?.heardOf ?? []).filter((n) => !known.has(n.toLowerCase()));
+}
+
 /** Places: the current place and the places above it, and every place the character witnessed a fact about. */
 export function journalPlaces(s: GameState): { id: string; name: string; parent: string; facts: string[] }[] {
   const byId = new Map(s.places.map((p) => [p.id, p]));
@@ -563,6 +569,10 @@ export function journalPage(api: GameApi) {
     const pGroups: TGroup[] = ['In view', 'Not in view'].map((g) => ({ id: 'p-' + g, title: g,
       rows: people.filter((p) => p.where.startsWith(g)).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, label: p.label, where: p.where, health: p.health } })),
       combined: { label: '', where: g, health: '' } })).filter((g) => g.rows.length);
+    // names heard of someone who wasn't there (PlayerView.heardOf); one met since is listed above instead
+    const heard = heardOfNames(s, people);
+    if (heard.length) pGroups.push({ id: 'p-heard', title: 'Heard of', combined: { label: '', where: 'Never met', health: '' },
+      rows: heard.map((name, i) => ({ id: `heard:${i}`, sortKey: i, cells: { name, label: '–', where: 'Heard of, never met', health: '–' } })) });
     const parents = [...new Set(places.map((p) => p.parent))];
     const plGroups: TGroup[] = parents.map((par) => ({ id: 'pl-' + par, title: par === '–' ? 'Top level' : par,
       rows: places.filter((p) => p.parent === par).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, parent: p.parent, facts: p.facts.join(' ') || '–' } })),
@@ -577,7 +587,7 @@ export function journalPage(api: GameApi) {
     const sec = (title: string, note: string, table: HTMLElement) => h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), h('p', { class: 'hs-note' }, note)), table);
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
-      sec('People', 'A label until you learn the name. Health shows only from Wounded down.',
+      sec('People', 'A label until you learn the name. Health shows only from Wounded down. Heard of: names you have heard for people you have never met.',
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
           groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
       sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',
