@@ -40,6 +40,8 @@ export type Actor = {
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
   wares?: { items: string[]; services: string[] };
+  /** ES6 a: essences a seller bought and holds to sell on (it has no room, or no slots, to take them in) */
+  essenceStock?: HeldEssence[];
   /** PY6: price multipliers this actor won or lost haggling, by seller; cleared when its engagement ends */
   haggle?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
