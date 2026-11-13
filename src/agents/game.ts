@@ -85,6 +85,7 @@ const HELP_TEXT =
 
 /** NW18: a turn played while the player sleeps */
 export const ASLEEP_TEXT = '(asleep)';
+export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
 const ASLEEP_INTENT = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 
 export function createGame(deps: GameDeps): Game {
@@ -316,7 +317,7 @@ export function createGame(deps: GameDeps): Game {
     const ctx = ctxFor(s.turn, turnLog);
     const pv = views.buildPlayerView(s);
     // NW18: asleep, the turn passes with you doing nothing; nothing you type is read
-    const parsed = s.player.asleep ? { clarify: null, intent: ASLEEP_INTENT }
+    const parsed = s.player.asleep || s.mercy ? { clarify: null, intent: ASLEEP_INTENT } // D-239: down, likewise
       : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean) });
     if (parsed.clarify !== null || !parsed.intent) {
       // the turn stops: no resolution, turn unchanged, Planner outputs kept for this same turn
@@ -603,6 +604,7 @@ export function createGame(deps: GameDeps): Game {
       await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext);
       // NW18: while you stay asleep the game plays your turns, up to ASLEEP_AUTO_TURNS before it waits for you
       for (let i = 0; i < CONFIG.ASLEEP_AUTO_TURNS && state?.player.asleep && !stopped; i++) await playTurn(ASLEEP_TEXT, false);
+      if (state?.mercy && !stopped) await playTurn(DOWN_TEXT, false); // D-239: the foes answer while you lie there
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
       else throw e;
@@ -697,7 +699,7 @@ export function createGame(deps: GameDeps): Game {
     },
     busy: () => busy,
     scenarioEnding: () => endingNow,
-    fell: () => !!state && downNow(state.player),
+    fell: () => !!state && downNow(state.player) && !state.mercy, // D-239: not while a foe decides
     subscribe(cb) {
       subs.add(cb);
       return () => subs.delete(cb);
@@ -829,10 +831,10 @@ export function plannerActors(s: GameState): string[] {
   const dealt = (s.hidden.agreements ?? []).flatMap((g) => g.parties).filter((id) => id !== s.player.id && !s.pending.engaged.includes(id));
   const errand = (a: Actor) => (a.mind?.errandUntil ?? -Infinity) > s.turn; // BG-180: a deed it said it was doing, run by code or not
   const errands = s.actors.filter((a) => errand(a) && isActive(a)).map((a) => a.id);
-  return [...new Set([...s.pending.engaged, ...dealt, ...errands])]
+  return [...new Set([...(s.mercy?.pending ?? []), ...s.pending.engaged, ...dealt, ...errands])] // D-239: those deciding the player's fate
     .map((id) => s.actors.find((a) => a.id === id))
     .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep) // NW20: a sleeper is not asked
-    .sort((a, b) => (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
 }
 

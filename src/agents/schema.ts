@@ -130,20 +130,21 @@ const endAgreements = (v: unknown, p: string, e: string[]) => (v === undefined |
 const spar = nul(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel']));
 const yields = (v: unknown, p: string, e: string[]) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean;
 const acceptYield = yields;
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'acceptYield', 'headTo', 'lead'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'acceptYield' | 'headTo' | 'lead')[];
+const spare = yields; // D-239
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'acceptYield', 'spare', 'headTo', 'lead'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'acceptYield' | 'spare' | 'headTo' | 'lead')[];
 const headTo = nStr; // NW2
 const lead = nStr; // BF4
 const npcMove = nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after']));
-const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, headTo, lead }, ['move', ...MEMORY_KEYS]);
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, headTo, lead,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({
   action: npcAction, line: str, volume: VOLUME,
   shares: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-  gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, acceptYield, headTo, lead,
-}, ['agreement', 'questEnd', 'spar', 'yields', 'acceptYield', 'headTo', 'lead']);
+  gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, acceptYield, spare, headTo, lead,
+}, ['agreement', 'questEnd', 'spar', 'yields', 'acceptYield', 'spare', 'headTo', 'lead']);
 const narrator = obj<NarratorOutput>({
   text: (v, p, e) => {
     const s = str(v, p, e);

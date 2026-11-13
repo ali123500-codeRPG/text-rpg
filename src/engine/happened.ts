@@ -40,6 +40,7 @@ export function happenedLines(state: GameState, events: GameEvent[], defeated: A
       }
       case 'agreement_made': out.push(`deal made between ${names(d.parties)}`); break;
       case 'player_fell': out.push('the player went down'); break;
+      case 'player_spared': out.push('the player was spared'); break;
     }
   }
   return out;
