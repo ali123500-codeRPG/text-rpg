@@ -129,4 +129,28 @@ describe('272 carrying a world on', () => {
     applyGearOps(s, s.player, [{ op: 'wear_acc', item: 'loop' }]);
     expect(s.player.core.inventory.find((i) => i.id === 'loop')).toMatchObject({ boundTo: 'player', equippedIn: [expect.any(String)] });
   });
+
+  it('WP6 a: the foes who downed the one who fell loot the body before the newcomer arrives', () => {
+    const world = fallenWorld();
+    const [patron, trader] = ['patron_1', 'trader'].map((id) => world.actors.find((a) => a.id === id)!);
+    (patron.mind!.overrides ??= {})[world.player.id] = 'hostile'; // it downed them, in the same zone
+    world.player.core.inventory.push({ id: 'loop', itemId: IT.varos_loop, boundTo: world.player.id, equippedIn: ['acc:1'] });
+    const kit = world.player.core.inventory.map((i) => i.id);
+    const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
+    const [p, t, past] = [patron.id, trader.id, pastCharacterId('story_a')].map((id) => s.actors.find((a) => a.id === id)!);
+    expect(p.core.inventory.find((i) => i.itemId === IT.coin)?.qty).toBe(20); // all the coin
+    expect(p.core.inventory.map((i) => i.id)).toEqual(expect.arrayContaining(kit)); // and every thing of value, up to LOOT_TAKE_MAX
+    expect(p.core.inventory.find((i) => i.id === 'loop')).toMatchObject({ boundTo: past.id }); // the bond is a dead one's (WP2)
+    expect(p.core.inventory.every((i) => !i.equippedIn?.length || !kit.includes(i.id))).toBe(true);
+    expect(past.core.inventory).toEqual([]);
+    expect(t.core.inventory).toEqual([]); // not a foe: takes nothing
+  });
+
+  it('WP6 a: with no foe standing, everything stays on the body', () => {
+    const world = fallenWorld();
+    const kit = world.player.core.inventory.map((i) => i.id);
+    const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
+    expect(s.actors.find((a) => a.id === pastCharacterId('story_a'))!.core.inventory.map((i) => i.id)).toEqual(kit);
+  });
 });
+

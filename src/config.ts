@@ -416,6 +416,9 @@ const DEFAULTS = {
    * and a result below Success still gives ECHO_ESSENCE_FLOOR */
   ECHO_ESSENCE_TIERS: 2,
   ECHO_ESSENCE_FLOOR: 'common' as import('./scales').EssenceGradeKey,
+  /** WP6 a: when a world is carried on, each foe who downed its last character (standing, hostile, in that place) takes
+   * at most this many of the body's things, the most valuable first; coin goes whole to the first and isn't counted. Placeholder */
+  LOOT_TAKE_MAX: 6,
   /** EG2: room for essences = ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels (2 at 7, 3 at 14), no top */
   ESSENCE_SLOTS_BASE: 1,
   ESSENCE_SLOT_EVERY: 7,
