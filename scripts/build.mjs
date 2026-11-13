@@ -1,6 +1,8 @@
-// Bundles each page into its own folder in dist/: a tiny index.html shell plus app.js, app.css and assets/ (fonts and
-// the background picture). Publish the folder as ONE multi-file artifact: the shell is all a read-before-republish
-// loads, and assets/ only goes up on the first publish (files left out of a later publish are kept).
+// Bundles each page into its own folder in dist/: a tiny index.html shell plus app.js and assets/ (fonts and the
+// background picture). Publish the folder as ONE multi-file artifact: the shell is all a read-before-republish loads,
+// and assets/ only goes up on the first publish (files left out of a later publish are kept).
+// app.js puts the CSS in a <style> itself: older artifact runtimes (the play page's contract) don't apply a linked
+// stylesheet file, but do apply inline styles.
 // dist/play is the game; dist/library is the library viewer (src/ui/libraryViewer.ts).
 import { build } from 'esbuild';
 import { execSync } from 'node:child_process';
@@ -20,13 +22,17 @@ async function page(entry, title, dir) {
     define: { __BUILD__: JSON.stringify(BUILD) },
     logLevel: 'warning',
   });
-  const files = [];
-  for (const f of out.outputFiles) {
+  const files = ['app.js'];
+  for (const f of out.outputFiles.filter((f) => !/\.(js|css)$/.test(f.path))) {
     await mkdir(dirname(f.path), { recursive: true });
     await writeFile(f.path, f.contents);
     files.push(relative(outdir, f.path));
   }
-  // The ?v= stamp makes each build's app files a new URL, so a republish never runs against a cached old bundle.
+  const pick = (ext) => out.outputFiles.filter((f) => f.path.endsWith(ext)).map((f) => f.text).join('\n');
+  const css = pick('.css'), js = pick('.js');
+  const style = `document.head.appendChild(Object.assign(document.createElement('style'),{textContent:${JSON.stringify(css)}}));`;
+  await writeFile(`${outdir}/app.js`, style + '\n' + js);
+  // The ?v= stamp makes each build's app.js a new URL, so a republish never runs against a cached old bundle.
   const v = BUILD.sha;
   const html = `<!doctype html>
 <html lang="en">
@@ -34,7 +40,6 @@ async function page(entry, title, dir) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
-<link rel="stylesheet" href="app.css?v=${v}">
 </head>
 <body>
 <script src="app.js?v=${v}"></script>
