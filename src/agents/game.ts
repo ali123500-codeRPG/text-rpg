@@ -2,7 +2,7 @@
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import { gripWord } from '../ruleset/gear';
-import { coins, countWords } from '../engine/trade';
+import { coinWords, coins, countWords } from '../engine/trade';
 import { moraleLevel } from '../ruleset/morale';
 import { IT } from '../library/itemIds';
 import type { AgentName, StoryOwner, TierRoll,
@@ -543,12 +543,23 @@ export function createGame(deps: GameDeps): Game {
         if (verb === 'take') return done(engine.takeEssence(s, n(a1), engine.playerAtRest(s), a3 !== undefined ? n(a3) : undefined), 'Taken. It is part of you now.');
         if (verb === 'pass') return done(engine.passEssence(s, n(a1)), 'You let it go.');
         if (verb === 'remove') return done(engine.removeEssence(s, n(a1), engine.playerAtRest(s)), 'Gone, and it cost you: one level\'s worth of XP.');
+        // ES1–ES6: give or sell an offer to someone you can see, by name ("/essence give 1 to Marta", "/essence sell 1 Mags")
+        if (verb === 'give' || verb === 'sell') {
+          const pv = views.buildPlayerView(s);
+          const who = arg.split(/\s+/).slice(2).join(' ').replace(/^to\s+/i, '').trim().toLowerCase();
+          const id = who ? pv.actors.find((x) => (x.name ?? x.label).toLowerCase() === who)?.id ?? pv.actors.find((x) => (x.name ?? x.label).toLowerCase().includes(who))?.id : undefined;
+          const to = id ? s.actors.find((x) => x.id === id) : undefined;
+          if (!to) return say(`Whom to? Type /essence ${verb} ${a1 ?? '1'} to and a name you can see.`);
+          if (verb === 'give') return done(engine.giveEssence(s, n(a1), to), `It passes to ${seenName(pv, to.id)}.`);
+          const r = engine.sellEssence(s, n(a1), to);
+          return say('error' in r ? r.error : `Sold to ${seenName(pv, to.id)} for ${coinWords(r.price)}.`);
+        }
         const offers = pr?.essenceOffers ?? [], held = pr?.essences ?? [];
         return say([
           `Essences: ${held.length} of ${engine.essenceSlots(s.player)} slots.`,
           ...held.map((e, i) => `${i + 1}. ${engine.essenceText(e, skillName)}`),
           ...(offers.length ? ['On offer:', ...offers.map((o, i) => `${i + 1}. ${engine.essenceText(o, skillName)}, until turn ${o.until}`)] : ['Nothing on offer.']),
-          'Type /essence take 1 (with every slot full: /essence take 1 give 2), /essence pass 1, or /essence remove 1 (at rest; costs one level of XP).',
+          'Type /essence take 1 (with every slot full: /essence take 1 give 2), /essence pass 1, /essence give 1 to a name, /essence sell 1 to a name, or /essence remove 1 (at rest; costs one level of XP).',
         ].join('\n'));
       }
       case 'yield':

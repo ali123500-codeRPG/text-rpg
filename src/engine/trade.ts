@@ -82,7 +82,7 @@ export function applyHaggle(buyer: Actor, seller: Actor, contest: ContestResult)
 }
 
 /** moves n of the buyer's coin into the seller's purse (both stacks merge by item id) */
-function payCoin(from: Actor, to: Actor, n: number): void {
+export function payCoin(from: Actor, to: Actor, n: number): void {
   for (const i of from.core.inventory.filter((x) => x.itemId === IT.coin)) {
     if (!n) break;
     const take = Math.min(n, i.qty ?? 1);
@@ -167,7 +167,13 @@ export function sellPrice(state: GameState, owner: Actor, seller: Actor, itemId:
   if (itemId === IT.coin || !buysKind(state, seller, itemId)) return null;
   const value = itemValue(state, itemId);
   if (value <= 0) return null; // SL8: worthless items (improvised weapons) can't be sold
-  const h = owner.haggle?.[seller.id];
+  return buyingPrice(owner, seller, value);
+}
+
+/** SL1/SL4: what a buyer pays the owner for something worth `value`: SELL_SHARE of it, moved by haggling and Hard Bargain.
+ * Items and essences (ES6 a) both sell through this one equation. */
+export function buyingPrice(owner: Actor, buyer: Actor, value: number): number {
+  const h = owner.haggle?.[buyer.id];
   const mult = CONFIG.SELL_SHARE * (h === undefined ? 1 : 2 - h) * (hasPerk(owner, PK.haggler) ? CONFIG.HARD_BARGAIN_SELL : 1);
   return Math.max(1, Math.floor(value * mult + 1e-9));
 }

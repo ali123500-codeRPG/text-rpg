@@ -365,6 +365,9 @@ const DEFAULTS = {
   ESSENCE_SLOT_EVERY: 7,
   /** an offer waits this many turns (or until a new scenario starts) */
   ESSENCE_OFFER_TURNS: 10,
+  /** ES5 a: an essence's coin value = its points × ITEM_VALUE.skillPoint × this (its points are permanent true skill, gear's
+   * only last while worn; placeholder) */
+  ESSENCE_VALUE_MULT: 10,
   /** EG3 b + EG15 b: removing a held essence (at rest) costs this many levels' worth of XP; the bar may go into debt */
   ESSENCE_REMOVE_LEVELS: 1,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */

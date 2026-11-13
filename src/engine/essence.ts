@@ -11,10 +11,15 @@ import { trueSkill } from '../ruleset/perks';
 import { tierMult } from '../ruleset/gear';
 import { charLevel, power, tally, xpToNext } from './xp';
 import { logCode } from './effects';
-import { isEngaged } from './relations';
+import { isActive, isEngaged, wary } from './relations';
+import { canSpeak } from '../ruleset/body';
 import { threatHere } from './resolve';
 import { dealRolls } from './growth';
 import { fireEssenceAuto } from '../ruleset/threadboundItems';
+import { buyingPrice, coins, isSeller, orderReaches, payCoin } from './trade';
+import { gripReachM } from '../ruleset/body';
+import { withinGrip } from './position';
+import { applyMemoryOps } from './memory';
 
 /** EG2: how many essences the player can hold: ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels, no top */
 export const essenceSlots = (a: Actor): number => CONFIG.ESSENCE_SLOTS_BASE + Math.floor(charLevel(a) / CONFIG.ESSENCE_SLOT_EVERY);
@@ -182,4 +187,55 @@ export function passEssence(state: GameState, offerIndex: number): string | null
 export function essenceText(e: HeldEssence, skillName: (id: string) => string): string {
   const row = getLibrary().essences?.[e.essence];
   return `${row?.name ?? e.essence} (${ESSENCE_GRADES.name(e.grade)}): ${Object.entries(e.points).map(([k, v]) => `${skillName(k)} +${v}`).join(', ')}`;
+}
+
+/** ES5 a: an essence's coin value: its points at the gear skill-point rate (SL12 b) × ESSENCE_VALUE_MULT */
+export const essenceValue = (e: { points: Record<string, number> }): number =>
+  Math.round(Object.values(e.points).reduce((n, v) => n + v, 0) * CONFIG.ITEM_VALUE.skillPoint * CONFIG.ESSENCE_VALUE_MULT);
+
+/** ES3 a: who can take an essence in: someone with a progression record (the player, unique NPCs), with a free slot */
+const hasRoom = (a: Actor): boolean => !!a.progression && (a.progression.essences?.length ?? 0) < essenceSlots(a);
+
+/** ES1 a/ES2 a: an offer leaves the player and goes straight to `to`: into their slots, or (a seller with no room) their stock */
+function handOver(state: GameState, offerIndex: number, to: Actor, how: 'given' | 'sold', price?: number): void {
+  const pr = state.player.progression!, o = pr.essenceOffers![offerIndex];
+  pr.essenceOffers!.splice(offerIndex, 1);
+  if (!pr.essenceOffers!.length) delete pr.essenceOffers;
+  const { source: _s, until: _u, ...e } = o;
+  const held = { ...e, turn: state.turn } as HeldEssence;
+  if (hasRoom(to)) (to.progression!.essences ??= []).push(held);
+  else (to.essenceStock ??= []).push(held);
+  const name = getLibrary().essences?.[o.essence]?.name ?? o.essence;
+  applyMemoryOps(state, to, { add: [how === 'given' ? `${state.player.names.current} gave me an essence, ${name}.` : `I bought an essence, ${name}, from ${state.player.names.current} for ${price} coin.`], drop: [] });
+  logCode(state, how === 'given' ? 'essence_given' : 'essence_sold', { essence: o.essence, grade: o.grade, to: to.id, ...(price !== undefined ? { price } : {}) });
+}
+
+/** ES4 a: give an offer to someone within reach; one with room takes it in, with no yes needed. Returns an error, or null. */
+export function giveEssence(state: GameState, offerIndex: number, to: Actor | undefined): string | null {
+  const p = state.player;
+  if (!p.progression?.essenceOffers?.[offerIndex]) return 'There is no such offer.';
+  if (!to || to === p || !isActive(to)) return 'There is no one here to give it to.';
+  if (!withinGrip(state, p, to, gripReachM(state, to))) return `${to.names.current} is out of reach.`;
+  if (!hasRoom(to)) return `${to.names.current} has no room to take it in.`;
+  handOver(state, offerIndex, to, 'given');
+  return null;
+}
+
+/** ES6 a: sell an offer to a seller (who may hold it to sell on) or to a unique NPC with room, at the buying price for its value
+ * (one equation with items: trade.ts buyingPrice, haggling included). Returns the price, or an error. */
+export function sellEssence(state: GameState, offerIndex: number, buyer: Actor | undefined): { price: number } | { error: string } {
+  const p = state.player, o = p.progression?.essenceOffers?.[offerIndex];
+  if (!o) return { error: 'There is no such offer.' };
+  if (!buyer || buyer === p || !isActive(buyer)) return { error: 'There is no one here to sell it to.' };
+  const who = buyer.names.current;
+  if (!orderReaches(state, p, buyer)) return { error: canSpeak(state, p) ? `${who} can't hear you from here.` : `${who} is out of reach.` };
+  if (!isSeller(buyer) && !buyer.progression) return { error: `${who} doesn't buy essences.` };
+  if (!isSeller(buyer) && !hasRoom(buyer)) return { error: `${who} has no room to take it in.` };
+  if (wary(state, buyer, p)) return { error: `${who} won't deal with you.` };
+  const price = buyingPrice(p, buyer, essenceValue(o));
+  if (coins(buyer) < price) return { error: `${who} can't pay ${price} coin for it.` };
+  payCoin(buyer, p, price);
+  tally(state, 'coin_earned', { add: price });
+  handOver(state, offerIndex, buyer, 'sold', price);
+  return { price };
 }
