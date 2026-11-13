@@ -10,7 +10,7 @@ import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/mor
 import { bestReward } from '../ruleset/achRewards';
 import { parryItem, rollFnSkills } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { busyNow } from './busy';
@@ -18,7 +18,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { distM, distOrNull, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -205,10 +205,12 @@ type Ctx = {
   parryStrikes: Set<string>; // PA4: a parry's free strike back, once per round (AT50), keyed by roundKey
   /** AT56: the player's rest or wait outside a fight: the world clock runs it at the end of the turn (runStretch) */
   stretch?: Stretch;
+  /** TV1: the player's move this turn was a trip along a road (its own stops: nightfall, an encounter) */
+  travelled?: boolean;
 };
 /** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
  * soon the player is ready, AT67), and the event its outcome goes on */
-type Stretch = { kind: 'rest' | 'wait'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop };
+type Stretch = { kind: 'rest' | 'wait' | 'walk'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order };
 type StretchStop = NearStop | { why: 'fight'; by: string[] };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -826,6 +828,37 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, ev);
 }
 
+/** AT45/AT49: the player's walk, one stretch step of `seconds` at a walk; true once it is there or can go no further */
+function walkStep(ctx: Ctx, o: Order, seconds: number): 'there' | 'blocked' | null {
+  const { state } = ctx;
+  const p = state.player;
+  const { goal, opts } = moveGoal(state, p, o);
+  const was = { zone: p.zone, pos: p.pos && { ...p.pos } };
+  const from = ctx.events.length;
+  const ok = walk(ctx, p, goal, o, (n) => (n === 0 ? { paid: 'move', seconds, pool: 'none' } : null), opts);
+  if (foundShut(ctx.events.slice(from), p)) return 'blocked';
+  const moved = p.zone !== was.zone || (!!p.pos && !!was.pos && distM(state, p, { zone: p.zone, pos: was.pos }) > 0.01);
+  return walkThere(state, p, o) ? 'there' : !ok || !moved ? 'blocked' : null;
+}
+/** BG-69: the walker found a way shut (barred, locked, stuck): the walk ends there, for the player to choose again */
+const foundShut = (events: GameEvent[], a: Actor): boolean => events.some((e) => e.actorId === a.id && e.kind === 'way' && !!e.way?.did.startsWith('found_'));
+/** the walk's goal reached: in its zone, and at its spot when it names one */
+function walkThere(state: GameState, a: Actor, o: Order): boolean {
+  const { goal, opts } = moveGoal(state, a, o);
+  return a.zone === goal.zone && (!goal.pos || withinM(distM(state, a, goal), opts.stopShort ?? 0));
+}
+/** the move to carry on (AT49), as the Parser gave it */
+const walkOf = (o: Order): NonNullable<Actor['walking']> => ({ toZone: o.move!, ...(o.moveSpot ? { spot: o.moveSpot } : {}), ...(o.jump ? { jump: true } : {}) });
+/** AT49: a walk carries on while the player orders neither a move nor an action (words are said on the way); anything
+ * else stops it */
+function carryOnWalk(state: GameState, intent: Intent | null): Intent | null {
+  const p = state.player;
+  if (!p.walking || !intent) return intent;
+  if (!intent.move && (!intent.action || isSpeech(intent.action.type))) return { ...intent, move: p.walking };
+  delete p.walking;
+  return intent;
+}
+
 /** AT55/AT63/AT66: in a stretch of time, NPCs after someone (engaged or hunting: catchUp leaves them alone) follow their
  * fallback orders on code, with no Planner calls. Seeing whom they are after tells them where they are; a move or a search
  * walks toward that zone at a run (a dash, as a turn with no action); an attack walks up to the target and, in reach,
@@ -878,11 +911,12 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   const fightStop = (): StretchStop | null => (fightInSenses(state) ? { why: 'fight', by: [] } : null);
   let stop: StretchStop | null = contact(p, ctx.events) ?? fightStop();
   let ran = 0;
-  let fighting = false;
+  let fighting = false, walkEnd: 'there' | 'blocked' | null = null;
   for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
     const step = Math.min(stepS(state, watch), fighting ? CONFIG.ROUND_S : Infinity, st.seconds - ran);
     const before = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }]));
     const from = ctx.events.length;
+    if (st.walk) { walkEnd = walkStep(ctx, st.walk, step); if (walkEnd) { ran += step; break; } } // AT45: there, or blocked
     passTime(state, step / 60);
     catchUp(state, step / 60, first, onLeg); // the turn's own walks count once
     if (first) state.scratch!.agentRun = []; // AT63: an agent's order covers the first step; then everyone runs on code
@@ -898,7 +932,11 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     st.ev.effects.push({ kind: 'stopped', actorId: p.id, data: { why: stop.why, by: stop.by, seconds: Math.round(ran) } });
     logCode(state, 'stretch_stopped', { actorId: p.id, kind: st.kind, why: stop.why, by: stop.by, seconds: Math.round(ran) });
   }
-  if (st.kind === 'rest') {
+  if (st.kind === 'walk') {
+    if (st.walk && !walkEnd) p.walking = walkOf(st.walk); // AT49: stopped on the way, it carries on next turn
+    else delete p.walking;
+    if (ran > 0) logCode(state, 'walked_on', { actorId: p.id, seconds: Math.round(ran), arrived: !!st.walk && walkThere(state, p, st.walk) });
+  } else if (st.kind === 'rest') {
     const share = st.seconds > 0 ? Math.min(1, ran / st.seconds) : 1;
     if (share > 0) {
       const row = restRow(state, p);
@@ -1348,7 +1386,7 @@ function step(ctx: Ctx, id: string): void {
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
   // TV1: a move along a road with nothing else going on is a trip, walked in one turn
   const trip = tripGoal(state, a, o);
-  if (trip) return doTravel(ctx, a, o, trip);
+  if (trip) { if (a === state.player) ctx.travelled = true; return doTravel(ctx, a, o, trip); }
   // AE1/ZP3/AT19: a shot or a throw that locks movement takes its seconds of move time too. One that reaches from here takes
   // that move time first, and the move goes only on what is left; one that doesn't is dropped and the move stands
   let cost = orderCost(state, a, o);
@@ -1747,7 +1785,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const fired = input.fired ?? firedOrders(state);
   (state.scratch.agentRun as string[]).push(...fired.map((o) => o.actorId)); // BG-151: a trigger's order moved them too
   const orders = mergeOrders(state, input, views, fired, rng);
-  const playerOrder = isAsleep(state.player) ? asleepOrder(state.player) : fromIntent(state, input.intent, input.aimed); // NW18: asleep, your turn passes
+  const playerOrder = isAsleep(state.player) ? asleepOrder(state.player) : fromIntent(state, carryOnWalk(state, input.intent), input.aimed); // NW18: asleep, your turn passes
   const imp = input.intent?.action?.improvised;
   if (imp && playerOrder.type === 'attack' && !playerOrder.item && isActive(state.player)) {
     // loot L3: the grabbed object is minted and drawn (swap stows held weapons) before the attack
@@ -1874,8 +1912,23 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
     emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
   } : undefined;
+  // AT45/AT46: outside a fight a walk is one turn whatever its length: what the turn's move time left, the world clock walks
+  if (!ctx.stretch && !ctx.travelled && state.mode !== 'tactical' && isActive(state.player) && playerOrder.move && !playerOrder.way && ctx.acted.has(state.player.id)
+    && !walkThere(state, state.player, playerOrder) && !foundShut(ctx.events, state.player)) {
+    const p = state.player, { goal } = moveGoal(state, p, playerOrder), walkS = moveSpeed(state, p).walk, m = distOrNull(state, p, goal);
+    if (m !== null && walkS > 0) { // an old map's zone with no rectangle: the turn's own walk only
+      const ev = [...ctx.events].reverse().find((e) => e.actorId === p.id) ?? mk(ctx, p, 'hold');
+      if (!ctx.events.includes(ev)) emit(ctx, ev);
+      ctx.stretch = { kind: 'walk', seconds: (m / walkS) * 2 + CONFIG.STEP_MAX_S, pose: 'standing', ev, walk: playerOrder };
+    }
+  } else if (state.mode === 'tactical' && playerOrder.move && !playerOrder.way && !ctx.travelled && isActive(state.player)) {
+    // AT49: in a fight a walk not yet at its goal carries on next turn by itself
+    if (walkThere(state, state.player, playerOrder) || foundShut(ctx.events, state.player)) delete state.player.walking;
+    else state.player.walking = walkOf(playerOrder);
+  } else if (!playerOrder.move) delete state.player.walking;
   const stretch = state.mode !== 'tactical' && isActive(state.player) ? ctx.stretch : undefined;
-  if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest or wait runs on the world clock, step by step
+  if (stretch?.kind === 'walk') passTime(state, slotsOf(ctx, state.player).walkedS / 60); // the turn's own walk came first
+  if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest, a wait or a walk runs on the world clock, step by step
   else passTime(state, state.mode === 'tactical' ? ctx.turnS / 60 : turnMinutes(state, playerOrder)); // T1/AT13: every turn costs its action's time
   const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
   const long = !!stretch || catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
