@@ -11,7 +11,8 @@ import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG } from '../config';
-import { now, timeOfDay, timeView } from '../time';
+import { clockText, durationText, now, timeOfDay, timeView } from '../time';
+import { outcomeText } from '../ruleset/hits';
 import { HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
@@ -43,8 +44,8 @@ import { fileBug, isBugCode, openBugs } from '../save/bugs';
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
 /**
- * Scenario setup and stage extension (W6, src/scenario/director.ts, not built yet). The minimal surface the pipeline needs;
- * W6 makes its Weaver calls through callWeaver with the ctx handed in.
+ * Scenario setup and stage extension (W6, src/scenario/director.ts). The minimal surface the pipeline needs; the director
+ * makes its Weaver calls through callWeaver with the ctx handed in.
  */
 export interface ScenarioDirector {
   /** story start (turn 0): place the player, event roll, Weaver, apply plan or fallback stage; returns the opening events */
@@ -99,6 +100,11 @@ export function createGame(deps: GameDeps): Game {
   let lastDisplayAt = clock.now();
   let turnLog: AgentTurnLog[] = [];
   let lastLog: AgentTurnLog[] = [];
+  let backups: { turn: number; path: string }[] = []; // the GM view's list, read again after each save
+  /** BG-123: the GM view's backups list, newest first; read in the background so the view stays synchronous */
+  const refreshBackups = (storyId: string) => {
+    void Promise.resolve().then(() => save.listBackups(store, storyId)).then((b) => { if (state?.storyId === storyId) { backups = b; emit(); } }).catch(() => {});
+  };
   let background = new Map<string, Background>();
   const subs = new Set<() => void>();
   const emit = () => subs.forEach((cb) => cb());
@@ -394,6 +400,7 @@ export function createGame(deps: GameDeps): Game {
       // committed: the head was written and only cleanup or backups failed, so the turn is saved
       if (!err.committed) notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` });
     }
+    refreshBackups(s.storyId);
     reportFallbacks(s, turnLog);
     // every bug code logged this turn (an "other" quest goal, QT27, among them) is filed for the build threads
     fileLogBugs(s);
@@ -405,8 +412,9 @@ export function createGame(deps: GameDeps): Game {
     const narrLog = turnLog;
     // D-226: the turn that ended a scenario carries its gains summary, and then not the same achievements, unlocks and levels again
     const scenarioGains = rec.ended ? scenarioGainsNow(s) : undefined;
-    const { achievements: _a, unlocks: _u, levelUps: _l, ...notesRest } = turnNotes(s);
-    const notes = scenarioGains ? { ...notesRest, scenarioGains } : turnNotes(s);
+    const allNotes = turnNotes(s);
+    const { achievements: _a, unlocks: _u, levelUps: _l, ...notesRest } = allNotes;
+    const notes = scenarioGains ? { ...notesRest, scenarioGains } : allNotes;
     // shown again after a reload: what the turn changed in the gear, and where the player ended it
     const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
     // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)
@@ -586,7 +594,7 @@ export function createGame(deps: GameDeps): Game {
     const now = clock.now();
     const storyId = `story_${now.toString(36)}`;
     const seed = (now >>> 0) || 1;
-    state = newState(storyId, seed, { ...createPlayer(build, storyId), placeId: 'tavern' /* the first build starts in the village tavern (Story start) */ }, new Date(now).toISOString());
+    state = newState(storyId, seed, { ...createPlayer(build, storyId), placeId: CONFIG.STORY_START_PLACE }, new Date(now).toISOString());
     state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
     if (owner === 'agent') state.meta.owner = 'agent'; // the autopilot's own save: one story per owner
     lines = [];
@@ -640,6 +648,8 @@ export function createGame(deps: GameDeps): Game {
     lines = await save.loadHistory(store, storyId).catch(() => []);
     savedLines = lines.length;
     turnLog = [];
+    backups = [];
+    refreshBackups(storyId);
     advance();
     lastDisplayAt = clock.now();
     emit();
@@ -699,6 +709,7 @@ export function createGame(deps: GameDeps): Game {
       }
       state = null;
       lines = [];
+      backups = [];
       savedLines = 0;
       notices = notices.filter((n) => n.kind === 'stop_play');
       turnLog = [];
@@ -712,10 +723,30 @@ export function createGame(deps: GameDeps): Game {
       agentLog: lastLog,
       log: state?.log ?? [],
       fallbackBanner: !!(state?.stage.fallback || state?.stage.routineFallback),
-      backups: [], // GAP: the save contract has no backup listing yet
+      backups,
     }),
-    async restoreBackup() {
-      throw new Error('restore is not available: the save module exposes no restore yet'); // GAP (W1)
+    /** BG-123: the GM view's Restore: the save checks the backup, writes a new head on it and keeps the current head as the
+     * safety bookmark; play goes on from the restored turn, as after /undo */
+    async restoreBackup(turn) {
+      const s = state;
+      if (!s || busy) return;
+      busy = true;
+      emit();
+      try {
+        abortBackground();
+        state = (await save.restoreBackup(store, s.storyId, turn, getLibrary())).state;
+        refreshCopies(state);
+        advance();
+        lastDisplayAt = clock.now();
+        lines.push({ turn: state.turn, kind: 'command', text: `Restored the backup from turn ${turn}.` });
+      } catch (e) {
+        notice({ kind: 'load_refused', text: `The backup could not be restored: ${(e as Error).message}` });
+      } finally {
+        busy = false;
+        endingNow = null;
+        refreshBackups(s.storyId);
+        emit();
+      }
     },
     // GAP: a pick lives in memory until the next turn is played and saved; a reload before then drops it (K3 keeps it undoable till then)
     takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); emit(); } },
@@ -1063,7 +1094,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
       const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${tierName(a.defense)}${mods(a.defense.modifiers)}` : '';
       const where = part(a);
       out.push(`${name(a.attackerId)} → ${a.targetId === me ? 'you' : name(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
-        `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${a.outcome.replace(/_/g, ' ')}${where ? ` (${where})` : ''}${a.damage ? `, damage ${num(a.damage)}` : ''}`);
+        `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${outcomeText(a.outcome)}${where ? ` (${where})` : ''}${a.damage ? `, damage ${num(a.damage)}` : ''}`);
     } else if (e.contest) {
       const c = e.contest;
       if ((sense(c.a.skill) || sense(c.b.skill)) && (unseen(c.a.actorId) || unseen(c.b.actorId))) continue;
@@ -1119,24 +1150,22 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (l.turn !== turn || l.code !== 'travelled') continue;
     const d = l.detail as { actorId: string; metres: number; pace: string; night: boolean; stop: string };
     if (d.actorId !== s.player.id) continue;
-    out.push(`Travelled ${d.metres >= 1000 ? `${Math.round(d.metres / 100) / 10} km` : `${d.metres} m`} at a ${d.pace} pace${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
+    out.push(`Travelled ${views.distText(d.metres)} at a ${d.pace} pace${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
   }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'time_passed') continue;
-    const m = Math.round((l.detail as { minutes: number }).minutes);
     const t = timeView(s);
-    out.push(`Time passes: ${[Math.floor(m / 60) ? `${Math.floor(m / 60)} h` : '', m % 60 ? `${m % 60} min` : ''].filter(Boolean).join(' ')} (Day ${t.day} · ${t.timeOfDay})`);
+    out.push(`Time passes: ${durationText((l.detail as { minutes: number }).minutes)} (Day ${t.day} · ${t.timeOfDay})`);
   }
   // NW15/NW18: the night watch, and what woke you
-  const clockAt = (m: number) => { const d = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`; };
   for (const l of s.log) {
     if (l.turn !== turn) continue;
     const d = l.detail as { actorId: string; why?: string; watches?: { actorId: string; from: number; to: number }[] };
     if (d.actorId !== s.player.id) continue;
     if (l.code === 'night_started' && d.watches?.length) {
       const i = d.watches.findIndex((w) => w.actorId === s.player.id);
-      out.push(`Night watch: ${d.watches.length} watches; yours is ${clockAt(d.watches[i].from)} to ${clockAt(d.watches[i].to)}`);
+      out.push(`Night watch: ${d.watches.length} watches; yours is ${clockText(d.watches[i].from)} to ${clockText(d.watches[i].to)}`);
     } else if (l.code === 'woke') {
       const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: `you hear someone come (${getLibrary().perks[LIGHT_SLEEPER]?.name ?? 'Light Sleeper'})`, rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
       out.push(`Awake: ${why}`);
