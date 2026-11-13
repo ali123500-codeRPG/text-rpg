@@ -6,7 +6,7 @@ import { GRADES } from '../types/core';
 import { CONFIG } from '../config';
 import { CLASS_TIERS, GRADE_LEVELS, LIFE_STAGES, SKILL_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
-import { MARGIN_BANDS, ladder, naturalEdge, pickSeconds, rollMargin, stackType, tierOf } from './index';
+import { ladder, naturalEdge, pickSeconds, rollMargin, stackType, tierOf } from './index';
 import { MILESTONES } from './perks';
 import { growthRoll, learningWindow } from './improve';
 import { tierMult } from './gear';
@@ -83,10 +83,10 @@ export function equations(lib: Library): EquationGroup[] {
         notes: [`Example: d100 ${ex.d}, effective skill ${ex.eff}, no modifiers → margin ${n(exMargin)} → ${TIERS.name(TIERS.at(exLevel))}.`] },
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
         formula: 'tier = band of the margin + unlocked extra bands + natural edge + tier shifts',
-        table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
+        table: { head: ['Tier', 'Margin'], rows: bandRows(CONFIG.MARGIN_BANDS) },
         terms: [['natural edge', `${edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')} (CONFIG.NATURAL_EDGE at each end); never more than one tier`], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
         notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).',
-          `Unlocked extra bands (D-211): each tier past Critical Success a perk or achievement opens for this kind of roll (tierUnlocks) adds a band ${n(CONFIG.TIER_EXTRA_BAND)} wider past the end, so Critical Success+ is reached from margin ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + CONFIG.TIER_EXTRA_BAND)} and Critical Success++ from ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + 2 * CONFIG.TIER_EXTRA_BAND)}; each tier below Critical Failure opened adds one below ${n(MARGIN_BANDS[0] - CONFIG.TIER_EXTRA_BAND)}, and so on. Without an unlock the table above is the whole table.`] },
+          `Unlocked extra bands (D-211): each tier past Critical Success a perk or achievement opens for this kind of roll (tierUnlocks) adds a band ${n(CONFIG.TIER_EXTRA_BAND)} wider past the end, so Critical Success+ is reached from margin ${n(CONFIG.MARGIN_BANDS[CONFIG.MARGIN_BANDS.length - 1] + CONFIG.TIER_EXTRA_BAND)} and Critical Success++ from ${n(CONFIG.MARGIN_BANDS[CONFIG.MARGIN_BANDS.length - 1] + 2 * CONFIG.TIER_EXTRA_BAND)}; each tier below Critical Failure opened adds one below ${n(CONFIG.MARGIN_BANDS[0] - CONFIG.TIER_EXTRA_BAND)}, and so on. Without an unlock the table above is the whole table.`] },
       { name: 'Chance by effective skill', at: 'tierOf · src/ruleset/index.ts',
         formula: '% of d100 results that reach each tier, no modifiers',
         table: { head: ['Effective skill', 'Near Miss or better', 'Success or better', 'Great Success or better', 'Critical Success'],
@@ -116,7 +116,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Event roll (no skill)', at: 'eventRoll · src/ruleset/index.ts',
         formula: `margin = d100 ${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.EVENT_BASE - 100)} + modifiers`,
         terms: [[`${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.EVENT_BASE - 100)}`, `event base ${CONFIG.EVENT_BASE} (CONFIG.EVENT_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
-        table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
+        table: { head: ['Tier', 'Margin'], rows: bandRows(CONFIG.MARGIN_BANDS) },
         notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.', `The tier stops at Critical Success and Critical Failure unless perks or achievements open tiers past them (tierUnlocks, added up along a chain). Each tier opened above widens the natural critical range by ${CONFIG.EVENT_CRIT_NATURALS} (CONFIG.EVENT_CRIT_NATURALS): with one opened, d100 ${101 - CONFIG.EVENT_CRIT_NATURALS}–100 is Critical Success+ and ${101 - 2 * CONFIG.EVENT_CRIT_NATURALS}–${100 - CONFIG.EVENT_CRIT_NATURALS} Critical Success; with two, the next ${CONFIG.EVENT_CRIT_NATURALS} below that is Critical Success too and the top tier is ++. Tiers opened below work the same from 01 up.`, 'Threadbound perks (D-218) widen it both ways without moving its middle: eventEdges shifts that many naturals just inside each critical range a tier outward; eventSpread counts the die that many times as far from 50.5 (modifiers unchanged); an armed active rolls two dice and keeps the one farther from 50.5, or makes 51–100 Critical Success and 01–50 Critical Failure.'] },
       { name: 'Picking a lock', at: 'doPick · src/engine/resolve.ts; pickSeconds · src/ruleset/index.ts',
         formula: `a Lockpicking function roll (Lockpicking, or Filching at ${n(CONFIG.SUBSTITUTES[FN.lockpicking][0].k)}; lockpicks in use add theirs) + the lock's grade; time = ${n(pickSeconds(50))} s (the Action times pick_lock row) × 2^((50 − effective) ÷ ${n(CONFIG.PICK_HALVING_PER)})`,
@@ -152,7 +152,8 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Damage multiplier', at: 'ladder · src/ruleset/index.ts',
         formula: 'multiplier = GAP_LADDER[dodge, block or parry][gap]',
         table: { head: ['Gap', 'Dodge', 'Block', 'Parry'], rows: [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((g) => [sg(g), `×${n(ladder('dodge', g))}`, `×${n(ladder('block', g))}`, `×${n(ladder('parry', g))}`]) },
-        notes: [`Gaps past ${sg(CONFIG.GAP_MIN)} or ${sg(CONFIG.GAP_MAX)} use the end row.`, '×0 is a clean dodge, and a dodge at +1 is a graze. A block at +1 or better is blocked; a shield also blocks at 0 and takes the hit itself.',
+        notes: [`Gaps past ${sg(CONFIG.GAP_MIN)} or ${sg(CONFIG.GAP_MAX)} use the end row.`, `×0 is a clean dodge, and a dodge at ${sg(CONFIG.HIT_GAPS.graze)} is a graze. A block at ${sg(CONFIG.HIT_GAPS.blockFrom)} or better is blocked; a shield also blocks at ${sg(CONFIG.HIT_GAPS.shieldFrom)} and takes the hit itself. A hit at ${sg(CONFIG.HIT_GAPS.heavy)} is a heavy hit, at ${sg(CONFIG.HIT_GAPS.crushing)} or worse a crushing hit (CONFIG.HIT_GAPS).`,
+          `Where it lands: at ${sg(CONFIG.HIT_GAPS.movesAdjacent)} the hit moves to the named part if it is adjacent, at ${sg(CONFIG.HIT_GAPS.movesAnywhere)} or worse to the named part anywhere. From ${sg(CONFIG.HIT_GAPS.noEssentialFrom.dodge)} (dodge) or ${sg(CONFIG.HIT_GAPS.noEssentialFrom.block)} (block, parry) up it never lands on an essential part; a block or parry from ${sg(CONFIG.HIT_GAPS.nonEssentialOnlyFrom.block)} up off the shield lets it land on non-essential parts only.`,
           `A parry at +1 or +2 is blocked, and ×0 is parried. A parry at +${CONFIG.PARRY_STRIKE_GAP} (PARRY_STRIKE_GAP) or better also gives the defender one free melee attack back with the parrying weapon, once per turn; Answer the Blow lowers that by ${CONFIG.ANSWER_THE_BLOW_DROP} with a medium weapon.`] },
       { name: 'Damage', at: 'attack · src/ruleset/index.ts',
         formula: 'damage = (class damage + mode damageAdj) × multiplier × perk damage multipliers, then armor: (damage − max(0, reduction − pierce)) × armor multiplier',

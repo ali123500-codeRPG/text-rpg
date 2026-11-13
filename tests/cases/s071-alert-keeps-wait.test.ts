@@ -8,7 +8,7 @@ import { installRoutines, switchRoutine, desiredState, updateAlarms, alertOrders
 import { buildActorView } from '../../src/views';
 import { ago, tick, turnsFor } from '../harness/time';
 
-it('71 Alert keeps the wait: wait_alert in the same zone, back to wait after DECAY_TURNS', () => {
+it('71 Alert keeps the wait: wait_alert in the same zone, back to wait after DECAY_AWARE_S', () => {
   const s = makeVillage({ playerZone: 'field_mid' });
   const c = spawnNpc(null, TP.patron, { id: 'comp', zone: 'field_edge', placeId: 'field', bandId: 'player_band', name: 'Pip' });
   installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));

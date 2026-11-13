@@ -1,8 +1,8 @@
 // The "You fell" screen's words: one sassy line about the blow that dropped the player, and the plain facts under it.
 // Built only from what the player knew (LogLine.downedBy): an unseen attacker stays "someone" and its weapon unnamed.
 import type { DownedBy } from '../types/game';
+import { cap } from '../words';
 
-const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 const a = (x: string) => `${/^[aeiou]/i.test(x) ? 'an' : 'a'} ${x}`;
 
 /** the sassy line; `seed` (the turn) picks among the lines that fit what the player knew */

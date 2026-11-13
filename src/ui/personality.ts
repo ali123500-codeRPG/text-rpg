@@ -6,8 +6,8 @@ import { getLibrary } from '../library';
 import { NERVE_HINTS, NERVE_LINES, type NerveLine } from '../scales';
 import { archetypeOf, nerveLine, nerveTier, personalityFrom, personalityOf, traitWords } from '../ruleset/personality';
 import { h } from './kit';
+import { cap } from '../words';
 
-const cap = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
 const LINE_HINT = (l: NerveLine) => cap(NERVE_HINTS[l]);
 const lineName = (l: NerveLine) => cap(l);
 export const blankPersonality = (): Personality => ({ nerve: 0, traits: {}, values: [] });

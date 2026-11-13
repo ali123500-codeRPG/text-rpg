@@ -21,3 +21,6 @@ export function falseName(speaker: { names: { current: string } }, text: string 
   }
   return undefined;
 }
+
+/** the text with its first letter in capitals */
+export const cap = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);

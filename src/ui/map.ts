@@ -13,6 +13,7 @@ import { walkLeft } from './doing';
 /** CSS class of each edge kind's line on the To scale view */
 const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
+import { cap } from '../words';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {
@@ -24,7 +25,6 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
 
 /** To scale: screen pixels per metre before zoom */
 const PX_PER_M = 12;
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;

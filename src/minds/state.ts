@@ -9,7 +9,7 @@ import { now, secondsSince, timeOfDay } from '../time';
 import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
-import { markUse, ruleset, situational, fnRoller, tierLevel, trueSkill, usableModes, defaultMode, modeSkill, effectiveSkill } from '../ruleset';
+import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, defaultMode, modeSkill, effectiveSkill } from '../ruleset';
 import { rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
 import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
@@ -19,6 +19,7 @@ import { SK, SENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from '../engine/feats';
 import { tally } from '../engine/xp';
+import { journalOf } from '../engine/trail';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
@@ -83,10 +84,10 @@ export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent'
   return true;
 }
 
-/** NW2: a head_to walk that got where it was going goes back to the routine it had, from there (end of turn) */
 /** BF11: an NPC its own agent moved somewhere stays there while it holds (AGENT_STAY_S): no routine walk, no catch-up */
 export const staying = (state: GameState, a: Actor): boolean => !!a.mind?.stay && a.mind.stay.zone === a.zone && secondsSince(state, a.mind.stay.since) < CONFIG.AGENT_STAY_S;
 
+/** NW2: a head_to walk that got where it was going goes back to the routine it had, from there (end of turn) */
 export function headArrivals(state: GameState): void {
   for (const a of state.actors) {
     const m = a.mind;
@@ -113,11 +114,10 @@ function getRoutineOrNull(id: string) {
 }
 const hasBinding = (b: string | string[] | undefined) => (Array.isArray(b) ? b.length > 0 : !!b);
 
-/** Calm bandmates [Proposed]: calm, routine-run bandmates of the spokesperson who perceived the exchange take its new routine. */
 /**
  * Calm bandmates [Proposed] (Dialogue turn rules): when a spokesperson's output switches its routine, calm, code-run
  * bandmates who perceived the exchange switch to the same routine. The one rule for this; the engine calls it.
- * GAP: "calm" read as not engaged, alarm not armed, and no attack or alarm perceived within DECAY_AWARE_S.
+ * Calm means not engaged, no alarm armed, and no attack or alarm perceived within DECAY_AWARE_S (CS2).
  */
 export function calmBandmatesSwitch(state: GameState, spokespersonId: string, routineId: string, heard: (actorId: string) => boolean): string[] {
   const sp = actorById(state, spokespersonId);
@@ -184,7 +184,7 @@ export function updateAlarms(state: GameState, events: GameEvent[]): void {
       a.mind.routine = { ...alarm.returnTo };
       delete alarm.returnTo;
     }
-    // GAP: the armed flag also needs "unaware of every wary actor" (Hidden state persistence); the routine return uses the timer only (Alarm).
+    // the routine return uses the timer only (Alarm); the armed flag also waits until they know of no wary actor (Hidden state persistence, CS2)
     if (!leftUnaware) {
       alarm.armed = false;
       delete alarm.onAlertDue;
@@ -363,11 +363,10 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
   log(state, 'search_items', { actorId: a.id, tier: r.tier, hidden: hidden.length, found: found.length });
   return { r, found, hint: !found.length && hidden.some((i) => tierLevel(r) === tierLevel(i.hiddenAt!)) };
 }
-/** SE11: patting someone down needs their consent or force: within grip reach of someone down, asleep, surrendered or
- * held by the searcher */
 /** SE11: someone who can't stop hands going through their things: down, dead, asleep, yielded, or held by `a` */
 export const openToHands = (state: GameState, a: Actor, t: Actor): boolean => !isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id
   || (t.letsSearch?.by === a.id && t.letsSearch.until >= state.turn); // BF16: or they let `a` search them
+/** SE11: patting someone down needs their consent or force: within grip reach of someone open to hands (above) */
 export const handsOn = (state: GameState, a: Actor, t: Actor): boolean => withinGrip(state, a, t) && openToHands(state, a, t);
 /** BF16: letting someone search you hands-on, this turn and the next */
 export function letSearch(state: GameState, a: Actor, by: string | null | undefined): void {
@@ -377,7 +376,7 @@ export function letSearch(state: GameState, a: Actor, by: string | null | undefi
 /** what `a` now knows `t` carries: the player's journal, an NPC's belief (SE11, BF16) */
 export function revealItems(state: GameState, a: Actor, t: Actor, items: ItemInstance[]): void {
   for (const i of items) {
-    if (a.kind === 'player') ((a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never).revealed ??= []).push(`item:${i.id}`);
+    if (a.kind === 'player') (journalOf(a).revealed ??= []).push(`item:${i.id}`);
     else updateBeliefs(state, { kind: 'reveal', observerId: a.id, aboutId: t.id, fact: `item:${i.id}` });
   }
 }
@@ -408,7 +407,7 @@ export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { 
  * of a sight or hearing skill; each one the roll reaches (its minTier or better) is revealed. None of them: no roll. */
 export function searchSecrets(state: GameState, a: Actor, t: Actor, rng: Rng): { r?: RollResult; found: string[] } {
   if (a.id !== state.player.id) return { found: [] }; // secrets are player knowledge
-  const j = (a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never);
+  const j = journalOf(a);
   const skills = getLibrary().skills, found: string[] = [];
   let r: RollResult | undefined;
   for (const fn of [FN.sight, FN.hearing] as Sense[]) {
@@ -452,7 +451,7 @@ function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefin
 export function resolveAmbush(state: GameState, attackerId: string, targetId: string, attackEvent: GameEvent, rng: Rng): { surprised: boolean } {
   const attacker = actorById(state, attackerId);
   if (!attacker) return { surprised: false };
-  // GAP: perception before the blow: use the event's if already computed, else compute it now.
+  // perception before the blow: the event's own if already worked out, else worked out now (CS2)
   // Every active NPC that could perceive the attack, including those unaware of the attacker (left out of computePerception).
   const perception: GameEvent['perception'] = Object.keys(attackEvent.perception).length ? { ...attackEvent.perception } : { ...computePerception(attackEvent, state, rng) };
   for (const o of state.actors) {
@@ -472,9 +471,9 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   for (const o of observers) {
     const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
     const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill }, state, rng); // function roll
-    const gap = tierLevel(p) - tierLevel(ambush); // Part 1 §4 Contests: acting side wins below 0
+    const contest = toContest(ambush, p), gap = contest.gap;
     // the watcher's sense learns from the ambush contest (only the player keeps marks)
-    markUse(state, o, p.skill, { a: ambush, b: p, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' });
+    markUse(state, o, p.skill, contest);
     if (o.id === targetId && gap < 0) surprised = true;
     // ST7: a shot from stealth leaves noticing to the stealth contest (stealthDetect); a melee blow has already revealed
     if (gap > 0 && attacker.posture !== 'stealthy') {

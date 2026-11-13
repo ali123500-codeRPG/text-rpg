@@ -7,9 +7,9 @@ import { SHOWN_LEVELS } from '../ruleset/body';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { h } from './kit';
+import { cap } from '../words';
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 export const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
 /** a health level's or part state's colour class: by its position in its scale */

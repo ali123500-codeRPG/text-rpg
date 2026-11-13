@@ -7,19 +7,19 @@
 //   bigger of aura and spoken Shaken stands), and FR.dread_presence (10 morale per tier).
 import type { Actor, ContestResult, GameState, Rng } from '../types';
 import { CONFIG } from '../config';
-import { hasPerk, markUse, moraleRoll, ruleset } from '../ruleset';
+import { hasPerk, markUse, moraleRoll, ruleset, toContest } from '../ruleset';
 import { FN } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { FR } from '../library/tableIds';
-import { allActors, atLeast, isActive, onSightPerks, shortestPath, stance, wary } from './relations';
+import { allActors, atLeast, isActive, onSightPerks, stance, wary } from './relations';
 import { probe } from './yield';
 import { distM, withinM } from './position';
 import { besidePlayer } from './engagement';
 import { perceptionOf } from '../perception';
 import type { GameEvent } from '../types';
 import { AURAS, type AuraDef } from '../library/auras';
-import { applySpeech, toContest } from './speech';
+import { applySpeech } from './speech';
 import { contestFeat } from './feats';
 import { maxMorale } from '../ruleset/morale';
 

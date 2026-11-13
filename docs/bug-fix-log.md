@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-210
+
+**What was wrong:** When the Weaver brought back a Trader who was already in the world and gave them wares again, they got a second 50-coin purse and a second lot of the same goods on top of what they still had. In the test village Mags went from 55 to 105 coin and from 4 to 8 bandages after one more scenario, and it grew again every scenario.
+
+**What was done:** Ali chose "purse once, goods top up" (leftover scan CS1). A Trader gets the 50-coin purse only the first time they become a seller; after that their coin is what they earned and spent. Each listed good is topped up to the listed count, never added on top (Mags lists 4 bandages and has 3 left: she gets 1). The list of what they sell is replaced by the new plan's, as before. A case test brings Mags back twice, once after a sale.
+
+**Fixed by:** [PR #710](https://github.com/ali123500-codeRPG/text-rpg/pull/710)
+
 ## BG-209
 
 **What was wrong:** Found by the new Threadbound end-to-end test. An achievement earned while a scenario runs is only granted when the scenario ends. The ability it opens on a Threadbound item (for example Call the Toss on Varo's Loop) then showed up one turn late, because the game hands out item abilities before it closes the scenario. A perk that an achievement completes through a perk link had the same one-turn delay.

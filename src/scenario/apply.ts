@@ -256,7 +256,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const startZone = state.player.zone; // CH1: the zone the player stood in when the scenario began is ground
   // an extension's entry, or (CH3 a) a scenario started in free roam by crossing an unbuilt frontier
   if (ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0], !ctx.ahead);
-  // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
+  // at story start the player has no zone on the stage yet; it starts in the plan's first zone (CS2)
   const storyStart = !!firstZone && !state.stage.zoneIds.includes(state.player.zone);
   if (storyStart) moveTo(state, state.player, firstZone!);
   else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
@@ -285,7 +285,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       a = actorById(state, c.actor)!;
       reused.add(a);
       a.label = c.label;
-      // GAP: a reused actor keeps its names; the plan's name is ignored.
+      // someone brought back keeps their names; the plan's name is ignored (CS2)
     } else {
       const t = npcTemplate(state, c.template!);
       const personality = c.personality ? personalityFrom(t.personality, c.personality) : undefined; // PL12
@@ -365,7 +365,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   }
   for (const t of plan.seeds.triggers) {
     const b = trig(t);
-    // GAP: a seeded trigger whose owner has no plan gets an empty-goal plan to hold it.
+    // a seeded trigger whose owner has no plan gets an empty-goal plan to hold it (CS2)
     (state.hidden.plans[b.ownerId] ??= { goal: '', steps: [], triggers: [], createdTurn: turn }).triggers.push(b);
   }
   for (const s of plan.seeds.secrets) {
@@ -424,7 +424,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // ---- hidden stage, note, cast notes ----
   const hs = state.hidden.stage;
   if (ctx.kind === 'scenario') state.hidden.stage = { eventSummary: plan.event.summary, challenge: plan.event.challenge, gain: plan.event.gain, hiddenTerms: [...plan.hiddenTerms] };
-  // GAP: an extension keeps the scenario's grades; its summary is appended and its hiddenTerms join the stage's.
+  // an extension keeps the scenario's grades; its summary is appended and its hiddenTerms join the stage's (CS2)
   else state.hidden.stage = { ...hs, eventSummary: [hs.eventSummary, plan.event.summary].filter(Boolean).join(' / '), hiddenTerms: [...new Set([...hs.hiddenTerms, ...plan.hiddenTerms])] };
   state.hidden.weaverNote = plan.weaverNote;
   // SC1/SC2/SC7: a new scenario's question, scale and endings, plan keys mapped to ids
@@ -458,7 +458,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (storyStart) startAtDoor(state, ctx.placeId); // BG-49: the story opens with the player at the door
 }
 
-/** GAP: at story start the player's place has no node yet; a bare one is made so the Weaver's plan (and the fallback) can use its id. */
+/** At story start the player's place has no node yet (CS2); a bare one is made so the Weaver's plan (and the fallback) can use its id. */
 export function ensurePlace(state: GameState, placeId: string): Place {
   let place = state.places.find((p) => p.id === placeId);
   if (!place) {
@@ -492,7 +492,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
   } else {
     if (place?.zones.length) for (const z of place.zones) putOnStage(state, z);
     else if (place) {
-      // GAP: a scenario start at a place with no saved zones and no frontier gets one empty zone named after the place.
+      // a scenario start at a place with no saved zones and no frontier gets one empty zone named after the place (CS2)
       const taken = new Set(state.places.flatMap((p) => p.zones.map((z) => z.id)));
       const zone = bareZone(freshId(`${place.id}_area`, taken), place.id, place.names.current);
       place.zones.push(zone);
@@ -511,7 +511,6 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
   setFallbackFlags(state, reason, 'weaver_fallback', errors);
 }
 
-/** arrival + presence events for the player's perception (scenario setup step 8). */
 /** Scenario setup step 7 (case 42): a stealthy player arriving through a frontier is tested by every observer in range;
  * the plan's opening beliefs were skipped for this entry. Returns the arrival event. */
 export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
@@ -522,6 +521,7 @@ export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
   return ev;
 }
 
+/** arrival + presence events for the player's perception (scenario setup step 8). */
 export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
   const p = state.player;
   const out: GameEvent[] = [];
@@ -544,7 +544,8 @@ export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
 }
 
 /** PY2: only a Trader-class actor sells. Known goods are stocked into its inventory (qty 1 when left out) and known
- * services listed, up to WARES_CAP lines; anything else is dropped and logged. */
+ * services listed, up to WARES_CAP lines; anything else is dropped and logged. BG-210: a returning Trader keeps what it
+ * has: goods are topped up to the listed count, never added on top, and the purse comes only the first time it sells. */
 function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast'][number]['wares']>, turn: number): void {
   const dropped: string[] = [];
   if (!a.core.classes.some((c) => c.classId === CL.trader)) {
@@ -557,16 +558,17 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
   for (const g of w.items ?? []) {
     const def = known(g.item);
     if (!def || g.item === IT.coin || items.length + services.length >= CONFIG.WARES_CAP) { dropped.push(String(g.item)); continue; }
-    const qty = Math.max(1, Math.floor(g.qty ?? 1));
+    const have = a.core.inventory.filter((i) => i.itemId === g.item).reduce((n, i) => n + (i.qty ?? 1), 0);
+    const qty = Math.max(1, Math.floor(g.qty ?? 1)) - have;
     const id = `ware${turn}_${a.id}_${g.item}`;
-    a.core.inventory.push(...(def.stackable ? [{ id, itemId: g.item, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId: g.item }))));
+    if (qty > 0) a.core.inventory.push(...(def.stackable ? [{ id, itemId: g.item, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId: g.item }))));
     if (!items.includes(g.item)) items.push(g.item);
   }
   for (const s of w.services ?? []) {
     if (!getLibrary().services?.[s] || items.length + services.length >= CONFIG.WARES_CAP) dropped.push(String(s));
     else if (!services.includes(s)) services.push(s);
   }
+  if (!a.wares) a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse, once
   a.wares = { items, services };
-  a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse
   if (dropped.length) state.log.push({ turn, code: 'wares_dropped', detail: { actorId: a.id, dropped } });
 }

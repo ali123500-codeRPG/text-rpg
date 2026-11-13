@@ -48,6 +48,7 @@ import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
 import { TURN_CHECK, checkTurn, snapTurn } from '../save/turnCheck';
+import { cap } from '../words';
 
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
@@ -1239,7 +1240,6 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   const me = s.player.id;
   const pv = views.buildPlayerView(s).actors;
   const seen = new Set(pv.map((a) => a.id)), clear = new Set(pv.filter((a) => a.level === 'full').map((a) => a.id));
-  const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
   const name = (id: string) => (id === me ? 'You' : clear.has(id) ? cap(views.callName(s, me, id)) : 'Someone');
   const whose = (id: string) => (id === me ? 'Your' : `${name(id)}’s`);
   const num = (n: number) => String(Math.round(n * 10) / 10);
