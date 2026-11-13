@@ -30,14 +30,14 @@ export const ALL_BUNDLES: AllBundle[] = [
 ];
 
 /** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
- * No part yet: Insight (parked), Vanishing, Intimidation and the one-skill trees. */
+ * No part yet: Insight (parked), Intimidation and the one-skill trees. */
 export const SKILL_PARTS: Record<string, string> = {
   [SK.melee_light]: PK.counter, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.opening_strike,
   [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
   [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold, [SK.unarmed_improvised]: PK.junk_arsenal,
   [SK.dodge]: PK.dodgy, [SK.parry]: PK.against_the_grain, [SK.block]: PK.iron_rim, [SK.endurance]: PK.second_wind, [SK.resolve]: PK.grit,
   [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.know_the_step, // Spotter parked (D-192)
-  [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
+  [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade, [SK.vanishing]: PK.misdirection, // Fade Back parked (D-232)
   [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
 };
 
@@ -175,6 +175,17 @@ export const ALL_PARTS: PerkWriteup[] = [
     rules: { kind: 'Always on', trigger: 'The owner makes a Sneaking roll in a stealth contest.', conditions: ['The observer perceives the owner by sound (hearing), not sight.', 'The roll ends in a Near Miss.'],
       effect: 'Tier shift +1 on that roll, so it counts as a Success. Only Failure or worse is heard.', lasts: 'That roll.',
       open: 'Renamed from the doc\'s "Light Feet", which is already a 40 perk.' } }),
+  part(TR.stealth, { id: PK.misdirection, ref: 'T6e', name: 'Misdirection', effect: 'stealth',
+    story: '"Look over there!" and you are gone. A quarter of your Lying adds to every Vanishing roll, and both skills learn from it.',
+    rules: { kind: 'Always on', trigger: 'The owner makes a Vanishing roll.', conditions: ['The Trickery tree is open to the owner.'],
+      effect: 'Lying augments Vanishing: the roll adds the owner\'s true Lying × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Lying can learn from the roll the same way.', lasts: 'Always.' },
+    augments: [{ from: SK.lying, skill: SK.vanishing, share: CONFIG.MISDIRECTION_SHARE }] }),
+  // Fade Back is parked (D-232): no skill carries it in SKILL_PARTS and it is not built, so it is never granted
+  part(TR.stealth, { id: PK.fade_back, ref: 'T6f', name: 'Fade Back', effect: 'stealth',
+    story: 'The blow passes where you were, and so do you. Once a fight, a clean dodge lets you vanish on the spot.',
+    rules: { kind: 'Automatic', trigger: 'The owner dodges an attack.', conditions: ['The dodge wins by a gap of +3 or better.', 'Once per engagement.'],
+      effect: 'The owner vanishes in place for free right after: each observer makes a Vanishing contest against the owner, as a Vanish does. It does not use the owner\'s action or move.', lasts: 'That contest.', cooldown: 'Once per engagement.',
+      open: 'Parked (D-232): the Vanishing part offered beside Misdirection in PT12.' } }),
   // ---- Speech ----
   part(TR.speech, { id: PK.soft_landing, ref: 'T7a', name: 'Soft Landing', effect: 'speech',
     story: 'Even your stumbles sound reasonable. A speech roll that goes wrong counts one outcome better.',

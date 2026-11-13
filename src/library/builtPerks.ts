@@ -37,6 +37,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.volley, // T2b: allFiftyAfterAttack()
   PK.second_wind, // T4b: allFiftyAfterAttack()
   PK.strike_and_fade, // T6a: allFiftyAfterAttack()
+  PK.misdirection, // T6e: perkAugments() in src/ruleset/gear.ts
   PK.hushed_steps, // T6d: src/minds/state.ts stealthDetect(), allSteps.ts afterRollShifts()
   PK.shield_breaker, // A3: attack() and applyEffects()
   PK.point_blank, // A4: attack()

@@ -1137,6 +1137,30 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Open:** Renamed from the doc's "Light Feet", which is already a 40 perk.
 - **Built:** yes
 
+### Misdirection (Stealth – Conventional, Vanishing) · T6e
+
+*Story:* "Look over there!" and you are gone. A quarter of your Lying adds to every Vanishing roll, and both skills learn from it.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a Vanishing roll.
+- **Conditions:** The Trickery tree is open to the owner.
+- **Effect:** Lying augments Vanishing: the roll adds the owner's true Lying × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Lying can learn from the roll the same way.
+- **Lasts:** Always.
+- **Built:** yes
+
+### Fade Back (Stealth – Conventional, passive) · T6f
+
+*Story:* The blow passes where you were, and so do you. Once a fight, a clean dodge lets you vanish on the spot.
+
+- **Kind:** Automatic
+- **Trigger:** The owner dodges an attack.
+- **Conditions:** The dodge wins by a gap of +3 or better. Once per engagement.
+- **Effect:** The owner vanishes in place for free right after: each observer makes a Vanishing contest against the owner, as a Vanish does. It does not use the owner's action or move.
+- **Lasts:** That contest.
+- **Cooldown:** Once per engagement.
+- **Open:** Parked (D-232): the Vanishing part offered beside Misdirection in PT12.
+- **Built:** not yet
+
 ### Soft Landing (Speech, Persuasion) · T7a
 
 *Story:* Even your stumbles sound reasonable. A speech roll that goes wrong counts one outcome better.

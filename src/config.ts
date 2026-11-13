@@ -474,6 +474,7 @@ const DEFAULTS = {
   SHIELD_BREAKER_MULT: 2, // A3 Shield Breaker: a heavy melee blow on a shield drains its pool by this multiple of the damage (placeholder)
   IRON_RIM_MULT: 0.75, // All-50 Iron Rim (Block's part): damage the owner's shield pool takes (placeholder)
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
+  MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Lying that augments Vanishing (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
   REWARD_XP: { minus_1: 25, zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000,
