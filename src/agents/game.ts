@@ -1220,7 +1220,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (l.turn !== turn || l.code !== 'heal_blocked') continue;
     const d = l.detail as { actorId: string; source: string; reason: string };
     if (d.actorId !== s.player.id) continue;
-    out.push(`${engine.healingName(d.source)}: ${d.reason === 'nothing_to_heal' ? 'nothing to heal, so you keep it' : 'not while someone hostile is near you'}`);
+    out.push(`${engine.healingName(d.source)}: nothing to heal, so you keep it`);
   }
   // run 17: a rest or wait that the rules refuse says why, so the player doesn't keep trying
   for (const l of s.log) {
@@ -1229,7 +1229,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (d.actorId !== s.player.id) continue;
     const what = l.code === 'rest_blocked' ? 'Rest' : 'Wait';
     const why = d.reason === 'cooldown' ? 'too soon after your last rest'
-      : d.reason === 'already' ? `it's already ${TIME_OF_DAY.name(d.timeOfDay as TimeOfDay).toLowerCase()}` : 'not while someone hostile is near you';
+      : d.reason === 'already' ? `it's already ${TIME_OF_DAY.name(d.timeOfDay as TimeOfDay).toLowerCase()}` : 'not while a fight is going on around you';
     out.push(`${what}: ${why}`);
   }
   // TV7: a trip says how far it went and why it stopped
@@ -1244,6 +1244,14 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (l.turn !== turn || l.code !== 'time_passed') continue;
     const t = timeView(s);
     out.push(`Time passes: ${durationText((l.detail as { minutes: number }).minutes)} (Day ${t.day} · ${t.timeOfDay})`);
+  }
+  // AT65: a rest or wait the world clock stopped says when and why
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'stretch_stopped') continue;
+    const d = l.detail as { actorId: string; kind: string; why: string; seconds: number };
+    if (d.actorId !== s.player.id) continue;
+    const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
+    out.push(`${d.kind === 'rest' ? 'Rest' : 'Wait'} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
   }
   // NW15/NW18: the night watch, and what woke you
   for (const l of s.log) {

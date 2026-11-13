@@ -302,7 +302,7 @@ export type DurationDef = {
  * PART_STATES key), whether it works in a fight, and what it needs (a place kind; an item names its source with
  * ItemDef.heal). `hourly` makes it passive: per game hour it restores skill × pctPerPoint % (H12). */
 export type HealingDef = {
-  id: string; name: string; hpPct: number; partPct: number; reach: PartStateKey; inFight: boolean; placeKinds?: string[];
+  id: string; name: string; hpPct: number; partPct: number; reach: PartStateKey; placeKinds?: string[];
   /** heals a Dead actor (no for every row for now; a lever for resurrection later) */
   revivesDead: boolean;
   /** the composure-table row the same action also restores (rest, clinic): morale comes from that table, not this one */

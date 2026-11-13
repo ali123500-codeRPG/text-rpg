@@ -32,7 +32,12 @@ export function computePending(state: GameState): Pending {
 export function fightTurns(state: GameState): boolean {
   const p = state.player;
   if (!countsInFight(p)) return false;
-  if (state.events.some((e) => e.kind === 'attack' && e.target === p.id)) return true;
+  return state.events.some((e) => e.kind === 'attack' && e.target === p.id) || fightInSenses(state);
+}
+/** AT61/AT65: a foe after the player they can see or hear, or a fight going on they can see or hear */
+export function fightInSenses(state: GameState): boolean {
+  const p = state.player;
+  if (!countsInFight(p)) return false;
   if (foesAfter(state, p).some((o) => perceivesNow(state, p, o, 'faint'))) return true;
   return state.actors.some((a) => countsInFight(a) && allActors(state).some((b) => b !== a && (fightingWith(state, a, b) || sparring(state, a, b)))
     && perceivesNow(state, p, a, 'loud'));

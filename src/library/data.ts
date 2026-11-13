@@ -592,15 +592,15 @@ export function prototypeLibrary(): Library {
     bodyTypes: BODY_TYPES,
     // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
-      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, composure: CP.rest, reach: 'damaged', revivesDead: false, inFight: false },
-      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, composure: CP.clinic, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
-      [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false, inFight: true },
+      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, composure: CP.rest, reach: 'damaged', revivesDead: false },
+      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, composure: CP.clinic, reach: 'crippled', revivesDead: false, placeKinds: ['clinic', 'infirmary'] },
+      [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false },
       // AT10 (placeholder): a healing draught, 25% of health and parts up to Damaged, any time
-      [HL.draught]: { id: HL.draught, name: 'Healing draught', hpPct: 25, partPct: 25, reach: 'damaged', revivesDead: false, inFight: true },
+      [HL.draught]: { id: HL.draught, name: 'Healing draught', hpPct: 25, partPct: 25, reach: 'damaged', revivesDead: false },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
-      [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
+      [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
       // never applied itself: healing straight from a perk (Second Wind) is counted here for achievements; Fast Healer counts as natural recovery
-      [HL.perk]: { id: HL.perk, name: 'Perks', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, inFight: true, countOnly: true },
+      [HL.perk]: { id: HL.perk, name: 'Perks', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, countOnly: true },
     },
     // What restores morale, a table apart from healing so each tunes on its own; a healing row names the row its action
     // also restores (rest, clinic). Amounts are placeholders.

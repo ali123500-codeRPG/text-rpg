@@ -33,7 +33,7 @@ describe('111 game clock', () => {
     turn(s, act('barter'));
     expect(now(s) - t0).toBe(11);
   });
-  it('waiting until dawn moves the clock to dawn and shows a line, never ending the scenario (SC9); a hostile in the zone blocks it', () => {
+  it('waiting until dawn moves the clock to dawn and shows a line, never ending the scenario (SC9); a foe in the player\'s senses stops it at once', () => {
     const s = makeVillage();
     startClock(s, 'dusk');
     const ev = turn(s, act('wait', 'dawn'));
@@ -47,16 +47,21 @@ describe('111 game clock', () => {
     expect(now(s) - at).toBeLessThan(60);
     expect(mechanicsLines(s, again)).toContain("Wait: it's already dawn");
 
+    // AT8: a wait or a rest can always be started; the world clock stops it at once while a foe after the player is in
+    // their senses (AT65), and in a fight the clock is already stopped
     const f = makeVillage();
     startClock(f, 'morning');
     f.player.zone = 'field_mid'; // slime_1 is here
-    turn(f, act('sleep'));
-    const fev = f.events.slice(-5);
-    expect(f.log.some((l) => l.code === 'wait_blocked')).toBe(true);
-    expect(mechanicsLines(f, fev)).toContain('Wait: not while someone hostile is near you');
-    expect(f.stage.breakCause).toBeUndefined();
+    const before = now(f);
     turn(f, act('rest'));
-    expect(mechanicsLines(f, f.events.slice(-5))).toContain('Rest: not while someone hostile is near you');
+    expect(f.log.some((l) => l.code === 'rest_blocked')).toBe(false);
+    expect(f.log.find((l) => l.code === 'stretch_stopped')?.detail).toMatchObject({ kind: 'rest', why: 'fight', seconds: 0 });
+    expect(now(f)).toBe(before);
+    expect(mechanicsLines(f, f.events.slice(-5))).toContain('Rest stopped at once: a fight in sight or hearing');
+    f.mode = 'tactical';
+    turn(f, act('wait', 'dusk'));
+    expect(mechanicsLines(f, f.events.slice(-5))).toContain('Wait: not while a fight is going on around you');
+    expect(f.stage.breakCause).toBeUndefined();
   });
   it('sleep takes the sleep row and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
     const s = makeVillage();

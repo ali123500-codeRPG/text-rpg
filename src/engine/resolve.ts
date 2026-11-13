@@ -20,7 +20,7 @@ import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
 import { distM, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
+import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -60,6 +60,8 @@ import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
+import { checkNear, contact, startWatch, stepS, type NearStop } from './comingNear';
+import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
@@ -162,6 +164,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'hide': return of(DU.hide);
+    case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
     case 'give': return of(DU.hand_over);
     case 'barter': case 'buy': case 'sell': return of(DU.trade);
@@ -199,7 +202,13 @@ type Ctx = {
   exchangeEvents: GameEvent[];
   counters: Set<string>; // All-50 Counter: once per round (AT50), keyed by roundKey
   parryStrikes: Set<string>; // PA4: a parry's free strike back, once per round (AT50), keyed by roundKey
+  /** AT56: the player's rest or wait outside a fight: the world clock runs it at the end of the turn (runStretch) */
+  stretch?: Stretch;
 };
+/** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
+ * soon the player is ready, AT67), and the event its outcome goes on */
+type Stretch = { kind: 'rest' | 'wait'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop };
+type StretchStop = NearStop | { why: 'fight'; by: string[] };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
   const [noise, visibility] = SENSE[kind] ?? ['quiet', 'normal'];
@@ -747,15 +756,18 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   }
 }
 
-/** Rest (H5): no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
+/** Rest (H5): at most once every REST_COOLDOWN_MIN game minutes (T7); it can always be started (AT8). Outside a fight the
+ * player's rest runs on the world clock at the end of the turn and heals by the share of it that ran (runStretch); in a
+ * fight it is a long action, done when its time is (an NPC's rest heals at once). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const key = `rest:${a.id}`;
   const last = state.clocks[key];
-  const threat = threatHere(state, a);
   const ev = bark(mk(ctx, a, 'rest'), o);
-  if (threat || (last !== undefined && now(state) - last < CONFIG.REST_COOLDOWN_MIN)) {
-    logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'hostile_in_zone' : 'cooldown' });
+  if (last !== undefined && now(state) - last < CONFIG.REST_COOLDOWN_MIN) {
+    logCode(state, 'rest_blocked', { actorId: a.id, reason: 'cooldown' });
+  } else if (a === state.player && state.mode !== 'tactical') {
+    ctx.stretch = { kind: 'rest', seconds: actionRow(DU.rest)?.seconds ?? 0, pose: 'lying', ev };
   } else {
     // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, once paid for (PY8), else the rest row
     const row = restRow(state, a);
@@ -778,13 +790,14 @@ export const threatHere = (state: GameState, a: Actor): boolean =>
   allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
 
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
- * Blocked like rest when a hostile is in the zone; otherwise the clock moves on and the scenario breaks (time skip, D-30). */
+ * Either can always be started (AT8): a wait runs on the world clock at the end of the turn and stops when the clock
+ * pauses (runStretch); in a fight the clock is already paused, so it does nothing. A time skip never ends the scenario. */
 function doWait(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   if (a !== state.player) return hold(ctx, a, o);
   const ev = bark(mk(ctx, a, o.type), o);
-  if (threatHere(state, a) || state.mode === 'tactical') {
-    logCode(state, 'wait_blocked', { actorId: a.id, reason: 'hostile_in_zone' });
+  if (state.mode === 'tactical') {
+    logCode(state, 'wait_blocked', { actorId: a.id, reason: 'fight' });
   } else {
     const t = now(state);
     const named = TIME_OF_DAY.keyOf(o.target);
@@ -801,12 +814,59 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
       logCode(state, 'night_started', { actorId: a.id, end: state.night.end, watches: state.night.watches });
       runNight(ctx);
-    } else passTime(state, minutesUntil(t, until));
+    } else {
+      ctx.stretch = { kind: 'wait', seconds: minutesUntil(t, until) * 60, pose: 'standing', ev }; // its time and outcome come from runStretch
+      return emit(ctx, ev);
+    }
     const minutes = now(state) - t;
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } }); // SC4/SC9: a time skip never ends the scenario
   }
   emit(ctx, ev);
+}
+
+/** AT56/AT65/AT67: the world clock runs the player's rest or wait. It steps (comingNear stepS: shorter while someone not
+ * yet accepted is in the senses), moving the clock on (natural recovery, aging) and everyone toward their routines
+ * (catchUp) each step, and stops at contact, the coming-near check, or a fight in the player's senses. A rest is deep: any
+ * stop breaks it, and it heals by the share that ran (AT27); a wait just ends. GAP (stage 3c): NPCs after the player and
+ * fights still act only on the turn's own orders, so in a stretch only walkers on their routines move. */
+function runStretch(ctx: Ctx, st: Stretch, onLeg?: (a: Actor, from: Located, metres: number, toward: string) => void): void {
+  const { state } = ctx;
+  const p = state.player;
+  const t0 = now(state);
+  const watch = startWatch(state, p, st.pose);
+  const fightStop = (): StretchStop | null => (fightInSenses(state) ? { why: 'fight', by: [] } : null);
+  let stop: StretchStop | null = contact(p, ctx.events) ?? fightStop();
+  let ran = 0;
+  for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
+    const step = Math.min(stepS(state, watch), st.seconds - ran);
+    const before = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }]));
+    const from = ctx.events.length;
+    passTime(state, step / 60);
+    catchUp(state, step / 60, first, onLeg); // the turn's own walks count once
+    ran += step;
+    stop = contact(p, ctx.events.slice(from)) ?? checkNear(state, watch, before, step) ?? fightStop();
+  }
+  (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
+  st.ran = ran;
+  if (stop) {
+    st.stop = stop;
+    st.ev.effects.push({ kind: 'stopped', actorId: p.id, data: { why: stop.why, by: stop.by, seconds: Math.round(ran) } });
+    logCode(state, 'stretch_stopped', { actorId: p.id, kind: st.kind, why: stop.why, by: stop.by, seconds: Math.round(ran) });
+  }
+  if (st.kind === 'rest') {
+    const share = st.seconds > 0 ? Math.min(1, ran / st.seconds) : 1;
+    if (share > 0) {
+      const row = restRow(state, p);
+      applyHealing(state, p, row, share < 1 ? { share } : {});
+      if (row !== HL.rest) p.paid = p.paid?.filter((x) => x !== row);
+      state.clocks[`rest:${p.id}`] = now(state);
+      st.ev.effects.push({ kind: 'rested', actorId: p.id, data: share < 1 ? { share: Math.round(share * 100) / 100 } : {} });
+    }
+  } else if (ran > 0) {
+    logCode(state, 'time_passed', { actorId: p.id, minutes: ran / 60, from: t0, to: now(state) });
+    st.ev.effects.push({ kind: 'time_passed', actorId: p.id, data: { minutes: ran / 60 } });
+  }
 }
 
 /** NW18: what a sleeper does on its turn: nothing, asleep */
@@ -891,9 +951,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   const t = (o.target && actorById(state, o.target)) || a;
   if (t !== a && !withinGrip(state, a, t)) { emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, itemId: inst.itemId, reason: 'out_of_reach' }), o)); return true; }
   const ev = bark(mk(ctx, a, 'use_item', { itemId: inst.itemId, ...(t !== a ? { target: t.id } : {}) }), o);
-  if (threatHere(state, a) && !row.inFight) {
-    logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'hostile_in_zone' });
-  } else if (!wouldHeal(state, t, row.id)) {
+  if (!wouldHeal(state, t, row.id)) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
   } else {
     applyHealing(state, t, row.id);
@@ -1345,9 +1403,17 @@ function longAction(ctx: Ctx, a: Actor, o: Order, cost: { row: DurationDef; seco
 /** AT6/AT28: an actor turns to something else: a long action's work stays only when its row keeps it at this progress */
 function setAside(state: GameState, a: Actor): void {
   const b = a.busy!;
-  if (breakBand(b) === 'kept') b.paused = true;
+  const then = breakBand(b);
+  if (then === 'kept') b.paused = true;
   else delete a.busy;
+  if (then === 'share') shareDone(state, a, b);
   logCode(state, 'busy_set_aside', { actorId: a.id, row: b.row, done: b.done, need: b.need, kept: !!a.busy });
+}
+/** AT27/AT28: a long action broken off whose output is a share takes effect by the share done: a rest heals that share */
+function shareDone(state: GameState, a: Actor, b: NonNullable<Actor['busy']>): void {
+  if (b.row !== DU.rest || b.done <= 0) return;
+  applyHealing(state, a, restRow(state, a), { share: Math.min(1, b.done / b.need) });
+  state.clocks[`rest:${a.id}`] = now(state);
 }
 /** AT25/AT57: an attack aimed at someone at a long action breaks it by the row's focus: careful (and deep) on any attack,
  * hit or miss; steady on a hit that wounds; reflex never. What is left goes by its progress (AT6/AT28): kept or lost.
@@ -1359,6 +1425,7 @@ function breakFocus(ctx: Ctx, t: Actor, ev: GameEvent, wounded: boolean): void {
   const then = breakBand(b);
   if (then === 'kept') b.paused = true;
   else delete t.busy;
+  if (then === 'share') shareDone(ctx.state, t, b);
   ev.effects.push({ kind: 'broke_off', actorId: t.id, data: { row: b.row, done: b.done, need: b.need, then } });
   logCode(ctx.state, 'busy_broken', { actorId: t.id, row: b.row, done: b.done, need: b.need, then });
 }
@@ -1746,16 +1813,18 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
-  passTime(state, state.mode === 'tactical' ? ctx.turnS / 60 : turnMinutes(state, playerOrder)); // T1/AT13: every turn costs its action's time (a wait adds its own)
   // BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
   // turn (a trade, a rest, a wait) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none
-  const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
-  const long = catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
-  const legEvents = !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
+  const legs = (long: boolean) => !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
     const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
     emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
   } : undefined;
-  if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legEvents);
+  const stretch = state.mode !== 'tactical' && isActive(state.player) ? ctx.stretch : undefined;
+  if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest or wait runs on the world clock, step by step
+  else passTime(state, state.mode === 'tactical' ? ctx.turnS / 60 : turnMinutes(state, playerOrder)); // T1/AT13: every turn costs its action's time
+  const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
+  const long = !!stretch || catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
+  if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legs(long));
   if (long) for (const e of ctx.events) if (e.kind === 'move' && e.actorId !== state.player.id && !e.line) e.summed = true; // BF2e3: their own move is in their one line too // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
   settleSleepers(state); // NW20: NPCs fall asleep and wake by their routines
   // NW18: still asleep and nobody hostile near any more (they left, or never woke you): the rest of the night runs on
