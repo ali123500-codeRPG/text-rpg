@@ -1,9 +1,10 @@
 // TQ2 soak run: a seeded random player plays whole turns through the real game (createGame: views, legality, resolve,
 // save, narration view) with no Claude calls. Its Parser answers are random legal-looking intents built from its own
-// PlayerView; every other agent call fails, so NPCs run on code routines and fallbacks. The turn checker runs every turn
+// PlayerView; every other agent call fails, so NPCs run on code routines and fallbacks, and new ground is fallback ground. The turn checker runs every turn
 // (strict in tests), and any throw is re-thrown with the world, seed and the inputs so far, so it replays exactly.
 import type { ClaudeClient, ClaudeRequest, ClaudeResponse, GameState, Intent, PlayerView } from '../../src/types';
 import { createGame, VirtualClock } from '../../src/agents';
+import { createDirector } from '../../src/agents/director';
 import { memoryStore } from '../../src/save/store';
 import { buildPlayerView } from '../../src/views';
 import { createRng } from '../../src/rng';
@@ -62,7 +63,7 @@ export async function soak(world: World, seed: number, turns: number): Promise<n
   const store = memoryStore(() => clock.now());
   let current: Intent = base({});
   const inputs: Intent[] = [];
-  const game = createGame({ client: soakClient(() => current), clock, store });
+  const game = createGame({ client: soakClient(() => current), clock, store, director: createDirector(clock) }); // Weaver calls fail: fallback ground
   const adopted = world.load(store);
   if (adopted) game.adopt(adopted);
   else if (!(await game.resume())) throw new Error(`soak ${world.name}: the world did not load`);

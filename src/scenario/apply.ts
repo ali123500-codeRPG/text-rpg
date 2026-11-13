@@ -495,6 +495,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     // CH1: the fallback's ground: where the player stood, where it stands now, and its place's zones
     state.stage.scenario.ground = [...new Set([startZone, state.player.zone, ...(place?.zones ?? []).map((z) => z.id)])].filter((z) => zoneById(state, z));
   }
+  placeAll(state); // ZP1, as a built plan: anyone moved onto the fallback ground gets a spot in their zone (BG-150)
   setFallbackFlags(state, reason, 'weaver_fallback', errors);
 }
 
