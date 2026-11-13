@@ -322,7 +322,8 @@ export function validateBuild(build: CreationBuild): string[] {
  * until the story-start setup places the player. `preview` skips the build check (the creation screen previews
  * unfinished builds).
  */
-export function createPlayer(build: CreationBuild, storyId: string, opts: { preview?: boolean } = {}): Actor {
+/** `world`: the world a new character carries on in (HF28: their Threadbound item is one not already there) */
+export function createPlayer(build: CreationBuild, storyId: string, opts: { preview?: boolean; world?: GameState } = {}): Actor {
   const errs = opts.preview ? [] : validateBuild(build);
   if (errs.length) throw new Error(`invalid build: ${errs.join('; ')}`);
   const skills = Object.fromEntries(Object.entries(build.skills).filter(([k, v]) => v > 0 || build.tagged.includes(k))
@@ -349,7 +350,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
   p.core.inventory.unshift(...starterKit(p)); // the starter kit reads the finished sheet's skills
-  grantThreadboundItem(p); // TB7: the Threadbound start's level 1 perk
+  grantThreadboundItem(p, opts.world); // TB7: the Threadbound start's level 1 perk
   syncThreadboundItemPerks(p, 0);
   return p;
 }

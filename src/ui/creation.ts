@@ -43,6 +43,7 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId: str
 const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
 const identity: { name: string; pronouns: Pronouns; age?: number } = { name: 'Aldric', pronouns: 'he' }; // age: left out = the start's default (AG15)
 const persona = { p: blankPersonality() }; // PL14: carries over too
+const world: { id?: string } = {}; // HF31: the free world picked (left out = a new world); carries over too
 
 function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
@@ -157,7 +158,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     const errs = api.validateBuild(build());
     if (errs.length) return fail(errs.join(' '));
     msg.textContent = 'Starting the story…'; msg.className = 'msg ok';
-    await api.newStory(build());
+    await api.newStory(build(), world.id ? { worldId: world.id } : undefined);
     onStarted();
   }
 
@@ -170,6 +171,25 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
       onclick: () => { if (id !== classId) switchTo(id); } },
     `${lib.classes[id].creation?.name ?? lib.classes[id].name} · ${CLASS_TIERS.name(lib.classes[id].tier)} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
+  /** HF31: every free world (no one lives in it) and "New world"; shown only when there is a world to carry on */
+  function worldRow(): HTMLElement {
+    const row = h('div', { class: 'actions', role: 'group', 'aria-label': 'World', hidden: true });
+    void api.worlds().then((ws) => {
+      if (!ws.some((w) => w.worldId === world.id)) world.id = undefined;
+      if (!ws.length) return;
+      const pick = (id: string | undefined) => (e: Event) => {
+        world.id = id;
+        row.querySelectorAll('button').forEach((b) => { const on = b === e.currentTarget; b.setAttribute('aria-pressed', String(on)); b.className = on ? 'hs-btn-main' : 'hs-btn-text'; });
+      };
+      const btn = (id: string | undefined, text: string, title: string) => h('button', { class: world.id === id ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(world.id === id), title, onclick: pick(id) }, text);
+      row.replaceChildren(h('span', { class: 'hs-label' }, 'World'),
+        btn(undefined, 'New world', 'A world no one has lived in, starting the day after the furthest day any world has reached'),
+        ...ws.map((w) => btn(w.worldId, `${w.name} · day ${w.day} · ${w.fell.join(', ')} fell there`,
+          'Carry on in this world: its places, people and everything left lying about are as they were, and its date jumps to the Universe date')));
+      row.hidden = false;
+    }).catch(() => {});
+    return row;
+  }
   function whoRow(): HTMLElement {
     const gender = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label]) =>
       h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,
@@ -191,7 +211,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
-      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), whoRow(), starts,
+      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), whoRow(), starts, worldRow(),
         cls?.story ? h('p', { class: 'story-line' }, cls.story) : null,
         perkNames(classId).length ? h('p', {}, `Class perk at level 1: ${perkNames(classId).join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),

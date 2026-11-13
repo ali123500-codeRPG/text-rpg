@@ -119,7 +119,8 @@ export interface GameApi {
   fell(): boolean; // "You fell" screen (lethal fight incapacitated the player)
   subscribe(cb: () => void): () => void;
   validateBuild(build: CreationBuild): string[]; // empty = valid
-  newStory(build: CreationBuild, opts?: { owner?: import('./state').StoryOwner }): Promise<void>;
+  /** worldId: carry on that free world (HF31) instead of starting a new one */
+  newStory(build: CreationBuild, opts?: { owner?: import('./state').StoryOwner; worldId?: string }): Promise<void>;
   /** load the owner's latest story (the player's by default); false when it has none */
   resume(owner?: import('./state').StoryOwner): Promise<boolean>;
   /** autopilot: the agent's next command and one short line of commentary, or null when the call failed */
@@ -130,6 +131,8 @@ export interface GameApi {
   sendBlueprint(id: string): Promise<{ id: string } | { error: string }>;
   /** the library send list, newest first */
   librarySends(): Promise<import('../save/sends').LibrarySend[]>;
+  /** HF31: the player's free worlds (no one lives in them), newest fall first */
+  worlds(): Promise<import('../save').FreeWorld[]>;
   /** files the player's own bug report (code player_report) with the story, turn and last lines; resolves to its BG id */
   reportBug(note: string): Promise<string | null>;
   /** the open bugs, newest first */

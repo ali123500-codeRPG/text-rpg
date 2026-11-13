@@ -14,7 +14,7 @@ import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
-import { clockText, dayOf, durationText, now, timeOfDay, timeView } from '../time';
+import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, now, now as gameNow, timeOfDay, timeView } from '../time';
 import { outcomeText } from '../ruleset/hits';
 import { HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
@@ -401,14 +401,14 @@ export function createGame(deps: GameDeps): Game {
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
     s.agentLog = [...turnLog];
     const record: TurnRecord = {
       storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, schemaVersion: CONFIG.SCHEMA_VERSION, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
-      agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed,
+      agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed, ...(rec.opening ? { opening: true as const } : {}),
       ...(s.scratch?.eventRoll ? { eventRoll: s.scratch.eventRoll as TurnRecord['eventRoll'] } : {}),
     };
     if (s.scratch) delete s.scratch.eventRoll;
@@ -637,17 +637,22 @@ export function createGame(deps: GameDeps): Game {
 
   // ---------------- story lifecycle ----------------
 
-  async function newStory(build: CreationBuild, opts: { owner?: StoryOwner } = {}): Promise<void> {
+  async function newStory(build: CreationBuild, opts: { owner?: StoryOwner; worldId?: string } = {}): Promise<void> {
     const owner = opts.owner ?? 'player';
     const errs = validateBuild(build);
     if (errs.length) throw new Error(errs.join('; '));
     // GAP: W6's director is injected; without it there is no way to set up turn 0
     if (!director) throw new Error('scenario director not wired (W6)');
     abortBackground();
+    // HF31: a free world picked on the creation screen: the new character carries on its last save
+    const free = opts.worldId ? await save.freeWorld(store, opts.worldId, owner) : undefined;
+    if (opts.worldId && !free) throw new Error('that world is no longer free');
+    const world = free && (await save.loadStory(store, free.lastStoryId, getLibrary())).state;
     const now = clock.now();
     const storyId = `story_${now.toString(36)}`;
     const seed = (now >>> 0) || 1;
-    state = newState(storyId, seed, { ...createPlayer(build, storyId), placeId: CONFIG.STORY_START_PLACE }, new Date(now).toISOString());
+    state = newState(storyId, seed, { ...createPlayer(build, storyId, { world }), placeId: CONFIG.STORY_START_PLACE }, new Date(now).toISOString());
+    if (world) state = { ...save.carryOn(world, state), meta: { ...state.meta, worldId: free!.worldId } };
     state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
     if (owner === 'agent') state.meta.owner = 'agent'; // the autopilot's own save: one story per owner
     lines = [];
@@ -656,17 +661,19 @@ export function createGame(deps: GameDeps): Game {
     turnLog = [];
     busy = true;
     emit();
-    // HF22: a new world starts the day after the furthest day any world has reached; the player's birth day moves with it
-    const startDay = (await save.universeDay(store).catch(() => 0)) + 1;
-    state.clocks.startDay = startDay;
-    if (state.player.core.bornDay !== undefined) state.player.core.bornDay += startDay - 1;
+    // HF22: a new world starts the day after the furthest day any world has reached; HF32: a world carried on jumps to that
+    // day, with nothing else changed. The new character's birth day moves with the day they start on.
+    const universe = await save.universeDay(store).catch(() => 0);
+    if (!world) state.clocks.startDay = universe + 1;
+    else if (dayOf(gameNow(state)) < universe) advanceClock(state, (universe - dayOf(gameNow(state))) * DAY_MINUTES);
+    if (state.player.core.bornDay !== undefined) state.player.core.bornDay += dayOf(gameNow(state)) - 1;
     // the build is kept until turn 0 is saved, so closing the game during the opening doesn't lose it (resume restarts it)
-    await save.savePendingStart(store, { storyId, build, at: new Date(now).toISOString(), ...(owner === 'agent' ? { owner } : {}) }).catch(() => {});
+    await save.savePendingStart(store, { storyId, build, at: new Date(now).toISOString(), ...(owner === 'agent' ? { owner } : {}), ...(free ? { worldId: free.worldId } : {}) }).catch(() => {});
     try {
       const rng = createRng(seed);
       const events = await director.startStory(state, rng, ctxFor(0, turnLog));
       state.rngState = rng.state;
-      await finishTurn(state, events, { playerInput: '', rngBefore: seed, aimed: false, intent: null }, null);
+      await finishTurn(state, events, { playerInput: '', rngBefore: seed, aimed: false, intent: null, opening: true }, null);
       if (await save.storySaved(store, storyId).catch(() => false)) await save.clearPendingStart(store, owner).catch(() => {});
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
@@ -687,7 +694,7 @@ export function createGame(deps: GameDeps): Game {
     const pending = await save.loadPendingStart(store, owner).catch(() => null);
     const pendingLive = !!pending && !(await save.storySaved(store, pending.storyId).catch(() => false)) && !(latest && latest.createdAt > pending.at);
     if (pending && pendingLive) {
-      void newStory(pending.build, { owner }).catch((e) => notice({ kind: 'load_refused', text: `The story could not start: ${(e as Error).message}` }));
+      void newStory(pending.build, { owner, ...(pending.worldId ? { worldId: pending.worldId } : {}) }).catch((e) => notice({ kind: 'load_refused', text: `The story could not start: ${(e as Error).message}` }));
       return true;
     }
     if (pending) await save.clearPendingStart(store, owner).catch(() => {});
@@ -755,6 +762,7 @@ export function createGame(deps: GameDeps): Game {
       await saveSend(store, { id, kind: 'unique', storyId, name: f.name, at: new Date(clock.now()).toISOString(), data: { raceId: st.player.core.raceId, label: st.player.label, sheet } });
       return { id };
     },
+    worlds: () => save.listWorlds(store),
     reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),

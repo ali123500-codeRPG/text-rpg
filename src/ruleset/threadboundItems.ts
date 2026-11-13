@@ -34,21 +34,21 @@ export const threadboundItemFor = (a: Actor, perk: string): ItemInstance | undef
   ownThreadboundItems(a).find((i) => libItem(i.itemId)!.threadbound!.grants.some((g) => g.perk === perk));
 
 /** a Threadbound item is one of a kind: true when one is already carried by anyone or lies on any ground */
-export const inWorld = (state: GameState, itemId: string): boolean => holders(state).some((l) => l.some((i) => i.itemId === itemId && !i.soulbound)); // HF19: an echo's soulbound copy is not the one
+export const inWorld = (state: GameState, itemId: string): boolean => itemHolders(state).some((l) => l.some((i) => i.itemId === itemId && !i.soulbound)); // HF19: an echo's soulbound copy is not the one
 
 /** every place an item instance can be: each actor's inventory and each zone's ground, in every place */
-function holders(state: GameState): ItemInstance[][] {
+export function itemHolders(state: GameState): ItemInstance[][] {
   return [...[state.player, ...state.actors].map((a) => a.core.inventory), ...state.places.flatMap((p) => p.zones.map((z) => z.groundItems))];
 }
 
 /** TB6: the actor's bound Threadbound items it is not carrying */
 export const summonableThreadboundItems = (state: GameState, a: Actor): ItemInstance[] =>
-  holders(state).filter((l) => l !== a.core.inventory).flat().filter((i) => i.boundTo === a.id && libItem(i.itemId)?.threadbound);
+  itemHolders(state).filter((l) => l !== a.core.inventory).flat().filter((i) => i.boundTo === a.id && libItem(i.itemId)?.threadbound);
 
 /** TB6: brings the actor's own Threadbound item to it from wherever it is; it lands worn if a slot for it is free, else
  * stowed (TB12). False if it isn't theirs */
 export function summon(state: GameState, a: Actor, instId: string): boolean {
-  for (const list of holders(state)) {
+  for (const list of itemHolders(state)) {
     const i = list.findIndex((x) => x.id === instId);
     if (i < 0) continue;
     if (list === a.core.inventory || list[i].boundTo !== a.id || !libItem(list[i].itemId)?.threadbound) return false;
