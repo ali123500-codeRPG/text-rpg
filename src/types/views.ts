@@ -178,6 +178,10 @@ export type ActorView = {
   said: string[]; // its own last spoken lines, latest last (P5)
   earlier?: string[]; // PM6: code-made lines about perceived events older than `perceived`, oldest first
   plan?: Plan;
+  /** UG2/UG16: a goal holder's goals (numbered for goals.met/failed), queued steps and why it thinks now */
+  goals?: { n: number; text: string; standing?: true; about?: string[] }[];
+  steps?: import('./hidden').GoalStep[];
+  thinkWhy?: string;
   memory?: { n: number; turn: number; text: string }[]; // PM1: its memory list, numbered for memory.drop
   agreements?: AgreementView[]; // PM3: the deals it is in
   secrets: Secret[]; // its own
@@ -196,7 +200,7 @@ export type OppositionView = ActorView; // formatted for the prompt by the agent
 
 // ---------- DialogueView: Agent Voice ----------
 export type DialogueInput = { spoken: string; impression: string | null }[]; // one entry per speech action this turn
-export type DialogueView = Omit<ActorView, 'plan' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
+export type DialogueView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
   knows: Fact[];
   dialogue: DialogueInput;
 };

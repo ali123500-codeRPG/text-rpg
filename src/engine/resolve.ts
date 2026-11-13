@@ -1,6 +1,7 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import { checkScenarioEnd, closeScenario } from './scenarioEnd';
 import { checkRoam, updateChase } from './chase';
+import { noticeGoals, runSteps } from './goals';
 import { noteHappened } from './happened';
 import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
@@ -888,6 +889,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     if (first) state.scratch!.agentRun = []; // AT63: an agent's order covers the first step; then everyone runs on code
     const hunt = huntOnCode(ctx, step, onLeg);
     fighting = hunt.fighting;
+    headArrivals(state); runSteps(state); // UG16: queued steps run on through a long turn, with no call
     ran += step;
     stop = contact(p, ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
   }
@@ -943,6 +945,7 @@ function runNight(ctx: Ctx): number {
     passTime(state, step);
     catchUp(state, step, false);
     huntOnCode(ctx, step * 60); // AT63: foes after the player close in on code; the arrival check below stops the night
+    headArrivals(state); runSteps(state); // UG16: queued steps run on through the night, with no call
     if (slept) {
       n.slept += step;
       for (const due = Math.floor(n.slept / CONFIG.REST_COOLDOWN_MIN); n.heals < due; n.heals++) applyHealing(state, p, restRow(state, p));
@@ -1886,6 +1889,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // NW18: still asleep and nobody hostile near any more (they left, or never woke you): the rest of the night runs on
   if (state.night && isAsleep(state.player) && !state.scratch?.nightStopped && !hostilesNear(state, state.player).length) runNight(ctx);
   headArrivals(state); // NW2: a head_to walk the catch-up brought there
+  runSteps(state); // UG16: a goal holder's finished step gives way to its next
+  noticeGoals(state); // UG7 moment 3: a goal holder that perceives what a goal names thinks next
   updateQuests(state, ctx.events, defeated);
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);

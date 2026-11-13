@@ -1,11 +1,11 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
-import type { PlanFurniture, AgreementMade, CheckinAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { CHASE_RANGES, COVER, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, TRAVEL_PACES, type QualityKey, type Scale, type TravelPaceKey } from '../scales';
+import { CHASE_RANGES, COVER, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, TRAVEL_PACES, type QualityKey, type Scale, type TimeOfDay, type TravelPaceKey } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
@@ -132,13 +132,22 @@ const spar = nul(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])
 const yields = (v: unknown, p: string, e: string[]) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean;
 const acceptYield = yields;
 const spare = yields; // D-239
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'acceptYield', 'spare', 'headTo', 'lead'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'acceptYield' | 'spare' | 'headTo' | 'lead')[];
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'acceptYield', 'spare', 'headTo', 'lead', 'goals', 'steps'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'acceptYield' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps')[];
 const headTo = nStr; // NW2
+// UG5/UG16: a goal holder's goals met, failed or added, and its next steps
+const goalOps = nul(obj<GoalOps>({
+  met: (v, p, e) => (v === undefined || v === null ? [] : arr(num)(v, p, e)),
+  failed: (v, p, e) => (v === undefined || v === null ? [] : arr(num)(v, p, e)),
+  add: (v, p, e) => (v === undefined || v === null ? [] : arr(obj<GoalOps['add'][number]>({ text: str, about: arr(str) }, ['about']))(v, p, e)),
+}));
+const timeOfDay: V<TimeOfDay> = (v, p, e) => TIME_OF_DAY.keyOf(v) ?? (e.push(`${p}: expected one of ${TIME_OF_DAY.keys.join(', ')}`), TIME_OF_DAY.keys[0]);
+const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, e) => (bool(v, p, e) || undefined) as true, until: obj<StepEnd>({ at: timeOfDay, arrival: str }, ['at', 'arrival']) }, ['go', 'lead', 'routine', 'wait', 'until']);
+const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
 const npcMove = nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after']));
-const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead }, ['move', ...MEMORY_KEYS]);
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead, goals: goalOps, steps,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({
@@ -206,7 +215,8 @@ const weaver = obj<StagePlan>({
     }),
     personality: obj<NonNullable<Cast['personality']>>({ nerve: str, types: arr(str), values: arr(str) }, ['nerve', 'types', 'values']),
     age: str,
-  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age'])),
+    goals: arr(obj<GoalOps['add'][number]>({ text: str, about: arr(str) }, ['about'])), // UG3
+  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'goals'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
     item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: QualityKey; boosts: string; name: string; look: string }>(

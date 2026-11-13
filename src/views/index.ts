@@ -6,7 +6,7 @@ import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
 import { ageText, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
-  Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
+  Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
@@ -433,7 +433,7 @@ export function buildPlayerView(state: GameState): PlayerView {
 }
 
 // ---------- ActorView / OppositionView / DialogueView ----------
-type BaseView = Omit<ActorView, 'plan' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
+type BaseView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
 
 /** everything an NPC view holds that is not in state.hidden */
 function baseView(state: GameState, actorId: string): BaseView {
@@ -538,6 +538,13 @@ export function questGoalText(state: GameState, q: Quest): string {
   }
 }
 
+/** UG2/UG16: a goal holder's goals (numbered), its queued steps and why it thinks now */
+const goalView = (d: Drive | undefined): Pick<ActorView, 'goals' | 'steps' | 'thinkWhy'> => !d ? {} : {
+  goals: d.goals.map((g, i) => ({ n: i + 1, text: g.text, ...(g.standing ? { standing: true as const } : {}), ...(g.about?.length ? { about: [...g.about] } : {}) })),
+  ...(d.steps.length ? { steps: structuredClone(d.steps) } : {}),
+  ...(d.think ? { thinkWhy: d.think } : {}),
+};
+
 export function buildActorView(state: GameState, actorId: string): ActorView {
   const base = baseView(state, actorId);
   const h = state.hidden;
@@ -545,6 +552,7 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
   return {
     ...base,
     ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
+    ...goalView(h.drives?.[actorId]),
     ...(h.memory[actorId]?.length ? { memory: h.memory[actorId].map((m, i) => ({ n: i + 1, turn: m.turn, text: m.text })) } : {}),
     ...(agreementViews(state, actorId).length ? { agreements: agreementViews(state, actorId) } : {}),
     secrets: h.secrets.filter((s) => s.holderId === actorId).map((s) => ({ id: s.id, holderId: s.holderId, fact: s.fact, leakTerms: [...s.leakTerms], revealWhen: { ...s.revealWhen } })),

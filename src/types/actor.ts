@@ -233,6 +233,8 @@ export type NpcTemplate = {
   title?: string;
   /** a rolled NPC's hand-written if-then lines, given right after Nerve in its personality line */
   signatures?: string[];
+  /** UG3 d: a goal written on the template; every NPC cast from it holds it until it is met */
+  standingGoal?: string;
   loadout?: LibraryRef[];
   potential?: number;
   control: 'agent' | 'code';
