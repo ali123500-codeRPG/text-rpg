@@ -18,6 +18,7 @@ import { allActors, isActive, stance, warm } from './relations';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
+import { withinGrip } from './position';
 
 export const MARK_SOURCE: Record<string, string> = { [PK.set_them_up]: 'Set Them Up', [PK.turn_the_blade]: 'Turn the Blade', [PK.hunters_mark]: 'Hunter’s Mark', [PK.make_them_stumble]: 'Make Them Stumble', [PK.leg_bolt]: 'Leg Bolt', [PK.dirt_in_the_eyes]: 'Dirt in the Eyes' };
 
@@ -81,13 +82,13 @@ export function expireMarks(state: GameState, a: Actor): void {
   drop(a, (m) => (m.until !== undefined && m.until < state.turn) || (!a.engagement && (m.perk === PK.turn_the_blade || m.perk === PK.hunters_mark || m.perk.startsWith('set_up:'))));
 }
 
-/** Cover Ally (A11): an actor in the target's zone, friendly to it, with the perk switched on, standing on block and able
+/** Cover Ally (A11): an actor within its own grip reach of the target (ZR2), friendly to it, with the perk switched on, standing on block and able
  * to block, whose block beats the target's own standing defense, takes a ranged attack in the target's place. */
 export function coverFor(state: GameState, target: Actor): Actor | undefined {
   // the target's own defense against a missile: parry can't stop one, so it uses its fallback
   const own = (a: Actor) => { const t = usableDefense(state, a, true); return effectiveSkill(state, a, DEFENSE_SKILL[t], { itemId: defenseItem(state, a, t)?.id }).value; };
   const mine = own(target);
-  return allActors(state).filter((c) => c !== target && c.zone === target.zone && isActive(c) && hasPerk(c, PK.cover_ally) && !c.core.perksOff?.includes(PK.cover_ally)
+  return allActors(state).filter((c) => c !== target && isActive(c) && withinGrip(state, c, target) && hasPerk(c, PK.cover_ally) && !c.core.perksOff?.includes(PK.cover_ally)
     && warm(stance(state, c, target)) && c.core.standingDefense === 'block' && canBlock(state, c) && own(c) > mine)
     .sort((x, y) => own(y) - own(x) || (x.id < y.id ? -1 : 1))[0];
 }

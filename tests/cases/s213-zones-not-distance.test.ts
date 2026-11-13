@@ -1,5 +1,6 @@
 // 213 Zones are places, not distances: every "near enough" check is in metres (the zone-as-distance review).
-// A fight's closing in, One-Two's follow-up punch, a parry's strike back and Bluff's target are measured in metres.
+// A fight's closing in, One-Two's follow-up punch, a parry's strike back, Bluff's and Dirt in the Eyes' targets, Cover Ally,
+// Spotter and how far a person is made out are measured in metres.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
@@ -9,6 +10,9 @@ import { placeZones } from '../../src/scenario/geometry';
 import { noteFighting } from '../../src/engine/engagement';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { selectSpokespeople } from '../../src/engine/speech';
+import { coverFor } from '../../src/engine/perkMarks';
+import { shareSpotted } from '../../src/ruleset/allSteps';
+import { buildPlayerView } from '../../src/views';
 import type { Actor, AttackResult, GameEvent, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
@@ -127,5 +131,53 @@ describe('213 zones are not distances', () => {
     expect(selectSpokespeople(s, ask)).toEqual(['patron_1']);
     s.actors.find((a) => a.id === 'patron_1')!.pos!.x -= 10; // now 8 m off, the other way
     expect(selectSpokespeople(s, ask)).toEqual(['trader']);
+  });
+
+  it('ZR1: Dirt in the Eyes reaches as far as an improvised throw (5 m), not the whole zone', () => {
+    const s = mapped();
+    give(s.player, PK.dirt_in_the_eyes);
+    const foe = besidePlayer(s, 'patron_1', CONFIG.THROW_M.improvised - 1);
+    expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, foe.id)).not.toBe('no_target');
+    foe.pos!.x += 2;
+    expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, foe.id)).toBe('no_target');
+  });
+
+  it('ZR2: Cover Ally needs the ally within the coverer\'s grip reach', () => {
+    const s = mapped();
+    const ally = besidePlayer(s, 'patron_1', 0.5);
+    s.bands.find((b) => b.id === 'player_band')!.relations.tavern_folk = 'friendly';
+    s.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'friendly';
+    s.player.core.standingDefense = 'block';
+    ally.core.standingDefense = 'dodge';
+    ally.core.skills[SK.dodge] = { raw: 5, state: 'normal' };
+    give(s.player, PK.cover_ally);
+    expect(coverFor(s, ally)?.id).toBe('player');
+    ally.pos!.x += 3; // 3.5 m off: out of arm's reach
+    expect(coverFor(s, ally)).toBeUndefined();
+  });
+
+  it('ZR4: Spotter tells a band-mate who hears or sees it, not one in the same zone out of both', () => {
+    const run = (mateAt: (s: GameState) => void) => {
+      const s = mapped();
+      const o = besidePlayer(s, 'trader', 3), mate = npc(s, 'patron_1');
+      mateAt(s);
+      give(o, PK.spotter);
+      o.mind!.knowledge.player = { ...(o.mind!.knowledge.player ?? {}), status: 'aware' } as never;
+      mate.mind!.knowledge.player = { ...(mate.mind!.knowledge.player ?? {}), status: 'unaware' } as never;
+      shareSpotted(s, o);
+      return mate.mind!.knowledge.player.status;
+    };
+    expect(run((s) => besidePlayer(s, 'patron_1', 5))).toBe('suspicious');
+    expect(run((s) => { const m = place(s, 'patron_1', 'tav_cellar'); delete m.pos; placeAll(s); })).toBe('unaware');
+  });
+
+  it('ZR6: a person is made out by the sight table: still at 18 m is "someone", walking at 18 m is known', () => {
+    const s = mapped();
+    s.player.pos = { x: s.player.pos!.x - 9, y: s.player.pos!.y };
+    const wim = besidePlayer(s, 'patron_1', 18);
+    s.events = [];
+    expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')).toMatchObject({ level: 'partial', label: 'someone' });
+    s.events = [{ id: 'e1', turn: s.turn, actorId: wim.id, kind: 'move', zone: wim.zone, pos: { ...wim.pos! }, effects: [], noise: 'quiet', visibility: 'normal', perception: {} } as unknown as GameEvent];
+    expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')).toMatchObject({ level: 'full' });
   });
 });

@@ -56,13 +56,13 @@ export function hearsClearly(state: GameState, from: Located, listener: Actor, n
   return !isAsleep(listener) && soundReach(state, listener, from, noise, noise === 'hushed') === 'full';
 }
 
-/** C1 Never Surprised: the owner can hear a sound of this noise made there (a zone, or a point in it), stealth aside */
-export function hears(state: GameState, observer: Actor, at: string | Located, noise: GameEvent['noise']): boolean {
+/** C1 Never Surprised: the owner can hear a sound of this noise made there (a person or a point), stealth aside */
+export function hears(state: GameState, observer: Actor, at: Located, noise: GameEvent['noise']): boolean {
   return !isAsleep(observer) && soundCarries(state, observer, at, noise);
 }
 /** NW18: a sound of this noise made there reaches the observer's ears, awake or asleep (what wakes a sleeper) */
-export function soundCarries(state: GameState, observer: Actor, at: string | Located, noise: GameEvent['noise']): boolean {
-  return isActive(observer) && soundReach(state, observer, typeof at === 'string' ? { zone: at } : at, noise) !== null;
+export function soundCarries(state: GameState, observer: Actor, at: Located, noise: GameEvent['noise']): boolean {
+  return isActive(observer) && soundReach(state, observer, at, noise) !== null;
 }
 
 /** BG-89: event kinds that touch their target */
