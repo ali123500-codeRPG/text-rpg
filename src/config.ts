@@ -273,9 +273,8 @@ const DEFAULTS = {
   STRAIN_ARMOR_MULT: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** FT23: strain past an empty short line spills into the long-term bar at this share */
   SPILL_SHARE: 0.5,
-  /** FT27: one Stamina mark per this many points of strain paid by actions of STAMINA_MARK_FROM or harder */
+  /** FT27/FB6: one Stamina mark per this many points of strain paid, any effort, armour included */
   STAMINA_MARK_EVERY: 50,
-  STAMINA_MARK_FROM: 'hard' as EffortKey,
   /** FT28: catching your breath: in a calm stretch (nothing above Light for BREATH_CALM_S) the line refills BREATH_BASE_PCT
    * + Stamina × BREATH_PER_POINT_PCT % of its size a minute */
   BREATH_CALM_S: 10,

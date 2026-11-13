@@ -142,7 +142,7 @@ export function markResolve(state: GameState, actor: Actor, lostPct: number): vo
   if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
 }
 
-/** FT27: the player's Stamina is marked once per STAMINA_MARK_EVERY points of strain from Hard or harder efforts (no rolls) */
+/** FT27: the player's Stamina is marked once per STAMINA_MARK_EVERY points of strain paid, any effort (no rolls) */
 export function markStamina(state: GameState, actor: Actor): void {
   if (actor.id === state.player.id) mark(actor, SK.stamina);
 }

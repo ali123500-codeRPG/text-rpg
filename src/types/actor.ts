@@ -143,8 +143,8 @@ export type SavedCondition = {
   steadiedTurn?: number;
   /** FT1/FT18: the stamina bar, in flat points used: debt = the long term (sleep debt and spilled strain), line = the short
    * line (strain); hardAt = game minute of its last effort above Light (catching your breath waits BREATH_CALM_S after it);
-   * toMark = strain from Hard or harder efforts not yet counted into a Stamina mark */
-  fatigue?: { debt: number; line: number; hardAt?: number; toMark?: number };
+   * toMark = strain not yet counted into a Stamina mark; awake = the share of debt from hours awake, uncapped (FB4) */
+  fatigue?: { debt: number; line: number; hardAt?: number; toMark?: number; awake?: number };
 };
 
 export type Progression = {
