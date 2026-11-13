@@ -80,11 +80,12 @@ export function fireMidTurnTrigger(state: GameState, owner: Actor, event: GameEv
   return t ? fire(state, owner.id, t, state.turn, true) : null;
 }
 
-/** BG-50: agent-run owners of a fired speech beat (talk, persuade, deceive, intimidate, barter) aimed at the player, other than
- * the player's own spokespeople: one Responder call each writes the beat's words (it sees the beat as COMMITTED) */
+/** BG-50: owners of a fired speech beat (talk, persuade, deceive, intimidate, barter) aimed at the player, other than the
+ * player's own spokespeople: one Responder call each writes the beat's words (it sees the beat as COMMITTED). BG-146: code-run
+ * owners too, as when the player speaks to them, so a beat never speaks without words */
 export function beatSpeakers(state: GameState, spokespeople: string[]): string[] {
   return [...new Set(firedOrders(state).filter((o) => isSpeech(o.type) && o.target === state.player.id && !spokespeople.includes(o.actorId)
-    && actorById(state, o.actorId)?.mind?.control === 'agent').map((o) => o.actorId))];
+    && !!actorById(state, o.actorId)?.mind).map((o) => o.actorId))];
 }
 
 /** bound turn-start orders saved by computePending; the pipeline passes them as TurnInput.fired. */
