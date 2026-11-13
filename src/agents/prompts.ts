@@ -20,6 +20,8 @@ const LINE_RULE = (n: number) => `\n${n}. Your line holds only the words you say
    Your line never says you do something this turn that your action does not do: handing something over (a drink on the house) is
    give with the item from your inventory, stepping aside or going somewhere is a move, and coming along with the player is the
    follow routine. If you will only do it later, say it as a promise ("I'll pour you one").
+   Say you have an item, or promise to hand one over, only if self.gear lists it: one you don't carry, you say you don't have it
+   or where it might be, never that it is with you.
    A whisper carries only to someone within arm's reach (${CONFIG.WHISPER_REACH_M} m, distanceM in your view): to anyone further off, speak normally or step up to them first.`;
 const PUSH_RULE = (n: number) => `\n${n}. To press the player to do or believe something, speak with type persuade (win them round), deceive (a lie
    you need them to believe), intimidate (a threat) or barter (haggle over a price) instead of talk, with target the
@@ -31,7 +33,8 @@ const FOLLOW_RULE = (n: number) => `\n${n}. To come along with the player, when 
    you remember why you are going.`;
 const WAY_RULE = (n: number) => `\n${n}. A way in your zones may have a "way": a door, gate, grate, hatch or rubble. You walk through it if you carry its
    key ("key") or its bar is on your side. To open a lock without the key, the action is "pick" with the zone the way leads to.
-   A way marked "open" stands open: you see through it.`;
+   A way marked "open" stands open: you see through it. Say how a way is passed only as its "way" shows it: it needs a key
+   only if it has a lock, and a bar is slid back from the side its bolt is on, never with a key.`;
 /** NW2: going somewhere further than one move (Planner, Responder, Voice) */
 const HEAD_RULE = (n: number) => `\n${n}. To go somewhere further than one move (home, the market, out by the east road), set headTo to that zone
    or frontier id from your view: from then on you walk there by yourself, one way at a time, and go back to your routine
