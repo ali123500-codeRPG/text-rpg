@@ -12,7 +12,7 @@ import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
-import { actionRow, actionSeconds } from '../ruleset/actionTime';
+import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
@@ -26,7 +26,7 @@ import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, handsOn, openToHands, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
-import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
+import { afterAttack, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
@@ -232,16 +232,32 @@ const hearsItComing = (state: GameState, owner: Actor, at: Located, noise: GameE
 
 /** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last),
  * unless it has Never Surprised and the attack's noise reaches it; ties go to the seeded rng */
-function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Order>, rng: Rng): string[] {
+function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Order>, rng: Rng): { order: string[]; delay: Map<string, number> } {
   const attackers = (id: string) => [...orders].filter(([, o]) => o.type === 'attack' && o.target === id).map(([by]) => actorById(state, by)!);
+  const fight = state.mode === 'tactical';
+  const delay = new Map<string, number>();
   const rows = ids.map((id) => {
     const a = actorById(state, id)!;
-    const roll = ruleset.initiative(a, state, rng);
     const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x, armorNoise(state, x, 'attack', SENSE.attack[0])));
-    return { id, init: caught || bluffed(state, a) ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() }; // LI1c: a believed Bluff acts last too
+    // AT58: in a fight, the reaction rolled when the actor's fight started: its first turn starts that many seconds in, and
+    // the roll orders it for the rest of the fight; outside a fight the roll is fresh each turn, as before
+    let init: number, wait = 0;
+    if (!fight) init = ruleset.initiative(a, state, rng);
+    else {
+      const fresh = !a.react || a.react.turn !== state.turn - 1;
+      if (fresh) { const total = ruleset.initiative(a, state, rng); a.react = { s: reactSeconds(total), init: total, turn: state.turn }; }
+      else a.react!.turn = state.turn;
+      init = a.react!.init;
+      if (fresh) wait += a.react!.s;
+    }
+    // AT60/LI1c: a believed Bluff makes it hesitate: its turn starts after its reaction time again
+    if (bluffed(state, a)) { wait += a.react?.s ?? reactSeconds(init); spendBluff(a); }
+    if (wait > 0) delay.set(id, wait);
+    return { id, caught, wait, init, tie: rng.next() };
   });
-  rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
-  return rows.map((r) => r.id);
+  // the unaware act last (Q2); then whoever starts first; ties by the roll
+  rows.sort((x, y) => +x.caught - +y.caught || x.wait - y.wait || y.init - x.init || y.tie - x.tie);
+  return { order: rows.map((r) => r.id), delay };
 }
 
 // ---------- after each event ----------
@@ -1581,7 +1597,10 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     ctx.events.push(ev); // not emitted: a feeling makes no sound and shows the owner to no one
     updateBeliefs(state, { kind: 'detection', observerId: h.owner.id, aboutId: h.watcher.id, status: 'suspicious', event: ev });
   }
-  const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
+  const init = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
+  const ordered = init.order;
+  // AT58/AT60: a reaction or a hesitation: the actor's time starts that many seconds into the turn, and it walks no sooner
+  for (const [id, wait] of init.delay) { const a = actorById(state, id); if (!a) continue; ctx.clock.set(id, wait); const s = slotsOf(ctx, a); s.move = Math.max(0, s.move - wait); }
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
   const ex = input.exchange;

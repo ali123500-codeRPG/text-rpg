@@ -2,6 +2,8 @@
 // against the foe's answer to a lie; unless the foe wins, it acts last next turn. Takes One to Know One (Lying 60): a lie
 // is answered with the better of Insight and Lying. Plain as Day (Insight 60): a lie seen through is called a lie.
 // Read Their Face (Insight 100): the stance toward the owner of anyone who spoke to the owner this scenario shows.
+import { tick } from '../harness/time';
+import { CONFIG } from '../../src/config';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { getLibrary } from '../../src/library';
@@ -52,7 +54,7 @@ describe('150 Lying and Insight perks', () => {
     expect(perkMoveBlock(s, s.player, PK.bluff, other.id)).toBeNull(); // another foe can still be bluffed
   });
 
-  it('a believed Bluff makes the foe act last next turn; one seen through does nothing', () => {
+  it('a believed Bluff makes the foe hesitate next turn (AT60); one seen through does nothing', () => {
     const s = makeVillage();
     const wim = foe(s);
     give(s.player, PK.bluff);
@@ -63,10 +65,10 @@ describe('150 Lying and Insight perks', () => {
     expect(r.result?.b.skill).toBe(SK.insight);
     expect(r.effects[0].kind).toBe('bluff_believed');
     expect(bluffed(s, wim)).toBe(true);
-    s.turn += 1;
-    expect(bluffed(s, wim)).toBe(true); // its next turn
-    s.turn += 1;
-    expect(bluffed(s, wim)).toBe(false);
+    tick(s, CONFIG.ROUND_S);
+    expect(bluffed(s, wim)).toBe(true); // a round on
+    tick(s, CONFIG.ROUND_S);
+    expect(bluffed(s, wim)).toBe(false); // PERK_MARK_ROUNDS rounds on
 
     const s2 = makeVillage();
     const w2 = foe(s2);

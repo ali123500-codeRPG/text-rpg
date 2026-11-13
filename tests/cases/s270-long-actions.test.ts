@@ -18,6 +18,7 @@ const fightReady = () => {
   s.mode = 'tactical';
   s.player.core.condition.hpLostPct = 30;
   s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
+  s.player.react = { s: 0, init: 100, turn: s.pending.turn - 1 }; // already in the fight: no reaction time (AT58)
   return s;
 };
 const bandage = () => intent({ action: { type: 'use_item', item: 'b1', target: 'player' } });
