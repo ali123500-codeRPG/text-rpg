@@ -245,3 +245,20 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 /* the later levels of an every-N row: medals drawn like the card's face, opening the same card; hidden with it */
 .lv-ghost { background: var(--surface); border-width: 1px; border-style: solid; border-radius: var(--r-lg); }
 .lv-track > .lv-card[hidden] ~ .lv-ghost { display: none; }
+
+/* Threadbound items: one unlock path per achievement chain, side by side; each step is the achievement that opens it
+   and the ability it gives */
+.lv-tb-paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--space-4); }
+.lv-tb-path .lv-chainlabel { margin-top: 0; }
+.lv-tb-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.lv-tb-step { display: grid; grid-template-columns: 28px 1fr; gap: var(--space-3); position: relative; }
+.lv-tb-step:not(:last-child)::after { content: ''; position: absolute; left: 13px; top: 30px; bottom: calc(-1 * var(--space-3)); width: 2px; background: var(--border); }
+.lv-tb-n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600;
+  border: 2px solid var(--accent); color: var(--text); background: var(--surface); }
+.lv-tb-body { display: grid; gap: 4px; min-width: 0; }
+.lv-tb-unlock { font-size: 13px; color: var(--muted); }
+.lv-tb-unlock .lv-k { color: var(--muted); }
+.lv-tb-perk { font-size: 15px; font-weight: 600; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.lv-tb-at { font-size: 13px; font-weight: 400; color: var(--muted); }
+.lv-tb-effect { margin: 0; font-size: 14px; line-height: 1.5; }
+.lv-tb-unlock .hs-tg { margin-left: var(--space-2); }

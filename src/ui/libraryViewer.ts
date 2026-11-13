@@ -19,7 +19,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -871,10 +871,49 @@ function personalityAxesView(): HTMLElement[] {
       row('NPCs', ((ts) => ts.length ? links('templates', ts) : none('none lean here'))(Object.values(lib.templates).filter((t) => Math.abs(t.personality?.traits?.[a.id] ?? 0) >= CONFIG.PERSONALITY_LEAN).map((t): [string, string] => [t.id, t.label ?? t.id]))))))];
 }
 
+/** Threadbound items (D-218): one card per item. Its grants are drawn as unlock paths, one per achievement chain, in
+ * chain order: each step is the achievement that opens it (with the engine's earnedAtText) and the perk it gives */
+function threadboundView(): HTMLElement[] {
+  const items = Object.values(lib.items).filter((i) => i.threadbound) as ItemDef[];
+  const ach = lib.achievements ?? {};
+  const rootOf = (id: string): string => { let k = id; for (let i = 0; i < 50 && ach[k]?.after; i++) k = ach[k].after!; return k; };
+  const depth = (id: string): number => { let n = 0, k = id; while (ach[k]?.after && n < 50) { k = ach[k].after!; n++; } return n; };
+  const givers = (rank: string) => Object.values(lib.perks).filter((pk) => pk.grantsThreadboundItem && THREADBOUND_RANKS.pos(rank as ThreadboundRankKey) >= THREADBOUND_RANKS.pos(pk.grantsThreadboundItem.minRank));
+  const step = (g: { perk: string; achievement: string }, i: number) => {
+    const a = ach[g.achievement], pk = lib.perks[g.perk], r = pk?.rules;
+    return h('li', { class: 'lv-tb-step' },
+      h('span', { class: 'lv-tb-n', 'aria-hidden': 'true' }, String(i + 1)),
+      h('div', { class: 'lv-tb-body' },
+        h('div', { class: 'lv-tb-unlock' }, h('span', { class: 'lv-k' }, 'Unlocks with '), a ? link('achievements', a.id, a.name) : g.achievement,
+          a ? h('span', { class: 'lv-tb-at' }, ` · ${earnedAtText(NO_STATE, a)}`) : null, a?.scar ? chip('scar', toneFor('Kind', 'scar')) : null),
+        h('div', { class: 'lv-tb-perk' }, pk ? link('perks', pk.id, pk.name) : g.perk, r ? chip(r.kind) : null, r?.cooldown ? h('span', { class: 'lv-tb-at' }, ` ${r.cooldown}`) : null),
+        r ? h('p', { class: 'lv-tb-effect' }, r.effect.replace(/^./, (c) => c.toUpperCase()) + '.') : pk?.story ? h('p', { class: 'lv-tb-effect' }, pk.story) : null));
+  };
+  return [
+    h('p', { class: 'hs-note' }, 'Each Threadbound item is one of a kind in the world. It binds to the first person who wears it, and no one else can wear it after that. Its owner can summon it from wherever it is. While the owner wears it, each ability opens once the owner has earned the achievement beside it, and stays open even after a higher level of that achievement replaces it. In anyone else\'s hands it does nothing. The Weaver does not place these items in scenes.'),
+    h('div', { class: 'lv-grid wide' }, items.map((it) => {
+      const tb = it.threadbound!;
+      const chains = new Map<string, { perk: string; achievement: string }[]>();
+      for (const g of tb.grants) { const k = rootOf(g.achievement); chains.set(k, [...(chains.get(k) ?? []), g]); }
+      const giv = givers(tb.rank);
+      return card('threadbound', it.id, it, it.name, [chip(THREADBOUND_RANKS.name(tb.rank)), chip(it.slot ?? it.kind), chip(`${tb.grants.length} abilities`)],
+        it.look ? h('p', { class: 'lv-story' }, it.look) : null,
+        h('div', { class: 'lv-tb-paths' }, [...chains].map(([root, gs]) => h('section', { class: 'lv-tb-path' },
+          h('h4', { class: 'lv-chainlabel' }, `${ach[root]?.name ?? root} chain`),
+          h('ol', { class: 'lv-tb-steps' }, gs.sort((x, y) => depth(x.achievement) - depth(y.achievement)).map(step))))),
+        row('Value', `${it.value.toLocaleString('en')} coin${it.boon ? `, boon ${it.boon}` : ''}`),
+        row('How to get it', giv.length ? h('span', {}, 'Found in the world, or given by ', links('perks', giv.map((pk) => [pk.id, pk.name])),
+          ...giv.flatMap((pk) => pk.classLevel ? [` (${className(pk.classLevel.classId)} level ${pk.classLevel.level})`] : []),
+          `, which hands over one Threadbound item of ${THREADBOUND_RANKS.name(giv[0].grantsThreadboundItem!.minRank)} or higher, picked at random from those not yet in the world`) : 'found in the world'));
+    })),
+  ];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
   { key: 'gearClasses', title: 'Gear classes', table: 'gearClasses', view: gearClasses },
+  { key: 'threadbound', title: 'Threadbound', table: 'items', view: threadboundView, count: Object.values(lib.items).filter((i) => i.threadbound).length },
   { key: 'perks', title: 'Perks', table: 'perks', view: perks },
   { key: 'races', title: 'Races', table: 'races', view: races },
   { key: 'bodyTypes', title: 'Body types', table: 'bodyTypes', view: bodyTypes },
@@ -941,7 +980,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
+  ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
   ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'composure', 'quests', 'fears', 'nerve', 'personalityAxes', 'personalityTypes', 'values', 'status']],
   ['World', null],
 ];
