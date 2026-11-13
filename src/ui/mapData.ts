@@ -16,7 +16,9 @@ import { barrierOn, barrierView } from '../engine/barriers';
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
 export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; open?: true; key?: true };
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay };
-export type MapPerson = { id: string; name: string; now: boolean };
+/** at: where they stand (Actor.pos, metres in the map's frame), only for someone in full sight on a zone with a rectangle;
+ * someone only heard or glimpsed, or last seen, has no point: the player can't tell where in the zone they are */
+export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number } };
 export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
   /** metres above the ground outside: the map shows one height (a floor) at a time */
@@ -57,7 +59,11 @@ export function knownMap(s: GameState): KnownMap {
   // people: seen now (PlayerView) and last seen (out of sight now, in the zone they were last seen in)
   const people = new Map<string, MapPerson[]>();
   const add = (zone: string, x: MapPerson) => { if (!people.has(zone)) people.set(zone, []); people.get(zone)!.push(x); };
-  for (const a of pv?.actors ?? []) if (a.id !== p.id) add(a.zone, { id: a.id, name: a.name ?? a.label, now: true });
+  for (const a of pv?.actors ?? []) {
+    if (a.id === p.id) continue;
+    const pos = a.level === 'full' ? s.actors.find((x) => x.id === a.id)?.pos : undefined;
+    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.rect ? { at: { x: pos.x, y: pos.y } } : {}) });
+  }
   for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false });
 
   const byPlace = new Map<string, MapZone[]>();
