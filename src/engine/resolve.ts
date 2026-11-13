@@ -251,7 +251,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   // A8 Hold: a held actor's move is its try to break free; it stays in the zone either way
   const bf = a.heldBy ? breakFree(state, a, ctx.rng) : null;
   if (bf) {
-    emit(ctx, mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect] }));
+    const ev = mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect] });
+    emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
   const link = zoneById(state, a.zone)?.links.find((l) => l.to === goal.zone);
@@ -266,7 +267,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     }
     // GAP: the player crossing a frontier stays in its zone; scenario setup / stage extension places it (pipeline reads scratch).
     state.scratch = { ...(state.scratch ?? {}), frontierCrossed: goal.zone };
-    emit(ctx, mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] }));
+    const ev = mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] });
+    emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
   // SD7: a jump down a window or ledge: straight into the zone below, with a landing roll and flat fall damage
@@ -278,7 +280,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     delete a.pos;
     noteLeft(state, up.id);
     const f = landFall(state, a, drop, ctx.rng);
-    emit(ctx, mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects }));
+    const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });
+    emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
   const from = a.zone, fromPos = a.pos && { ...a.pos };
@@ -286,7 +289,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   const gate = gateAhead(state, a, goal.zone);
   const walked = walkLeg(state, a, goal, metres, stopShort, fresh, a, !!gate);
   if (walked === null) return null;
-  if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate); // an NPC tries a shut way once
+  if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate, withBark ? o : undefined); // an NPC tries a shut way once
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
@@ -310,12 +313,12 @@ function toGo(state: GameState, a: Actor, goal: string): { toGo?: number } {
 
 /** SD3–SD5: at the barrier: a key turns and the bar slides back on the way through (BA3, BA4), or a shut one is tried and
  * found locked, barred or blocked (the walker learns it). Either way the move is spent there. */
-function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhead>>): 'spent' {
+function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhead>>, withLine?: Order): 'spent' {
   const did = g.pass === 'opens' ? openWay(g.b, a, a.zone) : [];
   if (g.pass === 'shut') noteTried(g.b, a);
-  const way = (d: WayDid) => mk(ctx, a, 'way', { target: g.to, way: { to: g.to, barrier: g.b.id, did: d } });
-  if (did.length) for (const d of did) emit(ctx, way(d));
-  else emit(ctx, way(`found_${shutBy(g.b, a, a.zone)}` as WayDid));
+  const way = (d: WayDid, i: number) => { const ev = mk(ctx, a, 'way', { target: g.to, way: { to: g.to, barrier: g.b.id, did: d } }); return withLine && i === 0 ? bark(ev, withLine) : ev; };
+  if (did.length) did.forEach((d, i) => emit(ctx, way(d, i)));
+  else emit(ctx, way(`found_${shutBy(g.b, a, a.zone)}` as WayDid, 0));
   return 'spent';
 }
 
@@ -336,6 +339,15 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
  * (closing in to strike). Returns false when the move was dropped. */
 function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string } = {}): boolean {
+  const start = ctx.events.length;
+  const ok = walkLegs(ctx, a, goal, o, slot, opts);
+  // BG-118: words said with a move are never lost: a move that left no event to carry them (a wait at a frontier, a
+  // dropped walk, a doorway underfoot) still says them, standing where the walker is
+  if (opts.bark && o.line && !ctx.events.slice(start).some((e) => e.actorId === a.id && e.line)) emit(ctx, bark(mk(ctx, a, 'hold'), o));
+  return ok;
+}
+
+function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string }): boolean {
   const { state } = ctx;
   const there = () => (goal.pos ? distM(state, a, goal) <= (opts.stopShort ?? 0) + 0.01 : a.zone === goal.zone);
   let left = 0, fresh = false;
