@@ -6,6 +6,7 @@ import {
   GENERIC_CLARIFY, NEUTRAL_LINE, FIXED, PARSER_INSTRUCTIONS, type AgentCtx,
 } from '../../src/agents';
 import { resetConfig } from '../../src/config';
+import { modelFor } from '../../src/agents/call';
 import type { AgentTurnLog, ClaudeErrorCode } from '../../src/types';
 import { ScriptedClaude, sentText } from '../harness';
 import { actorView, dialogueView, intentOf, narrationView, plannerOut, playerView, voiceOut } from './agent-views';
@@ -84,6 +85,10 @@ describe('runAgent', () => {
     claude.push('weaver', {});
     await callWeaver({ catalogs: {} } as never, ctx).catch(() => {});
     expect(claude.calls[0]).toMatchObject({ model: 'claude-opus-5-5', modelTier: 'complex', effort: 'high' });
+  });
+  it('narrator runs on Fable 5.2 low with the complex tier as fallback; the parser names no model', () => {
+    expect(modelFor('narrator')).toEqual({ model: 'claude-fable-5-2', modelTier: 'complex', effort: 'low' });
+    expect(modelFor('parser')).toEqual({ modelTier: 'quick' });
   });
   it('repaired answer is accepted', async () => {
     const { claude, ctx, logs } = setup();
