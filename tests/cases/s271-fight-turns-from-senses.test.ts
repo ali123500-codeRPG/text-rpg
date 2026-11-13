@@ -5,11 +5,11 @@ import { actor, beside, makeVillage, place } from '../harness';
 import { computePending } from '../../src/engine';
 import { isEngaged } from '../../src/engine/relations';
 
-const hunted = (where: 'beside' | 'cellar') => {
+const hunted = (where: 'beside' | 'cellar', status: 'hunting' | 'engaged' = 'hunting') => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
   const g = actor(s, 'guard_1');
   g.mind!.overrides = { player: 'hostile' };
-  g.mind!.knowledge.player = { status: 'hunting', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
+  g.mind!.knowledge.player = { status, lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   if (where === 'beside') beside(s, 'guard_1', 'player', 2);
   else place(s, 'guard_1', 'tav_cellar');
   s.events = [];
@@ -21,4 +21,10 @@ it('a foe after the player out of their senses keeps normal turns; one they can 
   expect(isEngaged(far, far.player)).toBe(true); // the foe is after them all the same
   expect(computePending(far).mode).toBe('explore');
   expect(computePending(hunted('beside')).mode).toBe('tactical');
+});
+
+it('BG-189: a foe that traded blows with the player and went off out of their senses is no fight they can hear', () => {
+  const s = hunted('cellar', 'engaged'); // still engaged with the player, standing quiet out of sight and earshot
+  expect(computePending(s).mode).toBe('explore');
+  expect(computePending(hunted('beside', 'engaged')).mode).toBe('tactical');
 });

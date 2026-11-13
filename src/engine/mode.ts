@@ -1,6 +1,6 @@
 // Encounter modes and turn start (Architecture step 1).
 import type { GameState, Pending } from '../types';
-import { allActors, countsInFight, foesAfter, isActive, isEngaged, sparring } from './relations';
+import { countsInFight, foesAfter, isActive, isEngaged, sparring } from './relations';
 import { fireTurnStartTriggers } from './triggers';
 import { fightingWith } from './engagement';
 import { perceivesNow } from './yield';
@@ -34,11 +34,12 @@ export function fightTurns(state: GameState): boolean {
   if (!countsInFight(p)) return false;
   return state.events.some((e) => e.kind === 'attack' && e.target === p.id) || fightInSenses(state);
 }
-/** AT61/AT65: a foe after the player they can see or hear, or a fight going on they can see or hear */
+/** AT61/AT65: a foe after the player they can see or hear, or a fight going on between others they can see or hear. The
+ * player's own fight is only the first: a foe of theirs gone out of their senses is no fight they can hear (BG-189) */
 export function fightInSenses(state: GameState): boolean {
   const p = state.player;
   if (!countsInFight(p)) return false;
   if (foesAfter(state, p).some((o) => perceivesNow(state, p, o, 'faint'))) return true;
-  return state.actors.some((a) => countsInFight(a) && allActors(state).some((b) => b !== a && (fightingWith(state, a, b) || sparring(state, a, b)))
+  return state.actors.some((a) => countsInFight(a) && state.actors.some((b) => b !== a && (fightingWith(state, a, b) || sparring(state, a, b)))
     && perceivesNow(state, p, a, 'loud'));
 }
