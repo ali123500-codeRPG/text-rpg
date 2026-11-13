@@ -49,7 +49,7 @@ export const MUFFLED = '(you hear their voice, but you cannot make out the words
 /** BG-84: who hears the player's line this turn, from where it is said (after this turn's walk over, BG-58) and as loud
  * as it is said: `clear` gets the words, `heard` at least the voice */
 export function playerVoice(state: GameState, intent: Intent): { from: Located; clear: (a: Actor) => boolean; heard: (a: Actor) => boolean } {
-  const from = quickWord(state, intent) ? state.player : speakingSpot(state, intent);
+  const from = quickWord(state, intent) && state.mode === 'tactical' ? state.player : speakingSpot(state, intent);
   const noise = VOLUME_NOISE[intent.volume ?? 'normal'];
   const clear = (a: Actor) => hearsClearly(state, from, a, noise);
   return { from, clear, heard: (a) => clear(a) || hears(state, a, from, noise) };
@@ -85,6 +85,11 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
     return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, addressees: intent.addressees?.length ? intent.addressees : talk.length ? talk : ['everyone'] };
   }
   const a = intent.action;
+  // OA1: words beside a deed that name no one are for the one the deed is aimed at, else whoever the player was just talking with
+  if (a && !isSpeech(a.type) && intent.spoken?.trim() && !intent.addressees?.length && state.mode !== 'tactical') {
+    const to = a.target && state.actors.some((x) => x.id === a.target) ? [a.target] : talkingWith(state);
+    return to.length ? { ...intent, addressees: to } : intent;
+  }
   if (!a || !isSpeech(a.type)) return intent;
   const out = { ...intent };
   // a plain "talk to someone" with no words of its own is an opening, not a line: the command text is never spoken
@@ -100,12 +105,16 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
  * player last spoke with this scenario) answers if it is an active member in reach; else the nearest member.
  * "everyone": those who hear the player's voice clearly where they stand (hearsClearly).
  */
-/** A15 Quick Word: in a fight, a one-sentence line said beside a non-speech action resolves as talk without using the
- * action, and the NPCs' spoken replies to it are free too */
+/** A line said beside a non-speech action that is heard and answered this turn, the action still done (the exchange
+ * slot holds it, so it uses no slot of its own).
+ * A15 Quick Word: in a fight, only with the perk and only one sentence; it is said where the player stands, before the move.
+ * OA1 asides: outside a fight, any words beside a deed (a buy, a give, a knock) go with it, said after the walk over. An
+ * attack starts a fight, so its words stay a bark. */
 export function quickWord(state: GameState, intent: Intent): boolean {
   const line = intent.spoken?.trim() ?? '';
-  return hasPerk(state.player, PK.quick_word) && state.mode === 'tactical' && !!intent.action && !isSpeech(intent.action.type)
-    && !!line && !/[.!?]["”’)]*\s+\S/.test(line) && !!intent.addressees?.length;
+  if (!intent.action || isSpeech(intent.action.type) || !line || !intent.addressees?.length) return false;
+  if (state.mode !== 'tactical') return intent.action.type !== 'attack';
+  return hasPerk(state.player, PK.quick_word) && !/[.!?]["”’)]*\s+\S/.test(line);
 }
 
 export function selectSpokespeople(state: GameState, intent: Intent): string[] {
