@@ -1,6 +1,6 @@
 // 223 CT1–CT7 (Containers and Filching): a container is an item with contents. Opening one is the turn's action and shows
 // what is inside; taking out is a pick-up. A locked one opens with its key or a Lockpicking roll. One whose owner is up
-// to guard it is theft (refused until Filching, FL3). A worn pack holds its wearer's stowed items: a downed or yielded
+// to guard it is opened by filching (s271). A worn pack holds its wearer's stowed items: a downed or yielded
 // wearer's pack opens freely, and taking the pack takes them with it. The Weaver places containers and fills them.
 import { expect, it } from 'vitest';
 import type { GameState, StagePlan } from '../../src/types';
@@ -54,11 +54,12 @@ it('CT3: a locked chest stays shut without its key, opens with it, and its lock 
   expect(pev.some((e) => e.kind === 'pick' && e.itemId === 'box' && !!e.way)).toBe(true);
 });
 
-it('CT4: a chest whose owner is up and present is theft: refused until Filching; with the owner down it opens', () => {
+it('CT4: a chest whose owner is up and present is opened by filching (s271); with the owner down it just opens', () => {
   const s = village();
   chest(s, { owner: 'patron_1' });
   const ev = play(s, { intent: intent({ action: { type: 'open', target: 'box' } }) });
-  expect(ev.find((e) => e.kind === 'wasted')?.reason).toBe('theft');
+  expect(ev.some((e) => e.kind === 'filch' || e.kind === 'open')).toBe(true);
+  expect(ev.some((e) => e.reason === 'theft')).toBe(false);
   actorById(s, 'patron_1')!.core.condition.hpLostPct = 100;
   play(s, { intent: intent({ action: { type: 'open', target: 'box' } }) });
   expect(boxView(s).open).toBe(true);

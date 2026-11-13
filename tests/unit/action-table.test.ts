@@ -38,6 +38,7 @@ const ROWS: Record<string, Row> = {
   sleep: { need: 'none', who: 'player only: NPC sleep comes from routines' },
   open: { need: 'grip', who: 'both' }, // BG-173: an NPC opens its own chest
   restrain: { need: 'grip', who: 'player only: not built for NPCs yet' },
+  filch: { need: 'grip', who: 'both' }, // FL7: NPCs filch too
   move: { need: 'none', who: 'npc only: the player moves in the move slot' },
   hold: { need: 'none', who: 'npc only: the player waits' },
   call_help: { need: 'none', who: 'npc only: the player shouts' },
