@@ -317,6 +317,18 @@ function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhea
   return 'spent';
 }
 
+/** BG-111: where an order's move goes: its zone, or the spot in it (beside someone, by a way out, a side) with the walk's
+ * stop-short and words. The one rule for every walk an order makes: the player's, an NPC's in turn, a spokesperson's in the
+ * exchange. */
+function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: { stopShort?: number; toward?: string; spot?: string } } {
+  const sp = o.move && o.moveSpot ? spotPoint(state, o.move, o.moveSpot, a) : null;
+  if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: a.id, to: o.move, spot: o.moveSpot });
+  return {
+    goal: sp ? { zone: o.move!, pos: sp.pos } : { zone: o.move! },
+    opts: sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {},
+  };
+}
+
 /** ZP2: walks toward `goal` on move slots: each slot walks slotMetres of it (a move slot walks; a main slot spent on it, a
  * dash, runs the rest of the turn), one leg at a time, until it gets there, the slots run out, or the move is spent or
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
@@ -853,11 +865,9 @@ function step(ctx: Ctx, id: string): void {
   // CO13/ZP2: a move slot walks slotMetres(…'move') toward the move's zone, and with no main action planned (hold) a main
   // slot runs slotMetres(…'main') more once the move slots run out: a dash (AE2), which a lame actor can't make
   // BG-12: a move to a spot walks to that point of the zone (beside someone, by a way out, the far side, a compass side)
-  const sp = o.move && o.moveSpot ? spotPoint(state, o.move, o.moveSpot, a) : null;
-  if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: id, to: o.move, spot: o.moveSpot });
   const move = (mainToo: boolean) => {
-    const goal: Located = sp ? { zone: o.move!, pos: sp.pos } : { zone: o.move! };
-    const opts = sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {};
+    if (!o.move) return;
+    const { goal, opts } = moveGoal(state, a, o);
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
@@ -1098,9 +1108,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     // BG-58: walk over, then speak: the player's move comes first and the words are said from where it ends, as an NPC's
     const po = playerOrder;
     if (po.move && !po.moveAfter && !po.way && !input.quickWord) {
-      const sp = po.moveSpot ? spotPoint(state, po.move, po.moveSpot, state.player) : null;
-      const goal: Located = sp ? { zone: po.move, pos: sp.pos } : { zone: po.move };
-      const opts = sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {};
+      const { goal, opts } = moveGoal(state, state.player, po);
       if (!walk(ctx, state.player, goal, po, (n) => (n === 0 ? useMoveSlot(ctx, state.player, false) : null), opts)) logCode(state, 'move_dropped', { actorId: state.player.id, to: po.move });
       po.move = null;
     }
@@ -1134,7 +1142,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
         useMain(ctx, a);
         // move, then talk: the move comes first and the line is said from where it ends
         if (o.move && !o.moveAfter) {
-          if (!walk(ctx, a, { zone: o.move }, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null))) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+          const { goal, opts } = moveGoal(state, a, o); // BG-111: stepping up to whisper ends beside the player, as everywhere
+          if (!walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
           o.move = null;
         }
         doSpeak(ctx, a, o);
