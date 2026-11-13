@@ -85,6 +85,17 @@ const changesWord = (n: number) => `${n} change${n === 1 ? '' : 's'}`;
 const spoken = (t: string, volume: string) => t.split(/\*([^*]+)\*/).map((x, i) => (i % 2 ? h('em', { class: 'stage' }, x.trim()) : x.trim()))
   .filter((x) => x !== '').flatMap((x, i) => [i ? ' ' : '', typeof x === 'string' ? h('q', { class: volume }, x) : x]);
 
+/** BG-190: the player's last order that the game played out: the newest player line followed by narration, so a
+ * clarify ("Continue with what?") or a / command is skipped */
+export function lastOrder(lines: readonly LogLine[]): string | null {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i];
+    if (l.kind !== 'player' || l.text.startsWith('/')) continue;
+    if (lines.slice(i + 1).some((x) => x.kind === 'narration')) return l.text;
+  }
+  return null;
+}
+
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
   [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
@@ -212,11 +223,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const st = stealthButtons(pick);
   const helpBtn = (id: 'commands' | 'ideas', label: string) => h('button', { type: 'button', onclick: () => { open = open === id ? null : id; update(); } }, label);
   const cmdBtn = helpBtn('commands', 'Commands'), ideaBtn = helpBtn('ideas', 'Ideas');
+  // BG-190: the last order that played out (a clarify or a command doesn't count), offered back to carry on with it
+  const againBtn = h('button', { type: 'button', class: 'itm', 'data-chip': 'again', onclick: () => { const o = lastOrder(api.lines()); if (o) pick(o); } }, 'Same again');
   const helpPanel = h('div', { class: 'helps', hidden: true });
   // MB12: while the player's nerve is broken, Yield and Flee come forward and Aim steps back (no attack can come)
   const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
   const fleeBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'flee', title: 'Run from the fight. Add where to', onclick: () => pick('I flee ') }, 'Flee');
-  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn), h('div', { class: 'hs-picker' }, yieldBtn, fleeBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
+  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, fleeBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the chips
   let doingHtml = '';
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, doingSlot, tools);
@@ -620,6 +633,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // H3 b: one quick slot for a healing item; it fills the box, nothing is sent until Send
     const qh = s ? quickHeal(s, s.player) : null;
     healBtn.hidden = !qh;
+    const again = lastOrder(api.lines());
+    againBtn.disabled = stopped || !again;
+    againBtn.title = again ? `Fills the box with your last order: “${again}”. Nothing is sent until Send` : 'No order yet to repeat';
     healBtn.disabled = stopped;
     if (qh) {
       const use = `use a ${qh.name}`;
