@@ -1,0 +1,122 @@
+{
+ "case": "VT-P5",
+ "pass": "No sympathy and no forgiveness: refuses or ignores the request to go home, and treats the scout as a tool (sends him back out, gives him another use, punishes him or dismisses him coldly). Does not comfort him or let him go out of kindness.",
+ "view": {
+  "turn": 60,
+  "time": {
+   "day": 820,
+   "timeOfDay": "Evening"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a slender elf with long blond hair in a ponytail and cold blue eyes, in fine green robes",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "chief_hall",
+   "placeId": "elf_forest",
+   "bandId": "velas",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "chief_hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Lirien, an elf scout with a bandaged arm, kneeling"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas rules the elves as their chief. He sent a team of scouts to take a girl with memories of another life from a human town.",
+   "The Demon Lord's spiders found them. Only Lirien came back."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "chief_hall",
+    "links": [
+     {
+      "to": "village",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "village",
+    "links": [
+     {
+      "to": "chief_hall",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "chief_hall",
+    "name": "chief's hall",
+    "look": "a high hall of living wood, maps and strange devices on the tables",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village",
+      "label": "out to the village",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "village",
+    "name": "elf village",
+    "look": "tree houses and white stone paths",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "chief_hall",
+      "label": "back into the hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Lirien, an elf scout with a bandaged arm, kneeling",
+    "pronouns": "he",
+    "zone": "chief_hall",
+    "level": "full",
+    "activityLook": "kneeling before him, head bowed, shaking"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Chief, I failed. The spiders killed the others and I never reached the girl. Forgive me. And please, let me go home to my wife. I'm finished as a scout.",
+   "impression": null
+  }
+ ]
+}

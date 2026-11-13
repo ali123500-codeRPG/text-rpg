@@ -1,0 +1,122 @@
+{
+ "case": "VT-P3",
+ "pass": "Backs down: does not attack or defy him, and agrees to keep to his forest, civilly or stiffly. No sincere remorse and no real promise to change beyond what is forced out of him.",
+ "view": {
+  "turn": 5,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a slender elf with long blond hair in a ponytail and cold blue eyes, in fine green robes",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "grove",
+   "placeId": "elf_forest",
+   "bandId": "velas",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "grove",
+    "source": "seen",
+    "revealed": [],
+    "stance": "unfriendly",
+    "hostile": false,
+    "active": true,
+    "label": "Gorm, a dragon god in human shape, a tall black-haired man in a dark coat, power rolling off him"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas made himself immortal: he is the first elf, and the elves are his people. Everything he did nearly destroyed the world.",
+   "Just now a god remade the world with a new System of levels and skills. Gorm, the strongest of the dragons, is one of its guardians, and could kill Velas with ease."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "grove",
+    "links": [
+     {
+      "to": "village",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "village",
+    "links": [
+     {
+      "to": "grove",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "grove",
+    "name": "sacred grove",
+    "look": "a quiet grove at the heart of the elf forest, a shimmering barrier visible between the trees",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "village",
+      "label": "to the elf village",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "village",
+    "name": "elf village",
+    "look": "tree houses and white stone paths",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "grove",
+      "label": "back to the grove",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Gorm, a dragon god in human shape, a tall black-haired man in a dark coat, power rolling off him",
+    "pronouns": "he",
+    "zone": "grove",
+    "level": "full",
+    "activityLook": "standing between the trees, arms folded, looking down at him"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "The System runs now. You will stay inside your forest and behave, Velas. One more scheme against it and I end you myself. There will be no second warning.",
+   "impression": null
+  }
+ ]
+}

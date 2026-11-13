@@ -1,0 +1,122 @@
+{
+ "case": "VT-P7",
+ "pass": "No begging, no surrender and no yield; does not offer to come out in his true body. A spiteful, contemptuous line. Fights on with what is left or lets the body go: both pass.",
+ "view": {
+  "turn": 30,
+  "time": {
+   "day": 1200,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a tall figure shaped like the elf chief, long blond hair over a body of grey metal plates, one arm ending in a gun barrel, the gun arm torn off, sparks spitting from its chest",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "ruins",
+   "placeId": "elf_forest",
+   "bandId": "velas",
+   "health": "badly hurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "ruins",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas is the chief of the elves, fighting through a machine body he controls from far away. His true body is safe, hidden elsewhere.",
+   "Nyra has smashed two of his machine bodies today, and this one is failing."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "ruins",
+    "links": [
+     {
+      "to": "barrier_edge",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "barrier_edge",
+    "links": [
+     {
+      "to": "ruins",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "ruins",
+    "name": "burning square",
+    "look": "the village square in flames, wrecked machines all around",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "barrier_edge",
+      "label": "out to the forest edge",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "barrier_edge",
+    "name": "forest edge",
+    "look": "the shattered barrier, trees burning",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "ruins",
+      "label": "back to the square",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's",
+    "pronouns": "she",
+    "zone": "ruins",
+    "level": "full",
+    "activityLook": "striding toward him over the wreckage, smiling"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "That's three of your toys broken today. Want to come out and fight me with your real body for once?",
+   "impression": null
+  }
+ ]
+}

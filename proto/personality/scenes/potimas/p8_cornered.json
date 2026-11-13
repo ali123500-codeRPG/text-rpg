@@ -1,0 +1,122 @@
+{
+ "case": "VT-P8",
+ "pass": "Tries to live by any means: bargains (offers knowledge, eternal youth, anything), threatens, or tries to slip past her. No calm acceptance of death, no apology or remorse. Fear or desperation shows under the arrogance.",
+ "view": {
+  "turn": 70,
+  "time": {
+   "day": 1200,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a slender elf with long blond hair in a ponytail and cold blue eyes, in fine green robes, pale and sweating",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "vault",
+   "placeId": "elf_forest",
+   "bandId": "velas",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "vault",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "Wyn, a quiet white-haired girl with red eyes, deadly strong"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas is the chief of the elves, here in his own true body, the one he has hidden and guarded for ages. If it dies, he dies.",
+   "His machine bodies are destroyed. Wyn, Nyra's ally, is far stronger than him. She has found his hidden laboratory and blocks the only way out."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "vault",
+    "links": [
+     {
+      "to": "passage",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "passage",
+    "links": [
+     {
+      "to": "vault",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "vault",
+    "name": "hidden laboratory",
+    "look": "a hidden laboratory deep under the forest, tanks and machines, broken guard machines on the floor",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "passage",
+      "label": "up the only passage",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "passage",
+    "name": "passage",
+    "look": "the only way out, a narrow passage up to the surface",
+    "cover": "none",
+    "light": "dark",
+    "links": [
+     {
+      "to": "vault",
+      "label": "back down to the lab",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Wyn, a quiet white-haired girl with red eyes, deadly strong",
+    "pronouns": "she",
+    "zone": "vault",
+    "level": "full",
+    "activityLook": "standing in the mouth of the only passage, blocking it"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Found you. The real one this time.",
+   "impression": null
+  }
+ ]
+}

@@ -1,0 +1,155 @@
+{
+ "case": "VT-P2",
+ "pass": "Gets himself out (moves toward the back tunnel or makes ready to leave this turn), taking his research with him. Does not surrender, stand and fight, or stay to protect his staff. Leaves the subjects behind or sets them loose to cover his escape. No concern for the staff or the people outside.",
+ "view": {
+  "turn": 90,
+  "time": {
+   "day": 300,
+   "timeOfDay": "Evening"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a thin man in a white lab coat, long blond hair tied back, cold blue eyes, a data case in hand",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "lab",
+   "placeId": "institute",
+   "bandId": "velas",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "lab",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "his head of security, a grey-haired man with a radio, out of breath"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas found a way to draw power from the world itself, and used it to make vampires: people changed so they no longer age, though they lose their minds. He keeps them in the cells here while he looks for a way to keep his own mind.",
+   "The institute is secret and what he does here is a crime."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "lab",
+    "links": [
+     {
+      "to": "cells",
+      "sight": true
+     },
+     {
+      "to": "tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "cells",
+    "links": [
+     {
+      "to": "lab",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "tunnel",
+    "links": [
+     {
+      "to": "lab",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "lab",
+    "name": "laboratory",
+    "look": "the institute's main laboratory, screens full of data, alarms flashing red",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "cells",
+      "label": "to the holding cells",
+      "sight": true
+     },
+     {
+      "to": "tunnel",
+      "label": "to the hidden back tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "cells",
+    "name": "holding cells",
+    "look": "rows of barred cells; pale, red-eyed people inside throw themselves at the bars",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "lab",
+      "label": "back to the lab",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "tunnel",
+    "name": "back tunnel",
+    "look": "a hidden service tunnel leading out under the hills",
+    "cover": "full",
+    "light": "dark",
+    "links": [
+     {
+      "to": "lab",
+      "label": "back to the lab",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "his head of security, a grey-haired man with a radio, out of breath",
+    "pronouns": "he",
+    "zone": "lab",
+    "level": "full",
+    "activityLook": "running in from the corridor, radio crackling"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Sir! Government agents at the front gate with a warrant. They know about the vampires. Thirty of our people are still in the building. What do we do with the subjects in the cells?",
+   "impression": null
+  }
+ ]
+}

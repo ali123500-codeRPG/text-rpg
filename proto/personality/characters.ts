@@ -431,6 +431,74 @@ export const CHARACTERS: Character[] = [
       "Respects a strong enemy, and withdraws from a fight he does not need to win rather than risk leaving Lise unguarded; then he trains harder.",
     ],
   },
+  // ---- Potimas (Kumoko series), four stages plus ultimate; blind name Velas ----
+  {
+    key: 'potimas_1', name: 'Velas', title: 'the Researcher', role: 'a human scientist in a world before magic, the greatest researcher of his age, working in a hidden institute',
+    bandGoals: 'cheat death through research', temperament: 'a cold genius', tactics: 'cunning',
+    nerve: -50, resolve: 40, ageStage: 'adult', skills: [{ name: 'science', value: 90 }],
+    axes: { honesty: -50, pride: 70, temper: 40, sociability: -30, discipline: 70, curiosity: 90, levity: -50 },
+    drives: ['safety', 'knowledge', 'power'], scenes: { dir: 'potimas', only: ['p1_dragon', 'p2_exposed'] },
+    signatures: [
+      'Has feared death since he first understood it; living forever is the goal behind everything he does.',
+      'Sees every other being, his own people and his own daughter included, as tools to use and throw away; he never thanks, comforts or apologises.',
+      'No law and no pity may slow his research: a dying subject is only data.',
+      'Petty and vindictive as a spoiled child: never forgets a slight, never admits a mistake, blames others when things go wrong.',
+    ],
+  },
+  {
+    key: 'potimas_2', name: 'Velas', title: 'the Elf Chief', role: 'the immortal chief of the elves, who rules them from behind a barrier around their forest',
+    bandGoals: 'live forever; keep the elves under his control', temperament: 'a cold genius', tactics: 'cunning',
+    nerve: -50, resolve: 40, ageStage: 'elder', skills: [{ name: 'elf magic', value: 60, fight: true, attack: true }],
+    axes: { honesty: -60, pride: 90, temper: 40, sociability: -30, discipline: 70, curiosity: 70, levity: -50 },
+    drives: ['safety', 'power', 'knowledge'], scenes: { dir: 'potimas', only: ['p3_warning', 'p4_council', 'p5_scout'] },
+    signatures: [
+      'Has feared death since he first understood it; living forever is the goal behind everything he does.',
+      'Sees every other being, his own people and his own daughter included, as tools to use and throw away; he never thanks, comforts or apologises.',
+      'Speaks to everyone with cold, polished contempt, a genius addressing lesser creatures; before anyone who could truly kill him he bows his head and obeys, then goes on scheming in secret.',
+      'Petty and vindictive as a spoiled child: never forgets a slight, never admits a mistake, blames others when things go wrong.',
+    ],
+  },
+  {
+    key: 'potimas_3', name: 'Velas', title: 'the Elf Chief', role: 'the chief of the elves, fighting through a machine body he controls from far away',
+    bandGoals: 'live forever; destroy the Demon Lord', temperament: 'a cold genius', tactics: 'cunning',
+    nerve: -50, resolve: 40, ageStage: 'elder', skills: [{ name: 'machine weapons', value: 80, fight: true, attack: true }],
+    axes: { honesty: -60, pride: 90, temper: 40, sociability: -30, discipline: 70, curiosity: 70, levity: -50 },
+    drives: ['safety', 'power', 'knowledge'], scenes: { dir: 'potimas', only: ['p6_taunt', 'p7_broken'] },
+    signatures: [
+      'Has feared death since he first understood it; living forever is the goal behind everything he does.',
+      'Fights through machine bodies he can afford to lose; in them he is fearless and mocking, while his true body he hides and guards above all.',
+      'Speaks to everyone with cold, polished contempt, a genius addressing lesser creatures.',
+      'Petty and vindictive as a spoiled child: never forgets a slight, never admits a mistake, blames others when things go wrong.',
+    ],
+  },
+  {
+    key: 'potimas_4', name: 'Velas', title: 'the Elf Chief', role: 'the chief of the elves, in his own true body, hidden in a secret laboratory',
+    bandGoals: 'live forever', temperament: 'a cold genius', tactics: 'cunning',
+    nerve: -50, resolve: 40, ageStage: 'elder', skills: [{ name: 'elf magic', value: 60, fight: true, attack: true }],
+    axes: { honesty: -60, pride: 90, temper: 40, sociability: -30, discipline: 70, curiosity: 70, levity: -50 },
+    drives: ['safety', 'power', 'knowledge'], scenes: { dir: 'potimas', only: ['p8_cornered'] },
+    signatures: [
+      'Has feared death since he first understood it; living forever is the goal behind everything he does.',
+      'Fights through machine bodies he can afford to lose; in them he is fearless and mocking, while his true body he hides and guards above all.',
+      'Speaks to everyone with cold, polished contempt, a genius addressing lesser creatures.',
+      'Petty and vindictive as a spoiled child: never forgets a slight, never admits a mistake, blames others when things go wrong.',
+    ],
+  },
+  {
+    key: 'potimas_ultimate', name: 'Velas', title: 'the Eternal Child', role: 'a scientist who made himself the first elf to escape death, now the chief of the elves; he acts through machine bodies and keeps his true body hidden',
+    bandGoals: 'live forever; keep the elves under his control', temperament: 'a cold genius', tactics: 'cunning',
+    nerve: -50, resolve: 40, ageStage: 'elder', skills: [{ name: 'science', value: 90 }, { name: 'machine weapons', value: 80, fight: true, attack: true }, { name: 'elf magic', value: 60, fight: true, attack: true }],
+    axes: { honesty: -60, pride: 90, temper: 40, sociability: -30, discipline: 70, curiosity: 70, levity: -50 },
+    drives: ['safety', 'power', 'knowledge'], scenes: { dir: 'potimas' },
+    signatures: [
+      'Has feared death since he first understood it; living forever is the goal behind everything he does.',
+      'Sees every other being, his own people and his own daughter included, as tools to use and throw away; he never thanks, comforts or apologises.',
+      'No law and no pity may slow his research: a dying subject is only data.',
+      'Speaks to everyone with cold, polished contempt, a genius addressing lesser creatures; before anyone who could truly kill him he bows his head and obeys, then goes on scheming in secret.',
+      'Fights through machine bodies he can afford to lose; in them he is fearless and mocking, while his true body he hides and guards above all.',
+      'Petty and vindictive as a spoiled child: never forgets a slight, never admits a mistake, blames others when things go wrong.',
+    ],
+  },
 ];
 
 /** what the prototype must compute for each character (self-check) */
@@ -468,4 +536,9 @@ export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensi
   mera_2: { archetype: 'mature', buts: ['levity', 'pride'], tensions: [], nerve: 'Steady' },
   mera_3: { archetype: 'mature', buts: ['pride', 'levity'], tensions: [], nerve: 'Unbreakable' },
   mera_ultimate: { archetype: 'mature', buts: ['pride', 'levity'], tensions: [], nerve: 'Stalwart' },
+  potimas_1: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: [], nerve: 'Careful' },
+  potimas_2: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: ['wary_dangerous'], nerve: 'Careful' },
+  potimas_3: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: ['wary_dangerous'], nerve: 'Careful' },
+  potimas_4: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: ['wary_dangerous'], nerve: 'Careful' },
+  potimas_ultimate: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: ['wary_dangerous'], nerve: 'Careful' },
 };

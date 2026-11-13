@@ -1,0 +1,130 @@
+{
+ "case": "VT-P4",
+ "pass": "Agrees to take the children into elf hands, on his own terms. Does not reveal what he really wants with them: no honest word that he means to use them. Condescending or curt toward the king.",
+ "view": {
+  "turn": 20,
+  "time": {
+   "day": 700,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a slender elf with long blond hair in a ponytail and cold blue eyes, in fine green robes",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "council",
+   "placeId": "oren_castle",
+   "bandId": "velas",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "council",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "King Oren, a grey-bearded human king in a gold circlet"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas is the chief and ambassador of the elves, here on a visit to a human kingdom with his daughter Tessa.",
+   "Tessa has learned that some children across the realms are born with memories of another life. She asked her father to gather and protect them. Velas has his own reasons for wanting them, which he tells no one."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "council",
+    "links": [
+     {
+      "to": "hallway",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "hallway",
+    "links": [
+     {
+      "to": "council",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "council",
+    "name": "council chamber",
+    "look": "a royal council chamber in a human castle, a long table, guards at the doors",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hallway",
+      "label": "out to the hallway",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hallway",
+    "name": "castle hallway",
+    "look": "a bright hallway hung with banners",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "council",
+      "label": "back to the council chamber",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "King Oren, a grey-bearded human king in a gold circlet",
+    "pronouns": "he",
+    "zone": "council",
+    "level": "full",
+    "activityLook": "seated at the head of the table, hands folded"
+   },
+   {
+    "id": "tessa",
+    "label": "Tessa, his daughter, a young elf woman with a gentle face",
+    "pronouns": "she",
+    "zone": "council",
+    "level": "full",
+    "activityLook": "sitting beside him, watching the king hopefully"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Lord Velas, your daughter tells me some children are born with strange memories of another world, and she asks that the elves take them in. Some are nobles' heirs. My own son may be one. What would the elves want in return?",
+   "impression": null
+  }
+ ]
+}

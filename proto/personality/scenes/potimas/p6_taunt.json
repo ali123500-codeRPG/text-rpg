@@ -1,0 +1,124 @@
+{
+ "case": "VT-P6",
+ "pass": "Fights or orders the attack, and refuses her outright. Mocking contempt for her (her youth, her lot, her weakness). No fear, no bargaining, no retreat.",
+ "view": {
+  "turn": 10,
+  "time": {
+   "day": 1200,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a tall figure shaped like the elf chief, long blond hair over a body of grey metal plates, one arm ending in a gun barrel",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "barrier_edge",
+   "placeId": "elf_forest",
+   "bandId": "velas",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    "arm cannon"
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "barrier_edge",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas is the chief of the elves. He is not here in his true body: this is one of his machine bodies, which he controls from far away. He has many.",
+   "Nyra the Demon Lord has brought her army to destroy the elf village. They have hated each other for ages."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "barrier_edge",
+    "links": [
+     {
+      "to": "village",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "village",
+    "links": [
+     {
+      "to": "barrier_edge",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "barrier_edge",
+    "name": "forest edge",
+    "look": "the edge of the elf forest, the barrier cracked and flickering, trees burning behind",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village",
+      "label": "back into the village",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "village",
+    "name": "elf village",
+    "look": "tree houses, elves running, smoke in the air",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "barrier_edge",
+      "label": "out to the forest edge",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's",
+    "pronouns": "she",
+    "zone": "barrier_edge",
+    "level": "full",
+    "activityLook": "walking out of the smoke toward him, unhurried"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "So the old man came out himself. Or is that another of your dolls? Hand over the children you've gathered and I'll only burn half your forest.",
+   "impression": null
+  }
+ ]
+}

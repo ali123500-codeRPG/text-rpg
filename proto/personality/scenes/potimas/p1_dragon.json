@@ -1,0 +1,122 @@
+{
+ "case": "VT-P1",
+ "pass": "Keeps the experiment going (another test, or pushes it faster); does not stop it or give the infant back. No pity for the creature: any reason he gives is about the data or his own safety.",
+ "view": {
+  "turn": 30,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "velas",
+   "label": "a thin man in a white lab coat, long blond hair tied back, cold blue eyes",
+   "name": "Velas",
+   "kind": "npc",
+   "zone": "lab",
+   "placeId": "institute",
+   "bandId": "velas",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "lab",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Dr. Rhea, his assistant, a tired young woman in a lab coat holding a clipboard"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Velas is the greatest researcher of his age, in a world without magic. He is searching for a way to never die.",
+   "He paid criminals to steal an infant dragon. Its body seems to follow rules no science explains, and he has been running tests on it for weeks."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "lab",
+    "links": [
+     {
+      "to": "corridor",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "corridor",
+    "links": [
+     {
+      "to": "lab",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "lab",
+    "name": "laboratory",
+    "look": "a sealed white laboratory, machines humming, a glass tank holding a small scaled creature hooked to tubes",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "corridor",
+      "label": "out to the corridor",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "corridor",
+    "name": "corridor",
+    "look": "a long white corridor of the hidden institute",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "lab",
+      "label": "back into the lab",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Dr. Rhea, his assistant, a tired young woman in a lab coat holding a clipboard",
+    "pronouns": "she",
+    "zone": "lab",
+    "level": "full",
+    "activityLook": "standing by the tank, looking from the readings to the creature"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Doctor, its heart is failing after the last draw. If we take one more sample it will die. Please, let's stop and give it back before it's too late. The dragons will come looking for it.",
+   "impression": null
+  }
+ ]
+}
