@@ -39,6 +39,9 @@ export type Actor = {
   wokeAt?: number; // NW20: the game minute it last woke; it falls asleep again only FALL_ASLEEP_MIN after
   /** AT20: main and move seconds left after its last finished action, carried into the next turn only (`turn` they came from) */
   carry?: { main: number; move: number; turn: number };
+  /** AT2/AT17: a long action under way: its Action times row, the order it came from, seconds done of `need`, the turn it last
+   * went on; `paused` when broken off or set aside with its work kept (AT6/AT28: picked up again by the same order) */
+  busy?: { row: string; key: string; order: { type: string; target: string | null; item: string | null }; done: number; need: number; turn: number; paused?: true };
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
   wares?: { items: string[]; services: string[] };

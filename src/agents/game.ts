@@ -21,6 +21,7 @@ import { createRng } from '../rng';
 import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
+import { busyNow } from '../engine/resolve';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
@@ -844,7 +845,7 @@ export function plannerActors(s: GameState): string[] {
   const errands = s.actors.filter((a) => errand(a) && isActive(a)).map((a) => a.id);
   return [...new Set([...(s.mercy?.pending ?? []), ...s.pending.engaged, ...dealt, ...errands])] // D-239: those deciding the player's fate
     .map((id) => s.actors.find((a) => a.id === id))
-    .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep) // NW20: a sleeper is not asked
+    .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && !busyNow(a)) // NW20: a sleeper is not asked; AT47: nor one at a long action
     .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
 }
