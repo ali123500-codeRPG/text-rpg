@@ -3,7 +3,7 @@
 // contents list of its own until it leaves its wearer. Opening one is the turn's action and shows its contents; taking an
 // item out is a pick-up (CT3). A locked one opens with a key naming it or a Lockpicking roll, as a lock on a way (BA2).
 // CT4/CT5: opening or taking from a container its owner is up to guard (active and not yielded to the taker) is theft:
-// that waits for the Filching contest (FL3), so it is refused for now.
+// opening it, picking its lock or taking from it is then filching (src/engine/filch.ts).
 import type { Actor, GameState, ItemInstance } from '../types';
 import { itemDef } from '../library';
 import { actorById, allActors, isActive, stance } from './relations';
@@ -36,20 +36,21 @@ export function contentsOf(c: Found): ItemInstance[] {
 }
 
 /** who guards it: its owner, else the one carrying it */
-const ownerOf = (state: GameState, c: Found): Actor | undefined => (c.inst.owner ? actorById(state, c.inst.owner) : undefined) ?? c.holder;
+export const ownerOf = (state: GameState, c: Found): Actor | undefined => (c.inst.owner ? actorById(state, c.inst.owner) : undefined) ?? c.holder;
 
 /** CT4/CT5: opening or taking from it would be theft by `a`: its owner is someone else, up, and not yielded to `a` */
-export function theft(state: GameState, a: Actor, c: Found): boolean {
-  const o = ownerOf(state, c);
-  return !!o && o !== a && isActive(o) && stance(state, o, a) !== 'yielded';
-}
+export const theft = (state: GameState, a: Actor, c: Found): boolean => guarded(state, a, ownerOf(state, c));
+/** CT4/FL2: what `owner` has is guarded from `a`: someone else's, up, and not yielded to `a` */
+export const guarded = (state: GameState, a: Actor, owner: Actor | undefined): boolean =>
+  !!owner && owner !== a && isActive(owner) && stance(state, owner, a) !== 'yielded';
 
 /** CT3: `a` can reach in: its own, or open and not theft */
 export const canTake = (state: GameState, a: Actor, c: Found): boolean => c.holder === a || (!!c.inst.open && !theft(state, a, c));
 
-/** CT3: open it. Locked: a key naming it turns (BA3); without one it stays shut. Returns why not, or null. */
-export function openContainer(state: GameState, a: Actor, c: Found): 'theft' | 'locked' | 'already_open' | null {
-  if (theft(state, a, c)) return 'theft';
+/** CT3: open it. Locked: a key naming it turns (BA3); without one it stays shut. Returns why not, or null. Guarded, it
+ * opens only once filched (CT4: the caller ran the Filching contest). */
+export function openContainer(state: GameState, a: Actor, c: Found, filched = false): 'theft' | 'locked' | 'already_open' | null {
+  if (!filched && theft(state, a, c)) return 'theft';
   if (c.inst.open) return 'already_open';
   if (c.inst.lock?.locked) {
     if (!a.core.inventory.some((i) => i.opens?.includes(c.inst.id))) return 'locked';

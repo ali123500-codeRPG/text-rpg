@@ -106,8 +106,10 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   { ...sk(SK.shrewd_dealing, TR.merchant, [], [RL.speech]), groups: [GR.influence], augments: [{ skill: SK.barter }] },
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
   sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
-  // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk(SK.thievery, TR.tools, [FN.lockpicking], [RL.grip]), // BA2: Lockpicking is one of Thievery's functions
+  // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
+  // each stands in for the other (CONFIG.SUBSTITUTES)
+  sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
+  sk(SK.filching, TR.tools, [FN.filching], [RL.grip]),
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -301,7 +303,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
-    effects: [{ kind: 'skill', skill: SK.thievery, value: 25, active: 'inUse', scope: 'withItem' }] },
+    effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true, heal: HL.draught },
   // generic bases for minted items with no close match, and for scenario objects the player grabs (loot L2, L3)
   { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
@@ -537,7 +539,7 @@ export function prototypeLibrary(): Library {
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', rating: 'inferior', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
-      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.thievery], access: { blockedBy: [AMORPHOUS] } },
+      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors

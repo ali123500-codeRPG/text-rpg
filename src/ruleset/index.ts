@@ -488,7 +488,7 @@ export function fallDamage(metres: number, step = 0): number {
 
 /** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
  * more; a tier past Critical Failure reads Critical Failure's row */
-/** BA2: seconds to pick a lock at effective Thievery `skill`: the Action times pick_lock row with its speed function */
+/** BA2: seconds to pick a lock at effective Lockpicking `skill`: the Action times pick_lock row with its speed function */
 export const pickSeconds = (skill: number): number => actionSeconds(actionRow(DU.pick_lock)!, skill);
 export const landingStep = (t: Tiered): number => (CONFIG.FALL_LANDING_STEP[t.tier] ?? 0) - Math.max(0, t.beyond ?? 0) * CONFIG.FALL_LANDING_PAST_STEP;
 

@@ -158,6 +158,7 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
   }
   const moved: ItemInstance = n < have ? { id: `${it.id}_${to.id}_${state.turn}`, itemId: it.itemId, qty: n } : it;
   delete moved.equippedIn;
+  if (moved.stolenFrom === to.id) delete moved.stolenFrom; // FL6: handed back to its owner
   to.core.inventory.push(moved);
   return { id: moved.id, qty: n };
 }

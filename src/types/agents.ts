@@ -10,7 +10,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 /** every action the Parser can give (schema and completeness tests read this list) */
 export const PARSER_ACTIONS = ['attack', 'hide', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate',
-  'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'restrain'] as const; // restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
+  'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'restrain', 'filch'] as const; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
 export type ParserActionType = (typeof PARSER_ACTIONS)[number];
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
@@ -57,7 +57,7 @@ export type Intent = {
 // ---- Agent Planner / Responder / Voice ----
 /** every action an NPC order can give (schema and completeness tests read this list) */
 export const NPC_ACTIONS = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee',
-  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'open', 'other'] as const; // open: BG-173, a container (CT3)
+  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'open', 'filch', 'other'] as const; // open: BG-173, a container (CT3); filch: FL7
 export type NpcActionType = (typeof NPC_ACTIONS)[number];
 export type NpcAction = {
   type: NpcActionType;

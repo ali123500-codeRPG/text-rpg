@@ -95,6 +95,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
     else if (WAY_ORDERS.includes(a.type) && a.target !== null && !zones.has(a.target) && !boxes.has(a.target)) illegal.push(`action.target ${a.target}`); // BG-128: a lock is on a way or a container (CT3)
     else if (a.type === 'open' && (a.target === null || !boxes.has(a.target))) illegal.push(`action.target ${a.target}`);
+    else if (a.type === 'filch' && (a.target === null ? a.item === null : !(actors.has(a.target) && !dead.has(a.target)) && !boxes.has(a.target))) illegal.push(`action.target ${a.target}`); // FL2: someone in view or a container
     else if (a.type === 'restrain' && (a.target === null || !actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // BF5: someone in view
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
@@ -103,7 +104,9 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     // a buy, or haggling over one, names a ware of the seller it targets (goods:… / service:…), not an item the player can reach
     // BG-155: or of a seller known from before, out of clear sight now (lastSeen)
-    const wares = a.type === 'buy' || a.type === 'barter' ? new Set((view.actors.find((x) => x.id === a.target)?.wares ?? view.lastSeen?.find((x) => x.id === a.target)?.wares)?.map((w) => w.id) ?? []) : null;
+    // FL2: a filch names something seen on its target or in a container, or one of a seller's wares
+    const wares = a.type === 'filch' ? new Set([...items, ...seenItems, ...(view.actors.find((x) => x.id === a.target)?.wares?.map((w) => w.id) ?? [])])
+      : a.type === 'buy' || a.type === 'barter' ? new Set((view.actors.find((x) => x.id === a.target)?.wares ?? view.lastSeen?.find((x) => x.id === a.target)?.wares)?.map((w) => w.id) ?? []) : null;
     // BG-145: a buy names the ware; with one ware it is that one, else the player is asked which (never a refused buy)
     if (a.type === 'buy' && a.item === null && wares) { if (wares.size === 1) a.item = [...wares][0]; else illegal.push(`action.ware ${a.target}`); }
     if (a.item !== null && !(wares ? wares.has(a.item) : items.has(a.item))) illegal.push(`action.item ${a.item}`);
@@ -189,7 +192,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   if (a.target !== null && !knows(a.target)) orderError = world.has(a.target) ? 'view_leak' : 'invalid_target';
   else if (WAY_ORDERS.includes(a.type) && a.target !== null && !k.zones.has(a.target)) orderError = 'invalid_target'; // BG-128
 
-  if (a.item !== null && !k.own.has(a.item) && !k.ground.has(a.item)) {
+  if (a.item !== null && !k.own.has(a.item) && !k.ground.has(a.item) && !(a.type === 'filch' && k.seenGear.has(a.item))) { // FL7: a filch names what it saw on someone
     errors.push('invalid_gear');
     a.item = null;
     a.mode = null;
