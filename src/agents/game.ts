@@ -180,7 +180,8 @@ export function createGame(deps: GameDeps): Game {
     if (!s || rateLimited || stopped) return;
     const world = worldIds(s);
     const ctx = ctxFor(s.turn, []);
-    for (const actorId of plannerActors(s).slice(0, CONFIG.MAX_PLANNER_CALLS)) {
+    const fights = plannerActors(s);
+    for (const actorId of [...fights.slice(0, CONFIG.MAX_PLANNER_CALLS), ...goalThinkers(s, new Set(fights)).slice(0, CONFIG.UNIQUE_THINKS_PER_TURN)]) {
       const controller = new AbortController();
       const view = views.buildOppositionView(s, actorId); // from saved state, before submit
       const bg: Background = { actorId, controller, view, startedAt: clock.now(), done: false, collected: false, promise: Promise.resolve() };
@@ -908,6 +909,18 @@ export function plannerActors(s: GameState): string[] {
     .map((a) => a.id);
 }
 
+/** UG7/UG8/UG9: goal holders due to think (their queue ran out or a step failed, they noticed what a goal names, or they
+ * were just cast), not already getting a Planner call, awake, active and not broken; nearest the player first, anywhere */
+export function goalThinkers(s: GameState, taken: Set<string>): string[] {
+  const dist = zoneDistances(s, s.player.zone);
+  return Object.entries(s.hidden.drives ?? {})
+    .filter(([id, d]) => d.think && !taken.has(id))
+    .map(([id]) => s.actors.find((a) => a.id === id))
+    .filter((a): a is Actor => !!a && isActive(a) && !a.asleep && a.mind?.moraleState !== 'broken')
+    .sort((a, b) => (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map((a) => a.id);
+}
+
 /** every real id, to tell view_leak (real but outside the view) from invalid_target (does not exist) */
 export function worldIds(s: GameState): Set<string> {
   const all = [s.player, ...s.actors];
@@ -1299,7 +1312,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     const d = l.detail as { actorId: string; kind: string; why: string; seconds: number };
     if (d.actorId !== s.player.id) continue;
     const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
-    out.push(`${d.kind === 'rest' ? 'Rest' : 'Wait'} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
+    out.push(`${({ rest: 'Rest', wait: 'Wait', walk: 'Walk' } as Record<string, string>)[d.kind] ?? d.kind} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
   }
   // NW15/NW18: the night watch, and what woke you
   for (const l of s.log) {

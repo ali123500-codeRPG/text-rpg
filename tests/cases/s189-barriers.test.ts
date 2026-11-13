@@ -73,7 +73,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     const nv = buildNarrationView(s, ev);
     expect(nv.events.find((e) => e.kind === 'way')!.way).toMatchObject({ what: 'door', did: 'tried it: locked' });
   });
-  it('BA3: a key turns on the way through, in the move slot; the walk goes on next turn', () => {
+  it('BA3: a key turns on the way through, in the move slot; outside a fight the walk goes on through it (AT45)', () => {
     const s = quiet();
     const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });
     giveKey(s, b);
@@ -81,8 +81,6 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     const ev = turn(s, go('street_door'));
     expect(ev.find((e) => e.kind === 'way')!.way!.did).toBe('unlocked');
     expect(b.lock!.locked).toBe(false);
-    expect(s.player.zone).toBe('tav_common');
-    turn(s, go('street_door'));
     expect(s.player.zone).toBe('street_door');
   });
   it('BA3: locking it again with the key takes the move', () => {

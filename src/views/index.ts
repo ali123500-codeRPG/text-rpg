@@ -6,9 +6,9 @@ import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
 import { ageText, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
-  Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
+  Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
+  SparView, WalkingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
@@ -17,7 +17,8 @@ import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText }
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
-import { seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
+import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
+import { moveSpeed } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
@@ -397,6 +398,15 @@ const heardOf = (state: GameState): string[] => (state.player.journal?.heardOf ?
 /** SY1: Mentally steady (from steadying oneself at Great Success or better): the next morale loss is halved */
 const steadyOf = (a: Actor): { mentallySteady?: true } => (a.core.condition.mentallySteady ? { mentallySteady: true } : {});
 
+/** AT49 (stage 4): the player's walk still on its way, as metres and seconds at a walk to its zone */
+function walkingOf(state: GameState, p: Actor): { walking?: WalkingView } {
+  const w = p.walking;
+  if (!w) return {};
+  const m = distOrNull(state, p, { zone: w.toZone }), walk = moveSpeed(state, p).walk;
+  if (m === null || walk <= 0) return {};
+  return { walking: { toZone: w.toZone, to: zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
+}
+
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
   const actors = seenActors(state, p);
@@ -408,6 +418,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
+      ...walkingOf(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p),
@@ -433,7 +444,7 @@ export function buildPlayerView(state: GameState): PlayerView {
 }
 
 // ---------- ActorView / OppositionView / DialogueView ----------
-type BaseView = Omit<ActorView, 'plan' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
+type BaseView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
 
 /** everything an NPC view holds that is not in state.hidden */
 function baseView(state: GameState, actorId: string): BaseView {
@@ -538,6 +549,13 @@ export function questGoalText(state: GameState, q: Quest): string {
   }
 }
 
+/** UG2/UG16: a goal holder's goals (numbered), its queued steps and why it thinks now */
+const goalView = (d: Drive | undefined): Pick<ActorView, 'goals' | 'steps' | 'thinkWhy'> => !d ? {} : {
+  goals: d.goals.map((g, i) => ({ n: i + 1, text: g.text, ...(g.standing ? { standing: true as const } : {}), ...(g.about?.length ? { about: [...g.about] } : {}) })),
+  ...(d.steps.length ? { steps: structuredClone(d.steps) } : {}),
+  ...(d.think ? { thinkWhy: d.think } : {}),
+};
+
 export function buildActorView(state: GameState, actorId: string): ActorView {
   const base = baseView(state, actorId);
   const h = state.hidden;
@@ -545,6 +563,7 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
   return {
     ...base,
     ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
+    ...goalView(h.drives?.[actorId]),
     ...(h.memory[actorId]?.length ? { memory: h.memory[actorId].map((m, i) => ({ n: i + 1, turn: m.turn, text: m.text })) } : {}),
     ...(agreementViews(state, actorId).length ? { agreements: agreementViews(state, actorId) } : {}),
     secrets: h.secrets.filter((s) => s.holderId === actorId).map((s) => ({ id: s.id, holderId: s.holderId, fact: s.fact, leakTerms: [...s.leakTerms], revealWhen: { ...s.revealWhen } })),

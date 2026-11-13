@@ -88,6 +88,8 @@ export type SeenActor = {
 };
 /** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
 export type DoingView = { what: string; done: number; left: number };
+/** AT49 (stage 4): the player's walk still on its way: where to (zone id and name), metres and seconds at a walk still to go */
+export type WalkingView = { toZone: string; to: string; metres: number; seconds: number };
 
 // ---------- PlayerView: Agent Parser ----------
 export type PlayerView = {
@@ -98,6 +100,7 @@ export type PlayerView = {
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
     summonable?: { id: string; name: string }[]; // TB6: the player's Threadbound items not on them (gear op summon)
     doing?: DoingView; // AT2/AT11a: the long action the player is at (the same order again carries it on)
+    walking?: WalkingView; // AT49: a walk still on its way: a turn with no move and no action carries it on
     perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
@@ -178,6 +181,10 @@ export type ActorView = {
   said: string[]; // its own last spoken lines, latest last (P5)
   earlier?: string[]; // PM6: code-made lines about perceived events older than `perceived`, oldest first
   plan?: Plan;
+  /** UG2/UG16: a goal holder's goals (numbered for goals.met/failed), queued steps and why it thinks now */
+  goals?: { n: number; text: string; standing?: true; about?: string[] }[];
+  steps?: import('./hidden').GoalStep[];
+  thinkWhy?: string;
   memory?: { n: number; turn: number; text: string }[]; // PM1: its memory list, numbered for memory.drop
   agreements?: AgreementView[]; // PM3: the deals it is in
   secrets: Secret[]; // its own
@@ -196,7 +203,7 @@ export type OppositionView = ActorView; // formatted for the prompt by the agent
 
 // ---------- DialogueView: Agent Voice ----------
 export type DialogueInput = { spoken: string; impression: string | null }[]; // one entry per speech action this turn
-export type DialogueView = Omit<ActorView, 'plan' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
+export type DialogueView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
   knows: Fact[];
   dialogue: DialogueInput;
 };
