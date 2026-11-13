@@ -737,6 +737,14 @@ export function createGame(deps: GameDeps): Game {
       const sent = new Set(sends.map((x) => x.storyId));
       return fallen.map((f) => ({ ...f, ...(inLib.has(f.storyId) ? { inLibrary: true as const } : sent.has(f.storyId) ? { sent: true as const } : {}) }));
     },
+    async sendBlueprint(id) {
+      const b = state?.blueprints.find((x) => x.id === id);
+      if (!state || !b) return { error: 'Nothing with that id was made in this story.' };
+      const sid = sendId(b.kind, state.storyId, b.id);
+      await saveSend(store, { id: sid, kind: b.kind, storyId: state.storyId, name: String(b.data.name ?? b.data.label ?? b.id), at: new Date(clock.now()).toISOString(), data: structuredClone(b.data) });
+      return { id: sid };
+    },
+    librarySends: () => librarySends(store),
     async sendHero(storyId) {
       const f = (await save.listFallen(store)).find((x) => x.storyId === storyId);
       if (!f) return { error: 'That character is not in the Hall of fame.' };

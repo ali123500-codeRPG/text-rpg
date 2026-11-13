@@ -126,6 +126,10 @@ export interface GameApi {
   hallOfFame(): Promise<FallenCharacter[]>; // archived stories whose character fell, newest first
   /** HF34 a: "Send to NPC template": the fallen character's echo sheet goes on the library send list; the page then wakes Claude */
   sendHero(storyId: string): Promise<{ id: string } | { error: string }>;
+  /** HF34 a, the GM view: something the Weaver made in this story (a blueprint, by id) goes on the library send list for review */
+  sendBlueprint(id: string): Promise<{ id: string } | { error: string }>;
+  /** the library send list, newest first */
+  librarySends(): Promise<import('../save/sends').LibrarySend[]>;
   /** files the player's own bug report (code player_report) with the story, turn and last lines; resolves to its BG id */
   reportBug(note: string): Promise<string | null>;
   /** the open bugs, newest first */

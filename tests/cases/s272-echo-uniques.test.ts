@@ -155,4 +155,17 @@ describe('272 echo uniques', () => {
     expect(card.inLibrary).toBe(true);
     expect(card.sent).toBeUndefined();
   });
+
+  it('the GM view: something the Weaver made in this story goes on the send list for review', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    const s = makeVillage();
+    s.blueprints.push({ storyId: s.storyId, id: 'IT27_m2_1', kind: 'item', data: { id: 'IT27_m2_1', kind: 'weapon', name: 'Wim’s old blade' } });
+    await saveTurn(store, s, { storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] } as TurnRecord);
+    expect(await g.resume()).toBe(true);
+    expect(await g.sendBlueprint('nothing')).toEqual({ error: expect.any(String) });
+    expect(await g.sendBlueprint('IT27_m2_1')).toEqual({ id: `item_${s.storyId}_IT27_m2_1` });
+    expect(await g.librarySends()).toEqual([expect.objectContaining({ kind: 'item', name: 'Wim’s old blade', storyId: s.storyId, data: expect.objectContaining({ id: 'IT27_m2_1' }) })]);
+  });
 });
