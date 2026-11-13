@@ -57,7 +57,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   if (out.move && !spot) delete out.move.spot;
   if (out.move?.toZone === view.zone.id && !spot) out.move = null;
   // BG-15: a move names where the player means to end up, any zone it knows; the walk finds the way through the rest
-  const reachable = (id: string) => view.zone.links.some((l) => l.to === id) || view.zones.some((z) => z.id === id) || !!view.known?.some((k) => k.id === id);
+  // BG-169: a way out of a zone in sight ("up the street toward the square") is a place the player can see to name too
+  const reachable = (id: string) => view.zone.links.some((l) => l.to === id) || view.zones.some((z) => z.id === id || z.links.some((l) => l.to === id)) || !!view.known?.some((k) => k.id === id);
   if (out.move && out.move.toZone !== view.zone.id && !reachable(out.move.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
   if (out.move && spot) {
     // one of near / awayFrom (someone in view, or a way out of that zone) / side (a compass word)
@@ -156,7 +157,7 @@ export function knownIds(view: NpcViewBase) {
   const actors = new Set([view.self.id, ...view.beliefs.map((b) => b.about), ...view.seen.map((s) => s.id)]);
   const zones = new Set([...view.map.flatMap((z) => [z.id, ...z.links.map((l) => l.to)]), ...view.zones.map((z) => z.id), view.self.zone]);
   const own = new Set(view.self.gear.map((g) => g.id));
-  const ground = new Set(view.zones.flatMap((z) => z.groundItems.map((g) => g.id)));
+  const ground = new Set(view.zones.flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...(g.container?.contents?.map((x) => x.id) ?? [])]))); // BF13: what an open container shows lies there too
   const seenGear = new Set(view.seen.flatMap((s) => s.gear.map((g) => g.id)));
   return { actors, zones, own, ground, seenGear };
 }

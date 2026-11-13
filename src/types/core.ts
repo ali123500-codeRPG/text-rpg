@@ -145,7 +145,7 @@ export type GameEvent = {
   summed?: true; // BF2e: a catch-up leg of a long turn (a trade, a rest): told in its summary, never as its own move
   round?: { way: string; shut: 'blocked' | 'barred' | 'locked' }; // BG-148: a walk that goes round a way it knows is shut (its label)
   toGo?: number; // BG-47/BG-48: a leg toward another zone (heading, or a target there): the metres still left to the way out
-  metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in
+  metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in; wasted out_of_reach: metres still short (BG-163)
   spot?: string; // BG-12: a move to a spot in a zone, in words ("to the north side", "away from the cellar steps")
   /** SD3–SD5, BA2–BA4: something done at a barrier on the way to `to`: opened on the way through (unlocked, unbarred), found
    * shut by trying it (locked, barred, blocked), turned or slid on purpose (lock, unlock, bar, unbar), or picked (BA2) */

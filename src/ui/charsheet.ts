@@ -285,16 +285,35 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
 
 /** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
 /** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
+/** MB12 in plain words, one source for the sheet, the story card and the input's chips: how a broken nerve passes
+ * (the engagement ending gives morale back, rest too) and what still works while it lasts */
+export const NERVE_UNTIL = "You can't attack until the fight is behind you.";
+export const NERVE_PASSES = () => `That is once no one has fought you for ${CONFIG.ENGAGEMENT_END_TURNS} turns, your yield is taken, this scenario ends, or you rest.`;
+export const NERVE_STILL = 'You can still flee, yield, hide, talk or use a bandage.';
+const moraleRoll = (k: string) => CONFIG.MORALE_TRACK.find(([x]) => x === k)?.[2] ?? 0;
+/** the stakes line under the morale bar, from CONFIG.MORALE_HINT_FROM down; null above it */
+export function moraleHint(k: MoraleLevel): string | null {
+  if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM as MoraleLevel)) return null;
+  if (k === 'broken') return `${NERVE_PASSES()} ${NERVE_STILL}`;
+  const roll = moraleRoll(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
+  return `${roll ? `−${Math.abs(roll)} on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack.`;
+}
+
 export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
-  const level = MORALE_LEVELS.name(moraleLevel(p));
+  const key = moraleLevel(p), hint = moraleHint(key);
+  const level = MORALE_LEVELS.name(key);
   const lost = Math.max(0, Math.min(100, moraleLostPct(p)));
   const max = maxMorale(p);
   const left = Math.round(max * (100 - lost) / 100);
   const ticks = full ? CONFIG.MORALE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Morale'), h('b', {}, h('span', { 'data-m': 'morale-level' }, level), full ? [' · ', h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`] : null)),
+    h('span', { class: 'cs-row' }, h('span', {}, 'Morale'), h('b', {}, h('span', { 'data-m': 'morale-level' }, level),
+      full ? [' · ', h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`] : null)),
     h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
+    // the stakes, from Terrified down: what the level costs and what Broken would stop
+    ...(hint ? [h('span', { class: 'cs-mhint' + (key === 'broken' ? ' broken' : ''), 'data-m': 'morale-hint', role: 'status' },
+      key === 'broken' ? [h('b', { 'data-m': 'morale-until' }, NERVE_UNTIL), ' '] : null, hint)] : []),
   ];
 }
 

@@ -1,7 +1,7 @@
 // Narrator leak scan, fact check and the templated fallback narration (D-23: plain templates until decided).
 // The scan itself is code and may read GameState; nothing here is ever sent to an agent.
 import type { GameState, NarrationEvent, NarrationView, NarratorOutput } from '../types';
-import { itemDef } from '../library';
+import { getLibrary, itemDef } from '../library';
 import { SK } from '../library/skillIds';
 import { knowsName } from '../engine/relations';
 
@@ -30,8 +30,11 @@ export function buildLeakContext(state: GameState): LeakContext {
     }
   };
   const ownNames = new Set(state.player.core.inventory.map((i) => itemName(i.itemId)));
+  // BG-168: only a name that tells which thing it is (a story-made item, a Threadbound one) is a leak; a catalog item's name
+  // is an everyday noun (a sack, a chest) the Narrator may use for anything
+  const telling = (itemId: string) => state.blueprints?.some((b) => b.kind === 'item' && b.id === itemId) || !!getLibrary().items[itemId]?.threadbound;
   for (const i of [...state.actors.flatMap((a) => a.core.inventory), ...state.zones.flatMap((z) => z.groundItems)]) {
-    const n = itemName(i.itemId);
+    const n = telling(i.itemId) ? itemName(i.itemId) : null;
     if (n && !ownNames.has(n)) names.push(n);
   }
   const ids = [

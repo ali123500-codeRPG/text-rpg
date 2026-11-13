@@ -8,7 +8,7 @@ import { getLibrary } from '../library';
 import { compassOf, doorway, edgeToward } from '../scenario/geometry';
 import { heightOf } from '../scenario/heights';
 import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
-import { barrierOn, passage, type Passage } from './barriers';
+import { barrierOn, handsPass, passage, type Passage } from './barriers';
 import { gripReachM } from '../ruleset/body';
 import type { Actor, Barrier, GameState, MoveSpot, Zone } from '../types';
 
@@ -305,5 +305,16 @@ export function gateAhead(state: GameState, a: Actor, goal: string): { b: Barrie
 /** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */
 export function withinGrip(state: GameState, actor: Actor, at: Located, extra = 0): boolean {
   const r = gripReachM(state, actor);
-  return r > 0 && withinM(distM(state, actor, at), r + extra);
+  return r > 0 && withinM(distM(state, actor, at), r + extra) && handsReach(state, actor.zone, at.zone);
+}
+/** BF12: hands reach from zone a into zone b: the same zone, or every way between them lets hands through (handsPass) */
+function handsReach(state: GameState, a: string, b: string): boolean {
+  if (a === b) return true;
+  const path = shortestPath(state, a, b);
+  let from = a;
+  for (const z of path ?? []) {
+    if (!handsPass(barrierOn(state, zoneById(state, from)?.links.find((l) => l.to === z)))) return false;
+    from = z;
+  }
+  return true;
 }

@@ -109,7 +109,7 @@ export type PlayerView = {
   known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
-  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[] }[]; // wares: BG-155, a seller known to sell
+  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
   /** NM2: names the player has heard but cannot yet put a face to */
   heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */
@@ -236,6 +236,7 @@ export type NarrationView = {
   essences?: { name: string; story: string }[];
   /** essences that appeared this turn but failed their quality roll: felt for a moment, then gone */
   essencesFaded?: { name: string; story: string }[];
+  notThere?: string[]; // BG-164: whom this turn's words, action or walk were for, not where the player last saw them
   cameAndWent?: string[]; // BF2e: who the player noticed coming and going over a long turn, one line each, in order
   style: { tone: string; length: string };
   time: TimeView;

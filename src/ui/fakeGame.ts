@@ -6,7 +6,7 @@ import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice, XpPart } from '../types';
 import { CONFIG, defaultSettings } from '../config';
-import { maxMorale, setMoraleLost } from '../ruleset/morale';
+import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { abandonQuest, pinQuest } from '../engine/quests';
@@ -255,11 +255,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       }
       // "fear" drops the player's morale to the next level down (Terrified, Panicking, Broken), and "calm" brings back a quarter,
       // to show the nerve's warning on the play screen (MW1–MW3)
+      const wasBroken = moraleLevel(state.player) === 'broken';
       if (/^(fear|calm)\b/i.test(text)) {
         const p = state.player, max = maxMorale(p), lostPct = (100 * (p.core.condition.moraleLost ?? 0)) / max;
         const next = CONFIG.MORALE_TRACK.find(([, at]) => at > lostPct + 0.001)?.[1] ?? 100;
         setMoraleLost(p, /^fear/i.test(text) ? (Math.min(100, next) / 100) * max : (p.core.condition.moraleLost ?? 0) - max / 4);
       }
+      // the turn "fear" breaks the nerve shows the Nerve broken card; "punch" while Broken is refused (MB12)
+      const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : wasBroken && /^punch\b/i.test(text) ? { nerveRefused: true as const } : null;
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
@@ -267,7 +270,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
       const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}), ...(ways ?? {}), ...(robbed ?? {}) }];
+        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}), ...(ways ?? {}), ...(robbed ?? {}), ...(nerve ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
