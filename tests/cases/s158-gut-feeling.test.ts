@@ -1,6 +1,8 @@
 // 158 Gut Feeling (LI5b, LI6 b): at the start of each turn the owner rolls Insight against the stealth of each hidden
 // watcher (opposed or hostile to the owner, aware of it, in its zone or one sight link away, unseen by it). A win is a
 // hunch from the watcher's zone, never who: the owner turns suspicious of the watcher. Once per watcher a scenario.
+import { CONFIG } from '../../src/config';
+import { tick } from '../harness/time';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
 import { gutFeelings, hiddenWatcher } from '../../src/engine/hunches';
@@ -43,15 +45,19 @@ describe('158 Gut Feeling', () => {
     expect(hiddenWatcher(w.s, w.s.player, w.g)).toBe(false); // out of sight
   });
 
-  it('a win is a hunch, once per watcher a scenario; a loss rolls again next turn', () => {
+  it('a win is a hunch, once per watcher a scenario; a loss rolls again HUNCH_EVERY_ROUNDS rounds later (AT74)', () => {
     const { s } = setup();
     const lost = gutFeelings(s, forcedRng([95, 5])); // the watcher's stealth 95, the owner's Insight 5
     expect(lost).toHaveLength(1);
     expect(lost[0].felt).toBe(false);
+    tick(s);
+    expect(gutFeelings(s, forcedRng([5, 95]))).toEqual([]); // too soon to roll again
+    tick(s, CONFIG.HUNCH_EVERY_ROUNDS * CONFIG.ROUND_S);
     const won = gutFeelings(s, forcedRng([5, 95]));
     expect(won[0].felt).toBe(true);
     expect(gutFeelings(s, forcedRng([5, 95]))).toEqual([]); // already set off this scenario
     s.stage.scenarioStartTurn += 1; // a new scenario
+    tick(s, CONFIG.HUNCH_EVERY_ROUNDS * CONFIG.ROUND_S);
     expect(gutFeelings(s, forcedRng([5, 95]))).toHaveLength(1);
   });
 

@@ -1,5 +1,6 @@
 // 112 Coded 20-milestone perks, batch 2: Turn the Blade, Hunter's Mark, Make Them Stumble (marks
 // that outlast the attack) and Cover Ally (a friend takes a ranged attack in the target's place; switchable).
+import { tick } from '../harness/time';
 import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng, beside } from '../harness';
@@ -64,7 +65,8 @@ describe('112 coded perks, batch 2', () => {
     give(s.player, PK.make_them_stumble);
     afterAttack(s, wim, s.player, result({ defenseType: 'dodge', gap: 2, outcome: 'dodged' }), false);
     expect(markShifts(s, s.player, wim, false).defense).toEqual([{ source: 'Make Them Stumble', value: -1 }]);
-    s.turn += 2;
+    tick(s);
+    tick(s); // PERK_MARK_ROUNDS rounds later
     expect(markShifts(s, s.player, wim, false).defense).toEqual([]);
     expireMarks(s, wim);
     expect(wim.perkMarks).toBeUndefined();

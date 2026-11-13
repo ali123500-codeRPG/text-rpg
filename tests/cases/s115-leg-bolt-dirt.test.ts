@@ -2,6 +2,7 @@
 // Leg Bolt: a medium or heavy ranged hit that wounds a leg costs the leg 1.5× and slows the target (no dash) until the
 // end of its next turn. Dirt in the Eyes: a free perk move, once per engagement, needing a free hand; unless the foe's
 // dodge wins, its next attack or defense roll gets tier shift −2.
+import { tick } from '../harness/time';
 import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place, fit } from '../harness';
@@ -45,13 +46,14 @@ describe('115 Leg Bolt', () => {
     const wim = npc(s, 'patron_1');
     afterAttack(s, s.player, wim, r, true);
     expect(slowed(s, wim)).toBe(true);
-    s.turn += 2;
+    tick(s);
+    tick(s); // PERK_MARK_ROUNDS rounds later
     expect(slowed(s, wim)).toBe(false);
   });
   it('a slowed player can’t dash', () => {
     const s = makeVillage();
     place(s, 'player', 'street_door');
-    s.player.perkMarks = [{ perk: PK.leg_bolt, until: s.pending.turn + 1 }];
+    s.player.perkMarks = [{ perk: PK.leg_bolt, made: s.pending.turn }];
     play(s, { intent: intent({ move: { toZone: 'gate_inner' } }) });
     expect(s.player.zone).not.toBe('gate_inner');
     expect(s.log.some((l) => l.code === 'dash_blocked' && (l.detail as { reason: string }).reason === 'slowed')).toBe(true);

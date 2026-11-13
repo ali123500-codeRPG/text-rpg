@@ -26,9 +26,11 @@ import { CONFIG } from '../config';
 import { VOLUME_NOISE } from '../perception/noise';
 
 /** the actor has a working Grip arm with nothing held in it */
-export const freeHand = (state: GameState, a: Actor) => {
+export const freeHand = (state: GameState, a: Actor) => freeGrips(state, a) > 0;
+/** AT79: how many working Grip parts hold nothing */
+export const freeGrips = (state: GameState, a: Actor): number => {
   const busy = new Set(a.core.inventory.filter(isHeld).flatMap(handsOf));
-  return usableGrips(state, a).some((g: string) => !busy.has(g));
+  return usableGrips(state, a).filter((g: string) => !busy.has(g)).length;
 };
 
 /** how near the target must be, by what the move is: a lie must be heard clearly at a normal voice (the speech rule);

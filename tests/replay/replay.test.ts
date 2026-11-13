@@ -21,7 +21,9 @@ type Run = { run: string; from: number; head?: boolean; docs: Record<string, str
 
 const DIR = 'tests/replay/runs';
 /** "<run> step <n>" -> why today's rules refuse a line the run accepted */
-const REFUSED_ON_PURPOSE: Record<string, string> = {};
+const REFUSED_ON_PURPOSE: Record<string, string> = {
+  'run-77h-scenarios-50 step 6': 'action time (AT58, AT78): with two blows a turn and the reaction rolled once a fight, the slime is dead a turn sooner',
+};
 const runs = (readdirSync(DIR) as string[]).filter((f) => f.endsWith('.json.gz')).map((f) => JSON.parse(String(gunzipSync(readFileSync(`${DIR}/${f}`)))) as Run);
 const turnOf = (req: ClaudeRequest) => Number(/"turn":(\d+)/.exec(req.input.at(-1)?.content ?? '')?.[1] ?? NaN);
 

@@ -27,7 +27,7 @@ const downed = (control: 'agent' | 'code' = 'agent', lethal = true) => {
   g.mind!.knowledge.player = { status: 'engaged', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   s.player.core.condition.hpLostPct = 40; // a turn or two of fighting first, so the fight is on record
   s.mode = 'tactical'; // fight turns, as the game plays them (play() keeps the mode it is given)
-  for (let i = 0; i < 40 && !codes(s).some((c) => ['mercy_asked', 'player_fell', 'survival_roll'].includes(c)); i++) play(s, { intent: intent({}), agentOutputs: [plannerOut('guard_1', act('attack', 'player'))] }, 101 + i);
+  for (let i = 0; i < 40 && !codes(s).some((c) => ['mercy_asked', 'player_fell', 'survival_roll'].includes(c)); i++) play(s, { intent: intent({}), agentOutputs: [plannerOut('guard_1', act('attack', 'player'))] }, 201 + i); // seeds where the guard downs the player without a killing blow
   if (lethal) expect(healthLevel(s.player)).toBe('incapacitated');
   return s;
 };

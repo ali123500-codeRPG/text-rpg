@@ -39,6 +39,9 @@ export type Actor = {
   wokeAt?: number; // NW20: the game minute it last woke; it falls asleep again only FALL_ASLEEP_MIN after
   /** AT20: main and move seconds left after its last finished action, carried into the next turn only (`turn` they came from) */
   carry?: { main: number; move: number; turn: number };
+  /** AT58: the reaction rolled when the actor's fight started (seconds, the initiative total that breaks ties), and the last
+   * fight turn it counted in: a fight turn after a turn without one rolls again */
+  react?: { s: number; init: number; turn: number };
   /** AT2/AT17: a long action under way: its Action times row, the order it came from, seconds done of `need`, the turn it last
    * went on; `paused` when broken off or set aside with its work kept (AT6/AT28: picked up again by the same order) */
   busy?: { row: string; key: string; order: { type: string; target: string | null; item: string | null }; done: number; need: number; turn: number; paused?: true };
@@ -51,7 +54,7 @@ export type Actor = {
   haggle?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
-  hunches?: { scenario: number; ids: string[] }; // LI5b Gut Feeling: watchers that set off the owner's hunch this scenario (scenarioStartTurn)
+  hunches?: { scenario: number; ids: string[]; tried?: Record<string, number> }; // LI5b Gut Feeling: watchers that set off the owner's hunch this scenario (scenarioStartTurn); tried: the turn each watcher was last rolled against (AT74)
   sightChecks?: string[]; // the on-sight quirks (perk:owner) this actor has met: once per owner, for good
   auraChecks?: string[]; // NT14/I4: the auras (perk:owner) this actor has already checked against this engagement
   /** NT3: speech tries this engagement, by listener and speech kind */
@@ -61,7 +64,8 @@ export type Actor = {
 };
 
 /** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */
-export type PerkMark = { perk: string; target?: string; until?: number };
+/** made: the turn a timed mark was made (it lasts PERK_MARK_ROUNDS rounds of game time from then); none: until used */
+export type PerkMark = { perk: string; target?: string; made?: number };
 
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */

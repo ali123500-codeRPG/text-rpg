@@ -132,6 +132,14 @@ const DEFAULTS = {
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
+  /** AT58/AT60: reaction time when a fight starts for an actor: REACT_BASE_S seconds at an initiative total of 50, halving
+   * every REACT_HALVING points above (doubling below), times the time factor; a hesitation waits it out again */
+  REACT_BASE_S: 2,
+  REACT_HALVING: 50,
+  /** AT74: Gut Feeling rolls once every this many rounds for each hidden watcher */
+  HUNCH_EVERY_ROUNDS: 20,
+  /** AT74: perk marks that lasted "the next turn" (Leg Bolt's slow, Make Them Stumble, Dirt in the Eyes) last this many rounds */
+  PERK_MARK_ROUNDS: 2,
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
   AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)

@@ -3,6 +3,7 @@
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import type { DurationDef } from '../types';
+import { FN } from '../library/functionIds';
 
 /** AT22: an actor's time factor; 1 for everyone until the speed skills exist (D-248) */
 export const timeFactor = (): number => 1;
@@ -18,6 +19,11 @@ export function actionSeconds(row: DurationDef, skill = 50, factor = timeFactor(
   const eff = sp?.fastCap == null ? skill : Math.min(skill, sp.fastCap);
   return row.seconds * factor * (sp ? 2 ** ((50 - eff) / sp.halving) : 1);
 }
+
+/** AT58: reaction time in seconds for an initiative total: the same equation as a row sped by a function, the Initiative
+ * function's total standing in for its skill (REACT_BASE_S at 50, halved every REACT_HALVING points above) */
+export const reactSeconds = (total: number, factor = timeFactor()): number =>
+  actionSeconds({ id: 'react', name: 'Reaction', seconds: CONFIG.REACT_BASE_S, speed: { fn: FN.initiative, halving: CONFIG.REACT_HALVING } }, total, factor);
 
 /** AT72: an engagement ends after the slowest attack cycle in the table (a reload and the shot it readies, or one attack)
  * plus one round to react, so a crossbowman spanning between shots never drops out of the fight */
