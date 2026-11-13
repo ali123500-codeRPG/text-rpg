@@ -177,6 +177,7 @@ export type ActorView = {
     alarm?: { armed: boolean; lastAlarmTurn?: number; returnTo?: { id: string; anchorTurn: number } };
     lastHitBy?: ActorId; // from events it perceived
     lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, and why
+    missing?: { id: string; name: string }[]; // BF18: its own things (Weaver owner) that are not on it; a job may name one to have back
     meanwhile?: { minutes: number }; // AT63: time ran on since its last order while it went on by habit
     stealthy?: true; // NS: moving unseen
     spar?: SparView; // SP1: the spar it is a fighter in

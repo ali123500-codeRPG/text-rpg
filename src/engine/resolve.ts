@@ -27,7 +27,7 @@ import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, handsOn, openToHands, staying, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, handsOn, openToHands, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
@@ -1345,6 +1345,26 @@ function doFilch(ctx: Ctx, a: Actor, o: Order): void {
   emitFilch(ctx, a, o, owner, got, f, before !== undefined ? got.qty : undefined);
 }
 
+/** BF16: turning out your own pockets: what you carry (not worn or held) and what your carried sacks and packs hold shows to
+ * everyone who sees it clearly; o.item, one thing you try to keep back, stays hidden only if the Filching contest is
+ * unnoticed by all (src/engine/filch.ts) */
+function doShow(ctx: Ctx, a: Actor, o: Order): void {
+  const { state } = ctx;
+  const carried = a.core.inventory.filter((i) => !i.equippedIn?.some((s) => s.startsWith('grip:')) && !i.soulbound);
+  const shown = carried.flatMap((i) => [...(i.equippedIn?.length ? [] : [i]), ...(i.contents ?? [])]);
+  const keep = o.item ? shown.find((i) => i.id === o.item || i.itemId === o.item) : undefined;
+  const f = keep ? filchContest(state, a, undefined, a, itemDef(state, keep.itemId).bulk, ctx.rng, recentAround(ctx)) : null;
+  const palmed = f?.outcome === 'taken' ? keep : undefined;
+  const items = shown.filter((i) => i !== palmed);
+  const ev = mk(ctx, a, 'show', { ...(f ? { roll: f.roll, tier: f.roll.tier } : {}) });
+  ev.effects.push({ kind: 'shown_items', actorId: a.id, data: { items: items.map((i) => i.id), ...(keep && !palmed ? { palmFailed: true } : {}) } });
+  emit(ctx, bark(ev, o));
+  for (const [id, p] of Object.entries(ev.perception)) {
+    const w = actorById(state, id);
+    if (w && w !== a && p.level === 'full') revealItems(state, w, a, items);
+  }
+}
+
 function doMain(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   switch (o.type) {
@@ -1362,6 +1382,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doPick(ctx, a, o);
     case 'filch':
       return doFilch(ctx, a, o);
+    case 'show':
+      return doShow(ctx, a, o);
     case 'steady': { // SY1: steadying yourself (engine/steady.ts); a loss goes through fear(), which applies a break
       const why = cantSteady(state, a);
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: why }), o));
@@ -1739,7 +1761,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
-  if (o.type === 'search' && t && t !== a && openToHands(a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
+  if (o.type === 'search' && t && t !== a && openToHands(state, a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
   if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
@@ -2012,6 +2034,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   });
   // SP5: "I yield" in a spar leaves it; MB40: in a real fight it yields to the foes fighting the player. After the turn's blows
   if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));
+  letSearch(state, state.player, input.intent?.letsSearch); // BF16
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   const defeated = payDefeats(state, ctx.events);
   offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence

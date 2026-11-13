@@ -10,7 +10,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 /** every action the Parser can give (schema and completeness tests read this list) */
 export const PARSER_ACTIONS = ['attack', 'hide', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate',
-  'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'restrain', 'filch', 'steady'] as const; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
+  'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'restrain', 'filch', 'steady', 'show'] as const; // show: BF16, turn out your own pockets; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
 export type ParserActionType = (typeof PARSER_ACTIONS)[number];
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
@@ -52,13 +52,14 @@ export type Intent = {
   deferred: string[];
   clarify: string | null;
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
+  letsSearch?: string | null; // BF16: the one the player lets search them
   look?: 'stats' | 'inv'; // OA4: the player only looks at their own sheet or what they carry: no turn passes
 };
 
 // ---- Agent Planner / Responder / Voice ----
 /** every action an NPC order can give (schema and completeness tests read this list) */
 export const NPC_ACTIONS = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee',
-  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'open', 'filch', 'steady', 'other'] as const; // open: BG-173, a container (CT3); filch: FL7
+  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'open', 'filch', 'steady', 'show', 'other'] as const; // show: BF16; // open: BG-173, a container (CT3); filch: FL7
 export type NpcActionType = (typeof NPC_ACTIONS)[number];
 export type NpcAction = {
   type: NpcActionType;
@@ -111,6 +112,7 @@ export type PlannerOutput = {
   questEnd?: QuestEnd | null;
   spar?: SparMade | null;
   yields?: boolean; // SP5: gives up the spar it is in
+  letsSearch?: string | null; // BF16: the one it lets search it hands-on
   acceptYield?: boolean; // MB41: takes (true) or refuses the player's yield (self.playerYielded)
   spare?: boolean; // D-239: spares (true) or finishes the downed player (self.playerAtMercy); no answer finishes
   headTo?: string | null; // NW2: where it is going, further than one move: a zone or frontier id; code walks it there
@@ -131,6 +133,7 @@ export type VoiceOutput = {
   questEnd?: QuestEnd | null;
   spar?: SparMade | null;
   yields?: boolean;
+  letsSearch?: string | null;
   acceptYield?: boolean;
   spare?: boolean;
   headTo?: string | null; // NW2
@@ -204,6 +207,7 @@ export type StagePlan = {
     item: string | { base: string; quality: import('../scales').QualityKey; boosts: string; name: string; look: string };
     qty?: number;
     place: { carriedBy: string } | { groundIn: string; hiddenAt?: import('./core').Tier } | { in: string }; // SE8/SE10: hidden on the ground, found by beating this tier; in: CT2, a container of this plan by its key
+    owner?: string; // BF18: whom it belongs to (cast key or actor id), when not with them: they know it is missing
   }[];
   /** CT2: containers the plan places (a chest in a cellar, a tinker's packs): a container item, where it is, its owner,
    * and a lock with who holds its key. What is inside is placed by rewards with place {in: key}. */

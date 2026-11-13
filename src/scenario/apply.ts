@@ -411,7 +411,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const def = itemDef(state, itemId);
     const qty = r.qty ?? 1;
     const id = `rw${turn}_${i}_${itemId}`;
-    const insts: ItemInstance[] = def.stackable ? [{ id, itemId, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId }));
+    const own = r.owner && actorById(state, actorRef(r.owner)) ? { owner: actorRef(r.owner) } : {}; // BF18
+    const insts: ItemInstance[] = def.stackable ? [{ id, itemId, qty, ...own }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId, ...own }));
     const pl = r.place as { carriedBy?: string; groundIn?: string; hiddenAt?: Tier; in?: string };
     const box = pl.in !== undefined ? boxes.get(pl.in) : undefined;
     // CT7: what goes into a worn pack is its wearer's stowed gear; into any other container, its contents
