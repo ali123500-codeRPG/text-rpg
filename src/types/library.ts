@@ -88,7 +88,8 @@ export type ClassDef = {
   capstones?: { perk: string; needs: TreeAccess }[];
 };
 
-export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
+/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2) */
+export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number };
 export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };
 /** BR1: a body type is the shape only: parts, general area, silhouette, and the attacks the shape
  * always has (BR3). Toughness, natural armor and a being's own attacks are on its race. */

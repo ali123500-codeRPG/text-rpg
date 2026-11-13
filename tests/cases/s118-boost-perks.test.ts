@@ -14,7 +14,7 @@ import { IT } from '../../src/library/itemIds';
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const wield = (s: GameState, itemId: string) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
-  s.player.core.inventory.push({ id: 'w', itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  s.player.core.inventory.push({ id: 'w', itemId, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
   fit(s.player, itemId);
 };
 const hit = (itemId: string, target: string, perk?: string, part?: string, armor?: string, d100 = 95) => {

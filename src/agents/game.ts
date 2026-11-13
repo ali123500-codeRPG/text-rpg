@@ -1,6 +1,7 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
+import { gripWord } from '../ruleset/gear';
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor, WayDid,
@@ -890,11 +891,11 @@ export function partsWorse(before: { id: string; state: PartState }[], after: { 
 
 /** the player's gear as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */
 export type GearSnap = Map<string, { name: string; where: string; qty: number }>;
-const handWord = (slot: string) => slot.replace(/^hand:/, '').replace(/_arm$/, '').replace(/_/g, ' ') + ' hand';
+const handWord = (slot: string) => gripWord(slot.replace(/^grip:/, ''));
 export function gearSnap(s: GameState, p: Actor): GearSnap {
   const gear: GearSnap = new Map();
   for (const i of p.core.inventory) {
-    const hands = (i.equippedIn ?? []).filter((x) => x.startsWith('hand:'));
+    const hands = (i.equippedIn ?? []).filter((x) => x.startsWith('grip:'));
     let name = i.itemId;
     try { name = itemDef(s, i.itemId).name; } catch { /* an unknown item keeps its id */ }
     gear.set(i.id, { name, qty: i.qty ?? 1, where: hands.length ? `held:${hands.map(handWord).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });

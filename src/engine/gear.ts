@@ -6,7 +6,11 @@ import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
 import { working } from '../ruleset/body';
-import { actorById, isActive, reachesAcross, zoneById } from './relations';
+import { actorById, isActive, zoneById } from './relations';
+import { withinGrip, type Located, type Pos } from './position';
+import { gripReachM } from '../ruleset/body';
+export { gripReachM };
+export { withinGrip } from './position';
 import { summon } from '../ruleset/threadboundItems';
 import { freeAccSlot } from '../ruleset/gear';
 
@@ -14,10 +18,19 @@ export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
 }
 
+/** FR2: where a pick-up op's item is: on a downed actor (their spot) or on the ground (its point; one placed with no point
+ * lies at its zone's centre, as spotOf reads a spot with none) */
+export function pickUpAt(state: GameState, op: GearOp): Located | null {
+  if (op.from) { const src = actorById(state, op.from); return src && !isActive(src) ? src : null; }
+  const z = state.zones.find((x) => x.groundItems.some((i) => i.id === op.item));
+  const it = z?.groundItems.find((i) => i.id === op.item);
+  return z && it ? { zone: z.id, ...(it.at ? { pos: it.at } : {}) } : null;
+}
+
 function usableFreeHands(state: GameState, actor: Actor): string[] {
   const bad = new Set(partStates(state, actor).filter((p) => !working(p.state)).map((p) => p.id));
   const held = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
-  return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(`hand:${p}`)).map((p) => `hand:${p}`);
+  return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(`grip:${p}`)).map((p) => `grip:${p}`);
 }
 
 function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
@@ -39,15 +52,15 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
     switch (op.op) {
       case 'draw':
         // BG-24: drawing what is already in hand is nothing to do, not a mistake
-        ok = !!inst && (!!inst.equippedIn?.some((s) => s.startsWith('hand:')) || draw(state, actor, inst));
+        ok = !!inst && (!!inst.equippedIn?.some((s) => s.startsWith('grip:')) || draw(state, actor, inst));
         break;
       case 'stow':
-        ok = !!inst?.equippedIn?.some((s) => s.startsWith('hand:'));
+        ok = !!inst?.equippedIn?.some((s) => s.startsWith('grip:'));
         if (ok) delete inst!.equippedIn;
         break;
       case 'swap': {
         if (!inst || inst.equippedIn?.length) break;
-        const held = actor.core.inventory.filter((i) => i.equippedIn?.some((s) => s.startsWith('hand:')));
+        const held = actor.core.inventory.filter((i) => i.equippedIn?.some((s) => s.startsWith('grip:')));
         const before = held.map((i) => [i, i.equippedIn] as const);
         held.forEach((i) => { if (itemDef(state, i.itemId).kind === 'weapon') delete i.equippedIn; });
         ok = draw(state, actor, inst);
@@ -72,14 +85,14 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         if (ok) res.summoned.push(op.item);
         break;
       case 'pick_up': {
-        const src = op.from ? actorById(state, op.from) : undefined;
-        const list = op.from
-          ? src && src.zone === actor.zone && !isActive(src) ? src.core.inventory : undefined
-          : zoneById(state, actor.zone)?.groundItems;
+        // FR2: within grip reach of where it lies (BG-85), on a downed actor or on the ground
+        const at = pickUpAt(state, op);
+        const list = !at || !withinGrip(state, actor, at) ? undefined : op.from ? actorById(state, op.from)!.core.inventory : zoneById(state, at.zone)?.groundItems;
         const i = list?.findIndex((x) => x.id === op.item) ?? -1;
         if (list && i >= 0) {
           const [it] = list.splice(i, 1);
           delete it.equippedIn;
+          delete it.at;
           actor.core.inventory.push(it);
           res.picked.push({ itemId: it.id, from: op.from });
           ok = true;
@@ -92,26 +105,27 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
   return res;
 }
 
-/** remove an instance from an actor's inventory onto a zone's ground. */
-export function dropToGround(state: GameState, actor: Actor, instId: string, zoneId: string): boolean {
+/** remove an instance from an actor's inventory onto a zone's ground, lying at `at` (default: where the actor stands) */
+export function dropToGround(state: GameState, actor: Actor, instId: string, zoneId: string, at: Pos | undefined = actor.zone === zoneId ? actor.pos : undefined): boolean {
   const i = actor.core.inventory.findIndex((x) => x.id === instId);
   const zone = zoneById(state, zoneId);
   if (i < 0 || !zone) return false;
   const [it] = actor.core.inventory.splice(i, 1);
   delete it.equippedIn;
+  if (at) it.at = { ...at };
   zone.groundItems.push(it);
   return true;
 }
 
 /**
- * give (main action): to another active actor in the same zone. qty gives part of a stack (null: all of it);
+ * give (main action): to another active actor within reach. qty gives part of a stack (null: all of it);
  * a stackable joins the receiver's own stack. Returns the receiver's instance id and the amount given, or null.
  */
 export function giveItem(state: GameState, actor: Actor, instId: string | null | undefined, targetId: string | null, qty?: number | null): { id: string; qty: number } | null {
   const to = targetId ? actorById(state, targetId) : undefined;
   const i = actor.core.inventory.findIndex((x) => x.id === instId);
-  // BG-80: handed over in the same zone or across a counter, fence or rail (see and reach across it)
-  if (!to || to === actor || !isActive(to) || (to.zone !== actor.zone && !reachesAcross(state, actor.zone, to.zone)) || i < 0) return null;
+  // FR2 (BG-85): handed over within both their grip reaches, in metres (across a counter too: the straight line over it)
+  if (!to || to === actor || !isActive(to) || !withinGrip(state, actor, to, gripReachM(state, to)) || i < 0) return null;
   const it = actor.core.inventory[i];
   const have = it.qty ?? 1;
   const stackable = itemDef(state, it.itemId).stackable;

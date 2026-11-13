@@ -19,7 +19,7 @@ it('91 Free gear ops', () => {
   expect(mine.filter((e) => MAIN.has(e.kind))).toHaveLength(1);
   expect(mine.find((e) => MAIN.has(e.kind))!.kind).toBe('attack');
   const inv = Object.fromEntries(s.player.core.inventory.map((i) => [i.id, i.equippedIn]));
-  expect(inv.dg2?.[0]).toMatch(/^hand:/);
+  expect(inv.dg2?.[0]).toMatch(/^grip:/);
   expect(inv.dg).toBeUndefined();
   expect(inv.player_arming_sword_1).toBeUndefined();
   // equip on armor is the main action

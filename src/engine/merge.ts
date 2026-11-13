@@ -11,20 +11,18 @@ import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
 import { distM, gateAhead, spotPoint, walkLeg, type Located } from './position';
 
-/** BG-80: what an action needs of the actor's distance to its target. One table for every actor, player or NPC:
- * - voice: the target must hear it clearly (words, an order called out: BG-74, BG-78);
- * - hand: the target must be within hand reach: the same zone, or across a counter, fence or rail (edge kind "Low"). */
-const NEEDS: Record<string, 'voice' | 'hand'> = {
-  ...Object.fromEntries(SPEECH_ACTIONS.map((t) => [t, 'voice' as const])), buy: 'voice', sell: 'voice', give: 'hand',
+/** FR4: the one approach table: what each action needs of the actor's distance to its target, for every actor, player
+ * or NPC. voice: the target hears it clearly (words, an order called out: BG-74, BG-78); approachMove plans the step up
+ * before the turn, since the words are said first (BG-58). grip: within grip reach in metres (the body's grip parts;
+ * both sides' when handing over: FR2); weapon: within the attack's reach (ZP3). Grip and weapon needs close in on the
+ * move slot when the action comes (resolve.ts closeIn), so a target that moved meanwhile is still walked at. */
+export type Need = 'voice' | 'grip' | 'weapon';
+export const NEEDS: Record<string, Need> = {
+  ...Object.fromEntries(SPEECH_ACTIONS.map((t) => [t, 'voice' as const])), buy: 'voice', sell: 'voice',
+  give: 'grip', pick: 'grip', interact: 'grip', attack: 'weapon',
 };
 
-/** does `actor` already stand near enough `t` for an action that needs `need` */
-function nearEnough(state: GameState, actor: Actor, t: Actor, need: 'voice' | 'hand', noise: NoiseKey): boolean {
-  if (need === 'hand') return t.zone === actor.zone || reachesAcross(state, actor.zone, t.zone);
-  return hearsClearly(state, actor, t, noise);
-}
-
-/** BG-80: the move an actor makes for an action at someone (one rule for talking, trading and handing over):
+/** BG-80: the move an actor makes for an action at someone (one rule for talking, trading and handing over, by NEEDS):
  * - no move given and the target is in view but not near enough: step up to them first (BG-74);
  * - going over to someone ends beside them, in the actor's own zone or theirs, or on the actor's side of a counter, fence or
  *   rail unless they go behind it (move.behind) (BG-62, BG-87);
@@ -34,10 +32,10 @@ export function approachMove(state: GameState, actor: Actor, act: { type: string
   const need = NEEDS[act.type];
   if (!need || !act.target) return m;
   const t = actorById(state, act.target), here = actor.zone;
-  if (!t || t.id === actor.id) return m;
+  if (!t || t.id === actor.id || need === 'weapon') return m; // a foe is closed in on when the blow comes (resolve.ts closeIn)
   const noise: NoiseKey = TRADE_KINDS.includes(act.type) ? CONFIG.ORDER_NOISE : VOLUME_NOISE[act.volume ?? 'normal'];
   const inView = t.zone === here || !!zoneById(state, here)?.links.some((l) => l.to === t.zone && seesAcross(state, l));
-  if (!m && !act.way && inView && !nearEnough(state, actor, t, need, noise)) m = { toZone: t.zone };
+  if (!m && !act.way && need === 'voice' && inView && !hearsClearly(state, actor, t, noise)) m = { toZone: t.zone };
   if (!m || m.after || m.jump || act.way) return m;
   if (t.zone === here) {
     if (m.toZone === here) return m.spot ? m : { ...m, toZone: here, spot: { near: t.id } };

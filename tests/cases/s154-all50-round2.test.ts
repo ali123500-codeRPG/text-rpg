@@ -29,7 +29,7 @@ describe('154 All-50 parts round 2', () => {
       const s = makeVillage();
       place(s, 'patron_1', s.player.zone);
       for (const i of s.player.core.inventory) delete i.equippedIn;
-      s.player.core.inventory.push({ id: 'w', itemId: item, equippedIn: ['hand:right_arm'] });
+      s.player.core.inventory.push({ id: 'w', itemId: item, equippedIn: ['grip:right_arm'] });
       fit(s.player, item);
       if (perk) give(s.player, PK.junk_arsenal);
       return ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'w', targetPart: null, aimed: false }, s, forcedRng([90, 6, 80, 50])).damage;

@@ -43,6 +43,13 @@ export function partStates(state: GameState, actor: Actor): { id: string; state:
   return actorBody(state, actor).parts.map((p) => ({ id: p.id, state: poolState(partPct(actor, p.id)) }));
 }
 
+/** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres, from its body
+ * type); 0 with none, as an amorphous body */
+export function gripReachM(state: GameState, actor: Actor): number {
+  const parts = new Set(usableGrips(state, actor));
+  return Math.max(0, ...actorBody(state, actor).parts.filter((p) => parts.has(p.id)).map((p) => p.reachM ?? 0));
+}
+
 /** Grip parts that can still use a hand (Healthy or Damaged). */
 export function usableGrips(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts
@@ -94,7 +101,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
       }
     } else if (uses.includes(role)) {
       if (role === RL.grip) {
-        const hands = inst?.equippedIn?.filter((h) => h.startsWith('hand:')).map((h) => h.slice(5)) ?? [];
+        const hands = inst?.equippedIn?.filter((h) => h.startsWith('grip:')).map((h) => h.slice(5)) ?? [];
         const pens = (hands.length ? hands : parts.map((p) => p.id)).map((id) => pen(id));
         v = hands.length ? Math.min(...pens) : Math.max(...pens);
       } else if (role === RL.strike && ctx.itemId?.startsWith('natural:')) {

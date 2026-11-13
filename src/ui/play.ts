@@ -109,7 +109,7 @@ function apart(names: string[]): string[] {
 export function ideas(pv: PlayerView): { group: string; items: { text: string; note?: string }[] }[] {
   const people = pv.actors.filter((a) => a.level === 'full' && !(a.health && isDownLevel(a.health)));
   const names = apart(people.map((a) => a.name ?? a.label));
-  const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('hand:')) && i.kind === 'weapon');
+  const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('grip:')) && i.kind === 'weapon');
   const stowed = pv.player.inventory.filter((i) => !i.equippedIn.length && i.kind === 'weapon');
   const [heldN, stowedN, groundN] = [apart(held.map((i) => i.name)), apart(stowed.map((i) => i.name)), apart(pv.zone.groundItems.map((i) => i.name))];
   const the = (n: string) => (n.startsWith('the other ') ? n : `the ${n}`);

@@ -33,8 +33,8 @@ const besidePlayer = (s: GameState, id: string, m: number) => {
   return a;
 };
 const hold = (a: Actor, itemId: string, id: string) => {
-  for (const i of a.core.inventory) if (i.equippedIn?.some((h) => h.startsWith('hand:'))) delete i.equippedIn;
-  a.core.inventory.push({ id, itemId, name: id, equippedIn: ['hand:right_arm'] } as never);
+  for (const i of a.core.inventory) if (i.equippedIn?.some((h) => h.startsWith('grip:'))) delete i.equippedIn;
+  a.core.inventory.push({ id, itemId, name: id, equippedIn: ['grip:right_arm'] } as never);
   fit(a, itemId);
 };
 afterEach(() => vi.restoreAllMocks());
@@ -66,7 +66,7 @@ describe('213 zones are not distances', () => {
       const s = mapped();
       besidePlayer(s, 'patron_1', m);
       for (const i of s.player.core.inventory) delete i.equippedIn;
-      s.player.core.inventory.push({ id: 'bottle', itemId: IT.improvised_light, name: 'bottle', equippedIn: ['hand:right_arm'] } as never);
+      s.player.core.inventory.push({ id: 'bottle', itemId: IT.improvised_light, name: 'bottle', equippedIn: ['grip:right_arm'] } as never);
       give(s.player, PK.one_two);
       const calls: string[] = [];
       const real = ruleset.attack;

@@ -10,14 +10,14 @@ describe('83 Cover', () => {
     place(s, 'player', 'field_edge');
     zoneById(s, 'field_mid')!.cover = 'heavy';
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50]));
     expect(r.gapShifts).toEqual([{ source: 'cover', value: 2 }]);
     expect(r.gap).toBe(tierLevel(r.defense!) - tierLevel(r.attack) + 2);
     // a melee attack takes no cover
     place(s, 'player', 'field_mid');
     s.player.core.inventory = s.player.core.inventory.filter((i) => i.id !== 'bow');
-    s.player.core.inventory[0].equippedIn = ['hand:right_arm'];
+    s.player.core.inventory[0].equippedIn = ['grip:right_arm'];
     const m = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([100, 50, 50]));
     expect(m.gapShifts).toEqual([]);
   });

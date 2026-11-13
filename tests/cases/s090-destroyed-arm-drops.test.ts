@@ -22,7 +22,7 @@ it('90 Destroyed arm drops', () => {
   g.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] };
   g.core.condition.parts.right_arm = 1; // one more hit there destroys it
   const sword = `guard_1_${IT.arming_sword}_1`;
-  expect(g.core.inventory.find((i) => i.id === sword)!.equippedIn).toEqual(['hand:right_arm']);
+  expect(g.core.inventory.find((i) => i.id === sword)!.equippedIn).toEqual(['grip:right_arm']);
   // force the blow onto the sword arm; damage still goes through the real applyEffects
   vi.spyOn(ruleset, 'attack').mockImplementationOnce((req: AttackRequest): AttackResult => ({
     attack: roll(req.attackerId, SK.melee_medium, 'critical_success'), defense: roll(req.targetId, SK.block, 'failure'), defenseType: 'block',

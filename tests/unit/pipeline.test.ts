@@ -265,7 +265,7 @@ describe('errors and commands', () => {
       const inv = s.player.core.inventory;
       const coin = inv.find((i) => i.id === 'player_coin')!;
       coin.qty = 15;
-      const sword = inv.find((i) => i.equippedIn?.some((x) => x.startsWith('hand:')))!;
+      const sword = inv.find((i) => i.equippedIn?.some((x) => x.startsWith('grip:')))!;
       sword.equippedIn = [];
       inv.push({ id: 'found_1', itemId: 'odd_stone', qty: 1 });
       s.stage.scenarioNumber = 3;

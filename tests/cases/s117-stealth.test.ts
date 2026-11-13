@@ -68,7 +68,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     s.player.posture = 'stealthy';
     rig({ slime_1: -1 });
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
@@ -119,7 +119,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     s.player.posture = 'stealthy';
     const calls = rig();
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));

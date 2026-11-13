@@ -288,8 +288,9 @@ export const BODY_TYPES: Record<string, BodyType> = {
       { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, hands: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
-      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
-      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
+      // FR2: an adult's arm reaches about 0.7 m from the shoulder to the fingertips (NASA-STD-3000 anthropometry), as fists do
+      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
+      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
       { id: 'left_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'right_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
@@ -323,7 +324,9 @@ export const BODY_TYPES: Record<string, BodyType> = {
     speed: { walk: 1.8, run: 12 }, // a horse on the ground: walk about 1.8 m/s, gallop about 12 m/s (flight not modelled)
     naturalAttacks: [],
     parts: [
-      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech] },
+      // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does; a horse's head and neck reach about
+      // 1.5 m forward of its chest
+      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], reachM: 1.5 },
       { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move] },

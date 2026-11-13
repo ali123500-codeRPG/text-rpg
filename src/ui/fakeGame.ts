@@ -167,7 +167,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     fakeBarriers(state);
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
-      { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['hand:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
+      { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scenario: 1 },

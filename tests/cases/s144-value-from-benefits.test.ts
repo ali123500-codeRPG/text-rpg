@@ -28,7 +28,7 @@ it('144b the basket-hilted sword: +5 Parry beyond its requirement adds to its va
   const s = makeVillage();
   s.player.core.skills[SK.parry] = { raw: 30, marked: false } as never;
   const before = effectiveSkill(s, s.player, SK.parry).value;
-  s.player.core.inventory.push({ id: 'bh', itemId: IT.basket_hilt_sword, equippedIn: ['hand:right'] } as never);
+  s.player.core.inventory.push({ id: 'bh', itemId: IT.basket_hilt_sword, equippedIn: ['grip:right'] } as never);
   expect(effectiveSkill(s, s.player, SK.parry).value).toBeGreaterThan(before);
 });
 

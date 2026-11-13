@@ -98,7 +98,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
   const def = standing(s, p);
   const atk = attackOf(s, p);
   const gear = p.core.inventory.filter((i) => i.equippedIn?.length).map((i) =>
-    h('span', {}, h('a', { href: '#inv', class: 'cs-item', title: 'Open in Inventory for its full stats', onclick: () => { invFocus.id = i.id; } }, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${i.equippedIn!.some((x) => x.startsWith('hand:')) ? 'held' : 'worn'}`));
+    h('span', {}, h('a', { href: '#inv', class: 'cs-item', title: 'Open in Inventory for its full stats', onclick: () => { invFocus.id = i.id; } }, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${i.equippedIn!.some((x) => x.startsWith('grip:')) ? 'held' : 'worn'}`));
   return h('div', { class: 'cs-card' },
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In the ${place}` : ''].filter(Boolean).join(' · ')))), // AG16
@@ -333,7 +333,7 @@ export function gearNote(s: GameState, i: Actor['core']['inventory'][number]): {
 
 /** the gear lines on the play sheet: each held or worn item by name, with its gearNote (M-35) */
 function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
-  const on = p.core.inventory.filter((i) => i.equippedIn?.length && i.equippedIn.some((x) => x.startsWith('hand:')) === held);
+  const on = p.core.inventory.filter((i) => i.equippedIn?.length && i.equippedIn.some((x) => x.startsWith('grip:')) === held);
   return on.map((i, k) => {
     const n = gearNote(s, i);
     return h('span', { class: 'cs-gi', 'data-gear': i.id }, k ? ' · ' : '', cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId),
@@ -345,7 +345,7 @@ function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
 export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
   const on = p.core.inventory.filter((i) => i.equippedIn?.length);
   const name = (i: Actor['core']['inventory'][number]) => safe(() => itemDef(s, i.itemId).name) ?? i.itemId;
-  return { held: on.filter((i) => i.equippedIn!.some((x) => x.startsWith('hand:'))).map(name), worn: on.filter((i) => !i.equippedIn!.some((x) => x.startsWith('hand:'))).map(name) };
+  return { held: on.filter((i) => i.equippedIn!.some((x) => x.startsWith('grip:'))).map(name), worn: on.filter((i) => !i.equippedIn!.some((x) => x.startsWith('grip:'))).map(name) };
 }
 
 /** Layout A: the narrow status strip beside the story (health word and bar, damaged parts, what is held); a click opens the full sheet */

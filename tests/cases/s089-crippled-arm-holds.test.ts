@@ -14,7 +14,7 @@ describe('89 Crippled arm holds', () => {
     const shield = s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!;
     const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: `natural:${AM.slam}`, targetPart: null, aimed: false }, s, forcedRng([80, 50, 80]));
     expect(r.defenseType).toBe('dodge');
-    expect(shield.equippedIn).toEqual(['hand:left_arm']);
+    expect(shield.equippedIn).toEqual(['grip:left_arm']);
     expect(hitTable(s, s.player)).toEqual(table);
   });
 });
