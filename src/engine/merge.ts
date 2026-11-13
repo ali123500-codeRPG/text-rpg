@@ -72,8 +72,9 @@ export function speakingSpot(state: GameState, intent: Intent): Located {
   let left = slotMetres(state, p, 'move');
   for (let legs = 0; legs < 100 && left > 0.01; legs++) {
     if (goal.pos ? withinM(distM(state, at, goal), stop) : at.zone === goal.zone) break;
+    const zone = at.zone;
     const r = walkLeg(state, at, goal, left, stop, p, !!gateAhead(state, { ...p, ...at }, goal.zone));
-    if (!r) break;
+    if (r === null || (!r && at.zone === zone)) break; // BG-170: a 0 m doorway crossing goes on
     left -= r;
   }
   return at;

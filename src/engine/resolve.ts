@@ -386,9 +386,11 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
       left = slotMetres(state, a, paid);
       fresh = true;
     }
+    const zone = a.zone;
     const r = doMove(ctx, a, goal, o, !!opts.bark && legs === 0, left, fresh, opts.stopShort ?? 0, opts.toward, opts.spot);
     if (r === null) return false;
     if (r === 'spent') return true;
+    if (r === 0 && a.zone !== zone) continue; // BG-170: a 0 m doorway crossing walked nothing, so the walk goes on with what is left
     if (r === 0) { if (fresh) return true; left = 0; continue; }
     left -= r;
     noteWalked(state, a, r); // NW11: what this turn's own moves already walked
@@ -1000,6 +1002,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     }
     case 'use_item':
       if (doHealItem(ctx, a, o)) return;
+      // BG-171: using an item one does not carry (or none named) comes to nothing, and says why
+      if (!a.core.inventory.some((i) => i.id === o.item || i.itemId === o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'no_item' }), o));
       return doGeneric(ctx, a, o);
     default:
       if (isSpeech(o.type)) return doSpeak(ctx, a, o);
