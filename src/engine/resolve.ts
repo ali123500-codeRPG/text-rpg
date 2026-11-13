@@ -48,7 +48,7 @@ import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
-import { answerYield, playerYields, yieldBars } from './yield';
+import { answerYield, perceivesNow, playerYields, yieldBars } from './yield';
 import { minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
@@ -325,10 +325,14 @@ function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhea
  * stop-short and words. The one rule for every walk an order makes: the player's, an NPC's in turn, a spokesperson's in the
  * exchange. */
 function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: { stopShort?: number; toward?: string; spot?: string } } {
-  const sp = o.move && o.moveSpot ? spotPoint(state, o.move, o.moveSpot, a) : null;
-  if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: a.id, to: o.move, spot: o.moveSpot });
+  // BG-131: a walk beside someone goes where they are when it runs: someone the walker still perceives, who moved off
+  // since the order was made, takes the walk to their zone now
+  const who = o.moveSpot?.near && !o.moveSpot.lastSeen ? actorById(state, o.moveSpot.near) : undefined;
+  const zone = who && who !== a && who.zone !== o.move && perceivesNow(state, a, who, 'faint') ? who.zone : o.move;
+  const sp = zone && o.moveSpot ? spotPoint(state, zone, o.moveSpot, a) : null;
+  if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: a.id, to: zone, spot: o.moveSpot });
   return {
-    goal: sp ? { zone: o.move!, pos: sp.pos } : { zone: o.move! },
+    goal: sp ? { zone: zone!, pos: sp.pos } : { zone: zone! },
     opts: sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {},
   };
 }
