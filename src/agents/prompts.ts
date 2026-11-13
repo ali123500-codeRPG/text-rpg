@@ -26,7 +26,8 @@ const LINE_RULE = (n: number) => `\n${n}. Your line holds only the words you say
 const PUSH_RULE = (n: number) => `\n${n}. To press the player to do or believe something, speak with type persuade (win them round), deceive (a lie
    you need them to believe), intimidate (a threat) or barter (haggle over a price) instead of talk, with target the
    player and your words in the line. The player answers it with a roll. Use it only when you truly press them; everyday
-   talk stays talk, except a lie: any line you know is false, however casually said, is deceive, so it can be caught.`;
+   talk stays talk, except a lie: any line you know is false, however casually said, is deceive, so it can be caught.
+   A lie may be aimed at anyone you speak to (target them): they answer it with a roll the same way.`;
 const FOLLOW_RULE = (n: number) => `\n${n}. To come along with the player, when you agree to, switch your routine to "follow": from then on you walk after
    them every turn, beside whatever else you do, until you switch back to one of your own routines. Going somewhere with the
    player is follow, never headTo to where they are going: they may stop or turn on the way. Make the deal too, so

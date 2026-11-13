@@ -564,20 +564,21 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const line = o.line?.text?.trim() ? o.line : undefined;
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, ...(line ? { line } : {}), noise: VOLUME_NOISE[line?.volume ?? 'normal'] });
   if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? SK.persuasion, addressees: o.addressees ?? [] };
-  // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers
+  // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers.
+  // NL1/NL2: a lie at another NPC rolls the same way (D-155: other speech at NPCs stays banked)
   const p = state.player;
   // NM3: a false name for itself is a lie, even if the agent called it talk, so it can be caught (backstop to PUSH_RULE)
   const type = o.type === 'talk' && falseName(a, line?.text) ? 'deceive' : o.type;
-  const push = a.kind === 'npc' && PUSH_TYPES.includes(type) && o.target === p.id && isActive(p);
+  const to = o.target ? actorById(state, o.target) : undefined;
+  const push = a.kind === 'npc' && !!to && to !== a && isActive(to) && (to === p ? PUSH_TYPES.includes(type) : type === 'deceive');
   if (push) {
     ev.perception = computePerception(ev, state, ctx.rng);
-    const heard = ev.perception[p.id];
-    if (hearsWords(heard)) {
-      const contest = pushContest(state, a, type, ctx.rng);
+    if (hearsWords(ev.perception[to.id])) {
+      const contest = pushContest(state, a, type, ctx.rng, to);
       ev.contest = contest;
-      ev.push = { type, listener: p.id, landed: contest.winner === 'a', ...applySpeech(a, p, type, contest),
-        ...(atLeast(beliefStatus(state, a, p), 'aware') ? { seen: true as const } : {}) }; // NT10: the speaker sees how it was taken
-      if (ev.push.status === 'shaken') fear(ctx, p, FR.lost_intimidation, { gap: contest.gap }); // MB15/MB28
+      ev.push = { type, listener: to.id, landed: contest.winner === 'a', ...applySpeech(a, to, type, contest),
+        ...(atLeast(beliefStatus(state, a, to), 'aware') ? { seen: true as const } : {}) }; // NT10: the speaker sees how it was taken
+      if (ev.push.status === 'shaken') fear(ctx, to, FR.lost_intimidation, { gap: contest.gap }); // MB15/MB28
     }
   }
   // Voice shares: only facts from its knows list

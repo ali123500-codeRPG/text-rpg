@@ -250,14 +250,13 @@ export function answerRoll(state: GameState, listener: Actor, skill: string, spe
   return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
 }
 
-/** OQ-29: an NPC's speech roll at the player; the player answers (answerSkill; the speaker is side a) */
-export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng): ContestResult {
+/** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */
+export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng, listener: Actor = state.player): ContestResult {
   const skill = SPEECH_SKILL[type] ?? SK.persuasion;
-  const p = state.player;
-  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: repeatTryMods(speaker, [p.id], type), tierShifts: [], against: p.id }, state, rng), answerRoll(state, p, answerSkill(type), speaker.id, rng));
-  countTry(speaker, p.id, type);
+  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: repeatTryMods(speaker, [listener.id], type), tierShifts: [], against: listener.id }, state, rng), answerRoll(state, listener, answerSkill(type), speaker.id, rng));
+  countTry(speaker, listener.id, type);
   contestFeat(state, contest);
-  markUse(state, p, contest.b.skill, contest);
+  markUse(state, listener, contest.b.skill, contest);
   return contest;
 }
 
