@@ -24,6 +24,8 @@ export interface Character {
   signatures?: string[];
   /** a unique template may pin its archetype instead of the nearest one */
   archetype?: string;
+  /** which scenes to test: a folder under scenes/ and, optionally, only these scene files (no .json); default scenes/<key>/ */
+  scenes?: { dir: string; only?: string[] };
 }
 
 const target = (a: (typeof ARCHETYPES)[number], axis: Axis) => a.target[axis] ?? 0;

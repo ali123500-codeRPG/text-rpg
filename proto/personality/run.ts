@@ -1,7 +1,7 @@
 // Personality line prototype runner.
 //   explain            print each character's computed line and how it was chosen
 //   check              fail if a character's archetype, buts, tensions or nerve word moved
-//   build <out dir>    write one Responder prompt per scene and mode (auto, full) for blind voice-test runs
+//   build <out dir> [character keys]   write one Responder prompt per scene and mode (auto, full) for blind voice-test runs
 // Run: npx esbuild proto/personality/run.ts --bundle --platform=node --format=esm --outfile=dist/proto-personality.mjs && node dist/proto-personality.mjs explain
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -53,9 +53,12 @@ if (cmd === 'explain') {
   const rules = responderRules().trimEnd();
   const block = (k: string, v: unknown) => `${k}:\n${typeof v === 'string' ? v : JSON.stringify(v)}`;
   let n = 0;
-  for (const c of CHARACTERS) {
-    for (const file of readdirSync(join(sceneDir, c.key)).filter((f) => f.endsWith('.json')).sort()) {
-      const s = JSON.parse(readFileSync(join(sceneDir, c.key, file), 'utf8'));
+  const keys = args.slice(1);
+  for (const c of CHARACTERS.filter((ch) => !keys.length || keys.includes(ch.key))) {
+    const dir = c.scenes?.dir ?? c.key;
+    const files = readdirSync(join(sceneDir, dir)).filter((f) => f.endsWith('.json') && (!c.scenes?.only || c.scenes.only.includes(f.replace('.json', '')))).sort();
+    for (const file of files) {
+      const s = JSON.parse(readFileSync(join(sceneDir, dir, file), 'utf8'));
       for (const mode of ['auto', 'full']) {
         const input = [block('CHARACTER', characterBlock(c, mode === 'full')), block('OPPOSITION_VIEW', s.view),
           block('DIALOGUE_INPUT', s.dialogue), block('COMMITTED', 'none'), block('SLIPS', 'none')].join('\n\n');

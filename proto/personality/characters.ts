@@ -42,6 +42,43 @@ export const CHARACTERS: Character[] = [
       'Ran away from a noble house as a boy: hates stiff manners and anyone who lectures him about duty.',
     ],
   },
+  {
+    key: 'lilia_e1', name: 'Mira', title: 'once of the Palace Guard', role: 'the household maid, a woman in her twenties who walks with a slight limp',
+    bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
+    nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
+    axes: { honesty: 20, pride: -20, temper: -20, sociability: -50, discipline: 70, curiosity: -40 },
+    drives: ['duty', 'courtesy'], scenes: { dir: 'lilia', only: ['l1_strange_baby', 'l2_drink', 'l3_gossip'] },
+    signatures: [
+      'Served as a palace guard until an assassin\'s poisoned blade lamed her leg; now keeps house with the same soldier\'s discipline.',
+      'Finds the baby of the house uncanny: he never cries and watches grown-ups too knowingly. She keeps her distance, and says so only with care.',
+      'Speaks to the family formally, as a servant should, even when they invite familiarity.',
+    ],
+  },
+  {
+    key: 'lilia_e4', name: 'Mira', title: 'once of the Palace Guard', role: 'the household maid, a woman in her twenties who walks with a slight limp',
+    bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
+    nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
+    axes: { honesty: 40, pride: -50, temper: -40, sociability: -40, discipline: 50, curiosity: 0 },
+    drives: ['family', 'gratitude'], scenes: { dir: 'lilia', only: ['l4_dismissed', 'l5_saved', 'l6_sneer'] },
+    signatures: [
+      'Carrying her master\'s child: she will not blame him or beg, and would rather leave quietly than break the household.',
+      'Whoever saves her and her child earns her lifelong devotion; she repays it with service.',
+    ],
+  },
+  {
+    key: 'lilia', name: 'Mira', title: 'once of the Palace Guard', role: 'the household maid, a woman in her twenties who walks with a slight limp',
+    bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
+    nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
+    axes: { honesty: 40, pride: -50, temper: -40, sociability: -50, discipline: 70, curiosity: -40 },
+    drives: ['duty', 'gratitude', 'family', 'courtesy'], scenes: { dir: 'lilia' },
+    signatures: [
+      'Served as a palace guard until an assassin\'s poisoned blade lamed her leg; now keeps house with the same soldier\'s discipline.',
+      'Finds the baby of the house uncanny: he never cries and watches grown-ups too knowingly. She keeps her distance, and says so only with care.',
+      'Speaks to the family formally, as a servant should, even when they invite familiarity.',
+      'Carrying her master\'s child: she will not blame him or beg, and would rather leave quietly than break the household.',
+      'Whoever saves her and her child earns her lifelong devotion; she repays it with service.',
+    ],
+  },
 ];
 
 /** what the prototype must compute for each character (self-check) */
@@ -49,4 +86,7 @@ export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensi
   kishirika: { archetype: 'childish', buts: ['pride', 'honesty'], tensions: ['unshakeable_scatterbrained', 'bold_unbacked'], nerve: 'Death-defying+' },
   rudeus: { archetype: 'mature', buts: ['curiosity', 'honesty'], tensions: ['old_head', 'wary_dangerous'], nerve: 'Timid' },
   paul: { archetype: 'free_spirit', buts: ['honesty', 'pride'], tensions: ['home_temptation', 'talent_undisciplined'], nerve: 'Bold' },
+  lilia_e1: { archetype: 'mature', buts: ['sociability', 'curiosity'], tensions: [], nerve: 'Steady' },
+  lilia_e4: { archetype: 'mature', buts: ['pride', 'sociability'], tensions: [], nerve: 'Steady' },
+  lilia: { archetype: 'mature', buts: ['pride', 'sociability', 'curiosity'], tensions: [], nerve: 'Steady' },
 };

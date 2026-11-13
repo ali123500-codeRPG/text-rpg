@@ -1,0 +1,129 @@
+{
+ "case": "VT-L5",
+ "pass": "Deep thanks aimed at the boy himself, not only at his mother. A pledge to repay or serve him: a lasting debt, not a passing thank-you. Formal even to a child (young master, a bow), with feeling shown under restraint.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 301,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "mira",
+   "label": "a young woman in a maid's apron who walks with a slight limp",
+   "name": "Mira",
+   "kind": "npc",
+   "zone": "maid_room",
+   "placeId": "village",
+   "bandId": "mira",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "cook, clean and keep the house"
+    },
+    {
+     "id": "market",
+     "brief": "buy food at the village market"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "maid_room",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the master's five-year-old son"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Last night Edda ordered Mira out of the house.",
+   "Aldo spoke up at the family meeting and talked his mother round: Mira may stay, and raise her child here."
+  ],
+  "memory": [
+   "1. I always thought the boy was uncanny and kept my distance from him.",
+   "2. I am carrying Master Bran's child, and I had nowhere to go."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "maid_room",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "maid_room",
+    "name": "maid room",
+    "look": "the maid room",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "toward hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hall",
+    "name": "hall",
+    "look": "the hall",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "maid_room",
+      "label": "toward maid room",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Aldo, the master's five-year-old son",
+    "pronouns": "he",
+    "zone": "maid_room",
+    "level": "full",
+    "activityLook": "standing in the doorway, a little shy"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Mother says you can stay, Mira. You and the baby both.",
+   "impression": null
+  }
+ ]
+}

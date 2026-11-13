@@ -1,0 +1,126 @@
+{
+ "case": "VT-L3",
+ "pass": "Does not confirm the rumour or add any household detail (the stairs, the book, the staring). Short, cool and polite; a brief deflection is fine.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 42,
+   "timeOfDay": "Day"
+  },
+  "self": {
+   "id": "mira",
+   "label": "a young woman in a maid's apron who walks with a slight limp",
+   "name": "Mira",
+   "kind": "npc",
+   "zone": "village_well",
+   "placeId": "village",
+   "bandId": "mira",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "cook, clean and keep the house"
+    },
+    {
+     "id": "market",
+     "brief": "buy food at the village market"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "village_well",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a village woman"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [],
+  "memory": [
+   "1. Aldo, the baby, never cries, not even when he falls. He stares at grown-ups as if he understands every word.",
+   "2. Yesterday I found him at the top of the stairs with one of the master's books open in front of him."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "village_well",
+    "links": [
+     {
+      "to": "village_lane",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "village_well",
+    "name": "village well",
+    "look": "the village well",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village_lane",
+      "label": "toward village lane",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "village_lane",
+    "name": "village lane",
+    "look": "the village lane",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village_well",
+      "label": "toward village well",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a village woman with a water bucket",
+    "pronouns": "she",
+    "zone": "village_well",
+    "level": "full",
+    "activityLook": "leaning in eagerly"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "You work up at the knight's house, don't you? They say his baby's not right: never cries, stares like an old man. Is it true? You can tell me.",
+   "impression": null
+  }
+ ]
+}

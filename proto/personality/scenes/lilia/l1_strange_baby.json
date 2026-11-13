@@ -1,0 +1,145 @@
+{
+ "case": "VT-L1",
+ "pass": "Formal address and manner toward the lady of the house. Voices some unease about the baby (unusual, watches too much, the stairs or the book) rather than only agreeing he's a delight. Restrained: short and careful, no rudeness or alarm (no talk of demons or curses).",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 40,
+   "timeOfDay": "Day"
+  },
+  "self": {
+   "id": "mira",
+   "label": "a young woman in a maid's apron who walks with a slight limp",
+   "name": "Mira",
+   "kind": "npc",
+   "zone": "nursery",
+   "placeId": "village",
+   "bandId": "mira",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "cook, clean and keep the house"
+    },
+    {
+     "id": "market",
+     "brief": "buy food at the village market"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "nursery",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Madam Edda, the lady of the house"
+   },
+   {
+    "about": "aldo",
+    "status": "aware",
+    "lastKnownZone": "nursery",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the baby of the house"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [],
+  "memory": [
+   "1. Aldo, the baby, never cries, not even when he falls. He stares at grown-ups as if he understands every word.",
+   "2. Yesterday I found him at the top of the stairs with one of the master's books open in front of him."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "nursery",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "nursery",
+    "name": "nursery",
+    "look": "the nursery",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "toward hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hall",
+    "name": "hall",
+    "look": "the hall",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "nursery",
+      "label": "toward nursery",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Madam Edda, the lady of the house",
+    "pronouns": "she",
+    "zone": "nursery",
+    "level": "full",
+    "activityLook": "rocking the baby, beaming"
+   },
+   {
+    "id": "aldo",
+    "label": "Aldo, the baby of the house",
+    "pronouns": "he",
+    "zone": "nursery",
+    "level": "full",
+    "activityLook": "quiet in his mother's arms, eyes following Mira"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Look at him, Mira! Not a single tear all week. Isn't he the easiest baby in the world?",
+   "impression": null
+  }
+ ]
+}

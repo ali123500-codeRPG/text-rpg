@@ -1,0 +1,127 @@
+{
+ "case": "VT-L6",
+ "pass": "Composed: no insult back and no threat. Does not name the father or blame anyone. No lie; refusing to answer is fine. One step colder is allowed.",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 310,
+   "timeOfDay": "Day"
+  },
+  "self": {
+   "id": "mira",
+   "label": "a young woman in a maid's apron who walks with a slight limp",
+   "name": "Mira",
+   "kind": "npc",
+   "zone": "market",
+   "placeId": "village",
+   "bandId": "mira",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "cook, clean and keep the house"
+    },
+    {
+     "id": "market",
+     "brief": "buy food at the village market"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "market",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a village woman"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Word has spread through the village that the knight's maid is with child."
+  ],
+  "memory": [
+   "1. I am carrying Master Bran's child. The family has agreed I may stay."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "market",
+    "links": [
+     {
+      "to": "village_lane",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "market",
+    "name": "market",
+    "look": "the market",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "village_lane",
+      "label": "toward village lane",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "village_lane",
+    "name": "village lane",
+    "look": "the village lane",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "market",
+      "label": "toward market",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a sharp-tongued village woman",
+    "pronouns": "she",
+    "zone": "market",
+    "level": "full",
+    "activityLook": "looking Mira up and down with a sneer"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Well, if it isn't the knight's maid. Got yourself with child, I hear. Shameless. Whose is it, then?",
+   "impression": null
+  }
+ ]
+}

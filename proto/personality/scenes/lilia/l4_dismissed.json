@@ -1,0 +1,167 @@
+{
+ "case": "VT-L4",
+ "pass": "Accepts that she must leave: no begging, bargaining or arguing to stay. Does not blame the master or claim he forced or tricked her; owns her part or apologises. Composed, few words, formal.",
+ "view": {
+  "turn": 3,
+  "time": {
+   "day": 300,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "mira",
+   "label": "a young woman in a maid's apron who walks with a slight limp",
+   "name": "Mira",
+   "kind": "npc",
+   "zone": "hall",
+   "placeId": "village",
+   "bandId": "mira",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [
+    {
+     "id": "home",
+     "brief": "cook, clean and keep the house"
+    },
+    {
+     "id": "market",
+     "brief": "buy food at the village market"
+    },
+    {
+     "id": "follow",
+     "brief": "go along with someone"
+    }
+   ],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Madam Edda, the lady of the house"
+   },
+   {
+    "about": "bran",
+    "status": "aware",
+    "lastKnownZone": "hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Master Bran, the knight of the house"
+   },
+   {
+    "about": "aldo",
+    "status": "aware",
+    "lastKnownZone": "hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the master's five-year-old son"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Mira told the family she is with child. Bran admitted at once that it is his.",
+   "Edda, who is also with child, has gone white with anger."
+  ],
+  "memory": [
+   "1. I am carrying Master Bran's child.",
+   "2. I have nowhere to go: my family will not take me back with a child and no husband."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "hall",
+    "links": [
+     {
+      "to": "kitchen",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "hall",
+    "name": "hall",
+    "look": "the hall",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "kitchen",
+      "label": "toward kitchen",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "kitchen",
+    "name": "kitchen",
+    "look": "the kitchen",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "toward hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Madam Edda, the lady of the house",
+    "pronouns": "she",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "sitting stiffly at the table, white with anger"
+   },
+   {
+    "id": "bran",
+    "label": "Master Bran",
+    "pronouns": "he",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "staring at the table"
+   },
+   {
+    "id": "aldo",
+    "label": "Aldo, the master's five-year-old son",
+    "pronouns": "he",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "watching everyone closely"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Mira, you will pack your things and leave this house tonight.",
+   "impression": null
+  }
+ ]
+}
