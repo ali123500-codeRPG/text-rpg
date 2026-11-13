@@ -26,10 +26,10 @@ describe('161 class floors from unlock conditions', () => {
     makeVillage();
     const t = getLibrary().templates[TP.guard];
     expect(t.classId).toBe(CL.guard);
-    expect(templateMinimums(t)).toEqual(t.minimums); // parry 30 meets the defense group
-    const weak = { ...t, minimums: { ...t.minimums, [SK.parry]: 10, [SK.dodge]: 20 } };
+    expect(templateMinimums(t)).toEqual(t.minimums); // block 30 meets the defense group
+    const weak = { ...t, minimums: { ...t.minimums, [SK.block]: 10, [SK.dodge]: 20 } };
     expect(templateMinimums(weak)[SK.dodge]).toBe(30);
-    expect(templateMinimums(weak)[SK.parry]).toBe(10);
+    expect(templateMinimums(weak)[SK.block]).toBe(10);
   });
   it('the recommended Swordsman build still passes', () => {
     makeVillage();

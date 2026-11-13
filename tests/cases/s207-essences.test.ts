@@ -36,9 +36,9 @@ describe('207 essences', () => {
     expect(qualityRoll(dice(96), 60)).toEqual({ grade: 'rare', past: 0 }); // a natural high lifts Great to Critical
   });
 
-  it('a notable foe beaten offers once, ever, an essence of its race; points come from its skills', () => {
+  it('a notable foe beaten offers once, ever, an essence from its template list (EN4); points come from its skills', () => {
     const s = makeVillage(), foe = slime(s);
-    foe.core.skills[SK.endurance] = { raw: 60, state: 'normal' };
+    foe.core.skills[SK.unarmed_natural] = { raw: 60, state: 'normal' }; // EN5: Gel Patience is Natural Weapons 2 + Tremor 1
     foe.core.skills[SK.tremor] = { raw: 30, state: 'normal' };
     foe.core.generation = 'rolled'; // notable whatever its power
     offersFromDefeats(s, [foe], dice(1, 100)); // appears on 1, quality 100
@@ -48,7 +48,7 @@ describe('207 essences', () => {
     // source skill = (60 × 2 + 30 × tremor tier × 1) ÷ 3, × 0.07 × 2.5, split 2 : 1
     const total = Object.values(o.points).reduce((n, v) => n + v, 0);
     expect(total).toBeGreaterThan(0);
-    expect(o.points[SK.endurance]).toBeGreaterThanOrEqual(o.points[SK.tremor] ?? 0);
+    expect(o.points[SK.unarmed_natural]).toBeGreaterThanOrEqual(o.points[SK.tremor] ?? 0);
     offersFromDefeats(s, [foe], dice(100));
     expect(offers(s)).toHaveLength(1);
   });

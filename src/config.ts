@@ -451,6 +451,9 @@ const DEFAULTS = {
   ESSENCE_GRADE_PAST_MULT: 1.5,
   /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or rolled */
   ESSENCE_NOTABLE_SHARE: 0.75,
+  /** EN1 a: an essence row is on a template's list when the template's weighted average in the row's skills (raw × tier) is
+   * at least this share of its best skill [placeholder] */
+  ESSENCE_FIT_SHARE: 0.4,
   /** an essence's appearance roll: one appears when d100 ≤ this % (by source: foe, or the ending's tier). Placeholders, set
    * with ESSENCE_ROLL_NEEDED so essences come about as often as when one roll did both (about 31% from a notable foe or a
    * Great Success ending, 50% from a Critical Success one) */

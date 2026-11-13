@@ -49,7 +49,8 @@ export type TreeDef = { id: string; name: string; skills: string[]; access?: Tre
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 export type EssenceDef = {
   id: string; name: string;
-  from: { race?: string; bodyType?: string; deed?: true };
+  /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list */
+  from: { race?: string; bodyType?: string; deed?: true; echo?: true };
   weight: number;
   skills: { skill: string; weight: number }[];
   trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); none written yet (D-228 content round)

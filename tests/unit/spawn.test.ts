@@ -53,7 +53,7 @@ describe('unique generation', () => {
     const a = rollUniqueSkills(bandit, createRng(5));
     expect(rollUniqueSkills(bandit, createRng(5))).toEqual(a);
     expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + bandit.level * CONFIG.POINTS_PER_LEVEL + bandit.bonusPoints);
-    expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.parry, SK.melee_medium, SK.eyesight].sort());
+    expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium, SK.eyesight].sort());
     const seeds = new Set([1, 2, 3, 4, 5, 6].map((n) => JSON.stringify(rollUniqueSkills(bandit, createRng(n)))));
     expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
   });
