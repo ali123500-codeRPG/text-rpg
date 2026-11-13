@@ -6,6 +6,7 @@
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { compassOf, doorway, edgeToward } from '../scenario/geometry';
+import { furnitureById, furniturePos } from './furniture';
 import { heightOf } from '../scenario/heights';
 import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
 import { barrierOn, handsPass, passage, type Passage } from './barriers';
@@ -272,6 +273,8 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
       return at && j?.lastKnown?.[who.id] === z.id ? { at, label: 'the spot where you last saw them' } : null;
     }
     if (who) { const s = spotOf(state, who); return s.pos ? { at: s.pos, actor: who.id, label: who.label, here: s.zone === z.id } : null; }
+    const f = furnitureById(state, z.id, ref); // FR1: a piece of furniture here
+    if (f) { const at = furniturePos(state, z.id, f); return at ? { at, label: `the ${f.name}` } : null; }
     const at = wayPoint(state, z.id, ref, from);
     return at ? { at, label: z.links.find((l) => l.to === ref)!.label } : null;
   };

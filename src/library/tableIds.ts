@@ -32,6 +32,12 @@ export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', g
 export const EK = { wall: 'EK1', open: 'EK2', low: 'EK3', window: 'EK4' } as const;
 /** SD3–SD5 barrier kinds: what stands on a way (door, gate, grate, hatch, rubble); a new kind is a new row */
 export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5' } as const;
+/** FR1 furniture kinds: what a named piece of furniture is (its map icon follows the kind); a new kind is a new row */
+export const FU = {
+  counter: 'FU1', hearth: 'FU2', table: 'FU3', bench: 'FU4', bed: 'FU5', barrels: 'FU6', shelves: 'FU7', crates: 'FU8', sacks: 'FU9',
+  anvil: 'FU10', forge: 'FU11', rack: 'FU12', brazier: 'FU13', woodpile: 'FU14', water_barrel: 'FU15', stool: 'FU16', chair: 'FU17',
+  cupboard: 'FU18', well: 'FU19', cart: 'FU20', fence: 'FU21', rail: 'FU22', altar: 'FU23', other: 'FU24',
+} as const;
 export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10', road: 'ZK11' } as const;
 export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',

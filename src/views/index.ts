@@ -25,6 +25,7 @@ import { knownDestinations } from '../engine/trail';
 import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
 import { contentsOf, wornPack } from '../engine/containers';
+import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
@@ -85,7 +86,13 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
     groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name, ...containerOf(state, i, viewer) })), // SE8
+    ...furnitureView(state, z.id),
   };
+}
+/** FR1/FR5: what furniture stands in a zone and where */
+function furnitureView(state: GameState, zoneId: string): { furniture?: ZoneView['furniture'] } {
+  const fs = furnitureIn(state, zoneId);
+  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f) })) } : {};
 }
 /** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
 /** BG-181: what someone's wounds were last treated with, by item name, until their next wound */
@@ -843,8 +850,9 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       personality: { nerve: Object.keys(NERVE_LINES), types: Object.values(lib.personalityTypes ?? {}).map((t) => ({ id: t.id, name: t.name, hint: t.hint })), values: Object.values(lib.values ?? {}).map((v) => ({ id: v.id, name: v.name })) },
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
       edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
+      furnitureKinds: Object.values(lib.furnitureKinds ?? {}).map((k) => ({ ...k })),
       barrierKinds: Object.values(lib.barrierKinds ?? {}).map((k) => ({ ...k })),
-      layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name })) })),
+      layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name, ...(z.furniture?.length ? { furniture: z.furniture.map((f) => f.name) } : {}) })) })),
     },
     grades: [...GRADES],
   };

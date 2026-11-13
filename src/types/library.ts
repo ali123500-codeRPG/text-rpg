@@ -148,6 +148,7 @@ export type Library = {
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
   edgeKinds?: Record<string, EdgeKind>; // CO15
+  furnitureKinds?: Record<string, FurnitureKind>; // FR1
   barrierKinds?: Record<string, BarrierKind>; // SD3–SD5: what can stand on a way
   zoneSizes?: Record<string, ZoneSize>; // CO16
   roadLengths?: Record<string, RoadLength>; // TV3
@@ -165,6 +166,8 @@ export type ZoneKind = {
   id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light;
   /** CO16 default size, and CO15 the edge kind every side gets unless the Weaver names another */
   size: import('../scales').ZoneSizeKey; edge: string;
+  /** FR2: furniture every zone of this kind gets unless a layout or the Weaver gives its own */
+  furniture?: PlanFurniture[];
   /** long side ÷ short side of the zone's rectangle (1 = square) */
   aspect: number;
   /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
@@ -176,9 +179,12 @@ export type ZoneKind = {
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
 export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
+/** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
+export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean };
+export type FurnitureKind = { id: string; name: string };
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;
-  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][] }[];
+  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][]; furniture?: PlanFurniture[] }[];
 };
 /** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
 export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };

@@ -149,6 +149,8 @@ export type StagePlan = {
     key: string; name: string; kind: string; parent: string;
     /** CO17 a prebuilt layout id: code adds its zones as `${key}.${zoneKey}`; names/looks rename them by the layout's zone keys */
     layout?: string; names?: Record<string, string>; looks?: Record<string, string>;
+    /** FR2: a layout zone's furniture, by the layout's zone key: the whole list, replacing the layout's */
+    furniture?: Record<string, import('./library').PlanFurniture[]>;
   }[];
   zones: {
     key: string; place: string; kind: string; name: string; look: string;
@@ -160,6 +162,7 @@ export type StagePlan = {
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
+    furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
     links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];
   }[];
   frontiers: { key: string; label: string }[];

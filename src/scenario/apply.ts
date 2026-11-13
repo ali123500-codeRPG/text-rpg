@@ -23,6 +23,7 @@ import { startSpar } from '../engine/spar';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
 import { wornPack } from '../engine/containers';
+import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
 import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
@@ -240,6 +241,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const road = k.road ? roadShape(z.length, z.danger) : {};
     const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), kind: z.kind, name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}),
       area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), ...(k.aspect > 1 ? { aspect: k.aspect } : {}), ...road, groundItems: [] };
+    const furn = z.furniture ?? k.furniture; // FR2
+    if (furn?.length) zone.furniture = makeFurniture(zone.id, furn);
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);
