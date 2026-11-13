@@ -1101,6 +1101,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .walking-now .hs-note { margin: 0; flex: 1 1 auto; }
 .walking-now .dg-pick { margin-left: auto; }
 .inbar .walking-now button { min-height: 28px; }
+.walking-now.lost { border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+.walking-now.lost .wk-i { color: var(--warn); }
+.inbar .walking-now button.wk-keep-following { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 .inbar .walking-now button.wk-keep-walking { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 .map-heading { margin: 0; font-size: 13px; color: var(--muted); } .map-heading b { color: var(--accent); }
 .rrow.acts .dg-left { color: var(--c9); font-variant-numeric: tabular-nums; }
