@@ -207,6 +207,10 @@ const DEFAULTS = {
   NERVE_BEYOND_STEP: 50,
   /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
   PERSONALITY_LEAN: 20,
+  /** the Ideas panel: a held value pulls toward its ideas by this many points, as a trait would */
+  IDEA_VALUE_PULL: 50,
+  /** the Ideas panel: an idea the character is pulled away from by this many points or more says "against your nature" */
+  IDEA_AGAINST_NATURE: 50,
   /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
   TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
   /** archetype gap: the six axes and Nerve count 1 each, the drive fit counts this many times */
