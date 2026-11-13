@@ -182,6 +182,8 @@ export type Mind = {
   routine?: RoutineRun;
   /** NW2: on head_to, the routine it goes back to once it gets there */
   headBack?: RoutineRun;
+  /** BF4: on head_to, who it leads there; at the end it waits for them (since: the turn it got there) */
+  leading?: { id: string; since?: number };
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;

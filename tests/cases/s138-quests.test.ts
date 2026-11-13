@@ -79,6 +79,8 @@ describe('138 quests', () => {
     const xp = s.player.progression!.xp;
     const want = questXp(s, q);
     talk(s, {}, 'The slimes are gone.');
+    expect(q.state).toBe('ready'); // BF6: she didn't see it, so it is hers to judge
+    talk(s, { questEnd: { id: q.id, outcome: 'done' } }, 'The slimes are gone, I swear it.');
     expect(q.state).toBe('done');
     expect(s.player.progression!.xpLog?.some((x) => x.source === `quest:${q.id}` && x.amount === want)).toBe(true);
     expect(s.player.progression!.xp).not.toBe(xp);
@@ -161,9 +163,9 @@ describe('138 quests', () => {
     talk(s, { questEnd: { id: s.quests[2].id, outcome: 'done' } }, 'I found your cat.');
     expect(s.quests[2].state).toBe('done');
     talk(s, offer(SLIMES));
-    talk(s, { questEnd: { id: s.quests[3].id, outcome: 'done' } }, 'Done.'); // a typed goal is code's to judge
+    talk(s, { questEnd: { id: s.quests[3].id, outcome: 'done' } }, 'Done.'); // BF6: she may believe a false report; the goal is code's
     expect(s.quests[3].state).toBe('active');
-    expect(codes(s, 'invalid_quest_end')).toHaveLength(1);
+    expect(codes(s, 'quest_report_believed')).toHaveLength(1);
   });
 
   it('QT24: a follow-up from the giver in the same talk links to the job just handed in; pins are one at a time', () => {

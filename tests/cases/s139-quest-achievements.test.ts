@@ -8,7 +8,7 @@ import { CONFIG } from '../../src/config';
 import type { GameState, Quest } from '../../src/types';
 
 const quest = (s: GameState, n: number, state: Quest['state']): Quest => {
-  const q: Quest = { id: `q${n}`, state, text: 'a job', giver: 'trader', dealId: `d${n}`, goal: { kind: 'other' }, progress: 0, level: 'i' as Quest['level'], startTurn: 0 };
+  const q: Quest = { id: `q${n}`, state, text: 'a job', giver: 'trader', dealId: `d${n}`, goal: { kind: 'other' }, progress: 0, level: 'i' as Quest['level'], startTurn: 0, giverSaw: true };
   s.quests.push(q);
   return q;
 };

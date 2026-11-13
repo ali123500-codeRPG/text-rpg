@@ -108,6 +108,7 @@ export type PlannerOutput = {
   yields?: boolean; // SP5: gives up the spar it is in
   acceptYield?: boolean; // MB41: takes (true) or refuses the player's yield (self.playerYielded)
   headTo?: string | null; // NW2: where it is going, further than one move: a zone or frontier id; code walks it there
+  lead?: string | null; // BF4: who it takes along on that walk; it waits there for them
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {
@@ -124,6 +125,7 @@ export type VoiceOutput = {
   yields?: boolean;
   acceptYield?: boolean;
   headTo?: string | null; // NW2
+  lead?: string | null; // BF4
 };
 
 // ---- Agent Narrator ----

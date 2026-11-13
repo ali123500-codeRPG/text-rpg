@@ -66,6 +66,9 @@ export type Quest = {
   giver: string; dealId: string; goal: QuestGoal; progress: number;
   /** defeat goals: summed power of the counted foes, each taken when it fell (QX2/QX4) */
   foePower?: number;
+  /** BF6: the giver perceived the goal being met (it saw the kill, the hand-over, the player get there); else it learns
+   * only by believing the player's report (its agent's questEnd done) */
+  giverSaw?: boolean;
   level: QuestRewardLevel; // QT9/QT28: from the scenario's gain grade when accepted
   startTurn: number; endTurn?: number;
   startAt?: number; // game clock minutes when it was given (set with `due`: the 'quests_early' achievement)

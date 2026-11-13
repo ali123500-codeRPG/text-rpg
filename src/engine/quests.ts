@@ -163,15 +163,18 @@ export function pinQuest(state: GameState, id: string): void {
  * report-back, or given up by the player in words the giver heard */
 export function agentQuestEnd(state: GameState, a: Actor, e: QuestEnd, heardPlayer: boolean, playerHeard: boolean): void {
   const q = state.quests.find((x) => x.id === e.id && x.giver === a.id && isOpen(x));
-  const ok = q && (e.outcome === 'called_off' ? playerHeard : heardPlayer && (e.outcome === 'abandoned' || q.goal.kind === 'other'));
+  // BF6: a giver may judge any job done on the player's report; code ends it only if the goal is really met
+  const ok = q && (e.outcome === 'called_off' ? playerHeard : heardPlayer && (e.outcome === 'abandoned' || q.goal.kind === 'other' || q.state === 'ready'));
+  if (q && !ok && e.outcome === 'done' && heardPlayer) { logCode(state, 'quest_report_believed', { actorId: a.id, id: q.id }); return; }
   if (!ok) { logCode(state, 'invalid_quest_end', { actorId: a.id, ...e }); return; }
   if (e.outcome === 'abandoned') abandonQuest(state, q.id);
   else endQuest(state, q, e.outcome, 'giver');
 }
 
-/** QT8: a job whose goal is met is done when the player talks to the giver in person */
+/** QT8: a job whose goal is met is done when the player talks to the giver in person, if the giver saw it met (BF6: a
+ * giver who did not see it judges the player's report through its agent's questEnd) */
 export function handInQuests(state: GameState, talkedTo: (id: string) => boolean): void {
-  for (const q of state.quests) if (q.state === 'ready' && talkedTo(q.giver)) endQuest(state, q, 'done', 'hand_in');
+  for (const q of state.quests) if (q.state === 'ready' && q.giverSaw && talkedTo(q.giver)) endQuest(state, q, 'done', 'hand_in');
 }
 
 // ---- goal checks, shared by quest goals and scenario endings (SC7: one rule for the same thing) ----
@@ -216,6 +219,9 @@ export function updateQuests(state: GameState, events: GameEvent[], defeated: Ac
     if (g.kind === 'other' || q.progress < need(g)) continue;
     q.progress = need(g);
     q.state = 'ready';
+    // BF6: did the giver perceive the deed that met it: the counted foes' last fall, the hand-over, the player there
+    const foes = new Set(defeated.map((x) => x.id));
+    q.giverSaw = events.some((e) => !!e.perception[q.giver] && (g.kind === 'defeat' ? foes.has(e.actorId) || (!!e.target && foes.has(e.target)) : e.actorId === p.id));
     logCode(state, 'quest_ready', { id: q.id });
     if (g.kind === 'deliver' && g.to === q.giver) endQuest(state, q, 'done', 'delivered'); // QT8: handing it to the giver finishes it
   }

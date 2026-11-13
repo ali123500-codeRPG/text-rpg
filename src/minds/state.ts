@@ -56,7 +56,7 @@ export function switchRoutine(state: GameState, actor: Actor, routineId: string,
 /** NW2: an agent sends its NPC somewhere further than one move (a zone or a frontier on the stage): it switches to the
  * shared head_to routine, walks there by code on later turns with no more calls, then goes back to the routine it had.
  * A second headTo on the way changes only where it is going. Returns false (logged) for a place not on the stage. */
-export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent' | 'weaver' | 'yield' = 'agent'): boolean {
+export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent' | 'weaver' | 'yield' = 'agent', lead?: string): boolean {
   const mind = actor.mind;
   const onStage = state.stage.zoneIds.includes(dest) || state.zones.some((z) => state.stage.zoneIds.includes(z.id) && z.links.some((l) => l.frontier && l.to === dest));
   if (!mind || !onStage) {
@@ -64,6 +64,8 @@ export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent'
     return false;
   }
   if (dest === actor.zone) return true;
+  if (lead && actorById(state, lead)) mind.leading = { id: lead }; // BF4
+  else delete mind.leading;
   if (mind.routine?.id !== HEAD_TO) {
     if (mind.routine) mind.headBack = { ...mind.routine };
     else delete mind.headBack;
@@ -82,6 +84,9 @@ export function headArrivals(state: GameState): void {
     if (m?.routine?.id !== HEAD_TO) continue;
     const dest = m.slots?.dest;
     if ((Array.isArray(dest) ? dest[0] : dest) !== a.zone) continue;
+    // BF4: leading someone, it waits there until they come or LEAD_WAIT_TURNS pass
+    if (m.leading && actorById(state, m.leading.id)?.zone !== a.zone && state.turn - (m.leading.since ??= state.turn) < CONFIG.LEAD_WAIT_TURNS) continue;
+    delete m.leading;
     if (m.headBack) m.routine = m.headBack;
     else delete m.routine;
     delete m.headBack;

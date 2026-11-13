@@ -172,7 +172,7 @@ export type Order = {
   for?: string | null; // buy: who gets it (null: the buyer)
   mode?: string | null;
   gear?: GearOp[] | null;
-  line?: { text: string; volume: import('./agents').Volume } | null; // talk: speech; else a bark
+  line?: { text: string; volume: import('./agents').Volume; to?: string } | null; // talk: speech; else a bark; to (BG-132): a reply's listener
   activity?: string; // routine idle/move activity
   addressees?: string[];
   triggerId?: string;
