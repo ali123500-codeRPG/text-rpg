@@ -70,6 +70,9 @@ export function visPass(group: string, picks: Record<string, VisState>): boolean
 // ---------- Grouped table ----------
 export type Col = { key: string; title: string; right?: boolean };
 /** tones: a per-cell colour (bad = red, muted = grey), e.g. the inventory's Needs column (EQ7) */
+/** an order another page drafts for the Play box (Take out on the Inventory): Play puts it in the box once and clears it; nothing is sent */
+export const playDraft: { text: string | null } = { text: null };
+
 export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted'> };
 export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: Record<string, 'bad' | 'muted'> };
 

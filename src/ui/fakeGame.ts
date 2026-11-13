@@ -201,6 +201,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
+    // a sack carried in the pack, with a dagger, a bandage and a smaller sack inside it, to show containers on the Inventory (CT1)
+    player.core.inventory.push({ id: 'player_sack', itemId: IT.sack, qty: 1, contents: [{ id: 'sack_dagger', itemId: IT.dagger, qty: 1 }, { id: 'sack_bandage', itemId: IT.bandage, qty: 1 },
+      { id: 'sack_inner', itemId: IT.sack, qty: 1, contents: [{ id: 'inner_draught', itemId: IT.healing_draught, qty: 1 }] }] });
     // Varo's Loop worn and bound, one power awake (its first deed earned), to show a Threadbound item's sealed powers
     player.core.inventory.push({ id: 'player_loop', itemId: IT.varos_loop, qty: 1, equippedIn: ['acc:0'], boundTo: player.id });
     if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
