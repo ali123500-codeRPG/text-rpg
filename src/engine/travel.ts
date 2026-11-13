@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { FN } from '../library/functionIds';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
 import { moveSpeed } from './speed';
-import { walkLeg, spotOf, distM, frontierPoint, spotPoint, type Located, type Pos } from './position';
+import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, type Located, type Pos } from './position';
 export { frontierPoint };
 import { together } from './yield';
 import { minutesUntil, now, timeOfDay } from '../time';
@@ -70,7 +70,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
   const group = [a, ...companions(state, a)];
   const fromZone = a.zone;
   const pressOn = darkOut(now(state)); // TV5: setting off in the dark presses on; a trip that reaches dusk stops to ask
-  const there = () => (goal.pos ? distM(state, a, goal) <= 0.01 : a.zone === goal.zone);
+  const there = () => (goal.pos ? withinM(distM(state, a, goal), 0) : a.zone === goal.zone);
   const trip: Trip = { metres: 0, minutes: 0, legs: 0, pace: o.pace ?? 'normal', night: false, stop: 'arrived', companions: group.slice(1).map((x) => x.id), fromZone };
   let last: Pos | undefined;
   while (!there() && trip.legs < CONFIG.TRAVEL_MAX_LEGS) {

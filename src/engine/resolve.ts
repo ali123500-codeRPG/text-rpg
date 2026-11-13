@@ -16,7 +16,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, type Located } from './position';
+import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -349,7 +349,7 @@ function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 
 
 function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string }): boolean {
   const { state } = ctx;
-  const there = () => (goal.pos ? distM(state, a, goal) <= (opts.stopShort ?? 0) + 0.01 : a.zone === goal.zone);
+  const there = () => (goal.pos ? withinM(distM(state, a, goal), opts.stopShort ?? 0) : a.zone === goal.zone);
   let left = 0, fresh = false;
   for (let n = 0, legs = 0; !there() && legs < 100; legs++) {
     if (left <= 0.01) {
@@ -431,10 +431,10 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const dist = sightDistM(state, a, t);
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
   // a named skill picks the mode that uses it ("I grab him" names unarmed_grapple, not the sword in hand)
-  const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && x.mode.reach >= dist) : undefined;
+  const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && withinM(dist, x.mode.reach)) : undefined;
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (metres, with sight); else a wasted action
-  if (!m || dist > m.mode.reach) return wasted('out_of_reach');
+  if (!m || !withinM(dist, m.mode.reach)) return wasted('out_of_reach');
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
   const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, PK.in_and_out); // A23 In and Out: only the target sees you
   const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
@@ -498,7 +498,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
     && isActive(t) && freeHand(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
-    if (fist && sightDistM(state, a, t) <= fist.mode.reach) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
+    if (fist && withinM(sightDistM(state, a, t), fist.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
   parryStrike(ctx, a, t, res);
@@ -513,7 +513,7 @@ function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   const modes = usableModes(state, t);
   const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
     : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
-  if (!back || sightDistM(state, t, a) > back.mode.reach) return; // the blow back reaches only as far as its weapon (metres)
+  if (!back || !withinM(sightDistM(state, t, a), back.mode.reach)) return; // the blow back reaches only as far as its weapon (metres)
   ctx.parryStrikes.add(t.id);
   doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: 'parry strike' }, true);
 }
@@ -571,7 +571,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   if (ranged && met(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {
     const mode = usableModes(state, a).find((x) => x.itemId === itemId && x.mode.tree === 'ranged');
     const foes = allActors(state).filter((x) => x !== a && isActive(x) && foe(state, x, a) && atLeast(beliefStatus(state, a, x), 'aware')
-      && sightDistM(state, a, x) <= (mode?.mode.reach ?? -1));
+      && withinM(sightDistM(state, a, x), mode?.mode.reach ?? -1));
     if (mode && foes.length) {
       useThisEngagement(a, PK.volley);
       const pick = foes[rng.int(0, foes.length - 1)];
@@ -1009,7 +1009,7 @@ function attackMode(state: GameState, a: Actor, o: Order, from: Located = a) {
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
   return { m: named ?? defaultMode(state, a, dist), dist };
 }
-const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && dist <= m.mode.reach; };
+const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && withinM(dist, m.mode.reach); };
 /** FR4 (the NEEDS table): where this turn's action is done and whether the actor is near enough: a foe within the attack's
  * reach (melee), someone to hand to within both grip reaches, the doorway of a way worked, picked or tried within grip
  * reach; with none, the first item to pick up out of reach. null: nothing to close in on. */
@@ -1057,7 +1057,7 @@ function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<ty
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);
   const next = o.move ? shortestPath(state, a.zone, o.move)?.[0] : undefined;
-  const m = here.m && here.dist <= here.m.mode.reach ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
+  const m = here.m && withinM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
   return m?.mode.tree === 'ranged';
 };
 /** AE2: a Crippled or Destroyed part with the move role stops a dash, and so does Leg Bolt's slow (A6) */

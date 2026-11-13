@@ -9,7 +9,7 @@ import { CONFIG } from '../config';
 import { COVER, HIT_OUTCOMES, TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
-import { sightDistM } from '../engine/position';
+import { sightDistM, withinM } from '../engine/position';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
@@ -242,7 +242,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     const far = rangeMod(dist, mode.reach);
     if (far) am.push({ source: 'range', type: 'situational', value: far });
     // RD5: a hostile within HOSTILE_NEAR_M, close enough to strike or grab; either way: the player holds no stances of its own
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && sightDistM(state, A, o) <= CONFIG.HOSTILE_NEAR_M);
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && withinM(sightDistM(state, A, o), CONFIG.HOSTILE_NEAR_M));
     if (crowded && CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)

@@ -13,7 +13,7 @@ import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { FR } from '../library/tableIds';
 import { allActors, atLeast, isActive, shortestPath, stance, wary } from './relations';
-import { distM } from './position';
+import { distM, withinM } from './position';
 import { besidePlayer } from './engagement';
 import { perceptionOf } from '../perception';
 import type { GameEvent } from '../types';
@@ -30,7 +30,7 @@ const key = (aura: AuraDef, owner: Actor) => `${aura.perk}:${owner.id}`;
 function inReach(state: GameState, owner: Actor, t: Actor): boolean {
   if (t === owner || !isActive(t) || !wary(state, t, owner)) return false;
   if (!atLeast(t.mind?.knowledge?.[owner.id]?.status, 'aware')) return false;
-  return distM(state, owner, t) <= CONFIG.AURA_REACH_M;
+  return withinM(distM(state, owner, t), CONFIG.AURA_REACH_M);
 }
 
 export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };
