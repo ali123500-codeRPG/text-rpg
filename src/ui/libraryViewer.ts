@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { NpcTemplate, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName, tierUnlockLine } from '../ruleset/achRewards';
@@ -25,6 +25,7 @@ import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../ty
 import { QUEST_STATE_NAME } from '../engine/quests';
 import { partFearCost } from '../ruleset/morale';
 import { nerveLine } from '../ruleset/personality';
+import { templateEssences } from '../engine/essence';
 import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
@@ -125,9 +126,13 @@ const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !
 function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   return Object.entries(table).map(([id, e]) => {
     const title = String(e.name ?? e.label ?? e.brief ?? e.look ?? label(id));
-    return card(sec, id, e, title, [], ...fields(e, ['id', 'name']));
+    if (sec !== 'templates') return card(sec, id, e, title, [], ...fields(e, ['id', 'name']));
+    return card(sec, id, e, title, [], ...fields(e, ['id', 'name', 'essences']), row('Essences', essenceList(e as unknown as NpcTemplate)));
   });
 }
+/** EN7 a: a template's essences with their fit (templateEssences, as the game reads them); a hand-set list has no fit */
+const fitText = (fit?: number) => (fit === undefined ? 'set by hand' : `fit ${Math.round(fit * 100)}%`);
+const essenceList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.flatMap((x, i) => [i ? ', ' : '', link('essences', x.row.id, x.row.name), ` (${fitText(x.fit)})`])) : none('none')))(templateEssences(t));
 
 // ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
@@ -940,6 +945,8 @@ function essencesView(): HTMLElement[] {
       row('Trait', e.trait ? link('perks', e.trait, lib.perks[e.trait]?.name ?? e.trait) : none('none yet: essence traits are not written')),
       e.quirk ? row('Quirk', link('perks', e.quirk, lib.perks[e.quirk]?.name ?? e.quirk)) : null,
       row('Comes from', fromText(e)),
+      e.from.deed ? null : row('NPC templates', ((ts) => (ts.length ? h('span', {}, ...ts.flatMap(([t, fit], i) => [i ? ', ' : '', link('templates', t.id, t.label ?? t.id), ` (${fitText(fit)})`])) : none('none carry it')))(
+        Object.values(lib.templates).flatMap((t): [NpcTemplate, number | undefined][] => templateEssences(t).filter((x) => x.row.id === e.id).map((x) => [t, x.fit])))),
       e.from.deed ? null : ((n) => row('Picked', n === 1 ? `always: the only essence of that ${e.from.race ? 'race' : 'body type'}` : `by weight ${e.weight} among the ${n} essences of that ${e.from.race ? 'race' : 'body type'}`))((e.from.race ? all.filter((x) => x.from.race === e.from.race) : all.filter((x) => x.from.bodyType === e.from.bodyType)).length)))),
   ];
 }
