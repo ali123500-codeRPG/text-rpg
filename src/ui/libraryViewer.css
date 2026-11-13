@@ -229,7 +229,6 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 /* Rail groups: Library, Rules and World each carry a colour; the group's label is a tinted band in it, so the breaks stand out at first glance */
 .hs-rail [data-group="library"] { --grp: var(--c9); }
 .hs-rail [data-group="rules"] { --grp: var(--c15); }
-.hs-rail [data-group="world"] { --grp: var(--c2); }
 .lv-railgroup[data-group] { margin: var(--space-2) 0 var(--space-1); padding: var(--space-2) 0; color: var(--grp); font-weight: 700;
   background: color-mix(in srgb, var(--grp) 16%, transparent); border-top: 2px solid var(--grp); }
 .hs-brand + .lv-railgroup[data-group] { margin-top: var(--space-1); border-top: 2px solid var(--grp); }
@@ -262,3 +261,6 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .lv-tb-at { font-size: 13px; font-weight: 400; color: var(--muted); }
 .lv-tb-effect { margin: 0; font-size: 14px; line-height: 1.5; }
 .lv-tb-unlock .hs-tg { margin-left: var(--space-2); }
+.hs-rail [data-group="places"] { --grp: var(--c2); }
+.hs-rail [data-group="people"] { --grp: var(--c4); }
+.hs-rail [data-group="more"] { --grp: var(--c3); }

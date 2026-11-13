@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName, tierUnlockLine } from '../ruleset/achRewards';
@@ -19,7 +19,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { ESSENCE_GRADES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -909,10 +909,34 @@ function threadboundView(): HTMLElement[] {
   ];
 }
 
+/** Essences (growth proposal 2): what each one gives and where it comes from, read from the engine's own rules and numbers */
+function essencesView(): HTMLElement[] {
+  const C = CONFIG;
+  const grades = ESSENCE_GRADES.keys.map((g) => `${ESSENCE_GRADES.name(g)} ×${C.ESSENCE_GRADE_MULT[g] ?? 1}`).join(', ');
+  const fromText = (e: EssenceDef): Node | string => e.from.deed
+    ? 'A deed: a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences. It is built on the skill you used most in that scenario.'
+    : h('span', {}, 'Beating a notable ', e.from.race ? link('races', e.from.race, lib.races?.[e.from.race]?.name ?? e.from.race) : e.from.bodyType ? link('bodyTypes', e.from.bodyType, lib.bodyTypes[e.from.bodyType]?.name ?? e.from.bodyType) : '?',
+      ` foe: one whose power is at least ${Math.round(C.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or unique NPC. Each such foe rolls once, ever. A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.`);
+  const split = (e: EssenceDef) => { const w = e.skills.reduce((n, x) => n + x.weight, 0) || 1;
+    return e.skills.length ? e.skills.map((x) => `${skillName(x.skill)} ${Math.round((x.weight / w) * 100)}%`).join(', ') : 'the skill you used most in the scenario, all of it'; };
+  const all = Object.values(lib.essences ?? {});
+  return [
+    h('p', { class: 'hs-note' }, `An essence is a package of true skill points (and later a trait) you can take into a slot. You have ${C.ESSENCE_SLOTS_BASE} slot, plus one every ${C.ESSENCE_SLOT_EVERY} character levels. When one is offered, an offer roll (d100 + base − ${C.ESSENCE_ROLL_NEEDED} on the tier table) sets its grade: Success gives Common, Great Success Fine, Critical Success Rare and so on; Near Miss or worse gives nothing. The base is ${C.ESSENCE_ROLL_BASE.foe} for a beaten foe and a Great Success scenario, ${C.ESSENCE_ROLL_BASE.critical_success} for a Critical Success one. Points = ${C.ESSENCE_SHARE} × the source's skill × the grade (${grades}; each grade past the last ×${C.ESSENCE_GRADE_PAST_MULT}), at least 1, split over the essence's skills by their shares. An offer waits ${C.ESSENCE_OFFER_TURNS} turns. Letting a held essence go (only at rest) costs ${C.ESSENCE_REMOVE_LEVELS} level's worth of XP.`),
+    h('div', { class: 'lv-grid' }, all.map((e) => card('essences', e.id, e, e.name, [chip(e.from.deed ? 'deed' : 'foe')],
+      h('p', { class: 'lv-story' }, e.story),
+      row('Gives', h('span', {}, 'True skill: ', split(e))),
+      row('Trait', e.trait ? link('perks', e.trait, lib.perks[e.trait]?.name ?? e.trait) : none('none yet: essence traits are not written')),
+      e.quirk ? row('Quirk', link('perks', e.quirk, lib.perks[e.quirk]?.name ?? e.quirk)) : null,
+      row('Comes from', fromText(e)),
+      e.from.deed ? null : ((n) => row('Picked', n === 1 ? `always: the only essence of that ${e.from.race ? 'race' : 'body type'}` : `by weight ${e.weight} among the ${n} essences of that ${e.from.race ? 'race' : 'body type'}`))((e.from.race ? all.filter((x) => x.from.race === e.from.race) : all.filter((x) => x.from.bodyType === e.from.bodyType)).length)))),
+  ];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
   { key: 'gearClasses', title: 'Gear classes', table: 'gearClasses', view: gearClasses },
+  { key: 'essences', title: 'Essences', table: 'essences', view: essencesView },
   { key: 'threadbound', title: 'Threadbound', table: 'items', view: threadboundView, count: Object.values(lib.items).filter((i) => i.threadbound).length },
   { key: 'perks', title: 'Perks', table: 'perks', view: perks },
   { key: 'races', title: 'Races', table: 'races', view: races },
@@ -980,9 +1004,11 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'composure', 'quests', 'fears', 'nerve', 'personalityAxes', 'personalityTypes', 'values', 'status']],
-  ['World', null],
+  ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'essences', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'nerve', 'personalityAxes', 'personalityTypes', 'values', 'status']],
+  ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
+  ['People', ['templates', 'roles', 'activities', 'routines', 'routineSets', 'services']],
+  ['More', null], // a table not named above (a new one) lands here
 ];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
