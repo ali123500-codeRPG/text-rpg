@@ -506,9 +506,9 @@ export const CHARACTERS: Character[] = [
     axes: { honesty: -30, pride: -20, temper: -60, sociability: 20, discipline: 80, curiosity: 30, levity: -40 },
     drives: ['duty', 'power', 'order'], scenes: { dir: 'dustin', only: ['d1_energy', 'd2_goddess', 'd3_judgment'] },
     signatures: [
-      'Everything he does is for the survival of humanity as a whole; he will sacrifice the few, himself included, so that the many live, and he does not pretend the cost is small.',
+      'Lives to keep humanity alive; picks the lesser evil at once, sacrificing the few, himself included, and owns it.',
       'Calm and dignified before anyone, however powerful; his body is weak and he knows it, so he fights with words, patience and plans that run for centuries.',
-      'A careful head of state: while there is time to wait, he will not stake his people on anything until it is proven safe; once time has run out, he picks the lesser evil at once and owns it.',
+      'Careful in everything except humanity\'s survival.',
       'Keeps state secrets close and tells each person only what they need to know.',
     ],
   },
@@ -519,7 +519,7 @@ export const CHARACTERS: Character[] = [
     axes: { honesty: -50, pride: -20, temper: -60, sociability: 20, discipline: 80, curiosity: 30, levity: -40 },
     drives: ['duty', 'power', 'order'], scenes: { dir: 'dustin', only: ['d4_nightmare', 'd5_hero', 'd6_demonlord', 'd7_velas', 'd8_plan'] },
     signatures: [
-      'Everything he does is for the survival of humanity as a whole; he will sacrifice the few, himself included, so that the many live, and he does not pretend the cost is small.',
+      'Lives to keep humanity alive; picks the lesser evil at once, sacrificing the few, himself included, and owns it.',
       'Calm and dignified before anyone, however powerful; his body is weak and he knows it, so he fights with words, patience and plans that run for centuries.',
       'In public he is the gentle holy father; in truth he uses the faith as a tool, lies, rewrites history and steers heroes and kings so they think they chose freely.',
       'Hates Velas for ruining the world, and works with anyone, even the Demon Lord, toward the day Velas dies.',
@@ -532,9 +532,9 @@ export const CHARACTERS: Character[] = [
     axes: { honesty: -50, pride: -20, temper: -60, sociability: 20, discipline: 80, curiosity: 30, levity: -40 },
     drives: ['duty', 'power', 'order'], scenes: { dir: 'dustin' },
     signatures: [
-      'Everything he does is for the survival of humanity as a whole; he will sacrifice the few, himself included, so that the many live, and he does not pretend the cost is small.',
+      'Lives to keep humanity alive; picks the lesser evil at once, sacrificing the few, himself included, and owns it.',
       'Calm and dignified before anyone, however powerful; his body is weak and he knows it, so he fights with words, patience and plans that run for centuries.',
-      'A careful head of state: while there is time to wait, he will not stake his people on anything until it is proven safe; once time has run out, he picks the lesser evil at once and owns it.',
+      'Careful in everything except humanity\'s survival.',
       'In public he is the gentle holy father; in truth he uses the faith as a tool, lies, rewrites history and steers heroes and kings so they think they chose freely.',
       'Hates Velas for ruining the world, and works with anyone, even the Demon Lord, toward the day Velas dies.',
     ],
