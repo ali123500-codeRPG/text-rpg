@@ -481,7 +481,8 @@ export function createGame(deps: GameDeps): Game {
     if (kept && kept.endTurn === turn && closing) kept.closing = closing;
     const scenarioEnd = rec.ended ? { scenarioEnd: { as: rec.ended, name: SCENARIO_ENDING_NAMES[rec.ended], ...(closing ? { closing } : {}) } } : {};
     endingNow = null;
-    lines.push({ turn, kind: 'narration', text: narr.output.text, ...scenarioEnd, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
+    // rolls are kept on every line, so Show rolls also shows past turns' (the screen hides them while it is off)
+    lines.push({ turn, kind: 'narration', text: narr.output.text, ...scenarioEnd, ...(CONFIG.SHOW_MECHANICS && mechanics.length ? { mechanics } : {}),
       ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();

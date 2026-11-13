@@ -549,7 +549,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       dealsOpen ? h('section', { class: 'dl-pop', 'aria-label': 'Your deals', onclick: (e: Event) => e.stopPropagation() },
         h('p', { class: 'hs-section' }, 'Your deals'),
         deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null) : null;
-    // UI6: "Show rolls" sets the story's own showMechanics; the game records rolls only while it is on
+    // UI6: "Show rolls" sets the story's own showMechanics; every turn keeps its rolls, so the switch shows or hides them all, past turns too
     const show = !!(s?.settings.showMechanics ?? CONFIG.SHOW_ROLLS_DEFAULT);
     const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
       title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
