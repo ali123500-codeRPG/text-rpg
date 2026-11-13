@@ -5,6 +5,16 @@ import { LIGHT, TIME_OF_DAY, type TimeOfDay } from './scales';
 import type { GameState, Light, Zone } from './types';
 
 export const DAY_MINUTES = 24 * 60;
+/** how long something took, in game words: "2 h 5 min", "45 min", "3 h" ("0 min" for nothing) */
+export function durationText(minutes: number): string {
+  const m = Math.round(minutes), h = Math.floor(m / 60), r = m % 60;
+  return [h ? `${h} h` : '', r || !h ? `${r} min` : ''].filter(Boolean).join(' ');
+}
+/** a clock time of day from game minutes, as 24-hour "07:30" */
+export function clockText(minutes: number): string {
+  const d = ((Math.round(minutes) % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+  return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
+}
 const from = (k: TimeOfDay): number => CONFIG.TIME_OF_DAY_FROM[k];
 
 /** has the story's clock been set (false at story start and in saves from before the clock) */

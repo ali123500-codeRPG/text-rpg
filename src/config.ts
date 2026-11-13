@@ -1,4 +1,4 @@
-import type { DefenseKind, SkillFunction, Tier } from './types';
+import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
 import type { GradeLevel, HealthLevelKey, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
@@ -499,12 +499,13 @@ const DEFAULTS = {
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
-  DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<string, number>, // NW10: game minutes a routine step lasts (placeholders)
+  DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<DurationId, number>, // NW10: game minutes a routine step lasts (placeholders)
   RECENT_EVENTS: 8, // compact views: last few relevant events
   MEMORY_ENTRIES: 8, // PM1: an NPC's memory list holds at most this many entries (placeholder)
   EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
+  STORY_START_PLACE: 'tavern', // First build: a new story starts in the village tavern (its place id)
   SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
   SHOW_ROLLS_DEFAULT: false, // a new story starts with Show rolls off; the player turns it on from the play header
   /** M-33: reaching this health level or worse pulses the play screen's edge red once; from MOTION_EDGE_STEADY on the edge keeps a steady tint */

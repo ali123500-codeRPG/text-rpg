@@ -2,6 +2,7 @@
 import type { Actor, Barrier, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
+import { healthLevel, isDownLevel } from '../ruleset/body';
 import { barrierOn, linkPassage } from './barriers';
 import { withinGrip } from './position';
 import { reachesOver } from '../scenario/geometry';
@@ -17,9 +18,9 @@ export function bandById(state: GameState, id: string) {
   return state.bands.find((b) => b.id === id);
 }
 
-/** false while incapacitated (100% HP lost). */
+/** up and acting: not at a down level of the health track (one rule with the track, so a level's edge can't disagree) */
 export function isActive(actor: Actor): boolean {
-  return actor.core.condition.hpLostPct < 100;
+  return !isDownLevel(healthLevel(actor));
 }
 /** NW12/NW20: asleep (src/engine/sleep.ts): perceives nothing, acts not at all, and is struck as unaware */
 export const isAsleep = (actor: Actor): boolean => !!actor.asleep && isActive(actor);

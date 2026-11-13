@@ -1,7 +1,7 @@
 // Part 2, Hidden state persistence; routines from Game state model.
 import type { Grade, Tier } from './core';
 import type { Order } from './ruleset';
-import type { NoiseKey, ScenarioScale, VisibilityKey } from '../scales';
+import type { AttentionKey, NoiseKey, ScenarioScale, VisibilityKey } from '../scales';
 
 export type HiddenStore = {
   plans: Record<string, Plan>; // actorId -> plan
@@ -71,7 +71,6 @@ export type ScenarioFrame = {
 };
 /** SC8/SC15: why a Weaver check-in is asked */
 export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';
-/** SC8: the check-in's answer: carry on (with new beats) or end the scenario */
 /** SC8/SC12: a check-in's answer. continue may also change the scenario (question, scale, endings), send people in through
  * ways that already exist (arrivals: new bands, cast and seeds, as in a stage plan, starting out of the player's sight),
  * and add frontiers on stage zones (new ways out, built later like any frontier). It never builds zones. */
@@ -154,7 +153,7 @@ export type Routine = {
 export type ActivityDef = {
   id: string;
   look: string;
-  attention: 'alert' | 'normal' | 'distracted' | 'asleep';
+  attention: AttentionKey;
   noise: NoiseKey;
   visibility: VisibilityKey;
 };

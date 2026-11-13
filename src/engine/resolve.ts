@@ -11,12 +11,12 @@ import { bestReward } from '../ruleset/achRewards';
 import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
-import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type Passage } from './barriers';
+import { barrierOn, noteTried, openWay, passage, shutBy, wayOp } from './barriers';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { distM, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -32,7 +32,7 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -82,7 +82,6 @@ const slotsOf = (ctx: Ctx, a: Actor): Slots => {
   if (!s) ctx.slots.set(a.id, (s = actionSlots(a)));
   return s;
 };
-const hasMain = (ctx: Ctx, a: Actor): boolean => slotsOf(ctx, a).main > 0;
 /** spends a main slot; false when none is left */
 const useMain = (ctx: Ctx, a: Actor): boolean => { const s = slotsOf(ctx, a); if (s.main <= 0) return false; s.main--; return true; };
 /** CO13: a movement spends a move slot first and a main slot when no move slot is left; null when neither is */
@@ -462,7 +461,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const spar = sparBetween(state, a, t);
   if (spar) ev.spar = true;
   else endSparsOf(state, [a.id, t.id]);
-  const before = { level: healthLevel(t), parts: partStates(state, t), lost: t.core.condition.hpLostPct };
+  const before = { level: healthLevel(t), parts: partStates(state, t), lost: t.core.condition.hpLostPct, active: isActive(t) };
   const opening = openingShifts(ctx, a, t, m.mode.tree);
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
@@ -490,7 +489,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const hf = HEALTH_LEVELS.pos(after) > HEALTH_LEVELS.pos(before.level) ? healthFear(t, after) : undefined;
   if (hf) fear(ctx, t, hf.id, {}, ev.perception);
   for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, ev.perception); // parts Crippled (or worse) by this hit
-  if (!isActive(t) && before.lost < 100) { // newly down: a blow on someone already down downs no one
+  if (!isActive(t) && before.active) { // newly down: a blow on someone already down downs no one
     fear(ctx, a, FR.foe_downed);
     for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
   }
@@ -587,7 +586,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   }
 }
 
-/** Rest [Proposed]: no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
+/** Rest (H5): no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const key = `rest:${a.id}`;
@@ -721,8 +720,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   const row = def?.heal ? getLibrary().healing?.[def.heal] : undefined;
   if (!inst || !row) return false;
   const ev = bark(mk(ctx, a, 'use_item', { itemId: inst.itemId }), o);
-  const fight = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
-  if (fight && !row.inFight) {
+  if (threatHere(state, a) && !row.inFight) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'hostile_in_zone' });
   } else if (!wouldHeal(state, a, row.id)) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal' });
