@@ -2,6 +2,7 @@ import { PK } from './perkIds';
 // Perks whose rules are coded (perks are coded, so each is built against its Rules write-up in perks.ts).
 // A perk listed here can be taken; the rest show on the Perks screen but can't be taken yet.
 export const BUILT_PERKS = new Set<string>([
+  PK.dreaded_on_sight, // quirk: src/engine/auras.ts sightDread(), src/engine/relations.ts stance()
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
   PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()

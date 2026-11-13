@@ -12,7 +12,8 @@ import { FN } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { FR } from '../library/tableIds';
-import { allActors, atLeast, isActive, shortestPath, stance, wary } from './relations';
+import { allActors, atLeast, isActive, onSightPerks, shortestPath, stance, wary } from './relations';
+import { probe } from './yield';
 import { distM, withinM } from './position';
 import { besidePlayer } from './engagement';
 import { perceptionOf } from '../perception';
@@ -61,6 +62,27 @@ export function engagementAuras(state: GameState, rng: Rng, fear: AuraFear): Aur
         const ow = overwhelms(owner, t, contest);
         if (took) fear(t, aura.fear, contest.gap, ow);
         out.push({ owner, target: t, aura, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
+      }
+    }
+  }
+  return out;
+}
+
+/** Dreaded on Sight (PerkDef.onSight): at the start of each turn, everyone outside the owner's band who sees the owner
+ * for the first time pays the quirk's fear, and from then on reads its band's stance toward the owner colder
+ * (relations.ts stance()). Once per owner, for good. Returns who met whom. */
+export function sightDread(state: GameState, fear: AuraFear): { owner: Actor; target: Actor; perk: string }[] {
+  const out: { owner: Actor; target: Actor; perk: string }[] = [];
+  for (const owner of allActors(state)) {
+    if (!isActive(owner)) continue;
+    for (const d of onSightPerks(owner)) {
+      const k = `${d.id}:${owner.id}`;
+      for (const t of allActors(state)) {
+        if (t === owner || !isActive(t) || t.sightChecks?.includes(k) || (!!t.bandId && t.bandId === owner.bandId)) continue;
+        if (probe(state, t, owner, 'silent', 'normal')?.cue !== 'sight') continue;
+        (t.sightChecks ??= []).push(k);
+        fear(t, d.onSight!.fear);
+        out.push({ owner, target: t, perk: d.id });
       }
     }
   }
