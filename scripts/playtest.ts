@@ -13,6 +13,7 @@ import { createDirector } from '../src/agents/director';
 import { memoryStore } from '../src/save/store';
 import { CONFIG } from '../src/config';
 import { validateStagePlan } from '../src/scenario';
+import { TURN_CHECK } from '../src/save/turnCheck';
 import { ensurePlace } from '../src/scenario/apply';
 import { isSeller } from '../src/engine/trade';
 import type { GameState, StagePlan } from '../src/types';
@@ -152,6 +153,7 @@ function nearSlimes(st: GameState) {
 }
 
 async function main() {
+  TURN_CHECK.strict = true; // TQ1: the run stops itself on a broken world rule (turn-check.log)
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'call-errors.log'), '');
   const t0 = Date.now();
@@ -219,7 +221,15 @@ async function main() {
     const aimed = input.startsWith('/aim');
     console.log(`turn ${t}: ${input}`);
     const rawBefore = Object.fromEntries(Object.entries(game.state()?.player.core.skills ?? {}).map(([k, v]) => [k, v.raw]));
-    await game.submit(input, { aimed });
+    try {
+      await game.submit(input, { aimed });
+    } catch (e) {
+      // TQ1: a broken world rule stops the run at the turn that broke it (that turn is not saved; --resume replays it)
+      if (!String((e as Error).message).startsWith('turn check')) throw e;
+      writeFileSync(join(OUT, 'turn-check.log'), `step ${t}: ${input}\n${(e as Error).message}\n`);
+      console.log(`turn ${t}: stopped by the turn checker\n${(e as Error).message}`);
+      break;
+    }
     spendPerkPoints(game, t);
     for (const [k, v] of Object.entries(game.state()?.player.core.skills ?? {})) if (v.raw > (rawBefore[k] ?? 0)) skillUps.push(`turn ${t}: ${k} ${rawBefore[k] ?? 0} -> ${v.raw}`);
     const gm = game.gm();

@@ -84,7 +84,7 @@ describe('156 Overheard', () => {
     const caught = (perk: boolean) => {
       for (let seed = 1; seed <= 40; seed++) {
         const s = makeVillage({ playerZone: 'gate_inner' });
-        actorById(s, 'patron_1')!.zone = 'gate_inner';
+        Object.assign(actorById(s, 'patron_1')!, { zone: 'gate_inner', placeId: 'gate' });
         if (perk) give(s.player, PK.overheard);
         s.player.core.skills[SK.insight] = { raw: 60, state: 'normal' };
         const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('deceive', 'patron_1'), { dialogue: { line: 'The gate is shut till dawn.', volume: 'normal' } })] }, seed);

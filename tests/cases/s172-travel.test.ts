@@ -115,7 +115,7 @@ describe('172 travel', () => {
   it('TV1: with someone hostile who perceives the player it is a normal move, a step at a time', () => {
     const s = withRoad(9);
     const foe = s.actors.find((a) => a.id === 'patron_1')!;
-    foe.zone = 'gate_inner'; delete foe.pos; placeAll(s);
+    foe.zone = 'gate_inner'; foe.placeId = 'gate'; delete foe.pos; placeAll(s);
     foe.mind!.overrides = { player: 'hostile' };
     foe.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [], lastKnownZone: 'gate_inner' } as never;
     go(s, 'ashford_gate');
@@ -135,7 +135,7 @@ describe('172 travel', () => {
   it('TV6: a bandmate together with the player travels along, at the slower of the two speeds', () => {
     const s = withRoad(9);
     const mate = s.actors.find((a) => a.id === 'patron_1')!;
-    mate.bandId = s.player.bandId; mate.zone = 'gate_inner'; delete mate.pos; placeAll(s);
+    mate.bandId = s.player.bandId; mate.zone = 'gate_inner'; mate.placeId = 'gate'; delete mate.pos; placeAll(s);
     mate.core.inventory = []; // no armor: the same speed
     go(s, 'ashford_gate');
     expect(trip(s)!.companions).toEqual(['patron_1']);

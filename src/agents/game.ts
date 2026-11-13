@@ -40,6 +40,7 @@ import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
+import { checkTurn, snapTurn } from '../save/turnCheck';
 
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
@@ -294,6 +295,7 @@ export function createGame(deps: GameDeps): Game {
   async function playTurn(text: string, aimed: boolean): Promise<void> {
     const s = state!;
     const submitAt = clock.now();
+    const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
     const gearBefore = gearSnap(s, s.player);
     const partsBefore = partStates(s, s.player);
@@ -375,6 +377,8 @@ export function createGame(deps: GameDeps): Game {
       events.push(...(await director.afterResolve(s, events, rng, ctx)));
       s.rngState = rng.state;
     }
+    // TQ1: a broken world rule is filed as a bug (turn_check); play goes on (tests and playtests run it strict, and stop)
+    for (const b of checkTurn(s, before, events)) s.log.push({ turn: s.turn, code: 'turn_check', detail: { ...b } });
     aimNext = false;
     yieldNext = false;
     await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, partsBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);

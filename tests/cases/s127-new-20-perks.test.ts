@@ -132,6 +132,7 @@ describe('127 20 perks for the new skills', () => {
     const run = (perk: boolean) => {
       const s = makeVillage();
       beside(s, 'patron_1');
+      for (const i of s.player.core.inventory) i.equippedIn = i.equippedIn?.filter((g) => g !== 'grip:right_arm'); // the dagger replaces the sword
       s.player.core.inventory.push({ id: 'w_player', itemId: IT.dagger, equippedIn: ['grip:right_arm'] });
       fit(s.player, IT.dagger);
       if (perk) give(s.player, PK.in_and_out);
