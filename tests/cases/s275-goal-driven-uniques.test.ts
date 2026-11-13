@@ -2,13 +2,18 @@
 // queue runs out or a step fails, when it perceives what a goal names, and as before when engaged or talked to. One think a
 // turn, after fight calls. Steps run on through long turns; a step with no end stops after STEP_MAX_DAYS.
 import { expect, it } from 'vitest';
-import { makeVillage, place } from '../harness';
+import { makeVillage, place, createRng } from '../harness';
+import { getLibrary, setLibrary } from '../../src/library';
+import { echoSheet, uniqueTemplate } from '../../src/library/echo';
+import { RC } from '../../src/library/raceIds';
+import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
+import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { setupGame, narrateAll, npcAction, intent as turnIntent } from '../harness/turn';
 import { act, play, plannerOut } from './w4-kit';
 import { seedGoals, runSteps, noticeGoals } from '../../src/engine/goals';
 import { hasAgenda, actorById } from '../../src/engine/relations';
 import { goalThinkers } from '../../src/agents/game';
-import { buildActorView } from '../../src/views';
+import { buildActorView, buildWeaverView } from '../../src/views';
 import { checkPlanner } from '../../src/agents/schema';
 import { PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
@@ -127,4 +132,28 @@ it('whole turn: a goal holder away from any fight gets its one think in the back
   const d = g.game.state()!.hidden.drives!.patron_1;
   expect(d.think).toBeUndefined();
   expect(d.steps).toEqual([{ go: 'street_square' }]);
+});
+
+it('the Weaver casts a unique from catalogs.uniques with goals: it arrives holding them, its standing goal first, and thinks first', () => {
+  const s = toStoryStart(makeVillage());
+  const ECHO = 'TP_echo_goals', lib = getLibrary();
+  const t = { ...uniqueTemplate(ECHO, RC.human, 'a grim swordsman', echoSheet(s, s.player, ECHO, 'fell to a slime in the east field')), standingGoal: 'never fall again' };
+  setLibrary({ ...lib, templates: { ...lib.templates, [ECHO]: t } });
+  try {
+    expect(buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' }).catalogs.uniques.map((u) => u.id)).toContain(ECHO);
+    const plan = villageStagePlan();
+    plan.cast.push({ ...plan.cast[0], key: 'echo', template: ECHO, name: 'Aldric', goals: [{ text: 'finish what began in the east field', about: ['player', 'tavern'] }] });
+    const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
+    expect(validateStagePlan(s, plan, ctx)).toEqual([]);
+    applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
+    const echo = s.actors.find((a) => a.core.templateId === ECHO)!;
+    expect(echo.core.generation).toBe('unique');
+    const d = s.hidden.drives![echo.id];
+    expect(d.goals.map((g) => g.text)).toEqual(['never fall again', 'finish what began in the east field']);
+    expect(d.goals[1].about).toEqual([s.player.id, 'tavern']);
+    expect(d.think).toBe('cast');
+    expect(goalThinkers(s, new Set())).toContain(echo.id);
+    const others = s.actors.filter((a) => a.kind !== 'player' && a.id !== echo.id).map((a) => a.id);
+    expect(others.some((id) => s.hidden.drives?.[id])).toBe(false); // only the unique holds goals
+  } finally { setLibrary(lib); }
 });
