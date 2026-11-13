@@ -134,12 +134,13 @@ describe('updateBeliefs', () => {
 
 describe('applyBeliefDecay', () => {
   const status = (s: GameState) => actor(s, 'trader').mind!.knowledge.slime_1.status;
-  it('AT73/AT80: aware (or tracking) steps down after DECAY_AWARE_S, suspicious after DECAY_SUSPICIOUS_S more', () => {
+  it('AT73/AT80/AT85: tracking steps down after DECAY_TRACKING_S, aware after DECAY_AWARE_S more, suspicious after DECAY_SUSPICIOUS_S more', () => {
     const s = makeVillage();
-    const A = CONFIG.DECAY_AWARE_S, S = CONFIG.DECAY_SUSPICIOUS_S;
+    const T = CONFIG.DECAY_TRACKING_S, A = CONFIG.DECAY_AWARE_S, S = CONFIG.DECAY_SUSPICIOUS_S;
+    expect(T).toBeGreaterThan(A); // a hunter on a trail keeps at it longer than a guard who heard a noise
     actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'tracking', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
     const after = (seconds: number) => { tick(s, seconds); applyBeliefDecay(s); return status(s); };
-    expect(after(A - 1)).toBe('tracking');
+    expect(after(T - 1)).toBe('tracking');
     expect(after(1)).toBe('aware');
     expect(after(A - 1)).toBe('aware');
     expect(after(1)).toBe('suspicious');

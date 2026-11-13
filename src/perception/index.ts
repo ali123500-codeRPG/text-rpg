@@ -278,18 +278,20 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
   }
 }
 
-/** AT73/AT80: with no new sight or sound, a belief steps down one level after DECAY_AWARE_S game seconds (aware, or tracking)
- * or DECAY_SUSPICIOUS_S (suspicious), each step counted from the one before; any new sign (lastSeenTurn) restarts it. Only the
- * alertness fades: what it learned stays.
- * GAP: tracking (left by a lost chase or a quiet fight) fades like aware, as before; hunting and engaged are noteFighting's. */
+/** AT73/AT80/AT85: with no new sight or sound, a belief steps down one level after its level's wait: DECAY_TRACKING_S
+ * (tracking, left by a lost chase or a quiet fight), DECAY_AWARE_S (aware) or DECAY_SUSPICIOUS_S (suspicious), each step
+ * counted from the one before; any new sign (lastSeenTurn) restarts it. Only the alertness fades: what it learned stays.
+ * Hunting and engaged are noteFighting's. */
+const DECAY_S = { tracking: () => CONFIG.DECAY_TRACKING_S, aware: () => CONFIG.DECAY_AWARE_S, suspicious: () => CONFIG.DECAY_SUSPICIOUS_S };
 export function applyBeliefDecay(state: GameState): void {
   for (const a of allActors(state)) {
     for (const b of Object.values(a.mind?.knowledge ?? {})) {
       if (b.lastSeenTurn === undefined || b.status === 'unaware' || atLeast(b.status, 'hunting')) continue; // YD6: noteFighting drops those
       let from = Math.max(turnTime(state, b.lastSeenTurn), b.fadedAt ?? -Infinity);
       for (;;) {
-        const wait = (b.status === 'suspicious' ? CONFIG.DECAY_SUSPICIOUS_S : CONFIG.DECAY_AWARE_S) / 60;
-        if (b.status === 'unaware' || now(state) - from < wait) break;
+        if (b.status === 'unaware') break;
+        const wait = DECAY_S[b.status as keyof typeof DECAY_S]() / 60;
+        if (now(state) - from < wait) break;
         from += wait;
         b.status = AWARENESS.at(AWARENESS.pos(b.status) - 1);
         b.fadedAt = from;

@@ -633,8 +633,10 @@ const DEFAULTS = {
   LIE_PLAIN_GAP: 2, // BF8: a lie seen through by this many tiers or more is plainly a lie; a narrower win gives the hint
   ERRAND_TURNS: 3, // BG-180: after an NPC answers someone with a deed under way, it gets Planner calls this many turns (a hold ends it)
   AGENT_STAY_S: 180, // BF11/AT33: a place an NPC's own agent moved it to holds this many game seconds, unless its agent decides again
-  /** AT73/AT80: with no new sight or sound, a belief steps down from aware (or tracking) after DECAY_AWARE_S game seconds, and
-   * from suspicious to unaware after DECAY_SUSPICIOUS_S more; an alarm stands down after DECAY_AWARE_S with no new alarm */
+  /** AT73/AT80/AT85: with no new sight or sound, a belief steps down from tracking after DECAY_TRACKING_S game seconds (a hunter
+   * on a trail keeps at it longer), from aware after DECAY_AWARE_S, and from suspicious to unaware after DECAY_SUSPICIOUS_S;
+   * an alarm stands down after DECAY_AWARE_S with no new alarm */
+  DECAY_TRACKING_S: 600,
   DECAY_AWARE_S: 120,
   DECAY_SUSPICIOUS_S: 900,
   MAX_PLANNER_CALLS: 3, // Q2 (D-18)
