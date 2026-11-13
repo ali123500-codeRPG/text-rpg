@@ -1,4 +1,4 @@
-// Entry point bundled into dist/index.html. In the artifact it wires the real game: Claude through the `sample`
+// Entry point bundled into dist/play/. In the artifact it wires the real game: Claude through the `sample`
 // capability, saves through the `db` capability. ?fake=play|fell|notices runs the in-memory fake (screenshots only).
 import './styles.css';
 import type { GameApi, Notice } from '../types';

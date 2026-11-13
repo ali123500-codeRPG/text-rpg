@@ -1,5 +1,5 @@
 // Library viewer: every library table drawn from the same modules the game runs, so it shows the
-// library exactly as code sees it. Bundled into dist/library.html by scripts/build.mjs. Tables without a custom view
+// library exactly as code sees it. Bundled into dist/library/ by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
 import { BT } from '../library/raceIds';
 import './styles.css';
