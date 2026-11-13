@@ -301,9 +301,16 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
  * (the engagement ending gives morale back, rest too) and what still works while it lasts */
 export const NERVE_UNTIL = "You can't attack until the fight is behind you.";
 export const NERVE_PASSES = () => `That is once no one has fought you for ${engagementEndS()} s, your yield is taken, this scenario ends, or you rest.`;
-export const NERVE_STILL = 'You can still flee, yield, hide, talk or use a bandage.';
+export const NERVE_STILL = 'You can still move, flee, sneak, hide, vanish, yield, talk or use a bandage.';
 const moraleRoll = (k: string) => CONFIG.MORALE_TRACK.find(([x]) => x === k)?.[2] ?? 0;
-/** the stakes line under the morale bar, from CONFIG.MORALE_HINT_FROM down; null above it */
+/** NB2: a level word that carries what it costs as a tip, shown on hover or keyboard focus (dotted underline as the cue);
+ * screen readers get it as the word's description */
+function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
+  const id = `tip-${m}`;
+  return h('span', { class: 'cs-tipped', tabindex: '0', 'aria-describedby': id }, h('span', { 'data-m': m }, word),
+    h('span', { class: 'cs-tip', role: 'tooltip', id, 'data-m': tm }, tip));
+}
+/** the stakes under the morale level, from CONFIG.MORALE_HINT_FROM down (a tip above Broken, a line at Broken); null above it */
 export function moraleHint(k: MoraleLevel): string | null {
   if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM as MoraleLevel)) return null;
   if (k === 'broken') return `${NERVE_PASSES()} ${NERVE_STILL}`;
@@ -322,13 +329,14 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
     h('span', { class: 'cs-row' }, h('span', {}, 'Morale',
       // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
       p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
-      h('b', {}, h('span', { 'data-m': 'morale-level' }, level),
+      // NB2: above Broken the stakes are a tip on the level word (hover or focus), never a line of their own
+      h('b', {}, hint && key !== 'broken' ? tipped(level, hint, 'morale-level', 'morale-hint') : h('span', { 'data-m': 'morale-level' }, level),
       full ? [' · ', h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`] : null)),
     h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
-    // the stakes, from Terrified down: what the level costs and what Broken would stop
-    ...(hint ? [h('span', { class: 'cs-mhint' + (key === 'broken' ? ' broken' : ''), 'data-m': 'morale-hint', role: 'status' },
-      key === 'broken' ? [h('b', { 'data-m': 'morale-until' }, NERVE_UNTIL), ' '] : null, hint)] : []),
+    // NB3: at Broken the line stays under the bar: no attacks until the fight is behind you, how that comes, what still works
+    ...(hint && key === 'broken' ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
+      h('b', { 'data-m': 'morale-until' }, NERVE_UNTIL), ' ', hint)] : []),
   ];
 }
 
@@ -343,12 +351,11 @@ export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
   const breath = `Breath ${fmt1(v.lineLeft)} / ${fmt1(v.lineMax)}: strain spends it first, then eats into sleep debt; it comes back once you stop for a while`;
   return [
     h('span', { class: 'cs-row' }, h('span', {}, 'Stamina', v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
-      h('b', {}, h('span', { 'data-m': 'stamina-level' }, v.level), full ? [' · ', h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
+      h('b', {}, row && row[2] < 0 ? tipped(v.level, `${v.level}: −${Math.abs(row[2])} to rolls`, 'stamina-level', 'stamina-hint') : h('span', { 'data-m': 'stamina-level' }, v.level), full ? [' · ', h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
     h('span', { class: 'cs-hptrack cs-stam', title: 'Stamina: sleep debt, Rested on the right; only sleep clears it', role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
       h('b', { style: `width:${pct(v.left, v.max)}%` }), ...ticks),
     h('span', { class: 'cs-stline', title: breath, role: 'img', 'aria-label': breath, 'data-m': 'stamina-line', style: `width:${pct(v.lineMax, v.max)}%` },
       h('b', { style: `width:${pct(v.lineLeft, v.lineMax)}%` })),
-    ...(row && row[2] < 0 && full ? [h('span', { class: 'cs-mhint cs-shint', 'data-m': 'stamina-hint' }, `${v.level}: −${Math.abs(row[2])} to rolls`)] : []),
   ];
 }
 
