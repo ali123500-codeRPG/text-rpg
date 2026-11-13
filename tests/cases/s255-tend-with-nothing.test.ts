@@ -25,7 +25,7 @@ it('someone the player meant to go to, put off after they left, is told as not t
   lookAround(s);
   place(s, 'patron_1', 'street_square');
   const name = nameFor(s, s.player, actorById(s, 'patron_1')!) ?? actorById(s, 'patron_1')!.label;
-  const i = intent({ action: null, deferred: [`walk over to ${name} and grab his wrist`] });
+  const i = intent({ deferred: [`walk over to ${name} and grab his wrist`] });
   const ev = play(s, { intent: i });
   expect(buildNarrationView(s, ev, i).notThere).toEqual([expect.stringContaining('last seen in')]);
 });
