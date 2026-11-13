@@ -1,0 +1,87 @@
+// TQ7 browser smoke tests: the play page, built as in production, on the real game (tests/smoke/game.ts: in-memory save,
+// stand-in Claude). Few flows, the ones where screen wiring broke before: load and create (the opening), play a turn,
+// report a bug (BG-27), switch story (BG-63), restore a backup (BG-123). Run: npm run smoke.
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { build } from 'esbuild';
+import { chromium, type Browser, type Page } from 'playwright';
+// @ts-expect-error Node types are not installed; vitest runs in Node
+import { mkdtempSync, writeFileSync } from 'node:fs';
+// @ts-expect-error Node types are not installed; vitest runs in Node
+import { tmpdir } from 'node:os';
+
+const NARRATION = 'Smoke narration: the world goes on around you.';
+let browser: Browser, page: Page, url: string, errors: string[];
+
+beforeAll(async () => {
+  const dir = mkdtempSync(`${tmpdir()}/smoke-`);
+  await build({
+    entryPoints: ['tests/smoke/entry.ts'], bundle: true, format: 'iife', target: 'es2022', outdir: dir, logLevel: 'warning',
+    loader: { '.woff2': 'file', '.webp': 'file' }, assetNames: 'assets/[name]', define: { __BUILD__: JSON.stringify({ sha: 'smoke', date: '2026-01-01' }) },
+  });
+  writeFileSync(`${dir}/index.html`, '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="entry.css"></head><body><script src="entry.js"></script></body></html>');
+  url = `file://${dir}/index.html`;
+  browser = await chromium.launch();
+}, 60_000);
+afterAll(async () => { await browser?.close(); });
+
+beforeEach(async () => {
+  page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(url);
+  await page.getByRole('button', { name: 'Begin the story' }).click();
+  await page.getByText(/^Turn 0/).waitFor();
+});
+
+const turn = async (text: string, n: number) => {
+  await page.getByPlaceholder(/What do you do/).fill(text);
+  await page.getByRole('button', { name: 'Send' }).click();
+  await page.getByText(new RegExp(`^Turn ${n} `)).waitFor();
+};
+const nav = (name: string) => page.locator('nav').getByText(name, { exact: true }).click();
+
+describe('play page smoke (TQ7)', () => {
+  it('loads, creates a character and shows the opening', async () => {
+    await page.getByText(NARRATION).first().waitFor(); // the opening, narrated
+    expect(errors).toEqual([]);
+  });
+
+  it('plays a turn: the input shows, the turn advances, the narration shows', async () => {
+    await turn('look around', 1);
+    await expect.poll(() => page.getByText(NARRATION).count()).toBe(2); // the opening and this turn
+    expect(await page.getByText('look around', { exact: true }).count()).toBeGreaterThan(0);
+    expect(errors).toEqual([]);
+  });
+
+  it('reports a bug: it is filed with a BG number and listed', async () => {
+    await nav('Bugs');
+    await page.getByPlaceholder(/What went wrong/).fill('smoke test report');
+    await page.getByRole('button', { name: 'Report bug' }).click();
+    await page.getByRole('cell', { name: 'smoke test report' }).waitFor();
+    expect(await page.getByRole('row').filter({ hasText: 'smoke test report' }).getByText(/^BG-\d+$/).count()).toBe(1);
+    expect(errors).toEqual([]);
+  });
+
+  it('switches to the agent’s own story and back to the player’s', async () => {
+    await turn('look around', 1);
+    await page.getByRole('button', { name: 'Watch an agent play' }).click();
+    await page.getByRole('button', { name: 'Agent’s' }).click();
+    await page.getByText(/^Turn 0 /).waitFor(); // the agent's new story opens
+    await page.getByRole('button', { name: 'Player’s' }).click();
+    await page.getByText(/^Turn 1 /).waitFor(); // the player's story, as it was left
+    expect(await page.getByText('look around', { exact: true }).count()).toBeGreaterThan(0);
+    expect(errors).toEqual([]);
+  });
+
+  it('restores a backup from the GM view', async () => {
+    for (let n = 1; n <= 12; n++) await turn('wait', n);
+    await page.getByRole('button', { name: 'GM off' }).click();
+    await nav('GM');
+    await page.getByRole('row').filter({ hasText: 'Turn 10' }).getByRole('button', { name: 'Restore' }).click();
+    await page.getByRole('button', { name: 'Restore' }).last().click(); // the confirm
+    await nav('Play');
+    await page.getByText('Restored the backup from turn 10.').waitFor();
+    await turn('wait', 11); // the next turn played is turn 11 again, not 13
+    expect(errors).toEqual([]);
+  });
+}, 120_000);
