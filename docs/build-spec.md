@@ -316,6 +316,8 @@ The tier names are the six tiers of Part 1 §4; the ruleset still owns them.
 
 ### Action economy
 
+Being replaced by Action time below, stage by stage.
+
 Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, D-60, D-83).
 
 - **Slots (AE1).** A turn is one move (a walk: 8.4 m for an unarmored human), one main action, and free things: gear ops, defenses (each after the first in a turn takes the outnumbered modifier) and barks. Perks and class skills change a slot: add one, swap one, or make one free. A fight turn stays 6 seconds whatever it holds (AE12).
@@ -332,6 +334,73 @@ Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, 
 - **NPCs (AE9)** use the same slots and perks. The Planner still returns one move and one action; an extra slot with no choice in it (Flurry's second attack) is filled by code, and one with a choice gets a Planner field the NPC fills only when it owns the perk.
 - **Restrain (BF5, Ali 13/11/2026; run 82b).** A grab that holds someone back unhurt is the main action restrain, within the grabber's grip reach (NEEDS restrain: grip; out of reach it closes in on the move slot). The grabber's grapple against the target's better of grapple and dodge; the target wins ties. Held, the target is held as by A8 Hold (heldBy, src/engine/held.ts restrain): its next move is its break-free try, and failing it loses that move. No damage and no hostility: it is never an attack, and the target feels it (touch).
 - **Armor (AE10):** putting armor on or off stays one main action. **Criticals (AE11):** "lose your next action" means the next main action.
+
+### Action time
+
+Settled by Ali 13/11/2026 on the Action Time pages (part one https://claude.ai/artifact/X5qfW3RXXFhzV51nbmC9tr, part two https://claude.ai/artifact/7Vzne1WtdZ6DeH77xzfWVg, part three https://claude.ai/artifact/Hazzen8xGG66boCGkixaYd; AT1 to AT84). It replaces the slots of the Action economy section above as it is built, in four stages; each rule names its stage. Until a stage is built, the Action economy section still describes the code.
+
+**Units and turns**
+- **Seconds and rounds (AT35, AT74; stage 1).** Every action has a time in seconds. Short durations are counted in rounds: CONFIG.ROUND\_S (3 s, one exchange of blows) is the one lever for them, and anything may be a fraction of a round (twice a round is ROUND\_S / 2). "Round" is a code ID only: the game never shows it, only the final number of seconds ("slowed for 6 s").
+- **Turns are only the player's input (AT13, AT37).** The world lives in time; a turn is when the game stops to ask the player. A turn lasts as long as the player's order (AT13 c), at least CONFIG.FIGHT\_TURN\_MIN\_S (3 s) and at most FIGHT\_TURN\_S (6 s) in a fight; outside a fight at most CONFIG.EXPLORE\_TURN\_S (120 s, AT46). Unused time carries (AT20). Stage 2.
+- **Repeating orders and chains (AT78, AT53; stage 2).** An attack or shot order repeats until the turn's time is used, and stops early when the target is out of reach after the actor's move has followed it, goes down, yields or is out of sight, or when the clock pauses (AT65). One order can name a short chain ("draw and strike"); the chain fills the turn the same way, a chain that ends in an attack repeats it, and what is not started when the turn ends is dropped.
+- **Long actions lift the cap (AT45; stage 3).** While the player keeps at an action that runs by itself, or a walk, time runs until it is done or the clock pauses (AT65).
+
+**The Action times table (AT1, AT11, AT12; stage 1)**
+- One library table, `actionTimes`: per action, its seconds at a time factor of 1, whether it locks movement (AT19), its focus and stop (AT57), its output (AT27), what is left when broken off (AT6, AT28) and an optional speed function (D-248). Values for a skill-50 professional, from real references (the Part Three page cites each; a second agent checked them):
+  - melee or unarmed blow 3 s (no lock, reflex); throw 3 s (locks, reflex); light bow 5 s, medium bow 6 s (locks, steady); crossbow shot 2 s and spanning its own action: light 4 s, stirrup 8 s, crossbow 28 s (locks, careful; a spanned crossbow stays loaded, AT11c b);
+  - Battle Cry 1 s; talking 0.4 s a word (share: the words said before a break are heard); barks stay free (AE7);
+  - draw 1 s, stow 2 s, swap 3 s; pick up within reach 1 s, from the ground 4 s (locks); hand over 2 s;
+  - a door open or close 1 s, a bar 2 s, a key 4 s (locks: you stop at the door); pick a lock 60 s (locks, careful, kept when broken);
+  - bandage 40 s (locks, careful, lost when broken, the bandage not used up); drink a potion 3 s (lost); hide 2 s (locks); look around 3 s (steady);
+  - rest 60 min (locks, deep, share), sleep the night (careful, stop never, steps), wait until the time named (deep), trade 10 min (steady, lost);
+  - armour on and off by weight, with help: light 2 min and 1 min, medium 1 min and 30 s, heavy 10 min and 3 min; heavy alone takes ARMOR\_ALONE\_MULT (2) times as long; help is another actor within grip reach doing nothing else; locks, careful, steps (each piece counts once on), kept;
+  - perk moves name their own time (the speech perks take talking time, Dirt in the Eyes a throw's 3 s).
+- **Time factor (AT22).** An action's seconds for an actor = the row's seconds × that actor's time factor (1 for everyone for now). The backbone for D-248: a row may name a speed function whose effective skill halves its time every N points above 50 and slows it the same way below (N a lever on the row). Picking a lock is the first row on it: its speed function is Lockpicking with N = PICK\_HALVING\_PER (25), the BA2 rule it always had. Which rows name one, and what else feeds the factor, waits for the speed skills (D-248).
+- **Healing draught (AT10).** It gets a healing row: 25% of health and parts up to Damaged, any time, 3 s (placeholder).
+
+**Spending time (stage 2)**
+- **Movement locks (AT19).** Each action locks movement or not; a locking action takes the same seconds from move time as from main time. Shoot and Move (B4, banked) becomes "your shots don't lock movement".
+- **Leftover (AT20).** Only the time left after the actor's last finished action carries, for one turn, each pool on its own; held time and a turn where nothing finished carry nothing, so a turn never holds 2× its time (AT23: a unit test checks it).
+- **Fast fighters (AT21).** Time decides how many blows fit; AE4 goes. Flurry (AT79): every unarmed strike its owner throws brings one free strike at the same target at once, costing no time and no action, one tier less sure; the free strike can't trigger Flurry again but triggers every other perk a strike does, and a free punch from another perk (One-Two) does trigger Flurry. Flurry and One-Two name Grip parts, not hands.
+- **Order inside a turn (AT48).** Actions resolve in the order they finish; the fight's initiative roll breaks ties.
+- **Walks carry on (AT49).** A walk not yet at its goal carries on next turn by itself until the actor orders something else; a dash runs for the turn's seconds.
+- **NPCs (AT16, AT47).** Same times and rules. An NPC's Planner or code is asked for a new order only when its current action ends or the clock pauses for it (AT67); mid-action it carries on.
+
+**Long actions (stage 2)**
+- **Over several turns (AT2, AT17).** A long action takes effect when its seconds are done; until then the actor is busy and it carries on by itself each turn; ordering anything else stops it (if its stop allows).
+- **Focus (AT25, AT57):** what breaks it from outside, an ordered scale FOCUS: reflex (nothing; too quick), steady (a hit that wounds), careful (any attack aimed at the actor, hit or miss), deep (also the coming-near check, AT67). Sleep is careful; readying a shot or a grand spell is steady.
+- **Stop (AT26, AT57):** whether the actor may choose to stop: any (default), never (sleep), or until a share of progress (a grand spell: free to stop before 60%, committed after). Only the actor loses the choice; its focus's breaks still break it.
+- **Output (AT27):** end (the whole effect when done), share (in proportion), steps (points along the way).
+- **When broken off (AT6, AT28):** bands by progress, each lost (nothing happens, nothing used up), kept (the work counts later), share, misfire (names a row of a Misfires table, empty until spells exist) or fires (takes effect as if finished). Example: a fire spell 0 to 60% lost, 60 to 90% misfire (explodes in the hand), 90 to 100% fires.
+- **Defending while busy (AT7).** Defences as normal, unless the action carries a tag that blocks or penalises defence; every defence roll gets the same penalties.
+- **No gates (AT8, BG-107).** Rest, wait, sleep and heal items can always be started; their time and what breaks them are the cost. The healing rows' inFight flag goes.
+
+**Initiative (AT58, AT60; stage 2)**
+- A reaction time, rolled once when a fight starts for the actor: CONFIG.REACT\_BASE\_S (2 s) at a total of 50, halving every REACT\_HALVING (50) points, times the time factor; the same roll breaks ties for the rest of the fight. Someone unaware starts only once they notice.
+- "Acts last" (Bluff, Staggering Bolt) becomes hesitating: the target's next action starts only after its own reaction delay again. Never Surprised: when the owner hears the attacker coming, its reaction starts when the attack starts, and it defends as aware.
+
+**Per-round limits (AT50, AT51, AT74; stage 2)**
+- Counted per round, ROUND\_S the lever: every defence after the first within a round takes the outnumbered modifier; Counter and a parry's strike-back once a round. Gut Feeling rolls once every HUNCH\_EVERY\_ROUNDS (20). Perk marks that lasted "the next turn" (Leg Bolt's slow, Make Them Stumble, Dirt in the Eyes) last 2 rounds.
+
+**The world clock (AT56, AT65 to AT71, AT61, AT63, AT66; stage 3)**
+- One loop for every span of time an order covers (a turn, a walk, a rest, a trip, a night). Inside it the world steps: one round while a fight is going on anywhere; elsewhere everyone catches up every WORLD\_STEP\_S (60 s); actors near the player, fighting or hunting are stepped one by one, the rest jump ahead as the night does.
+- **The coming-near check (AT67, AT68).** For every actor, run on what it perceives now, people outside its band only, hostility never used. It fires at the first of: contact (an attack aimed at it, words to it, a touch, a noise at WAKE\_NOISE or louder); closing (someone whose visible path ends at it, or who closes faster than RUSH\_SHARE (1.5) × their kind's walk, once their time to reach it is WARN\_S or less); a change (someone already accepted starts closing, readies a weapon, or is seen sneaking). Time to reach = (distance − STRIKE\_M) ÷ closing speed; WARN\_S = READY\_S for the posture (lying 3, sitting 2, standing 1) + DECIDE\_S (3). Accepted: everyone perceived at the start and everyone listed at a stop the actor carries on past; they fire again only on contact or a change, and stop being accepted when out of the senses or more than REARM\_FACTOR (2) × their trigger distance away. Seeing a path needs the person made out clearly. Steps are at most half the shortest time anyone perceived needs to trigger, between STEP\_MIN\_S (3) and STEP\_MAX\_S (60); noticing is rolled per second.
+- **Pause or break (AT65).** The clock pauses and gives the player the turn on the coming-near check, a fight the player can see or hear, and someone seen going down, yielding or running. The action is broken only if its focus says so; otherwise it carries on (AT17). Deep breaks on any stop and on anyone not accepted coming within STRIKE\_M. A companion's words to a resting player pause it but never break it; anyone else's break it (AT69). Sleeping alone gives no warning until the sleeper wakes (AT71). What stops the clock is one rule for everyone (AT70; a player setting is parked as D-246).
+- **Nothing hidden (AT61).** Fight turns start only from what the player perceives (attacked, or seeing or hearing a fight or a foe closing in); threatHere goes everywhere; asleep, the player notices only what would wake them.
+- **Agent NPCs in a stretch (AT63).** Their Planner order covers the first step; then they run on code until the clock stops, and their next call is told what happened meanwhile. Unique NPCs follow their goals on code, not routines.
+- **Unseen fights (AT55).** A fight the player can't perceive runs on code rules every step, with no Planner calls.
+- **Walks off the road (AT24)** are trips too; their encounter odds are parked (D-245).
+- **Build notes (AT66).** Timers count elapsed time at every step; engaged or hunting NPCs follow their fallback orders on coarse steps; scenario endings, leaving the ground, free-roam starts and reach and find quest goals are checked at every step, and a scenario break stops the clock; what the player is told is one summary of time spent, distance, why it stopped and what they perceived, never anything else.
+- **Sight (AT81).** Someone sneaking or hidden is noticed only on a won detection roll (sight or hearing function against stealth); someone not hiding is seen within their visibility's reach with a clear line of sight, no roll; the sight skill doesn't stretch that reach.
+
+**Timers (AT15, AT30 to AT43, AT72 to AT77, AT80, AT83, AT84; stage 1)**
+- In game time: an engagement ends after ENGAGEMENT\_END = the longest attack or reload time in the Action times table + one round (33 s today), with no blow and no closing in (AT72); a chase is lost after CHASE\_LOST\_S (60 s) (AT31); belief decay is two levers, aware to suspicious after DECAY\_AWARE\_S (120 s) and suspicious to unaware after DECAY\_SUSPICIOUS\_S (900 s) with no new sight or sound, never while hunting or engaged, and only the alertness fades (AT73, AT80; an alarm stands down after DECAY\_AWARE\_S with no new alarm); an NPC stays where its own agent put it AGENT\_STAY\_S (180 s) (AT33); a guide waits LEAD\_WAIT\_S (90 s) (AT34); an essence offer waits ESSENCE\_OFFER\_ROUNDS (200 rounds, 10 min) or until a new scenario (AT75).
+- Still in turns, since they pace the player's decisions: STALL\_TURNS (never counting a turn in a fight, AT76), CHECKIN\_GAP\_TURNS, ROAM\_MIN\_TURNS, Weaver beats (AT39 to AT41), and the bookkeeping counts (AT43). ASLEEP\_AUTO\_TURNS goes with the world clock, when a night runs as one stretch (AT42; stage 3).
+- **How timers count (built).** Every stamp stays a turn number; the game keeps the clock time each recent turn ended (TURN\_ENDS\_KEPT, 500) and a timer reads the game seconds since its stamp (time.ts secondsSince). Tracking fades like aware, as before (a gap: the AT80 card said it never fades).
+- **Scenario budgets in game time (AT83, AT84).** Moment 12 min (1 place), situation 40 min (2 places), episode 2 h (4 places), journey 3 days (8 places, new), venture 7 days (any number of places). Fights count like any other time; a long action uses the budget by its real length. A place is one location the Weaver builds (a tavern, a farmstead, a stretch of road), made of zones.
+
+**What the player sees (AT11a, AT49; stage 4)**
+- The Play screen shows what each perceived character is doing: done, or the time left. An active move order shows with its goal and time left. Only what the player perceives; seconds and minutes only.
 
 ### Game state model
 

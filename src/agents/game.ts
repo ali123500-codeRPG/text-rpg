@@ -558,7 +558,7 @@ export function createGame(deps: GameDeps): Game {
         return say([
           `Essences: ${held.length} of ${engine.essenceSlots(s.player)} slots.`,
           ...held.map((e, i) => `${i + 1}. ${engine.essenceText(e, skillName)}`),
-          ...(offers.length ? ['On offer:', ...offers.map((o, i) => `${i + 1}. ${engine.essenceText(o, skillName)}, until turn ${o.until}`)] : ['Nothing on offer.']),
+          ...(offers.length ? ['On offer:', ...offers.map((o, i) => `${i + 1}. ${engine.essenceText(o, skillName)}, for ${durationText(Math.max(0, o.untilMin - now(s)))} more`)] : ['Nothing on offer.']),
           'Type /essence take 1 (with every slot full: /essence take 1 give 2), /essence pass 1, /essence give 1 to a name, /essence sell 1 to a name, or /essence remove 1 (at rest; costs one level of XP).',
         ].join('\n'));
       }

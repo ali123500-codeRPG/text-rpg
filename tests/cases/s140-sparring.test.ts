@@ -16,6 +16,8 @@ import { buildActorView, buildPlayerView } from '../../src/views';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import type { TurnInput } from '../../src/engine';
+import { ago, tick, turnsFor } from '../harness/time';
+import { engagementEndS } from '../../src/ruleset/actionTime';
 
 const critical = () => CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1] as number;
 const village = () => {
@@ -152,7 +154,7 @@ describe('140 sparring', () => {
   it('SP7: a spar ends on a scenario break, or when no blow lands between sides for a while', () => {
     const s = village();
     startSpar(s, [['player'], ['patron_1']], false, 'test');
-    s.turn += CONFIG.ENGAGEMENT_END_TURNS;
+    tick(s, engagementEndS());
     updateSpars(s, []);
     expect(s.log.find((l) => l.code === 'spar_ended')?.detail).toMatchObject({ cause: 'quiet' });
     startSpar(s, [['player'], ['patron_1']], false, 'test');

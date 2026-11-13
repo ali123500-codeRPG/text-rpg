@@ -95,7 +95,6 @@ export function endingHeld(state: GameState, events: GameEvent[]): string | null
 /** After each turn: check the scenario's endings (the outer scenario's too), and end the scenario on the first clear turn. */
 export function checkScenarioEnd(state: GameState, events: GameEvent[]): void {
   const st = state.stage;
-  for (const f of [st.scenario, st.outer]) if (f && isEngaged(state, state.player)) f.fightTurns = (f.fightTurns ?? 0) + 1; // SC2: fights don't use the budget
   for (const f of [st.scenario, st.outer]) for (const e of f?.endings ?? []) {
     if (e.when.kind === 'leave' && playerIn(state, e.when.place) && !f!.beenIn?.includes(e.when.place)) (f!.beenIn ??= []).push(e.when.place);
   }
@@ -122,12 +121,10 @@ export function checkScenarioEnd(state: GameState, events: GameEvent[]): void {
   endScenario(state, st.ending.as, st.ending.text, st.ending.outer, st.ending.roam);
 }
 
-/** SC2/SC12: how much of its budget the scenario has used (1 = all of it); turns spent fighting don't count */
+/** SC2/SC12/AT83: how much of its budget the scenario has used (1 = all of it), in game time */
 export function budgetUsed(state: GameState, f: ScenarioFrame): number {
   const c = CONFIG.SCENARIO_SCALE[f.scale];
-  if (c?.budgetTurns) return Math.max(0, state.turn - f.startTurn - (f.fightTurns ?? 0)) / c.budgetTurns;
-  if (c?.budgetDays) return (now(state) - f.startMinute) / (c.budgetDays * 24 * 60);
-  return 0;
+  return c?.budgetMin ? Math.max(0, now(state) - f.startMinute) / c.budgetMin : 0;
 }
 
 /** SC8: may a check-in be asked now (at most CHECKIN_MAX_PER_SCENARIO, CHECKIN_GAP_TURNS apart; /stuck skips both) */

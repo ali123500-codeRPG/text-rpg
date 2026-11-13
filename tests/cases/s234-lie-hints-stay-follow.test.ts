@@ -12,6 +12,7 @@ import { companions } from '../../src/engine/travel';
 import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { act, plannerOut, play } from './w4-kit';
+import { ago, tick, turnsFor } from '../harness/time';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const lie = (gap: number, push: object) => ({ push: { type: 'deceive', ...push }, contest: { a: { tier: 'success' }, gap } }) as unknown as GameEvent;
@@ -37,7 +38,7 @@ it('BF11: a place its own agent chose holds before the routine takes it back', (
   play(s, { agentOutputs: [plannerOut(m.id, act('move', 'street_door'))] });
   m.mind!.control = 'code';
   expect(m.zone).toBe('street_door');
-  for (let i = 0; i < CONFIG.AGENT_STAY_TURNS; i++) { play(s); expect(m.zone).toBe('street_door'); }
+  for (let i = 0; i < turnsFor(CONFIG.AGENT_STAY_S, 60); i++) { play(s); expect(m.zone).toBe('street_door'); }
   play(s);
   expect(staying(s, m)).toBe(false); // from here its routine leads again
 });

@@ -114,6 +114,8 @@ export type Belief = {
   closedTurn?: number;
   /** CH7: the turn a chase after this actor was lost; the chaser goes back to its routine until it sees or hears them again */
   lostTurn?: number;
+  /** AT73/AT80: game minutes its last fade step fell due (perception applyBeliefDecay) */
+  fadedAt?: number;
   revealed: string[]; // e.g. 'has_crossbow', 'item:<instanceId>' for revealed concealed items
 };
 

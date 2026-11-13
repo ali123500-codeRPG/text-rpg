@@ -15,7 +15,8 @@ import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
 import { IT } from '../../src/library/itemIds';
-import { BK } from '../../src/library/tableIds';
+import { BK, DU } from '../../src/library/tableIds';
+import { getLibrary } from '../../src/library';
 import { BT } from '../../src/library/raceIds';
 import { checkIntent, checkStagePlan } from '../../src/agents/schema';
 import { validateStagePlan } from '../../src/scenario/validate';
@@ -46,17 +47,19 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     const s = quiet();
     s.player.core.skills[SK.thievery] = { raw: 40, state: 'normal' };
     expect(fnRoller(s, s.player, FN.lockpicking)).toBe(SK.thievery);
-    expect(pickSeconds(50)).toBe(CONFIG.PICK_SECONDS_AT_50);
-    expect(pickSeconds(75)).toBe(CONFIG.PICK_SECONDS_AT_50 / 2);
-    expect(pickSeconds(25)).toBe(CONFIG.PICK_SECONDS_AT_50 * 2);
+    expect(pickSeconds(50)).toBe(60);
+    expect(pickSeconds(75)).toBe(30);
+    expect(pickSeconds(25)).toBe(120);
   });
   it('scaling: picking time keeps halving per 25 points past 100, and a cap would stop it', () => {
     makeVillage();
     expect(pickSeconds(100)).toBe(15);
     expect(pickSeconds(150)).toBe(3.75);
     expect(pickSeconds(200)).toBe(0.9375);
-    CONFIG.PICK_FAST_CAP = 100;
+    const speed = getLibrary().durations![DU.pick_lock].speed!; // the row's speed function carries the cap
+    speed.fastCap = 100;
     expect(pickSeconds(200)).toBe(15);
+    speed.fastCap = null;
   });
   it('a locked door stops a walker without its key: trying it shows it locked', () => {
     const s = quiet();

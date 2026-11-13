@@ -7,6 +7,7 @@ import { ideas } from '../../src/ui/play';
 import { moraleHint } from '../../src/ui/charsheet';
 import { CONFIG } from '../../src/config';
 import { MORALE_LEVELS } from '../../src/scales';
+import { engagementEndS } from '../../src/ruleset/actionTime';
 
 describe('morale stakes and a broken nerve on the play screen', () => {
   it('the stakes line starts at MORALE_HINT_FROM, names the roll penalty, and says what Broken stops and how it passes', () => {
@@ -14,7 +15,7 @@ describe('morale stakes and a broken nerve on the play screen', () => {
     for (const k of MORALE_LEVELS.keys) expect(moraleHint(k) === null).toBe(MORALE_LEVELS.pos(k) < from);
     expect(moraleHint('terrified')).toMatch(/^−10 on every roll\. If your nerve breaks: you won't be able to attack\.$/);
     expect(moraleHint('panicking')).toMatch(/^−15 on every roll\. One more fright and your nerve breaks/);
-    expect(moraleHint('broken')).toContain(`no one has fought you for ${CONFIG.ENGAGEMENT_END_TURNS} turns`);
+    expect(moraleHint('broken')).toContain(`no one has fought you for ${engagementEndS()} s`);
     expect(moraleHint('broken')).toContain('You can still flee, yield, hide');
   });
 

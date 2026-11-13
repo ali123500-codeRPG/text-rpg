@@ -9,6 +9,8 @@ import { CONFIG } from '../../src/config';
 import { fightingWith, noteFighting, updateEngagements } from '../../src/engine/engagement';
 import { answerYield, playerYields, together } from '../../src/engine/yield';
 import { hostile } from '../../src/engine/relations';
+import { ago, tick, turnsFor } from '../harness/time';
+import { engagementEndS } from '../../src/ruleset/actionTime';
 
 const belief = (status: 'tracking' | 'engaged', zone: string, turn: number) =>
   ({ status, lastKnownZone: zone, lastSeenTurn: turn, ...(status === 'engaged' ? { closedTurn: turn } : {}), source: 'seen' as const, revealed: [] });
@@ -68,8 +70,8 @@ describe('169 who counts as fighting you', () => {
     expect(s.player.engagement?.kinds).toContain('fight');
     s.player.zone = 'tav_common'; // the player walks off; the slime keeps to the field
     let turns = 0;
-    while (s.player.engagement && turns < 10) { s.turn += 1; turns++; noteFighting(s, []); updateEngagements(s, []); }
-    expect(turns).toBe(CONFIG.ENGAGEMENT_END_TURNS);
+    while (s.player.engagement && turns < 20) { tick(s); turns++; noteFighting(s, []); updateEngagements(s, []); }
+    expect(turns).toBe(turnsFor(engagementEndS()));
     expect(slime.mind!.knowledge.player.status).toBe('tracking');
     expect(hostile(s, slime, s.player)).toBe(true);
   });

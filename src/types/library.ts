@@ -269,9 +269,34 @@ export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree>. */
-/** How long an action takes on the game clock (T1). `orders` lists the order types the row covers;
- * the action row (DU in src/library/tableIds.ts) is the default; the fight turn row is every turn of a fight; the sleep row is one sleep. */
-export type DurationDef = { id: string; name: string; minutes: number; orders?: string[] };
+/** The Action times table (T1, AT1, AT11, AT12): how long an action takes, in seconds at a time factor of 1 (a skill-50
+ * professional). `orders` lists the order types a row covers today; the action row (DU in src/library/tableIds.ts) is
+ * the default turn outside a fight until turns last as long as their order; the sleep row is one sleep. Unset fields
+ * read as: no movement lock, focus reflex, stop any, output end, broken off = lost. */
+export type DurationDef = {
+  id: string; name: string; seconds: number; orders?: string[];
+  /** the seconds are per word said (talking) */
+  perWord?: boolean;
+  /** AT19: the action takes the same seconds from move time */
+  locksMove?: boolean;
+  /** AT25/AT57: what breaks it from outside (FOCUS key) */
+  focus?: import('../scales').FocusKey;
+  /** AT26/AT57: whether the actor may choose to stop: any, never, or not past `stopShare` of its progress */
+  stop?: import('../scales').StopKey; stopShare?: number;
+  /** AT27: what it gives: all at the end, in proportion, or points along the way (OUTPUTS key) */
+  output?: import('../scales').OutputKey;
+  /** AT6/AT28: what is left when broken off, by progress band: each band runs up to `upTo` (a share, 0-1), lowest first */
+  onBreak?: readonly { readonly upTo: number; readonly then: import('../scales').BreakKey; readonly misfire?: string }[];
+  /** D-248 backbone: the function whose effective skill speeds it: halved every `halving` points above 50, doubled every
+   * `halving` below (no faster past `fastCap`) */
+  speed?: { fn: string; halving: number; fastCap?: number | null };
+  /** AT72: a reload row names the shot it readies; the two together are one attack cycle */
+  readies?: string;
+  /** an attack row (the slowest attack cycle sets ENGAGEMENT_END) */
+  attack?: boolean;
+  /** AT11: done without help it takes this many times as long (heavy armour) */
+  aloneMult?: number;
+};
 
 /** A healing source (H1/H12): what it restores, the worst part state it can heal (`reach`, a
  * PART_STATES key), whether it works in a fight, and what it needs (a place kind; an item names its source with

@@ -8,6 +8,8 @@ import { play } from '../cases/w4-kit';
 import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
 import { TURN_CHECK, TURN_RULES, checkTurn, snapTurn } from '../../src/save/turnCheck';
+import { ago, tick, turnsFor } from '../harness/time';
+import { engagementEndS } from '../../src/ruleset/actionTime';
 
 const fake = vi.hoisted(() => ({ heard: null as null | { speaker: string; text: string; volume: 'normal' }, dropPronouns: false }));
 vi.mock('../../src/views', async (orig) => {
@@ -74,14 +76,16 @@ describe('turn checker (TQ1)', () => {
     expect(rules(s, [ev(s, { id: 'x' }), ev(s, { id: 'x' })])).toContain('event_refs');
   });
 
-  it('fight_ends: an engagement or a hunt nothing renewed for ENGAGEMENT_END_TURNS turns', () => {
+  it('fight_ends: an engagement or a hunt nothing renewed for ENGAGEMENT_END', () => {
     const s = makeVillage();
     s.turn = 10;
     const p = s.actors.find((a) => a.id === 'patron_1')!;
-    p.engagement = { start: 1, last: 10 - CONFIG.ENGAGEMENT_END_TURNS, kinds: ['fight'] };
+    p.engagement = { start: 1, last: 5, kinds: ['fight'] };
+    ago(s, 5, engagementEndS());
     expect(rules(s)).toContain('fight_ends');
     delete p.engagement;
-    p.mind!.knowledge.player = { status: 'engaged', source: 'seen', revealed: [], closedTurn: 9 - CONFIG.ENGAGEMENT_END_TURNS };
+    p.mind!.knowledge.player = { status: 'engaged', source: 'seen', revealed: [], closedTurn: 4 };
+    ago(s, 4, engagementEndS());
     expect(rules(s)).toContain('fight_ends');
   });
 
@@ -139,7 +143,8 @@ describe('turn checker (TQ1)', () => {
   it('fight_ends: a hunt left open is caught like an engagement; real_zone: stage zones must exist', () => {
     const s = makeVillage();
     s.turn = 10;
-    s.actors.find((a) => a.id === 'patron_1')!.mind!.knowledge.player = { status: 'hunting', source: 'seen', revealed: [], closedTurn: 9 - CONFIG.ENGAGEMENT_END_TURNS };
+    s.actors.find((a) => a.id === 'patron_1')!.mind!.knowledge.player = { status: 'hunting', source: 'seen', revealed: [], closedTurn: 4 };
+    ago(s, 4, engagementEndS());
     expect(rules(s)).toContain('fight_ends');
     const t = makeVillage();
     t.stage.zoneIds.push('nowhere');

@@ -1,7 +1,7 @@
 // Engagement (Part 2, Encounter modes, E1). An engagement is one encounter from an actor's point of
 // view: a fight, a spar, a negotiation, or any of them. It starts when another actor is engaged with it in a fight (one of the two is
 // hostile to the other and the two are engaged, YD6) or in talk (one speaks to the other). It ends once
-// nothing has engaged it, either way, for ENGAGEMENT_END_TURNS turns in a row. Talk turning into a fight (or back)
+// nothing has engaged it, either way, for ENGAGEMENT_END (engagementEndS) in a row. Talk turning into a fight (or back)
 // stays one engagement, so once-per-engagement effects and the end-of-engagement improvement rolls happen once.
 import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
@@ -11,6 +11,8 @@ import { distM } from './position';
 import { calm } from './heal';
 import { CP } from '../library/tableIds';
 import { yieldAllTaken } from './yield';
+import { secondsSince } from '../time';
+import { engagementEndS } from '../ruleset/actionTime';
 
 /** YD6: either of the two holds the other at the top awareness state, engaged (they traded blows, or one struck the other's side) */
 export function engagedPair(a: Actor, b: Actor): boolean {
@@ -34,7 +36,7 @@ function press(state: GameState, a: Actor, b: Actor, status: 'hunting' | 'engage
 
 /** YD6 each turn, after the blows and moves: a real (not sparring) blow engages attacker and target, and the target's
  * bandmates who saw or heard it, once they know who struck. A hostile that knows where someone is and moves closer is hunting
- * them (or stays engaged). Hunting and engaged drop to tracking after ENGAGEMENT_END_TURNS turns in which neither of the
+ * them (or stays engaged). Hunting and engaged drop to tracking after ENGAGEMENT_END in which neither of the
  * two attacked or closed in on the other (BG-5: a fight you walked away from ends). */
 export function noteFighting(state: GameState, events: GameEvent[]): void {
   for (const e of events) {
@@ -62,7 +64,7 @@ export function noteFighting(state: GameState, events: GameEvent[]): void {
     }
   }
   for (const a of allActors(state)) for (const [id, b] of Object.entries(a.mind?.knowledge ?? {})) {
-    if (atLeast(b.status, 'hunting') && state.turn - fightRenewed(state, a, id) >= CONFIG.ENGAGEMENT_END_TURNS) b.status = 'tracking';
+    if (atLeast(b.status, 'hunting') && secondsSince(state, fightRenewed(state, a, id)) >= engagementEndS()) b.status = 'tracking';
   }
 }
 
@@ -129,7 +131,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
         e.last = state.turn;
         for (const k of kinds) if (!e.kinds.includes(k)) e.kinds.push(k);
       }
-    } else if (e && (brk || (yielded && a === state.player) || state.turn - e.last >= CONFIG.ENGAGEMENT_END_TURNS)) {
+    } else if (e && (brk || (yielded && a === state.player) || secondsSince(state, e.last) >= engagementEndS())) {
       delete a.engagement;
       delete a.haggle; // PY6: haggled prices last until the engagement ends
       delete a.pressure; // OQ-29: Shaken and Swayed last until the engagement ends

@@ -37,7 +37,7 @@ describe('149 the player yields', () => {
     expect(hostile(s, actor(s, 'patron_1'), s.player)).toBe(false);
     play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }) });
     expect(codes(s)).toContain('yield_no_attack'); // still barred
-    for (let i = 0; i < CONFIG.ENGAGEMENT_END_TURNS && !s.log.some((l) => l.code === 'engagement_ended' && l.detail?.actorId === 'player'); i++) play(s, { intent: intent({}) });
+    for (let i = 0; i < 20 && !s.log.some((l) => l.code === 'engagement_ended' && l.detail?.actorId === 'player'); i++) play(s, { intent: intent({}) });
     expect(tally(s, 'defeated')).toBe(1); // MB42: the fight ended, lost
   });
 

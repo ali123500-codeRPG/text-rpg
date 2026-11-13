@@ -4,6 +4,7 @@ import { makeVillage, actor, place, createRng, byDoor } from '../harness';
 import { applyBeliefDecay, computePerception, updateBeliefs } from '../../src/perception';
 import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
+import { tick } from '../harness/time';
 
 let n = 0;
 const ev = (e: Partial<GameEvent> & Pick<GameEvent, 'actorId' | 'kind' | 'zone'>): GameEvent =>
@@ -132,19 +133,33 @@ describe('updateBeliefs', () => {
 });
 
 describe('applyBeliefDecay', () => {
-  it('steps down one level per DECAY_TURNS past lastSeenTurn', () => {
+  const status = (s: GameState) => actor(s, 'trader').mind!.knowledge.slime_1.status;
+  it('AT73/AT80: aware (or tracking) steps down after DECAY_AWARE_S, suspicious after DECAY_SUSPICIOUS_S more', () => {
     const s = makeVillage();
-    const D = CONFIG.DECAY_TURNS;
-    actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'tracking', lastSeenTurn: 0, source: 'seen', revealed: [] };
-    const seq: string[] = [];
-    for (let t = 1; t <= 2 * D + 1; t++) {
-      s.turn = t;
-      applyBeliefDecay(s);
-      seq.push(actor(s, 'trader').mind!.knowledge.slime_1.status);
-    }
-    expect(seq[D - 1]).toBe('tracking');
-    expect(seq[D]).toBe('aware');
-    expect(seq[2 * D - 1]).toBe('aware');
-    expect(seq[2 * D]).toBe('suspicious');
+    const A = CONFIG.DECAY_AWARE_S, S = CONFIG.DECAY_SUSPICIOUS_S;
+    actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'tracking', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
+    const after = (seconds: number) => { tick(s, seconds); applyBeliefDecay(s); return status(s); };
+    expect(after(A - 1)).toBe('tracking');
+    expect(after(1)).toBe('aware');
+    expect(after(A - 1)).toBe('aware');
+    expect(after(1)).toBe('suspicious');
+    expect(after(S - 1)).toBe('suspicious');
+    expect(after(1)).toBe('unaware');
+  });
+  it('a long stretch steps down as far as its time reaches, and a new sign restarts the wait', () => {
+    const s = makeVillage();
+    const A = CONFIG.DECAY_AWARE_S, S = CONFIG.DECAY_SUSPICIOUS_S;
+    const b = (actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'aware', lastSeenTurn: s.turn, source: 'seen', revealed: [] });
+    tick(s, A);
+    applyBeliefDecay(s);
+    expect(status(s)).toBe('suspicious');
+    b.status = 'aware';
+    b.lastSeenTurn = s.turn; // seen again
+    tick(s, A - 1);
+    applyBeliefDecay(s);
+    expect(status(s)).toBe('aware');
+    tick(s, 1 + S);
+    applyBeliefDecay(s);
+    expect(status(s)).toBe('unaware');
   });
 });

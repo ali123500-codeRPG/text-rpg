@@ -11,6 +11,7 @@ import { trueSkill } from '../../src/ruleset/perks';
 import { essenceSlots, expireOffers, offerAtEnding, qualityRoll, offersFromDefeats, passEssence, removeEssence, takeEssence } from '../../src/engine/essence';
 import { frameOf } from '../../src/engine/scenarioEnd';
 import { xpToNext } from '../../src/engine/xp';
+import { now } from '../../src/time';
 
 /** a die that shows the listed d100s in turn (then the last), and picks the first row */
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
@@ -43,7 +44,7 @@ describe('207 essences', () => {
     offersFromDefeats(s, [foe], dice(1, 100)); // appears on 1, quality 100
     expect(offers(s)).toHaveLength(1);
     const o = offers(s)[0];
-    expect(o).toMatchObject({ essence: ES.gel_patience, grade: 'rare', source: 'foe', until: s.turn + CONFIG.ESSENCE_OFFER_TURNS });
+    expect(o).toMatchObject({ essence: ES.gel_patience, grade: 'rare', source: 'foe', untilMin: now(s) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 });
     // source skill = (60 × 2 + 30 × tremor tier × 1) ÷ 3, × 0.07 × 2.5, split 2 : 1
     const total = Object.values(o.points).reduce((n, v) => n + v, 0);
     expect(total).toBeGreaterThan(0);
@@ -56,8 +57,8 @@ describe('207 essences', () => {
     const s = makeVillage(), p = s.player, pr = p.progression!;
     const before = trueSkill(p, SK.dodge);
     pr.essenceOffers = [
-      { essence: ES.street_instinct, grade: 'common', points: { [SK.dodge]: 3 }, turn: s.turn, source: 'foe', until: s.turn + 5 },
-      { essence: ES.gate_habit, grade: 'fine', points: { [SK.block]: 4 }, turn: s.turn, source: 'foe', until: s.turn + 5 },
+      { essence: ES.street_instinct, grade: 'common', points: { [SK.dodge]: 3 }, turn: s.turn, source: 'foe', untilMin: now(s) + 5 },
+      { essence: ES.gate_habit, grade: 'fine', points: { [SK.block]: 4 }, turn: s.turn, source: 'foe', untilMin: now(s) + 5 },
     ];
     expect(takeEssence(s, 0, true)).toBeNull();
     expect(trueSkill(p, SK.dodge)).toBe(before + 3);
@@ -89,12 +90,12 @@ describe('207 essences', () => {
     expect(offers(s)).toHaveLength(2); // Success endings don't offer
   });
 
-  it('offers lapse after their last turn, or when a new scenario starts; passing drops one', () => {
+  it('offers lapse after their time, or when a new scenario starts; passing drops one', () => {
     const s = makeVillage(), pr = s.player.progression!;
     pr.essenceOffers = [
-      { essence: ES.gate_habit, grade: 'common', points: { [SK.block]: 2 }, turn: s.turn - 1, source: 'foe', until: s.turn + 3 },
-      { essence: ES.gate_habit, grade: 'common', points: { [SK.block]: 2 }, turn: s.turn, source: 'foe', until: s.turn + 3 },
-      { essence: ES.gate_habit, grade: 'common', points: { [SK.block]: 2 }, turn: s.turn - 9, source: 'foe', until: s.turn - 1 },
+      { essence: ES.gate_habit, grade: 'common', points: { [SK.block]: 2 }, turn: s.turn - 1, source: 'foe', untilMin: now(s) + 3 },
+      { essence: ES.gate_habit, grade: 'common', points: { [SK.block]: 2 }, turn: s.turn, source: 'foe', untilMin: now(s) + 3 },
+      { essence: ES.gate_habit, grade: 'common', points: { [SK.block]: 2 }, turn: s.turn - 9, source: 'foe', untilMin: now(s) - 1 },
     ];
     expireOffers(s);
     expect(pr.essenceOffers).toHaveLength(2);

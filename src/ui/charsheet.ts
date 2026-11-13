@@ -20,6 +20,7 @@ import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
+import { engagementEndS } from '../ruleset/actionTime';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -288,7 +289,7 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
 /** MB12 in plain words, one source for the sheet, the story card and the input's chips: how a broken nerve passes
  * (the engagement ending gives morale back, rest too) and what still works while it lasts */
 export const NERVE_UNTIL = "You can't attack until the fight is behind you.";
-export const NERVE_PASSES = () => `That is once no one has fought you for ${CONFIG.ENGAGEMENT_END_TURNS} turns, your yield is taken, this scenario ends, or you rest.`;
+export const NERVE_PASSES = () => `That is once no one has fought you for ${engagementEndS()} s, your yield is taken, this scenario ends, or you rest.`;
 export const NERVE_STILL = 'You can still flee, yield, hide, talk or use a bandage.';
 const moraleRoll = (k: string) => CONFIG.MORALE_TRACK.find(([x]) => x === k)?.[2] ?? 0;
 /** the stakes line under the morale bar, from CONFIG.MORALE_HINT_FROM down; null above it */

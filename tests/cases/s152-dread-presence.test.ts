@@ -17,6 +17,8 @@ import { updateEngagements } from '../../src/engine/engagement';
 import { CONFIG } from '../../src/config';
 import type { Actor, GameState } from '../../src/types';
 import { play } from './w4-kit';
+import { ago, tick, turnsFor } from '../harness/time';
+import { engagementEndS } from '../../src/ruleset/actionTime';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -78,8 +80,8 @@ describe('152 Dread Presence', () => {
   it('checks again in a new engagement', () => {
     const { s, t } = setup();
     run(s, [95, 5]);
-    t.engagement = { start: 0, last: 0, kinds: ['fight'] };
-    s.turn += CONFIG.ENGAGEMENT_END_TURNS;
+    t.engagement = { start: 0, last: s.turn, kinds: ['fight'] };
+    tick(s, engagementEndS());
     updateEngagements(s, []);
     expect(t.auraChecks).toBeUndefined();
     expect(run(s, [95, 5])).toHaveLength(1);

@@ -135,7 +135,8 @@ const DEFAULTS = {
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
   AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)
-  ENGAGEMENT_END_TURNS: 3, // E1: an engagement ends after this many turns with no one engaged with the actor; YD6: hunting and engaged drop to tracking after this many turns with no blow or closing in
+  // E1/YD6/AT72: an engagement ends, and hunting and engaged drop to tracking, after ENGAGEMENT_END with no blow or closing in:
+  // worked out from the Action times table (ruleset/actionTime engagementEndS: the slowest attack cycle + one round)
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
@@ -228,7 +229,14 @@ const DEFAULTS = {
   /** the sheet's morale bar spells out the stakes (roll penalty, what Broken stops) from this level down */
   MORALE_HINT_FROM: 'terrified',
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
-  // ---- game clock (T1-T8); durations per action are the library's durations table ----
+  // ---- game clock (T1-T8); how long each action takes is the library's Action times table (durations) ----
+  /** AT35/AT74: the round, one exchange of blows: the one lever for short durations (perk marks, per-round limits). A code
+   * ID only: the game never names it, it shows seconds */
+  ROUND_S: 3,
+  /** AE12/AT13: the most a fight turn lasts, in seconds */
+  FIGHT_TURN_S: 6,
+  /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
+  ARMOR_ALONE_MULT: 2,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
   SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
   // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN, ASLEEP_AUTO_TURNS
@@ -291,6 +299,7 @@ const DEFAULTS = {
   TURN_RECORDS_KEPT: 20, // N, Q2
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2
+  TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
   SCHEMA_VERSION: 7, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key
@@ -312,14 +321,16 @@ const DEFAULTS = {
   /** EQ11: a minted item of this quality or better is one equip level above its base */
   QUALITY_LEVEL_UP_FROM: 'quality_3' as QualityKey,
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scenario
-  /** SC2 levers per scenario scale (placeholders), keyed by SCENARIO_SCALES key: the turn budget (fight turns excluded) or, for
-   * the biggest, a budget in game days; and how many places a plan of that scale may hold (code raises the scale to fit) */
+  /** SC2/AT83/AT84 levers per scenario scale (placeholders), keyed by SCENARIO_SCALES key: the budget in game minutes (fights
+   * count like any other time; a long action uses it by its real length) and how many places a plan of that scale may hold
+   * (code raises the scale to fit). A place is one location the Weaver builds (a tavern, a farmstead, a stretch of road) */
   SCENARIO_SCALE: {
-    moment: { budgetTurns: 12, places: 1 },
-    situation: { budgetTurns: 40, places: 2 },
-    episode: { budgetTurns: 120, places: 4 },
-    venture: { budgetDays: 3, places: Infinity },
-  } as Record<string, { budgetTurns?: number; budgetDays?: number; places: number }>,
+    moment: { budgetMin: 12, places: 1 },
+    situation: { budgetMin: 40, places: 2 },
+    episode: { budgetMin: 2 * 60, places: 4 },
+    journey: { budgetMin: 3 * 24 * 60, places: 8 },
+    venture: { budgetMin: 7 * 24 * 60, places: Infinity },
+  } as Record<string, { budgetMin: number; places: number }>,
   /** SC4: scales from this one up hold smaller scenarios inside them, one level deep */
   SCENARIO_HOLDS_FROM: 'episode',
   /** SC7: how many endings a scenario plan lists */
@@ -339,8 +350,8 @@ const DEFAULTS = {
   /** FR1 b (placeholder): a calm start (talk, trade, a quest goal reached) starts a scenario only once free roam has lasted this
    * many turns; danger (an attack, a hostile spotting the player), road encounters and unbuilt frontiers never wait */
   ROAM_MIN_TURNS: 5,
-  /** BF4 (placeholder): turns an NPC that led someone somewhere (head_to with lead) waits there for them before going back to its routine */
-  LEAD_WAIT_TURNS: 2,
+  /** BF4/AT34 (placeholder): game seconds an NPC that led someone somewhere (head_to with lead) waits there for them before going back to its routine */
+  LEAD_WAIT_S: 90,
   /** D-226 (LF3): while a scenario runs, the player's achievements and All-XXX steps wait for the scenario's end and are
    * granted there together (one gains summary for the ending moment); in free roam they come at once. false: at once always */
   GROWTH_AT_SCENARIO_END: true,
@@ -375,8 +386,8 @@ const DEFAULTS = {
   /** EG2: room for essences = ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels (2 at 7, 3 at 14), no top */
   ESSENCE_SLOTS_BASE: 1,
   ESSENCE_SLOT_EVERY: 7,
-  /** an offer waits this many turns (or until a new scenario starts) */
-  ESSENCE_OFFER_TURNS: 10,
+  /** AT75: an offer waits this many rounds of game time (ROUND_S each: 10 min), or until a new scenario starts */
+  ESSENCE_OFFER_ROUNDS: 200,
   /** ES5 a: an essence's coin value = its points × ITEM_VALUE.skillPoint × this (its points are permanent true skill, gear's
    * only last while worn; placeholder) */
   ESSENCE_VALUE_MULT: 10,
@@ -384,8 +395,8 @@ const DEFAULTS = {
   ESSENCE_REMOVE_LEVELS: 1,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
-  /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
-  CHASE_LOST_TURNS: 3,
+  /** CH7/SC18/AT31: a chase is lost when no pursuer has seen or heard the player for this many game seconds (placeholder) */
+  CHASE_LOST_S: 60,
   /** CH5: the chase range of a code-run NPC whose band and template give none (a CHASE_RANGES key; placeholder) */
   CHASE_RANGE_DEFAULT: 'ground',
   /** ZR12: how far past the edge of the scenario's ground, by the walking path, a pursuer with chase range near follows the
@@ -443,9 +454,8 @@ const DEFAULTS = {
   FALL_LANDING_PAST_STEP: 1,
   /** BA2: a Lockpicking roll's modifier by the lock's grade (placeholders); master or magic locks would add grades past extreme */
   LOCK_GRADE_MOD: { none: 0, minor: -10, moderate: -20, major: -35, extreme: -50 } as Record<GradeLevel, number>,
-  /** BA2: seconds to pick a lock at effective skill 50 (about a minute for a common lock, placeholder), halved for every
-   * PICK_HALVING_PER points above 50 and doubled for every PICK_HALVING_PER below */
-  PICK_SECONDS_AT_50: 60,
+  /** BA2: picking a lock (the Action times pick_lock row, about a minute for a common lock at effective skill 50) is halved
+   * for every PICK_HALVING_PER points above 50 and doubled for every PICK_HALVING_PER below */
   PICK_HALVING_PER: 25,
   /** scaling: picking keeps halving forever (150: about 4 s, 200: about 1 s, so supernatural fingers open locks at a touch);
    * a number stops the halving at that skill instead */
@@ -517,8 +527,11 @@ const DEFAULTS = {
   // ---- Part 2 engine ----
   LIE_PLAIN_GAP: 2, // BF8: a lie seen through by this many tiers or more is plainly a lie; a narrower win gives the hint
   ERRAND_TURNS: 3, // BG-180: after an NPC answers someone with a deed under way, it gets Planner calls this many turns (a hold ends it)
-  AGENT_STAY_TURNS: 3, // BF11: a place an NPC's own agent moved it to holds this many turns, unless its agent decides again
-  DECAY_TURNS: 6, // Q2 (test 72 implies 6)
+  AGENT_STAY_S: 180, // BF11/AT33: a place an NPC's own agent moved it to holds this many game seconds, unless its agent decides again
+  /** AT73/AT80: with no new sight or sound, a belief steps down from aware (or tracking) after DECAY_AWARE_S game seconds, and
+   * from suspicious to unaware after DECAY_SUSPICIOUS_S more; an alarm stands down after DECAY_AWARE_S with no new alarm */
+  DECAY_AWARE_S: 120,
+  DECAY_SUSPICIOUS_S: 900,
   MAX_PLANNER_CALLS: 3, // Q2 (D-18)
   /** Claude calls the viewer runs at once (unconfirmed, the spec's "a couple"); background calls keep one free for the turn's own (Q4) */
   CALL_SLOTS: 2,

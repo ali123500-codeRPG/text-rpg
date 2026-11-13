@@ -46,8 +46,6 @@ export type ScenarioFrame = {
   upAtStart: string[]; heldAtStart: string[];
   /** places a 'leave' ending names that the player has been in this scenario (leaving needs being there first) */
   beenIn?: string[];
-  /** SC2/SC12: turns the player spent fighting, which the budget leaves out */
-  fightTurns?: number;
   /** SC8: Weaver check-ins asked so far, and the turn of the last one */
   checkins?: number; lastCheckin?: number;
   /** SC12: the check-in has been told the scenario is over its budget */

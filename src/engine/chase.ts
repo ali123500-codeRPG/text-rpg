@@ -2,7 +2,7 @@
 // scenario as left and free roam starts: no scenario runs until something starts one (CH2) or an unbuilt frontier is crossed
 // (CH3 a, in the director). A pursuer (CH4) is an active NPC hunting the player that has not broken or yielded; code-run
 // pursuers keep to their chase range (CH5), and follow through a frontier only with range far (CH6). When no pursuer has
-// seen or heard the player for CHASE_LOST_TURNS turns, the chase is lost (CH7): they drop to tracking, go back to their
+// seen or heard the player for CHASE_LOST_S seconds, the chase is lost (CH7): they drop to tracking, go back to their
 // routines and remember it (the price comes from the fiction, SC23), and off the ground the scenario ends as escaped.
 import type { Actor, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
@@ -13,6 +13,7 @@ import { pathM, wayPoint, type Located } from './position';
 import { applyMemoryOps } from './memory';
 import { logCode } from './effects';
 import { barkOnly } from '../perception';
+import { secondsSince } from '../time';
 
 /** CH7/SC23: what each pursuer remembers when the player got away (its grudge is the price) */
 export const CHASE_LOST_MEMORY = 'The player fled from me and got away.';
@@ -118,7 +119,7 @@ export function noteCrossing(state: GameState, from: string, to: string): void {
 
 /**
  * Each turn, before the scenario's endings are checked. CH6: a pursuer still hunting that reaches the zone the player crossed a
- * frontier from crosses after it. CH7: when no pursuer has seen or heard the player for CHASE_LOST_TURNS turns, the chase is
+ * frontier from crosses after it. CH7: when no pursuer has seen or heard the player for CHASE_LOST_S seconds, the chase is
  * lost: each drops to tracking, goes back to its routine and keeps a memory line; off the ground the scenario ends as escaped.
  */
 export function updateChase(state: GameState): void {
@@ -130,7 +131,7 @@ export function updateChase(state: GameState): void {
     if (a.zone === c.from && b.lastKnownZone === c.from && mayCross(state, a)) b.lastKnownZone = c.to;
   }
   const last = Math.max(...ps.map((a) => a.mind!.knowledge[p.id]!.lastSeenTurn ?? state.turn));
-  if (state.turn - last < CONFIG.CHASE_LOST_TURNS) return;
+  if (secondsSince(state, last) < CONFIG.CHASE_LOST_S) return;
   for (const a of ps) {
     const b = a.mind!.knowledge[p.id]!;
     b.status = 'tracking';

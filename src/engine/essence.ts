@@ -20,6 +20,7 @@ import { buyingPrice, coins, isSeller, orderReaches, payCoin } from './trade';
 import { gripReachM } from '../ruleset/body';
 import { withinGrip } from './position';
 import { applyMemoryOps } from './memory';
+import { now } from '../time';
 
 /** EG2: how many essences the player can hold: ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels, no top */
 export const essenceSlots = (a: Actor): number => CONFIG.ESSENCE_SLOTS_BASE + Math.floor(charLevel(a) / CONFIG.ESSENCE_SLOT_EVERY);
@@ -85,7 +86,7 @@ function offer(state: GameState, row: EssenceDef, skills: { skill: string; weigh
   source: EssenceOffer['source'], from: string, measure: (skill: string) => number): void {
   const pr = state.player.progression;
   if (!pr || !skills.length) return;
-  const o: EssenceOffer = { essence: row.id, grade: roll.grade, points: points(row, skills, roll.grade, roll.past, measure), turn: state.turn, from, source, until: state.turn + CONFIG.ESSENCE_OFFER_TURNS };
+  const o: EssenceOffer = { essence: row.id, grade: roll.grade, points: points(row, skills, roll.grade, roll.past, measure), turn: state.turn, from, source, untilMin: now(state) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 };
   (pr.essenceOffers ??= []).push(o);
   logCode(state, 'essence_offered', { essence: row.id, grade: roll.grade, source, from });
 }
@@ -127,11 +128,11 @@ export function offerAtEnding(state: GameState, f: ScenarioFrame, as: ScenarioEn
   if (row) appearAndRoll(state, rng, row, base, 'ending', 'ending', [{ skill: top[0], weight: 1 }], (sk) => trueSkill(p, sk));
 }
 
-/** offers past their last turn lapse; `before` (a new scenario's start) also drops every offer made on an earlier turn */
+/** offers past their time (untilMin, game minutes) lapse; `before` (a new scenario's start) also drops every offer made on an earlier turn */
 export function expireOffers(state: GameState, newScenario = false): void {
   const pr = state.player.progression;
   if (!pr?.essenceOffers) return;
-  pr.essenceOffers = pr.essenceOffers.filter((o) => state.turn <= o.until && (!newScenario || o.turn >= state.turn));
+  pr.essenceOffers = pr.essenceOffers.filter((o) => now(state) <= o.untilMin && (!newScenario || o.turn >= state.turn));
   if (!pr.essenceOffers.length) delete pr.essenceOffers;
 }
 
@@ -165,7 +166,7 @@ export function takeEssence(state: GameState, offerIndex: number, atRest: boolea
   }
   pr.essenceOffers!.splice(offerIndex, 1);
   if (!pr.essenceOffers!.length) delete pr.essenceOffers;
-  const { source: _s, until: _u, ...e } = o;
+  const { source: _s, untilMin: _u, ...e } = o;
   (pr.essences ??= []).push({ ...e, turn: state.turn } as HeldEssence);
   logCode(state, 'essence_taken', { essence: o.essence, grade: o.grade });
   tally(state, 'essences_taken');
@@ -201,7 +202,7 @@ function handOver(state: GameState, offerIndex: number, to: Actor, how: 'given' 
   const pr = state.player.progression!, o = pr.essenceOffers![offerIndex];
   pr.essenceOffers!.splice(offerIndex, 1);
   if (!pr.essenceOffers!.length) delete pr.essenceOffers;
-  const { source: _s, until: _u, ...e } = o;
+  const { source: _s, untilMin: _u, ...e } = o;
   const held = { ...e, turn: state.turn } as HeldEssence;
   if (hasRoom(to)) (to.progression!.essences ??= []).push(held);
   else (to.essenceStock ??= []).push(held);

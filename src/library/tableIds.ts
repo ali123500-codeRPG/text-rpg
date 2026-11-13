@@ -3,7 +3,7 @@
 // Code refers to them through these constants. Never reuse or renumber an ID.
 export const RL = { sense: 'RL1', grip: 'RL2', move: 'RL3', fly: 'RL4', strike: 'RL5', speech: 'RL6' } as const;
 /** healing sources (health); HL5 is retired (natural composure moved to the composure table, CP) */
-export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', perk: 'HL6' } as const;
+export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', perk: 'HL6', draught: 'HL7' } as const;
 /** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */
 export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5' } as const;
 /** fears: what costs (or restores) morale (MB21–MB28) */
@@ -18,7 +18,14 @@ export const PY = { prideful: 'PY1', mature: 'PY2', childish: 'PY3', honourable:
 export const TN = { unshakeable_scatterbrained: 'TN1', bold_unbacked: 'TN2', old_head: 'TN3', wary_dangerous: 'TN4', home_temptation: 'TN5', talent_undisciplined: 'TN6', crooked_means: 'TN7' } as const;
 /** linked perks: a set of perks that together grant one more perk, or merge into one (src/library/perkLinks.ts) */
 export const LK = { crushing_presence: 'LK1' } as const;
-export const DU = { fight_turn: 'DU1', action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5' } as const;
+/** the Action times table (AT11); DU1 (the fight turn) is retired: it is CONFIG.FIGHT_TURN_S */
+export const DU = {
+  action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5', blow: 'DU6', throw: 'DU7', bow_light: 'DU8', bow_medium: 'DU9', crossbow_shot: 'DU10',
+  span_light: 'DU11', span_stirrup: 'DU12', span_crossbow: 'DU13', battle_cry: 'DU14', talk: 'DU15', draw: 'DU16', stow: 'DU17', swap: 'DU18',
+  pick_up_reach: 'DU19', pick_up_ground: 'DU20', hand_over: 'DU21', door: 'DU22', bar: 'DU23', key: 'DU24', pick_lock: 'DU25', bandage: 'DU26',
+  drink: 'DU27', hide: 'DU28', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
+  armor_heavy_on: 'DU34', armor_heavy_off: 'DU35', wait: 'DU36',
+} as const;
 /** CO15 edge kinds: what a zone's side is (wall, open, low, window); a new kind is a new row */
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;

@@ -11,7 +11,7 @@ import type { AttackOutcome, ScenarioFrame, Tier,
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
-import { timeView, zoneLight, clockSet, now, timeOfDay, durationText } from '../time';
+import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
 import { seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
 import { hiddenFrom } from '../engine/gear';
@@ -716,7 +716,7 @@ function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<Weaver
   const c = CONFIG.SCENARIO_SCALE[f.scale];
   return {
     question: f.question, scale: SCENARIO_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
-    turns: state.turn - f.startTurn, budget: c?.budgetTurns ? `${c.budgetTurns} turns, fights not counted` : `${c?.budgetDays ?? '?'} days`,
+    turns: state.turn - f.startTurn, budget: c?.budgetMin ? `${spanText(c.budgetMin)} of game time` : '?',
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
     happened: (f.happened ?? []).map((h) => ({ ...h })),
     remembered: state.actors.filter((a) => state.stage.zoneIds.includes(a.zone)).flatMap((a) =>

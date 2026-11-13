@@ -11,6 +11,7 @@ import {
 } from '../../src/minds';
 import { fakeView } from './minds-view';
 import { SK } from '../../src/library/skillIds';
+import { tick } from '../harness/time';
 
 afterEach(() => resetConfig());
 
@@ -202,12 +203,13 @@ describe('alarm', () => {
     const orders = alertOrders(s, [fakeView(s, 'guard_1')]);
     expect(orders).toEqual([expect.objectContaining({ actorId: 'guard_1', type: 'call_help', source: 'onAlert' })]);
     expect(alertOrders(s, [fakeView(s, 'guard_1')])).toEqual([]);
-    s.turn = 11;
+    tick(s, 60);
     updateAlarms(s, [ev(s, 'attack', 'player', 'gate_inner', ['guard_1'])]);
     expect(alertOrders(s, [fakeView(s, 'guard_1')])).toEqual([]);
-    for (s.turn = 12; s.turn < 17; s.turn++) updateAlarms(s, []);
+    tick(s, CONFIG.DECAY_AWARE_S - 1);
+    updateAlarms(s, []);
     expect(g.mind!.routine!.id).toBe('hold_post_alert');
-    s.turn = 17;
+    tick(s, 1);
     updateAlarms(s, []);
     expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 3, at: 420 });
     expect(g.mind!.alarm!.armed).toBe(false);
