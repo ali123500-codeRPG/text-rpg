@@ -457,6 +457,13 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .dpop-head .hs-label { margin-right: auto; color: var(--pc, var(--accent)); }
 .dpop-body { overflow: auto; padding: var(--space-3) var(--space-4) var(--space-4); display: grid; gap: var(--space-3); justify-items: start; font-size: 14px; }
 .dpop-body p { margin: 0; }
+.dpop.gm-calls { width: min(620px, calc(100vw - 32px)); }
+.gm-calls .dpop-body { justify-items: stretch; }
+.gm-call { display: grid; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); min-width: 0; }
+.gm-call:last-child { border-bottom: 0; padding-bottom: 0; }
+.gm-call pre.json { max-height: 220px; overflow: auto; margin: 0; }
+.gm-people .gm-who { min-height: 0; padding: 0; }
+.gm-people .gm-agent { min-height: 0; }
 .ach-pop-n { display: flex; align-items: center; gap: var(--space-2); font-size: 16px; color: var(--pc); }
 .ach-pop-n b { color: var(--text); }
 .ach-pop-why { color: var(--text); }

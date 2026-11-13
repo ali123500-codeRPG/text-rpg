@@ -183,7 +183,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       storyId: 'fake', turn: 4, mode: 'tactical', zones: [], player, actors: [slime, guard], bands: [], events: [],
       hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
-        { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
+        { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number],
+        { turn: 3, agent: 'voice', actorId: 'guard_1', input: { view: 'DialogueView…', heard: 'block and cut back' }, output: { dialogue: { line: 'That’s one! Watch your left!' } }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
       places: FAKE_PLACES(), facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
       scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
@@ -326,6 +327,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     calls: () => n * 3 + 4,
     working: () => [],
     gm(): GmSnapshot { return { state, agentLog: state?.agentLog ?? [], log: state?.log ?? [], fallbackBanner: !!state?.stage.fallback, backups: state ? [{ turn: 0, path: 'stories/fake/backups/0' }] : [] }; },
+    // the GM pop-up's older calls: Bren's deal with the player on turn 2 and his look round on turn 1
+    async agentHistory(id) {
+      const older = id === 'guard_1' ? [
+        { turn: 2, agent: 'responder', actorId: id, input: { view: 'OppositionView…', heard: 'I’ll keep an eye out for the thief' }, output: { dialogue: { line: 'Then I’ll let you in after dark.' }, agreement: 'ag_1' }, status: 'ok', errors: [], modelTierApplied: 'complex' },
+        { turn: 1, agent: 'planner', actorId: id, input: { view: 'OppositionView…' }, output: { goal: 'keep the gate', steps: ['watch the road'] }, status: 'ok', errors: [], modelTierApplied: 'complex' },
+      ] as GameState['agentLog'] : [];
+      return [...(state?.agentLog ?? []).filter((l) => l.actorId === id), ...older].slice(0, CONFIG.GM_AGENT_CALLS_SHOWN);
+    },
     async restoreBackup() { emit(); },
     takePerk(id) { if (state) { takePerk(state, state.player, id); emit(); } },
     undoPerk(id) { if (state) { undoPerk(state, state.player, id); emit(); } },

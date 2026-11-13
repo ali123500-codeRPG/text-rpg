@@ -1646,7 +1646,7 @@ The fallback narration's form is still open (D-23). Until then, build it from th
 
 Each actor type's combat list (Fallback behavior) keeps the game playable even if every Planner call fails, and covers actors beyond the call cap.
 
-**GM debug view.** A toggle that shows full state, hidden plans, rolls, each actor's beliefs, and each agent's exact input and output for the turn. It's the fastest way to spot a leak.
+**GM debug view.** A toggle that shows full state, hidden plans, rolls, each actor's beliefs, and each agent's exact input and output for the turn. It's the fastest way to spot a leak. Its **People** table lists everyone with their exact age, who runs them (Player, Agent for mind.control agent, or Code) and the agent calls made for them this turn. Clicking a name opens a movable pop-up with that person's last GM\_AGENT\_CALLS\_SHOWN (5) agent calls, newest first: turn, agent, status, model, errors, the exact input, and the output folded under it. Older calls come from the kept turn records (TURN\_RECORDS\_KEPT), whose large inputs are trimmed (GameApi.agentHistory).
 
 ### Play screen
 
