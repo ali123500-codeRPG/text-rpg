@@ -10,10 +10,11 @@ import type { AttackOutcome, ScenarioFrame, Tier,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES } from '../scales';
+import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
 import { timeView, zoneLight, clockSet, now, timeOfDay } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
-import { sideFrom, sightDistM } from '../engine/position';
+import { seeingM, sideFrom, sightDistM } from '../engine/position';
+import { sightLevel } from '../perception/sight';
 import { chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
@@ -144,7 +145,14 @@ function seenClearly(state: GameState, viewerId: string, aboutId: string): boole
     e.actorId === aboutId && e.turn >= state.stage.scenarioStartTurn && e.perception[viewerId]?.level === 'full');
 }
 
-/** actors the viewer perceives now: in its own or a sight-linked zone; dark zones give partial. NPCs perceive the player only once aware. */
+/** ZR6: how far off a person is made out, by the sight table: someone still at low visibility; someone who did something this
+ * turn (walked, spoke, fought) at the most visible of what they did */
+const personVisibility = (a: Actor, events: GameEvent[]): VisibilityKey =>
+  events.filter((e) => e.actorId === a.id).reduce<VisibilityKey>((v, e) => (VISIBILITY.pos(e.visibility) > VISIBILITY.pos(v) ? e.visibility : v), 'low');
+
+/** actors the viewer perceives now: in its own or a sight-linked zone, made out by the sight table in metres (ZR6): full
+ * within clear sight, 'someone' within a glimpse, beyond that not at all; dark zones give partial. NPCs perceive the player
+ * only once aware. */
 function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state.events): SeenActor[] {
   if (viewer.asleep) return []; // NW12/NW20: asleep, it sees no one
   const zones = perceivedZoneIds(state, viewer.zone);
@@ -152,6 +160,8 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
   for (const a of allActors(state)) {
     if (a.id === viewer.id || !zones.includes(a.zone)) continue;
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
+    const sight = sightLevel(personVisibility(a, events), seeingM(state, viewer, a));
+    if (!sight) continue;
     // NS2/NS4: a stealthy NPC outside the viewer's band shows only to those who see it; a suspicious viewer half sees someone
     const hidden = a.id !== state.player.id && a.posture === 'stealthy' && a.bandId !== viewer.bandId ? beliefStatus(state, viewer, a) : 'aware';
     if (hidden === 'unaware') continue;
@@ -161,10 +171,11 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
     };
     if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
-    // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
-    // fully this scenario (spoke face to face, say): then they stay seen
+    // P3: in a dark zone someone is half seen, unless within clear sight and the viewer perceived them fully this scenario
+    // (spoke face to face, say): then they stay seen
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
-    const level = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
+    const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
+    const level = sight === 'partial' || dark ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
     const name = nameFor(state, viewer, a);

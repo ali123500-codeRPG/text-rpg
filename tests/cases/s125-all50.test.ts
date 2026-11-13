@@ -213,7 +213,7 @@ describe('125 All-50 parts', () => {
     expect(r(SK.persuasion, 95).tierShifts).toEqual([]);
     expect(r(SK.eyesight, 2).tierShifts).toEqual([]);
   });
-  it('Spotter: band-mates in the owner\'s zone become suspicious of what the owner is aware of', () => {
+  it('Spotter: band-mates who hear or see the owner become suspicious of what the owner is aware of', () => {
     const s = makeVillage();
     const [o, mate] = s.actors.filter((a) => a.mind && a.bandId && s.actors.filter((b) => b.bandId === a.bandId).length > 1).slice(0, 1)
       .flatMap((a) => s.actors.filter((b) => b.bandId === a.bandId).slice(0, 2));

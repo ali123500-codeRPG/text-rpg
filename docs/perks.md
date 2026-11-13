@@ -94,10 +94,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Dirt in the Eyes (Improvisation) · A9
 
-*Story:* Honor is for those who can afford to lose. A fistful of dirt, a splash of ale, whatever is close. Once per fight, with a free hand and without giving up your action, you throw it in the face of a foe in your zone. It tries to dodge; if it fails, its next roll that needs sight is two outcomes worse.
+*Story:* Honor is for those who can afford to lose. A fistful of dirt, a splash of ale, whatever is close. Once per fight, with a free hand and without giving up your action, you throw it in the face of a foe within an improvised throw's range. It tries to dodge; if it fails, its next roll that needs sight is two outcomes worse.
 
 - **Kind:** Free move
-- **Trigger:** The owner uses the move on a foe in the owner's zone. It does not use the owner's action.
+- **Trigger:** The owner uses the move on a foe in sight within an improvised throw's range (THROW_M improvised). It does not use the owner's action.
 - **Conditions:** The owner has a free hand.
 - **Effect:** An Improvisation attack roll against the foe's dodge. If the foe does not win, its next roll that needs sight gets tier shift −2.
 - **Lasts:** Until that roll is made, or the end of the foe's next turn.
@@ -115,10 +115,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Cover Ally (Block) · A11
 
-*Story:* Not while you still stand. You step in front of a friend. When an arrow or bolt flies at an ally in your zone and your block is better than the ally's own defense, you block it in their place; anything that gets through hits you. It counts as one of your defenses that turn. You can switch it off for any character.
+*Story:* Not while you still stand. You step in front of a friend. When an arrow or bolt flies at an ally within your arm's reach and your block is better than the ally's own defense, you block it in their place; anything that gets through hits you. It counts as one of your defenses that turn. You can switch it off for any character.
 
 - **Kind:** Always on; can be switched off per character (on by default)
-- **Trigger:** A ranged attack targets an actor friendly to the owner in the owner's zone.
+- **Trigger:** A ranged attack targets an actor friendly to the owner within the owner's grip reach.
 - **Conditions:** The owner's standing defense is block and the owner can block (a shield held in a working Grip arm). The owner is active. The owner's block value is higher than the value of the ally's own standing defense. Cover Ally is switched on for the owner (a per-character switch, on by default).
 - **Effect:** The owner defends in the ally's place with the owner's own block roll. A hit that gets through lands on the owner, who stepped into its path. It counts as one of the owner's defenses this turn (outnumbered).
 - **Lasts:** Each attack.
@@ -426,11 +426,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Cleave (Heavy weapons) · B3
 
-*Story:* One falls. The swing doesn't stop. Once a turn, you get a free attack at another foe in reach in your zone.
+*Story:* One falls. The swing doesn't stop. Once a turn, you get a free attack at another foe within your weapon's reach.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy melee attack downs its target.
-- **Conditions:** Another hostile active actor is in the owner's zone, within reach.
+- **Conditions:** Another hostile active actor is within the weapon's reach (metres).
 - **Effect:** The owner makes one extra attack at that actor at once, with the same weapon. Code picks the target at random (seeded) if there are several.
 - **Lasts:** That attack.
 - **Cooldown:** Once per turn.
@@ -438,11 +438,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Shoot and Move (Light ranged) · B4
 
-*Story:* Loose, step, gone. They aim at where you were. On a turn you shoot a light or medium ranged weapon, you can also move one zone link.
+*Story:* Loose, step, gone. They aim at where you were. On a turn you shoot a light or medium ranged weapon, the shot does not use your move, so you can still walk.
 
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner's order is a light or medium ranged attack.
-- **Effect:** The owner may also move one zone link, before or after the shot.
+- **Effect:** The shot does not use the owner's move slot (ZP3), so the owner can still walk its move, before or after the shot.
 - **Lasts:** Each turn.
 - **Needs first:** Action economy.
 - **Banked as:** a later Light ranged perk, suggested for the 60 perk
@@ -1052,11 +1052,11 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Spotter (Perception, passive) · T5b
 
-*Story:* What you see, your people sense. Your band-mates beside you know something is there whenever you do.
+*Story:* What you see, your people sense. Your band-mates who can hear your call or see your signal know something is there whenever you do.
 
 - **Kind:** Always on
 - **Trigger:** The end of each turn.
-- **Conditions:** The owner is aware of an actor outside its band. A band-mate is in the owner's zone and is less than suspicious of that actor.
+- **Conditions:** The owner is aware of an actor outside its band. A band-mate hears the owner's normal voice clearly or makes out its hand sign (close visibility), and is less than suspicious of that actor.
 - **Effect:** That band-mate becomes suspicious of the actor (told by the owner), with its zone as last known.
 - **Lasts:** Until the band-mate's belief changes on its own.
 - **Built:** yes

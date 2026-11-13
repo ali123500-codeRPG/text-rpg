@@ -255,9 +255,9 @@ const DEFAULTS = {
   QUALITY_PRICE_FACTOR: 2, // SL8: a minted item's value is its base value × this × its quality (1–4)
   /** SL12 b / SL14: the coin each benefit number is worth; an item's value is its benefits summed (src/ruleset/value.ts).
    * skillPoint: per point of skill bonus (a roll bonus counts as the skill points that move a roll as much);
-   * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
+   * reachM: per metre of reach (its best attack mode; ZR7: 5 coin per 8 m, the old link rate, placeholder); armorStop: per point of damage stopped, per part covered;
    * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
-  ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
+  ITEM_VALUE: { skillPoint: 1, reachM: 0.625, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
   ORDER_NOISE: 'normal' as NoiseKey, // RD2: an order is called out in a normal voice; the seller must hear it clearly (trade hearsOrder)
   WARES_CAP: 8, // goods lines plus services per seller
   // BG-95: words skipped when finding the short form of a name said aloud ("Wenna" for Old Wenna)

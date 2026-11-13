@@ -14,6 +14,7 @@ import { actorById, allActors, atLeast, hostile, isActive, stance, warm } from '
 import { besidePlayer, fightingWith } from './engagement';
 import { power, tally } from './xp';
 import { HEALTH_LEVELS } from '../scales';
+import { seeingM } from './position';
 
 /** every turn, after the turn's events: zones and days, then the fight log */
 export function turnFeats(state: GameState, events: GameEvent[]): void {
@@ -51,9 +52,9 @@ function eventFeats(state: GameState, events: GameEvent[]): void {
  * friendly (N4d) */
 function stateFeats(state: GameState, events: GameEvent[]): void {
   const p = state.player, pr = p.progression!;
-  // a sneak into a zone where someone is suspicious of you, and no one there sees you
+  // a sneak past watchers: someone with sight of where you ended is suspicious of you, and none of them sees you (ZR5)
   if (p.posture === 'stealthy' && events.some((e) => e.actorId === p.id && e.kind === 'move' && !e.vanish)) {
-    const here = state.actors.filter((x) => x.zone === p.zone && x.mind && isActive(x)).map((x) => x.mind!.knowledge[p.id]?.status ?? 'unaware');
+    const here = state.actors.filter((x) => x.mind && isActive(x) && seeingM(state, x, p) !== null).map((x) => x.mind!.knowledge[p.id]?.status ?? 'unaware');
     if (here.includes('suspicious') && !here.some((s) => atLeast(s, 'aware'))) tally(state, 'unseen_moves');
   }
   const parts = partStates(state, p);

@@ -138,7 +138,7 @@ function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined)
 }
 
 /** C1 Never Surprised: the owner hears the attack coming, so being unaware of the attacker costs it nothing */
-const hearsItComing = (state: GameState, owner: Actor, zone: string, noise: GameEvent['noise']) => hasPerk(owner, PK.never_surprised) && hears(state, owner, zone, noise);
+const hearsItComing = (state: GameState, owner: Actor, at: Located, noise: GameEvent['noise']) => hasPerk(owner, PK.never_surprised) && hears(state, owner, at, noise);
 
 /** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last),
  * unless it has Never Surprised and the attack's noise reaches it; ties go to the seeded rng */
@@ -147,7 +147,7 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
   const rows = ids.map((id) => {
     const a = actorById(state, id)!;
     const roll = ruleset.initiative(a, state, rng);
-    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x.zone, armorNoise(state, x, 'attack', SENSE.attack[0])));
+    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x, armorNoise(state, x, 'attack', SENSE.attack[0])));
     return { id, init: caught || bluffed(state, a) ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() }; // LI1c: a believed Bluff acts last too
   });
   rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
@@ -433,7 +433,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   let surprised = !isActive(t) || isAsleep(t); // NW14: a sleeper is struck as unaware (Never Surprised doesn't help it)
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
   if (!surprised && !atLeast(beliefStatus(state, t, a), 'suspicious')) {
-    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, ev.zone, ev.noise);
+    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise);
     if (surprised) ctx.surprised.add(t.id);
   }
   if (shows) stealthEnd(state, a);
