@@ -1179,3 +1179,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .hs-tbl tr.drop-ok > td { background: color-mix(in srgb, var(--accent) 16%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: -1px; }
 /* CT1: Put in, one button per carried container */
 .put-in { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.ach-chain { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); color: var(--muted); }
+.ach-chain .got { color: var(--text); }
+.ach-chain .got::marker { color: var(--ok); }
