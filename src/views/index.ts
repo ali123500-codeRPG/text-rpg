@@ -25,6 +25,7 @@ import { knownDestinations } from '../engine/trail';
 import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
 import { contentsOf, wornPack } from '../engine/containers';
+import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
@@ -85,7 +86,13 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
     groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name, ...containerOf(state, i, viewer) })), // SE8
+    ...furnitureView(state, z.id),
   };
+}
+/** FR1/FR5: what furniture stands in a zone and where */
+function furnitureView(state: GameState, zoneId: string): { furniture?: ZoneView['furniture'] } {
+  const fs = furnitureIn(state, zoneId);
+  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f) })) } : {};
 }
 /** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
 /** BG-181: what someone's wounds were last treated with, by item name, until their next wound */
@@ -380,6 +387,9 @@ function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['
 /** NM2: names the player has heard of someone still in the world but cannot yet put a face to */
 const heardOf = (state: GameState): string[] => (state.player.journal?.heardOf ?? []).flatMap((id) => actorById(state, id)?.names.current ?? []);
 
+/** SY1: Mentally steady (from steadying oneself at Great Success or better): the next morale loss is halved */
+const steadyOf = (a: Actor): { mentallySteady?: true } => (a.core.condition.mentallySteady ? { mentallySteady: true } : {});
+
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
   const actors = seenActors(state, p);
@@ -393,7 +403,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
-      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p),
+      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
       standingDefense: p.core.standingDefense,
@@ -460,7 +470,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     self: {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc', ...(ageText(state, a) ? { age: ageText(state, a)! } : {}), // AG16
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
-      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a),
+      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a),
       ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
@@ -644,6 +654,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
+      ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
       ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: wayWords(state, e.way) } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
@@ -662,7 +673,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
+    player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), ...steadyOf(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
@@ -843,8 +854,9 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       personality: { nerve: Object.keys(NERVE_LINES), types: Object.values(lib.personalityTypes ?? {}).map((t) => ({ id: t.id, name: t.name, hint: t.hint })), values: Object.values(lib.values ?? {}).map((v) => ({ id: v.id, name: v.name })) },
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
       edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
+      furnitureKinds: Object.values(lib.furnitureKinds ?? {}).map((k) => ({ ...k })),
       barrierKinds: Object.values(lib.barrierKinds ?? {}).map((k) => ({ ...k })),
-      layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name })) })),
+      layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name, ...(z.furniture?.length ? { furniture: z.furniture.map((f) => f.name) } : {}) })) })),
     },
     grades: [...GRADES],
   };

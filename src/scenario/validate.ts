@@ -83,6 +83,7 @@ export function expandLayouts(plan: StagePlan): void {
     for (const z of l.zones) plan.zones.push({
       key: `${p.key}.${z.key}`, place: p.key, kind: z.kind, name: p.names?.[z.key] ?? z.name, look: p.looks?.[z.key] ?? z.look,
       ...(z.size ? { size: z.size } : {}), ...(z.edges ? { edges: { ...z.edges } } : {}), fromLayout: true,
+      ...(p.furniture?.[z.key] ?? z.furniture ? { furniture: (p.furniture?.[z.key] ?? z.furniture)!.map((x) => ({ ...x })) } : {}), // FR2
       links: z.links.map(([to, label, sight]) => ({ to: `${p.key}.${to}`, label, sight })),
     });
   }

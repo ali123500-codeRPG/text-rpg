@@ -19,7 +19,7 @@ export type SeenGearView = { id: string; name: string; look: string; where: 'hel
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[] };
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string }[] }; // furniture: FR1/FR5, what stands there
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
 
 export type BeliefView = {
@@ -102,6 +102,7 @@ export type PlayerView = {
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)
+    mentallySteady?: true; // SY1: the next morale loss is halved
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
     standingDefense: DefenseKind;
@@ -147,6 +148,7 @@ export type ActorView = {
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level
+    mentallySteady?: true; // SY1: the next morale loss is halved
     active: boolean; broken: boolean; surrendered: boolean;
     control: 'agent' | 'code';
     standingDefense: DefenseKind;
@@ -230,6 +232,8 @@ export type NarrationEvent = {
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
+  steady?: 'calmer' | 'worse' | 'no change'; // SY1: how steadying oneself went, in words
+  mentallySteady?: true; // SY1: it left them Mentally steady
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
   way?: { what: string; did: string; to: string }; // SD3–SD5, BA2: a barrier on the way to `to`: what kind, and what was done at it
   from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
@@ -256,7 +260,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; mentallySteady?: true; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; activityLook?: string; age?: string; tended?: string }[]; // tended: BG-181; age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
@@ -313,8 +317,9 @@ export type WeaverView = {
     personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2
     edgeKinds: import('./library').EdgeKind[]; // CO15
+    furnitureKinds: import('./library').FurnitureKind[]; // FR1
     barrierKinds: import('./library').BarrierKind[]; // SD3–SD5
-    layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string }[] }[]; // CO17
+    layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string; furniture?: string[] }[] }[]; // CO17; furniture: FR2, the names it comes with
   };
   grades: Grade[];
 };

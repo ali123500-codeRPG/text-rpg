@@ -78,6 +78,10 @@ export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
 /** a zone's rectangle in metres: centre x east, y north of the story's first zone; w east-west, d north-south */
 export type Rect = { x: number; y: number; w: number; d: number };
 
+/** FR1: a named piece of furniture in a zone and where it stands: a compass side or corner ('n', 'ne', …), or the middle
+ * when left out. Mostly colour: a move can end beside it, and search and stash work where one stands. FR4: one on an edge
+ * (a counter, a rail) shows on both sides of it from this one record. */
+export type Furniture = { id: string; kind: string; name: string; at?: string; edge?: true };
 export type Zone = {
   id: string;
   placeId: PlaceId;
@@ -96,6 +100,8 @@ export type Zone = {
   /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
   aspect?: number;
   /** HB3 how loud it is anyway, when not its kind's (a tavern's busy common room) */
+  /** FR1/FR2: its furniture (the kind's defaults, a layout's, or the Weaver's own list) */
+  furniture?: Furniture[];
   /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */
   kind?: string;
   /** TV4 a road's danger (ROAD_DANGERS); only roads have one */
@@ -164,6 +170,7 @@ export type GameEvent = {
   price?: number; // buy: coin paid
   for?: string; // buy: who got it, when not the buyer
   reason?: string; // buy_refused: why
+  steady?: { points: number; buff?: true }; // SY1: morale won back (+) or lost (−) steadying oneself; buff: left Mentally steady
   filch?: 'taken' | 'fumbled' | 'caught'; // FL4: how a filch went (src/engine/filch.ts)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;

@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, BK, CP, DU, EK, FR, GC, HL, PA, PY, RL, TN, VL, ZK } from './tableIds';
+import { AM, BK, CP, DU, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -422,6 +422,14 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
 
 const act = (id: string, look: string, attention: ActivityDef['attention'], noise: ActivityDef['noise'], visibility: ActivityDef['visibility']): ActivityDef =>
   ({ id, look, attention, noise, visibility });
+/** FR2: furniture each zone kind gets unless a layout or the Weaver lists its own (colour, mostly: FR1) */
+const KIND_FURNITURE: Record<string, import('../types').PlanFurniture[]> = {
+  [ZK.room]: [{ kind: FU.table, name: 'table' }, { kind: FU.bench, name: 'bench', at: 'w' }],
+  [ZK.cellar]: [{ kind: FU.barrels, name: 'barrels', at: 'n' }, { kind: FU.sacks, name: 'sacks', at: 'e' }],
+  [ZK.yard]: [{ kind: FU.woodpile, name: 'woodpile', at: 'e' }, { kind: FU.water_barrel, name: 'rain barrel', at: 'nw' }],
+  [ZK.square]: [{ kind: FU.well, name: 'well' }],
+  [ZK.street]: [{ kind: FU.cart, name: 'handcart', at: 's' }],
+};
 export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('stand_watch', 'keeping watch', 'alert', 'silent', 'normal'),
   act('search', 'searching', 'alert', 'quiet', 'normal'), // SE16: an alert sweep searches at each stop
@@ -612,6 +620,7 @@ export function prototypeLibrary(): Library {
       [CP.danger_passed]: { id: CP.danger_passed, name: 'Danger passed', pct: CONFIG.MORALE_ENGAGEMENT_END_PCT, inFight: false }, // MB9: an engagement ends
       // never applied itself: morale restored straight by a perk is counted here for achievements (calmFromPerk)
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
+      [CP.steady]: { id: CP.steady, name: 'Steadying yourself', pct: 0, inFight: true }, // SY1: the share comes from the roll's tier (CONFIG.STEADY_PCT)
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
     // PL6: personality axes, with the words and hints for each end (Levity from the personality line voice tests); PL19,
@@ -662,6 +671,7 @@ export function prototypeLibrary(): Library {
       [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
       [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
       // the Dreaded on Sight quirk: paid once per owner, in a fight or out of one
+      [FR.steady_slipped]: { id: FR.steady_slipped, name: 'Trying to steady yourself makes it worse', cost: 0, rolled: false }, // SY1: the cost comes from the roll's tier (CONFIG.STEADY_PCT)
       [FR.dreaded_sight]: { id: FR.dreaded_sight, name: 'You set eyes on someone dreaded', cost: 15, rolled: true, unengaged: true },
       // a part Crippled or worse: per part by impact for a 6-part body, scaled to the body's part count; one roll per hit pays the sum
       [FR.own_part_crippled]: { id: FR.own_part_crippled, name: 'A part of yours is Crippled', cost: 0, rolled: true, part: 'crippled',
@@ -749,7 +759,10 @@ export function prototypeLibrary(): Library {
       [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
       [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
     ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall,
-      ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}) }])),
+      ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
+      ...(KIND_FURNITURE[id] ? { furniture: KIND_FURNITURE[id] } : {}) }])),
+    // FR1: what furniture can be (a piece's kind sets its map icon; its name is the story's)
+    furnitureKinds: Object.fromEntries(Object.entries(FU).map(([k, id]) => [id, { id, name: k.replace(/_/g, ' ') }])),
     // TV3/TV4: a road is one long zone; its length and danger words
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
