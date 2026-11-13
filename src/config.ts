@@ -354,6 +354,9 @@ const DEFAULTS = {
   CHASE_LOST_TURNS: 3,
   /** CH5: the chase range of a code-run NPC whose band and template give none (a CHASE_RANGES key; placeholder) */
   CHASE_RANGE_DEFAULT: 'ground',
+  /** ZR12: how far past the edge of the scenario's ground, by the walking path, a pursuer with chase range near follows the
+   * player before it turns back (placeholder: about a village street or two; a game number, not a real-world reference) */
+  CHASE_NEAR_M: 200,
   IMPROVISED_HIT_ADJ: -10,
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,

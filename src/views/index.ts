@@ -15,7 +15,7 @@ import { timeView, zoneLight, clockSet, now, timeOfDay } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
 import { seeingM, sideFrom, sightDistM } from '../engine/position';
 import { sightLevel } from '../perception/sight';
-import { chaseLost, chaseZones } from '../engine/chase';
+import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { talkingWith } from '../engine/speech';
@@ -423,6 +423,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
+      ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),

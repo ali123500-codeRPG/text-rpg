@@ -154,6 +154,7 @@ export type ActorView = {
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
+    atChaseLine?: true; // ZR12: it stands at the end of its near chase range, CHASE_NEAR_M past the ground: it turns back
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard

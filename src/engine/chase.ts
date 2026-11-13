@@ -8,7 +8,8 @@ import type { Actor, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
 import { CHASE_RANGES, type ChaseRange } from '../scales';
 import { getLibrary } from '../library';
-import { atLeast, bandById, chaseLost, hostile, isActive, zoneById } from './relations';
+import { atLeast, bandById, chaseLost, hostile, isActive, shortestPath, zoneById } from './relations';
+import { pathM, wayPoint, type Located } from './position';
 import { applyMemoryOps } from './memory';
 import { logCode } from './effects';
 import { barkOnly } from '../perception';
@@ -57,26 +58,49 @@ function homePlace(state: GameState, a: Actor): string {
 }
 const zonesOfPlaces = (state: GameState, places: Set<string>) => state.stage.zoneIds.filter((z) => places.has(zoneById(state, z)?.placeId ?? ''));
 
-/** CH5: the zones a code-run NPC may chase the player into; undefined = anywhere (far, an agent-run NPC, or a ground or
- * near range with no ground kept for the scenario). Post: its own place. Ground: the scenario's ground (and its own place).
- * Near: those and every place one link beyond the ground. */
-export function chaseZones(state: GameState, a: Actor): string[] | undefined {
+/** ZR12: metres from `at` back to the ground (`inGround`, every zone of its places) by the walking path: 0 on it, else the
+ * walk to the nearest way into it. Without a point, from where its zone is left toward the ground. Infinity: no way back. */
+function metresToGround(state: GameState, at: { zone: string; pos?: Located['pos'] }, inGround: Set<string>): number {
+  if (inGround.has(at.zone)) return 0;
+  let best = Infinity;
+  const edges = [...inGround].filter((g) => zoneById(state, g)?.links.some((l) => !inGround.has(l.to)));
+  for (const g of edges) {
+    const p = shortestPath(state, at.zone, g);
+    if (!p || p.some((z) => z !== g && inGround.has(z))) continue; // only the ways into the ground from outside it
+    const prev = p.length > 1 ? p[p.length - 2] : at.zone, from = { zone: at.zone, pos: at.pos ?? wayPoint(state, at.zone, p[0], at) ?? undefined };
+    const edge = wayPoint(state, prev, g, from);
+    if (edge) best = Math.min(best, pathM(state, from, { zone: prev, pos: edge }, p.slice(0, -1)));
+  }
+  return best;
+}
+
+/** the ground a code-run NPC chases on: its own place's zones, and with range ground or near the scenario's ground (every
+ * zone of the places it touches, BG-43); undefined = no limit (far, an agent-run NPC, or no ground kept for the scenario) */
+function chaseGround(state: GameState, a: Actor): Set<string> | undefined {
   if (a.mind?.control === 'agent') return undefined;
   const range = chaseRange(state, a);
   if (range === 'far') return undefined;
   const post = zonesOfPlaces(state, new Set([homePlace(state, a)]));
-  if (range === 'post') return post;
+  if (range === 'post') return new Set(post);
   const st = state.stage, ground = [...(st.scenario?.ground ?? []), ...(st.outer?.ground ?? [])];
   if (!st.scenario?.ground) return undefined;
-  const places = groundPlaces(state, ground); // BG-43: the ground is every zone of the places it touches
-  const inGround = new Set([...post, ...zonesOfPlaces(state, places)]);
-  if (range === 'ground') return [...inGround];
-  const beyond = new Set<string>();
-  for (const z of inGround) for (const l of zoneById(state, z)?.links ?? []) {
-    const p = l.frontier ? undefined : zoneById(state, l.to)?.placeId;
-    if (p && !places.has(p)) beyond.add(p);
-  }
-  return [...new Set([...inGround, ...zonesOfPlaces(state, beyond)])];
+  return new Set([...post, ...zonesOfPlaces(state, groundPlaces(state, ground))]);
+}
+
+/** CH5: the zones a code-run NPC may chase the player into; undefined = anywhere (far, an agent-run NPC, or a ground or
+ * near range with no ground kept for the scenario). Post: its own place. Ground: the scenario's ground (and its own place).
+ * Near (ZR12): those and every zone that starts within CHASE_NEAR_M metres past the ground's edge by the walking path. */
+export function chaseZones(state: GameState, a: Actor): string[] | undefined {
+  const inGround = chaseGround(state, a);
+  if (!inGround || chaseRange(state, a) !== 'near') return inGround && [...inGround];
+  return state.stage.zoneIds.filter((z) => metresToGround(state, { zone: z }, inGround) <= CONFIG.CHASE_NEAR_M);
+}
+
+/** ZR12: a code-run pursuer with range near that stands CHASE_NEAR_M or more past the ground's edge turns back there, even
+ * partway down a long road */
+export function atChaseLine(state: GameState, a: Actor): boolean {
+  const inGround = chaseGround(state, a);
+  return !!inGround && chaseRange(state, a) === 'near' && metresToGround(state, a, inGround) >= CONFIG.CHASE_NEAR_M;
 }
 
 /** CH6: an agent-run pursuer may follow the player through a frontier (it decides for itself); a code-run one only at range far */
