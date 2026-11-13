@@ -1,0 +1,122 @@
+{
+ "case": "VT-V4",
+ "pass": "Refuses to let the small spider go: says it is too dangerous to leave alive and orders or vows the hunt. Cold, controlled anger, not a tantrum. No stance change toward the dragon.",
+ "view": {
+  "turn": 64,
+  "time": {
+   "day": 71,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "vesh",
+   "label": "a small pale girl in a black dress with eyes like a spider's, sitting at ease",
+   "name": "Vesh",
+   "kind": "npc",
+   "zone": "cliff",
+   "placeId": "labyrinth_mouth",
+   "bandId": "vesh",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "cliff",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "a tall pale man with white hair and dragon-scale armour, an old acquaintance"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "The great spider Queen, Vesh's kin, is dead. The small white spider killed and ate her, then got away. It grows stronger with every kill.",
+   "Gorm is an ancient white dragon in human shape and one of Vesh's few old acquaintances."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "cliff",
+    "links": [
+     {
+      "to": "path",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "path",
+    "links": [
+     {
+      "to": "cliff",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "cliff",
+    "name": "cliff top",
+    "look": "a windswept cliff over the labyrinth's mouth, smoke rising from below",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "path",
+      "label": "down the cliff path",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "path",
+    "name": "cliff path",
+    "look": "a narrow path down to the labyrinth",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "cliff",
+      "label": "up to the cliff top",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a tall pale man with white hair and dragon-scale armour, an old acquaintance",
+    "pronouns": "he",
+    "zone": "cliff",
+    "level": "full",
+    "activityLook": "arms folded, watching her"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "It is a hatchling, Vesh. One small spider. Let it go; you have far bigger enemies than that.",
+   "impression": null
+  }
+ ]
+}

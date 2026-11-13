@@ -1,0 +1,130 @@
+{
+ "case": "VT-N4",
+ "pass": "Frees the trapped girl this turn: breaks or opens the tank, or acts to get her out, before exploring or looting. Does not leave her for later.",
+ "view": {
+  "turn": 300,
+  "time": {
+   "day": 140,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "nyra",
+   "label": "a small pale girl in a black dress with eyes like a spider's",
+   "name": "Nyra",
+   "kind": "npc",
+   "zone": "vault",
+   "placeId": "ancient_ruins",
+   "bandId": "nyra",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "vault",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Corin, a pale young man in a servant's coat"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Nyra and her band have broken into ancient ruins left by a lost people.",
+   "In one of the glass tanks floats a small girl, alive, eyes shut, bubbles rising from her mouth. The machine beside the tank is flashing red."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "vault",
+    "links": [
+     {
+      "to": "deep_hall",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "deep_hall",
+    "links": [
+     {
+      "to": "vault",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "vault",
+    "name": "buried vault",
+    "look": "an ancient underground hall of strange metal, humming machines and a row of glass tanks",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "deep_hall",
+      "label": "deeper into the ruins",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "deep_hall",
+    "name": "deep hall",
+    "look": "a dark passage leading further into the ruins, glints of old metal",
+    "cover": "partial",
+    "light": "dark",
+    "links": [
+     {
+      "to": "vault",
+      "label": "back to the vault",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Corin, a pale young man in a servant's coat",
+    "pronouns": "he",
+    "zone": "vault",
+    "level": "full",
+    "activityLook": "peering eagerly toward the dark passage"
+   },
+   {
+    "id": "tank_girl",
+    "label": "a small girl floating in a cloudy glass tank, eyes shut",
+    "pronouns": "she",
+    "zone": "vault",
+    "level": "full",
+    "activityLook": "floating still, a thin stream of bubbles rising"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Look at all this old machinery! There could be treasure deeper in. Shall we go on?",
+   "impression": null
+  }
+ ]
+}

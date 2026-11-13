@@ -1,0 +1,123 @@
+{
+ "case": "VT-V2",
+ "pass": "Refuses the elves' terms outright, with contempt for elves. Does not turn back, agree to talk or show them any mercy. Ordering that the captive children in the village be taken alive is a plus.",
+ "view": {
+  "turn": 30,
+  "time": {
+   "day": 40,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "vesh",
+   "label": "a small pale girl in a black dress with eyes like a spider's, sitting at ease on a silk cushion",
+   "name": "Vesh",
+   "kind": "npc",
+   "zone": "spider_back",
+   "placeId": "elf_forest",
+   "bandId": "vesh",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "spider_back",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "a demon officer in a dark cloak, a white flag rolled under his arm"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Vesh is the Demon Lord, riding on the back of one of her great spiders toward the village of the elves, at the head of her army.",
+   "She has hated the elves and their leader for a very long time.",
+   "The elves hold a number of strange children captive in their village. Vesh means to take those children alive."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "spider_back",
+    "links": [
+     {
+      "to": "forest_track",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "forest_track",
+    "links": [
+     {
+      "to": "spider_back",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "spider_back",
+    "name": "on the great spider",
+    "look": "the broad back of a giant spider striding through a dark forest, a howdah of silk on top",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "forest_track",
+      "label": "down to the forest track",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "forest_track",
+    "name": "forest track",
+    "look": "a track through ancient trees, the elf lands ahead",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "spider_back",
+      "label": "up onto the spider",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a demon officer in a dark cloak, a white flag rolled under his arm",
+    "pronouns": "he",
+    "zone": "spider_back",
+    "level": "full",
+    "activityLook": "kneeling on the silk, holding out a sealed letter"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "My Lord, the elves sent an envoy under a white flag. Their elder offers terms if you turn the army back: gold, land, a treaty. Will you hear him?",
+   "impression": null
+  }
+ ]
+}

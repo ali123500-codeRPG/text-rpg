@@ -1,0 +1,122 @@
+{
+ "case": "VT-N2",
+ "pass": "Gives blunt, direct advice that names a clear choice for him, the way an adult guides a younger person. Not vague comfort, not cold or dismissive, no mocking his grief.",
+ "view": {
+  "turn": 230,
+  "time": {
+   "day": 123,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "nyra",
+   "label": "a small pale girl in a black dress with eyes like a spider's",
+   "name": "Nyra",
+   "kind": "npc",
+   "zone": "campfire",
+   "placeId": "hill_road",
+   "bandId": "nyra",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "campfire",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "a pale young man in a servant's coat, newly made a vampire"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Corin served Lise's family as a butler. When her parents were killed, he was turned into a vampire so he could protect the girl.",
+   "Nyra can read what people feel. Corin is torn between grief and duty."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "campfire",
+    "links": [
+     {
+      "to": "road",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "road",
+    "links": [
+     {
+      "to": "campfire",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "campfire",
+    "name": "campfire",
+    "look": "a small fire in a clearing by the road, the others asleep in their blankets",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "road",
+      "label": "to the road",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "road",
+    "name": "road",
+    "look": "a dark road through the hills",
+    "cover": "none",
+    "light": "dark",
+    "links": [
+     {
+      "to": "campfire",
+      "label": "back to the fire",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a pale young man in a servant's coat, newly made a vampire",
+    "pronouns": "he",
+    "zone": "campfire",
+    "level": "full",
+    "activityLook": "staring into the fire, hands clasped"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Lady Nyra... I don't know if I should keep serving the young lady. Every time I look at her, I see her parents die. What should I do?",
+   "impression": null
+  }
+ ]
+}

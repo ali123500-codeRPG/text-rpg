@@ -1,0 +1,122 @@
+{
+ "case": "VT-N1",
+ "pass": "Does not let the food go to waste: eats it herself or makes the girl finish it. Light or teasing manner; no cold threat, no anger, no stance change.",
+ "view": {
+  "turn": 210,
+  "time": {
+   "day": 120,
+   "timeOfDay": "Evening"
+  },
+  "self": {
+   "id": "nyra",
+   "label": "a small pale girl in a black dress with eyes like a spider's, a spoon in her hand",
+   "name": "Nyra",
+   "kind": "npc",
+   "zone": "inn_table",
+   "placeId": "roadside_inn",
+   "bandId": "nyra",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "inn_table",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "a spoiled little girl with red eyes and fine clothes"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Nyra travels with a small band: the girl Lise, the young man Corin, and a quiet white-haired girl called Wyn.",
+   "They are eating supper at an inn. Food matters a great deal to Nyra."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "inn_table",
+    "links": [
+     {
+      "to": "inn_door",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "inn_door",
+    "links": [
+     {
+      "to": "inn_table",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "inn_table",
+    "name": "inn table",
+    "look": "a corner table in a busy roadside inn, plates of stew and roast turnips",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "inn_door",
+      "label": "to the door",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "inn_door",
+    "name": "inn door",
+    "look": "the inn's front door onto the road",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "inn_table",
+      "label": "back to the table",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a spoiled little girl with red eyes and fine clothes",
+    "pronouns": "she",
+    "zone": "inn_table",
+    "level": "full",
+    "activityLook": "pushing a half-full plate away with a scowl"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "I'm full. And I hate turnips. Throw the rest away.",
+   "impression": null
+  }
+ ]
+}

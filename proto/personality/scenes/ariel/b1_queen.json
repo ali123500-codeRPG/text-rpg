@@ -1,0 +1,129 @@
+{
+ "case": "VT-V3",
+ "pass": "Speaks to the small spider this turn to make it stop (an order or a warning), treating it as one of her own kin; attacking it in the same turn is also fine. Does not ignore it, flee, or try to bargain at length. No friendliness.",
+ "view": {
+  "turn": 60,
+  "time": {
+   "day": 70,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "vesh",
+   "label": "a small pale girl in a black dress with eyes like a spider's, sitting at ease",
+   "name": "Vesh",
+   "kind": "npc",
+   "zone": "nest",
+   "placeId": "great_labyrinth",
+   "bandId": "vesh",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "nest",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a small white spider with black markings, latched onto the Queen's body"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 60,
+    "zone": "nest",
+    "level": "full",
+    "cue": "sight",
+    "kind": "other",
+    "actorId": "player",
+    "target": null,
+    "outcome": "the Queen shudders and sinks lower"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Vesh came to the labyrinth because she felt one of her children, the great spider Queen, being devoured from within.",
+   "The Queen is Vesh's own kin, as all spiders are. The small white spider eating her is one of Vesh's kin too, but a strange one: it does not answer her call."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "nest",
+    "links": [
+     {
+      "to": "tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "tunnel",
+    "links": [
+     {
+      "to": "nest",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "nest",
+    "name": "queen's nest",
+    "look": "a vast cavern hung with old webs, the body of a colossal spider queen sagging on the floor",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "tunnel",
+      "label": "into the tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "tunnel",
+    "name": "labyrinth tunnel",
+    "look": "a wide tunnel of the great labyrinth",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "nest",
+      "label": "back to the nest",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a small white spider with black markings, latched onto the Queen's body",
+    "pronouns": "she",
+    "zone": "nest",
+    "level": "full",
+    "activityLook": "clinging to the dying Queen and eating into her, not looking up"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

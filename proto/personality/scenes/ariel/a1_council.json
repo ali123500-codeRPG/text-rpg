@@ -1,0 +1,130 @@
+{
+ "case": "VT-V1",
+ "pass": "Ends the quarrel by force or a cutting order: a show of power, a threat, or making them sit. Does not plead, soothe or reason with them at length, and does not take the commander's side. Stays offhand or bored, not enraged. Handing the rest of the meeting back to her aide is a plus.",
+ "view": {
+  "turn": 12,
+  "time": {
+   "day": 3,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "vesh",
+   "label": "a small pale girl in a black dress with eyes like a spider's, sitting at ease at the head of the table",
+   "name": "Vesh",
+   "kind": "npc",
+   "zone": "council_hall",
+   "placeId": "demon_castle",
+   "bandId": "vesh",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "council_hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a huge horned demon commander in black plate, sword half drawn"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Vesh is the Demon Lord. She called this war council, then let her aide Bastian run it while she lounged at the head of the table.",
+   "Two commanders have been bickering over who leads the vanguard. One of them has just drawn his sword."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "council_hall",
+    "links": [
+     {
+      "to": "corridor",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "corridor",
+    "links": [
+     {
+      "to": "council_hall",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "council_hall",
+    "name": "council hall",
+    "look": "a long stone hall in the demon castle, a table ringed by armoured commanders",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "corridor",
+      "label": "out to the corridor",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "corridor",
+    "name": "castle corridor",
+    "look": "a torchlit corridor",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "council_hall",
+      "label": "back into the hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a huge horned demon commander in black plate, sword half drawn",
+    "pronouns": "he",
+    "zone": "council_hall",
+    "level": "full",
+    "activityLook": "on his feet, sword half out of its sheath, glaring at another commander across the table"
+   },
+   {
+    "id": "bastian",
+    "label": "Bastian, her tired-looking aide, a thin demon holding a stack of papers",
+    "pronouns": "he",
+    "zone": "council_hall",
+    "level": "full",
+    "activityLook": "rubbing his temples"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Demon Lord! Tell this coward to sit down, or I cut him in half right here on your table!",
+   "impression": null
+  }
+ ]
+}

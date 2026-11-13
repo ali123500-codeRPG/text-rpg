@@ -1,0 +1,130 @@
+{
+ "case": "VT-N3",
+ "pass": "Admits openly that she wants to stay on Wyn's good side (or be friends with her), and makes light of the old grudge, perhaps with a jab at Wyn. No hostility toward Wyn and no stance change.",
+ "view": {
+  "turn": 250,
+  "time": {
+   "day": 125,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "nyra",
+   "label": "a small pale girl in a black dress with eyes like a spider's",
+   "name": "Nyra",
+   "kind": "npc",
+   "zone": "hill_road",
+   "placeId": "hill_road",
+   "bandId": "nyra",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "hill_road",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "a spoiled little girl with red eyes and fine clothes"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Long ago, before they travelled together, the white-haired girl Wyn killed and ate the great spider Queen, Nyra's own kin. Nyra hunted her for it.",
+   "Wyn is far stronger now. She walks a few steps ahead, silent as always."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "hill_road",
+    "links": [
+     {
+      "to": "wayside",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "wayside",
+    "links": [
+     {
+      "to": "hill_road",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "hill_road",
+    "name": "hill road",
+    "look": "a dusty road winding through bare hills",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "wayside",
+      "label": "to the wayside shrine",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "wayside",
+    "name": "wayside shrine",
+    "look": "a tumbledown shrine by the road",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hill_road",
+      "label": "back to the road",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a spoiled little girl with red eyes and fine clothes",
+    "pronouns": "she",
+    "zone": "hill_road",
+    "level": "full",
+    "activityLook": "walking beside her, looking up with suspicion"
+   },
+   {
+    "id": "wyn",
+    "label": "Wyn, a quiet white-haired girl with her eyes closed, walking ahead",
+    "pronouns": "she",
+    "zone": "hill_road",
+    "level": "full",
+    "activityLook": "walking a few steps ahead, saying nothing"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Why do you travel with Wyn, anyway? Didn't she kill your Queen? I thought you hated her.",
+   "impression": null
+  }
+ ]
+}
