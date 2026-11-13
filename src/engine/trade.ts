@@ -109,7 +109,7 @@ export const orderReaches = (state: GameState, a: Actor, b: Actor): boolean =>
 
 /** PY5/PY7: buy qty (default 1) of a ware from seller, for `to` (default the buyer). All or nothing; no roll.
  * RD2: an order is called out, so the seller must hear it clearly (hearsOrder); `to` must be in clear call of the buyer or the seller. */
-export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, wareId: string | null | undefined, qtyIn: number | null | undefined, to: Actor = buyer): BuyResult {
+export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, wareId: string | null | undefined, qtyIn: number | null | undefined, to: Actor = buyer, dry = false): BuyResult {
   if (!seller || seller === buyer || !isActive(seller)) return { ok: false, reason: 'not_here' };
   if (!orderReaches(state, buyer, seller)) return { ok: false, reason: canSpeak(state, buyer) ? 'out_of_earshot' : 'out_of_reach' }; // BG-78: there, but the order is not heard clearly
   if (!isActive(to)) return { ok: false, reason: 'not_here' };
@@ -122,6 +122,7 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
   if (goods && count(goods) < qty) return { ok: false, reason: 'out_of_stock' };
   const price = each * qty;
   if (coins(buyer) < price) return { ok: false, reason: 'not_enough_coin' };
+  if (dry) return { ok: true, price, qty, to }; // AT45: would it go through (before a trade's time is spent)
   payCoin(buyer, seller, price);
   if (buyer === state.player) tally(state, 'coin_spent', { add: price }); // N5: copper spent buying
   if (!goods) {
@@ -193,7 +194,7 @@ export type SellResult =
 
 /** SL4/SL6: sell qty (default 1; stacks only) of one of the seller's own items to a Trader. All or nothing; no roll.
  * The item joins the Trader's stock and wares; the Trader pays from its own purse. */
-export function sell(state: GameState, owner: Actor, seller: Actor | undefined, instId: string | null | undefined, qtyIn: number | null | undefined): SellResult {
+export function sell(state: GameState, owner: Actor, seller: Actor | undefined, instId: string | null | undefined, qtyIn: number | null | undefined, dry = false): SellResult {
   if (!seller || seller === owner || !isActive(seller)) return { ok: false, reason: 'not_here' };
   if (!orderReaches(state, owner, seller)) return { ok: false, reason: canSpeak(state, owner) ? 'out_of_earshot' : 'out_of_reach' };
   if (wary(state, seller, owner)) return { ok: false, reason: 'refuses' };
@@ -207,6 +208,7 @@ export function sell(state: GameState, owner: Actor, seller: Actor | undefined, 
   if (qty > (inst.qty ?? 1)) return { ok: false, reason: 'not_bought' };
   const price = each * qty;
   if (coins(seller) < price) return { ok: false, reason: 'not_enough_coin' };
+  if (dry) return { ok: true, price, qty, itemInst: inst.id }; // AT45: would it go through (before a trade's time is spent)
   payCoin(seller, owner, price);
   if (owner === state.player) tally(state, 'coin_earned', { add: price }); // N5: copper earned selling
   let moved: ItemInstance = inst;

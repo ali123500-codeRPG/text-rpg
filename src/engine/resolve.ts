@@ -110,6 +110,7 @@ const useMain = (ctx: Ctx, a: Actor, cost?: { row?: DurationDef; seconds?: numbe
   if (cost?.row?.locksMove && !cost.lockPaid) s.move = Math.max(0, s.move - take);
   ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
   if (seconds !== undefined && seconds <= take + T_EPS) ctx.finished.add(a.id); else ctx.finished.delete(a.id);
+  if (a === ctx.state.player && ctx.state.mode !== 'tactical') { const own = (ctx.own ??= { over: 0, fill: 0 }); if (seconds === undefined) own.fill += take; else own.over += seconds - take; }
   return true;
 };
 /** ZP2/AT19: a movement takes the move time left (a dash: the main time, once the move time is gone, when no main action
@@ -204,14 +205,19 @@ type Ctx = {
   exchangeEvents: GameEvent[];
   counters: Set<string>; // All-50 Counter: once per round (AT50), keyed by roundKey
   parryStrikes: Set<string>; // PA4: a parry's free strike back, once per round (AT50), keyed by roundKey
-  /** AT56: the player's rest or wait outside a fight: the world clock runs it at the end of the turn (runStretch) */
+  /** AT56: the player's rest, wait, walk or long action outside a fight: the world clock runs it at the end of the turn (runStretch) */
   stretch?: Stretch;
   /** TV1: the player's move this turn was a trip along a road (its own stops: nightfall, an encounter) */
   travelled?: boolean;
+  /** AT46: outside a fight, the player's main time spent past the turn's pool (over) and taken by an action with no time
+   * of its own (fill): what exploreSeconds measures the turn by */
+  own?: { over: number; fill: number };
+  /** BG-185: the player's walk taken before their words in the exchange (its move is then spent from the order) */
+  saidOnWay?: Order;
 };
 /** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
  * soon the player is ready, AT67), and the event its outcome goes on */
-type Stretch = { kind: 'rest' | 'wait' | 'walk'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order };
+type Stretch = { kind: 'rest' | 'wait' | 'walk' | 'busy'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order; order?: Order };
 type StretchStop = NearStop | { why: 'fight'; by: string[] };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -898,10 +904,11 @@ function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string
   return { reached, fighting };
 }
 
-/** AT56/AT65/AT67: the world clock runs the player's rest or wait. It steps (comingNear stepS: shorter while someone not
+/** AT56/AT65/AT67: the world clock runs the player's rest, wait, walk (AT45/AT46) or long action (AT45: busy). It steps (comingNear stepS: shorter while someone not
  * yet accepted is in the senses), moving the clock on (natural recovery, aging) and everyone toward their routines
  * (catchUp) each step, and stops at contact, the coming-near check, or a fight in the player's senses. A rest is deep: any
- * stop breaks it, and it heals by the share that ran (AT27); a wait just ends. NPCs after someone act on code each step
+ * stop breaks it, and it heals by the share that ran (AT27); a wait just ends; a walk carries on next turn (AT49); a long
+ * action takes effect once its time is done, else waits for the same order again unless its focus is deep. NPCs after someone act on code each step
  * (huntOnCode), and while a fight between them is on the steps are one round. */
 type OnLeg = (a: Actor, from: Located, metres: number, toward: string) => void;
 function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
@@ -910,7 +917,10 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   const t0 = now(state);
   const watch = startWatch(state, p, st.pose);
   const fightStop = (): StretchStop | null => (fightInSenses(state) ? { why: 'fight', by: [] } : null);
-  let stop: StretchStop | null = contact(p, ctx.events) ?? fightStop();
+  // AT45: the one the player is at a long action with (a seller at a trade) talking to them is part of it, not contact
+  const partner = st.kind === 'busy' ? st.order?.target : undefined;
+  const touched = (events: GameEvent[]): StretchStop | null => { const c = contact(p, events), by = c?.by.filter((id) => id !== partner); return c && by?.length ? { ...c, by } : null; };
+  let stop: StretchStop | null = touched(ctx.events) ?? fightStop();
   let ran = 0;
   let fighting = false, walkEnd: 'there' | 'blocked' | null = null;
   for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
@@ -925,19 +935,24 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     fighting = hunt.fighting;
     headArrivals(state); runSteps(state); // UG16: queued steps run on through a long turn, with no call
     ran += step;
-    stop = contact(p, ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
+    stop = touched(ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
   }
   (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
   st.ran = ran;
   if (stop) {
     st.stop = stop;
     st.ev.effects.push({ kind: 'stopped', actorId: p.id, data: { why: stop.why, by: stop.by, seconds: Math.round(ran) } });
-    logCode(state, 'stretch_stopped', { actorId: p.id, kind: st.kind, why: stop.why, by: stop.by, seconds: Math.round(ran) });
+    logCode(state, 'stretch_stopped', { actorId: p.id, kind: st.kind, why: stop.why, by: stop.by, seconds: Math.round(ran), ...(st.kind === 'busy' && p.busy ? { row: p.busy.row } : {}) });
   }
   if (st.kind === 'walk') {
     if (st.walk && !walkEnd) p.walking = walkOf(st.walk); // AT49: stopped on the way, it carries on next turn
     else delete p.walking;
     if (ran > 0) logCode(state, 'walked_on', { actorId: p.id, seconds: Math.round(ran), arrived: !!st.walk && walkThere(state, p, st.walk) });
+  } else if (st.kind === 'busy') {
+    const b = p.busy;
+    if (b) b.done = Math.min(b.need, b.done + ran);
+    if (b && b.done >= b.need - T_EPS) { delete p.busy; doMain(ctx, p, st.order!); } // AT45: its time is done: it takes effect
+    else if (b && stop && actionRow(b.row)?.focus === 'deep') breakOff(state, p, st.ev); // AT65: deep breaks on any stop; else it waits for the same order again
   } else if (st.kind === 'rest') {
     const share = st.seconds > 0 ? Math.min(1, ran / st.seconds) : 1;
     if (share > 0) {
@@ -982,7 +997,7 @@ function runNight(ctx: Ctx): number {
     const slept = isAsleep(p);
     passTime(state, step);
     catchUp(state, step, false);
-    huntOnCode(ctx, step * 60); // AT63: foes after the player close in on code; the arrival check below stops the night
+    const reached = huntOnCode(ctx, step * 60).reached; // AT63: foes after the player close in on code; the arrival check below stops the night
     headArrivals(state); runSteps(state); // UG16: queued steps run on through the night, with no call
     if (slept) {
       n.slept += step;
@@ -991,7 +1006,8 @@ function runNight(ctx: Ctx): number {
     applyNightPhase(state);
     settleSleepers(state);
     const here = hostilesNear(state, p);
-    const came = here.filter((x) => !present.has(x.id));
+    // AT42/AT71: a newcomer stops it, and so does a foe after the player that reached them (its blow comes next turn)
+    const came = [...new Set([...here.filter((x) => !present.has(x.id)).map((x) => x.id), ...reached])].map((id) => actorById(state, id)!);
     if (came.length) {
       logCode(state, 'sleep_stopped', { actorId: p.id, by: came.map((x) => x.id) });
       (state.scratch ??= {}).nightStopped = true; // the next turn starts with them there
@@ -1017,6 +1033,16 @@ function turnMinutes(state: GameState, o: Order): number {
   if (state.mode === 'tactical') return turnSeconds(state, o) / 60;
   const base = (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows[DU.action])?.seconds ?? 0;
   return Math.max(base, orderCost(state, state.player, o)?.seconds ?? 0) / 60; // AT13: never shorter than the order's own action
+}
+/** AT13/AT46: outside a fight a turn lasts as long as the player's order, up to EXPLORE_TURN_S: its walk, its way and gear
+ * ops and its action's seconds. An action with no time of its own (a hold, an untimed action), or a turn with nothing
+ * timed in it, lasts the default action row. Longer actions run on the world clock instead (AT45, runStretch). */
+function exploreSeconds(ctx: Ctx, o: Order): number {
+  const p = ctx.state.player, own = ctx.own ?? { over: 0, fill: 0 };
+  const timed = Math.max(slotsOf(ctx, p).walkedS, (ctx.clock.get(p.id) ?? 0) - own.fill) + own.over;
+  const plainMove = o.type === 'move' || o.type === 'flee' || (o.type === 'hold' && !!o.move); // BG-16: just the walk
+  const untimed = timed <= T_EPS || (own.fill > T_EPS && !plainMove);
+  return Math.min(CONFIG.EXPLORE_TURN_S, untimed ? Math.max(timed, actionRow(DU.action)?.seconds ?? 0) : timed);
 }
 /** AT13/AT78: a fight turn lasts FIGHT_TURN_S, or as long as the player's order when that is one shorter action with no walk
  * (never under FIGHT_TURN_MIN_S); an attack repeats to fill it */
@@ -1486,7 +1512,17 @@ function longAction(ctx: Ctx, a: Actor, o: Order, cost: { row: DurationDef; seco
   const cur = a.busy?.key === key ? a.busy : undefined;
   // words are said in the turn they are ordered, all at once: a long line takes the turn's time (its share on a break waits)
   if (isSpeech(o.type)) return cost;
-  if (state.mode !== 'tactical') { delete a.busy; return cur ? { ...cost, seconds: Math.max(0, cur.need - cur.done) } : cost; }
+  if (state.mode !== 'tactical') {
+    const left = cur ? Math.max(0, cur.need - cur.done) : cost.seconds;
+    // AT45: the player's action longer than a turn outside a fight runs on the world clock at the end of the turn (runStretch)
+    // and takes effect when its time is done; a rest has its own stretch (doRest). An NPC's still takes effect at once
+    if (a !== state.player || ctx.stretch || cost.row.id === DU.rest || left <= CONFIG.EXPLORE_TURN_S + T_EPS || !wouldGo(state, a, o)) { delete a.busy; return { ...cost, seconds: left }; }
+    a.busy = { row: cost.row.id, key, order: { type: o.type, target: o.target, item: o.item ?? null }, done: cur?.done ?? 0, need: cur?.need ?? cost.seconds, turn: state.turn };
+    const ev = bark(mk(ctx, a, 'busy', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), busy: { row: cost.row.id, done: a.busy.done, need: a.busy.need } }), o);
+    emit(ctx, ev);
+    ctx.stretch = { kind: 'busy', seconds: left, pose: 'standing', ev, order: o };
+    return 'busy';
+  }
   const s = slotsOf(ctx, a);
   if (!cur && cost.seconds <= ctx.turnS + s.carried.main + T_EPS) return cost;
   const need = cur?.need ?? cost.seconds, done = cur?.done ?? 0, left = mainLeft(ctx, a);
@@ -1496,6 +1532,15 @@ function longAction(ctx: Ctx, a: Actor, o: Order, cost: { row: DurationDef; seco
   a.busy = { row: cost.row.id, key, order: { type: o.type, target: o.target, item: o.item ?? null }, done: done + left, need, turn: state.turn };
   emit(ctx, bark(mk(ctx, a, 'busy', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), busy: { row: cost.row.id, done: a.busy.done, need } }), o));
   return 'busy';
+}
+/** AT45: a long action that would be refused (no coin, nothing to sell, armour it can't put on) is refused at once, not
+ * after its time; whether it still goes through is asked again when its time is done */
+function wouldGo(state: GameState, a: Actor, o: Order): boolean {
+  const t = o.target ? actorById(state, o.target) : undefined;
+  if (o.type === 'buy') return buy(state, a, t, o.item, o.qty, (o.for ? actorById(state, o.for) : a) ?? a, true).ok;
+  if (o.type === 'sell') return sell(state, a, t, o.item, o.qty, true).ok;
+  if (o.type === 'equip') return equipArmor(state, a, o.item, true);
+  return true;
 }
 /** AT6/AT28: an actor turns to something else: a long action's work stays only when its row keeps it at this progress */
 function setAside(state: GameState, a: Actor): void {
@@ -1517,14 +1562,18 @@ function shareDone(state: GameState, a: Actor, b: NonNullable<Actor['busy']>): v
  * GAP: share, misfire and fires wait for rows that use them in a fight (rest, talk and spells are not long here). */
 function breakFocus(ctx: Ctx, t: Actor, ev: GameEvent, wounded: boolean): void {
   if (!busyNow(t)) return;
-  const b = t.busy!, focus = actionRow(b.row)?.focus ?? 'reflex';
+  const focus = actionRow(t.busy!.row)?.focus ?? 'reflex';
   if (!(FOCUS.pos(focus) >= FOCUS.pos('careful') || (focus === 'steady' && wounded))) return;
-  const then = breakBand(b);
+  breakOff(ctx.state, t, ev);
+}
+/** AT6/AT28: a long action broken off: what is left goes by its progress (kept, lost, or its share takes effect) */
+function breakOff(state: GameState, t: Actor, ev: GameEvent): void {
+  const b = t.busy!, then = breakBand(b);
   if (then === 'kept') b.paused = true;
   else delete t.busy;
-  if (then === 'share') shareDone(ctx.state, t, b);
+  if (then === 'share') shareDone(state, t, b);
   ev.effects.push({ kind: 'broke_off', actorId: t.id, data: { row: b.row, done: b.done, need: b.need, then } });
-  logCode(ctx.state, 'busy_broken', { actorId: t.id, row: b.row, done: b.done, need: b.need, then });
+  logCode(state, 'busy_broken', { actorId: t.id, row: b.row, done: b.done, need: b.need, then });
 }
 
 /** AT78/AT48: an attack order repeats while the actor has main time for another one, each next blow or shot resolving in
@@ -1838,6 +1887,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     if (po.move && !po.moveAfter && !po.way && !(input.quickWord && state.mode === 'tactical')) { // Quick Word speaks first; an aside (OA1) walks over first
       const { goal, opts } = moveGoal(state, state.player, po);
       if (!walk(ctx, state.player, goal, po, (n) => (n === 0 ? useMoveSlot(ctx, state.player, false) : null), opts)) logCode(state, 'move_dropped', { actorId: state.player.id, to: po.move });
+      // BG-185: a walk the player ordered (or one carrying on) still goes on after the words (AT49); a step up only to be
+      // heard (BG-74, no move given) is done once they are said
+      if (input.intent?.move || state.player.walking) ctx.saidOnWay = { ...po };
       po.move = null;
     }
     // BG-83: said at the volume the player chose (whisper, normal, shout), heard as loud as that
@@ -1916,31 +1968,33 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
     emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
   } : undefined;
-  // AT45/AT46: outside a fight a walk is one turn whatever its length: what the turn's move time left, the world clock walks
-  if (!ctx.stretch && !ctx.travelled && state.mode !== 'tactical' && isActive(state.player) && playerOrder.move && !playerOrder.way && ctx.acted.has(state.player.id)
-    && !walkThere(state, state.player, playerOrder) && !foundShut(ctx.events, state.player)) {
-    const p = state.player, { goal } = moveGoal(state, p, playerOrder), walkS = moveSpeed(state, p).walk, m = distOrNull(state, p, goal);
-    if (m !== null && walkS > 0) { // an old map's zone with no rectangle: the turn's own walk only
+  // AT45/AT46/AT49: the player's walk. Outside a fight it is one turn whatever its length: what the turn's move time left,
+  // the world clock walks; in a fight a walk not yet at its goal carries on next turn by itself. At its goal, at a way found
+  // shut (BG-69), after a road trip, or with another long thing to do, it ends (BG-184: at its goal it always ends)
+  const p = state.player, wo = playerOrder.move ? playerOrder : ctx.saidOnWay; // BG-185: words said on the way
+  if (!wo?.move || wo.way || ctx.travelled || !isActive(p) || !ctx.acted.has(p.id) || walkThere(state, p, wo) || foundShut(ctx.events, p)) delete p.walking;
+  else if (state.mode === 'tactical') p.walking = walkOf(wo);
+  else if (ctx.stretch) delete p.walking;
+  else {
+    const { goal } = moveGoal(state, p, wo), walkS = moveSpeed(state, p).walk, m = distOrNull(state, p, goal);
+    if (m !== null && walkS > 0) {
       const ev = [...ctx.events].reverse().find((e) => e.actorId === p.id) ?? mk(ctx, p, 'hold');
       if (!ctx.events.includes(ev)) emit(ctx, ev);
-      ctx.stretch = { kind: 'walk', seconds: (m / walkS) * 2 + CONFIG.STEP_MAX_S, pose: 'standing', ev, walk: playerOrder };
-    }
-  } else if (state.mode === 'tactical' && playerOrder.move && !playerOrder.way && !ctx.travelled && isActive(state.player)) {
-    // AT49: in a fight a walk not yet at its goal carries on next turn by itself
-    if (walkThere(state, state.player, playerOrder) || foundShut(ctx.events, state.player)) delete state.player.walking;
-    else state.player.walking = walkOf(playerOrder);
-  } else if (!playerOrder.move) delete state.player.walking;
+      ctx.stretch = { kind: 'walk', seconds: (m / walkS) * 2 + CONFIG.STEP_MAX_S, pose: 'standing', ev, walk: wo };
+    } else delete p.walking; // an old map's zone with no rectangle: the turn's own walk only
+  }
   const stretch = state.mode !== 'tactical' && isActive(state.player) ? ctx.stretch : undefined;
-  if (stretch?.kind === 'walk') passTime(state, slotsOf(ctx, state.player).walkedS / 60); // the turn's own walk came first
-  if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest, a wait or a walk runs on the world clock, step by step
-  else passTime(state, state.mode === 'tactical' ? ctx.turnS / 60 : turnMinutes(state, playerOrder)); // T1/AT13: every turn costs its action's time
+  if (stretch?.kind === 'walk' || stretch?.kind === 'busy') passTime(state, slotsOf(ctx, state.player).walkedS / 60); // the turn's own walk came first
+  if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest, a wait, a walk or a long action runs on the world clock, step by step
+  else passTime(state, (state.mode === 'tactical' ? ctx.turnS : exploreSeconds(ctx, playerOrder)) / 60); // AT13/AT46: every turn lasts its order's time
   const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
   const long = !!stretch || catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
   if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legs(long));
   if (long) for (const e of ctx.events) if (e.kind === 'move' && e.actorId !== state.player.id && !e.line) e.summed = true; // BF2e3: their own move is in their one line too // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
   settleSleepers(state); // NW20: NPCs fall asleep and wake by their routines
-  // NW18: still asleep and nobody hostile near any more (they left, or never woke you): the rest of the night runs on
-  if (state.night && isAsleep(state.player) && !state.scratch?.nightStopped && !hostilesNear(state, state.player).length) runNight(ctx);
+  // NW18/AT42: still asleep (whoever came never woke you): the rest of the night runs on as one stretch, the people already
+  // there accepted; it stops again on a newcomer or a foe reaching you
+  if (state.night && isAsleep(state.player) && !state.scratch?.nightStopped) runNight(ctx);
   headArrivals(state); // NW2: a head_to walk the catch-up brought there
   runSteps(state); // UG16: a goal holder's finished step gives way to its next
   noticeGoals(state); // UG7 moment 3: a goal holder that perceives what a goal names thinks next

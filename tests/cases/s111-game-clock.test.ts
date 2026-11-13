@@ -24,14 +24,16 @@ const turn = (s: GameState, intent: Intent) => { s.turn += 1; return resolveTurn
 const zone = (s: GameState, id: string) => s.zones.find((z) => z.id === id)!;
 
 describe('111 game clock', () => {
-  it('every turn costs its action time from the durations table', () => {
+  it('AT46: outside a fight a turn lasts its order\'s time from the durations table, at most EXPLORE_TURN_S', () => {
     const s = makeVillage();
     startClock(s, 'morning');
     const t0 = now(s);
     turn(s, act('observe'));
-    expect(now(s) - t0).toBe(1);
+    expect(now(s) - t0).toBeCloseTo(3 / 60, 6); // a look around
     turn(s, act('barter'));
-    expect(now(s) - t0).toBe(11);
+    expect(now(s) - t0).toBeCloseTo(3 / 60 + CONFIG.EXPLORE_TURN_S / 60, 6); // the haggling is words: capped
+    turn(s, act('other'));
+    expect(now(s) - t0).toBeCloseTo(3 / 60 + CONFIG.EXPLORE_TURN_S / 60 + 1, 6); // no time of its own: the action row
   });
   it('waiting until dawn moves the clock to dawn and shows a line, never ending the scenario (SC9); a foe in the player\'s senses stops it at once', () => {
     const s = makeVillage();
