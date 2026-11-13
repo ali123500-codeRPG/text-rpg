@@ -1058,3 +1058,22 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .g-past-body { display: grid; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); }
 .g-past-body .g-closing { margin: 0; text-align: left; font: italic 400 16px/1.6 var(--font-story); color: var(--muted); }
 .g-past-body .g-spine .g-sec:last-child { padding-bottom: 0; }
+/* AT11a: long actions. Time is the teal of the sand (--c9); done is --ok. The meter is a 2-colour bar drawn once (scaleX) */
+.dg-m { position: relative; display: inline-block; flex: none; width: 28px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--c9) 22%, transparent); overflow: hidden; align-self: center; }
+.dg-m > i { position: absolute; inset: 0; background: var(--c9); transform-origin: left center; }
+.dg-m.done > i { background: var(--ok); }
+.who .st.doing { display: inline-flex; align-items: baseline; gap: 6px; color: var(--c9); font-variant-numeric: tabular-nums; }
+.who .st.doing .dg-m { align-self: center; }
+.doing-slot:empty { display: none; }
+.doing-now { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: 4px 4px 4px 14px; border: 1px solid color-mix(in srgb, var(--c9) 45%, transparent); border-radius: var(--r-pill); font-size: 13px; color: var(--muted); }
+.doing-now .dg-m { width: 64px; height: 6px; border-radius: 3px; }
+.doing-now .dg-t b { color: var(--text); font-weight: 600; }
+.doing-now .dg-t .dg-left { color: var(--c9); font-variant-numeric: tabular-nums; }
+.doing-now .hs-note { margin: 0; flex: 1 1 auto; }
+.doing-now .dg-pick { margin-left: auto; }
+.inbar .doing-now button.dg-go { min-height: 28px; color: var(--c9); border-color: color-mix(in srgb, var(--c9) 45%, transparent); }
+.rrow.acts ul { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0; padding: 0; list-style: none; }
+.rrow.acts li { display: inline-flex; align-items: baseline; gap: 6px; }
+.rrow.acts li b { color: var(--text); font-weight: 600; }
+.rrow.acts .dg-left { color: var(--c9); font-variant-numeric: tabular-nums; }
+.rrow.acts .dg-end.done { color: var(--ok); } .rrow.acts .dg-end.broken { color: var(--warn); } .rrow.acts .dg-end.stopped { color: var(--muted); }

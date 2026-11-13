@@ -35,6 +35,9 @@ export type LogLine = {
   nerveBroke?: true; // MB12: the player's morale reached Broken this turn (the play screen's Nerve broken card)
   nerveRefused?: true; // MB12: the player's attack this turn was refused because their nerve is broken
   coin?: number; // what the turn changed in the player's coin, in copper: 12 gained, -5 lost (left out of `gear`)
+  /** AT11a: long actions the player saw this turn, theirs first: who (You, or the name the screen uses), the action, whole seconds
+   * done and to go after the turn, and whether it goes on, was finished, was broken off by a blow, or was set aside */
+  actions?: ActionNote[];
   ways?: string[]; // what the player did at doors, gates and other barriers this turn, ready to show: "Door to the cellar: locked"
   place?: { id: string; name: string; zone?: string }; // where the player ended the turn; name like "River path · the Riverside", zone like "cellar"
   scenario?: number; // stage.scenarioNumber when the turn ended
@@ -44,6 +47,7 @@ export type LogLine = {
   /** D-226: the gains of the scenario this turn ended; while set, that line carries no achievements, unlocks or levelUps of its own */
   scenarioGains?: ScenarioGains;
 };
+export type ActionNote = { who: string; what: string; done: number; left: number; state: 'going' | 'done' | 'broken' | 'stopped' };
 export type ScenarioEndNote = { as: import('./hidden').ScenarioEnding; name: string; closing?: string };
 /** D-226: what the player gained in a scenario, for the ending moment's gains pop-up (on the narration line of the turn that
  * ended it, LogLine.scenarioGains). Achievements and All-XXX are granted at the end; skill raises, XP and levels are what the

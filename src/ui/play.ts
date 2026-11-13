@@ -27,6 +27,7 @@ import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
+import { actionsRow, doingChip, doingNow } from './doing';
 import { closePop, openPop } from './pop';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -213,7 +214,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
   const fleeBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'flee', title: 'Run from the fight. Add where to', onclick: () => pick('I flee ') }, 'Flee');
   const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn), h('div', { class: 'hs-picker' }, yieldBtn, fleeBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
-  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, tools);
+  const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the chips
+  let doingHtml = '';
+  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, doingSlot, tools);
   const fell = h('div', { class: 'fell', hidden: true });
   const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
   const nerveEdge = h('div', { class: 'm-edge nerve', 'aria-hidden': 'true' }); // MW1: the violet edge as the nerve gives
@@ -375,6 +378,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       l.nerveRefused ? h('p', { class: 'rrow nerve' }, h('span', { class: 'hs-label' }, 'Nerve'), h('span', {}, 'Your attack never came: your nerve is broken.')) : null,
       // coin gained or lost this turn: "+2 silver" in gold, "−5 copper" in red, so a theft or a price never passes unseen
       l.coin ? h('p', { class: 'rrow coin' }, h('span', { class: 'hs-label' }, 'Coin'), h('b', { class: l.coin > 0 ? 'coin-up' : 'coin-down' }, (l.coin > 0 ? '+' : '−') + coinWords(Math.abs(l.coin)))) : null,
+      // AT11a: the long actions seen this turn: going on (time to go), done, broken off or set aside
+      actionsRow(l.actions ?? []),
       // what you did at doors, gates and other barriers this turn: tried, opened, locked, picked
       ...(l.ways ?? []).map((w) => row('Way', w)),
       // a skill that went up this turn: "Strike +1" in gold, the same mark as the sheet's ▲ (playtest run 33)
@@ -526,9 +531,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
-    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label), ...(a.age ? { title: `Looks ${a.age.toLowerCase()}` } : {}) }, // AG16: the life stage they look h('b', {}, cap(a.name ?? a.label)),
+    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label), ...(a.age ? { title: `Looks ${a.age.toLowerCase()}` } : {}) }, // AG16: the life stage they look
+      h('b', {}, cap(a.name ?? a.label)), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
+      // AT11a: a long action they are at, and how long is left
+      a.doing ? doingChip(a.doing) : null,
       // MB16: others' morale, only from Afraid down
       a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
       // A13 Read Wounds: a foe's Damaged parts
@@ -598,6 +606,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const broken = !!s && moraleLevel(s.player) === 'broken';
     yieldBtn.hidden = fleeBtn.hidden = !broken; aimBtn.hidden = broken;
     yieldBtn.disabled = fleeBtn.disabled = stopped;
+    // AT11a: the player's own long action; a redraw that changes nothing keeps the element (M-74)
+    if (!frozen) { const dn = doingNow(pv?.player.doing, pick, stopped); const html = dn?.outerHTML ?? ''; if (html !== doingHtml) { doingSlot.replaceChildren(...(dn ? [dn] : [])); doingHtml = html; } }
     st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
     if (!input.disabled && !el.hidden && el.isConnected && (document.activeElement === document.body || document.activeElement === send)) input.focus();
