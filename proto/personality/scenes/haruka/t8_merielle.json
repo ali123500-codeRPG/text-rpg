@@ -1,0 +1,138 @@
+{
+ "case": "VT-T8",
+ "pass": "Plays down or dodges her thanks: jokes, claims it was nothing or an accident, or changes the subject; getting her name wrong is fine. Does not promise to stay in Omui. No anger and no stance change.",
+ "view": {
+  "turn": 34,
+  "time": {
+   "day": 21,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "hall",
+   "placeId": "omui",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "hall",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "a proud girl in a fine riding dress, the lord of Omui's daughter"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Yesterday Ren saved this girl's carriage from bandits. On the way to town he grumbled about how dull Omui is, before finding out she is the lord's daughter.",
+   "Her father has given Ren a reward and a town pass. Ren wants to go back to his forest."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "hall",
+    "links": [
+     {
+      "to": "gate",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "gate",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "hall",
+    "name": "mansion hall",
+    "look": "the great hall of the lord of Omui's mansion, banners on the walls",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "gate",
+      "label": "out to the gate",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "gate",
+    "name": "mansion gate",
+    "look": "the gate onto the town streets",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "back into the hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a proud girl in a fine riding dress, the lord of Omui's daughter",
+    "pronouns": "she",
+    "zone": "hall",
+    "level": "full",
+    "activityLook": "standing in front of him with her chin up and a purse of gold in her hand"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "You saved my life, so I'll say it properly: thank you. Father insists you take this gold. And you are not leaving Omui until you admit it's worth staying for. Also, my name is Elena, not 'carriage girl'.",
+   "impression": null
+  }
+ ]
+}

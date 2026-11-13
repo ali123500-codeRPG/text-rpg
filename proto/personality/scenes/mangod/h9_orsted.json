@@ -1,0 +1,91 @@
+{
+ "case": "VT-H9",
+ "pass": "Stays calm and pleasant, explains who or what the man is (for example a cursed being that everyone fears), and takes no real blame: no sincere apology or owning the cost; calls it chance or unforeseen. Gives no real reason why the man hates him. No stance change.",
+ "view": {
+  "turn": 260,
+  "time": {
+   "day": 58,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "sael",
+   "label": "a man-shaped figure whose face and body blur like a smeared mosaic",
+   "name": "Sael",
+   "kind": "npc",
+   "zone": "white_void",
+   "placeId": "dream",
+   "bandId": "sael",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "white_void",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the dreamer"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aldo told a stranger on the road that a god named Sael visits his dreams. The silver-haired stranger attacked him at once and nearly killed him. Aldo lies near death.",
+   "Tonight his sleep has brought him back here."
+  ],
+  "memory": [
+   "1. I can glimpse what is to come for those I watch, but I cannot see that silver-haired man.",
+   "2. He is Dravic, the Dragon Lord, the strongest being in the world. He bears curses: everyone who meets him fears and hates him on sight.",
+   "3. Dravic is my enemy. I did not foresee that Aldo would meet him."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "white_void",
+    "links": []
+   }
+  ],
+  "zones": [
+   {
+    "id": "white_void",
+    "name": "white void",
+    "look": "an endless white emptiness with no floor and no sky",
+    "cover": "none",
+    "light": "bright",
+    "links": [],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Aldo, the dreamer: here he wears the body of his past life, a heavy, unkempt man in his thirties",
+    "pronouns": "he",
+    "zone": "white_void",
+    "level": "full",
+    "activityLook": "pale and shaking, furious"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "That man nearly killed me the moment I said your name! Who is he? Why didn't you warn me?",
+   "impression": null
+  }
+ ]
+}

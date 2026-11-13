@@ -1,0 +1,138 @@
+{
+ "case": "VT-T7",
+ "pass": "Steps in to save the carriage this turn: attacks, tricks or drives off the bandits (any act against them). Does not walk on or hide. No grand heroic speech: dry, mocking or few words.",
+ "view": {
+  "turn": 30,
+  "time": {
+   "day": 20,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "road",
+   "placeId": "omui_road",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "road",
+    "source": "seen",
+    "revealed": [],
+    "stance": "unfriendly",
+    "hostile": false,
+    "active": true,
+    "label": "a bandit leader with a notched axe; a dozen bandits surround a noble carriage with a girl trapped inside"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Ren slipped out of the town of Omui to go back to his forest. He is far stronger than his low level shows.",
+   "On the road, bandits have ambushed a noble's carriage. The guards are down, and a girl is screaming inside it."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "road",
+    "links": [
+     {
+      "to": "woods",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "woods",
+    "links": [
+     {
+      "to": "road",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "road",
+    "name": "forest road",
+    "look": "a dirt road through thick woods; a fine carriage lies tipped against a tree",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "woods",
+      "label": "into the woods",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "woods",
+    "name": "woods",
+    "look": "dense trees beside the road",
+    "cover": "full",
+    "light": "dim",
+    "links": [
+     {
+      "to": "road",
+      "label": "back to the road",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a bandit leader with a notched axe; a dozen bandits surround a noble carriage with a girl trapped inside",
+    "pronouns": "he",
+    "zone": "road",
+    "level": "full",
+    "activityLook": "waving his axe at Ren while his men pry at the carriage door"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Keep walking, peasant boy. This is none of your business, unless you want to die too.",
+   "impression": null
+  }
+ ]
+}

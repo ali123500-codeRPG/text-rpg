@@ -1,0 +1,91 @@
+{
+ "case": "VT-H7",
+ "pass": "Gives short, specific advice that leads Aldo to his sister (where to go or what to do) and tells him to hide who he is from her. Friendly and easy; does not say what he gains.",
+ "view": {
+  "turn": 200,
+  "time": {
+   "day": 58,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "sael",
+   "label": "a man-shaped figure whose face and body blur like a smeared mosaic",
+   "name": "Sael",
+   "kind": "npc",
+   "zone": "white_void",
+   "placeId": "dream",
+   "bandId": "sael",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "white_void",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the dreamer"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "A year has passed since Sael last visited Aldo. Aldo has reached a big city and is starting to search for his scattered family.",
+   "Tonight his sleep has brought him back here."
+  ],
+  "memory": [
+   "1. I can glimpse what is to come for those I watch.",
+   "2. Aldo's young half-sister and her mother are held in the royal palace of the kingdom of Varnel. If Aldo goes looking for his sister there, he will find her and can free them both.",
+   "3. The girl has been told her elder brother is a pervert, so she will not trust him if she learns who he is."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "white_void",
+    "links": []
+   }
+  ],
+  "zones": [
+   {
+    "id": "white_void",
+    "name": "white void",
+    "look": "an endless white emptiness with no floor and no sky",
+    "cover": "none",
+    "light": "bright",
+    "links": [],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Aldo, the dreamer: here he wears the body of his past life, a heavy, unkempt man in his thirties",
+    "pronouns": "he",
+    "zone": "white_void",
+    "level": "full",
+    "activityLook": "tired and serious, ready to listen"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "You again. Fine, I'll listen this time. I'm looking for my family. Where are they, and what do I do?",
+   "impression": null
+  }
+ ]
+}

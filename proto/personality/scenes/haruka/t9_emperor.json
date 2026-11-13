@@ -1,0 +1,133 @@
+{
+ "case": "VT-T9",
+ "pass": "Tries to free it rather than just destroy it: uses holy magic or another act on the miasma or its strings first. Does not simply attack the skeleton or run.",
+ "view": {
+  "turn": 60,
+  "time": {
+   "day": 30,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "floor_101",
+   "placeId": "dungeon",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "floor_101",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "an armed skeleton in a crown, the Dungeon Emperor; dark miasma coils around its bones like puppet strings"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Ren fell through a wall into the deepest floor of the dungeon. Here waits the Dungeon Emperor, the strongest monster below.",
+   "It moves stiffly against its will: the miasma is working it like a puppet. Ren has holy magic that burns away darkness."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "floor_101",
+    "links": [
+     {
+      "to": "passage",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "passage",
+    "links": [
+     {
+      "to": "floor_101",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "floor_101",
+    "name": "deepest hall",
+    "look": "a vast hall on the dungeon's 101st floor, lit by dim crystal",
+    "cover": "none",
+    "light": "dim",
+    "links": [
+     {
+      "to": "passage",
+      "label": "to a side passage",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "passage",
+    "name": "side passage",
+    "look": "a narrow rock passage",
+    "cover": "partial",
+    "light": "dark",
+    "links": [
+     {
+      "to": "floor_101",
+      "label": "back to the hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "an armed skeleton in a crown, the Dungeon Emperor; dark miasma coils around its bones like puppet strings",
+    "pronouns": "it",
+    "zone": "floor_101",
+    "level": "full",
+    "activityLook": "raising its sword at Ren slowly, as if dragged by the strings, with no bloodlust at all"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

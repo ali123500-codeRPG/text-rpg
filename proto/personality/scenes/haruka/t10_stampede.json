@@ -1,0 +1,138 @@
+{
+ "case": "VT-T10",
+ "pass": "Refuses to kill or hand over Annick, and says or shows he will stop the stampede another way. Does not attack the speakers. A dry or joking tone is fine.",
+ "view": {
+  "turn": 80,
+  "time": {
+   "day": 40,
+   "timeOfDay": "Day"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "guild",
+   "placeId": "omui",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "guild",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a grizzled commander in battered armour, the lord's daughter Elena at his side"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Annick, the freed Dungeon Emperor, now travels with Ren as his companion. She stands silently behind him.",
+   "The dungeon is overflowing with monsters that will soon flood the town."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "guild",
+    "links": [
+     {
+      "to": "street",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "street",
+    "links": [
+     {
+      "to": "guild",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "guild",
+    "name": "guild hall",
+    "look": "the crowded adventurers' guild, soldiers at the door",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "street",
+      "label": "out to the street",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "street",
+    "name": "street",
+    "look": "a street full of fleeing townsfolk",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "guild",
+      "label": "back into the guild",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a grizzled commander in battered armour, the lord's daughter Elena at his side",
+    "pronouns": "he",
+    "zone": "guild",
+    "level": "full",
+    "activityLook": "gripping his sword hilt, looking at the armoured woman behind Ren"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "The dungeon is about to burst. The old records say only one thing stops a stampede: killing the Dungeon Emperor. That's her, isn't it? Hand her over, or do it yourself.",
+   "impression": null
+  }
+ ]
+}

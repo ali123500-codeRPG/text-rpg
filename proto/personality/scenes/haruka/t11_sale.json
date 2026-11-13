@@ -1,0 +1,138 @@
+{
+ "case": "VT-T11",
+ "pass": "Sells the items for a price (haggling or joking about money is fine); does not hand them out for free. A small gift on the side is fine. No anger and no stance change.",
+ "view": {
+  "turn": 95,
+  "time": {
+   "day": 45,
+   "timeOfDay": "Evening"
+  },
+  "self": {
+   "id": "ren",
+   "label": "a lanky teenage boy in plain villager's clothes, carrying a wooden staff",
+   "name": "Ren",
+   "kind": "npc",
+   "zone": "inn_room",
+   "placeId": "omui",
+   "bandId": "ren",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [
+    {
+     "id": "staff",
+     "itemId": "wooden_staff",
+     "name": "wooden staff",
+     "kind": "weapon",
+     "equippedIn": [
+      "main_hand"
+     ],
+     "modes": [
+      {
+       "id": "strike",
+       "name": "strike"
+      }
+     ]
+    }
+   ],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "inn_room",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "a crowd of his classmates, the girls in front, eyes on his table of loot"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Ren brought a heap of rare magic items out of the dungeon. He has spread them out on the tables at the inn.",
+   "He is short of money after paying for things he broke in town."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "inn_room",
+    "links": [
+     {
+      "to": "street",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "street",
+    "links": [
+     {
+      "to": "inn_room",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "inn_room",
+    "name": "inn common room",
+    "look": "the inn's common room, tables pushed together and covered in rare rings, cloaks and charms",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "street",
+      "label": "out to the street",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "street",
+    "name": "street",
+    "look": "a quiet evening street",
+    "cover": "none",
+    "light": "dim",
+    "links": [
+     {
+      "to": "inn_room",
+      "label": "back into the inn",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a crowd of his classmates, the girls in front, eyes on his table of loot",
+    "pronouns": "they",
+    "zone": "inn_room",
+    "level": "full",
+    "activityLook": "pressing in around the table, reaching for the rings"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Ren, those rings are amazing! Can we have them? We're classmates, you'll give us a discount, right? Or just give them to us?",
+   "impression": null
+  }
+ ]
+}

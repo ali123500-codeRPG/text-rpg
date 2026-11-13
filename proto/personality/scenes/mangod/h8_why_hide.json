@@ -1,0 +1,91 @@
+{
+ "case": "VT-H8",
+ "pass": "Keeps the advice: Aldo must still hide who he is. Gives a light, teasing or vague reason and stays amused; does not drop the condition or get cross. Does not say what he gains.",
+ "view": {
+  "turn": 201,
+  "time": {
+   "day": 58,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "sael",
+   "label": "a man-shaped figure whose face and body blur like a smeared mosaic",
+   "name": "Sael",
+   "kind": "npc",
+   "zone": "white_void",
+   "placeId": "dream",
+   "bandId": "sael",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "white_void",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Aldo, the dreamer"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Sael has just told Aldo to look for his half-sister in the palace of Varnel, and not to tell her who he is.",
+   "They are still in the same dream."
+  ],
+  "memory": [
+   "1. I can glimpse what is to come for those I watch.",
+   "2. Aldo's young half-sister and her mother are held in the royal palace of Varnel. If Aldo finds his sister there, he can free them both.",
+   "3. The girl has been told her elder brother is a pervert, so she will not trust him if she learns who he is."
+  ],
+  "secrets": [],
+  "map": [
+   {
+    "id": "white_void",
+    "links": []
+   }
+  ],
+  "zones": [
+   {
+    "id": "white_void",
+    "name": "white void",
+    "look": "an endless white emptiness with no floor and no sky",
+    "cover": "none",
+    "light": "bright",
+    "links": [],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Aldo, the dreamer: here he wears the body of his past life, a heavy, unkempt man in his thirties",
+    "pronouns": "he",
+    "zone": "white_void",
+    "level": "full",
+    "activityLook": "frowning, arms crossed"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Why can't I just tell her I'm her brother? That's ridiculous. She's family.",
+   "impression": null
+  }
+ ]
+}
