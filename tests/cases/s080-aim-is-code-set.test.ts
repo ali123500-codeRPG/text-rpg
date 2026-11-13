@@ -19,7 +19,7 @@ describe('80 Aim is code-set', () => {
     const { claude, game, store, start } = setupGame({ playerZone: 'gate_inner' });
     start();
     // the guard's shield would block where its parry used to, and the head cut of turn 2 would kill it before turn 3
-    const guard = game.gm().state.actors.find((a) => a.id === 'guard_1')!;
+    const guard = game.gm().state!.actors.find((a) => a.id === 'guard_1')!;
     guard.core.skills[SK.parry] = { raw: 50, state: 'normal' };
     guard.core.standingDefense = 'parry';
     // turn 1: the Parser claims aimed; no toggle -> not aimed
