@@ -157,7 +157,8 @@ export function unclearAddressee(state: GameState, intent: Intent, seen: string[
   for (const ad of intent.addressees) {
     if (ad === 'everyone' || !state.bands.some((b) => b.id === ad)) continue;
     const members = live.filter((a) => a.bandId === ad && seen.includes(a.id));
-    if (members.some((a) => a.id === state.stage.partner)) continue;
+    // BG-143: the one the words are aimed at (the action's target) speaks for the band (BG-122), so there is nobody to ask about
+    if (members.some((a) => a.id === state.stage.partner || a.id === intent.action?.target)) continue;
     if (members.length > 1) return members.map((a) => a.id).sort();
   }
   return null;

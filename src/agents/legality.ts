@@ -20,6 +20,7 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   if (first.startsWith('action.target_dead')) return `That one is already dead. Who do you mean?${who}`;
   if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
   if (first.startsWith('move.spot')) return `Where in ${view.zone.name} do you want to go? You can go to someone, to a way out (${view.zone.links.map((l) => l.label).join(', ') || 'none'}), away from one, or to one side, such as the north side.`;
+  if (first.startsWith('action.ware')) { const ws = view.actors.find((x) => x.id === first.split(' ')[1])?.wares ?? []; return `Which do you want to buy${ws.length ? `: ${ws.map((w) => w.name).join(', ').replace(/, ([^,]*)$/, ' or $1')}` : ''}?`; }
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   if (first.startsWith('action.time')) return `Until when? You can wait until ${TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
@@ -99,6 +100,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     // a buy, or haggling over one, names a ware of the seller it targets (goods:… / service:…), not an item the player can reach
     const wares = a.type === 'buy' || a.type === 'barter' ? new Set(view.actors.find((x) => x.id === a.target)?.wares?.map((w) => w.id) ?? []) : null;
+    // BG-145: a buy names the ware; with one ware it is that one, else the player is asked which (never a refused buy)
+    if (a.type === 'buy' && a.item === null && wares) { if (wares.size === 1) a.item = [...wares][0]; else illegal.push(`action.ware ${a.target}`); }
     if (a.item !== null && !(wares ? wares.has(a.item) : items.has(a.item))) illegal.push(`action.item ${a.item}`);
     if (a.mode !== null) {
       const modes = a.item ? own.find((i) => i.id === a.item)?.modes.map((m) => m.id) ?? [] : own.flatMap((i) => (i.equippedIn.length ? i.modes.map((m) => m.id) : []));

@@ -231,8 +231,13 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (z.height !== undefined && (typeof z.height !== 'number' || !Number.isFinite(z.height) || Math.abs(z.height) > 500)) err('bad_zone', `zone ${z.key}: height is metres above the ground, a number from -500 to 500`);
     if (z.size !== undefined && !ZONE_SIZES.has(z.size)) err('bad_zone', `zone ${z.key}: size is ${ZONE_SIZES.list()}`);
     const road = getLibrary().zoneKinds?.[z.kind]?.road;
-    if (z.length !== undefined && (!road || !(ROAD_LENGTHS.has(z.length) || (typeof z.length === 'number' && Number.isFinite(z.length) && z.length >= 0.1 && z.length <= 500)))) err('bad_zone', `zone ${z.key}: only a road has a length: ${ROAD_LENGTHS.list()}, or km from 0.1 to 500`);
-    if (z.danger !== undefined && (!road || !ROAD_DANGERS.has(z.danger))) err('bad_zone', `zone ${z.key}: only a road has a danger: ${ROAD_DANGERS.list()}`);
+    // BG-141: a length or danger on a zone that is not a road kind is dropped (a repair), never the whole plan
+    if (!road && (z.length !== undefined || z.danger !== undefined)) {
+      delete z.length; delete z.danger;
+      errs.push({ code: 'road_fields_dropped', message: `zone ${z.key}: not a road kind, so its length and danger were dropped`, routineOnly: false, repaired: true });
+    }
+    if (z.length !== undefined && !(ROAD_LENGTHS.has(z.length) || (typeof z.length === 'number' && Number.isFinite(z.length) && z.length >= 0.1 && z.length <= 500))) err('bad_zone', `zone ${z.key}: a road's length is ${ROAD_LENGTHS.list()}, or km from 0.1 to 500`);
+    if (z.danger !== undefined && !ROAD_DANGERS.has(z.danger)) err('bad_zone', `zone ${z.key}: a road's danger is ${ROAD_DANGERS.list()}`);
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
     const edgeKinds = getLibrary().edgeKinds ?? {};
     for (const [side, ek] of Object.entries(z.edges ?? {})) {

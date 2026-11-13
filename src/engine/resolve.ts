@@ -432,9 +432,9 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const { state, rng } = ctx;
   let t = o.target ? actorById(state, o.target) : undefined;
   // BG-25: a wasted attack says why, so the story tells that and not a miss it made up
-  const wasted = (reason?: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(reason ? { reason } : {}) }), o));
+  const wasted = (reason: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason }), o));
   // BG-25: someone down (Incapacitated) can still be struck: HP lost keeps counting while down, to Dead. Only the dead can't.
-  if (!t || t === a) return wasted();
+  if (!t || t === a) return wasted('no_target'); // BG-149: always a reason
   if (healthLevel(t) === 'dead') return wasted('already_dead');
   if (t === state.player && !isActive(t)) return wasted('already_down'); // a downed player's fate is the survival roll's (D-54)
   if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
@@ -949,7 +949,11 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doWait(ctx, a, o);
     case 'give': {
       const got = giveItem(state, a, o.item, o.target, o.qty);
-      if (!got) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
+      if (!got) { // BG-149: a wasted event always says why
+        const t = o.target ? actorById(state, o.target) : undefined;
+        const why = !t || t === a ? 'no_one_to_give_to' : !isActive(t) ? 'already_down' : !a.core.inventory.some((x) => x.id === o.item) ? 'no_item' : !withinGrip(state, a, t, gripReachM(state, t)) ? 'out_of_reach' : 'not_that_many';
+        return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
+      }
       return emit(ctx, bark(mk(ctx, a, 'give', { target: o.target ?? undefined, itemId: got.id, qty: got.qty }), o));
     }
     case 'buy': {
@@ -973,7 +977,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return emit(ctx, bark(mk(ctx, a, 'sell', { target: o.target ?? undefined, qty: r.qty, price: r.price, itemId: r.itemInst }), o));
     }
     case 'equip': {
-      if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted'), o));
+      if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: 'cannot_put_that_on' }), o)); // BG-149
       return emit(ctx, bark(mk(ctx, a, 'equip', { itemId: o.item ?? undefined }), o));
     }
     case 'use_item':

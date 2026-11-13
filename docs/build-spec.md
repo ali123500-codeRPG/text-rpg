@@ -3254,6 +3254,11 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BF2a-d | Ali's answers on catch-up moves (BG-119). | Catch-up legs on an action's turn are move events, perceived by the normal rules; caught_up logged. | Built in PR #604 |
 | BF8, BF10 | Ali's answers on lie hints. | A lie seen through by LIE_PLAIN_GAP (2) tiers or more is plainly a lie, a one-tier win gives the hint, Plain as Day makes any win plain; a lie the player ties with leaves the hint (doubt). | Built in PR #604 |
 | BF9, BF11 | Ali's answers on followers and agent-chosen places. | Followers together with the player travel with it; a place an NPC's agent moved it to holds AGENT_STAY_TURNS (3). | Built in PR #604 |
+| BG-145 | Run 97, turn 9: "I pay the barkeep four copper for Wen's bread and stew" gave a buy with no ware, so the barkeep refused and the coins sat on the counter. | A buy naming no ware is the seller's only ware, or the player is asked which (never a refused buy); the Parser maps a ware named by what it holds. | Fixed in PR #607 |
+| BG-146 | Run 100, turns 4 and 7: Marta's Weaver beat had her speak to the player, but she was code-run, so no Responder wrote her words and the speak carried no line. | Every owner of a speech beat at the player gets a Responder call for its words, code-run too. | Fixed in PR #607 |
+| BG-141 | Run 94, turn 5: one zone that was not a road kind had a length, which sank the Weaver's whole extension and left a bare, dead-end square. | A length or danger on a zone that is not a road is dropped as a repair, never fatal. | Fixed in PR #607 |
+| BG-143 | Run 96: words to "the broad-shouldered man" that mentioned "the two strangers" were addressed to the band, so code asked "Who do you speak to?" twice; the clarify turn kept no log. | The action's target speaks for its band, so there is nobody to ask about; Parser rule 7: words to one person go to them; every clarify keeps the turn log. | Fixed in PR #607 |
+| BG-149 | Run 91b, turn 46: paying Hadley 3.5 m away behind a barred way came to a wasted event with no reason, narrated as pushing the grate. | Every wasted event carries a reason (a test enforces it); a give says out of reach, no item, already down. Handing things to someone behind a shut way is question BF12. | Fixed in PR #607 |
 
 ## Check on release
 
