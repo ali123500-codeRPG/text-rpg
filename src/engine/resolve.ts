@@ -855,6 +855,21 @@ function walkStep(ctx: Ctx, o: Order, seconds: number): 'there' | 'blocked' | nu
   const moved = p.zone !== was.zone || (!!p.pos && !!was.pos && distM(state, p, { zone: p.zone, pos: was.pos }) > 0.01);
   return walkThere(state, p, o) ? 'there' : !ok || !moved ? 'blocked' : null;
 }
+/** BG-190: a walk with spot near someone and follow set is a follow. Reaching them does not end it: it carries on next
+ * turn (AT49) toward where they are now while the player can see or hear them. Lost, it ends and the player is told why
+ * (Actor.followLost): seen going down, slipped from sight in the zone the player had them in, or gone on out of sight */
+function keepFollowing(ctx: Ctx, wo: Order | undefined): void {
+  const { state } = ctx;
+  const p = state.player, spot = wo?.moveSpot;
+  const who = spot?.follow && spot.near && !spot.lastSeen ? actorById(state, spot.near) : undefined;
+  if (!wo?.move || !who || who === p || wo.way || ctx.travelled || !isActive(p) || !ctx.acted.has(p.id) || foundShut(ctx.events, p)) return;
+  if (ctx.stretch && ctx.stretch.kind !== 'walk') return; // another long thing to do ends it, as any walk
+  const seen = perceivesNow(state, p, who, 'faint');
+  if (seen && isActive(who)) { p.walking = walkOf({ ...wo, move: who.zone }); return; }
+  delete p.walking;
+  p.followLost = { who: who.id, why: seen ? 'down' : who.zone === wo.move && p.zone === wo.move ? 'slipped_away' : 'out_of_sight', zone: wo.move };
+  logCode(state, 'follow_lost', { actorId: p.id, ...p.followLost });
+}
 /** BG-69: the walker found a way shut (barred, locked, stuck): the walk ends there, for the player to choose again */
 const foundShut = (events: GameEvent[], a: Actor): boolean => events.some((e) => e.actorId === a.id && e.kind === 'way' && !!e.way?.did.startsWith('found_'));
 /** the walk's goal reached: in its zone, and at its spot when it names one */
@@ -864,12 +879,13 @@ function walkThere(state: GameState, a: Actor, o: Order): boolean {
 }
 /** the move to carry on (AT49), as the Parser gave it */
 const walkOf = (o: Order): NonNullable<Actor['walking']> => ({ toZone: o.move!, ...(o.moveSpot ? { spot: o.moveSpot } : {}), ...(o.jump ? { jump: true } : {}) });
-/** AT49: a walk carries on while the player orders neither a move nor an action (words are said on the way); anything
- * else stops it */
+/** AT49: a walk carries on while the player orders neither a move nor an action (words are said on the way, and a sneak,
+ * BG-190, sneaks along it); anything else stops it */
 function carryOnWalk(state: GameState, intent: Intent | null): Intent | null {
   const p = state.player;
+  delete p.followLost; // BG-190: told once, the turn after it was lost
   if (!p.walking || !intent) return intent;
-  if (!intent.move && (!intent.action || isSpeech(intent.action.type))) return { ...intent, move: p.walking };
+  if (!intent.move && (!intent.action || isSpeech(intent.action.type) || intent.action.type === 'sneak')) return { ...intent, move: p.walking };
   delete p.walking;
   return intent;
 }
@@ -2049,6 +2065,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (stretch?.kind === 'walk' || stretch?.kind === 'busy') passTime(state, slotsOf(ctx, state.player).walkedS / 60); // the turn's own walk came first
   if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest, a wait, a walk or a long action runs on the world clock, step by step
   else passTime(state, (state.mode === 'tactical' ? ctx.turnS : exploreSeconds(ctx, playerOrder)) / 60); // AT13/AT46: every turn lasts its order's time
+  keepFollowing(ctx, wo);
   const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
   const long = !!stretch || catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
   if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legs(long));

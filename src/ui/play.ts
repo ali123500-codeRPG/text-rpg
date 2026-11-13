@@ -555,6 +555,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       a.doing ? doingChip(a.doing) : null,
       // MB16: others' morale, only from Afraid down
       a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
+      // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
+      a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
       // A13 Read Wounds: a foe's Damaged parts
       ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')])];
     // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
