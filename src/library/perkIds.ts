@@ -24,6 +24,7 @@ export const PK = {
   loose_odds: 'PK120', twin_abyss: 'PK121', call_the_toss: 'PK122', pull_to_the_edges: 'PK123', all_or_nothing: 'PK124', further_still: 'PK125',
   light_sleeper: 'PK127', // NW14: Earshot 60 perk, wakes to a hearing check
   always_yours: 'PK126', // TB7: Threadbounded level 1, gives a random Threadbound item
+  misdirection: 'PK128', fade_back: 'PK129', // PT12: Vanishing's All-50 part; Fade Back parked (D-232)
   // banked write-ups (not yet milestone perks)
   precise: 'PK74', disarming_cut: 'PK75', cleave: 'PK76', shoot_and_move: 'PK77', human_shield: 'PK78', anything_goes: 'PK79', slip_the_crowd: 'PK80', shield_wall: 'PK81', refuse_to_fall: 'PK82', calm_words: 'PK83', plead: 'PK84', menace: 'PK85', out_of_nowhere: 'PK86', go_to_ground: 'PK87', held_shot: 'PK88', battle_cry: 'PK89', buy_them_off: 'PK90', crushing_blow: 'PK91', punch_through: 'PK92', staggering_bolt: 'PK93', flurry: 'PK94', roll_with_it: 'PK95', tough_it_out: 'PK96', night_eyes_full: 'PK97',
   not_born_yesterday: 'PK104',
