@@ -95,6 +95,9 @@ export type SeenActor = {
 export type DoingView = { what: string; done: number; left: number };
 /** AT49 (stage 4): the player's walk still on its way: where to (zone id and name), metres and seconds at a walk still to go */
 export type WalkingView = { toZone: string; to: string; metres: number; seconds: number };
+/** BG-190: whom the player is following (a walk with spot near them and follow): kept after turn by turn while seen or
+ * heard; lost (once, the turn after): seen going down, slipped from sight where they were, or gone on out of sight from `zone` */
+export type FollowingView = { who: string; name: string; lost?: 'down' | 'slipped_away' | 'out_of_sight'; zone?: string };
 
 // ---------- PlayerView: Agent Parser ----------
 export type PlayerView = {
@@ -106,6 +109,7 @@ export type PlayerView = {
     summonable?: { id: string; name: string }[]; // TB6: the player's Threadbound items not on them (gear op summon)
     doing?: DoingView; // AT2/AT11a: the long action the player is at (the same order again carries it on)
     walking?: WalkingView; // AT49: a walk still on its way: a turn with no move and no action carries it on
+    following?: FollowingView; // BG-190
     perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound

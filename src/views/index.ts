@@ -8,7 +8,7 @@ import { ageText, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  SparView, StaminaView, WalkingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
+  SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
@@ -412,6 +412,12 @@ function walkingOf(state: GameState, p: Actor): { walking?: WalkingView } {
   if (m === null || walk <= 0) return {};
   return { walking: { toZone: w.toZone, to: zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
 }
+/** BG-190: whom the player is following, or lost this turn and why */
+function followingOf(state: GameState, p: Actor): { following?: FollowingView } {
+  const l = p.followLost, near = p.walking?.spot?.follow ? p.walking.spot.near : undefined;
+  if (l) return { following: { who: l.who, name: callName(state, p.id, l.who), lost: l.why, zone: zoneById(state, l.zone)?.name ?? l.zone } };
+  return near && actorById(state, near) ? { following: { who: near, name: callName(state, p.id, near) } } : {};
+}
 
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
@@ -425,6 +431,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
       ...walkingOf(state, p),
+      ...followingOf(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
