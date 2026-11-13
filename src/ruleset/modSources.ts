@@ -100,8 +100,6 @@ export const MOD_SOURCES: ModSource[] = [
     value: sg(CONFIG.OUTNUMBERED_MOD) },
   { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming.', value: sg(CONFIG.UNAWARE_MOD) },
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
-  { type: 'situational', roll: 'skill', source: 'Scenario difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scenario\'s difficulty, at the roll\'s skill weight, so a task at your own grade plays the same at every level.',
-    value: GRADE_LEVELS.keys.map((k) => `${GRADE_LEVELS.name(k)} ${sg(gradeMod(CONFIG.DIFFICULTY[k]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Waking', at: 'src/engine/sleep.ts', when: 'A light sleeper\'s hearing check against someone hostile moving openly near it (NW19): the grade their noise sets, louder is easier.',
     value: Object.entries(CONFIG.WAKE_GRADE).map(([k, g]) => `${k} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ') },

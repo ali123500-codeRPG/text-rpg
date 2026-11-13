@@ -921,10 +921,9 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a, a.zone)}` as WayDid) };
   }
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
-    // Q17: looking is a roll against the scenario's difficulty; Success or better shows everyone in sight clearly
-    const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
+    // Q17/SE15: looking is a sight (or hearing) roll with light only, no scene number; Success or better shows everyone in sight clearly
+    const target = CONFIG.DIFFICULTY.moderate; // it learns like a solo roll at Moderate
     const modifiers = [
-      ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scenario difficulty', type: 'situational' as const, value: gradeMod(target) }] : []),
       ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
     ];
     const fn = noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight;
