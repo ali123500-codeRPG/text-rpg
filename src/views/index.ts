@@ -347,13 +347,14 @@ function talkingWithSeen(state: GameState): { id: string; name: string }[] {
 /** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
  * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
  * off (BG-28) */
-function lastSeen(state: GameState, seen: SeenActor[]): { id: string; name: string; zone: string; pronouns?: string }[] {
+function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['lastSeen']> {
   const p = state.player;
   return Object.entries({ ...p.journal?.clearSight, ...p.journal?.lastKnown }).flatMap(([id, zone]) => {
     const a = actorById(state, id);
     if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
-    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}) }];
+    // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
+    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}) }];
   });
 }
 
