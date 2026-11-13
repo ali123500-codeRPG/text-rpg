@@ -6,6 +6,7 @@ import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice, XpPart } from '../types';
 import { CONFIG, defaultSettings } from '../config';
+import { maxMorale, setMoraleLost } from '../ruleset/morale';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { abandonQuest, pinQuest } from '../engine/quests';
@@ -251,6 +252,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         state.player.zone = road.id; state.player.placeId = road.placeId;
         if (road.rect) state.player.pos = { x: road.rect.x - road.rect.w * 0.1, y: road.rect.y };
         (state.player.journal?.zonesSeen ?? []).push(road.id);
+      }
+      // "fear" drops the player's morale to the next level down (Terrified, Panicking, Broken), and "calm" brings back a quarter,
+      // to show the nerve's warning on the play screen (MW1–MW3)
+      if (/^(fear|calm)\b/i.test(text)) {
+        const p = state.player, max = maxMorale(p), lostPct = (100 * (p.core.condition.moraleLost ?? 0)) / max;
+        const next = CONFIG.MORALE_TRACK.find(([, at]) => at > lostPct + 0.001)?.[1] ?? 100;
+        setMoraleLost(p, /^fear/i.test(text) ? (Math.min(100, next) / 100) * max : (p.core.condition.moraleLost ?? 0) - max / 4);
       }
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;

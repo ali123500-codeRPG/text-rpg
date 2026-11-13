@@ -17,7 +17,7 @@ import { ageText } from '../ruleset/age';
 import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
-import { CLASS_TIERS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
+import { CLASS_TIERS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 
@@ -401,7 +401,7 @@ const xpShown = (p: Actor) => {
 /** M-74: every value the play sheet shows, before and after a turn, so the screen animates only what changed */
 export type ShownValues = {
   hp: number | null; level: HealthLevel; hpFill: number;
-  morale: string; moraleLeft: number; moraleFill: number;
+  morale: string; moraleKey: MoraleLevel; moraleLeft: number; moraleFill: number;
   parts: Record<string, PartState>; skills: Record<string, number>;
   lvl: number | null; xp: number | null; xpPct: number | null; coin: number; points: number;
   gear: Record<string, { name: string; note: string }>; chips: string[]; yielded: boolean;
@@ -414,7 +414,7 @@ export function shownValues(s: GameState, p: Actor): ShownValues {
   const xp = xpShown(p);
   return {
     hp: hpLeft(s, p).hp, level, hpFill: level === 'unhurt' ? 100 : left * scale,
-    morale: MORALE_LEVELS.name(moraleLevel(p)), moraleLeft: Math.round(maxMorale(p) * (100 - lost) / 100), moraleFill: 100 - lost,
+    morale: MORALE_LEVELS.name(moraleLevel(p)), moraleKey: moraleLevel(p), moraleLeft: Math.round(maxMorale(p) * (100 - lost) / 100), moraleFill: 100 - lost,
     parts: Object.fromEntries((safe(() => actorBody(s, p).parts) ?? []).map((d) => [d.id, poolState(p.core.condition.parts[d.id] ?? 100)])),
     skills: Object.fromEntries(trees(s, p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
     lvl: xp?.level ?? null, xp: xp?.xp ?? null, xpPct: xp?.pct ?? null, coin: coins(p),
