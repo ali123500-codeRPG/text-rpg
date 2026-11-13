@@ -40,7 +40,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { findContainer, openContainer, theft } from './containers';
 import { buy, sell } from './trade';
-import { applyAgentEffects, learnNames, logCode } from './effects';
+import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName } from '../words';
 import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
@@ -232,11 +232,7 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   // SP5: in a spar with no real foe, a surrender or a break just yields the spar
   if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && (hostile(state, a, x) || hostile(state, x, a)))) { yieldSpar(state, a); return; }
   if (a === state.player) { tally(state, 'morale_breaks'); return; } // MB12: you keep control but cannot attack (doAttack)
-  if (hostile(state, a, state.player)) tally(state, 'yielded');
-  a.mind!.moraleState = r;
-  // Q1/Q4: a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
-  // (broken shares the yielded stance so both tune together until further notice)
-  for (const x of allActors(state)) if (x !== a && hostile(state, a, x)) a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [x.id]: 'yielded' };
+  loseNerve(state, a, r);
   if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) ctx.orders.set(a.id, brokenOrder(buildActorView(state, a.id)));
   // MB23: bandmates who perceived it are frightened too
   for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
@@ -957,7 +953,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'restrain': {
       // BF5: a grab to hold someone back, within the grabber's grip reach; no damage, no hostility
       const t = o.target ? actorById(state, o.target) : undefined;
-      const why = !t || t === a ? 'no_target' : !isActive(t) ? 'already_down' : !withinGrip(state, a, t) ? 'out_of_reach' : t.heldBy === a.id ? 'already_held' : null;
+      const why = !t || t === a ? 'no_target' : !isActive(t) ? 'already_down' : !withinGrip(state, a, t) ? 'out_of_reach' : t.heldBy === a.id ? 'already_holding' : null;
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
       return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
     }

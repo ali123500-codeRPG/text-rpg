@@ -3,7 +3,7 @@ import type { Actor, AgreementMade, GameEvent, GameState, Trigger } from '../typ
 import { STANCES } from '../scales';
 import { CONFIG } from '../config';
 import { calmBandmatesSwitch, headTo, switchRoutine } from '../minds';
-import { actorById, isActive, isEngaged, knowsName, nameBook, stance } from './relations';
+import { actorById, allActors, countsInFight, hostile, isActive, isEngaged, knowsName, nameBook, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
@@ -13,7 +13,7 @@ import { tally } from './xp';
 import { seesClearlyNow } from '../views';
 import { hearsWords } from '../perception';
 import { falseName, nameSaid } from '../words';
-import { startSpar, yieldSpar } from './spar';
+import { sparOf, startSpar, yieldSpar } from './spar';
 
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
 
@@ -72,6 +72,14 @@ export type EffectsCtx = {
 };
 
 /** one stance step toward `other`; a yielded actor steps from opposed: talked colder it fights again, warmer it lets the grudge go (Q1) */
+/** a break or a surrender takes hold of an NPC: from fear (MB7), or said aloud in a real fight (BG-177). Q1/Q4: it replaces
+ * hostile with yielded toward everyone it was fighting (broken shares the yielded stance so both tune together) */
+export function loseNerve(state: GameState, a: Actor, r: 'broken' | 'surrendered'): void {
+  if (hostile(state, a, state.player)) tally(state, 'yielded');
+  a.mind!.moraleState = r;
+  for (const x of allActors(state)) if (x !== a && hostile(state, a, x)) a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [x.id]: 'yielded' };
+}
+
 export function stepStance(state: GameState, a: Actor, other: Actor, step: 'friendlier' | 'colder'): void {
   if (!a.mind) return;
   const cur = stance(state, a, other);
@@ -108,7 +116,11 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
       if (!sp.sides.some((x) => x.includes(a.id)) || others.some((id) => !ctx.heardNow(id, a.id))) logCode(state, 'invalid_spar', { by: a.id, sides: sp.sides });
       else startSpar(state, sp.sides, !!sp.cruel, a.id);
     }
-    if (o.output.yields) yieldSpar(state, a);
+    // SP5: "I yield" in a spar leaves it; BG-177: in a real fight it surrenders, as a surrender from fear does (DEFEATED)
+    if (o.output.yields) {
+      if (sparOf(state, a.id) || !countsInFight(a) || !isEngaged(state, a)) yieldSpar(state, a);
+      else { loseNerve(state, a, 'surrendered'); logCode(state, 'npc_yielded', { actorId: a.id }); }
+    }
     if (o.output.questEnd) agentQuestEnd(state, a, o.output.questEnd, ctx.heardSpeech(a.id, state.player.id), ctx.heardNow(state.player.id, a.id));
     let routineId: string | null = null;
     if (o.agent === 'voice') {
