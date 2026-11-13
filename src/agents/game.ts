@@ -10,7 +10,7 @@ import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type ScenarioEndNote } from '../
 import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
-import { CONFIG } from '../config';
+import { CONFIG, defaultSettings } from '../config';
 import { clockText, durationText, now, timeOfDay, timeView } from '../time';
 import { outcomeText } from '../ruleset/hits';
 import { HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
@@ -77,7 +77,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
+  '/help, /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
 /** NW18: a turn played while the player sleeps */
 export const ASLEEP_TEXT = '(asleep)';
@@ -101,6 +101,19 @@ export function createGame(deps: GameDeps): Game {
   let turnLog: AgentTurnLog[] = [];
   let lastLog: AgentTurnLog[] = [];
   let backups: { turn: number; path: string }[] = []; // the GM view's list, read again after each save
+  /** CS12: a change between turns, saved at once: the same change is made on the saved turn, at the turn now being played
+   * (so a perk taken now stays undoable after a reload, K3). Amends run one after another; a turn, undo or restore waits
+   * for them. A failure keeps the change in play and saves it with the next turn. */
+  let amending: Promise<void> = Promise.resolve();
+  const amend = (change: (s: GameState) => void) => {
+    const s = state;
+    if (!s) return;
+    const { storyId, turn } = s;
+    amending = amending.then(async () => {
+      if (!(await save.acquireTurnLock(store, storyId, owner))) throw new Error('the story is open in another window');
+      await save.amendHead(store, storyId, getLibrary(), (x) => { const saved = x.turn; x.turn = turn; change(x); x.turn = saved; });
+    }).catch((e) => notice({ kind: 'save_failed', text: `That change could not be saved yet (${(e as Error).message}); it is saved with your next turn.` }));
+  };
   /** BG-123: the GM view's backups list, newest first; read in the background so the view stays synchronous */
   const refreshBackups = (storyId: string) => {
     void Promise.resolve().then(() => save.listBackups(store, storyId)).then((b) => { if (state?.storyId === storyId) { backups = b; emit(); } }).catch(() => {});
@@ -379,6 +392,7 @@ export function createGame(deps: GameDeps): Game {
       ...(s.scratch?.eventRoll ? { eventRoll: s.scratch.eventRoll as TurnRecord['eventRoll'] } : {}),
     };
     if (s.scratch) delete s.scratch.eventRoll;
+    await amending; // CS12: a perk pick or quest change made before this turn is in the save first
     // save step 1: hold the turn lock. Re-acquiring renews the lease, so a long turn (Weaver wait, slow calls) or the
     // first save of a new story still writes under the lock.
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
@@ -487,10 +501,6 @@ export function createGame(deps: GameDeps): Game {
         if (director && !rateLimited && !stopped) director.afterSave(s, { ...ctxFor(s.turn, turnLog), background: true });
         return say('Noted. The story will find a way forward over the next turns; a bad situation stays bad, though.');
       }
-      case 'difficulty':
-        // GAP: the spec names no difficulty settings; the word is stored as given and saved with the next turn
-        if (arg) s.settings.difficulty = arg;
-        return say(`Difficulty: ${s.settings.difficulty}.`);
       case 'title': {
         // T18: wear one current achievement as a title; it reaches only people who see you (src/views/index.ts)
         const pr = s.player.progression, list = wearable(s);
@@ -535,6 +545,7 @@ export function createGame(deps: GameDeps): Game {
       case 'undo':
         if (busy) return;
         busy = true;
+        await amending;
         try {
           try {
             await save.undoTurn(store, s.storyId);
@@ -732,6 +743,7 @@ export function createGame(deps: GameDeps): Game {
       if (!s || busy) return;
       busy = true;
       emit();
+      await amending;
       try {
         abortBackground();
         state = (await save.restoreBackup(store, s.storyId, turn, getLibrary())).state;
@@ -748,12 +760,11 @@ export function createGame(deps: GameDeps): Game {
         emit();
       }
     },
-    // GAP: a pick lives in memory until the next turn is played and saved; a reload before then drops it (K3 keeps it undoable till then)
-    takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); emit(); } },
-    undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); emit(); } },
-    // GAP: like a perk pick, these live in memory until the next turn is played and saved
-    abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) emit(); },
-    pinQuest(id) { if (state && !busy) { pinQuest(state, id); emit(); } },
+    // CS12: each of these is saved at once (amend), so a reload keeps it; a perk pick stays undoable until the next turn (K3)
+    takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); amend((x) => takePerk(x, x.player, id)); emit(); } },
+    undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); amend((x) => undoPerk(x, x.player, id)); emit(); } },
+    abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) { amend((x) => { abandonQuest(x, id); }); emit(); } },
+    pinQuest(id) { if (state && !busy) { pinQuest(state, id); amend((x) => pinQuest(x, id)); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;
@@ -1192,7 +1203,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
 // Player creation and build checks live in src/library/spawn.ts (createPlayer, validateBuild), shared with the creation preview.
 
 function newState(storyId: string, seed: number, player: Actor, createdAt: string): GameState {
-  const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone };
+  const settings = defaultSettings();
   return {
     storyId, turn: 0, mode: 'explore', zones: [], player, actors: [],
     bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} }],

@@ -67,3 +67,88 @@ describe('one rule for "down"', () => {
     expect(isActive(g)).toBe(true);
   });
 });
+
+describe('CS11: NPCs use their own keys while time skips', () => {
+  async function setup(opts: { key?: boolean; playerZone?: string; bar?: boolean } = {}) {
+    const { createRng } = await import('../harness');
+    const { installRoutines, desiredState } = await import('../../src/minds');
+    const { buildActorView } = await import('../../src/views');
+    const { zoneById } = await import('../../src/engine/relations');
+    const { now, startClock } = await import('../../src/time');
+    const { IT } = await import('../../src/library/itemIds');
+    const { BK } = await import('../../src/library/tableIds');
+    const s = makeVillage({ playerZone: opts.playerZone ?? 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
+    startClock(s, 'morning');
+    const g = s.actors.find((a) => a.id === 'guard_1')!;
+    g.zone = 'gate_inner';
+    delete g.pos;
+    installRoutines(g, 'gate_guard', { post: 'street_square' }, undefined, s.turn, createRng(1), now(s)); // its post is past the door
+    expect(desiredState(buildActorView(s, g.id))!.zone).toBe('street_square');
+    const b = { id: 'gate_door', kind: BK.door, grade: 'minor' as const, lock: { locked: true },
+      ...(opts.bar ? { bar: { drawn: true, side: 'gate_inner' } } : {}) };
+    (s.barriers ??= {})[b.id] = b;
+    zoneById(s, 'gate_inner')!.links.find((l) => l.to === 'street_square')!.barrier = b.id;
+    zoneById(s, 'street_square')!.links.find((l) => l.to === 'gate_inner')!.barrier = b.id;
+    if (opts.key !== false) g.core.inventory.push({ id: 'key_g', itemId: IT.key, opens: [b.id] });
+    return { s, g, b };
+  }
+  it('with its key and unseen, it walks through and locks the door again behind it', async () => {
+    const { catchUp } = await import('../../src/engine/resolve');
+    const { s, g, b } = await setup();
+    catchUp(s, 60);
+    expect(g.zone).toBe('street_square');
+    expect(b.lock.locked).toBe(true);
+    expect(s.log.some((l) => l.code === 'catch_up_way')).toBe(true);
+  });
+  it('without a key, or with the player in view, the door still stops it', async () => {
+    const { catchUp } = await import('../../src/engine/resolve');
+    const a = await setup({ key: false });
+    catchUp(a.s, 60);
+    expect(a.g.zone).toBe('gate_inner');
+    const b = await setup({ playerZone: 'street_square' });
+    catchUp(b.s, 60);
+    expect(b.g.zone).toBe('gate_inner');
+    expect(b.b.lock.locked).toBe(true);
+  });
+  it('a bar slid back from its own side stays open once it is through (it cannot be drawn from the far side)', async () => {
+    const { catchUp } = await import('../../src/engine/resolve');
+    const { s, g, b } = await setup({ bar: true });
+    catchUp(s, 60);
+    expect(g.zone).toBe('street_square');
+    expect(b.lock.locked).toBe(true);
+    expect((b as { bar?: { drawn: boolean } }).bar!.drawn).toBe(false);
+  });
+});
+
+describe('CS12: perk picks and quest changes are saved at once', () => {
+  it('a perk taken between turns survives a reload and can still be undone; the undo is saved too', async () => {
+    const { canTake, canUndo } = await import('../../src/ruleset');
+    const { getLibrary } = await import('../../src/library');
+    const { SK } = await import('../../src/library/skillIds');
+    const clock = new VirtualClock(), store = memoryStore();
+    const s = makeVillage();
+    s.turn = 1;
+    s.player.core.skills[SK.melee_medium].raw = 58;
+    s.player.progression!.unspentPerkPoints = 1;
+    await saveTurn(store, s, rec(s));
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    await g.resume();
+    const st = g.state()!;
+    const id = Object.keys(getLibrary().perks).find((k) => !canTake(st.player, k))!;
+    expect(id).toBeTruthy();
+    g.takePerk(id);
+    await tick();
+    const again = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    await again.resume();
+    const p = again.state()!.player;
+    expect(p.core.perks.some((x) => x.perkId === id)).toBe(true);
+    expect(p.progression!.unspentPerkPoints).toBe(0);
+    expect(canUndo(again.state()!, p, id)).toBe(true); // still the unplayed turn (K3)
+    again.undoPerk(id);
+    await tick();
+    const third = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    await third.resume();
+    expect(third.state()!.player.core.perks.some((x) => x.perkId === id)).toBe(false);
+    expect(third.state()!.player.progression!.unspentPerkPoints).toBe(1);
+  });
+});

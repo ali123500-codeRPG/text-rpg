@@ -156,6 +156,22 @@ async function cleanup(store: Store, id: string, head: Head): Promise<void> {
   await Promise.all([...pages.filter((p) => !keep.has(p)), ...turns.filter((p) => +tail(p) <= head.turn - CONFIG.TURN_RECORDS_KEPT)].map((p) => store.delete(p)));
 }
 
+/** CS12: a change made between turns (a perk taken or undone, a quest abandoned or pinned) saved at once. The saved head's
+ * state is loaded, `change` is applied to it, and its pages are written as the same turn: no new turn, no turn record,
+ * and the undo bookmark stays where it was. The caller holds the turn lock. */
+export async function amendHead(store: Store, storyId: string, library: Library, change: (state: GameState) => void): Promise<void> {
+  const { state } = await loadStory(store, storyId, library);
+  change(state);
+  const pages = toPages(state);
+  await guard(async () => {
+    const prev = await store.get<Head>(headPath(storyId));
+    if (!prev) throw new SaveError('no_head', `story ${storyId} has no saved turn to amend`);
+    const live = [bookmarkOf(prev), ...(prev.undo ? [prev.undo] : []), ...(prev.safety ? [prev.safety] : [])];
+    const refs = await commitPages(store, storyId, pages, prev.turn, live, prev.pages);
+    await store.set(headPath(storyId), { ...prev, pages: refs } satisfies Head);
+  });
+}
+
 // ---------- load ----------
 /** Load: checksums, migrations, library reconcile, invariants, references; then build GameState. Throws LoadRefusedError. */
 export async function loadStory(store: Store, storyId: string, library: Library): Promise<{ state: GameState; report: string[] }> {

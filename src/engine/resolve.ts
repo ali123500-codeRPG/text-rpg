@@ -1102,7 +1102,9 @@ function noteWalked(state: GameState, a: Actor, m: number): void {
 /** NW11: the time a turn took moves everyone on. Each NPC not in a fight goes toward where its routine puts it at the new
  * time, as far as it could walk in that time at the travel pace (travelSpeed), less what its own move already walked:
  * one jump, no Claude calls. It stops at a shut way or an unbuilt frontier, and a road is walked by its length. Healing
- * already counts minutes. GAP: a way it holds the key to stops it too (it would need to open and shut it unseen). */
+ * already counts minutes. CS11: a way it can open (its key, the bolt's side) it opens and walks through when the player is
+ * in neither zone, and leaves it as it was where it can: the key locks it again from either side; a bar slid back from
+ * its own side can't be drawn again from the far side, so it stays open. */
 export function catchUp(state: GameState, minutes: number, deductWalked = true): void {
   if (minutes <= 0) return;
   const walked = (deductWalked ? state.scratch?.walked ?? {} : {}) as Record<string, number>;
@@ -1115,8 +1117,19 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true):
     if (!d || d.zone === a.zone) continue;
     let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
     for (let i = 0; i < 100 && left > 0.01 && a.zone !== d.zone; i++) {
-      if (gateAhead(state, a, d.zone)) break; // a way that is not simply open
+      const gate = gateAhead(state, a, d.zone);
+      const unseen = !!gate && state.player.zone !== a.zone && state.player.zone !== gate.to;
+      if (gate && (gate.pass !== 'opens' || !unseen)) break; // a way that is not simply open, or opened in view
+      const was = gate && { locked: !!gate.b.lock?.locked, drawn: !!gate.b.bar?.drawn };
+      if (gate) openWay(gate.b, a, a.zone);
+      const from = a.zone;
       const r = walkLeg(state, a, { zone: d.zone }, left, 0, a);
+      if (gate && was) {
+        const through = a.zone === gate.to;
+        if (gate.b.lock && was.locked) gate.b.lock.locked = true; // the key turns again on either side
+        if (gate.b.bar && was.drawn && !through) gate.b.bar.drawn = true; // still on the bolt's side: slid back again
+        if (through) logCode(state, 'catch_up_way', { actorId: a.id, barrier: gate.b.id, from, to: gate.to, ...(was.drawn ? { leftUnbarred: true } : {}) });
+      }
       if (!r) break;
       left -= r;
     }
