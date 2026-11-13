@@ -1002,20 +1002,28 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? humanKey(k), table: k }))];
 
-// the rail in three groups; a table not named here (a new one) lands in World
+// the rail in groups; a table not named here (a new one) lands in More
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'essences', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'nerve', 'personalityAxes', 'personalityTypes', 'values', 'status']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'roles', 'activities', 'routines', 'routineSets', 'services']],
+  ['Personality', ['nerve', 'personalityAxes', 'personalityTypes', 'values']],
   ['More', null], // a table not named above (a new one) lands here
 ];
+const railFolds = new Set<string>(remember<string[]>('lv-railfolds', []));
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
   RAIL_GROUPS.flatMap(([g, keys]) => {
     const list = keys ? keys.flatMap((k) => SECTIONS.filter((s) => s.key === k)) : SECTIONS.filter((s) => !RAIL_GROUPS.some(([, k]) => k?.includes(s.key)));
     const grp = g.toLowerCase(); // each group has its own colour (CSS [data-group]), so the breaks between them read at a glance
-    return list.length ? [h('div', { class: 'lv-railgroup', 'data-group': grp, 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'data-group': grp, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
+    const items = list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'data-group': grp, class: railFolds.has(grp) ? 'lv-railfold' : '', 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); });
+    // clicking a group's label folds its tables away (the open table stays); remembered in this browser
+    const head = h('button', { type: 'button', class: 'lv-railgroup', 'data-group': grp, 'aria-expanded': String(!railFolds.has(grp)), onclick: () => {
+      const fold = !railFolds.delete(grp) && !!railFolds.add(grp);
+      head.setAttribute('aria-expanded', String(!fold)); items.forEach((a) => a.classList.toggle('lv-railfold', fold)); keep('lv-railfolds', [...railFolds]);
+    } }, g);
+    return list.length ? [head, ...items] : [];
   }));
 const picks = new Map<string, 'shown' | 'out'>();
 // each table keeps its own filter picks, remembered across visits and reloads (this browser only)
