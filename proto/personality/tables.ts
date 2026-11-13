@@ -16,7 +16,7 @@ export const AXIS_ENDS: Record<Axis, { low: [string, string]; high: [string, str
   sociability: { low: ['quiet', 'keeps to themself, says little'], high: ['talkative', 'chatters, makes friends easily, fills silences'] },
   discipline: { low: ['impulsive', 'acts first, thinks later'], high: ['disciplined', 'keeps to plans and habits, finishes what they start'] },
   curiosity: { low: ['set in their ways', 'sticks to what they know, distrusts the new'], high: ['curious', 'wants to know how things work, asks and pokes'] },
-  levity: { low: ['earnest', 'takes things seriously, rarely jokes'], high: ['playful', 'jokes and teases, makes light of serious things'] },
+  levity: { low: ['earnest', 'takes things seriously, rarely jokes'], high: ['playful', 'jokes and teases, and talks lightly even about serious things'] },
 };
 
 /** strength words by |points|, highest first (TRAIT_WORDS) */

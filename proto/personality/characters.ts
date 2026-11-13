@@ -6,7 +6,7 @@ export const CHARACTERS: Character[] = [
     key: 'kishirika', name: 'Ysolde', title: 'Great Empress of the Under-Realm', role: 'a small horned girl in chains',
     bandGoals: 'find her next meal; go wherever looks interesting', temperament: 'a wanderer', tactics: 'simple',
     nerve: 40, resolve: 150,
-    axes: { honesty: 50, pride: 80, temper: 20, sociability: 60, discipline: -80, curiosity: 60 },
+    axes: { honesty: 50, pride: 80, temper: 20, sociability: 60, discipline: -80, curiosity: 60, levity: 40 },
     drives: ['pleasure', 'gratitude'], ageStage: 'child', skills: [],
     signatures: [
       'When someone feeds or helps her, she repays it at once, far beyond its worth.',
@@ -18,7 +18,7 @@ export const CHARACTERS: Character[] = [
     key: 'rudeus', name: 'Aldo', title: 'the Wizard-Child', role: 'a seven-year-old boy who can already cast magic',
     bandGoals: 'practise magic; look after his friends and family', temperament: 'a village child', tactics: 'simple',
     nerve: -40, resolve: 20,
-    axes: { honesty: -30, pride: -20, temper: -40, sociability: -20, discipline: 60, curiosity: 70 },
+    axes: { honesty: -30, pride: -20, temper: -40, sociability: -20, discipline: 60, curiosity: 70, levity: -20 },
     drives: ['knowledge', 'loyalty'], ageStage: 'child',
     skills: [{ name: 'water magic (staff stand-in)', value: 50, fight: true, attack: true }],
     signatures: [
@@ -32,7 +32,7 @@ export const CHARACTERS: Character[] = [
     key: 'paul', name: 'Doran', title: 'Swordsman of Three Schools', role: 'a village knight in his twenties, once an adventurer, with a longsword at his hip',
     bandGoals: 'keep the village safe; enjoy life with his family', temperament: 'a village knight', tactics: 'skilled',
     nerve: 50, resolve: 60,
-    axes: { honesty: 50, pride: 50, temper: 30, sociability: 60, discipline: -50, curiosity: 0 },
+    axes: { honesty: 50, pride: 50, temper: 30, sociability: 60, discipline: -50, curiosity: 0, levity: 50 },
     drives: ['desire', 'family'], ageStage: 'adult',
     skills: [{ name: 'longsword', value: 65, fight: true, attack: true }],
     signatures: [
@@ -46,7 +46,7 @@ export const CHARACTERS: Character[] = [
     key: 'lilia_e1', name: 'Mira', title: 'once of the Palace Guard', role: 'the household maid, a woman in her twenties who walks with a slight limp',
     bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
     nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
-    axes: { honesty: 20, pride: -20, temper: -20, sociability: -50, discipline: 70, curiosity: -40 },
+    axes: { honesty: 20, pride: -20, temper: -20, sociability: -50, discipline: 70, curiosity: -40, levity: -60 },
     drives: ['propriety', 'duty', 'order'], scenes: { dir: 'lilia', only: ['l1_strange_baby', 'l2_drink', 'l3_gossip'] },
     signatures: [
       'Served as a palace guard until an assassin\'s poisoned blade lamed her leg; now keeps house with the same soldier\'s discipline.',
@@ -58,7 +58,7 @@ export const CHARACTERS: Character[] = [
     key: 'lilia_e4', name: 'Mira', title: 'once of the Palace Guard', role: 'the household maid, a woman in her twenties who walks with a slight limp',
     bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
     nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
-    axes: { honesty: 40, pride: -50, temper: -40, sociability: -40, discipline: 50, curiosity: 0 },
+    axes: { honesty: 40, pride: -50, temper: -40, sociability: -40, discipline: 50, curiosity: 0, levity: -60 },
     drives: ['humility', 'gratitude', 'propriety', 'family'], scenes: { dir: 'lilia', only: ['l4_dismissed', 'l5_saved', 'l6_sneer'] },
     signatures: [
       'Carrying her master\'s child: she will not blame him or beg, and would rather leave quietly than break the household.',
@@ -69,7 +69,7 @@ export const CHARACTERS: Character[] = [
     key: 'lilia', name: 'Mira', title: 'once of the Palace Guard', role: 'the household maid, a woman in her twenties who walks with a slight limp',
     bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
     nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
-    axes: { honesty: 40, pride: -50, temper: -40, sociability: -50, discipline: 70, curiosity: -40 },
+    axes: { honesty: 40, pride: -50, temper: -40, sociability: -50, discipline: 70, curiosity: -40, levity: -60 },
     drives: ['propriety', 'humility', 'gratitude', 'duty', 'family', 'order'], scenes: { dir: 'lilia' },
     signatures: [
       'Served as a palace guard until an assassin\'s poisoned blade lamed her leg; now keeps house with the same soldier\'s discipline.',
@@ -148,7 +148,7 @@ export const CHARACTERS: Character[] = [
     key: 'kumoko_e1', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
     bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
     nerve: -50, resolve: 40, ageStage: 'youth', skills: [{ name: 'spider thread', value: 20 }, { name: 'poison fang', value: 20, fight: true, attack: true }],
-    axes: { honesty: 0, pride: -20, temper: 20, sociability: -40, discipline: -20, curiosity: 60 },
+    axes: { honesty: 0, pride: -20, temper: 20, sociability: -40, discipline: -20, curiosity: 60, levity: 60 },
     drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko', only: ['k1_hatch', 'k2_corpse', 'k3_home', 'k4_frog'] },
     signatures: [
       'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
@@ -160,7 +160,7 @@ export const CHARACTERS: Character[] = [
     key: 'kumoko_e8', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
     bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
     nerve: -30, resolve: 80, ageStage: 'youth', skills: [{ name: 'spider thread', value: 50 }, { name: 'poison fang', value: 50, fight: true, attack: true }, { name: 'magic', value: 20 }],
-    axes: { honesty: 0, pride: 20, temper: 20, sociability: -40, discipline: 40, curiosity: 70 },
+    axes: { honesty: 0, pride: 20, temper: 20, sociability: -40, discipline: 40, curiosity: 70, levity: 60 },
     drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko', only: ['k5_quiet', 'k6_dragon', 'k7_fireball'] },
     signatures: [
       'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
@@ -173,7 +173,7 @@ export const CHARACTERS: Character[] = [
     key: 'kumoko', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
     bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
     nerve: -40, resolve: 60, ageStage: 'youth', skills: [{ name: 'spider thread', value: 50 }, { name: 'poison fang', value: 50, fight: true, attack: true }, { name: 'magic', value: 20 }],
-    axes: { honesty: 0, pride: 0, temper: 20, sociability: -40, discipline: 20, curiosity: 70 },
+    axes: { honesty: 0, pride: 0, temper: 20, sociability: -40, discipline: 20, curiosity: 70, levity: 60 },
     drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko', only: ['k1_hatch', 'k2_corpse', 'k3_home', 'k4_frog', 'k5_quiet', 'k6_dragon', 'k7_fireball'] },
     signatures: [
       'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
@@ -187,7 +187,7 @@ export const CHARACTERS: Character[] = [
     key: 'kumoko_e3_7', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
     bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
     nerve: -40, resolve: 60, ageStage: 'youth', skills: [{ name: 'spider thread', value: 40 }, { name: 'poison fang', value: 40, fight: true, attack: true }, { name: 'poison synthesis', value: 30, fight: true, attack: true }],
-    axes: { honesty: 0, pride: 0, temper: 20, sociability: -40, discipline: 20, curiosity: 70 },
+    axes: { honesty: 0, pride: 0, temper: 20, sociability: -40, discipline: 20, curiosity: 70, levity: 60 },
     drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko', only: ['k8_wyrm', 'k9_grubs', 'k10_monkeys', 'k11_pride', 'k12_catfish', 'k13_eel'] },
     signatures: [
       'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
@@ -201,7 +201,7 @@ export const CHARACTERS: Character[] = [
     key: 'kumoko_ultimate', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
     bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
     nerve: -40, resolve: 60, ageStage: 'youth', skills: [{ name: 'spider thread', value: 50 }, { name: 'poison fang', value: 50, fight: true, attack: true }, { name: 'poison synthesis', value: 40, fight: true, attack: true }, { name: 'magic', value: 20 }],
-    axes: { honesty: 0, pride: 0, temper: 20, sociability: -40, discipline: 20, curiosity: 70 },
+    axes: { honesty: 0, pride: 0, temper: 20, sociability: -40, discipline: 20, curiosity: 70, levity: 60 },
     drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko' },
     signatures: [
       'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
@@ -216,7 +216,7 @@ export const CHARACTERS: Character[] = [
     key: 'haruka_p1', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
     bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
     nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 30, fight: true, attack: true }],
-    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60, levity: 60 },
     drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka', only: ['t1_goblins', 't2_party', 't3_subjugate'] },
     signatures: [
       'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
@@ -229,7 +229,7 @@ export const CHARACTERS: Character[] = [
     key: 'haruka_p2', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
     bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
     nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 50, fight: true, attack: true }],
-    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60, levity: 60 },
     drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka', only: ['t4_stay', 't5_wounded', 't6_varo'] },
     signatures: [
       'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
@@ -243,7 +243,7 @@ export const CHARACTERS: Character[] = [
     key: 'haruka', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
     bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
     nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 50, fight: true, attack: true }],
-    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60, levity: 60 },
     drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka', only: ['t1_goblins', 't2_party', 't3_subjugate', 't4_stay', 't5_wounded', 't6_varo'] },
     signatures: [
       'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
@@ -258,7 +258,7 @@ export const CHARACTERS: Character[] = [
     key: 'haruka_omui', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
     bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
     nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 60, fight: true, attack: true }, { name: 'holy magic', value: 50, attack: true }],
-    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60, levity: 60 },
     drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka', only: ['t7_bandits', 't8_merielle', 't9_emperor', 't10_stampede', 't11_sale'] },
     signatures: [
       'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
@@ -276,7 +276,7 @@ export const CHARACTERS: Character[] = [
     key: 'haruka_ultimate', name: 'Ren', title: 'the Lone Villager', role: 'a high-school boy summoned to another world with his whole class; he arrived last, got the leftover skills, and wears plain villager\'s clothes',
     bandGoals: 'live alone on his own terms; keep his classmates alive', temperament: 'a summoned student', tactics: 'cunning',
     nerve: 0, resolve: 60, ageStage: 'youth', skills: [{ name: 'wooden staff', value: 60, fight: true, attack: true }, { name: 'holy magic', value: 50, attack: true }],
-    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60 },
+    axes: { honesty: 0, pride: -30, temper: -30, sociability: -50, discipline: -20, curiosity: 60, levity: 60 },
     drives: ['freedom', 'kindness', 'knowledge'], scenes: { dir: 'haruka' },
     signatures: [
       'He got the leftover skills nobody wanted; he mocks his own weak lot and the world\'s clichés in a dry, deadpan running commentary.',
@@ -294,25 +294,25 @@ export const CHARACTERS: Character[] = [
 
 /** what the prototype must compute for each character (self-check) */
 export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensions: string[]; nerve: string }> = {
-  kishirika: { archetype: 'childish', buts: ['pride', 'honesty'], tensions: ['unshakeable_scatterbrained', 'bold_unbacked'], nerve: 'Death-defying+' },
+  kishirika: { archetype: 'childish', buts: ['pride', 'honesty', 'levity'], tensions: ['unshakeable_scatterbrained', 'bold_unbacked'], nerve: 'Death-defying+' },
   rudeus: { archetype: 'mature', buts: ['curiosity', 'honesty'], tensions: ['old_head', 'wary_dangerous'], nerve: 'Timid' },
-  paul: { archetype: 'free_spirit', buts: ['honesty', 'pride'], tensions: ['home_temptation', 'talent_undisciplined'], nerve: 'Bold' },
-  lilia_e1: { archetype: 'mature', buts: ['sociability', 'curiosity'], tensions: [], nerve: 'Steady' },
-  lilia_e4: { archetype: 'mature', buts: ['pride', 'sociability'], tensions: [], nerve: 'Steady' },
-  lilia: { archetype: 'mature', buts: ['pride', 'sociability', 'curiosity'], tensions: [], nerve: 'Steady' },
+  paul: { archetype: 'free_spirit', buts: ['honesty', 'pride', 'levity'], tensions: ['home_temptation', 'talent_undisciplined'], nerve: 'Bold' },
+  lilia_e1: { archetype: 'mature', buts: ['levity', 'sociability', 'curiosity'], tensions: [], nerve: 'Steady' },
+  lilia_e4: { archetype: 'mature', buts: ['levity', 'pride', 'sociability'], tensions: [], nerve: 'Steady' },
+  lilia: { archetype: 'mature', buts: ['levity', 'pride', 'sociability'], tensions: [], nerve: 'Steady' },
   mangod_e9: { archetype: 'schemer', buts: ['levity', 'curiosity', 'sociability'], tensions: [], nerve: 'Prudent' },
   mangod_e12: { archetype: 'schemer', buts: ['levity', 'pride'], tensions: [], nerve: 'Prudent' },
   mangod_s1late: { archetype: 'schemer', buts: ['levity', 'curiosity', 'pride'], tensions: [], nerve: 'Prudent' },
   mangod_ultimate: { archetype: 'schemer', buts: ['levity', 'curiosity', 'pride'], tensions: [], nerve: 'Prudent' },
   mangod: { archetype: 'schemer', buts: ['levity', 'curiosity', 'pride'], tensions: [], nerve: 'Prudent' },
-  kumoko_e1: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Careful' },
-  kumoko_e8: { archetype: 'loner', buts: ['curiosity', 'discipline'], tensions: ['wary_dangerous'], nerve: 'Cool-headed' },
-  kumoko: { archetype: 'loner', buts: ['curiosity'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
-  kumoko_e3_7: { archetype: 'loner', buts: ['curiosity'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
-  kumoko_ultimate: { archetype: 'loner', buts: ['curiosity'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
-  haruka_p1: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
-  haruka_p2: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
-  haruka: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
-  haruka_omui: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
-  haruka_ultimate: { archetype: 'loner', buts: ['curiosity'], tensions: [], nerve: 'Stalwart' },
+  kumoko_e1: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: [], nerve: 'Careful' },
+  kumoko_e8: { archetype: 'loner', buts: ['curiosity', 'levity', 'discipline'], tensions: ['wary_dangerous'], nerve: 'Cool-headed' },
+  kumoko: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
+  kumoko_e3_7: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
+  kumoko_ultimate: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
+  haruka_p1: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: [], nerve: 'Stalwart' },
+  haruka_p2: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: [], nerve: 'Stalwart' },
+  haruka: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: [], nerve: 'Stalwart' },
+  haruka_omui: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: [], nerve: 'Stalwart' },
+  haruka_ultimate: { archetype: 'loner', buts: ['curiosity', 'levity'], tensions: [], nerve: 'Stalwart' },
 };
