@@ -17,7 +17,9 @@ export type Pos = { x: number; y: number };
 /** someone or something that stands somewhere: a zone, and a point in it once the zone has a rectangle */
 export type Located = { zone: string; pos?: Pos };
 
-const EPS = 0.01;
+/** metres closer than this count as the same spot (a step's rounding) */
+export const M_EPS = 0.01;
+const EPS = M_EPS;
 /** BG-120: `d` metres is within `reach`: the one comparison for every reach, so someone who walked up to stop exactly
  * at a reach (a step-up, closing in) is never left a hair outside it by rounding */
 export const withinM = (d: number, reach: number): boolean => d <= reach + EPS;

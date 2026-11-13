@@ -10,7 +10,7 @@ import { PK } from '../library/perkIds';
 import { allStepNeed, skillsAt } from '../ruleset/allSteps';
 
 const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
-const TOP = 150;
+const TOP = ALL_STEPS[ALL_STEPS.length - 1]; // the rails reach the last All step
 // Story or Rules: the player picks which write-up the perk card shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
 const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>(),
@@ -19,6 +19,7 @@ const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel:
 type Show = MilestoneState | 'other';
 /** which perk series a milestone belongs to: 20/60/100/140 change what you can do, 40/80/120 raise numbers; each series has its own colour */
 export const perkSeries = (milestone: number): '20' | '40' => (milestone % 40 === 20 ? '20' : '40');
+const seriesList = (series: '20' | '40') => MILESTONES.filter((m) => perkSeries(m) === series).join(', ');
 const pct = (v: number) => `${Math.min(100, (v / TOP) * 100).toFixed(2)}%`;
 
 function treesOf(p: Actor) {
@@ -145,8 +146,8 @@ export function perksSection(api: GameApi): HTMLElement {
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
       // the two perk series, in the colours their milestones use everywhere
       h('ul', { class: 'pk-key', 'aria-label': 'Perk series' },
-        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Breakthrough'), ' 20, 60, 100, 140'),
-        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Refinement'), ' 40, 80, 120')),
+        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Breakthrough'), ` ${seriesList('20')}`),
+        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Refinement'), ` ${seriesList('40')}`)),
       innate(p),
       ...(ui.view === 'tree'
         ? [h('div', { class: 'pk-tabs', role: 'tablist' }, trees.map((t) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(t.id === ui.tree), onclick: () => { ui.tree = t.id; ui.sel = null; redraw(); } }, t.name))),

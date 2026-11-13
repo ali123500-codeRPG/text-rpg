@@ -9,7 +9,7 @@ import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder, stay
 import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
-import { distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
+import { M_EPS, distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
 import { canSpeak } from '../ruleset/body';
 
 /** FR4: the one approach table: what each action needs of the actor's distance to its target, for every actor, player
@@ -70,7 +70,7 @@ export function speakingSpot(state: GameState, intent: Intent): Located {
   const goal: Located = sp ? { zone: o.move, pos: sp.pos } : { zone: o.move };
   const stop = sp?.stopShort ?? 0;
   let left = slotMetres(state, p, 'move');
-  for (let legs = 0; legs < 100 && left > 0.01; legs++) {
+  for (let legs = 0; legs < 100 && left > M_EPS; legs++) {
     if (goal.pos ? withinM(distM(state, at, goal), stop) : at.zone === goal.zone) break;
     const zone = at.zone;
     const r = walkLeg(state, at, goal, left, stop, p, !!gateAhead(state, { ...p, ...at }, goal.zone));
@@ -162,7 +162,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
     const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o) });
     // BG-34: a follower out of a fight walks after the player beside the action its agent gave
-    const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, state.actors.find((x) => x.id === o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
+    const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, actorById(state, o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
     agent.set(o.actorId, follow ? { ...order, move: follow } : order);
   }
   for (const [id, o] of agent) {
@@ -182,7 +182,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   for (const id of ids) {
     if (out.has(id)) continue;
     const v = views.get(id)!;
-    const a = state.actors.find((x) => x.id === id)!;
+    const a = actorById(state, id)!;
     // BF11: one staying where its own agent took it holds there instead of walking its routine
     out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v));
   }
