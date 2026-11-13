@@ -12,7 +12,7 @@ const attackEv = (s: GameState, attackerId: string, targetId: string, gapShifts:
   id: `e${attackerId}`, turn: s.turn, actorId: attackerId, kind: 'attack', target: targetId, zone: s.player.zone, effects: [], noise: 'quiet', visibility: 'normal',
   perception: { player: { level: 'full', cue: 'sight' } },
   attack: {
-    attack: roll(attackerId, SK.archery, 'success'), defense: roll(targetId, SK.dodge, 'success'), defenseType: 'dodge', gap: 1, gapShifts,
+    attack: roll(attackerId, SK.ranged_light, 'success'), defense: roll(targetId, SK.dodge, 'success'), defenseType: 'dodge', gap: 1, gapShifts,
     outcome: 'grazed', location: 'torso', locationHow: 'rolled', multiplier: 0.5, damage: 2, deciding: { attack: [], defense: [], gap: gapShifts.map((x) => x.source) },
     attackerId, targetId, weaponId: '', modeId: '',
   },

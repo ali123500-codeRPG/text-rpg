@@ -98,7 +98,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),
     ...(intent?.way ? { way: intent.way } : {}),
     targetPart: a?.targetPart ?? null,
-    aimed: !!aimed && a?.type === 'attack',
+    aimed: (!!aimed || (!!a?.aimed && !!a.targetPart)) && a?.type === 'attack', // BG-200: the Aim button, or words that aim at a part
     item: a?.item ?? null,
     ...(a?.qty ? { qty: a.qty } : {}),
     ...(a?.for ? { for: a.for } : {}),

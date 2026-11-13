@@ -741,9 +741,9 @@ Output shape (notation, not literal JSON):
 - approach and stance are flavor: the engine ignores them unless an active skill or perk names them as a trigger. They are passed to Agent Narrator so the prose keeps the player's style.
 - deferred is logged and otherwise ignored for now. How extra actions are handled is part of the action-economy discussion (D-19).
 - A clarify answer stops the turn: no resolution, turn unchanged. Planner outputs are kept and apply when the turn resolves.
-- Code adds aimed: true | false to the player's order from the Aim toggle or /aim (Part 1 §7). The Parser never sets it.
+- Code adds aimed: true | false to the player's order from the Aim toggle or /aim (Part 1 §7), or when the Parser says the player's words aim at the part they name (BF26: "aimed": true with a targetPart).
 
-Fixed instructions: the exact text is PARSER_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it turns the player's words into structured actions from PLAYER_VIEW only; at most one move and one main action a turn, the player's words in spoken, gear ops free; asks one short clarify question only when the intent is truly unclear. Never narrates, never decides outcomes, never assumes success, never sets aimed.
+Fixed instructions: the exact text is PARSER_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it turns the player's words into structured actions from PLAYER_VIEW only; at most one move and one main action a turn, the player's words in spoken, gear ops free; asks one short clarify question only when the intent is truly unclear. Never narrates, never decides outcomes, never assumes success; sets aimed only when the player's words aim at the part they name (BF26).
 
 Rules 1 and 5 are provisional: how to handle a player naming something that doesn't exist is still open, because a clarify question can reveal what exists in the world (D-21).
 
