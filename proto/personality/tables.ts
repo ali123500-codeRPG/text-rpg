@@ -51,6 +51,8 @@ export const DRIVE_RANK_WEIGHT = [1, 0.8, 0.6, 0.4, 0.3, 0.2];
 export const BUT_MIN = 20;
 export const BUT_GAP = 40;
 export const BUTS_SHOWN = 3;
+/** a "very" trait on an axis the archetype expects at a weaker word (very proud on a type that expects proud) is always a "but", listed first */
+export const BUT_BEYOND_TYPE = true;
 
 /** values, ranked by the character as drives; each has a hint */
 export const VALUES: Record<string, string> = {

@@ -1,6 +1,6 @@
 // Personality line prototype: builds the CHARACTER personality line from points, with no hand-written parts.
 import {
-  AXES, AXIS_ENDS, ARCHETYPES, ARCHETYPE_NO_VALUES_GAP, ARCHETYPE_VALUE_WEIGHT, DRIVE_RANK_WEIGHT, BUT_GAP, BUT_MIN, BUTS_SHOWN, DRIVES_SHOWN, NERVE_LEAN, NERVE_LINES, NERVE_PLUS_EVERY,
+  AXES, AXIS_ENDS, ARCHETYPES, ARCHETYPE_NO_VALUES_GAP, ARCHETYPE_VALUE_WEIGHT, DRIVE_RANK_WEIGHT, BUT_BEYOND_TYPE, BUT_GAP, BUT_MIN, BUTS_SHOWN, TRAIT_WORDS, DRIVES_SHOWN, NERVE_LEAN, NERVE_LINES, NERVE_PLUS_EVERY,
   NERVE_TIER_FROM, TENSIONS, TENSIONS_SHOWN, TRAIT_WORDS, VALUES, type Axes, type Axis, type Facts,
 } from './tables';
 
@@ -52,11 +52,26 @@ export function archetypeGaps(c: Pick<Character, 'axes' | 'nerve' | 'drives'>) {
   }).sort((x, y) => x.gap - y.gap || x.i - y.i);
 }
 
-/** axes far enough from the archetype to say "but": strong enough, far from the target, and not just a weaker version of it */
+/** the TRAIT_WORDS tier a value reaches (0 = no word, higher = stronger) */
+function wordTier(v: number) {
+  const i = TRAIT_WORDS.findIndex(([min]) => Math.abs(v) >= min);
+  return i < 0 ? 0 : TRAIT_WORDS.length - i;
+}
+
+/** a trait that goes past what the archetype expects: same side as the target, at the strongest word ("very"), which the target does not reach */
+function beyondType(v: number, t: number) {
+  return t !== 0 && Math.sign(v) === Math.sign(t) && wordTier(v) === TRAIT_WORDS.length && wordTier(t) < TRAIT_WORDS.length;
+}
+
+/**
+ * axes far enough from the archetype to say "but": strong enough, far from the target, and not just a weaker version of it;
+ * or a trait stronger than the archetype expects (BUT_BEYOND_TYPE). Beyond-type traits come first.
+ */
 export function buts(axes: Axes, a: (typeof ARCHETYPES)[number]) {
   return AXES.map((ax, i) => ({ ax, i, v: pts(axes, ax), t: target(a, ax), gap: Math.abs(pts(axes, ax) - target(a, ax)) }))
-    .filter((b) => Math.abs(b.v) >= BUT_MIN && b.gap >= BUT_GAP && (Math.sign(b.v) !== Math.sign(b.t) || Math.abs(b.v) > Math.abs(b.t)))
-    .sort((x, y) => y.gap - x.gap || x.i - y.i)
+    .map((b) => ({ ...b, beyond: BUT_BEYOND_TYPE && beyondType(b.v, b.t) }))
+    .filter((b) => b.beyond || (Math.abs(b.v) >= BUT_MIN && b.gap >= BUT_GAP && (Math.sign(b.v) !== Math.sign(b.t) || Math.abs(b.v) > Math.abs(b.t))))
+    .sort((x, y) => Number(y.beyond) - Number(x.beyond) || y.gap - x.gap || x.i - y.i)
     .slice(0, BUTS_SHOWN);
 }
 
