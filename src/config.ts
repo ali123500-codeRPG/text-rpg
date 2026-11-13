@@ -162,10 +162,10 @@ const DEFAULTS = {
   /** HB4: decibels lost at each crossing, by SOUND_LOSS level: an open gap nothing; a shut window about 30, a shut door about
    * 30, a wall about 35 (their sound transmission class, STC) */
   SOUND_LOSS_DB: { open: 0, window: 30, door: 30, wall: 35 } as Record<string, number>,
-  /** sight (perception sightReach): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
+  /** sight (perception sightLevel): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
    * (something, not who), in metres, in daylight with a clear view, from real references (the library's
-   * visibilityLevels rows); null = nothing to see. Links come from the same metres-to-links conversion as reach; an
-   * event closer than SAME_ZONE_M can't be seen at that grade even in the same zone. A dark zone caps sight at partial. */
+   * visibilityLevels rows); null = nothing to see. Sight distance is never under SAME_ZONE_M (seeingM), so a level made
+   * out only nearer than that (faint) is at most glimpsed. A dark zone caps sight at partial. */
   SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]

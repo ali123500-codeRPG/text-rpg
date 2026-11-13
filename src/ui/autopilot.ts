@@ -33,7 +33,7 @@ function readPrefs(): Prefs {
 }
 /** Claude's own voices: the page's tts capability (null where it can't speak, e.g. not declared or not offered) */
 const CLAUDE_VOICES = ['buttery', 'airy', 'glassy', 'rounded'];
-type Tts = { speak(text: string, o: { voice: string; rate: number; language: string }): Promise<unknown>; stop(): Promise<void>; onState?(cb: (s: { state: string }) => void): unknown; voices?(): Promise<unknown> };
+type Tts = { speak(text: string, o: { voice: string; rate: number; language: string }): Promise<unknown>; stop(): Promise<void>; onState?(cb: (s: { state: string }) => void): unknown; voices?(): Promise<unknown>; languages?(): Promise<unknown> };
 const writePrefs = (p: Prefs) => { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* per-PC convenience only */ } };
 /** what the bar was doing, kept for this tab so a reload or a new version of the page carries on where it was */
 const RUN = 'rpg.autopilot.run';
@@ -52,7 +52,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   let restore = readRun(); // carried on once the story has loaded
   let open = !!restore?.open, playing = false, stepping = false, switching = false;
   let status = '', said = '', saidJa = '', voiceNote = '';
-  let tts: Tts | null = null, talking = false, claudeVoices = CLAUDE_VOICES;
+  let tts: Tts | null = null, talking = false, claudeVoices = CLAUDE_VOICES, jaOk = true;
   // the RPG Voice (the page's mcp capability): the line playing, which speak() is current, and whether it has failed for good
   let mcp: Mcp | null = null, audio: HTMLAudioElement | null = null, speakSeq = 0, rpgDown = false, voices = RPG_VOICES, listed = false;
   // guided mode (GA1–GA17)
@@ -64,6 +64,8 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     try { tts = ((await (globalThis as { claude?: { use(n: string): Promise<unknown> } }).claude?.use('tts')) ?? null) as Tts | null; } catch { tts = null; }
     tts?.onState?.((s) => { talking = s.state !== 'idle' || !!audio; update(); });
     // the voices Claude offers pages right now (four today), so a new one shows up without a change here
+    // a platform that says it can't read Japanese gets the English line instead
+    try { const l = await tts?.languages?.(); if (Array.isArray(l) && l.length && !l.some((x) => typeof x === 'string' && /^ja\b/i.test(x))) jaOk = false; } catch { /* try Japanese and fall back */ }
     try { const v = await tts?.voices?.(); if (Array.isArray(v) && v.length && v.every((x) => typeof x === 'string')) claudeVoices = v; } catch { /* keep the known four */ }
     update();
   })();
@@ -95,7 +97,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     if ((!prefs.voice && !force) || !text) return Promise.resolve();
     hush();
     const seq = speakSeq, line = ja || text, v = rpgVoice();
-    if (!v || rpgDown) { claudeSpeak(plainLine(line), !!ja, force); return Promise.resolve(); }
+    if (!v || rpgDown) { claudeSpeak(plainLine(line), !!ja, plainLine(text)); return Promise.resolve(); }
     talking = true; update();
     const chunks = splitLine(line), clips = chunks.map((c) => rpgSpeak(mcp!, c, direction, v));
     clips.forEach((c) => c.catch(() => undefined)); // each failure is handled when its turn to play comes
@@ -118,29 +120,37 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
         if (seq !== speakSeq) return started();
         const f = rpgFailure(e);
         rpgDown = f.down; talking = false;
-        claudeSpeak(plainLine(chunks.slice(i).join(' ')), !!ja, force);
+        claudeSpeak(plainLine(chunks.slice(i).join(' ')), !!ja, plainLine(text));
         voiceNote = f.note; update(); started();
       });
       void play(0);
     });
   }
-  /** sample: a pick's preview, which is heard only, so a failed one shows no note either */
-  function claudeSpeak(line: string, ja: boolean, sample = false) {
+  /** read in the chosen Claude voice; a Japanese line Claude can't read is read in English instead (english: the same
+   *  line in English), and after one such failure Japanese lines go straight to English for the rest of this visit */
+  function claudeSpeak(line: string, ja: boolean, english = '') {
     if (!tts || !line) return;
-    tts.speak(line, { voice: claudeVoice(), rate: Math.min(prefs.rate, RATES.at(-1)!), language: ja ? 'ja' : 'en' }).then(() => { if (!rpgDown) voiceNote = ''; }, (e: { code?: string }) => {
-      if (e?.code === 'stopped' || e?.code === 'viewer_stopped' || sample) return;
-      voiceNote = e?.code === 'rate_limited' ? 'Claude’s voice has used its allowance for now, so this line is shown only.' : 'Claude’s voice couldn’t read that line.';
-      update();
+    const read = (text: string, language: string) => tts!.speak(text, { voice: claudeVoice(), rate: Math.min(prefs.rate, RATES.at(-1)!), language });
+    const inJa = ja && jaOk;
+    read(inJa ? line : english || line, inJa ? 'ja' : 'en').then(() => { if (!rpgDown) voiceNote = ''; }, (e: { code?: string; message?: string }) => {
+      if (e?.code === 'stopped' || e?.code === 'viewer_stopped') return;
+      console.warn('Claude voice could not read a line:', e?.code, e?.message);
+      if (inJa && english && e?.code !== 'rate_limited' && e?.code !== 'not_granted') { jaOk = false; void read(english, 'en').catch(() => undefined); return; }
+      if (e?.code === 'rate_limited') { voiceNote = 'Claude’s voice has used its allowance for now, so this line is shown only.'; update(); }
     });
   }
-  /** a line from the chosen style's bank, read in the chosen voice and speed, so the watcher hears what a pick does (heard
-   *  only: the bar shows no text for it) */
+  /** a line from the chosen style's bank, read in the chosen voice and speed, so the watcher hears what a pick does (heard only,
+   *  with no sample text in the bar) */
   let sample: Sample | undefined;
   function preview() {
     sample = pickSample(prefs.style, sample);
     void speak(sample.say, sample.ja ?? '', '', true);
   }
-  const set = (s: string) => { status = s; update(); };
+  // the status line counts the seconds of a long wait, so a slow Claude call or a stuck turn shows as such, never as nothing
+  let statusAt = 0;
+  const set = (s: string) => { status = s; statusAt = Date.now(); update(); };
+  const ticking = setInterval(() => { if (!el.isConnected && !open) return; if (playing && status.endsWith('…') && Date.now() - statusAt >= 5000) update(); }, 1000);
+  void ticking;
   function pause(why = '') { playing = false; stepping = false; answer?.(null); set(why); redraw(); }
 
   const scenario = () => api.state()?.stage?.scenarioNumber ?? 0;
@@ -253,6 +263,12 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     finally { switching = false; redraw(); }
   }
 
+  const pickBox = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' });
+  const fieldsBox = h('div', { class: 'auto-fields' }), goBox = h('div', { class: 'auto-go' });
+  const ordersBox = h('div', { class: 'auto-row' }), liveBox = h('div', { class: 'auto-live' });
+  const panel = h('div', { class: 'auto-panel' }, h('div', { class: 'auto-row' }, pickBox, fieldsBox, goBox), ordersBox, liveBox);
+  /** a list open or a box being typed in inside this part */
+  const held = (box: Element) => { const f = document.activeElement; return !!f && box.contains(f) && (f.tagName === 'SELECT' || f.tagName === 'INPUT'); };
   function update() {
     if (restore && api.state() && !api.busy() && !switching) {
       const r = restore; restore = null;
@@ -260,31 +276,37 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     }
     if (!restore && api.state()) writeRun({ open, playing: playing && !stepping, owner: agentStory() ? 'agent' : 'player' });
     if (question?.perk && (api.state()?.player.progression?.unspentPerkPoints ?? 0) < question.perk.points) reply({ perk: true }); // taken on the sheet
-    const focus = document.activeElement;
-    if (focus && el.contains(focus) && (focus.tagName === 'SELECT' || focus.tagName === 'INPUT')) return; // don't close an open list or a box being typed in
     const btn = (label: string, on: () => void, o: { pressed?: boolean; disabled?: boolean; main?: boolean; title?: string; agent?: boolean } = {}) => h('button', {
       type: 'button', class: (o.main ? 'hs-btn-main' : 'hs-btn-text') + (o.agent ? ' auto-agent' : ''), onclick: on, disabled: o.disabled, title: o.title,
       'aria-pressed': o.pressed === undefined ? undefined : String(o.pressed) }, label);
     const mine = agentStory() ? null : h('p', { class: 'hs-note' }, 'The agent’s turns are saved to your story like your own. Undo works one turn back.');
     opener.textContent = open ? '✓ Watch an agent play' : 'Watch an agent play';
     opener.setAttribute('aria-pressed', String(open));
-    // on the agent's own story the opener and the "Its own story" choice turn yellow instead of a banner (no extra row)
+    // on the agent's own story the opener and the "Agent’s" choice turn yellow instead of a banner (no extra row)
     opener.classList.toggle('auto-agent', agentStory());
     opener.title = agentStory() ? 'You’re watching the agent’s own story. Your story is kept as it is.' : 'An agent plays while you watch, with spoken commentary';
     if (!open) { el.replaceChildren(); return; }
+    if (el.firstChild !== panel) el.replaceChildren(panel);
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
     const style = h('select', { 'aria-label': 'Voice style', onchange: (e: Event) => { prefs.style = (e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
       VOICE_STYLES.map(([id, name]) => h('option', { value: id, selected: prefs.style === id }, name)));
     const rv = rpgVoice();
-    const voicePick = h('select', { 'aria-label': 'Speaking voice', onchange: (e: Event) => { prefs.voiceName = (e.target as HTMLSelectElement).value; rpgDown = false; voiceNote = ''; writePrefs(prefs); preview(); } },
-      mcp ? h('optgroup', { label: 'RPG Voice (acted)' }, voices.map(({ voice, style }) => h('option', { value: `rpg:${voice}`, selected: rv === voice }, style ? `${voice} · ${style}` : voice))) : '',
-      h('optgroup', { label: 'Claude' }, claudeVoices.map((v) => h('option', { value: `claude:${v}`, selected: !rv && claudeVoice() === v }, `${v[0].toUpperCase()}${v.slice(1)}`))));
+    const voicePick = h('select', { 'aria-label': 'Speaking voice', onchange: (e: Event) => {
+        // "Off" mutes the commentary (it is still shown); any voice turns it on and plays a sample
+        const v = (e.target as HTMLSelectElement).value;
+        if (v === 'off') { prefs.voice = false; hush(); } else { prefs.voice = true; prefs.voiceName = v; rpgDown = false; voiceNote = ''; }
+        writePrefs(prefs);
+        if (prefs.voice) preview();
+      } },
+      h('option', { value: 'off', selected: !prefs.voice }, 'Off'),
+      mcp ? h('optgroup', { label: 'RPG Voice (acted)' }, voices.map(({ voice, style }) => h('option', { value: `rpg:${voice}`, selected: prefs.voice && rv === voice }, style ? `${voice} · ${style}` : voice))) : '',
+      h('optgroup', { label: 'Claude' }, claudeVoices.map((v) => h('option', { value: `claude:${v}`, selected: prefs.voice && !rv && claudeVoice() === v }, `${v[0].toUpperCase()}${v.slice(1)}`))));
     const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
       RATES.map((r) => h('option', { value: String(r), selected: prefs.rate === r }, `${r}×`)));
     const noVoice = prefs.voice && !tts && !rv ? 'Claude’s voice isn’t available in this view, so the commentary is shown only.' : '';
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
-      WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s a turn`)));
+      WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s`)));
     const mode = h('select', { 'aria-label': 'Mode', onchange: (e: Event) => { prefs.mode = (e.target as HTMLSelectElement).value as Prefs['mode']; writePrefs(prefs); update(); } },
       MODES.map(([id, name]) => h('option', { value: id, selected: prefs.mode === id }, name)));
     const sid = api.state()?.storyId;
@@ -293,7 +315,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
         onchange: (e: Event) => writeOrders(sid, (e.target as HTMLInputElement).value), onblur: () => update() })) : '';
     const q = question;
     const own = h('input', { type: 'text', placeholder: 'Or say what to do in your own words', 'aria-label': 'Your own answer',
-      onkeydown: (e: KeyboardEvent) => { const t = (e.target as HTMLInputElement).value.trim(); if (e.key === 'Enter' && t) reply({ words: t }); } }) as HTMLInputElement;
+      onkeydown: (e: KeyboardEvent) => { const t = (e.target as HTMLInputElement).value.trim(); if (e.key === 'Enter' && t) { (e.target as HTMLInputElement).blur(); reply({ words: t }); } } }) as HTMLInputElement; // Enter leaves the box, so the answered card can go
     const card = q ? h('div', { class: 'auto-ask', role: 'group', 'aria-label': 'Your call' },
       h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Your call'), q.ja ? h('span', {}, `“${plainLine(q.ja)}”`, h('span', { class: 'auto-en' }, plainLine(q.say))) : `“${plainLine(q.say)}”`),
       q.perk
@@ -306,30 +328,30 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
           btn('You decide', () => reply({ decide: true })),
           h('span', { class: 'auto-own' }, own, btn('Use my words', () => { const t = own.value.trim(); if (t) reply({ words: t }); }))),
       q.perk ? '' : h('p', { class: 'hs-note' }, 'It waits for you. A turn you play yourself in the box below also answers.')) : '';
-    el.replaceChildren(h('div', { class: 'auto-panel' },
-      h('div', { class: 'auto-row' },
-        h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' },
-          btn('On my story', () => void useSave('player'), { pressed: !agentStory(), disabled: switching || api.busy(), title: api.busy() ? waitNote : undefined }),
-          btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching || api.busy(), agent: true, title: api.busy() ? waitNote : undefined })),
-        h('label', { class: 'auto-field' }, 'Mode', mode),
-        h('label', { class: 'auto-field' }, 'Playstyle', persona),
-        h('label', { class: 'auto-field' }, 'Pace', wait),
-        h('label', { class: 'auto-field' }, 'Style', style),
-        h('label', { class: 'auto-field' }, 'Speaker', voicePick),
-        h('label', { class: 'auto-field' }, 'Speed', rate),
-        btn(prefs.voice ? '✓ Voice' : 'Voice', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice) hush(); update(); },
-          { pressed: prefs.voice, title: prefs.voice ? 'The agent’s commentary is read aloud. Click to mute it' : 'Click to read the agent’s commentary aloud' }),
-        h('div', { class: 'auto-go' },
-          talking ? btn('Stop voice', () => { hush(); update(); }, { title: 'Stop reading this line aloud' }) : '',
-          btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
-          playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
-          h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'))),
-      orders ? h('div', { class: 'auto-row' }, orders) : '',
+    // each part is rebuilt on every update except one holding a list or box in use (an open list would close, typed words would
+    // go). The whole bar used to wait while any list had focus, which after a pick is until a click elsewhere: the agent's
+    // status, its words and a guided question never showed, so it looked as if it did nothing
+    pickBox.replaceChildren(
+      btn('Player’s', () => void useSave('player'), { pressed: !agentStory(), disabled: switching || api.busy(), title: api.busy() ? waitNote : 'The agent plays on your story' }),
+      btn('Agent’s', () => void useSave('agent'), { pressed: agentStory(), disabled: switching || api.busy(), agent: true, title: api.busy() ? waitNote : 'The agent plays its own story; yours is kept as it is' }));
+    if (!held(fieldsBox)) fieldsBox.replaceChildren(
+      h('label', { class: 'auto-field' }, mode), // its choices name themselves (Plays alone, Asks me at crossroads); the list keeps its Mode label for screen readers
+      h('label', { class: 'auto-field' }, 'Playstyle', persona),
+      h('label', { class: 'auto-field' }, 'Pace', wait),
+      h('label', { class: 'auto-field' }, 'Style', style),
+      h('label', { class: 'auto-field' }, 'Speaker', voicePick),
+      h('label', { class: 'auto-field' }, 'Speed', rate));
+    goBox.replaceChildren(
+      btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
+      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
+      h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'));
+    if (!held(ordersBox)) { ordersBox.replaceChildren(orders); ordersBox.hidden = !orders; }
+    if (!held(liveBox)) liveBox.replaceChildren(
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), saidJa ? h('span', {}, `“${plainLine(saidJa)}”`, h('span', { class: 'auto-en' }, plainLine(said))) : `“${plainLine(said)}”`) : ''),
       !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
       !q && prefs.mode === 'guided' && lastCall ? h('p', { class: 'hs-note' }, `Last call: ${lastCall}`) : '',
-      status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status || mine!.textContent) : '',
-      noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : ''));
+      status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status ? `${status}${playing && status.endsWith('…') && Date.now() - statusAt >= 5000 ? ` ${Math.floor((Date.now() - statusAt) / 1000)} s` : ''}` : mine!.textContent) : '',
+      noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : '');
   }
   update();
   return { el, opener, update, playing: () => playing, asking: () => !!question,

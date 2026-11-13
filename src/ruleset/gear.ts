@@ -17,14 +17,17 @@ import { FN } from '../library/functionIds';
 import { skillName } from '../library/skillNames';
 import { AM } from '../library/tableIds';
 
-export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
+export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('grip:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
 /** the actor's first free accessory slot, if any */
 export function freeAccSlot(a: Actor): string | undefined {
   const used = new Set(a.core.inventory.flatMap((i) => i.equippedIn ?? []));
   return Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
 }
-export const handsOf = (i: ItemInstance) => (i.equippedIn ?? []).filter((s) => s.startsWith('hand:')).map((s) => s.slice(5));
+/** a grip part as the story names it: an arm grips with its hand ("left hand"); any other part by its own name (a
+ * dragon's head) */
+export const gripWord = (part: string) => (part.endsWith('_arm') ? `${part.replace(/_arm$/, '')} hand` : part).replace(/_/g, ' ');
+export const handsOf = (i: ItemInstance) => (i.equippedIn ?? []).filter((s) => s.startsWith('grip:')).map((s) => s.slice(5));
 
 type Active = { inst: ItemInstance; def: ItemDef; e: ItemEffect; source: string };
 
@@ -235,7 +238,7 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
   if (isHeld(best)) return { itemId: best.id, stowed: null };
   const hands = usableGrips(state, actor);
   if (!hands.length) return { itemId: null, stowed: null }; // GAP: no usable hand, so no tool
-  const holder = (h: string) => actor.core.inventory.find((i) => i.equippedIn?.includes(`hand:${h}`));
+  const holder = (h: string) => actor.core.inventory.find((i) => i.equippedIn?.includes(`grip:${h}`));
   if (hands.some((h) => !holder(h))) return { itemId: best.id, stowed: null };
   const items = hands.map(holder) as ItemInstance[];
   // off-hand: a held non-weapon (shield, torch), else the last hand's item

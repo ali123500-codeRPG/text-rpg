@@ -24,7 +24,7 @@ const set = (a: Actor, skills: string[], raw: number) => { for (const k of skill
 const arm = (s: GameState, id: string, itemId: string = IT.dagger) => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
-  a.core.inventory.push({ id: `w_${id}`, itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  a.core.inventory.push({ id: `w_${id}`, itemId, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
   fit(a, itemId); // equip requirements: tests here are about perks
 };
 

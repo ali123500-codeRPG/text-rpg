@@ -118,7 +118,7 @@ export type NoiseKey = (typeof NOISE.keys)[number];
 /** HB4: what sound loses crossing between two zones, least first; the decibels of each are CONFIG.SOUND_LOSS_DB */
 export const SOUND_LOSS = scale([['open', 'Open gap'], ['window', 'Shut window'], ['door', 'Shut door'], ['wall', 'Wall']]);
 export type SoundLossKey = (typeof SOUND_LOSS.keys)[number];
-/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightReach) */
+/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightLevel) */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
 /** worn armor weight, lightest first (AN3); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */

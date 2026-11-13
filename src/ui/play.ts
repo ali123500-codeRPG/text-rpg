@@ -109,7 +109,7 @@ function apart(names: string[]): string[] {
 export function ideas(pv: PlayerView): { group: string; items: { text: string; note?: string }[] }[] {
   const people = pv.actors.filter((a) => a.level === 'full' && !(a.health && isDownLevel(a.health)));
   const names = apart(people.map((a) => a.name ?? a.label));
-  const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('hand:')) && i.kind === 'weapon');
+  const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('grip:')) && i.kind === 'weapon');
   const stowed = pv.player.inventory.filter((i) => !i.equippedIn.length && i.kind === 'weapon');
   const [heldN, stowedN, groundN] = [apart(held.map((i) => i.name)), apart(stowed.map((i) => i.name)), apart(pv.zone.groundItems.map((i) => i.name))];
   const the = (n: string) => (n.startsWith('the other ') ? n : `the ${n}`);
@@ -126,8 +126,8 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Use', items: [
       ...heldN.map((n) => ({ text: `Stow ${the(n)}`, note: 'free' })), ...stowedN.map((n) => ({ text: `Draw ${the(n)}`, note: 'free' })),
       ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free' })), ...(pv.player.summonable ?? []).map((x) => ({ text: `Summon ${x.name}`, note: 'free' })), { text: 'Look around' }] },
-    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_SOLO_IDEA[p] ? [PERK_SOLO_IDEA[p]] : PERK_IDEA[p]
-      ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(names[people.indexOf(a)]), note: PERK_IDEA[p].note })) : []) }] : []),
+    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.flatMap(({ id: p, inRange }) => PERK_SOLO_IDEA[p] ? [PERK_SOLO_IDEA[p]] : PERK_IDEA[p]
+      ? people.filter((a) => inRange?.includes(a.id)).map((a) => ({ text: PERK_IDEA[p].text(names[people.indexOf(a)]), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ group: g.group, items: 'all' in g ? g.items : g.items.slice(0, 3) }));
 }
 
@@ -289,7 +289,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     finishAll(); // M-12: and finishes everything still moving
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
-    if (NAV_COMMANDS[cmd] && text === cmd) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
+    // the agent's /inv, /stats or /quests is answered in the story, never by taking the watcher to another page
+    if (NAV_COMMANDS[cmd] && text === cmd && !byAgent) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
     if (cmd === '/aim' && text === cmd) { aimed = !aimed; input.value = ''; update(); return; }
     input.value = '';
     suggestion = '';

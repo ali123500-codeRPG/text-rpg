@@ -1,8 +1,9 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
-import type { Actor, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
+import type { Actor, Barrier, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
-import { barrierOn, knowsShut, linkPassage } from './barriers';
+import { barrierOn, linkPassage } from './barriers';
+import { withinGrip } from './position';
 import { reachesOver } from '../scenario/geometry';
 import { getLibrary } from '../library';
 
@@ -20,10 +21,10 @@ export function bandById(state: GameState, id: string) {
 export function isActive(actor: Actor): boolean {
   return actor.core.condition.hpLostPct < 100;
 }
-/** A8 Hold: the actor holding `a`, while that hold still stands (the holder is active and in a's zone) */
+/** A8 Hold: the actor holding `a`, while that hold still stands (the holder is active and `a` within its grip reach: BG-104) */
 export function heldBy(state: GameState, a: Actor): Actor | undefined {
   const h = a.heldBy ? actorById(state, a.heldBy) : undefined;
-  return h && isActive(h) && h.zone === a.zone && isActive(a) ? h : undefined;
+  return h && isActive(h) && withinGrip(state, h, a) && isActive(a) ? h : undefined;
 }
 /** broken and surrendered actors count on neither side of engagement (Part 3, Morale). */
 export function countsInFight(actor: Actor): boolean {
@@ -133,6 +134,15 @@ export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
 export const wayPath = (state: GameState, from: string, to: string, walker: Actor): string[] | null =>
   shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to);
 
+/** BG-69, FR5: a walk is planned around a shut way only by someone who knows it is shut: they tried it, or it is rubble in
+ * plain view; an NPC also knows the ways of a place it lives or works in (one its routine is bound to: mind.slots). A
+ * visitor learns by trying, as the player does; a bolt on the far side is not known from the near side. */
+export function knowsShut(state: GameState, b: Barrier, a: Actor, from: string): boolean {
+  if (b.blocked || b.tried?.includes(a.id)) return true;
+  const place = a.kind === 'player' ? undefined : zoneById(state, from)?.placeId;
+  return !!place && Object.values(a.mind?.slots ?? {}).flat().some((z) => zoneById(state, z)?.placeId === place);
+}
+
 /** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
  * barrier is shut to it (no key, the far side of the bar, rubble) is left out (SD3–SD5); with none, barriers are ignored
  * (how far away, for sound and sight). */
@@ -148,7 +158,7 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     for (const l of z?.links ?? []) {
       // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
       if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !seesAcross(state, l)) || (l.drop && !sightOnly)) continue;
-      if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(barrierOn(state, l)!, walker)) continue;
+      if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(state, barrierOn(state, l)!, walker, cur)) continue;
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {
@@ -177,4 +187,15 @@ export function reachesAcross(state: GameState, a: string, b: string): boolean {
 export function knowsName(state: GameState, viewer: Actor, a: Actor): boolean {
   if (a === viewer || a.knownOnSight || (viewer.bandId && viewer.bandId === a.bandId)) return true;
   return !!(viewer.id === state.player.id ? state.player.journal?.namesKnown : viewer.mind?.namesKnown)?.includes(a.id);
+}
+/** BG-95/NM2/NM3: the viewer's name lists (the player's journal or an NPC's mind), made on first write */
+export function nameBook(state: GameState, viewer: Actor): { known: string[]; heardOf: string[]; aliases: Record<string, string> } | undefined {
+  const b = viewer.id === state.player.id ? state.player.journal : viewer.mind;
+  if (!b) return undefined;
+  return { known: (b.namesKnown ??= []), heardOf: (b.heardOf ??= []), aliases: (b.aliases ??= {}) };
+}
+/** what the viewer calls `a` by name: the real one once known, else a false name it believed (NM3), else none */
+export function nameFor(state: GameState, viewer: Actor, a: Actor): string | undefined {
+  if (knowsName(state, viewer, a)) return a.names.current;
+  return (viewer.id === state.player.id ? state.player.journal?.aliases : viewer.mind?.aliases)?.[a.id];
 }

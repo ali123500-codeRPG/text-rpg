@@ -10,7 +10,7 @@ import { achLevel, achXp, achievementName } from '../engine/xp';
 import { rewardName, rewardPos } from '../ruleset/achRewards';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
-import { kitBonus, modeName } from '../ruleset/gear';
+import { gripWord, kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
@@ -190,8 +190,8 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const icon = (it: InvItem) => itemIcon(iconName(s, it.itemId), kindOf(it));
   const blank = (n: IconName) => { const el = h('span', { class: 'iico blank' }); el.innerHTML = ICONS[n]; return el; };
 
-  // slots: a hand per gripping part, then armor, then the accessory slots
-  const hands = gripParts(s, p).map((part) => ({ id: `hand:${part}`, label: cap(part.replace(/_arm$/, '').replace(/_/g, ' ')) + ' hand', empty: 'sword' as IconName }));
+  // slots: one per grip part (an arm's hand, a dragon's head), then armor, then the accessory slots
+  const hands = gripParts(s, p).map((part) => ({ id: `grip:${part}`, label: cap(gripWord(part)), empty: 'sword' as IconName }));
   const slots = [...hands, { id: 'armor', label: 'Body', empty: 'tunic' as IconName },
     ...Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => ({ id: `acc:${n}`, label: `Accessory ${n + 1}`, empty: 'ring' as IconName }))];
   const firstSlot = new Map<string, string>(); // a two-handed item shows once, in its first hand

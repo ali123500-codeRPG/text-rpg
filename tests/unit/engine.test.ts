@@ -29,7 +29,7 @@ vi.mock('../../src/ruleset', async (orig) => {
     return { actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier, natural: 0 as const, modifiers: [], tierShifts: [] };
   };
   const usableModes = (_s: GameState, a: Actor) => {
-    const held = a.core.inventory.filter((i) => i.equippedIn?.some((x) => x.startsWith('hand:')));
+    const held = a.core.inventory.filter((i) => i.equippedIn?.some((x) => x.startsWith('grip:')));
     const modes = held.flatMap((i) => (itemDef(null, i.itemId).weapon?.modes ?? []).map((mode) => ({ itemId: i.id, mode: real.withRow(a, itemDef(null, i.itemId), mode) }))); // the Throw row adds its reach
     const nat = bodyType(null, a.core.bodyTypeId).naturalAttacks.map((mode) => ({ itemId: `natural:${mode.id}`, mode }));
     return [...modes, ...nat];
@@ -57,7 +57,7 @@ vi.mock('../../src/ruleset', async (orig) => {
         if (!F.destroyPart) return [{ kind: 'damage', actorId: t.id, data: {} }];
         // like the real applyEffects: a Destroyed arm drops what it held to the zone's ground
         t.core.condition.parts[F.destroyPart] = -100;
-        const held = t.core.inventory.filter((i) => i.equippedIn?.includes(`hand:${F.destroyPart}`));
+        const held = t.core.inventory.filter((i) => i.equippedIn?.includes(`grip:${F.destroyPart}`));
         const zone = state.zones.find((z) => z.id === t.zone)!;
         for (const i of held) { t.core.inventory.splice(t.core.inventory.indexOf(i), 1); delete i.equippedIn; zone.groundItems.push(i); }
         return [{ kind: 'damage', actorId: t.id, data: {} }, ...held.map((i) => ({ kind: 'item_dropped', actorId: t.id, data: { itemId: i.id, zone: t.zone } }))];
@@ -387,7 +387,7 @@ describe('gear and combat', () => {
   };
   it('reach counts links with sight; no sight is a wasted action', () => {
     s.player.core.inventory.push({ id: 'bw', itemId: IT.shortbow });
-    s.player.core.inventory.forEach((i) => { if (i.equippedIn?.some((x) => x.startsWith('hand:'))) delete i.equippedIn; });
+    s.player.core.inventory.forEach((i) => { if (i.equippedIn?.some((x) => x.startsWith('grip:'))) delete i.equippedIn; });
     s.player.zone = 'tav_common';
     // tav_counter linked with sight; street_door linked without sight
     place(s, 'patron_1', 'tav_counter');
@@ -399,7 +399,7 @@ describe('gear and combat', () => {
     expect(r2.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'wasted', target: 'trader' });
   });
   it('a thrown dagger lands on the target zone ground, hit or miss', () => {
-    s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['grip:left_arm'] });
     s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
     place(s, 'patron_1', s.player.zone); // a knife throw (7 m) reaches its own zone
     F.defended = false;
@@ -475,7 +475,7 @@ describe('gear and combat', () => {
   const atLeastAware = (a: Actor) => ['aware', 'tracking'].includes(a.mind!.knowledge.player?.status ?? '');
   it('RS6: a target turns hostile only toward an attacker it knows of', () => {
     // a dagger thrown from hiding (a ranged blow keeps you hidden, ST5/ST7)
-    s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['grip:left_arm'] });
     s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
     place(s, 'patron_1', 'tav_counter');
     const p = actor(s, 'patron_1');

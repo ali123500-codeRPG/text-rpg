@@ -5,7 +5,9 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { getLibrary } from '../library';
-import { isActive, shortestPath, wary } from './relations';
+import { isActive, nameBook, wary } from './relations';
+import { distM, type Located } from './position';
+import { falseName } from '../words';
 import type { ExchangeSpeech } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -46,11 +48,11 @@ export const MUFFLED = '(you hear their voice, but you cannot make out the words
 
 /** BG-84: who hears the player's line this turn, from where it is said (after this turn's walk over, BG-58) and as loud
  * as it is said: `clear` gets the words, `heard` at least the voice */
-export function playerVoice(state: GameState, intent: Intent): { clear: (a: Actor) => boolean; heard: (a: Actor) => boolean } {
+export function playerVoice(state: GameState, intent: Intent): { from: Located; clear: (a: Actor) => boolean; heard: (a: Actor) => boolean } {
   const from = quickWord(state, intent) ? state.player : speakingSpot(state, intent);
   const noise = VOLUME_NOISE[intent.volume ?? 'normal'];
   const clear = (a: Actor) => hearsClearly(state, from, a, noise);
-  return { clear, heard: (a) => clear(a) || hears(state, a, from, noise) };
+  return { from, clear, heard: (a) => clear(a) || hears(state, a, from, noise) };
 }
 
 export function isSpeech(type: string | undefined | null): boolean {
@@ -108,8 +110,8 @@ export function quickWord(state: GameState, intent: Intent): boolean {
 
 export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   if ((!isSpeech(intent.action?.type) && !quickWord(state, intent)) || !intent.addressees?.length) return [];
-  const dist = (a: Actor) => shortestPath(state, state.player.zone, a.zone)?.length ?? Infinity;
   const voice = playerVoice(state, intent);
+  const dist = (a: Actor) => distM(state, voice.from, a); // BG-103: nearest in metres from where the player speaks
   const live = state.actors.filter((a) => isActive(a) && voice.heard(a)); // BG-84: only someone who hears the player answers
   const nearest = (members: Actor[]) =>
     [...members].sort((a, b) => dist(a) - dist(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).find((a) => dist(a) < Infinity);
@@ -259,7 +261,11 @@ export function overhearLie(state: GameState, ev: GameEvent, answered: string[],
     const contest = toContest(roll, answerRoll(state, o, SK.insight, speaker.id, rng));
     contestFeat(state, contest);
     markUse(state, o, contest.b.skill, contest);
-    if (contest.winner === 'b') (ev.overheard ??= []).push(o.id);
+    if (contest.winner === 'b') {
+      (ev.overheard ??= []).push(o.id);
+      const book = nameBook(state, o); // NM3: a false name seen through is not kept (learnNames ran before this roll)
+      if (book && book.aliases[speaker.id] === falseName(speaker, ev.line?.text)) delete book.aliases[speaker.id];
+    }
   }
 }
 

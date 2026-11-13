@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
 import { applyBeliefDecay, computePerception, updateBeliefs } from '../../src/perception';
-import { sightReach } from '../../src/perception/sight';
 import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
 
@@ -16,18 +15,15 @@ const run = (s: GameState, e: GameEvent) => {
 };
 
 describe('computePerception', () => {
-  it('sight from real distances: normal is made out to 25 m (3 sight links) and glimpsed beyond; low (still) to 15 m', () => {
+  it('sight from real distances: normal is made out to 25 m and glimpsed beyond; low (still) to 15 m', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const at = (zone: string, visibility: GameEvent['visibility']) =>
       computePerception(ev({ actorId: 'slime_1', kind: 'move', zone, noise: 'silent', visibility }), s, createRng(1)).player;
-    expect(sightReach('normal')).toEqual([3, 25]);
     expect(at('gate_inner', 'normal')).toEqual({ level: 'full', cue: 'sight' });
     expect(at('field_mid', 'normal')).toEqual({ level: 'full', cue: 'sight' }); // 3 links, 24 m
     expect(at('field_far', 'normal')).toEqual({ level: 'partial', cue: 'sight' }); // 4 links, 32 m
     expect(at('gate_inner', 'low')).toEqual({ level: 'full', cue: 'sight' });
     expect(at('field_edge', 'low')).toEqual({ level: 'partial', cue: 'sight' });
-    expect(sightReach('unseen')).toEqual([-1, -1]);
-    expect(sightReach('faint')).toEqual([-1, 0]); // a palmed coin: glimpsed in your zone, never made out
   });
   it('sound from another zone, 16 m and a shut door off, is partial when loud and lost when normal; no sight through a closed link', () => {
     const s = makeVillage({ playerZone: 'street_door' });
@@ -115,7 +111,7 @@ describe('updateBeliefs', () => {
   });
   it('a concealed item used in a perceived attack is revealed', () => {
     const s = makeVillage();
-    actor(s, 'trader').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['hand:right_arm'] });
+    actor(s, 'trader').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['grip:right_arm'] });
     place(s, 'trader', 'tav_common');
     run(s, ev({ actorId: 'trader', kind: 'attack', zone: 'tav_common', target: 'slime_1', itemId: 'blade_1' }));
     expect(actor(s, 'patron_1').mind!.knowledge.trader.revealed).toContain('item:blade_1');

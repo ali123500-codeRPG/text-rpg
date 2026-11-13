@@ -148,7 +148,7 @@ describe('171 positions', () => {
     const wim = place(s, 'patron_1', 'tav_common');
     wim.mind!.overrides = { player: 'hostile' };
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     const crowded = () => ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50]))
       .attack.modifiers.some((m) => m.source === 'hostile close');
     s.player.pos = { x: -3, y: 0 };

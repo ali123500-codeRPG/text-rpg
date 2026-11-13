@@ -88,7 +88,7 @@ export type PlayerView = {
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
     summonable?: { id: string; name: string }[]; // TB6: the player's Threadbound items not on them (gear op summon)
-    perkMoves?: { id: string; name: string; does: string; action?: true }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action
+    perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
     health: HealthLevel; parts: { id: string; state: PartState }[];
     morale: string; // the morale bar's level (MB11)
     inventory: OwnGearView[];
@@ -107,6 +107,8 @@ export type PlayerView = {
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
   lastSeen?: { id: string; name: string; zone: string }[];
+  /** NM2: names the player has heard but cannot yet put a face to */
+  heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */
   talkingWith?: { id: string; name: string }[];
   facts: string[];

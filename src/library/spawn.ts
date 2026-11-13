@@ -34,7 +34,7 @@ export function fullParts(state: GameState | null, bodyTypeId: string): Record<s
 /** equip a loadout the obvious way: weapons/shields into free hands, armor worn. */
 export function equipLoadout(state: GameState | null, items: string[], idPrefix: string): ItemInstance[] {
   const out: ItemInstance[] = [];
-  const hands = ['hand:right_arm', 'hand:left_arm'];
+  const hands = ['grip:right_arm', 'grip:left_arm'];
   let n = 0;
   for (const itemId of items) {
     const d = itemDef(state, itemId);
@@ -202,8 +202,8 @@ export function starterKit(a: Actor): ItemInstance[] {
   const armor = met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
   return met.map((d, n) => {
     const inst: ItemInstance = { id: `player_${d.id}_${n + 1}`, itemId: d.id };
-    if (d === weapon) inst.equippedIn = (d.hands ?? 1) > 1 ? ['hand:right_arm', 'hand:left_arm'] : ['hand:right_arm'];
-    if (d === shield) inst.equippedIn = ['hand:left_arm'];
+    if (d === weapon) inst.equippedIn = (d.hands ?? 1) > 1 ? ['grip:right_arm', 'grip:left_arm'] : ['grip:right_arm'];
+    if (d === shield) inst.equippedIn = ['grip:left_arm'];
     if (d === armor) inst.equippedIn = ['armor'];
     if (d.shield) inst.pools = { shield: 100 };
     if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));

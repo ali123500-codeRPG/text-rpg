@@ -16,7 +16,7 @@ describe('178 striking someone down (BG-25)', () => {
     const wim = place(s, 'patron_1', 'tav_common');
     wim.core.condition.hpLostPct = 110;
     expect(isActive(wim)).toBe(false);
-    const sword = s.player.core.inventory.find((i) => i.equippedIn?.some((x) => x.startsWith('hand:')));
+    const sword = s.player.core.inventory.find((i) => i.equippedIn?.some((x) => x.startsWith('grip:')));
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: sword?.id ?? null } }) });
     const hit = ev.find((e) => e.actorId === s.player.id && e.kind === 'attack');
     expect(hit).toBeDefined();
@@ -39,9 +39,9 @@ describe('178 striking someone down (BG-25)', () => {
 describe('178 drawing what is already drawn (BG-24)', () => {
   it('is nothing to do, not an invalid gear op', () => {
     const s = makeVillage({ playerZone: 'tav_common' });
-    const sword = s.player.core.inventory.find((i) => i.equippedIn?.some((x) => x.startsWith('hand:')))!;
+    const sword = s.player.core.inventory.find((i) => i.equippedIn?.some((x) => x.startsWith('grip:')))!;
     expect(sword).toBeDefined();
     expect(applyGearOps(s, s.player, [{ op: 'draw', item: sword.id }]).invalid).toEqual([]);
-    expect(sword.equippedIn?.some((x) => x.startsWith('hand:'))).toBe(true);
+    expect(sword.equippedIn?.some((x) => x.startsWith('grip:'))).toBe(true);
   });
 });

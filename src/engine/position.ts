@@ -10,6 +10,7 @@ import { heightOf } from '../scenario/heights';
 import { linkM } from '../ruleset/range';
 import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
 import { barrierOn, passage, type Passage } from './barriers';
+import { gripReachM } from '../ruleset/body';
 import type { Actor, Barrier, GameState, MoveSpot, Zone } from '../types';
 
 export type Pos = { x: number; y: number };
@@ -248,6 +249,15 @@ export function spotOnTheWay(words: string): string {
   return words.startsWith('at ') ? `toward ${words.slice(3)}` : words.startsWith('on the ') ? `toward the ${words.slice(7)}` : `heading ${words}`;
 }
 
+/** the point of the way out of zone `zoneId` to `to`: its doorway, or where a frontier is left; null without a rectangle
+ * or such a way */
+export function wayPoint(state: GameState, zoneId: string, to: string, from: Located): Pos | null {
+  const z = zoneById(state, zoneId), link = z?.links.find((l) => l.to === to);
+  if (!z?.rect || !link) return null;
+  const there = zoneById(state, to);
+  return (there?.rect ? doorway(z, there) : null) ?? frontierPoint(z, link.label, spotOf(state, from).pos ?? centre(z)!);
+}
+
 export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {
   const z = zoneById(state, zoneId);
   if (!z?.rect) return null;
@@ -261,11 +271,8 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
   const point = (ref: string): { at: Pos; actor?: string; label?: string; here?: boolean } | null => {
     const who = actorById(state, ref);
     if (who) { const s = spotOf(state, who); return s.pos ? { at: s.pos, actor: who.id, label: who.label, here: s.zone === z.id } : null; }
-    const link = z.links.find((l) => l.to === ref);
-    if (!link) return null;
-    const there = zoneById(state, ref);
-    const d = there?.rect ? doorway(z, there) : null;
-    return { at: d ?? frontierPoint(z, link.label, start), label: link.label };
+    const at = wayPoint(state, z.id, ref, from);
+    return at ? { at, label: z.links.find((l) => l.to === ref)!.label } : null;
   };
   if (spot.near) {
     const p = point(spot.near);
@@ -292,4 +299,10 @@ export function gateAhead(state: GameState, a: Actor, goal: string): { b: Barrie
   const b = next ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === next)) : undefined;
   const pass = b ? passage(b, a, a.zone) : 'open';
   return b && next && pass !== 'open' ? { b, to: next, pass } : null;
+}
+
+/** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */
+export function withinGrip(state: GameState, actor: Actor, at: Located, extra = 0): boolean {
+  const r = gripReachM(state, actor);
+  return r > 0 && distM(state, actor, at) <= r + extra + 0.01;
 }

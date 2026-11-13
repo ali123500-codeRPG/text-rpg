@@ -379,4 +379,11 @@ describe('browser client', () => {
     const bad = sampleClient(async () => Promise.reject({ code: 'rate_limited', message: 'slow down' }));
     expect(await bad.call({ agent: 'parser', input: [], json: true })).toEqual({ ok: false, error: 'rate_limited', message: 'slow down' });
   });
+  it('gives a call up when its signal fires, even if the page never answers it', async () => {
+    const hung = sampleClient(() => new Promise(() => {})); // a runtime that ignores the abort
+    const c = new AbortController();
+    const r = hung.call({ agent: 'autopilot', input: [], json: true, signal: c.signal });
+    c.abort();
+    expect(await r).toEqual({ ok: false, error: 'cancelled', message: 'the call was given up' });
+  });
 });

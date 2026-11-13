@@ -74,17 +74,19 @@ it('BG-80: one approach rule for every actor: an NPC talking to the player from 
   expect(approachMove(s, p, { type: 'talk', target: s.player.id, volume: 'shout' }, null)).toBeNull();
 });
 
-it('BG-80: handing something over: across a counter needs no move and is allowed; someone through a doorway in view is walked to', async () => {
+it('FR2: handing something over is by grip reach in metres: over the counter from beside it, not from across the room', async () => {
   const { approachMove } = await import('../../src/engine/merge');
-  const { giveItem } = await import('../../src/engine/gear');
+  const { giveItem, gripReachM } = await import('../../src/engine/gear');
   const s = village();
   s.player.zone = 'tav_common';
   const trader = s.actors.find((a) => a.id === 'trader')!; // behind the counter (tav_counter)
-  expect(approachMove(s, s.player, { type: 'give', target: 'trader' }, null)).toBeNull();
+  trader.pos = { x: 0, y: 4.5 };
+  expect(gripReachM(s, s.player)).toBe(0.7); // an arm, from the body type
+  expect(approachMove(s, s.player, { type: 'give', target: 'trader' }, null)).toBeNull(); // closed in on when the give comes
   s.player.core.inventory.push({ id: 'coin_x', itemId: s.player.core.inventory[0]?.itemId ?? 'IT1' } as never);
+  s.player.pos = { x: 0, y: -3 }; // 7.5 m away across the room
+  expect(giveItem(s, s.player, 'coin_x', 'trader')).toBeNull();
+  s.player.pos = { x: 0, y: 3.5 }; // at the counter: 1 m over it, within both arms (1.4 m)
   expect(giveItem(s, s.player, 'coin_x', 'trader')).not.toBeNull();
-  expect(trader.core.inventory.some((i) => i.id === 'coin_x' || i.itemId === s.player.core.inventory[0]?.itemId)).toBe(true);
-  s.zones.find((x) => x.id === 'tav_common')!.edges!.n = EK.wall; // now a doorway, not a counter
-  s.zones.find((x) => x.id === 'tav_common')!.links.find((l) => l.to === 'tav_counter')!.sight = true;
-  expect(approachMove(s, s.player, { type: 'give', target: 'trader' }, null)).toMatchObject({ toZone: 'tav_counter' });
+  expect(trader.core.inventory.some((i) => i.id === 'coin_x')).toBe(true);
 });

@@ -55,7 +55,7 @@ describe('play screen motion', () => {
     const items = getLibrary().items;
     const shieldId = Object.keys(items).find((k) => items[k].shield)!;
     const armorId = Object.keys(items).find((k) => Object.keys(items[k].armor?.pools ?? {}).length)!;
-    s.player.core.inventory.push({ id: 'sh', itemId: shieldId, qty: 1, equippedIn: ['hand:left'] }, { id: 'ar', itemId: armorId, qty: 1, equippedIn: ['body'] });
+    s.player.core.inventory.push({ id: 'sh', itemId: shieldId, qty: 1, equippedIn: ['grip:left'] }, { id: 'ar', itemId: armorId, qty: 1, equippedIn: ['body'] });
     const sh = s.player.core.inventory.find((i) => i.id === 'sh')!;
     expect(gearNote(s, sh)).toEqual({ text: 'Healthy', cls: 'ps-healthy' });
     const before = shownValues(s, s.player);

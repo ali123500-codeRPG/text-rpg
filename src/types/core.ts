@@ -140,7 +140,7 @@ export type GameEvent = {
   line?: { text: string; volume: import('./agents').Volume };
   fromZone?: string; // moves
   beside?: true; // BG-81: a walk at someone (target) that reached them
-  fromPos?: { x: number; y: number }; // BG-23: a leg that left a zone: where in fromZone it set off
+  fromPos?: { x: number; y: number }; // BG-23: where the leg set off (in fromZone when it left a zone)
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for
   toGo?: number; // BG-47/BG-48: a leg toward another zone (heading, or a target there): the metres still left to the way out
   metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in
@@ -168,6 +168,8 @@ export type GameEvent = {
   push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; seen?: true };
   /** LI5a Overheard: owners of Overheard who heard this lie told to someone else and saw through it */
   overheard?: string[];
+  /** NM3: listeners whose answer beat this line's lie (the player's deceive at its spokespeople) */
+  seenThrough?: string[];
 };
 
 export type LogEntry = { turn: number; code: string; detail?: Record<string, unknown> };

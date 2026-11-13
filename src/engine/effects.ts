@@ -3,7 +3,7 @@ import type { Actor, AgreementMade, GameEvent, GameState, Trigger } from '../typ
 import { STANCES } from '../scales';
 import { CONFIG } from '../config';
 import { calmBandmatesSwitch, headTo, switchRoutine } from '../minds';
-import { actorById, isActive, isEngaged, knowsName, stance } from './relations';
+import { actorById, isActive, isEngaged, knowsName, nameBook, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
@@ -12,6 +12,7 @@ import { agentQuestEnd, makeQuest } from './quests';
 import { tally } from './xp';
 import { seesClearlyNow } from '../views';
 import { hearsWords } from '../perception';
+import { falseName, nameSaid } from '../words';
 import { startSpar, yieldSpar } from './spar';
 
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
@@ -20,28 +21,41 @@ export function logCode(state: GameState, code: string, detail?: Record<string, 
   state.log.push({ turn: state.turn, code, ...(detail ? { detail } : {}) });
 }
 
-/** BG-95: one rule for every speaker and listener, player and NPC. Whoever hears a line's words learns each name in it
- * that the speaker knows, when they see clearly whom it belongs to right then (the speaker naming themselves, or
- * someone in view). A name counts when the line holds it whole or its first word that is not a title
- * (CONFIG.NAME_TITLE_WORDS: "Wenna" for Old Wenna, "Hobb" for Hobb Tallow). A false name matches no one, so it teaches nothing. */
-export function learnNames(state: GameState, ev: GameEvent): void {
+/** BG-95: one rule for every speaker and listener, player and NPC, passing remarks included (NM6). Whoever hears a line's
+ * words learns each name in it that the speaker knows, when they see clearly whom it belongs to right then (the speaker
+ * naming themselves, or someone in view). A name said of someone out of sight is kept as heard of (NM2); it attaches when
+ * its owner answers a line that called them by it (`earlier`: this turn's events so far). A false name the speaker gives
+ * for themselves (NM3) is believed by every listener that sees them and did not see through the lie (seenThrough, a won
+ * lie contest, Overheard), and becomes what that listener calls them until it learns the real one. A name counts when
+ * the line holds it whole or its first word that is not a title (CONFIG.NAME_TITLE_WORDS), with capitals kept. */
+export function learnNames(state: GameState, ev: GameEvent, earlier: GameEvent[] = []): void {
   const text = ev.line?.text;
   const speaker = actorById(state, ev.actorId);
-  if (!text || !speaker || ev.bark) return; // a passing remark teaches no one, as it enters no one's knowledge (BG-59)
+  if (!text || !speaker) return;
   const named = [state.player, ...state.actors].filter((x) => knowsName(state, speaker, x) && nameSaid(text, x.names.current));
+  const alias = falseName(speaker, text);
+  const caught = new Set([...(ev.seenThrough ?? []), ...(ev.push?.tell ? [ev.push.listener] : []), ...(ev.overheard ?? [])]);
   for (const [id, p] of Object.entries(ev.perception)) {
     const listener = actorById(state, id);
-    if (!listener || listener === speaker || !hearsWords(p)) continue;
-    const list = listener === state.player ? state.player.journal?.namesKnown : listener.mind ? (listener.mind.namesKnown ??= []) : undefined;
-    for (const x of named) if (list && !knowsName(state, listener, x) && seesClearlyNow(state, listener, x.id)) list.push(x.id);
+    const book = listener && listener !== speaker && hearsWords(p) ? nameBook(state, listener) : undefined;
+    if (!listener || !book) continue;
+    const learn = (x: Actor) => {
+      book.known.push(x.id);
+      if (book.heardOf.includes(x.id)) book.heardOf.splice(book.heardOf.indexOf(x.id), 1);
+      delete book.aliases[x.id];
+    };
+    for (const x of named) {
+      if (knowsName(state, listener, x)) continue;
+      if (seesClearlyNow(state, listener, x.id)) learn(x);
+      else if (!book.heardOf.includes(x.id)) book.heardOf.push(x.id);
+    }
+    const sees = seesClearlyNow(state, listener, speaker.id);
+    // NM2: the speaker answers to a heard-of name the listener just called them by
+    if (sees && book.heardOf.includes(speaker.id) && earlier.some((e) => e.actorId === listener.id && e.line && nameSaid(e.line.text, speaker.names.current)
+      && (e.target === speaker.id || !!e.speech?.addressees?.includes(speaker.id)))) learn(speaker);
+    if (alias && sees && !caught.has(listener.id) && !knowsName(state, listener, speaker)) book.aliases[speaker.id] = alias;
   }
 }
-const nameSaid = (text: string, name: string): boolean => {
-  const short = name.split(/\s+/).find((w) => !CONFIG.NAME_TITLE_WORDS.includes(w.toLowerCase()));
-  // case kept, so the name Will is not the word "will"
-  return [name, short].some((w) => !!w && new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text));
-};
-
 function sanitizeTriggers(triggers: Trigger[] | undefined, ownerId: string): Trigger[] {
   return (triggers ?? [])
     .filter((t) => t && typeof t.id === 'string' && TRIGGER_TYPES.includes(t.when?.type) && t.then && typeof t.then.type === 'string')

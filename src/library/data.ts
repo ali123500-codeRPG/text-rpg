@@ -9,12 +9,9 @@ import { LAYOUTS } from './layouts';
 import type { ArmorWeightKey, LifeStageKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
-import { sightReach } from '../perception/sight';
 
-/** a zone link count in words, for the Noise and Visibility levels tables */
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-const links = (n: number) => (n < 0 ? 'nowhere' : n === 0 ? 'same zone' : n === 1 ? '1 link away' : `${n} links away`);
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
@@ -291,8 +288,9 @@ export const BODY_TYPES: Record<string, BodyType> = {
       { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, hands: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
-      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
-      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
+      // FR2: an adult's arm reaches about 0.7 m from the shoulder to the fingertips (NASA-STD-3000 anthropometry), as fists do
+      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
+      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
       { id: 'left_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'right_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
@@ -326,7 +324,9 @@ export const BODY_TYPES: Record<string, BodyType> = {
     speed: { walk: 1.8, run: 12 }, // a horse on the ground: walk about 1.8 m/s, gallop about 12 m/s (flight not modelled)
     naturalAttacks: [],
     parts: [
-      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech] },
+      // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does; a horse's head and neck reach about
+      // 1.5 m forward of its chest
+      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], reachM: 1.5 },
       { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move] },
@@ -387,6 +387,7 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('drink', 'nursing a drink', 'distracted', 'quiet', 'normal'),
   act('chat', 'chatting', 'distracted', 'normal', 'normal'),
   act('sleep', 'asleep', 'asleep', 'quiet', 'low'),
+  act('eat', 'eating', 'distracted', 'quiet', 'normal'),
   act('rest', 'resting', 'distracted', 'silent', 'low'),
   act('cower', 'keeping out of sight', 'alert', 'silent', 'close'), // NV4
   act('ooze', 'oozing across the grass', 'normal', 'quiet', 'normal'),
@@ -399,15 +400,33 @@ const sched = (id: string, brief: string, loop: boolean, steps: [string, Routine
 const still = (id: string, kind: 'wait' | 'follow' | 'head', activity: string, brief: string, alert?: string): Routine =>
   ({ id, brief, kind, loop: false, steps: [], activity, ...(alert ? { alert } : {}), onAlert: null });
 
+/** NW10/NW13: steps for some times of day (RT1–RT9); the routine's own steps serve every other time */
+const at = (times: import('../scales').TimeOfDay[], steps: [string, Routine['steps'][0]['duration'], string][]) =>
+  ({ at: times, steps: steps.map(([slot, duration, activity]) => ({ slot, duration, activity })) });
+const timed = (r: Routine, ...times: ReturnType<typeof at>[]): Routine => ({ ...r, times });
+const OFF_DUTY = [at(['evening'], [['seat', 'medium', 'drink'], ['seat', 'short', 'chat']]), at(['night'], [['bed', 'long', 'sleep']])];
+const DAY_SLEEP = at(['morning', 'afternoon'], [['bed', 'long', 'sleep']]);
+
 export const ROUTINES: Record<string, Routine> = Object.fromEntries([
-  sched('guard_post', 'Stands watch at the post', true, [['post', 'long', 'stand_watch']], 'hold_post_alert', { ...CALL_HELP }),
+  // RT1/RT2: on duty from dawn to dusk, off duty in the evening, asleep at night; the night watch is the mirror
+  timed(sched('guard_post', 'Stands watch at the post by day; drinks in the evening, sleeps at night', true, [['post', 'long', 'stand_watch']], 'hold_post_alert', { ...CALL_HELP }), ...OFF_DUTY),
+  timed(sched('night_guard_post', 'Stands watch at the post from dusk to dawn; sleeps by day', true, [['post', 'long', 'stand_watch']], 'hold_post_alert', { ...CALL_HELP }), DAY_SLEEP),
   sched('hold_post_alert', 'Holds the post on alert', true, [['post', 'long', 'stand_watch']], undefined, null),
-  sched('patrol', 'Walks the beat, stop by stop', true, [['route', 'short', 'walk']], 'search_route_alert', { ...CALL_HELP }),
+  timed(sched('patrol', 'Walks the beat by day; drinks in the evening, sleeps at night', true, [['route', 'short', 'walk']], 'search_route_alert', { ...CALL_HELP }), ...OFF_DUTY),
+  timed(sched('night_patrol', 'Walks the beat from dusk to dawn; sleeps by day', true, [['route', 'short', 'walk']], 'search_route_alert', { ...CALL_HELP }), DAY_SLEEP),
   sched('search_route_alert', 'Sweeps the beat fast, on alert', true, [['route', 'brief', 'stand_watch']], undefined, null),
-  sched('tend_bar', 'Works behind the bar', true, [['counter', 'long', 'tend_counter']], 'flee_to_refuge_alert', null),
-  sched('drink_at_seat', 'Drinks and chats at a seat', true, [['seat', 'medium', 'drink'], ['seat', 'short', 'chat']], 'flee_to_refuge_alert', null),
-  sched('sleep_in_bed', 'Sleeps in bed', true, [['bed', 'long', 'sleep']], 'flee_to_refuge_alert', null),
-  sched('work_shift', 'Works with short breaks', true, [['work', 'long', 'work'], ['work', 'brief', 'rest']], 'flee_to_refuge_alert', null),
+  // RT3: the tavern closes when the night starts
+  timed(sched('tend_bar', 'Works behind the bar from morning to evening; sleeps at night', true, [['counter', 'long', 'tend_counter']], 'flee_to_refuge_alert', null),
+    at(['night', 'dawn'], [['bed', 'long', 'sleep']])),
+  // RT4: a patron drinks from dusk; by day they are home or out at work
+  timed(sched('drink_at_seat', 'Drinks and chats at a seat from dusk; home asleep at night, out by day', true, [['seat', 'medium', 'drink'], ['seat', 'short', 'chat']], 'flee_to_refuge_alert', null),
+    at(['night', 'dawn', 'morning'], [['bed', 'long', 'sleep']]), at(['afternoon'], [['exit', 'long', 'walk']])),
+  // RT5: a guest sleeps the night, eats in the morning, goes out, and drinks in the evening
+  timed(sched('sleep_in_bed', 'Sleeps in bed at night; eats, goes out and drinks by day', true, [['bed', 'long', 'sleep']], 'flee_to_refuge_alert', null),
+    at(['morning'], [['seat', 'medium', 'eat']]), at(['afternoon'], [['exit', 'long', 'walk']]), at(['dusk', 'evening'], [['seat', 'medium', 'drink'], ['seat', 'short', 'chat']])),
+  // RT6: home at night, at work through the day
+  timed(sched('work_shift', 'Works with short breaks by day; home in the evening and asleep at night', true, [['work', 'long', 'work'], ['work', 'brief', 'rest']], 'flee_to_refuge_alert', null),
+    at(['dawn'], [['work', 'long', 'walk']]), at(['dusk'], [['work', 'long', 'rest']]), at(['evening'], [['bed', 'long', 'rest']]), at(['night'], [['bed', 'long', 'sleep']])),
   sched('flee_to_refuge_alert', 'Hides in the refuge', false, [['refuge', 'long', 'cower']], undefined, null),
   sched('leave_by_exit', 'Heads for the exit and lingers', false, [['exit', 'long', 'rest']], 'flee_to_refuge_alert', null),
   still('wait', 'wait', 'rest', 'Waits where it stands', 'wait_alert'),
@@ -416,9 +435,13 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   still('follow_alert', 'follow', 'stand_watch', 'Follows the player, on guard'),
   still('idle_here', 'wait', 'rest', 'Fallback only; in no set'),
   still('head_to', 'head', 'walk', 'Heads for the place its agent named, then back to its routine; in no set (NW2)'),
-  { ...sched('prowl', 'Prowls unseen, stop by stop', true, [['route', 'short', 'prowl']], 'lie_low_alert', null), posture: 'stealthy' as const },
+  // RT7: a thief works the crowds and the dark, and sleeps it off in the morning
+  { ...timed(sched('prowl', 'Prowls unseen, stop by stop, from afternoon to night; sleeps at dawn and in the morning', true, [['route', 'short', 'prowl']], 'lie_low_alert', null),
+    at(['dawn', 'morning'], [['refuge', 'long', 'sleep']])), posture: 'stealthy' as const },
   { ...sched('lie_low_alert', 'Slips off to lie low, on alert', false, [['refuge', 'long', 'cower']], undefined, null), posture: 'stealthy' as const },
-  sched('roam_field', 'Oozes across the field, then settles', true, [['route', 'short', 'ooze'], ['post', 'medium', 'rest']], 'roam_field_alert', null),
+  // RT9: a slime settles for the evening and night
+  timed(sched('roam_field', 'Oozes across the field by day, then settles; still at night', true, [['route', 'short', 'ooze'], ['post', 'medium', 'rest']], 'roam_field_alert', null),
+    at(['evening', 'night'], [['post', 'long', 'rest']])),
   sched('roam_field_alert', 'Sweeps the field fast on alert; never flees', true, [['route', 'brief', 'ooze']], undefined, null),
 ].map((r) => [r.id, r]));
 
@@ -427,14 +450,19 @@ const set = (id: string, brief: string, place: string[], role: string[], time: R
 /** NW4: the kinds that lead onward (a street, square, gate, field, woods or road never ends in a wall); yards and rooms may */
 const ONWARD_KINDS = new Set<string>([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods, ZK.road]);
 const z = (hint: string) => ({ kind: 'zone' as const, hint });
+/** RT: an optional slot; left unbound, the actor stays where it is at the times that read it */
+const oz = (hint: string) => ({ kind: 'zone' as const, hint, optional: true as const });
+const BED = oz('where they sleep (home for townsfolk)'), SEAT = oz('where they sit to eat or drink'), OUT = oz('the way out of the place');
 const r = (hint: string) => ({ kind: 'route' as const, hint });
 export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
-  set('gate_guard', 'A guard posted at one spot', ['gate', 'street'], ['guard'], ['any'], { post: z('where the guard stands') }, ['guard_post', 'hold_post_alert', 'wait', 'wait_alert']),
-  set('patrol_guard', 'A guard walking a beat', ['gate', 'street'], ['guard'], ['any'], { route: r("the beat's stops, in order") }, ['patrol', 'search_route_alert', 'wait', 'wait_alert']),
-  set('barkeep', 'Runs the bar', ['tavern'], ['trader'], ['any'], { counter: z('behind the bar'), refuge: z('back room or cellar') }, ['tend_bar', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
-  set('patron', 'A customer drinking', ['tavern'], ['patron'], ['any'], { seat: z('where they sit'), refuge: z('where they would hide'), exit: z('the way out') }, ['drink_at_seat', 'flee_to_refuge_alert', 'leave_by_exit', 'wait', 'wait_alert']),
-  set('sleeper', 'A guest asleep upstairs', ['tavern'], ['sleeper'], ['night'], { bed: z('their bed'), refuge: z('where they would hide') }, ['sleep_in_bed', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
-  set('street_worker', 'A labourer or stallholder at work', ['street'], ['worker'], ['day'], { work: z('the work spot'), refuge: z('home or a doorway') }, ['work_shift', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
+  set('gate_guard', 'A guard posted at one spot by day', ['gate', 'street'], ['guard'], ['any'], { post: z('where the guard stands'), seat: SEAT, bed: BED }, ['guard_post', 'hold_post_alert', 'wait', 'wait_alert']),
+  set('night_gate_guard', 'A guard posted at one spot through the night', ['gate', 'street'], ['guard'], ['any'], { post: z('where the guard stands'), bed: BED }, ['night_guard_post', 'hold_post_alert', 'wait', 'wait_alert']),
+  set('patrol_guard', 'A guard walking a beat by day', ['gate', 'street'], ['guard'], ['any'], { route: r("the beat's stops, in order"), seat: SEAT, bed: BED }, ['patrol', 'search_route_alert', 'wait', 'wait_alert']),
+  set('night_patrol_guard', 'A guard walking a beat through the night', ['gate', 'street'], ['guard'], ['any'], { route: r("the beat's stops, in order"), bed: BED }, ['night_patrol', 'search_route_alert', 'wait', 'wait_alert']),
+  set('barkeep', 'Runs the bar', ['tavern'], ['trader'], ['any'], { counter: z('behind the bar'), refuge: z('back room or cellar'), bed: BED }, ['tend_bar', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
+  set('patron', 'A customer drinking', ['tavern'], ['patron'], ['any'], { seat: z('where they sit'), refuge: z('where they would hide'), exit: z('the way out'), bed: BED }, ['drink_at_seat', 'flee_to_refuge_alert', 'leave_by_exit', 'wait', 'wait_alert']),
+  set('sleeper', 'A guest staying the night', ['tavern'], ['sleeper'], ['any'], { bed: z('their bed'), refuge: z('where they would hide'), seat: SEAT, exit: OUT }, ['sleep_in_bed', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
+  set('street_worker', 'A labourer or stallholder at work', ['street'], ['worker'], ['any'], { work: z('the work spot'), refuge: z('home or a doorway'), bed: BED }, ['work_shift', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
   set('thief', 'A thief prowling for an easy mark', ['street', 'tavern'], ['thief'], ['any'], { route: r('the stops it prowls, in order'), refuge: z('where it lies low') }, ['prowl', 'lie_low_alert', 'wait', 'wait_alert']),
   set('companion', "The player's band; not chosen by tags", [], [], [], {}, ['follow', 'follow_alert', 'wait', 'wait_alert']),
   set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
@@ -654,7 +682,7 @@ export function prototypeLibrary(): Library {
       blaring: 'A scream, a hammer on an anvil, a war horn (about 100 dB)',
       deafening: 'A thunderclap overhead, a church bell up close, an alarm bell (about 120 dB)',
     } as Record<string, string>)[k] }])),
-    visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, clearTo: links(sightReach(k)[0]), glimpsedTo: links(sightReach(k)[1]), like: ({
+    visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, like: ({
       unseen: 'Nothing to see: keeping still out of sight',
       faint: 'A palmed coin, a hand slipping to a purse: made out within half a metre, glimpsed within 2 m',
       close: 'A nod, a hand sign, a change of expression: read at about 6 m, noticed out to about 20 m',

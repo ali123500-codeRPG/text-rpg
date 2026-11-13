@@ -37,7 +37,7 @@ describe('113 coded perks, batch 3', () => {
     expect(wim.core.condition.parts[og.location!]).toBeLessThan(100);
     expect(wim.core.condition.hpLostPct).toBeGreaterThan(hpBefore);
     // holding a weapon or shield turns it off (the weapon parries)
-    wim.core.inventory.push({ id: 'wim_club', itemId: IT.arming_sword, equippedIn: ['hand:right_arm'] });
+    wim.core.inventory.push({ id: 'wim_club', itemId: IT.arming_sword, equippedIn: ['grip:right_arm'] });
     expect(ruleset.attack(req, s, forcedRng([60, 40, 50])).locationHow).not.toBe('open_hand');
     expect(CONFIG.OPEN_HAND_ARM_SHARE).toBe(0.5);
   });

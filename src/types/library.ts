@@ -88,7 +88,8 @@ export type ClassDef = {
   capstones?: { perk: string; needs: TreeAccess }[];
 };
 
-export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
+/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2) */
+export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number };
 export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };
 /** BR1: a body type is the shape only: parts, general area, silhouette, and the attacks the shape
  * always has (BR3). Toughness, natural armor and a being's own attacks are on its race. */
@@ -178,7 +179,7 @@ export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; 
 /** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all in the open in a quiet place (openAirReachM) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
-export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string; clearTo: string; glimpsedTo: string };
+export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string };
 export type RoadLength = { id: import('../scales').RoadLengthKey; name: string; km: number };
 export type RoadDanger = { id: import('../scales').RoadDangerKey; name: string; encounterPct: number };
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };

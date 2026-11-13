@@ -132,7 +132,7 @@ export type RoutineSet = {
   id: string;
   brief: string;
   tags: { place: string[]; role: string[]; time: ('day' | 'night' | 'any')[]; event: string[] };
-  slots: Record<string, { kind: 'zone' | 'route'; hint: string }>;
+  slots: Record<string, { kind: 'zone' | 'route'; hint: string; optional?: true }>; // optional (RT): may be left unbound
   routines: string[]; // [default, ...others]
 };
 export type RoutineStep = { slot: string; duration: DurationId; activity: string };
