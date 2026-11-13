@@ -15,6 +15,7 @@ import { gripWord, kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
+import { essencesSection } from './essences';
 import { closePanel, groupedTable, playDraft, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
@@ -99,6 +100,7 @@ export function characterPage(api: GameApi) {
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
       h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s, s.player)),
+      essencesSection(api, s, update),
       h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
       perks);
     refreshPerks();

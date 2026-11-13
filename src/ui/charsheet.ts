@@ -151,6 +151,16 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   return el;
 }
 
+/** 2.7 on the play sheet: the essences held by name, and any offer still waiting, both opening the Character page's section */
+function essenceRow(p: Actor): HTMLElement | null {
+  const pr = p.progression, held = pr?.essences ?? [], offers = pr?.essenceOffers ?? [];
+  if (!pr || (!held.length && !offers.length && charLevel(p) < 2)) return null;
+  return h('div', { class: 'cs-row' }, h('span', {}, 'Essences'), h('b', {},
+    h('a', { href: '#stats', class: 'cs-item', title: 'Open the Essences section on the Character page', onclick: () => setTimeout(() => document.getElementById('essences')?.scrollIntoView({ block: 'start' })) },
+      held.length ? held.map((e) => getLibrary().essences?.[e.essence]?.name ?? e.essence).join(' · ') : `None · ${essenceSlots(p)} slot${essenceSlots(p) === 1 ? '' : 's'} free`),
+    offers.length ? h('a', { href: '#stats', class: 'ess-waiting', 'data-chip': 'essence-waiting', onclick: () => setTimeout(() => document.getElementById('essences')?.scrollIntoView({ block: 'start' })) }, ` ◆ ${offers.length} on offer`) : null));
+}
+
 /** growth proposal 2.7: the essences held, the room for them, and any on offer (taken or passed with /essence) */
 function essenceBlock(p: Actor): HTMLElement | null {
   const pr = p.progression, held = pr?.essences ?? [], offers = pr?.essenceOffers ?? [];
@@ -420,6 +430,7 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
     ...((hb) => [hb[0], hb[1], h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), h('div', { class: 'cs-mbar cs-sbar' }, ...staminaBar(p, true)), ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x), ...hb.slice(2)])(healthBar(s, p, healed, last?.turn ?? -1, changed)),
     pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, ...((g) => g.length ? g.map((x, k) => (k && !x.textContent?.startsWith(' · ') ? [' · ', x] : x)) : ['Nothing'])([...gearLine(s, p, true), ...gearLine(s, p, false)]))),
+    ...[essenceRow(p)].filter((x): x is HTMLElement => !!x),
     h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', {}, h('span', { 'data-m': 'coin' }, coinWords(coins(p))))),
     ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
