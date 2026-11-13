@@ -5,6 +5,7 @@ import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
 import { checkInvariants, checkShape, migrate, newReport, reconcile, repairReferences, type CheckReport } from './checks';
 export { memoryStore, artifactDbStore, type MemoryStore, type DB } from './store';
+export { universeDay, reachDay } from './universe';
 export { MIGRATIONS } from './checks';
 export { hashPage, stableStringify, toPages, fromPages } from './pages';
 
