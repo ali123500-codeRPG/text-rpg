@@ -139,5 +139,7 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     const step = o.output.action.type === 'move' ? o.output.action.target : 'move' in o.output ? o.output.move?.toZone : null;
     const goal = o.output.headTo ?? (o.output.lead && step ? step : null);
     if (goal) headTo(state, a, goal, 'agent', o.output.lead ?? undefined);
+    // BF11: a place its own agent moved it to holds AGENT_STAY_TURNS, until its agent decides again
+    if (a.mind) { if (!goal && step && step === a.zone) a.mind.stay = { zone: step, until: state.turn + CONFIG.AGENT_STAY_TURNS }; else delete a.mind.stay; }
   }
 }

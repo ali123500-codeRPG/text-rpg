@@ -8,7 +8,7 @@ import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPat
 import { moveSpeed } from './speed';
 import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, type Located, type Pos } from './position';
 export { frontierPoint };
-import { together } from './yield';
+import { perceivesNow, together } from './yield';
 import { minutesUntil, now, timeOfDay } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { logCode } from './effects';
@@ -51,8 +51,10 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
   return path.length ? { goal: { zone: o.move } } : null;
 }
 
-/** who travels with the player: active bandmates together with it (TV6, as YD7) */
-export const companions = (state: GameState, a: Actor): Actor[] => state.actors.filter((x) => isActive(x) && together(state, a, x));
+/** who travels with the player: active bandmates together with it (TV6, as YD7), and BF9 anyone following it (the follow
+ * routine) who is together with it the same way, seeing each other */
+export const companions = (state: GameState, a: Actor): Actor[] => state.actors.filter((x) => isActive(x) && x !== a && (together(state, a, x)
+  || (getLibrary().routines?.[x.mind?.routine?.id ?? '']?.kind === 'follow' && perceivesNow(state, a, x, 'faint') && perceivesNow(state, x, a, 'faint'))));
 
 /** TV8: one noticing roll: the sight function at the pace's modifier and the light where the player is */
 function notices(state: GameState, a: Actor, pace: TravelPaceKey, rng: Rng): boolean {

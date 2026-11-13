@@ -184,6 +184,7 @@ export type Mind = {
   headBack?: RoutineRun;
   /** BF4: on head_to, who it leads there; at the end it waits for them (since: the turn it got there) */
   leading?: { id: string; since?: number };
+  stay?: { zone: string; until: number }; // BF11: a place its own agent moved it to holds until this turn
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;

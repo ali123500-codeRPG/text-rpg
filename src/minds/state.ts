@@ -84,6 +84,9 @@ export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent'
 }
 
 /** NW2: a head_to walk that got where it was going goes back to the routine it had, from there (end of turn) */
+/** BF11: an NPC its own agent moved somewhere stays there while it holds (AGENT_STAY_TURNS): no routine walk, no catch-up */
+export const staying = (state: GameState, a: Actor): boolean => !!a.mind?.stay && a.mind.stay.zone === a.zone && state.turn <= a.mind.stay.until;
+
 export function headArrivals(state: GameState): void {
   for (const a of state.actors) {
     const m = a.mind;

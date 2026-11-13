@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, handsOn, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, handsOn, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -1198,14 +1198,14 @@ function noteWalked(state: GameState, a: Actor, m: number): void {
  * already counts minutes. CS11: a way it can open (its key, the bolt's side) it opens and walks through when the player is
  * in neither zone, and leaves it as it was where it can: the key locks it again from either side; a bar slid back from
  * its own side can't be drawn again from the far side, so it stays open. */
-export function catchUp(state: GameState, minutes: number, deductWalked = true): void {
+export function catchUp(state: GameState, minutes: number, deductWalked = true, onLeg?: (a: Actor, from: Located, metres: number, toward: string) => void): void {
   if (minutes <= 0) return;
   const walked = (deductWalked ? state.scratch?.walked ?? {} : {}) as Record<string, number>;
   const agentRun = new Set((state.scratch?.agentRun as string[] | undefined) ?? []);
   for (const a of [...state.actors].sort((x, y) => x.id.localeCompare(y.id))) {
     const m = a.mind;
     // an NPC whose agent chose its move this turn keeps it: the catch-up is for routine time
-    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState) continue;
+    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a)) continue;
     const d = desiredState(buildActorView(state, a.id));
     if (!d || d.zone === a.zone) continue;
     let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
@@ -1216,8 +1216,9 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true):
       if (gate && (gate.pass !== 'opens' || !unseen)) break; // a way that is not simply open, or opened in view
       const was = gate && { locked: !!gate.b.lock?.locked, drawn: !!gate.b.bar?.drawn };
       if (gate) openWay(gate.b, a, a.zone);
-      const from = a.zone;
+      const from = a.zone, at: Located = { zone: a.zone, ...(a.pos ? { pos: { ...a.pos } } : {}) };
       const r = walkLeg(state, a, { zone: d.zone }, left, 0, a);
+      if (r && onLeg) onLeg(a, at, r, d.zone); // BF2: a leg anyone could see or hear is a walk like any other
       if (gate && was) {
         const through = a.zone === gate.to;
         if (gate.b.lock && was.locked) gate.b.lock.locked = true; // the key turns again on either side
@@ -1359,7 +1360,14 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
-  if (!state.scratch?.nightStopped) catchUp(state, now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0)); // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
+  // BF2a-d: on an action's turn each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent).
+  // BF2e: longer turns (a trade, a rest, a wait) stay a silent jump until how they are summed up is settled.
+  const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
+  const legEvents = catchMin <= (getLibrary().durations?.[DU.action]?.minutes ?? 0) ? (m: Actor, from: Located, metres: number, toward: string) => {
+    const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }) };
+    emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
+  } : undefined;
+  if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legEvents); // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
   settleSleepers(state); // NW20: NPCs fall asleep and wake by their routines
   // NW18: still asleep and nobody hostile near any more (they left, or never woke you): the rest of the night runs on
   if (state.night && isAsleep(state.player) && !state.scratch?.nightStopped && !hostilesNear(state, state.player).length) runNight(ctx);
