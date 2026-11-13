@@ -196,6 +196,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     fakeBarriers(state);
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
+    // Varo's Loop worn and bound, one power awake (its first deed earned), to show a Threadbound item's sealed powers
+    player.core.inventory.push({ id: 'player_loop', itemId: IT.varos_loop, qty: 1, equippedIn: ['acc:0'], boundTo: player.id });
+    if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scenario: 1 },
