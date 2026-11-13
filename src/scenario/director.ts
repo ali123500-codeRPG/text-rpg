@@ -1,6 +1,7 @@
 // Scenario orchestration: scenario start (event roll, Weaver, repair retry, WEAVER_TIMEOUT), background stage
 // extensions held in memory per frontier, crossing (waits for a late extension), saved-zone re-entry.
 // The pipeline (W7) injects `weave`, which wraps the real Agent Weaver call and logs it.
+import { placeAll } from '../engine/position';
 import { noteLeft } from '../engine/trail';
 import { noteCrossing } from '../engine/chase';
 import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
@@ -190,6 +191,7 @@ export class ScenarioDirector {
       const z = zoneById(state, key)!;
       state.player.zone = z.id;
       state.player.placeId = z.placeId;
+      placeAll(state); // ZP1, as a built plan: a spot in the zone, never the point it had in the last one
       return { outcome: 'loaded', plan: null, errors: [] };
     }
     let h = this.held.get(key);

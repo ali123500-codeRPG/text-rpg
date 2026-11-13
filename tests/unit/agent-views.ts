@@ -17,7 +17,7 @@ export function playerView(): PlayerView {
     player: {
       id: 'player', name: 'Aldric', classes: [{ id: CL.swordsman, name: 'Swordsman' }], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
       health: 'unhurt', parts: [], morale: 'Calm',
-      inventory: [{ id: 'sword_1', itemId: IT.arming_sword, name: 'arming sword', kind: 'weapon', equippedIn: ['grip:right_arm'], modes: [{ id: AM.cut, name: 'Cut' }, { id: AM.thrust, name: 'Thrust' }] }],
+      inventory: [{ id: 'sword_1', itemId: IT.arming_sword, name: 'arming sword', look: 'a straight arming sword', kind: 'weapon', equippedIn: ['grip:right_arm'], modes: [{ id: AM.cut, name: 'Cut' }, { id: AM.thrust, name: 'Thrust' }] }],
       posture: 'open', standingDefense: 'block',
     },
     zone: zone('tav_common', ['tav_counter', 'street_door'], ['mug_1']),
@@ -35,7 +35,7 @@ export function actorView(id = 'guard_1'): ActorView {
     self: {
       id, label: 'a gate guard', name: 'Bertram', kind: 'npc', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch',
       health: 'unhurt', parts: [], morale: 'Calm', active: true, broken: false, surrendered: false, control: 'agent', standingDefense: 'block',
-      gear: [{ id: 'spear_1', itemId: IT.spear, name: 'spear', kind: 'weapon', equippedIn: ['grip:right_arm'], modes: [{ id: AM.thrust, name: 'Thrust' }] }],
+      gear: [{ id: 'spear_1', itemId: IT.spear, name: 'spear', look: 'an ash-shafted spear', kind: 'weapon', equippedIn: ['grip:right_arm'], modes: [{ id: AM.thrust, name: 'Thrust' }] }],
       attackSkill: SK.melee_medium, routines: [{ id: 'guard_post', brief: 'stand at the post' }, { id: 'guard_alert', brief: 'watch hard' }],
       slots: { post: 'gate_inner' },
     },

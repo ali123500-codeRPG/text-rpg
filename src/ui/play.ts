@@ -363,6 +363,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
       ...gear.map((g) => row('Gear', g)),
+      // coin gained or lost this turn: "+2 silver" in gold, "−5 copper" in red, so a theft or a price never passes unseen
+      l.coin ? h('p', { class: 'rrow coin' }, h('span', { class: 'hs-label' }, 'Coin'), h('b', { class: l.coin > 0 ? 'coin-up' : 'coin-down' }, (l.coin > 0 ? '+' : '−') + coinWords(Math.abs(l.coin)))) : null,
       // what you did at doors, gates and other barriers this turn: tried, opened, locked, picked
       ...(l.ways ?? []).map((w) => row('Way', w)),
       // a skill that went up this turn: "Strike +1" in gold, the same mark as the sheet's ▲ (playtest run 33)
@@ -758,6 +760,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         if (o === 3 && r.classList.contains('in')) shake([story, sheet], 0.6, d + fade); // a heavy hit on the player: about 1 px
       }
       // a part that became Crippled or Destroyed: its card flares red, holds, and settles, with no growth that moves its text
+      // coin that changed hands: its amount flares in its colour and pulses once (lost coin flares red, like a wound card)
+      if (r.classList.contains('coin')) { const c = r.querySelector<HTMLElement>('b'); flare(c, 'color', c?.classList.contains('coin-down') ? 'var(--danger)' : 'var(--scenario-mark)', d + fade); pulse(c, d + fade, 2); }
       if (r.classList.contains('wcard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--danger) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
     }
     if (b) sheetBeats(b, a, at, stagger);
@@ -877,11 +881,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       barMove(q('[data-m="xp-track"]'), q('[data-m="xp-track"] > b'), b.xpPct ?? 0, a.xpPct ?? 0, d, levelled);
       if (levelled) stamp(q('[data-m="lvl"]'), d + ms('--m-trail'), `Level ${b.lvl}`);
     }
-    // coin: the words change, with the difference in coin words
+    // coin: the words change, with the difference in coin words in the colour of the change, then a pulse
     if (a.coin !== b.coin) {
       const d = at(stagger);
       stamp(q('[data-m="coin"]'), d, coinWords(b.coin));
       delta(q('[data-m="coin"]'), (a.coin > b.coin ? '+' : '−') + coinWords(Math.abs(a.coin - b.coin)), a.coin > b.coin ? 'scenario-mark' : 'danger', d);
+      pulse(q('[data-m="coin"]'), d + ms('--m-beat'), 2);
     }
   }
   /** M-36: arrivals in Who's here fade in, departures fade out, a changed status lands; header pieces that changed land;

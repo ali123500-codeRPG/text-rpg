@@ -115,7 +115,7 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
     const d = itemDef(state, i.itemId);
     const classes = [...new Set((d.weapon?.modes ?? []).map((m) => m.class))];
     return {
-      id: i.id, itemId: i.itemId, name: d.name, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
+      id: i.id, itemId: i.itemId, name: d.name, look: d.look, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
       modes: (d.weapon?.modes ?? []).map((m) => ({ id: m.id, name: modeName(m) })),
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
@@ -640,7 +640,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     events: out,
     player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
-      gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
+      gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
     heard,
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}) })),

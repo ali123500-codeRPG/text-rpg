@@ -34,7 +34,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const zones = new Set([view.zone.id, ...view.zone.links.map((l) => l.to), ...view.zones.map((z) => z.id)]);
   const actors = new Set(view.actors.map((a) => a.id));
   // BG-61: someone the player was just talking with can be spoken to though out of sight (a voice through a barred door);
-  // BG-147: so can anyone the player knows is about (seen or heard earlier): words reach whoever hears them (selectSpokespeople)
+  // BG-147: so can anyone the player knows is about (seen or heard earlier), with or without a move to them (OA3: walking
+  // back in to ask them): the words reach whoever really hears them (selectSpokespeople)
   const talking = new Set([...actors, ...(view.talkingWith ?? []).map((t) => t.id), ...(view.lastSeen ?? []).map((l) => l.id)]);
   const isSpeechType = (t: string) => (SPEECH_ACTIONS as readonly string[]).includes(t);
   const dead = new Set(view.actors.filter((a) => a.health === 'dead').map((a) => a.id));

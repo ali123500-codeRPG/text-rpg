@@ -13,7 +13,7 @@ export type PartState = PartStateKey;
 /** CT1/CT3: a container as a viewer knows it: open or shut, with a lock (and the viewer's key to it), and what is inside
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. */
 export type ContainerView = { open?: true; lock?: 'locked' | 'unlocked'; key?: true; contents?: { id: string; name: string }[]; owner?: string };
-export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView };
+export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView }; // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };

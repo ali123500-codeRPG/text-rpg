@@ -1302,7 +1302,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (ex && isActive(state.player) && (isSpeech(playerOrder.type) || input.quickWord)) {
     // BG-58: walk over, then speak: the player's move comes first and the words are said from where it ends, as an NPC's
     const po = playerOrder;
-    if (po.move && !po.moveAfter && !po.way && !input.quickWord) {
+    if (po.move && !po.moveAfter && !po.way && !(input.quickWord && state.mode === 'tactical')) { // Quick Word speaks first; an aside (OA1) walks over first
       const { goal, opts } = moveGoal(state, state.player, po);
       if (!walk(ctx, state.player, goal, po, (n) => (n === 0 ? useMoveSlot(ctx, state.player, false) : null), opts)) logCode(state, 'move_dropped', { actorId: state.player.id, to: po.move });
       po.move = null;
@@ -1320,7 +1320,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     ctx.exchangeEvents.push(ev);
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
     if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }
-    if (input.quickWord) playerOrder.line = null; // A15: the line was said; the action follows in turn order
+    if (input.quickWord) playerOrder.line = null; // A15/OA1: the line was said; the action follows in turn order
     else useMain(ctx, state.player);
     const spokes = new Set(input.spokespeople);
     for (const id of ordered) {
@@ -1328,7 +1328,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       const a = actorById(state, id);
       if (!spokes.has(id) || !o || !a || !isActive(a) || o.source !== 'agent') continue;
       if (!isSpeech(o.type)) {
-        // A15 Quick Word: a spoken reply is free; the reply's action still comes in turn order
+        // A15 Quick Word, OA1 asides: a spoken reply is free; the reply's action still comes in turn order
         if (!input.quickWord || !o.line) continue;
         doSpeak(ctx, a, { ...o, type: 'talk', target: state.player.id });
         o.line = null;

@@ -261,6 +261,7 @@ describe('errors and commands', () => {
 
   it('a narration line keeps the turn\'s gear rows, the place it ended in and the scenario number', async () => {
     start();
+    const was = game.state()!.player.core.inventory.find((i) => i.id === 'player_coin')!.qty ?? 1;
     H.onResolve = (s) => {
       const inv = s.player.core.inventory;
       const coin = inv.find((i) => i.id === 'player_coin')!;
@@ -273,7 +274,8 @@ describe('errors and commands', () => {
     claude.push('parser', intentOf()).push('narrator', narr);
     await game.submit('look around', { aimed: false });
     const l = game.lines().at(-1)!;
-    expect(l.gear).toEqual(['Put away: arming sword', 'Used: coin', 'Picked up: odd_stone']);
+    expect(l.gear).toEqual(['Put away: arming sword', 'Picked up: odd_stone']);
+    expect(l.coin).toBe(15 - was);
     expect(l.place).toEqual({ id: state.player.placeId, name: expect.stringMatching(/^[A-Z]/), zone: 'common room' });
     expect(l.scenario).toBe(3);
   });
