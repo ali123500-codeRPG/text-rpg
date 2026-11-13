@@ -16,7 +16,7 @@ function turn(type: 'talk' | 'hold' | 'move', move: NpcMove, target: string | nu
   const reply = { agent: 'responder', actorId: 'trader',
     output: { action: act(type, target), move, dialogue: { line: 'Later.', volume: 'normal' }, gear: null, stance: null, reveals: [], planUpdate: null } } as AcceptedAgentOutput;
   const ev = play(s, { intent: i, spokespeople, exchange, agentOutputs: [reply] });
-  return { zone: actor(s, 'trader').zone, mine: ev.filter((e) => e.actorId === 'trader').map((e) => `${e.kind}@${e.zone}`) };
+  return { zone: actor(s, 'trader').zone, mine: ev.filter((e) => e.actorId === 'trader').map((e) => `${e.kind}@${e.zone}`).filter((x, k, all) => x !== all[k - 1]) }; // a walk's legs count once
 }
 
 it('166 an NPC moves beside its reply, before or after it, and dashes with hold', () => {

@@ -3,7 +3,7 @@
 // the player copies the player's posture; the village thief prowls stealthily.
 import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRng, makeVillage, place } from '../harness';
+import { createRng, makeVillage, place, byDoor, beside } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { ruleset } from '../../src/ruleset';
 import { spawnNpc } from '../../src/library/spawn';
@@ -80,6 +80,7 @@ describe('121 NPC stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
     const t = thief(s, 'gate_inner');
+    byDoor(s, 'thief_1', 'gate_inner', 'street_square', 1); // a step from the square
     t.posture = 'stealthy';
     s.player.journal!.stealthSeen = { thief_1: 'unaware' };
     const calls = rig({ player: -1 });
@@ -113,6 +114,7 @@ describe('121 NPC stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
     thief(s, 'street_square');
+    byDoor(s, 'thief_1', 'street_square', 'street_door', 1); // a step from the street outside the tavern
     rig({ player: -1 });
     turn(s, { thief_1: act('vanish', 'street_door') });
     expect(s.actors.find((a) => a.id === 'thief_1')!.zone).toBe('street_door');
@@ -121,6 +123,7 @@ describe('121 NPC stealth', () => {
     const s2 = makeVillage();
     place(s2, 'player', 'street_square');
     thief(s2, 'street_square');
+    byDoor(s2, 'thief_1', 'street_square', 'street_door', 1);
     s2.player.core.perks.push({ perkId: PK.unblinking, source: 'level', gainedTurn: 0 });
     const calls = rig({ player: [-1, 1] });
     turn(s2, { thief_1: act('vanish', 'street_door') });
@@ -150,6 +153,7 @@ describe('121 NPC stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
     const t = thief(s, 'street_square');
+    beside(s, 'thief_1'); // within a blade's reach
     t.posture = 'stealthy';
     s.player.journal!.stealthSeen = { thief_1: 'unaware' };
     rig({ player: -1 });

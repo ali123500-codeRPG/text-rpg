@@ -4,7 +4,7 @@
 // (Thievery) at the lock's grade. The Weaver puts barriers on links and hands out keys; the GM view counts them per tier.
 import { describe, expect, it } from 'vitest';
 import type { Barrier, GameState, Intent, StagePlan } from '../../src/types';
-import { createRng, forcedRng, makeVillage } from '../harness';
+import { byDoor, createRng, forcedRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { shortestPath, zoneById } from '../../src/engine/relations';
 import { buildActorView, buildNarrationView, buildPlayerView, buildWeaverView } from '../../src/views';
@@ -23,6 +23,8 @@ import { applyStagePlan } from '../../src/scenario/apply';
 import { closeScenario, frameOf } from '../../src/engine/scenarioEnd';
 
 const quiet = (zone = 'tav_common') => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
+/** the street outside the tavern, half a metre from its front door, within grip reach of it */
+const atDoor = () => { const s = quiet('street_door'); byDoor(s, 'player', 'street_door', 'tav_common', 0.5); return s; };
 /** a barrier on the way between zones a and b, on both links */
 function put(s: GameState, a: string, b: string, extra: Partial<Barrier> = {}): Barrier {
   const bar: Barrier = { id: 'front_door', kind: BK.door, grade: 'minor', ...extra };
@@ -81,19 +83,19 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(s.player.zone).toBe('street_door');
   });
   it('BA3: locking it again with the key takes the move', () => {
-    const s = quiet('street_door');
+    const s = atDoor();
     const b = put(s, 'tav_common', 'street_door', { lock: { locked: false } });
     giveKey(s, b);
     const ev = turn(s, intent({ way: { toZone: 'tav_common', op: 'lock' } }));
     expect(b.lock!.locked).toBe(true);
     expect(ev.find((e) => e.kind === 'way')!.way!.did).toBe('lock');
-    const none = quiet('street_door');
+    const none = atDoor();
     const nb = put(none, 'tav_common', 'street_door', { lock: { locked: false } });
     turn(none, intent({ way: { toZone: 'tav_common', op: 'lock' } }));
     expect(nb.lock!.locked).toBe(false); // no key, no lock
   });
   it('BG-54: a way op that cannot be done (a plain hatch "unbarred") leaves the move to happen', () => {
-    const s = quiet('street_door');
+    const s = atDoor();
     put(s, 'tav_common', 'street_door', { kind: BK.hatch });
     turn(s, intent({ move: { toZone: 'tav_common' }, way: { toZone: 'tav_common', op: 'unbar' } }));
     expect(s.player.zone).toBe('tav_common');
@@ -120,7 +122,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(shortestPath(s, 'tav_common', 'street_door', false, s.player)?.[0]).toBe('tav_counter'); // no key opens rubble
   });
   it('BG-70: a door opened to look in stands open: seen through without going in, and shut again', () => {
-    const s = quiet('street_door');
+    const s = atDoor();
     const b = put(s, 'tav_common', 'street_door');
     expect(buildPlayerView(s).zones.map((z) => z.id)).not.toContain('tav_common');
     const ev = turn(s, intent({ way: { toZone: 'tav_common', op: 'open' } }));
@@ -136,7 +138,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(buildPlayerView(s).zones.map((z) => z.id)).not.toContain('tav_common');
   });
   it('BG-70: opening a door locked against you is trying it: you learn it is locked', () => {
-    const s = quiet('street_door');
+    const s = atDoor();
     const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });
     const ev = turn(s, intent({ way: { toZone: 'tav_common', op: 'open' } }));
     expect(ev.find((e) => e.kind === 'way')!.way!.did).toBe('found_locked');

@@ -2,7 +2,7 @@
 // for both, Arms skills also for the strike, Ranged skills also for the throw.
 import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
-import { forcedRng, makeVillage, place } from '../harness';
+import { forcedRng, makeVillage, place, beside } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { itemDef } from '../../src/library';
 import type { GameState } from '../../src/types';
@@ -31,7 +31,7 @@ describe('126 improvised strike and throw', () => {
     const s = makeVillage();
     holdImprovised(s);
     place(s, 'player', 'tav_common');
-    place(s, 'patron_1', 'tav_common'); // an improvised throw (5 m) reaches only its own zone until positions exist
+    beside(s, 'patron_1');
     setSkills(s, { [SK.ranged_light]: 80, [SK.melee_medium]: 90 });
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', modeId: AM.throw, targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
     expect(r.modeId).toBe(AM.throw);
@@ -42,7 +42,7 @@ describe('126 improvised strike and throw', () => {
     const s = makeVillage();
     holdImprovised(s);
     place(s, 'player', 'tav_common');
-    place(s, 'patron_1', 'tav_common');
+    beside(s, 'patron_1');
     setSkills(s, { [SK.ranged_light]: 90, [SK.melee_medium]: 80 });
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
     expect(r.modeId).toBe(AM.strike);

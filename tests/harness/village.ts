@@ -9,6 +9,9 @@ import { resetLibrary } from '../../src/library';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
+import { doorway, placeZones } from '../../src/scenario/geometry';
+import { inferHeights } from '../../src/scenario/heights';
+import { placeAll } from '../../src/engine/position';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
 import { IT } from '../../src/library/itemIds';
@@ -126,6 +129,11 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     blueprints: [],
     meta: { storyId, title: 'Test story', schemaVersion: 5, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
   };
+  // ZR8: real rectangles, so everyone stands at a point in metres, as in every world the game builds
+  for (const z of state.zones) z.area = CONFIG.ZONE_SIZE_M2[z.placeId === 'field' ? 'open' : z.placeId === 'tavern' ? 'room' : 'yard'];
+  inferHeights(state, state.zones);
+  placeZones(state, state.zones);
+  placeAll(state);
   return state;
 }
 
@@ -139,6 +147,8 @@ export function place(state: GameState, id: string, zone: string): Actor {
   const a = actor(state, id);
   a.zone = zone;
   a.placeId = state.places.find((p) => p.zones.some((z) => z.id === zone))!.id;
+  delete a.pos;
+  placeAll(state);
   return a;
 }
 
@@ -148,5 +158,26 @@ export function fit(a: Actor, ...itemIds: string[]): Actor {
     const r = requirement(itemDef(null, id));
     if (r && (a.core.skills[r.skill]?.raw ?? 0) < r.need) a.core.skills[r.skill] = { raw: r.need, state: a.core.skills[r.skill]?.state ?? 'normal' };
   }
+  return a;
+}
+
+/** stands `id` in `near`'s zone, `m` metres east of it (west when that leaves the zone), so tests about reach stand
+ * within it (fixture setup only) */
+export function beside(state: GameState, id: string, near = 'player', m = 0.5): Actor {
+  const a = actor(state, id), b = actor(state, near);
+  a.zone = b.zone;
+  a.placeId = b.placeId;
+  const r = state.zones.find((z) => z.id === b.zone)!.rect!;
+  const x = b.pos!.x + m <= r.x + r.w / 2 ? b.pos!.x + m : b.pos!.x - m;
+  a.pos = { x, y: b.pos!.y };
+  return a;
+}
+
+/** stands `id` in `zone`, `m` metres in from its doorway to `other`, toward the zone's centre (fixture setup only) */
+export function byDoor(state: GameState, id: string, zone: string, other: string, m: number): Actor {
+  const a = place(state, id, zone);
+  const z = state.zones.find((x) => x.id === zone)!, d = doorway(z, state.zones.find((x) => x.id === other)!)!;
+  const dx = z.rect!.x - d.x, dy = z.rect!.y - d.y, len = Math.hypot(dx, dy);
+  a.pos = { x: d.x + dx / len * m, y: d.y + dy / len * m };
   return a;
 }

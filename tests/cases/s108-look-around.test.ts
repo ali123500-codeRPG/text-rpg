@@ -2,7 +2,7 @@
 // and someone seen clearly stays seen until they move.
 import { expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
-import { actor, makeVillage } from '../harness';
+import { actor, makeVillage, place } from '../harness';
 import { computePending } from '../../src/engine';
 import { lookAround, noteSightings, perceptionOf } from '../../src/perception';
 import { intent, play } from './w4-kit';
@@ -13,15 +13,15 @@ const ev = (s: GameState, actorId: string, kind: string, zone: string, visibilit
 
 it('108 a clear look keeps a still figure seen until it moves', () => {
   const s = makeVillage({ playerZone: 'street_square' });
-  actor(s, 'trader').zone = 'field_edge';
-  const hold = ev(s, 'trader', 'hold', 'field_edge');
-  expect(perceptionOf(hold, s, s.player)?.level).toBe('partial'); // sitting still two zones away (16 m): a shape
+  place(s, 'trader', 'gate_inner');
+  const hold = ev(s, 'trader', 'hold', 'gate_inner');
+  expect(perceptionOf(hold, s, s.player)?.level).toBe('partial'); // sitting still 20 m away (made out to 15 m): a shape
   expect(lookAround(s)).toContain('trader');
   expect(perceptionOf(hold, s, s.player)?.level).toBe('full'); // seen, and stays seen while it stays put
   const left = { ...ev(s, 'trader', 'move', 'field_far'), perception: {} };
   actor(s, 'trader').zone = 'field_far';
   noteSightings(left, s); // moved where the player could not see clearly: forgotten
-  actor(s, 'trader').zone = 'field_edge';
+  actor(s, 'trader').zone = 'gate_inner';
   expect(perceptionOf(hold, s, s.player)?.level).toBe('partial');
 });
 

@@ -1,6 +1,6 @@
 // 91 Free gear ops: a turn with draw, swap and pick up plus an attack resolves one main action; equip on armor takes the main action.
 import { expect, it } from 'vitest';
-import { makeVillage } from '../harness';
+import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
@@ -9,6 +9,7 @@ const MAIN = new Set(['attack', 'wasted', 'equip', 'hold', 'speak', 'give', 'res
 
 it('91 Free gear ops', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
+  beside(s, 'patron_1'); // within a dagger's reach, so it is stabbed, not thrown
   s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger });
   s.zones.find((z) => z.id === 'tav_common')!.groundItems.push({ id: 'dg2', itemId: IT.dagger });
   const ev = play(s, { intent: intent({

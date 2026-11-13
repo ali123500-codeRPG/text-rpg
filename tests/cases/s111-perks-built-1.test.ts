@@ -1,7 +1,7 @@
 // 111 Coded 20-milestone perks, batch 1 (rules in src/library/perks.ts): Hidden Strike, Shield
 // Breaker, Point Blank, Iron Frame, Read Wounds, Keen Ear. Each is checked with and without the perk.
 import { describe, expect, it } from 'vitest';
-import { makeVillage, place, forcedRng, fit } from '../harness';
+import { makeVillage, place, forcedRng, fit, beside } from '../harness';
 import { ruleset, woundsMods } from '../../src/ruleset';
 import { perceptionOf } from '../../src/perception';
 import { buildPlayerView } from '../../src/views';
@@ -87,17 +87,17 @@ describe('111 coded perks, batch 1', () => {
     wim.core.condition.hpLostPct = 20; // Hurt: still hidden
     expect(seen().health).toBeUndefined();
   });
-  it('Keen Ear: hears 10 dB quieter, about one zone link further; silence stays silent', () => {
+  it('Keen Ear: hears 10 dB quieter, about three times as far; silence stays silent', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    const far = npc(s, 'slime_2');
-    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
+    const far = beside(s, 'slime_2', 'player', 20); // quiet (40 dB) fades under the floor by 10 m, with Keen Ear by about 32 m
+    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, pos: far.pos, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
     const before = perceptionOf(ev, s, s.player);
     give(s.player, PK.keen_ear);
     const after = perceptionOf(ev, s, s.player);
     expect(before).toBeNull();
     expect(after).toMatchObject({ level: 'partial', cue: 'sound' });
-    const here: GameEvent = { ...ev, zone: s.player.zone, noise: 'silent' };
+    const here: GameEvent = { ...ev, zone: s.player.zone, pos: s.player.pos, noise: 'silent' };
     expect(perceptionOf(here, s, s.player)).toBeNull(); // no sound at all: nothing to hear
   });
 });

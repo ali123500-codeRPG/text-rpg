@@ -1,6 +1,6 @@
 // 119 Set Them Up (B15, Strike 60) and One-Two (B16, Improvisation 60) (R6 in "40 milestone perks: options").
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { forcedRng, makeVillage, place } from '../harness';
+import { forcedRng, makeVillage, place, beside } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { afterAttack, expireMarks, markShifts } from '../../src/engine/perkMarks';
 import type { Actor, AttackResult, GameState } from '../../src/types';
@@ -49,7 +49,7 @@ describe('119 Set Them Up', () => {
 describe('119 One-Two', () => {
   const run = (perk: boolean, outcome: AttackResult['outcome'], emptyHand = true) => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     holdImprovised(s);
     if (!emptyHand) s.player.core.inventory.push({ id: 'dag', itemId: IT.dagger, equippedIn: ['grip:left_arm'] });
     if (perk) give(s.player, PK.one_two);

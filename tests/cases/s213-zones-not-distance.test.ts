@@ -6,7 +6,6 @@ import { fit, forcedRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
 import { placeAll } from '../../src/engine/position';
-import { placeZones } from '../../src/scenario/geometry';
 import { noteFighting } from '../../src/engine/engagement';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { selectSpokespeople } from '../../src/engine/speech';
@@ -19,15 +18,8 @@ import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 
-/** the test village with real rectangles, so people stand at points in metres */
-function mapped(): GameState {
-  const s = makeVillage({ playerZone: 'street_square' });
-  const zs = s.places.flatMap((p) => p.zones);
-  for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, zs);
-  placeAll(s);
-  return s;
-}
+/** the test village (real rectangles since ZR8), the player in the square */
+const mapped = (): GameState => makeVillage({ playerZone: 'street_square' });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 /** puts `id` in the player's zone, `m` metres east of the player */
