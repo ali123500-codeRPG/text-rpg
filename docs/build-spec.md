@@ -3282,6 +3282,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-155 | Run 97b: the barkeep, half seen across the room, listed no wares, so a buy from her was asked about again and again and never happened. | A seller the player has seen is still known to sell: lastSeen carries her wares, a buy may name her, and the walk steps up to her. | Fixed in PR #612 |
 | BG-158 | Run 81b, turns 18 to 23: "I walk over the counter to Harl's table" kept the player behind the counter four turns running (the counter rule keeps you on your side), and the narration had them step out. | Parser rule 7: going behind a counter, over it, or out from behind it sets behind, which crosses it either way; without it the player talks across. | Fixed in PR #612 |
 | BG-157 | Playtesters drew Varo's Loop as a weapon and the narrator put it "on your finger": the player's own gear reached the parser and narrator by name only, never its look | 13/11/2026 | fixed | PR #613 (own gear carries its look; the Loop's look names it an earring of Varo) |
+| BG-161 | Smoke test: after restoring the turn 10 backup from turn 12, the Play header still said "Turn 12" and the story column kept turns 11 and 12 of the timeline that was dropped, in memory and in the saved story. | Restoring a backup drops the story text of every turn after it, on screen and in the saved history (cutHistory). | Fixed in PR #618 |
 
 ## Check on release
 

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ScriptedClaude, makeVillage } from '../harness';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
-import { memoryStore, saveTurn } from '../../src/save';
+import { loadHistory, memoryStore, saveHistory, saveTurn } from '../../src/save';
 import { CONFIG, resetConfig } from '../../src/config';
 import { clockText, durationText } from '../../src/time';
 import type { GameState, TurnRecord } from '../../src/types';
@@ -27,6 +27,21 @@ describe('BG-123 GM backups', () => {
     expect(g.state()?.flags.last).toBe(2);
     expect(g.lines().at(-1)?.text).toBe('Restored the backup from turn 2.');
     expect(g.notices().some((n) => n.kind === 'load_refused')).toBe(false);
+  });
+
+  it('BG-161: a restored backup drops the story text of the turns after it, on screen and in the saved story', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    const s = makeVillage();
+    CONFIG.BACKUP_EVERY = 2;
+    for (let t = 1; t <= 4; t++) { s.turn = t; s.flags.last = t; await saveTurn(store, s, rec(s)); }
+    await saveHistory(store, s.storyId, [1, 2, 3, 4].map((turn) => ({ turn, kind: 'narration' as const, text: `turn ${turn}` })), 0);
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    await g.resume();
+    await tick();
+    await g.restoreBackup(2);
+    const told = (ls: { kind: string; turn: number }[]) => ls.filter((l) => l.kind === 'narration').map((l) => l.turn);
+    expect(told(g.lines())).toEqual([1, 2]);
+    expect(told(await loadHistory(store, s.storyId))).toEqual([1, 2]);
   });
 
   it('a backup that is not there is refused with a notice, and the story stays as it was', async () => {

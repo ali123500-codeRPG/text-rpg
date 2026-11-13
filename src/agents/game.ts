@@ -759,7 +759,12 @@ export function createGame(deps: GameDeps): Game {
         refreshCopies(state);
         advance();
         lastDisplayAt = clock.now();
+        // BG-161: the turns after the backup never happened now: their story text goes, in memory and in the saved story
+        lines = lines.filter((l) => l.turn <= turn);
+        await save.cutHistory(store, s.storyId, turn).catch((e) => console.warn('story text not cut', e));
+        savedLines = lines.length;
         lines.push({ turn: state.turn, kind: 'command', text: `Restored the backup from turn ${turn}.` });
+        await storeHistory(state.storyId);
       } catch (e) {
         notice({ kind: 'load_refused', text: `The backup could not be restored: ${(e as Error).message}` });
       } finally {
