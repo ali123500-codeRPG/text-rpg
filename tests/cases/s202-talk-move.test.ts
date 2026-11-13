@@ -6,6 +6,7 @@ import { EK } from '../../src/library/tableIds';
 import { intent } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { CONFIG } from '../../src/config';
+import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 const village = () => {
   const s = makeVillage({ without: ['slime_1', 'slime_2'] });
@@ -89,4 +90,12 @@ it('FR2: handing something over is by grip reach in metres: over the counter fro
   s.player.pos = { x: 0, y: 3.5 }; // at the counter: 1 m over it, within both arms (1.4 m)
   expect(giveItem(s, s.player, 'coin_x', 'trader')).not.toBeNull();
   expect(trader.core.inventory.some((i) => i.id === 'coin_x')).toBe(true);
+});
+
+it('BG-158: from behind the counter, coming out to someone in the room crosses it only with behind (the Parser sets it)', () => {
+  const s = village();
+  s.player.zone = 'tav_counter';
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_counter', spot: { near: 'tav_common' } });
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_common', spot: { near: 'patron_1' }, behind: true }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
+  expect(PARSER_INSTRUCTIONS).toContain('or out from behind it');
 });

@@ -3267,6 +3267,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-156 | Soak village seed 2: the turn checker said a broken guard was still engaged with a slime that kept fighting it, while the engine keeps a fight alive from either side. | One rule (fightRenewed) for when a fight was last kept alive, shared by the engine and the checker. | Fixed in PR #612 |
 | BG-147 | Runs 98, 99 and 86c: words to someone known to be about but out of sight (heard through a door, seen earlier) were refused or put off until the player went to them; "Slime, stay back!" beside a step away was put off too. | Speech reach follows hearing, not sight: anyone the player knows is about can be called to, and whoever hears it answers; the Parser says it now, loud enough to carry, and never defers words beside a move. | Fixed in PR #612 |
 | BG-155 | Run 97b: the barkeep, half seen across the room, listed no wares, so a buy from her was asked about again and again and never happened. | A seller the player has seen is still known to sell: lastSeen carries her wares, a buy may name her, and the walk steps up to her. | Fixed in PR #612 |
+| BG-158 | Run 81b, turns 18 to 23: "I walk over the counter to Harl's table" kept the player behind the counter four turns running (the counter rule keeps you on your side), and the narration had them step out. | Parser rule 7: going behind a counter, over it, or out from behind it sets behind, which crosses it either way; without it the player talks across. | Fixed in PR #612 |
 
 ## Check on release
 
