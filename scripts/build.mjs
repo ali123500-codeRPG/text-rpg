@@ -51,5 +51,5 @@ async function page(entry, title, dir) {
 }
 
 await mkdir('dist', { recursive: true });
-await page('src/ui/main.ts', 'Slime Field Swordsman', 'play');
+await page('src/ui/main.ts', 'Echoes of the Thread', 'play');
 await page('src/ui/libraryViewer.ts', 'Library viewer', 'library');
