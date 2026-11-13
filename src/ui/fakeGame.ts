@@ -183,7 +183,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       storyId: 'fake', turn: 4, mode: 'tactical', zones: [], player, actors: [slime, guard], bands: [], events: [],
       hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
-        { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
+        { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number],
+        { turn: 3, agent: 'voice', actorId: 'guard_1', input: { view: 'DialogueView…', heard: 'block and cut back' }, output: { dialogue: { line: 'That’s one! Watch your left!' } }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
       places: FAKE_PLACES(), facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
       scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
@@ -205,6 +206,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     player.core.condition.fatigue = { debt: 6, line: 8 }; // a long day's walk and the fight with the slime (FT20)
+    guard.core.condition.fatigue = { debt: barMax(guard) * 0.62, line: 0 }; // Bren stood the night watch and has not slept: Exhausted, so Who's here shows it (FT17)
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scenario: 1 },
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
@@ -304,7 +306,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         state.player.walking = { toZone: text.split(/\s+/)[1] || 'tav_upstairs' };
         if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id)); // a way to walk
       }
-      if (/^stop\b/i.test(text)) delete state.player.walking;
+      if (/^stop\b/i.test(text)) { delete state.player.walking; delete state.player.followLost; }
+      // "follow" has you following Bren up to the landing (BG-190); "lose" loses him there, slipped out of sight
+      if (/^follow\b/i.test(text)) {
+        delete state.player.followLost;
+        state.player.walking = { toZone: 'tav_upstairs', spot: { near: 'guard_1', follow: true } };
+        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
+      }
+      if (/^lose\b/i.test(text)) { delete state.player.walking; state.player.followLost = { who: 'guard_1', why: 'slipped_away', zone: 'tav_upstairs' }; }
       // "tire" adds sleep debt (a fatigue level's worth) and spends half the breath line; "breathe" fills the line again, to
       // show the stamina bar (FT20)
       if (/^tire\b/i.test(text)) { const f = state.player.core.condition.fatigue ?? { debt: 0, line: 0 }; state.player.core.condition.fatigue = { debt: Math.min(barMax(state.player), f.debt + barMax(state.player) * 0.16), line: f.line + lineMax(state.player) / 2 }; }
@@ -325,6 +334,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     calls: () => n * 3 + 4,
     working: () => [],
     gm(): GmSnapshot { return { state, agentLog: state?.agentLog ?? [], log: state?.log ?? [], fallbackBanner: !!state?.stage.fallback, backups: state ? [{ turn: 0, path: 'stories/fake/backups/0' }] : [] }; },
+    // the GM pop-up's older calls: Bren's deal with the player on turn 2 and his look round on turn 1
+    async agentHistory(id) {
+      const older = id === 'guard_1' ? [
+        { turn: 2, agent: 'responder', actorId: id, input: { view: 'OppositionView…', heard: 'I’ll keep an eye out for the thief' }, output: { dialogue: { line: 'Then I’ll let you in after dark.' }, agreement: 'ag_1' }, status: 'ok', errors: [], modelTierApplied: 'complex' },
+        { turn: 1, agent: 'planner', actorId: id, input: { view: 'OppositionView…' }, output: { goal: 'keep the gate', steps: ['watch the road'] }, status: 'ok', errors: [], modelTierApplied: 'complex' },
+      ] as GameState['agentLog'] : [];
+      return [...(state?.agentLog ?? []).filter((l) => l.actorId === id), ...older].slice(0, CONFIG.GM_AGENT_CALLS_SHOWN);
+    },
     async restoreBackup() { emit(); },
     takePerk(id) { if (state) { takePerk(state, state.player, id); emit(); } },
     undoPerk(id) { if (state) { undoPerk(state, state.player, id); emit(); } },

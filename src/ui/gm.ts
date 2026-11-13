@@ -7,6 +7,8 @@ import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types
 import { GRADES } from '../types';
 import { QUALITY_LEVELS, TIERS } from '../scales';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
+import { openPop } from './pop';
+import { CONFIG } from '../config';
 
 /** BA8: the ended scenarios' barriers summed by tier, best tier first */
 function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: number; barriers: number; shut: string; grades: string }[] {
@@ -77,6 +79,19 @@ export function gmPage(api: GameApi) {
         : h('p', { class: 'empty' }, 'Nothing made yet. Items the Weaver makes live only in this story until you send them to the library.'));
   }
 
+  /** one person's last agent calls (exact input, then output), newest first, in a movable pop-up */
+  async function showCalls(id: string, name: string, opener: HTMLElement) {
+    const title = `${name} · last ${CONFIG.GM_AGENT_CALLS_SHOWN} agent calls`;
+    openPop({ title, opener, cls: 'gm-calls', body: [h('p', { class: 'hs-note' }, 'Reading the kept turns…')] });
+    const calls = await api.agentHistory(id).catch(() => null);
+    openPop({ title, opener, cls: 'gm-calls', body: calls === null ? [h('p', { class: 'hs-note' }, 'The turn records couldn’t be read.')]
+      : calls.length ? calls.map((c) => h('div', { class: 'gm-call' },
+        h('p', {}, h('b', {}, `Turn ${c.turn} · ${c.agent}`), h('span', { class: 'hs-note' }, ` · ${c.status} · ${c.modelApplied ?? c.modelTierApplied ?? '–'}${c.errors.length ? ` · ${c.errors.join(', ')}` : ''}`)),
+        h('p', { class: 'hs-label' }, 'Input'), json(c.input),
+        h('details', {}, h('summary', {}, 'Output'), json(c.output))))
+      : [h('p', { class: 'hs-note' }, `No agent call for ${name} in the last ${CONFIG.TURN_RECORDS_KEPT} turns.`)] });
+  }
+
   function update() {
     const g = api.gm(), s = g.state;
     const rolls = (s?.events ?? []).filter((e) => e.attack || e.contest || e.check);
@@ -130,11 +145,19 @@ export function gmPage(api: GameApi) {
             h('td', {}, e.attack ? `d100 ${e.attack.attack.d100} vs ${e.attack.defense?.d100 ?? '–'} · gap ${e.attack.gap ?? '–'} · ${e.attack.location ?? '–'}` : '')))))
           : h('p', { class: 'empty' }, 'No rolls this turn.')),
 
-      // AG16: exact ages, which the play screen never shows for NPCs
-      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Ages'),
-        s ? h('table', { class: 'hs-tbl' },
-          h('thead', {}, h('tr', {}, ['Actor', 'Age'].map((t) => h('th', {}, t)))),
-          h('tbody', {}, [s.player, ...s.actors].map((a) => h('tr', {}, h('td', {}, a.names.current), h('td', {}, ageText(s, a) ?? 'Ageless')))))
+      // AG16: exact ages, which the play screen never shows for NPCs; and who an agent runs, with their last agent calls in a pop-up
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'People · age and who an agent runs'),
+        s ? h('table', { class: 'hs-tbl gm-people' },
+          h('thead', {}, h('tr', {}, ['Actor', 'Age', 'Run by', 'Agent calls this turn'].map((t) => h('th', {}, t)))),
+          h('tbody', {}, [s.player, ...s.actors].map((a) => {
+            const mine = g.agentLog.filter((l) => l.actorId === a.id);
+            const runBy = a.id === s.player.id ? 'Player' : a.mind?.control === 'agent' ? 'Agent' : 'Code';
+            const name = a.id === s.player.id ? a.names.current
+              : h('button', { class: 'hs-btn-text gm-who', type: 'button', title: 'Open their last agent calls', onclick: (e: Event) => void showCalls(a.id, a.names.current, e.currentTarget as HTMLElement) }, a.names.current);
+            return h('tr', { 'data-actor': a.id }, h('td', {}, name), h('td', {}, ageText(s, a) ?? 'Ageless'),
+              h('td', {}, runBy === 'Agent' ? h('span', { class: 'hs-chip gm-agent' }, 'Agent') : h('span', { class: 'hs-note' }, runBy)),
+              h('td', {}, mine.length ? mine.map((l) => l.agent).join(', ') : '–'));
+          })))
           : h('p', { class: 'empty' }, 'No story yet.')),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Beliefs'),

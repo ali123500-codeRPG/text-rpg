@@ -18,8 +18,8 @@ const fat = (a: Actor) => (a.core.condition.fatigue ??= { debt: 0, line: 0 });
 const row = (id: string) => getLibrary().recovery?.[id];
 const harder = (e: EffortKey, than: EffortKey) => EFFORT.pos(e) > EFFORT.pos(than);
 
-/** FT24: pays `units` of an effort tier's strain, × worn armour (FT5). Above Light it resets catching your breath; Hard or
- * harder counts toward the player's Stamina marks (FT27). Spill that fills the bar leaves the actor Spent (FT10). */
+/** FT24: pays `units` of an effort tier's strain, × worn armour (FT5). Above Light it resets catching your breath.
+ * Every point paid counts toward the player's Stamina marks (FT27, FB6). Spill that fills the bar leaves the actor Spent (FT10). */
 export function payStrain(state: GameState, a: Actor, effort: EffortKey, units = 1): void {
   const cost = CONFIG.STRAIN_COST[effort] * units * (CONFIG.STRAIN_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1);
   if (cost <= 0 || !isActive(a)) return;
@@ -33,7 +33,7 @@ export function payStrain(state: GameState, a: Actor, effort: EffortKey, units =
     f.line = Math.min(f.line, lineMax(a));
     if (!was && isSpent(a)) logCode(state, 'spent', { actorId: a.id });
   }
-  if (a === state.player && !harder(CONFIG.STAMINA_MARK_FROM, effort)) {
+  if (a === state.player) {
     f.toMark = (f.toMark ?? 0) + cost;
     for (; f.toMark >= CONFIG.STAMINA_MARK_EVERY; f.toMark -= CONFIG.STAMINA_MARK_EVERY) markStamina(state, a);
   }
@@ -76,7 +76,8 @@ export function sleepMinutes(state: GameState, a: Actor): number {
 
 /** FT4/FT7/FT28: `minutes` of game time just ran (the clock already moved on). Every actor, on stage or not: asleep it
  * sleeps (the long term clears, the line fills); awake it gains sleep debt, and catches its breath for the part of the
- * time BREATH_CALM_S after its last effort above Light. Sleep debt that fills the bar puts it to sleep (FT10). */
+ * time BREATH_CALM_S after its last effort above Light. Sleep debt that fills the bar puts it to sleep (FT10), and so do
+ * hours awake that alone would have filled it, Spent or not (FB4). */
 export function passiveFatigue(state: GameState, minutes: number): void {
   if (minutes <= 0) return;
   const t1 = now(state);
@@ -84,15 +85,19 @@ export function passiveFatigue(state: GameState, minutes: number): void {
     if (!isActive(a)) continue;
     if (isAsleep(a)) {
       const s = row(RV.sleep);
-      recoverDebt(a, RV.sleep, (s?.debtPctPerHour ?? 0) * (minutes / 60) * sleepMult(state, a));
+      const got = recoverDebt(a, RV.sleep, (s?.debtPctPerHour ?? 0) * (minutes / 60) * sleepMult(state, a));
+      if (a.core.condition.fatigue?.awake) a.core.condition.fatigue.awake = Math.max(0, a.core.condition.fatigue.awake - got);
       recoverLine(a, RV.sleep, s?.linePct ?? 0);
       continue;
     }
     const f = fat(a), max = barMax(a);
     const add = (CONFIG.SLEEP_DEBT_FLAT + (CONFIG.SLEEP_DEBT_PCT / 100) * max) * (actorBody(state, a).sleepNeed ?? 1) * (minutes / 60);
-    if (add > 0 && f.debt < max) {
+    if (add > 0) {
+      const was = f.debt;
       f.debt = Math.min(max, f.debt + add);
-      if (f.debt >= max) collapse(state, a);
+      f.awake = (f.awake ?? 0) + add;
+      // FB4 b: a Spent actor still collapses once its hours awake alone would have filled the bar
+      if ((was < max && f.debt >= max) || f.awake >= max) collapse(state, a);
     }
     const calm = t1 - Math.max(t1 - minutes, (f.hardAt ?? -Infinity) + CONFIG.BREATH_CALM_S / 60);
     const b = row(RV.breath)?.perMinute;

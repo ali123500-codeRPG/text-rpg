@@ -53,6 +53,8 @@ export type Actor = {
   };
   /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered */
   walking?: NonNullable<import('./agents').Intent['move']>;
+  /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */
+  followLost?: { who: string; why: 'down' | 'slipped_away' | 'out_of_sight'; zone: string };
   letsSearch?: { by: string; until: number }; // BF16: lets `by` search it hands-on, until that turn
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
@@ -144,8 +146,8 @@ export type SavedCondition = {
   steadiedTurn?: number;
   /** FT1/FT18: the stamina bar, in flat points used: debt = the long term (sleep debt and spilled strain), line = the short
    * line (strain); hardAt = game minute of its last effort above Light (catching your breath waits BREATH_CALM_S after it);
-   * toMark = strain from Hard or harder efforts not yet counted into a Stamina mark */
-  fatigue?: { debt: number; line: number; hardAt?: number; toMark?: number };
+   * toMark = strain not yet counted into a Stamina mark; awake = the share of debt from hours awake, uncapped (FB4) */
+  fatigue?: { debt: number; line: number; hardAt?: number; toMark?: number; awake?: number };
 };
 
 export type Progression = {

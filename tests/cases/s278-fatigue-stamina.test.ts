@@ -2,7 +2,7 @@
 // spilled strain, cleared only by sleep) sets the fatigue level, its roll penalty and the short line's band; the short line
 // drains first by the effort tier every action names (no roll), spills at half, and comes back by catching your breath,
 // resting and sleeping. Sleep lasts until rested. Debt that fills the bar puts you to sleep; spill that fills it leaves you
-// Spent. Stamina is the third Fortitude skill, its own group at quarter XP, marked per 50 strain of Hard efforts.
+// Spent. Stamina is the third Fortitude skill, its own group at quarter XP, marked per 50 strain of any effort (FB6).
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { makeVillage } from '../harness';
@@ -136,6 +136,16 @@ describe('278 fatigue and stamina', () => {
     pass(s, 10);
     expect(s.player.asleep).toBeDefined();
     expect(s.night).toBeDefined();
+    // FB4 b: Spent and awake, you still fall asleep once the hours awake alone would have filled the bar
+    const w = quiet();
+    w.player.core.condition.fatigue = { debt: barMax(w.player), line: 0, awake: barMax(w.player) - 0.1 };
+    expect(isSpent(w.player)).toBe(true);
+    pass(w, 10);
+    expect(w.player.asleep).toBeDefined();
+    const z = quiet();
+    z.player.core.condition.fatigue = { debt: barMax(z.player), line: 0, awake: 0 };
+    pass(z, 60);
+    expect(z.player.asleep).toBeUndefined();
     const f = fight();
     f.player.core.condition.fatigue = { debt: barMax(f.player) - 1, line: lineMax(f.player) };
     payStrain(f, f.player, 'hard');
@@ -146,7 +156,7 @@ describe('278 fatigue and stamina', () => {
     expect(buildPlayerView(f).player.stamina.spent).toBe(true);
   });
 
-  it('FT15/FT27: Stamina is the third Fortitude skill, own group at quarter XP; marked per 50 strain of Hard efforts', () => {
+  it('FT15/FT27: Stamina is the third Fortitude skill, own group at quarter XP; marked per 50 strain of any effort', () => {
     const s = quiet();
     const lib = getLibrary();
     expect(lib.trees[TR.fortitude].skills).toEqual([SK.endurance, SK.resolve, SK.stamina]);
@@ -154,11 +164,10 @@ describe('278 fatigue and stamina', () => {
     expect(FUNCTION_GROUP[FN.stamina]).toBe(GR.stamina);
     expect(CONFIG.XP_GROUP_FACTOR[GR.stamina]).toBe('quarter');
     s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
-    payStrain(s, s.player, 'light', 200);
+    payStrain(s, s.player, 'light', 48);
+    payStrain(s, s.player, 'hard', 12);
     expect(s.player.progression!.marks).not.toContain(SK.stamina);
-    payStrain(s, s.player, 'hard', 24);
-    expect(s.player.progression!.marks).not.toContain(SK.stamina);
-    payStrain(s, s.player, 'hard', 1);
+    payStrain(s, s.player, 'light', 4);
     expect(s.player.progression!.marks).toContain(SK.stamina);
     const guard = rollUniqueSkills({ ...lib.templates[TP.guard], minimums: { ...lib.templates[TP.guard].minimums, [SK.endurance]: 40 } }, createRng(1));
     expect(guard[SK.stamina].raw).toBe(guard[SK.endurance].raw);

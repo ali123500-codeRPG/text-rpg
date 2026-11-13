@@ -6,7 +6,7 @@ import { PK } from '../library/perkIds';
 import { outcomeText, struck } from '../ruleset/hits';
 import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView, ScenarioEndNote } from '../types';
 import { CONFIG } from '../config';
-import { buildPlayerView, questGoalText } from '../views';
+import { buildPlayerView, distText, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
 import { questFocus } from './pages';
 import { tierGap } from '../agents/game';
@@ -28,7 +28,7 @@ import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
-import { actionsRow, doingChip, doingNow, walkingNow } from './doing';
+import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -94,6 +94,17 @@ export function lastOrder(lines: readonly LogLine[]): string | null {
     if (lines.slice(i + 1).some((x) => x.kind === 'narration')) return l.text;
   }
   return null;
+}
+
+/** pointing at someone on Who's here: how far they are, where if not in your zone, and whether your longest weapon in hand
+ * reaches them ("34 m away · in the yard · in reach of your shortbow (50 m)"); no distance known, only where */
+export function whoDistance(a: PlayerView['actors'][number], pv: PlayerView): string {
+  const where = a.zone && a.zone !== pv.zone.id ? `in ${pv.zones.find((z) => z.id === a.zone)?.name ?? a.zone}` : ''; // actors carry zone ids
+  if (a.distanceM === undefined) return where ? cap(where) : '';
+  const far = pv.player.reaches?.[0];
+  const m = (x: number) => (x < 10 ? `${Math.round(x * 10) / 10} m` : distText(x));
+  const reach = !far ? '' : a.distanceM <= far.metres ? `in reach of your ${far.name} (${m(far.metres)})` : `beyond your ${far.name}’s ${m(far.metres)}`;
+  return [`${m(a.distanceM)} away`, where, reach].filter(Boolean).join(' · ');
 }
 
 // AE8: how Ideas offers each perk move against someone in view
@@ -241,6 +252,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let gainsVeil: HTMLElement | null = null, afterGains: (() => void) | null = null;
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
+  // pointing at (or tabbing to) someone shows how far they are at once; one floating tip, outside the row that clips
+  const whoTip = h('div', { class: 'who-tip', role: 'tooltip', hidden: true });
+  document.body.append(whoTip);
+  const showWhoTip = (e: Event) => {
+    const t = (e.target as Element).closest?.('.pp[data-dist]') as HTMLElement | null;
+    if (!t || !t.dataset.dist) { whoTip.hidden = true; return; }
+    const r = t.getBoundingClientRect();
+    whoTip.textContent = cap(t.dataset.dist);
+    whoTip.hidden = false;
+    whoTip.style.top = `${r.bottom + 6}px`;
+    whoTip.style.left = `${Math.max(8, Math.min(innerWidth - whoTip.offsetWidth - 8, r.left + r.width / 2 - whoTip.offsetWidth / 2))}px`;
+  };
+  const hideWhoTip = () => { whoTip.hidden = true; };
+  who.addEventListener('pointerover', showWhoTip); who.addEventListener('focusin', showWhoTip);
+  who.addEventListener('pointerleave', hideWhoTip); who.addEventListener('focusout', hideWhoTip);
   // layout A with the full sheet open by default at every width, so the screen is always filled (the player can still fold
   // it). Wide and narrow screens each keep their own choice.
   const WIDE = '(min-width: 1280px)';
@@ -547,7 +573,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
-    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label), ...(a.age ? { title: `Looks ${a.age.toLowerCase()}` } : {}) }, // AG16: the life stage they look
+    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label), tabindex: '0', 'data-dist': [whoDistance(a, pv!), a.age ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ') }, // pointing shows how far they are and if your weapon reaches; AG16: the life stage they look
       h('b', {}, cap(a.name ?? a.label)), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
@@ -555,6 +581,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       a.doing ? doingChip(a.doing) : null,
       // MB16: others' morale, only from Afraid down
       a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
+      // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
+      a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
       // A13 Read Wounds: a foe's Damaged parts
       ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')])];
     // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
@@ -623,7 +651,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     yieldBtn.hidden = fleeBtn.hidden = !broken; aimBtn.hidden = broken;
     yieldBtn.disabled = fleeBtn.disabled = stopped;
     // AT11a: the player's own long action, and AT49 its walk on the way; a redraw that changes nothing keeps the element (M-74)
-    if (!frozen) { const dn = [doingNow(pv?.player.doing, pick, stopped), walkingNow(pv?.player.walking, pick, stopped)].filter((x): x is HTMLElement => !!x); const html = dn.map((x) => x.outerHTML).join(''); if (html !== doingHtml) { doingSlot.replaceChildren(...dn); doingHtml = html; } }
+    if (!frozen) { const dn = [doingNow(pv?.player.doing, pick, stopped), pv?.player.following ? followingNow(pv.player.following, pv.player.walking, pick, stopped) : walkingNow(pv?.player.walking, pick, stopped)].filter((x): x is HTMLElement => !!x); const html = dn.map((x) => x.outerHTML).join(''); if (html !== doingHtml) { doingSlot.replaceChildren(...dn); doingHtml = html; } }
     st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
     if (!input.disabled && !el.hidden && el.isConnected && (document.activeElement === document.body || document.activeElement === send)) input.focus();
