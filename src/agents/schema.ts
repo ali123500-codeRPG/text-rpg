@@ -49,9 +49,9 @@ const run = <T>(c: V<T>) => (v: unknown): Checked<T> => {
 };
 
 const VOLUME = oneOf(['whisper', 'normal', 'shout'] as const);
-const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon'; item: string; from?: string }>(
-  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon'] as const), item: str, from: str },
-  ['from'],
+const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon' | 'set_down'; item: string; from?: string; qty?: number }>(
+  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const), item: str, from: str, qty: num },
+  ['from', 'qty'],
 );
 const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
@@ -82,7 +82,8 @@ const intent = obj<Intent>({
   deferred: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
   clarify: nul(str),
   yields: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
-}, ['perkMove', 'yields', 'way', 'volume']);
+  look: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(['stats', 'inv'] as const)(v, p, e)) as 'stats' | 'inv',
+}, ['perkMove', 'yields', 'way', 'volume', 'look']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(NPC_ACTIONS),

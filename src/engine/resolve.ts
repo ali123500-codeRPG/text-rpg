@@ -65,7 +65,7 @@ import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, w
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
-  rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
+  rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
   way: ['quiet', 'normal'], pick: ['hushed', 'low'], filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts) stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
@@ -122,7 +122,7 @@ type Paid = { paid: 'move' | 'main'; seconds: number; pool?: 'move' | 'main' | '
  * ground locks movement too */
 function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[]): void {
   for (const op of ops) {
-    const id = op.op === 'draw' ? DU.draw : op.op === 'stow' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
+    const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
     const row = id ? actionRow(id) : undefined;
     if (!row) continue;
     const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row));
@@ -1232,6 +1232,7 @@ function step(ctx: Ctx, id: string): void {
   useGearTime(ctx, a, gearNow.filter((op) => !g.invalid.includes(op)));
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
+  for (const d of g.setDown) emit(ctx, mk(ctx, a, 'set_down', { itemId: d.itemId, ...(d.qty ? { qty: d.qty } : {}) })); // OA4
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
   // TV1: a move along a road with nothing else going on is a trip, walked in one turn
   const trip = tripGoal(state, a, o);

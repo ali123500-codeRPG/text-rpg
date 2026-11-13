@@ -52,6 +52,7 @@ export type Intent = {
   deferred: string[];
   clarify: string | null;
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
+  look?: 'stats' | 'inv'; // OA4: the player only looks at their own sheet or what they carry: no turn passes
 };
 
 // ---- Agent Planner / Responder / Voice ----
