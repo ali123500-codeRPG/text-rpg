@@ -62,7 +62,7 @@ import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
-import { checkNear, contact, startWatch, stepS, type NearStop } from './comingNear';
+import { busyCheck, checkNear, contact, startWatch, stepS, type NearStop } from './comingNear';
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 
@@ -922,7 +922,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   const touched = (events: GameEvent[]): StretchStop | null => { const c = contact(p, events), by = c?.by.filter((id) => id !== partner); return c && by?.length ? { ...c, by } : null; };
   let stop: StretchStop | null = touched(ctx.events) ?? fightStop();
   let ran = 0;
-  let fighting = false, walkEnd: 'there' | 'blocked' | null = null;
+  let fighting = false, walkEnd: 'there' | 'blocked' | null = null, firstS = 0;
   for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
     const step = Math.min(stepS(state, watch), fighting ? CONFIG.ROUND_S : Infinity, st.seconds - ran);
     const before = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }]));
@@ -930,7 +930,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     if (st.walk) { walkEnd = walkStep(ctx, st.walk, step); if (walkEnd) { ran += step; break; } } // AT45: there, or blocked
     passTime(state, step / 60);
     catchUp(state, step / 60, first, onLeg); // the turn's own walks count once
-    if (first) state.scratch!.agentRun = []; // AT63: an agent's order covers the first step; then everyone runs on code
+    if (first) { state.scratch!.agentRun = []; firstS = step; } // AT63: an agent's order covers the first step; then everyone runs on code
     const hunt = huntOnCode(ctx, step, onLeg);
     fighting = hunt.fighting;
     headArrivals(state); runSteps(state); // UG16: queued steps run on through a long turn, with no call
@@ -938,6 +938,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     stop = touched(ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
   }
   (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
+  noteMeanwhile(state, ran - firstS);
   st.ran = ran;
   if (stop) {
     st.stop = stop;
@@ -1024,7 +1025,14 @@ function runNight(ctx: Ctx): number {
   } else if (n.woke.includes(p.id)) delete state.night;
   const minutes = now(state) - t0;
   (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + minutes;
+  noteMeanwhile(state, minutes * 60);
   return minutes;
+}
+
+/** AT63: time ran on past the agents' orders (a stretch or a night): each agent-run NPC's next Planner call is told how long */
+function noteMeanwhile(state: GameState, seconds: number): void {
+  if (seconds <= T_EPS) return;
+  for (const x of state.actors) if (x.mind?.control === 'agent' && isActive(x)) x.mind.meanwhile = { turn: state.turn, seconds: (x.mind.meanwhile?.turn === state.turn ? x.mind.meanwhile.seconds : 0) + seconds };
 }
 
 /** T1: a fight turn (turnSeconds), else the Action times row naming the order type, else the default action row (DU) */
@@ -1531,7 +1539,7 @@ function longAction(ctx: Ctx, a: Actor, o: Order, cost: { row: DurationDef; seco
   if (need - done <= left + T_EPS) { delete a.busy; return { ...cost, seconds: need - done }; }
   useMain(ctx, a, { row: cost.row, seconds: left });
   ctx.finished.delete(a.id);
-  a.busy = { row: cost.row.id, key, order: { type: o.type, target: o.target, item: o.item ?? null }, done: done + left, need, turn: state.turn };
+  a.busy = { row: cost.row.id, key, order: { type: o.type, target: o.target, item: o.item ?? null }, done: done + left, need, turn: state.turn, ...(cur?.watch ? { watch: cur.watch } : {}) }; // AT67: its watch goes on
   emit(ctx, bark(mk(ctx, a, 'busy', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), busy: { row: cost.row.id, done: a.busy.done, need } }), o));
   return 'busy';
 }
@@ -1826,6 +1834,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; } // NW3/NW11: this turn's only
   (state.scratch ??= {}).agentRun = usableAgentOutputs(input).map((o) => o.actorId); // NW11: their agent moved them this turn
   const clockStart = now(state);
+  const startPos = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])); // AT67: where everyone stood
   wakeChecksNear(state, (x) => armorNoise(state, x, 'move', SENSE.move[0]), rng); // NW18: a light sleeper may hear someone hostile near
   noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   placeAll(state); // ZP1: anyone new on stage, or moved by a scenario, gets a spot in their zone
@@ -1851,7 +1860,10 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // AT47: an NPC at a long action carries on with it unless its agent was asked anyway or a trigger fired for it
   for (const [id, o] of orders) {
     const x = actorById(state, id);
-    if (x && x !== state.player && busyNow(x) && o.source !== 'trigger' && !usableAgentOutputs(input).some((u) => u.actorId === id)) orders.set(id, busyOrder(x));
+    if (!x || x === state.player || !busyNow(x)) continue;
+    const alert = x.busy!.alert; // AT67: its coming-near check fired last turn: its new order stands
+    delete x.busy!.alert;
+    if (!alert && o.source !== 'trigger' && !usableAgentOutputs(input).some((u) => u.actorId === id)) orders.set(id, busyOrder(x));
   }
   // NW12/NW20: a sleeper does nothing (its agent is not asked); NW21: an awake band member who sees someone hostile
   // shouts to wake its sleeping bandmates
@@ -2028,6 +2040,12 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   noteGains(state); // D-226: this turn's raises go on the scenario's gains summary
   if (state.stage.breakCause) closeScenario(state, rng); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
   noteCarry(ctx); // AT20: what is left after each actor's last finished action
+  // AT47/AT67: an NPC at a long action in a fight runs its coming-near check on the turn; fired, it is asked again next turn
+  if (state.mode === 'tactical') for (const x of state.actors) {
+    if (!isActive(x) || isAsleep(x) || !busyNow(x)) continue;
+    const fired = busyCheck(state, x, startPos, ctx.turnS, ctx.events);
+    if (fired) { x.busy!.alert = true; logCode(state, 'busy_alert', { actorId: x.id, why: fired.why, by: fired.by }); }
+  }
   noteTurnEnd(state); // AT15: timers count game time from turn stamps
   state.events.push(...ctx.events);
   return ctx.events;

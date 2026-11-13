@@ -44,7 +44,13 @@ export type Actor = {
   react?: { s: number; init: number; turn: number };
   /** AT2/AT17: a long action under way: its Action times row, the order it came from, seconds done of `need`, the turn it last
    * went on; `paused` when broken off or set aside with its work kept (AT6/AT28: picked up again by the same order) */
-  busy?: { row: string; key: string; order: { type: string; target: string | null; item: string | null }; done: number; need: number; turn: number; paused?: true };
+  busy?: {
+    row: string; key: string; order: { type: string; target: string | null; item: string | null }; done: number; need: number; turn: number; paused?: true;
+    /** AT67 for an NPC at it (AT47): whom it accepted, and what it noted of each (comingNear busyCheck) */
+    watch?: Record<string, { sneaking: boolean; closing: boolean; armed: number }>;
+    /** AT47/AT67: its coming-near check fired: it is asked for a new order next turn */
+    alert?: true;
+  };
   /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered */
   walking?: NonNullable<import('./agents').Intent['move']>;
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
@@ -208,6 +214,8 @@ export type Mind = {
   stay?: { zone: string; since: number }; // BF11: a place its own agent moved it to holds AGENT_STAY_S from this turn
   lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, until it does that kind of thing
   errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
+  /** AT63: time ran on past its agent's order (a stretch or a night) while it went on by code; its next Planner call is told */
+  meanwhile?: { turn: number; seconds: number };
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;

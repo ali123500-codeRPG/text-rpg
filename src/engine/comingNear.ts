@@ -63,6 +63,18 @@ export function stepS(state: GameState, watch: NearWatch): number {
   return Math.min(CONFIG.STEP_MAX_S, Math.max(CONFIG.STEP_MIN_S, least / 2));
 }
 
+/** AT67/AT47: an NPC at a long action in a fight runs the same check each turn, on what it perceives: its watch is kept
+ * on its busy state (started the turn it first runs). Contact or the check firing alerts it, so it is asked for a new
+ * order next turn instead of carrying on. */
+export function busyCheck(state: GameState, a: Actor, before: Map<string, Located>, seconds: number, events: GameEvent[]): NearStop | null {
+  const b = a.busy!;
+  if (!b.watch) { b.watch = Object.fromEntries(startWatch(state, a, 'standing').accepted); return contact(a, events); }
+  const watch: NearWatch = { watcher: a.id, pose: 'standing', accepted: new Map(Object.entries(b.watch)) };
+  const stop = contact(a, events) ?? checkNear(state, watch, before, seconds);
+  b.watch = Object.fromEntries(watch.accepted);
+  return stop;
+}
+
 /** AT67/AT68: after a step of `seconds`, given where everyone stood before it: someone not accepted closing in (their path
  * ends at the watcher, or they rush in at over RUSH_SHARE × their walk) within the warning time; or someone accepted who
  * starts closing in, readies a weapon, or is seen sneaking. Someone newly perceived who does not fire it is a passer-by:

@@ -166,6 +166,7 @@ export type ActorView = {
     alarm?: { armed: boolean; lastAlarmTurn?: number; returnTo?: { id: string; anchorTurn: number } };
     lastHitBy?: ActorId; // from events it perceived
     lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, and why
+    meanwhile?: { minutes: number }; // AT63: time ran on since its last order while it went on by habit
     stealthy?: true; // NS: moving unseen
     spar?: SparView; // SP1: the spar it is a fighter in
     playerYielded?: true; // MB41: the player yielded to self and awaits an answer (acceptYield)
