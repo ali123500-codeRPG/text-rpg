@@ -8,7 +8,7 @@ import { SK } from '../../src/library/skillIds';
 import { ES } from '../../src/library/essenceIds';
 import { ACH } from '../../src/library/achievementIds';
 import { trueSkill } from '../../src/ruleset/perks';
-import { essenceSlots, expireOffers, offerAtEnding, offerRoll, offersFromDefeats, passEssence, removeEssence, takeEssence } from '../../src/engine/essence';
+import { essenceSlots, expireOffers, offerAtEnding, qualityRoll, offersFromDefeats, passEssence, removeEssence, takeEssence } from '../../src/engine/essence';
 import { frameOf } from '../../src/engine/scenarioEnd';
 import { xpToNext } from '../../src/engine/xp';
 
@@ -28,11 +28,11 @@ describe('207 essences', () => {
     expect(essenceSlots(s.player)).toBe(3);
   });
 
-  it('the offer roll: d100 + base − 150 on the tier table, natural edges included', () => {
-    expect(offerRoll(dice(69), 80)).toBeNull(); // Near Miss
-    expect(offerRoll(dice(70), 80)).toEqual({ grade: 'common', past: 0 });
-    expect(offerRoll(dice(95), 80)).toEqual({ grade: 'fine', past: 0 });
-    expect(offerRoll(dice(96), 80)).toEqual({ grade: 'rare', past: 0 }); // a natural high lifts Great to Critical
+  it('the quality roll: d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural edges included', () => {
+    expect(qualityRoll(dice(69), 60)).toBeNull(); // Near Miss
+    expect(qualityRoll(dice(70), 60)).toEqual({ grade: 'common', past: 0 });
+    expect(qualityRoll(dice(95), 60)).toEqual({ grade: 'fine', past: 0 });
+    expect(qualityRoll(dice(96), 60)).toEqual({ grade: 'rare', past: 0 }); // a natural high lifts Great to Critical
   });
 
   it('a notable foe beaten offers once, ever, an essence of its race; points come from its skills', () => {
@@ -40,7 +40,7 @@ describe('207 essences', () => {
     foe.core.skills[SK.endurance] = { raw: 60, state: 'normal' };
     foe.core.skills[SK.tremor] = { raw: 30, state: 'normal' };
     foe.core.generation = 'unique'; // notable whatever its power
-    offersFromDefeats(s, [foe], dice(100));
+    offersFromDefeats(s, [foe], dice(1, 100)); // appears on 1, quality 100
     expect(offers(s)).toHaveLength(1);
     const o = offers(s)[0];
     expect(o).toMatchObject({ essence: ES.gel_patience, grade: 'rare', source: 'foe', until: s.turn + CONFIG.ESSENCE_OFFER_TURNS });
@@ -78,14 +78,14 @@ describe('207 essences', () => {
     const f = frameOf(s, { question: 'q', scale: 'situation', endings: [] }, 'great_success', (_k, r) => r);
     offerAtEnding(s, f, 'lost', dice(100), [[SK.dodge, 2]]);
     expect(offers(s)).toHaveLength(0); // only resolved endings offer
-    offerAtEnding(s, f, 'resolved', dice(100), [[SK.block, 1], [SK.dodge, 3]]);
+    offerAtEnding(s, f, 'resolved', dice(1, 100), [[SK.block, 1], [SK.dodge, 3]]);
     expect(offers(s)[0]).toMatchObject({ essence: ES.hard_won_habit, source: 'ending' });
     expect(Object.keys(offers(s)[0].points)).toEqual([SK.dodge]);
     f.beaten = ['slime_1'];
-    offerAtEnding(s, f, 'resolved', dice(100), []);
+    offerAtEnding(s, f, 'resolved', dice(1, 100), []);
     expect(offers(s)[1].essence).toBe(ES.gel_patience);
     const success = frameOf(s, { question: 'q', scale: 'situation', endings: [] }, 'success', (_k, r) => r);
-    offerAtEnding(s, success, 'resolved', dice(100), [[SK.dodge, 1]]);
+    offerAtEnding(s, success, 'resolved', dice(1, 100), [[SK.dodge, 1]]);
     expect(offers(s)).toHaveLength(2); // Success endings don't offer
   });
 
@@ -102,5 +102,19 @@ describe('207 essences', () => {
     expect(pr.essenceOffers).toHaveLength(1);
     expect(passEssence(s, 0)).toBeNull();
     expect(pr.essenceOffers).toBeUndefined();
+  });
+
+  it('appearance and quality are separate rolls: no appearance, nothing; an essence that appears and fails its quality roll fades', () => {
+    const s = makeVillage(), foe = slime(s);
+    foe.core.generation = 'unique';
+    const codes = () => s.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code);
+    offersFromDefeats(s, [foe], dice(CONFIG.ESSENCE_APPEAR_CHANCE.foe + 1, 100)); // the appearance roll misses
+    expect(offers(s)).toHaveLength(0);
+    expect(codes()).toEqual([]);
+    const other = makeVillage(), foe2 = slime(other);
+    foe2.core.generation = 'unique';
+    offersFromDefeats(other, [foe2], dice(1, 10)); // appears, then the quality roll fails: it fades
+    expect(other.player.progression!.essenceOffers ?? []).toHaveLength(0);
+    expect(other.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code)).toEqual(['essence_appeared', 'essence_faded']);
   });
 });

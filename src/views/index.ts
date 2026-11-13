@@ -613,6 +613,10 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)
     ...((offered) => offered.length ? { essences: offered } : {})((p.progression?.essenceOffers ?? []).filter((o) => o.turn === state.turn)
       .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
+    // essences that appeared this turn and failed their quality roll: they show, then fade
+    ...((faded) => faded.length ? { essencesFaded: faded } : {})(state.log.filter((l) => l.turn === state.turn && l.code === 'essence_faded')
+      .map((l) => String((l.detail as { essence?: string } | undefined)?.essence ?? ''))
+      .map((id) => ({ name: getLibrary().essences?.[id]?.name ?? id, story: getLibrary().essences?.[id]?.story ?? '' }))),
   };
 }
 

@@ -338,8 +338,13 @@ const DEFAULTS = {
   ESSENCE_GRADE_PAST_MULT: 1.5,
   /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or unique */
   ESSENCE_NOTABLE_SHARE: 0.75,
-  /** the offer roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table (base 80: offers 31%; 100: 51%) */
-  ESSENCE_ROLL_NEEDED: 150,
+  /** an essence's appearance roll: one appears when d100 ≤ this % (by source: foe, or the ending's tier). Placeholders, set
+   * with ESSENCE_ROLL_NEEDED so essences come about as often as when one roll did both (about 31% from a notable foe or a
+   * Great Success ending, 50% from a Critical Success one) */
+  ESSENCE_APPEAR_CHANCE: { foe: 60, great_success: 60, critical_success: 70 } as Record<string, number>,
+  /** an appeared essence's quality roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table; Near Miss or worse,
+   * it fades (base 80: it holds 51%; 100: 71%) */
+  ESSENCE_ROLL_NEEDED: 130,
   ESSENCE_ROLL_BASE: { foe: 80, great_success: 80, critical_success: 100 } as Record<string, number>,
   /** EG2: room for essences = ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels (2 at 7, 3 at 14), no top */
   ESSENCE_SLOTS_BASE: 1,

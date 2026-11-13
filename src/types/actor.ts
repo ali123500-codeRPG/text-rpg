@@ -156,7 +156,7 @@ export type Progression = {
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };
 
-/** an essence: its row, the grade its offer roll gave, and the true skill it adds (its points, split by the row's weights) */
+/** an essence: its row, the grade its quality roll gave, and the true skill it adds (its points, split by the row's weights) */
 export type HeldEssence = { essence: LibraryRef; grade: import('../scales').EssenceGradeKey; points: Record<LibraryRef, number>; turn: Turn; from?: string };
 /** an essence on offer: where it came from (a beaten foe's name, or the scenario's ending) and the last turn it can be taken */
 export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; until: Turn };

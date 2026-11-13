@@ -230,6 +230,8 @@ export type NarrationEvent = {
 export type NarrationView = {
   /** growth proposal 2.7: essences offered this turn: what the character feels (EG11 b: the thread may be named) */
   essences?: { name: string; story: string }[];
+  /** essences that appeared this turn but failed their quality roll: felt for a moment, then gone */
+  essencesFaded?: { name: string; story: string }[];
   style: { tone: string; length: string };
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
