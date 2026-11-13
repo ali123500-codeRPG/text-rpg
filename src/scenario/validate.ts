@@ -11,6 +11,7 @@ import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
+import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
 
@@ -322,6 +323,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     else {
       let tpl;
       try { tpl = npcTemplate(state, c.template); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
+      // HF11: a unique comes into a world once; already here, it is cast by its actor id
+      if (tpl?.generation === 'unique' && uniqueInWorld(state, tpl.id)) err('unique_in_world', `cast ${k}: ${tpl.id} is already in this world; cast its actor instead`, k);
+      if (tpl?.generation === 'unique' && cast.filter((x) => x.template === tpl!.id).length > 1) err('unique_in_world', `cast ${k}: ${tpl.id} is one person; cast it once`, k);
       if (tpl) {
         try { bodyType(state, race(tpl.raceId).bodyTypeId); } catch {
           err('unknown_body_type', `cast ${k}: race ${tpl.raceId} or its body type unknown; known races: ${Object.values(lib.races ?? {}).map((r) => `${r.id} (${r.name})`).join(', ')}`, k);

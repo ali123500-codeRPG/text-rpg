@@ -432,6 +432,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
       if (part.roles.includes(RL.grip)) {
         const zone = zoneById(state, T.zone);
         for (const inst of T.core.inventory.filter((i) => handsOf(i).includes(part.id))) {
+          if (inst.soulbound) { delete inst.equippedIn; continue; } // HF18: soulbound gear never leaves its owner
           T.core.inventory = T.core.inventory.filter((i) => i !== inst);
           const { equippedIn: _, ...loose } = inst;
           zone?.groundItems.push(T.pos ? { ...loose, at: { ...T.pos } } : loose); // FR2: it falls where they stand

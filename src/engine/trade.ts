@@ -182,7 +182,7 @@ export function buyingPrice(owner: Actor, buyer: Actor, value: number): number {
 export function offerList(state: GameState, owner: Actor, seller: Actor): { id: string; name: string; price: string }[] {
   if (!isSeller(seller)) return [];
   return owner.core.inventory.flatMap((i) => {
-    const p = worn(i) ? null : sellPrice(state, owner, seller, i.itemId);
+    const p = worn(i) || i.soulbound ? null : sellPrice(state, owner, seller, i.itemId); // HF18: soulbound gear can't be sold
     return p === null ? [] : [{ id: i.id, name: itemDef(state, i.itemId).name, price: coinWords(p) }];
   });
 }
@@ -199,7 +199,7 @@ export function sell(state: GameState, owner: Actor, seller: Actor | undefined, 
   if (wary(state, seller, owner)) return { ok: false, reason: 'refuses' };
   const inst = owner.core.inventory.find((i) => i.id === instId);
   const each = inst ? sellPrice(state, owner, seller, inst.itemId) : null;
-  if (!inst || each === null) return { ok: false, reason: 'not_bought' };
+  if (!inst || inst.soulbound || each === null) return { ok: false, reason: 'not_bought' }; // HF18
   if (worn(inst)) return { ok: false, reason: 'worn' };
   if (inst.stolenFrom === seller.id) return { ok: false, reason: 'stolen' }; // FL6: its owner knows it and won't buy it back
   const stackable = itemDef(state, inst.itemId).stackable;

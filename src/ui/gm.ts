@@ -1,8 +1,9 @@
 // GM debug view (Part 2, Leak prevention…; Part 4 §11): full state, hidden plans, rolls, beliefs, each agent's exact
 // input and output, the red fallback banner, the backup list with restore, and the "Download backup" button.
 import { tierName } from '../ruleset';
+import { getLibrary } from '../library';
 import { ageText } from '../ruleset/age';
-import type { GameApi, ScenarioRecord } from '../types';
+import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
 import { QUALITY_LEVELS, TIERS } from '../scales';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
@@ -19,6 +20,9 @@ function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: num
   }).filter((r) => r.scenarios);
 }
 
+type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
+const KIND_WORD: Record<BlueprintPage['kind'], string> = { item: 'an item', body_type: 'a body type', npcTemplate: 'an NPC template' };
+
 const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null, 2) ?? 'null');
 
 export function gmPage(api: GameApi) {
@@ -32,6 +36,45 @@ export function gmPage(api: GameApi) {
     const a = h('a', { href: URL.createObjectURL(blob), download: `backup-${snap.state?.storyId ?? 'story'}-turn-${snap.state?.turn ?? 0}.json` });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // HF34 a: what the Weaver made in this story, each with Send to library (the send list, then a comment that wakes Claude)
+  const notes = new Map<string, string>();
+  let sent = new Set<string>(), sendsAt = 0;
+  let comments: CommentsApi | null = null;
+  const rt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
+  rt?.use('comments').then(async (c) => { if (c && (await c.canSendToClaude().catch(() => 'off')) === 'available') comments = c; }).catch(() => undefined);
+  function refreshSends(storyId: string) {
+    if (Date.now() - sendsAt < 5000) return;
+    sendsAt = Date.now();
+    api.librarySends().then((xs) => { sent = new Set(xs.filter((x) => x.storyId === storyId).map((x) => String(x.data.id ?? ''))); update(); }).catch(() => undefined);
+  }
+  async function sendMade(b: BlueprintPage, btn: HTMLButtonElement) {
+    btn.disabled = true;
+    const r = await api.sendBlueprint(b.id).catch(() => ({ error: 'The send couldn’t be saved. Try again.' }));
+    if ('error' in r) { notes.set(b.id, r.error); return update(); }
+    const name = String(b.data.name ?? b.data.label ?? b.id);
+    const woke = comments ? await comments.sendToClaude({ anchor: await comments.anchorFor(btn), text: `"${name}" (${KIND_WORD[b.kind]} the Weaver made in a story) was sent to the library for review: if it fits, add it to the code library by PR, from db library_sends/${r.id} (thread "Turn hall of fame heroes into NPCs").` }).then(() => true, () => false) : false;
+    notes.set(b.id, woke ? 'Sent to Claude.' : 'Saved to the send list; Claude couldn’t be reached from here.');
+    sent.add(b.id);
+    update();
+  }
+  function madeSection(s: GameState | null) {
+    const made = s?.blueprints ?? [];
+    if (s) refreshSends(s.storyId);
+    return h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Made this story · send what should stay to the library'),
+      made.length ? h('table', { class: 'hs-tbl' },
+        h('thead', {}, h('tr', {}, ['Name', 'Kind', 'Built from', 'Quality', 'Id', ''].map((t) => h('th', {}, t)))),
+        h('tbody', {}, made.map((b) => {
+          const d = b.data as { name?: string; label?: string; base?: { itemId: string; quality: string } };
+          const btn = h('button', { class: 'hs-btn-text', type: 'button', onclick: (e: Event) => { e.stopPropagation(); void sendMade(b, btn as HTMLButtonElement); } }, sent.has(b.id) ? 'Send again' : 'Send to library');
+          return h('tr', { style: 'cursor:pointer', title: 'Open what it is made of', onclick: () => openPanel(String(d.name ?? d.label ?? b.id), [{ k: 'Kind', v: KIND_WORD[b.kind].replace(/^an? /, '') }, { k: 'Id', v: b.id }, { k: 'Data', v: json(b.data) }]) },
+            h('td', {}, d.name ?? d.label ?? b.id), h('td', {}, KIND_WORD[b.kind].replace(/^an? /, '')),
+            h('td', {}, ((id) => (id ? getLibrary().items[id]?.name ?? id : '–'))(d.base?.itemId ?? (b.kind === 'item' ? b.id.replace(/_i\d+$/, '') : undefined))),
+            h('td', { class: 'hs-num' }, d.base ? QUALITY_LEVELS.keyOf(d.base.quality) ? QUALITY_LEVELS.name(QUALITY_LEVELS.keyOf(d.base.quality)!) : String(d.base.quality) : '–'), h('td', {}, b.id),
+            h('td', { class: 'r' }, btn, notes.has(b.id) ? h('span', { class: 'hs-note' }, ` ${notes.get(b.id)}`) : sent.has(b.id) ? h('span', { class: 'hs-note' }, ' Sent') : ''));
+        })))
+        : h('p', { class: 'empty' }, 'Nothing made yet. Items the Weaver makes live only in this story until you send them to the library.'));
   }
 
   function update() {
@@ -109,14 +152,7 @@ export function gmPage(api: GameApi) {
             h('td', { class: 'hs-num' }, String(r.barriers)), h('td', {}, r.shut || '–'), h('td', {}, r.grades || '–')))))
           : h('p', { class: 'empty' }, 'No scenario has ended yet.')),
 
-      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Needs data · items Claude made this story'),
-        s?.blueprints.some((b) => b.kind === 'item') ? h('table', { class: 'hs-tbl' },
-          h('thead', {}, h('tr', {}, ['Name', 'Built from', 'Quality', 'Id'].map((t) => h('th', {}, t)))),
-          h('tbody', {}, s.blueprints.filter((b) => b.kind === 'item').map((b) => {
-            const d = b.data as { name?: string; base?: { itemId: string; quality: string } };
-            return h('tr', {}, h('td', {}, d.name ?? b.id), h('td', {}, d.base?.itemId ?? b.id.replace(/_i\d+$/, '')), h('td', { class: 'hs-num' }, d.base ? QUALITY_LEVELS.keyOf(d.base.quality) ? QUALITY_LEVELS.name(QUALITY_LEVELS.keyOf(d.base.quality)!) : String(d.base.quality) : '–'), h('td', {}, b.id));
-          })))
-          : h('p', { class: 'empty' }, 'No made items yet. Each one runs on a library base until you give it its own data.')),
+      madeSection(s),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Hidden plans'), s ? json(s.hidden) : h('p', { class: 'empty' }, 'No story yet.')),
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Engine log'), g.log.length ? json(g.log) : h('p', { class: 'empty' }, 'Nothing logged this turn.')),

@@ -412,6 +412,10 @@ const DEFAULTS = {
    * it fades (base 80: it holds 51%; 100: 71%) */
   ESSENCE_ROLL_NEEDED: 130,
   ESSENCE_ROLL_BASE: { foe: 80, great_success: 80, critical_success: 100 } as Record<string, number>,
+  /** HF18, HF29 a: a beaten echo always offers an essence (no appearance roll); its quality roll goes this many tiers up,
+   * and a result below Success still gives ECHO_ESSENCE_FLOOR */
+  ECHO_ESSENCE_TIERS: 2,
+  ECHO_ESSENCE_FLOOR: 'common' as import('./scales').EssenceGradeKey,
   /** EG2: room for essences = ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels (2 at 7, 3 at 14), no top */
   ESSENCE_SLOTS_BASE: 1,
   ESSENCE_SLOT_EVERY: 7,
