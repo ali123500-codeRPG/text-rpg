@@ -23,7 +23,7 @@ const ROWS: Record<string, Row> = {
   deceive: { need: 'voice', who: 'both' },
   barter: { need: 'voice', who: 'both' },
   intimidate: { need: 'voice', who: 'both' },
-  use_item: { need: 'none', who: 'both' },
+  use_item: { need: 'grip', who: 'both' }, // BF13: a healing item on someone else is used within arm's reach of them
   equip: { need: 'none', who: 'both' },
   give: { need: 'grip', who: 'both' },
   pick: { need: 'grip', who: 'both' },

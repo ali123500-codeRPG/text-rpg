@@ -15,6 +15,9 @@ const broken = (b: Barrier) => b.state === 'destroyed';
 /** BA7: a barrier broken to Crippled lets an amorphous body through */
 const squeezes = (b: Barrier, a: Actor) => b.state === 'crippled' && a.core.bodyTypeId === BT.amorphous;
 
+/** BF12: hands pass this way: it is open, or shut but you can see through it (bars, a grate); a shut door, gate or hatch
+ * passes nothing */
+export const handsPass = (b: Barrier | undefined): boolean => !b || !isShut(b) || !!getLibrary().barrierKinds?.[b.kind]?.seeThrough;
 /** shut to someone with no key on the wrong side of the bar: locked, barred or blocked, and not broken through */
 export const isShut = (b: Barrier): boolean => !broken(b) && !b.open && (!!b.blocked || !!b.lock?.locked || !!b.bar?.drawn);
 /** BA3: `a` carries a key naming this barrier */

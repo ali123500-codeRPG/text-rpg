@@ -263,6 +263,19 @@ export async function saveHistory(store: Store, storyId: string, lines: LogLine[
   }
 }
 
+/** BG-161: a restored backup drops the story text of the turns after it: later chunks go, the cut chunk keeps its earlier lines. */
+export async function cutHistory(store: Store, storyId: string, afterTurn: number): Promise<void> {
+  const keep = historyChunk(afterTurn);
+  for (const p of await guard(() => store.list(`${story(storyId)}/history`))) {
+    const n = +tail(p);
+    if (n > keep) await guard(() => store.delete(p), true);
+    else if (n === keep) {
+      const doc = await guard(() => store.get<HistoryDoc>(p));
+      if (doc) await guard(() => store.set(p, { ...doc, lines: doc.lines.filter((l) => l.turn <= afterTurn) }), true);
+    }
+  }
+}
+
 /** The whole saved story column, oldest first. */
 export async function loadHistory(store: Store, storyId: string): Promise<LogLine[]> {
   const paths = (await guard(() => store.list(`${story(storyId)}/history`))).sort((a, b) => +tail(a) - +tail(b));
