@@ -413,7 +413,7 @@ export function inventoryPage(api: GameApi) {
 
 /** a quest to open on arrival (the Play screen's quest line) */
 export const questFocus: { id: string | null } = { id: null };
-const titleCase = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const titleCase = cap;
 
 /** QT12: "Abandon quest", confirmed in place */
 function abandonButton(api: GameApi, id: string): HTMLElement {

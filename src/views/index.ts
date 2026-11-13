@@ -43,7 +43,7 @@ import { pressedWords, tellFor, tookWords } from '../engine/speech';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
-import { mentions } from '../words';
+import { cap, mentions, r1 } from '../words';
 import { modeName, usableModes } from '../ruleset/gear';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -53,7 +53,6 @@ import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../sc
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
-const r1 = (x: number) => Math.round(x * 10) / 10;
 /** FT20: the player's stamina bar as points left, to a tenth */
 export const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
 /** a rolled NPC's title from its template, given with its name in CHARACTER only */
@@ -102,14 +101,14 @@ function furnitureView(state: GameState, zoneId: string): { furniture?: ZoneView
   const fs = furnitureIn(state, zoneId);
   return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f) })) } : {};
 }
-/** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
-/** BG-181: what someone's wounds were last treated with, by item name, until their next wound */
 /** HF2: an echo's hidden past, for the Narrator only */
 const echoOf = (state: GameState, id: string): { echo?: string } => {
   const a = actorById(state, id), t = a?.core.origin === 'echo' && a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined;
   return t?.unique ? { echo: t.unique.past } : {};
 };
+/** BG-181: what someone's wounds were last treated with, by item name, until their next wound */
 const tendedOf = (state: GameState, a: Actor): { tended?: string } => { const t = a.core.condition.tended; return t ? { tended: itemDef(state, t.itemId).name } : {}; };
+/** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
 function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: ItemInstance[] = i.contents ?? []): { container?: ContainerView } {
   if (!itemDef(state, i.itemId).container) return {};
   const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const } : {};
@@ -219,7 +218,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (hidden === 'unaware') continue;
     // BG-92: where someone is, even half seen, so nobody mistakes them for another person elsewhere
     const place = {
-      ...(a.pos && viewer.pos ? { distanceM: Math.round(sightDistM(state, viewer, a) * 10) / 10 } : {}),
+      ...(a.pos && viewer.pos ? { distanceM: r1(sightDistM(state, viewer, a)) } : {}),
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
     };
     if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
@@ -391,15 +390,15 @@ function need(state: GameState, id: string): Actor {
 function talkingWithSeen(state: GameState): { id: string; name: string }[] {
   return talkingWith(state).map((id) => ({ id, name: callName(state, state.player.id, id) }));
 }
-/** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
- * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
- * off (BG-28) */
 /** BG-164: the player sees the spot where they last saw `id`, and nobody is made out there: they are gone from it, as far
  * as the player knows (never where to) */
 function goneFromSpot(state: GameState, id: string): boolean {
   const j = state.player.journal, zone = j?.lastKnown?.[id], pos = j?.lastSpot?.[id];
   return !!zone && !!pos && spotInSight(state, { zone, pos });
 }
+/** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
+ * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
+ * off (BG-28) */
 function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['lastSeen']> {
   const p = state.player;
   return Object.entries({ ...p.journal?.clearSight, ...p.journal?.lastKnown }).flatMap(([id, zone]) => {
@@ -434,7 +433,7 @@ function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metr
     const name = itemDef(state, inst.itemId).name.toLowerCase();
     best.set(name, Math.max(best.get(name) ?? 0, m.mode.reach));
   }
-  const out = [...best].map(([name, metres]) => ({ name, metres: Math.round(metres * 10) / 10 })).sort((a, b) => b.metres - a.metres);
+  const out = [...best].map(([name, metres]) => ({ name, metres: r1(metres) })).sort((a, b) => b.metres - a.metres);
   return out.length ? { reaches: out } : {};
 }
 /** BG-190: whom the player is following, or lost this turn and why */
@@ -578,7 +577,7 @@ export function questGoalText(state: GameState, q: Quest): string {
   const who = (id: string) => callName(state, state.player.id, id);
   const name = (f: () => string, or: string) => { try { return f(); } catch { return or; } };
   const many = (n: string, k: number) => (k > 1 && !/s$/i.test(n) ? `${n}s` : n);
-  const count = (n: string, k: number) => `${n[0].toUpperCase()}${many(n, k).slice(1)} ${q.progress} / ${k}`;
+  const count = (n: string, k: number) => `${cap(many(n, k))} ${q.progress} / ${k}`;
   switch (g.kind) {
     case 'defeat': return g.by === 'actor' ? `Defeat ${who(g.of)}` : count(g.noun ?? (g.by === 'race' ? lib.races?.[g.of]?.name ?? g.of : name(() => bodyType(state, g.of).name, g.of)), g.count);
     case 'deliver': return `${count(g.inst ? itemName(state, g.item) ?? 'the item' : name(() => itemDef(state, g.item).name, g.item), g.qty)} to ${who(g.to)}`;

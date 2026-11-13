@@ -39,6 +39,7 @@ import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { classMaxLevel } from '../library/spawn';
+import { cap } from '../words';
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -65,7 +66,7 @@ function card(sec: string, id: string, entry: unknown, title: string, chips: (HT
 
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
 /** a field key as words: raceId → Race, focusTreeId → Focus tree, hpMultiplier → Hp multiplier */
-const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase().replace(/^fn\b/, 'function'); return w.charAt(0).toUpperCase() + w.slice(1); };
+const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase().replace(/^fn\b/, 'function'); return cap(w); };
 /** typed ids (RC1, CL6, IT2, SK1 …) shown as their entry's name, linked to its pop-up; the raw id stays in the Code view */
 let idIndex: Map<string, [string | null, string]> | undefined;
 function typedId(v: string): Node | null {
@@ -565,7 +566,7 @@ function achievements(): HTMLElement[] {
   };
   // a line: one rule counted one way (rule + by), its levels in count order; each line folds on its own
   const lineOf = (d: AchievementDef) => `${d.rule}|${d.by ?? ''}`;
-  const lineTitle = (k: string) => { const [rule, by] = k.split('|'); const t = ACH_RULE_TEXT[rule as AchievementDef['rule']] ?? rule; return `${t[0].toUpperCase()}${t.slice(1)}${by ? ` (per ${by.replace('_', ' ')})` : ''}`; };
+  const lineTitle = (k: string) => { const [rule, by] = k.split('|'); const t = ACH_RULE_TEXT[rule as AchievementDef['rule']] ?? rule; return `${cap(t)}${by ? ` (per ${by.replace('_', ' ')})` : ''}`; };
   const byLine = (list: [string, AchievementDef][]) => [...new Set(list.map(([, d]) => lineOf(d)))]
     .map((k) => section(lineTitle(k), list.filter(([, d]) => lineOf(d) === k)));
   // sub-tabs by tag (TG1–TG9) in ACH_TAGS order, plus All; scars sit with achievements; a row with several tags shows under each
@@ -905,7 +906,7 @@ function threadboundView(): HTMLElement[] {
         h('div', { class: 'lv-tb-unlock' }, h('span', { class: 'lv-k' }, 'Unlocks with '), a ? link('achievements', a.id, a.name) : g.achievement,
           a ? h('span', { class: 'lv-tb-at' }, ` · ${earnedAtText(NO_STATE, a)}`) : null, a?.scar ? chip('scar', toneFor('Kind', 'scar')) : null),
         h('div', { class: 'lv-tb-perk' }, pk ? link('perks', pk.id, pk.name) : g.perk, r ? chip(r.kind) : null, r?.cooldown ? h('span', { class: 'lv-tb-at' }, ` ${r.cooldown}`) : null),
-        r ? h('p', { class: 'lv-tb-effect' }, r.effect.replace(/^./, (c) => c.toUpperCase()) + '.') : pk?.story ? h('p', { class: 'lv-tb-effect' }, pk.story) : null));
+        r ? h('p', { class: 'lv-tb-effect' }, cap(r.effect) + '.') : pk?.story ? h('p', { class: 'lv-tb-effect' }, pk.story) : null));
   };
   return [
     h('p', { class: 'hs-note' }, 'Each Threadbound item is one of a kind in the world. It binds to the first person who wears it, and no one else can wear it after that. Its owner can summon it from wherever it is. While the owner wears it, each ability opens once the owner has earned the achievement beside it, and stays open even after a higher level of that achievement replaces it. In anyone else\'s hands it does nothing. The Weaver does not place these items in scenes.'),

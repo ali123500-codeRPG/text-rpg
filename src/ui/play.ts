@@ -37,7 +37,7 @@ import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
 import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
-import { cap } from '../words';
+import { cap, r1 } from '../words';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scenario_fallback: 'Scenario planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -105,7 +105,7 @@ export function whoDistance(a: PlayerView['actors'][number], pv: PlayerView): st
   const where = a.zone && a.zone !== pv.zone.id ? `in ${pv.zones.find((z) => z.id === a.zone)?.name ?? a.zone}` : ''; // actors carry zone ids
   if (a.distanceM === undefined) return where ? cap(where) : '';
   const far = pv.player.reaches?.[0];
-  const m = (x: number) => (x < 10 ? `${Math.round(x * 10) / 10} m` : distText(x));
+  const m = (x: number) => (x < 10 ? `${r1(x)} m` : distText(x));
   const reach = !far ? '' : a.distanceM <= far.metres ? `in reach of your ${far.name} (${m(far.metres)})` : `beyond your ${far.name}’s ${m(far.metres)}`;
   return [`${m(a.distanceM)} away`, where, reach].filter(Boolean).join(' · ');
 }
