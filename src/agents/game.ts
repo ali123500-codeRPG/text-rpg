@@ -905,7 +905,7 @@ export function plannerActors(s: GameState): string[] {
   const errands = s.actors.filter((a) => errand(a) && isActive(a)).map((a) => a.id);
   return [...new Set([...(s.mercy?.pending ?? []), ...s.pending.engaged, ...dealt, ...errands])] // D-239: those deciding the player's fate
     .map((id) => s.actors.find((a) => a.id === id))
-    .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && !busyNow(a)) // NW20: a sleeper is not asked; AT47: nor one at a long action
+    .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && (!busyNow(a) || !!a.busy!.alert)) // NW20: a sleeper is not asked; AT47: nor one at a long action, unless its coming-near check fired (AT67)
     .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
 }
