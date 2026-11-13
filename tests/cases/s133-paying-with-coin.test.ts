@@ -15,7 +15,7 @@ import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 
 function shop(): GameState {
-  const s = makeVillage({ playerZone: 'tav_counter' });
+  const s = makeVillage({ playerZone: 'tav_counter', without: ['slime_1', 'slime_2'] }); // AT45: a quiet shop, so a trade's time runs out
   const mags = actorById(s, 'trader')!;
   mags.wares = { items: [IT.healing_draught], services: [SV.drink, SV.clinic] };
   mags.core.inventory.push({ id: 'stock', itemId: IT.healing_draught, qty: 3 });

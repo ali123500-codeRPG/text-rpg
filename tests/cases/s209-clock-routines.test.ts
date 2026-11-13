@@ -59,7 +59,7 @@ describe('209 routines on the clock (NW10, NW11, NW13)', () => {
     expect(desiredState(buildActorView(s, g.id))!.zone).toBe('street_square');
     expect(g.zone).toBe('street_square');
   });
-  it('NW11: it goes only as far as it could walk in the time; an action turn is a minute of walking', () => {
+  it('NW11: it goes only as far as it could walk in the time; a turn of an action with no time of its own is a minute of walking', () => {
     const s = quiet();
     startClock(s, 'morning');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
@@ -67,7 +67,7 @@ describe('209 routines on the clock (NW10, NW11, NW13)', () => {
     installRoutines(g, 'gate_guard', { post: 'field_far' }, undefined, s.turn, createRng(1), now(s));
     const reach = travelSpeed(s, g, CONFIG.CATCH_UP_PACE) * 60;
     const from = g.pos!.x;
-    turn(s, act('observe'));
+    turn(s, act('other'));
     expect(g.zone).not.toBe('field_far');
     expect(g.pos!.x - from).toBeCloseTo(reach, 0);
   });

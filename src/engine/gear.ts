@@ -192,9 +192,10 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
 }
 
 /** equip (main action): put armor on (taking off any worn armor), or take it off when worn. */
-export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined): boolean {
+export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined, dry = false): boolean {
   const inst = actor.core.inventory.find((x) => x.id === instId);
   if (!inst || itemDef(state, inst.itemId).slot !== 'armor') return false;
+  if (dry) return !!inst.equippedIn?.includes('armor') || !inst.equippedIn?.length; // AT45: would it go through
   if (inst.equippedIn?.includes('armor')) {
     delete inst.equippedIn;
     return true;

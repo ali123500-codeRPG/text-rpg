@@ -2,7 +2,9 @@
 // world clock walks what the turn's move time left, and stops it like any stretch. A walk not yet at its goal (stopped on
 // the way, or in a fight's short turn) carries on next turn by itself, until the player orders a move or an action.
 import { describe, expect, it } from 'vitest';
-import { makeVillage, place } from '../harness';
+import { createRng, makeVillage, place } from '../harness';
+import { fillSpeech, resolveSpeech, selectSpokespeople } from '../../src/engine';
+import { buildPlayerView } from '../../src/views';
 import { intent, play } from './w4-kit';
 import { now } from '../../src/time';
 import { distM } from '../../src/engine/position';
@@ -55,5 +57,23 @@ describe('273 walks', () => {
     s.mode = 'tactical';
     play(s, { intent: intent({ action: { type: 'observe', skill: SK.eyesight } }) }); // something else: it stops
     expect(s.player.walking).toBeUndefined();
+  });
+  it('BG-184: a walk that carried on ends once the player is in its zone; nothing is left to go', () => {
+    const s = quiet();
+    s.player.walking = { toZone: 'street_square' };
+    play(s, { intent: intent() });
+    expect(s.player.zone).toBe('street_square');
+    expect(s.player.walking).toBeUndefined();
+    expect(buildPlayerView(s).player.walking).toBeUndefined();
+  });
+  it('BG-185: words said on a walk that carries on are said on the way; the walk goes on to its goal', () => {
+    const s = quiet();
+    s.player.walking = { toZone: 'street_square' };
+    const i = fillSpeech(s, intent({ action: { type: 'talk', target: 'patron_1' }, spoken: 'Off to the square, Wim.', addressees: ['patron_1'] }), '');
+    const spokespeople = selectSpokespeople(s, i);
+    play(s, { intent: i, spokespeople, exchange: resolveSpeech(s, i, spokespeople, createRng(3)) });
+    expect(s.log.some((l) => l.code === 'stretch_stopped') || s.player.zone === 'street_square').toBe(true);
+    if (s.player.zone !== 'street_square') expect(s.player.walking).toEqual({ toZone: 'street_square' }); // stopped on the way: it carries on
+    else expect(s.player.walking).toBeUndefined();
   });
 });

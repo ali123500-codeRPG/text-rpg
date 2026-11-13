@@ -630,8 +630,9 @@ export function createGame(deps: GameDeps): Game {
     emit();
     try {
       await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext);
-      // NW18: while you stay asleep the game plays your turns, up to ASLEEP_AUTO_TURNS before it waits for you
-      for (let i = 0; i < CONFIG.ASLEEP_AUTO_TURNS && state?.player.asleep && !stopped; i++) await playTurn(ASLEEP_TEXT, false);
+      // NW18/AT42: while you stay asleep the game plays your turns: the night runs on as one stretch between them, so each
+      // moves the clock on; a turn that doesn't (nothing left to run) waits for you
+      for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false); }
       if (state?.mercy && !stopped) await playTurn(DOWN_TEXT, false); // D-239: the foes answer while you lie there
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
@@ -1306,13 +1307,14 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     const t = timeView(s);
     out.push(`Time passes: ${durationText((l.detail as { minutes: number }).minutes)} (Day ${t.day} · ${t.timeOfDay})`);
   }
-  // AT65: a rest or wait the world clock stopped says when and why
+  // AT65: a rest, wait, walk or long action the world clock stopped says when and why
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'stretch_stopped') continue;
-    const d = l.detail as { actorId: string; kind: string; why: string; seconds: number };
+    const d = l.detail as { actorId: string; kind: string; why: string; seconds: number; row?: string };
     if (d.actorId !== s.player.id) continue;
     const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
-    out.push(`${({ rest: 'Rest', wait: 'Wait', walk: 'Walk' } as Record<string, string>)[d.kind] ?? d.kind} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
+    const what = (d.row && getLibrary().durations?.[d.row]?.name) || ({ rest: 'Rest', wait: 'Wait', walk: 'Walk' } as Record<string, string>)[d.kind] || d.kind; // AT45: a long action by its row's name
+    out.push(`${what} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
   }
   // NW15/NW18: the night watch, and what woke you
   for (const l of s.log) {
