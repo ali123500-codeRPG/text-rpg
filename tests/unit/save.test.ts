@@ -27,7 +27,7 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
 
 afterEach(() => {
   resetConfig();
-  delete MIGRATIONS[7];
+  delete MIGRATIONS[8];
 });
 
 describe('save and load', () => {
@@ -208,13 +208,13 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await play(st, s, 1, 2);
-    CONFIG.SCHEMA_VERSION = 8;
-    MIGRATIONS[7] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    CONFIG.SCHEMA_VERSION = 9;
+    MIGRATIONS[8] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.flags.migrated).toBe(true);
-    expect(report).toContain('migrated v7 -> v8');
+    expect(report).toContain('migrated v8 -> v9');
     const h = await head(st);
-    expect(h).toMatchObject({ schemaVersion: 8, undo: null, safety: { turn: 2 } });
+    expect(h).toMatchObject({ schemaVersion: 9, undo: null, safety: { turn: 2 } });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
     // the safety bookmark can be taken back (it migrates again)
     expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
@@ -224,11 +224,11 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    CONFIG.SCHEMA_VERSION = 9;
-    MIGRATIONS[7] = () => {};
+    CONFIG.SCHEMA_VERSION = 10;
+    MIGRATIONS[8] = () => {};
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toContain('schema: no migration step v8 -> v9');
-    expect((await head(st)).schemaVersion).toBe(7);
+    expect(err.report).toContain('schema: no migration step v9 -> v10');
+    expect((await head(st)).schemaVersion).toBe(8);
   });
 
   it('v3 -> v4 gives humanoids two legs from the old pool and widens armor that covered legs', () => {
@@ -269,6 +269,12 @@ describe('migration and reconcile', () => {
     const pages: Record<string, unknown> = { engine: { events: [{ kind: 'move', noise: 'silent', visibility: 'high' }, { kind: 'speak', noise: 'normal', visibility: 'low' }] } };
     MIGRATIONS[6](pages);
     expect(pages).toEqual({ engine: { events: [{ kind: 'move', noise: 'silent', visibility: 'high' }, { kind: 'speak', noise: 'normal', visibility: 'low' }] } });
+  });
+
+  it('v7 -> v8 moves held items from hand: slots to grip: slots (BG-186)', () => {
+    const pages: Record<string, unknown> = { 'actor.player': { core: { inventory: [{ id: 'bow', equippedIn: ['hand:right_arm', 'hand:left_arm'] }, { id: 'coat', equippedIn: ['armor'] }, { id: 'coin' }] } } };
+    MIGRATIONS[7](pages);
+    expect(pages).toEqual({ 'actor.player': { core: { inventory: [{ id: 'bow', equippedIn: ['grip:right_arm', 'grip:left_arm'] }, { id: 'coat', equippedIn: ['armor'] }, { id: 'coin' }] } } });
   });
 
   it('v1 -> v2 turns tier names (old ones too) and roll tierIndex into tier IDs', () => {

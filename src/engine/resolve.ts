@@ -602,7 +602,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted('spar_held'); }
   const dist = sightDistM(state, a, t);
-  const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
+  if (notInHand(state, a, o)) return wasted('not_in_hand'); // BG-186: never a fist in its place
+  const named = namedMode(state, a, o);
   // a named skill picks the mode that uses it ("I grab him" names unarmed_grapple, not the sword in hand)
   const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && withinM(dist, x.mode.reach)) : undefined;
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
@@ -1604,7 +1605,7 @@ function repeatAttacks(ctx: Ctx, ordered: string[]): void {
     if (!next) return;
     const { a, o, cost, at } = next;
     const t = o.target ? actorById(state, o.target) : undefined;
-    if (!t || !isActive(t) || yieldBars(state, a, t) || stance(state, t, a) === 'yielded') { ctx.stopped.add(a.id); continue; } // broken or surrendered mid-turn: the next blow is the attacker's own call
+    if (!t || !isActive(t) || notInHand(state, a, o) || yieldBars(state, a, t) || stance(state, t, a) === 'yielded') { ctx.stopped.add(a.id); continue; } // broken or surrendered mid-turn: the next blow is the attacker's own call
     const near = reachOf(state, a, o);
     if (near && !near.ok()) closeInOn(ctx, a, o, near);
     if (near && !near.ok()) { ctx.stopped.add(a.id); continue; }
@@ -1674,11 +1675,16 @@ function doBattleCry(ctx: Ctx, a: Actor): void {
 }
 
 /** the attack mode the actor would use from where it stands, or from `from` (as doAttack picks it), and the metres to the target */
+/** the attack mode the order names by mode and item, if one in use matches */
+const namedMode = (state: GameState, a: Actor, o: Order) =>
+  o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
+/** BG-186: the order names a weapon of the actor's that isn't in hand (sheathed, carried, or gone) */
+const notInHand = (state: GameState, a: Actor, o: Order) =>
+  !!o.item && o.item !== 'unarmed' && !o.item.startsWith('natural:') && !usableModes(state, a).some((m) => m.itemId === o.item);
 function attackMode(state: GameState, a: Actor, o: Order, from: Located = a) {
   const t = o.target ? actorById(state, o.target) : undefined;
   const dist = t ? sightDistM(state, from, t) : Infinity;
-  const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
-  return { m: named ?? defaultMode(state, a, dist), dist };
+  return { m: namedMode(state, a, o) ?? defaultMode(state, a, dist), dist };
 }
 const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && withinM(dist, m.mode.reach); };
 /** FR4 (the NEEDS table): where this turn's action is done and whether the actor is near enough: a foe within the attack's
@@ -1694,7 +1700,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   const at = o.way && door(o.way.toZone);
   if (at) return grip(at);
   const need = needOf(state, a, o.type), t = o.target ? actorById(state, o.target) : undefined;
-  if (need === 'weapon' && t && t !== a && healthLevel(t) !== 'dead' && !rangedHere(state, a, o)) { // BG-162: someone down can be struck (doAttack), so is closed in on
+  if (need === 'weapon' && t && t !== a && healthLevel(t) !== 'dead' && !notInHand(state, a, o) && !rangedHere(state, a, o)) { // BG-162: someone down can be struck (doAttack), so is closed in on
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }

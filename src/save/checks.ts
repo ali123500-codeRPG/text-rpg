@@ -90,6 +90,15 @@ export function senseToKeys(v: unknown): void {
   Object.values(o).forEach(senseToKeys);
 }
 
+// v7 -> v8 (BG-186): a held item's slot is 'grip:<part>' (FR2), once 'hand:<part>'.
+export function handToGrip(v: unknown): void {
+  if (Array.isArray(v)) return v.forEach(handToGrip);
+  if (!v || typeof v !== 'object') return;
+  const o = v as Record<string, unknown>;
+  if (Array.isArray(o.equippedIn)) o.equippedIn = o.equippedIn.map((x) => (typeof x === 'string' && x.startsWith('hand:') ? `grip:${x.slice(5)}` : x));
+  Object.values(o).forEach(handToGrip);
+}
+
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
   2: (pages) => Object.values(pages).forEach(levelsToKeys),
@@ -97,6 +106,7 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   4: (pages) => Object.values(pages).forEach(opposedToHostile),
   5: notesToLists,
   6: (pages) => Object.values(pages).forEach(senseToKeys),
+  7: (pages) => Object.values(pages).forEach(handToGrip),
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */
