@@ -21,7 +21,7 @@ import { createRng } from '../rng';
 import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
-import { busyNow } from '../engine/resolve';
+import { busyNow } from '../engine/busy';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
