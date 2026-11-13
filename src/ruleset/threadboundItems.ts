@@ -6,6 +6,7 @@ import { getLibrary } from '../library';
 import { createRng } from '../rng';
 import { freeAccSlot, isWorn } from './gear';
 import { THREADBOUND_RANKS } from '../scales';
+import { now } from '../time';
 
 const libItem = (id: string): ItemDef | undefined => getLibrary().items[id];
 
@@ -77,4 +78,19 @@ export function grantThreadboundItem(a: Actor, state?: GameState): void {
     a.core.inventory.push({ id: `${pick.id}_${a.id}`, itemId: pick.id, boundTo: a.id, ...(slot ? { equippedIn: [slot] } : {}) });
     p.granted = pick.id;
   }
+}
+
+/** D-218: the active ability that fires by itself on this essence offer roll: of the owner's item abilities with essenceAuto
+ * whose cooldown has passed, the one with the longest cooldown (All or Nothing before Call the Toss); one per roll. It starts
+ * its cooldown. Undefined when none is ready. */
+export function fireEssenceAuto(state: GameState, a: Actor): { perk: string; kind: 'farther' | 'all_or_nothing' } | undefined {
+  const lib = getLibrary(), t = now(state);
+  const ready = a.core.perks.filter((p) => !p.dormant && p.source === 'item' && lib.perks[p.perkId]?.essenceAuto)
+    .map((p) => ({ perk: p.perkId, auto: lib.perks[p.perkId]!.essenceAuto!, inst: threadboundItemFor(a, p.perkId) }))
+    .filter((x) => x.inst && (x.inst.usedAt?.[x.perk] === undefined || t - x.inst.usedAt[x.perk] >= x.auto.cooldownMin))
+    .sort((x, y) => y.auto.cooldownMin - x.auto.cooldownMin);
+  const f = ready[0];
+  if (!f) return undefined;
+  (f.inst!.usedAt ??= {})[f.perk] = t;
+  return { perk: f.perk, kind: f.auto.kind };
 }

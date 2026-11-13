@@ -3,7 +3,7 @@
 // zone or use a two-handed mode, and trying to leave is a break-free contest it wins on a tie or better.
 import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
-import { makeVillage, forcedRng } from '../harness';
+import { beside, makeVillage, forcedRng } from '../harness';
 import { ruleset, usableModes } from '../../src/ruleset';
 import { applyHold, breakFree } from '../../src/engine/held';
 import { heldBy } from '../../src/engine/relations';
@@ -21,7 +21,7 @@ const grab = { attackerId: 'player', targetId: 'patron_1', weaponId: `natural:${
 describe('114 Hold', () => {
   it('a grapple is a natural attack on unarmed_grapple; with Hold a Great Success that hits holds the target', () => {
     const s = makeVillage();
-    const wim = npc(s, 'patron_1');
+    const wim = beside(s, 'patron_1');
     const r = ruleset.attack(grab, s, forcedRng([95, 5, 50]));
     expect(r.attack.tier === 'great_success' || r.attack.tier === 'critical_success').toBe(true);
     expect(['missed', 'dodged']).not.toContain(r.outcome);
@@ -40,7 +40,7 @@ describe('114 Hold', () => {
     s.player.core.inventory.push({ id: 'axe', itemId: IT.greataxe, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     expect(usableModes(s, s.player).some((m) => m.itemId === 'axe')).toBe(true);
     s.player.heldBy = wim.id;
-    wim.zone = s.player.zone;
+    beside(s, wim.id);
     expect(usableModes(s, s.player).some((m) => m.itemId === 'axe')).toBe(false);
     expect(buildPlayerView(s).player.heldBy).toBeDefined();
   });
@@ -48,18 +48,18 @@ describe('114 Hold', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     s.player.heldBy = wim.id;
-    wim.zone = s.player.zone;
+    beside(s, wim.id);
     expect(heldBy(s, s.player)).toBe(wim);
     wim.zone = 'tav_cellar';
     expect(heldBy(s, s.player)).toBeUndefined();
-    wim.zone = s.player.zone;
+    beside(s, wim.id);
     wim.core.condition.hpLostPct = 100;
     expect(heldBy(s, s.player)).toBeUndefined();
   });
   it('break free: a tie or better frees the target; a loss keeps it held', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    wim.zone = s.player.zone;
+    beside(s, wim.id);
     s.player.heldBy = wim.id;
     const lose = breakFree(s, s.player, forcedRng([1, 99]))!;
     expect(lose.free).toBe(false);
@@ -73,7 +73,7 @@ describe('114 Hold', () => {
   it('a held player who walks away tries to break free instead, and stays in the zone', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    wim.zone = s.player.zone;
+    beside(s, wim.id);
     s.player.heldBy = wim.id;
     const from = s.player.zone;
     const ev = play(s, { intent: intent({ move: { toZone: 'tav_counter' } }) });
@@ -83,7 +83,7 @@ describe('114 Hold', () => {
   it('“I grab him” picks the grapple, not the sword in hand', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    wim.zone = s.player.zone;
+    beside(s, wim.id);
     const ev = play(s, { intent: intent({ action: { type: 'attack', skill: SK.unarmed_grapple, target: 'patron_1' } }) });
     const atk = ev.find((e) => e.kind === 'attack' && e.actorId === 'player');
     expect(atk?.itemId).toBe(`natural:${AM.grapple}`);

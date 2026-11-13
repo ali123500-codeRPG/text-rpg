@@ -2,7 +2,7 @@
 // that outlast the attack) and Cover Ally (a friend takes a ranged attack in the target's place; switchable).
 import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
-import { makeVillage, place, forcedRng } from '../harness';
+import { makeVillage, place, forcedRng, beside } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { afterAttack, coverFor, expireMarks, markShifts } from '../../src/engine/perkMarks';
 import type { Actor, AttackResult, GameState } from '../../src/types';
@@ -72,7 +72,7 @@ describe('112 coded perks, batch 2', () => {
   it('Cover Ally: a better blocker friendly to the target takes the ranged attack; it can be switched off', () => {
     const s = makeVillage();
     const guard = npc(s, 'guard_1');
-    place(s, 'player', guard.zone);
+    beside(s, 'player', guard.id);
     s.bands.find((b) => b.id === 'player_band')!.relations.village_watch = 'friendly';
     s.bands.find((b) => b.id === 'village_watch')!.relations.player_band = 'friendly';
     s.player.core.standingDefense = 'block';

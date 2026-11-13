@@ -134,7 +134,7 @@ const DEFAULTS = {
   INIT_UNAWARE: 0, // Q2: unaware actors act last
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
-  AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (today's one zone link); the aura skill sets it once RD9's formula is chosen (D-193)
+  AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)
   ENGAGEMENT_END_TURNS: 3, // E1: an engagement ends after this many turns with no one engaged with the actor; YD6: hunting and engaged drop to tracking after this many turns with no blow or closing in
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
@@ -147,10 +147,10 @@ const DEFAULTS = {
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
   /** hearing (perception/noise.ts, BG-57, HB1–HB5): a sound weakens 20·log10(metres) with distance (the inverse-square
-   * law, never nearer than SAME_ZONE_M) and loses SOUND_LOSS_DB at each crossing on its way, by the least-loss route. It is
+   * law, never nearer than NEAREST_M) and loses SOUND_LOSS_DB at each crossing on its way, by the least-loss route. It is
    * heard while at least HEARING_FLOOR_DB and heard clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it: ANSI/ASA S12.60
    * asks a classroom's speech to stand 15 dB over its background. */
-  SAME_ZONE_M: 1,
+  NEAREST_M: 1, // the nearest any sight or sound is measured: the 1 m every decibel level is given at
   CLEAR_ABOVE_FLOOR_DB: 15,
   /** D-231: one hearing floor everywhere while per-zone background noise is parked: a quiet place (40 dB, a library or a quiet
    * street at night, Québec) at the old 0.5 game share. A [Proposed] lever. */
@@ -164,7 +164,7 @@ const DEFAULTS = {
   SOUND_LOSS_DB: { open: 0, window: 30, door: 30, wall: 35 } as Record<string, number>,
   /** sight (perception sightLevel): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
    * (something, not who), in metres, in daylight with a clear view, from real references (the library's
-   * visibilityLevels rows); null = nothing to see. Sight distance is never under SAME_ZONE_M (seeingM), so a level made
+   * visibilityLevels rows); null = nothing to see. Sight distance is never under NEAREST_M (seeingM), so a level made
    * out only nearer than that (faint) is at most glimpsed. A dark zone caps sight at partial. */
   SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
@@ -354,6 +354,9 @@ const DEFAULTS = {
   CHASE_LOST_TURNS: 3,
   /** CH5: the chase range of a code-run NPC whose band and template give none (a CHASE_RANGES key; placeholder) */
   CHASE_RANGE_DEFAULT: 'ground',
+  /** ZR12: how far past the edge of the scenario's ground, by the walking path, a pursuer with chase range near follows the
+   * player before it turns back (placeholder: about a village street or two; a game number, not a real-world reference) */
+  CHASE_NEAR_M: 200,
   IMPROVISED_HIT_ADJ: -10,
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,
@@ -364,8 +367,6 @@ const DEFAULTS = {
   MAIN_SLOTS: 1,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
-  /** CO14 today's zone link in paces, to convert range tables written in links (placeholder) */
-  LINK_PACES: 8,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   /** TV3 road lengths in km (ROAD_LENGTHS): a walk of about 4.5 km an hour gives the time words their lengths */

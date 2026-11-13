@@ -3,7 +3,7 @@ import { AM } from '../../src/library/tableIds';
 import type { Tier } from '../../src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
-import { makeVillage, actor, place, createRng } from '../harness';
+import { makeVillage, actor, place, createRng, beside } from '../harness';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
@@ -288,7 +288,7 @@ describe('dialogue', () => {
     expect(s.player.journal!.secretsKnown).toEqual(['sec']);
   });
   it('exchange slot: player speech first, then spoken replies in initiative order; a deed resolves at its own initiative', () => {
-    s.player.zone = 'tav_counter';
+    place(s, 'player', 'tav_counter');
     place(s, 'patron_1', 'tav_counter');
     F.init = { trader: 80, patron_1: 90, guard_1: 95 };
     const say = (actorId: string, line: string) => ({ agent: 'voice', actorId, output: { action: npcAction('talk', 'player'), line, volume: 'normal', shares: [], gear: null, stance: null, routine: null } }) as never;
@@ -298,7 +298,8 @@ describe('dialogue', () => {
     expect(ev.slice(0, 3).map((e) => [e.actorId, e.kind, e.line?.text])).toEqual([['player', 'speak', 'evening'], ['patron_1', 'speak', 'hm'], ['trader', 'speak', 'what?']]);
     // deed instead of a reply
     const s2 = makeVillage();
-    s2.player.zone = 'tav_counter';
+    place(s2, 'player', 'tav_counter');
+    beside(s2, 'trader'); // within arm's reach: the deed is the blow itself
     F.init = { player: 99, trader: 10, guard_1: 50 };
     actor(s2, 'trader').mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
     s2.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'hostile';

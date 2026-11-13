@@ -42,8 +42,9 @@ describe('hearing by real metres (BG-57)', () => {
   });
   it('HB4, BG-70: a shut door costs 30 dB, an open one nothing; a doorway with no sight is a shut door', () => {
     const s = makeVillage({ playerZone: 'tav_common' });
-    const across = (to: string) => soundDb(s, 'normal', { zone: 'tav_common' }, { zone: to })!;
-    expect(across('street_door')).toBeCloseTo(across('tav_counter') - 30); // both 8 m: the front door has no sight
+    const spot = { street_door: { x: 0, y: -8 }, tav_counter: { x: 8, y: 0 } } as Record<string, { x: number; y: number }>;
+    const across = (to: string) => soundDb(s, 'normal', { zone: 'tav_common', pos: { x: 0, y: 0 } }, { zone: to, pos: spot[to] })!;
+    expect(across('street_door')).toBeCloseTo(across('tav_counter') - 30); // both 8 m from the common room's middle: the front door has no sight
     const b = door(s, 'tav_common', 'street_door');
     expect(across('street_door')).toBeCloseTo(across('tav_counter') - 30);
     b.open = true;

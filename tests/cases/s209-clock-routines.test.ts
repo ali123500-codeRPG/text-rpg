@@ -12,7 +12,6 @@ import { getLibrary } from '../../src/library';
 import { validateRoutineBank } from '../../src/minds';
 import { now, startClock } from '../../src/time';
 import { CONFIG } from '../../src/config';
-import { linkM } from '../../src/ruleset/range';
 import { travelSpeed } from '../../src/engine/travel';
 
 const act = (type: ParserActionType): Intent => ({
@@ -64,14 +63,13 @@ describe('209 routines on the clock (NW10, NW11, NW13)', () => {
     const s = quiet();
     startClock(s, 'morning');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
-    // its post is five ways off; a minute walks travelSpeed × 60 metres, a link each linkM
-    installRoutines(g, 'gate_guard', { post: 'tav_cellar' }, undefined, s.turn, createRng(1), now(s));
+    // its post is 110 m off, straight east across the field; a minute walks travelSpeed × 60 metres (about 76)
+    installRoutines(g, 'gate_guard', { post: 'field_far' }, undefined, s.turn, createRng(1), now(s));
     const reach = travelSpeed(s, g, CONFIG.CATCH_UP_PACE) * 60;
-    CONFIG.LINK_PACES = Math.ceil((reach / 2.5) / CONFIG.PACE_M); // links so long a minute crosses only two of them
-    expect(linkM() * 2).toBeLessThan(reach + linkM());
+    const from = g.pos!.x;
     turn(s, act('observe'));
-    expect(g.zone).not.toBe('tav_cellar');
-    expect(g.zone).not.toBe('gate_inner');
+    expect(g.zone).not.toBe('field_far');
+    expect(g.pos!.x - from).toBeCloseTo(reach, 0);
   });
   it('NW11: a broken NPC is not moved on (nor one in a fight, held, or run by its agent this turn)', () => {
     const s = quiet();

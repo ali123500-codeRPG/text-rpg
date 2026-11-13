@@ -182,6 +182,8 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
   const s = view.self;
   // 1. Flee
   if (s.broken || s.surrendered) return flee(view, 'fallback');
+  // ZR12: a code-run pursuer at the end of its near chase range turns back
+  if (s.atChaseLine && hostileBeliefs(view).some((b) => !b.lost)) return routineOrder(view);
   // 2. Attack
   const here = view.beliefs
     .filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)

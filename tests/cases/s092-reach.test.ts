@@ -1,9 +1,9 @@
-// 92 Reach: reach is metres, and so is distance (a zone link with no zone rectangles is LINK_PACES × PACE_M metres). A spear
-// (2.8 m) can't reach the next zone from here, so the thrust closes in on the move slot first (ZP3) and strikes. A shortbow
+// 92 Reach: reach is metres, and so is distance. A spear (2.8 m) can't reach a man 5 m off in the next zone, so the thrust
+// closes in on the move slot first (ZP3) and strikes. A shortbow
 // (50 m) hits a target one linked zone away with sight; the same shot through a link without sight is a wasted action.
 import { AM } from '../../src/library/tableIds';
 import { expect, it } from 'vitest';
-import { makeVillage, place } from '../harness';
+import { byDoor, makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
@@ -11,7 +11,8 @@ import { IT } from '../../src/library/itemIds';
 it('92 Reach', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
   s.player.core.inventory.push({ id: 'sp', itemId: IT.spear });
-  place(s, 'patron_1', 'tav_counter').mind!.slots!.seat = 'tav_counter'; // tav_common -> tav_counter: sight
+  byDoor(s, 'patron_1', 'tav_counter', 'tav_common', 1).mind!.slots!.seat = 'tav_counter'; // tav_common -> tav_counter: sight
+  byDoor(s, 'player', 'tav_common', 'tav_counter', 4); // 5 m off: out of the spear's reach, within a move slot
   place(s, 'trader', 'street_door').mind!.slots!.counter = 'street_door'; // routines keep both where they are // tav_common -> street_door: no sight
   s.player.core.inventory.push({ id: 'bw', itemId: IT.shortbow });
   const stow = [{ op: 'stow' as const, item: `player_${IT.arming_sword}_1` }, { op: 'stow' as const, item: `player_${IT.round_shield}_2` }];

@@ -1,7 +1,7 @@
 // 127 20 perks for the skills added after the first 20 round: Soft Tread (Sneaking), Melt Away (Vanishing),
 // Slip the Blow (Light Armor), Quiet Mail (Medium Armor), Turn Aside (Heavy Armor).
 import { describe, expect, it } from 'vitest';
-import { createRng, fit, forcedRng, makeVillage, place } from '../harness';
+import { createRng, fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { meltAwayHere, ruleset } from '../../src/ruleset';
 import { installRoutines } from '../../src/minds';
 import { resolveTurn } from '../../src/engine';
@@ -91,7 +91,7 @@ describe('127 20 perks for the new skills', () => {
   it('Slip the Blow: in light armor, a Dodge that ties counts as a graze', () => {
     const setup = (armor: string, perk: boolean) => {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
+      beside(s, 'patron_1');
       arm(s, 'patron_1');
       s.player.core.standingDefense = 'dodge';
       wear(s.player, armor);
@@ -110,7 +110,7 @@ describe('127 20 perks for the new skills', () => {
   it('Turn Aside: a heavy or crushing hit on a part heavy armor covers lands as a full hit', () => {
     const setup = (perk: boolean) => {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
+      beside(s, 'patron_1');
       arm(s, 'patron_1');
       s.player.core.standingDefense = 'dodge';
       wear(s.player, IT.plate_harness);
@@ -131,7 +131,7 @@ describe('127 20 perks for the new skills', () => {
   it('In and Out: a melee attack from hiding keeps the owner Stealthy; only the target becomes aware', () => {
     const run = (perk: boolean) => {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
+      beside(s, 'patron_1');
       s.player.core.inventory.push({ id: 'w_player', itemId: IT.dagger, equippedIn: ['grip:right_arm'] });
       fit(s.player, IT.dagger);
       if (perk) give(s.player, PK.in_and_out);
@@ -148,7 +148,7 @@ describe('127 20 perks for the new skills', () => {
   it('the 60s against crowds: Blade Wall (Parry, medium weapon), Shield Wall (Block) and Slip the Crowd (Dodge) drop the outnumbered penalty', () => {
     const mods = (itemId: string | null, perk: string | null, stance: 'dodge' | 'block' | 'parry') => {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
+      beside(s, 'patron_1');
       arm(s, 'patron_1');
       for (const i of s.player.core.inventory) delete i.equippedIn;
       if (itemId) { s.player.core.inventory.push({ id: 'guard', itemId, equippedIn: ['grip:right_arm'] }); fit(s.player, itemId); }

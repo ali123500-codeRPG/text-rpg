@@ -140,7 +140,7 @@ describe('171 positions', () => {
     expect(seen(20, 'normal')).toBe('full'); // 20 m: a walking figure is made out to 25 m
     expect(seen(40, 'normal')).toBe('partial'); // 40 m: glimpsed (to 200 m)
     expect(seen(40, 'low')).toBe('partial'); // a still figure: made out to 15 m
-    expect(seen(0.5, 'faint')).toBe('partial'); // 0.5 m counts as SAME_ZONE_M (1 m): past faint's clear 0.5 m
+    expect(seen(0.5, 'faint')).toBe('partial'); // 0.5 m counts as NEAREST_M (1 m): past faint's clear 0.5 m
   });
 
   it('RD5: a shot is crowded only by a hostile within 2 m, not by one across the room', () => {

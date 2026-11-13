@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
-import { makeVillage, actor, place, createRng } from '../harness';
+import { makeVillage, actor, place, createRng, byDoor } from '../harness';
 import { applyBeliefDecay, computePerception, updateBeliefs } from '../../src/perception';
 import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
@@ -17,13 +17,15 @@ const run = (s: GameState, e: GameEvent) => {
 describe('computePerception', () => {
   it('sight from real distances: normal is made out to 25 m and glimpsed beyond; low (still) to 15 m', () => {
     const s = makeVillage({ playerZone: 'street_square' });
-    const at = (zone: string, visibility: GameEvent['visibility']) =>
-      computePerception(ev({ actorId: 'slime_1', kind: 'move', zone, noise: 'silent', visibility }), s, createRng(1)).player;
-    expect(at('gate_inner', 'normal')).toEqual({ level: 'full', cue: 'sight' });
-    expect(at('field_mid', 'normal')).toEqual({ level: 'full', cue: 'sight' }); // 3 links, 24 m
-    expect(at('field_far', 'normal')).toEqual({ level: 'partial', cue: 'sight' }); // 4 links, 32 m
-    expect(at('gate_inner', 'low')).toEqual({ level: 'full', cue: 'sight' });
-    expect(at('field_edge', 'low')).toEqual({ level: 'partial', cue: 'sight' });
+    const p = s.player.pos!;
+    /** an event `m` metres east of the player, down the street toward the gate (the square ends 10 m east, the gate 30 m) */
+    const at = (m: number, visibility: GameEvent['visibility']) => computePerception(ev({ actorId: 'slime_1', kind: 'move',
+      zone: m < 10 ? 'street_square' : m < 30 ? 'gate_inner' : 'field_edge', pos: { x: p.x + m, y: p.y }, noise: 'silent', visibility }), s, createRng(1)).player;
+    expect(at(20, 'normal')).toEqual({ level: 'full', cue: 'sight' });
+    expect(at(24, 'normal')).toEqual({ level: 'full', cue: 'sight' });
+    expect(at(32, 'normal')).toEqual({ level: 'partial', cue: 'sight' });
+    expect(at(14, 'low')).toEqual({ level: 'full', cue: 'sight' });
+    expect(at(20, 'low')).toEqual({ level: 'partial', cue: 'sight' });
   });
   it('sound from another zone, 16 m and a shut door off, is partial when loud and lost when normal; no sight through a closed link', () => {
     const s = makeVillage({ playerZone: 'street_door' });
@@ -33,19 +35,22 @@ describe('computePerception', () => {
   });
   it('BG-57: through the shut front door 8 m off, loud and deafening are clear, raised only partly, normal lost; a whisper beside you not meant for you is heard without its words; close is made out in its zone only', () => {
     const s = makeVillage({ playerZone: 'street_door' });
+    const p = byDoor(s, 'player', 'street_door', 'tav_common', 4).pos!; // 4 m out from the front door: 8 m from the common room's middle
     const e = ev({ actorId: 'trader', kind: 'speak', zone: 'tav_common', noise: 'hushed', visibility: 'unseen' });
     expect(computePerception(e, s, createRng(1)).player).toBeUndefined();
     expect(computePerception({ ...e, noise: 'deafening' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
     expect(computePerception({ ...e, noise: 'loud' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
     expect(computePerception({ ...e, noise: 'raised' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' }); // heard only partly: no words
     expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toBeUndefined();
-    expect(computePerception({ ...e, zone: 'street_door' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
-    expect(computePerception({ ...e, zone: 'street_door', target: 'player' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true }); // HB8: leaning in
+    const beside = { zone: 'street_door', pos: { x: p.x + 0.5, y: p.y } };
+    expect(computePerception({ ...e, ...beside }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
+    expect(computePerception({ ...e, ...beside, target: 'player' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true }); // HB8: leaning in
     const v = makeVillage({ playerZone: 'street_square' });
-    const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'gate_inner', noise: 'silent', visibility: 'close' });
+    const q = v.player.pos!;
+    const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'street_square', pos: { x: q.x + 8, y: q.y }, noise: 'silent', visibility: 'close' });
     expect(computePerception(hid, v, createRng(1)).player).toEqual({ level: 'partial', cue: 'sight' }); // a nod 8 m off: glimpsed, not read
-    expect(computePerception({ ...hid, zone: 'field_mid' }, v, createRng(1)).player).toBeUndefined(); // 24 m: past 20 m
-    expect(computePerception({ ...hid, zone: 'street_square' }, v, createRng(1)).player).toEqual({ level: 'full', cue: 'sight' });
+    expect(computePerception({ ...hid, zone: 'gate_inner', pos: { x: q.x + 24, y: q.y } }, v, createRng(1)).player).toBeUndefined(); // 24 m: past 20 m
+    expect(computePerception({ ...hid, pos: { x: q.x + 2, y: q.y } }, v, createRng(1)).player).toEqual({ level: 'full', cue: 'sight' });
   });
   it('BG-72: words said to you through a shut door are not felt (no touch); a blow aimed at you from out of sight still is', () => {
     const s = makeVillage({ playerZone: 'street_door' });

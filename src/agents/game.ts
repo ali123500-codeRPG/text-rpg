@@ -1054,7 +1054,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   };
   const out: string[] = [];
   // ER5: a scenario's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
-  if (eventRoll) out.push(`Event roll${eventRoll.armed ? ` (${getLibrary().perks[eventRoll.armed]?.name ?? eventRoll.armed})` : ''} d100 ${eventRoll.roll} → ${tierName(eventRoll)}${mods(eventRoll.modifiers)}`);
+  if (eventRoll) out.push(`Event roll d100 ${eventRoll.roll} → ${tierName(eventRoll)}${mods(eventRoll.modifiers)}`);
   for (const e of events) {
     const target = e.attack?.targetId ?? e.target;
     if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;

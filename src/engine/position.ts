@@ -1,13 +1,12 @@
 // ZP1–ZP4 (step 2): everyone on stage stands at a point in metres on the map, in the frame of the zones' rectangles
 // (Zone.rect). Code places people inside their zone, keeps them there, and measures distance between two people as a
 // straight line when there is sight between their zones (the same zone, or zones joined by sight links), else as the
-// walking path through the doorways. A zone with no rectangle (a hand-built test world) is a point: every link costs a
-// zone link of metres (linkM), as before positions.
+// walking path through the doorways. ZR8: every zone has a rectangle (the game builds one for each, and so does the test
+// village), so nothing is measured in zone links; a zone without one is a world-building bug and throws.
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { compassOf, doorway, edgeToward } from '../scenario/geometry';
 import { heightOf } from '../scenario/heights';
-import { linkM } from '../ruleset/range';
 import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
 import { barrierOn, passage, type Passage } from './barriers';
 import { gripReachM } from '../ruleset/body';
@@ -30,6 +29,13 @@ export function spotOf(state: GameState, a: Located): Located {
   const z = zoneById(state, a.zone);
   if (!z?.rect) return { zone: a.zone };
   return { zone: a.zone, pos: a.pos && inside(z, a.pos) ? a.pos : centre(z) };
+}
+
+/** ZR8: the point where it stands (spotOf); a zone without a rectangle has none, and that is a bug, never a zone link */
+function pointOf(state: GameState, a: Located): Pos {
+  const p = spotOf(state, a).pos;
+  if (!p) throw new Error(`zone ${a.zone} has no rectangle: distances are metres between points`);
+  return p;
 }
 
 /** ZP1: gives everyone on stage whose point is missing or outside its zone a free spot in it: the zone's centre, else the
@@ -92,48 +98,44 @@ function route(state: GameState, A: Located, B: Located, walker?: Actor): { zone
 /** metres between two people with sight between their zones (the same zone, or a path of sight links): the straight
  * line; Infinity without sight. What an attack reaches across (a blow or a shot never goes round a wall). */
 export function sightDistM(state: GameState, a: Located, b: Located): number {
-  const A = spotOf(state, a), B = spotOf(state, b);
-  if (A.zone === B.zone) return A.pos && B.pos ? flat(A.pos, B.pos) : 0;
-  const p = shortestPath(state, A.zone, B.zone, true);
-  if (!p) return Infinity;
-  if (!A.pos || !B.pos) return p.length * linkM();
-  return Math.hypot(flat(A.pos, B.pos), heightOf(zoneById(state, A.zone)) - heightOf(zoneById(state, B.zone)));
+  const A = pointOf(state, a), B = pointOf(state, b);
+  if (a.zone === b.zone) return flat(A, B);
+  if (!shortestPath(state, a.zone, b.zone, true)) return Infinity;
+  return Math.hypot(flat(A, B), heightOf(zoneById(state, a.zone)) - heightOf(zoneById(state, b.zone)));
 }
 
-/** step 2 PR 2: how far away something is for sight, in metres: sightDistM, never under SAME_ZONE_M (in a zone without a
- * rectangle the same zone is SAME_ZONE_M away and each sight link LINK_PACES × PACE_M); null without sight */
+/** step 2 PR 2: how far away something is for sight, in metres: sightDistM, never under NEAREST_M; null without sight */
 export function seeingM(state: GameState, a: Located, b: Located): number | null {
   const d = sightDistM(state, a, b);
-  return d === Infinity ? null : Math.max(d, CONFIG.SAME_ZONE_M);
+  return d === Infinity ? null : Math.max(d, CONFIG.NEAREST_M);
 }
 
 /** ZP4: metres between two people (or a person and a spot): a straight line with sight between their zones, else the
  * walking path through the doorways; Infinity with no way between them */
 export function distM(state: GameState, a: Located, b: Located): number {
-  const A = spotOf(state, a), B = spotOf(state, b);
-  if (A.zone === B.zone) return A.pos && B.pos ? flat(A.pos, B.pos) : 0;
-  const seen = sightDistM(state, A, B);
-  if (A.pos && B.pos && seen < Infinity) return seen;
-  const path = shortestPath(state, A.zone, B.zone);
-  return path ? pathM(state, A, B, path) : Infinity;
+  const seen = sightDistM(state, a, b);
+  if (seen < Infinity) return seen;
+  const path = shortestPath(state, a.zone, b.zone);
+  return path ? pathM(state, a, b, path) : Infinity;
 }
 
 /** metres from A to B along a given route (the zone ids after A's, ending in B's): through the doorways, or where zones
- * touch the middle of what they share; a zone link of metres per step in zones without rectangles */
+ * touch the middle of what they share */
 export function pathM(state: GameState, a: Located, b: Located, path: string[]): number {
-  const A = spotOf(state, a), B = spotOf(state, b);
-  if (!path.length) return A.pos && B.pos ? flat(A.pos, B.pos) : 0;
-  let prev = zoneById(state, A.zone)!;
+  const A = pointOf(state, a), B = pointOf(state, b);
+  if (!path.length) return flat(A, B);
+  let prev = zoneById(state, a.zone)!;
   const r = path.map((id) => {
     const z = zoneById(state, id)!;
     const c = prev.rect && z.rect ? crossing(prev, z) : undefined;
     prev = z;
     return { zone: z, ...(c ? { at: c.at, out: c.out } : {}) };
   });
-  if (!A.pos || !B.pos || r.some((s) => !s.at)) return r.length * linkM();
-  let m = 0, cur = A.pos, h = heightOf(zoneById(state, A.zone));
+  const gap = r.find((s) => !s.at);
+  if (gap) throw new Error(`zone ${gap.zone.id} has no rectangle: distances are metres between points`);
+  let m = 0, cur = A, h = heightOf(zoneById(state, a.zone));
   for (const s of r) { m += flat(cur, s.out!) + Math.abs(heightOf(s.zone) - h); cur = s.at!; h = heightOf(s.zone); }
-  return m + flat(cur, B.pos);
+  return m + flat(cur, B);
 }
 
 /** a step of a walk to `to`: the walker now faces the way it walked (BG-18: \"the slime on the left\") */
@@ -156,35 +158,27 @@ export function sideFrom(viewer: { pos?: Pos; facing?: [number, number] }, at: P
 
 /** ZP2: one leg of a walk toward `goal`: to the doorway of the next zone on the way (entering it), or, inside the goal's
  * zone, straight at the goal's point, stopping `stopShort` metres before it. A goal with no point is the zone itself: the
- * walk ends ENTER_M past its doorway. At most `metres` are walked; a zone without rectangles is crossed whole for a zone
- * link of metres, and `fresh` (a slot not yet used) crosses it even when the slot is shorter. Returns the metres walked
- * (0: nothing left to walk), or null when there is no way. */
-export function walkLeg(state: GameState, a: Located & { placeId?: string }, goal: Located, metres: number, stopShort = 0, fresh = false, walker?: Actor, halt = false): number | null {
-  const A = spotOf(state, a);
+ * walk ends ENTER_M past its doorway. At most `metres` are walked. Returns the metres walked (0: nothing left to walk), or
+ * null when there is no way. */
+export function walkLeg(state: GameState, a: Located & { placeId?: string }, goal: Located, metres: number, stopShort = 0, walker?: Actor, halt = false): number | null {
+  const A = { zone: a.zone, pos: pointOf(state, a) };
   if (A.zone === goal.zone) {
-    const B = goal.pos ? spotOf(state, goal) : undefined;
-    if (!A.pos || !B?.pos) return 0;
-    const d = flat(A.pos, B.pos), go = Math.min(metres, Math.max(0, d - stopShort));
+    if (!goal.pos) return 0;
+    const B = pointOf(state, goal);
+    const d = flat(A.pos, B), go = Math.min(metres, Math.max(0, d - stopShort));
     if (go <= EPS) return 0;
-    step(a, { x: A.pos.x + (B.pos.x - A.pos.x) * go / d, y: A.pos.y + (B.pos.y - A.pos.y) * go / d });
+    step(a, { x: A.pos.x + (B.x - A.pos.x) * go / d, y: A.pos.y + (B.y - A.pos.y) * go / d });
     return go;
   }
   const r = route(state, A, goal, walker);
   if (!r?.length) return null;
   const next = r[0];
-  // SD3–SD5 `halt`: a shut barrier is on the next way: walk only up to it (0 once there), never through
-  if (halt && (!A.pos || !next.at)) return 0;
-  const enter = (at?: Pos) => {
+  if (!next.at) throw new Error(`zone ${next.zone.id} has no rectangle: distances are metres between points`);
+  const enter = (at: Pos) => {
     a.zone = next.zone.id;
     a.placeId = next.zone.placeId;
-    if (at) step(a, at); else delete a.pos;
+    step(a, at);
   };
-  if (!A.pos || !next.at) {
-    const cost = linkM();
-    if (metres + EPS < cost && !fresh) return 0;
-    enter(centre(next.zone));
-    return Math.min(metres, cost);
-  }
   const from = zoneById(state, A.zone);
   const out = next.out ?? next.at;
   const leg = flat(A.pos, out) + Math.abs(heightOf(next.zone) - heightOf(from));
@@ -194,7 +188,7 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
     step(a, { x: A.pos.x + (out.x - A.pos.x) * k, y: A.pos.y + (out.y - A.pos.y) * k });
     return metres;
   }
-  if (halt) {
+  if (halt) { // SD3–SD5: a shut barrier is on the next way: walk only up to it (0 once there), never through
     if (leg <= EPS) return 0;
     step(a, out);
     return leg;

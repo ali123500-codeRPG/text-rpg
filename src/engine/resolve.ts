@@ -31,7 +31,7 @@ import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds } from './held';
-import { armThreadboundItem, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -287,7 +287,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   const from = a.zone, fromPos = a.pos && { ...a.pos };
   // SD3–SD5: a barrier not open to the walker on the next way: walk up to it, then open it (a key, the bolt's side) or try it
   const gate = gateAhead(state, a, goal.zone);
-  const walked = walkLeg(state, a, goal, metres, stopShort, fresh, a, !!gate);
+  const walked = walkLeg(state, a, goal, metres, stopShort, a, !!gate);
   if (walked === null) return null;
   if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate, withBark ? o : undefined); // an NPC tries a shut way once
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
@@ -984,7 +984,6 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
-  if (getLibrary().perks[pm.perk]?.eventArm) return emit(ctx, mk(ctx, a, 'perk_move', { effects: armThreadboundItem(ctx.state, a, pm.perk) }));
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
 }
@@ -1119,7 +1118,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true):
     let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
     for (let i = 0; i < 100 && left > 0.01 && a.zone !== d.zone; i++) {
       if (gateAhead(state, a, d.zone)) break; // a way that is not simply open
-      const r = walkLeg(state, a, { zone: d.zone }, left, 0, false, a);
+      const r = walkLeg(state, a, { zone: d.zone }, left, 0, a);
       if (!r) break;
       left -= r;
     }

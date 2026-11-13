@@ -20,7 +20,6 @@ import { contestFeat } from './feats';
 import { answerRoll, answerSkill, toContest } from './speech';
 import { getLibrary } from '../library';
 import { now } from '../time';
-import { threadboundItemFor } from '../ruleset/threadboundItems';
 import { hearsClearly } from '../perception';
 import { sightDistM, withinM } from './position';
 import { CONFIG } from '../config';
@@ -53,14 +52,6 @@ export function countPerkMove(state: GameState, a: Actor, perk: string, targetId
 export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId: string | null): string | null {
   const def = PERK_MOVES[perk];
   if (!def || !hasPerk(a, perk)) return 'not_owned';
-  const arm = getLibrary().perks[perk]?.eventArm;
-  if (arm) { // D-218: a Threadbound item's active ability
-    const inst = threadboundItemFor(a, perk);
-    if (!inst) return 'not_owned';
-    if (inst.armed) return 'already_armed';
-    const last = inst.usedAt?.[perk];
-    return last !== undefined && now(state) - last < arm.cooldownMin ? 'cooldown' : null;
-  }
   if (def.untargeted) return def.perEngagement && a.engagement && !usableThisEngagement(a, perk, def.perEngagement) ? 'used_this_engagement' : null;
   const t = targetId ? actorById(state, targetId) : undefined;
   if (!t || t === a || !isActive(t) || !inRange(state, a, t, perk)) return 'no_target';
@@ -68,14 +59,6 @@ export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId
   if (perk === PK.dirt_in_the_eyes && !freeHand(state, a)) return 'no_free_hand';
   if (perk === PK.bluff && !wary(state, a, t) && !wary(state, t, a)) return 'not_a_foe';
   return null;
-}
-
-/** D-218: arms the owner's next event roll with a Threadbound item's active ability (checked by perkMoveBlock first) */
-export function armThreadboundItem(state: GameState, a: Actor, perk: string): Effect[] {
-  const inst = threadboundItemFor(a, perk)!;
-  inst.armed = perk;
-  (inst.usedAt ??= {})[perk] = now(state);
-  return [{ kind: 'event_roll_armed', actorId: a.id, data: { perk, itemId: inst.itemId } }];
 }
 
 /** resolves a perk move; returns the effects for its event and the roll */

@@ -1,7 +1,7 @@
 // 49 Deed instead of a reply: an addressed Responder attacks instead of answering: no line is spoken,
 // and the attack resolves at its own initiative.
 import { afterEach, expect, it, vi } from 'vitest';
-import { actor, createRng, makeVillage } from '../harness';
+import { actor, beside, createRng, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
@@ -14,6 +14,7 @@ it('49 Deed instead of a reply', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   s.hidden.secrets.push({ id: 'cellar', holderId: 'trader', fact: 'smuggled goods in the cellar', leakTerms: ['smuggled'],
     revealWhen: { type: 'event_in_zone', kind: 'search', zone: 'tav_cellar' } });
+  beside(s, 'trader'); // within arm's reach: the deed is the blow, with no step in first
   actor(s, 'trader').mind!.overrides = { player: 'hostile' };
   const i = intent({ action: { type: 'talk', skill: SK.persuasion }, spoken: 'What is in the cellar?', addressees: ['trader'] });
   const spokespeople = selectSpokespeople(s, i);

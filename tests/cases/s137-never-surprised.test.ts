@@ -12,16 +12,16 @@ describe('137 Never Surprised', () => {
     expect(getLibrary().perks[PK.never_surprised]?.ladder).toEqual({ skill: SK.earshot, milestone: 100 });
     expect(BUILT_PERKS.has(PK.never_surprised)).toBe(true);
   });
-  it('an attack is heard in the owner zone; Keen Ear hears a quiet one two zones off, never a silent one', () => {
+  it('an attack is heard in the owner zone; Keen Ear hears a quiet one 20 m off, never a silent one', () => {
     const s = makeVillage();
     const g = actor(s, 'guard_1');
     g.core.perks = [];
     expect(hears(s, g, { zone: g.zone }, 'normal')).toBe(true);
     expect(hears(s, g, { zone: g.zone }, 'faint')).toBe(true);
     expect(hears(s, g, { zone: g.zone }, 'silent')).toBe(false);
-    expect(hears(s, g, { zone: 'street_door' }, 'quiet')).toBe(false); // 2 links: quiet (40 dB) carries 1
+    expect(hears(s, g, { zone: 'street_square' }, 'quiet')).toBe(false); // 20 m: quiet (40 dB) fades under the floor by 10 m
     g.core.perks.push({ perkId: PK.keen_ear, source: 'level', gainedTurn: 0 }); // Keen Ear: 10 dB quieter
-    expect(hears(s, g, { zone: 'street_door' }, 'quiet')).toBe(true);
+    expect(hears(s, g, { zone: 'street_square' }, 'quiet')).toBe(true);
     expect(hears(s, g, { zone: g.zone }, 'silent')).toBe(false);
   });
 });

@@ -2,7 +2,7 @@
 // a parry at +3 stops the blow and earns a free strike back, failed parries let more through, Riposte augments Parry,
 // Blade Dance augments Dodge, Answer the Blow brings the strike 2 gaps sooner with a medium weapon.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fit, forcedRng, makeVillage, place } from '../harness';
+import { fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { effectiveSkill, ruleset } from '../../src/ruleset';
 import { defaultStandingDefense } from '../../src/ruleset/gear';
 import { CONFIG } from '../../src/config';
@@ -29,7 +29,7 @@ const swings = (s: GameState) => DICE.flatMap((i) => DICE.map((k) =>
   ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([i, k, 50, 50]))));
 const setup = () => {
   const s = makeVillage();
-  place(s, 'patron_1', s.player.zone);
+  beside(s, 'patron_1');
   hold(npc(s, 'patron_1'), [IT.dagger]);
   hold(s.player, [IT.arming_sword]);
   s.player.core.skills[SK.parry] = { raw: 100, state: 'normal' };

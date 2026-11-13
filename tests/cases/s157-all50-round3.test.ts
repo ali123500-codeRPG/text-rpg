@@ -3,7 +3,7 @@
 // pool takes ×0.75). Swordsman unlocks with Medium or Heavy Weapons 40 and Parry 40, and Blade Wall works with either.
 // PT9: Strike and Fade leaves attacks from hiding as they were: nobody rolls twice against the owner in a turn.
 import { describe, expect, it } from 'vitest';
-import { fit, forcedRng, makeVillage, place } from '../harness';
+import { fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { effectiveSkill, ruleset } from '../../src/ruleset';
 import { augmentsOf } from '../../src/ruleset/gear';
 import { unlockClasses } from '../../src/engine/xp';
@@ -49,7 +49,7 @@ describe('157 All-50 round 3', () => {
   it('Against the Grain: a heavy blow loses its gap shift against the owner\'s parry, not against a block', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     hold(s.player, IT.greataxe, 'axe');
     hold(wim, IT.arming_sword);
     wim.core.standingDefense = 'parry';
@@ -98,7 +98,7 @@ describe('157 All-50 round 3', () => {
 
   it('Blade Wall: a heavy weapon parry is never outnumbered either', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     hold(npc(s, 'patron_1'), IT.dagger);
     hold(s.player, IT.greatsword);
     s.player.core.standingDefense = 'parry';
@@ -112,8 +112,8 @@ describe('157 All-50 round 3', () => {
   it('PT9: a shot from hiding keeps the shooter hidden and Strike and Fade adds no second roll for anyone', () => {
     for (const perk of [false, true]) for (let seed = 1; seed <= 10; seed++) {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
-      place(s, 'guard_1', s.player.zone);
+      beside(s, 'patron_1');
+      beside(s, 'guard_1');
       hold(s.player, IT.shortbow, 'bow');
       if (perk) give(s.player, PK.strike_and_fade);
       s.player.posture = 'stealthy';
