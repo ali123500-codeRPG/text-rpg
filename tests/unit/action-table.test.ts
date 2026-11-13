@@ -36,7 +36,7 @@ const ROWS: Record<string, Row> = {
   rest: { need: 'none', who: 'player only: NPC rest comes from routines' },
   wait: { need: 'none', who: 'player only: an NPC holds' },
   sleep: { need: 'none', who: 'player only: NPC sleep comes from routines' },
-  open: { need: 'grip', who: 'player only: not built for NPCs yet' },
+  open: { need: 'grip', who: 'both' }, // BG-173: an NPC opens its own chest
   restrain: { need: 'grip', who: 'player only: not built for NPCs yet' },
   move: { need: 'none', who: 'npc only: the player moves in the move slot' },
   hold: { need: 'none', who: 'npc only: the player waits' },

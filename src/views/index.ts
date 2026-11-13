@@ -13,7 +13,7 @@ import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
 import { timeView, zoneLight, clockSet, now, timeOfDay, durationText } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
-import { seeingM, sideFrom, sightDistM } from '../engine/position';
+import { seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
@@ -660,6 +660,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     // essences that appeared this turn and failed their quality roll: they show, then fade
     ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings) } : {}),
     ...((gone) => gone.length ? { notThere: gone } : {})(notThere(state, intent, seenIds)),
+    ...((w) => w ? { stayedPut: w } : {})(stayedPut(state, events, intent)),
     ...((faded) => faded.length ? { essencesFaded: faded } : {})(state.log.filter((l) => l.turn === state.turn && l.code === 'essence_faded')
       .map((l) => String((l.detail as { essence?: string } | undefined)?.essence ?? ''))
       .map((id) => ({ name: getLibrary().essences?.[id]?.name ?? id, story: getLibrary().essences?.[id]?.story ?? '' }))),
@@ -677,6 +678,15 @@ function notThere(state: GameState, intent: Intent | null | undefined, seenIds: 
     if (!a || seenIds.has(id) || !zone || !goneFromSpot(state, id)) return [];
     return [`${nameFor(state, state.player, a) ?? a.label}, last seen in ${zoneById(state, zone)?.name ?? zone}`];
   });
+}
+
+/** BG-174: a move in the player's own zone that took no step, nothing stopping it: they already stand there ("on the
+ * east side of Mill Lane"), so the story says so instead of a silent wait */
+function stayedPut(state: GameState, events: GameEvent[], intent: Intent | null | undefined): string | undefined {
+  const m = intent?.move, p = state.player;
+  if (!m || m.toZone !== p.zone || events.some((e) => e.actorId === p.id && ['move', 'wasted', 'way', 'travel'].includes(e.kind))) return undefined;
+  const at = m.spot ? spotPoint(state, m.toZone, m.spot, p)?.words : undefined;
+  return `${at ?? 'in'} ${zoneById(state, p.zone)?.name ?? p.zone}`.trim();
 }
 
 /** BF2e: one leg of a long turn as noticed: where they went (seen), or only that someone moved off (heard) */

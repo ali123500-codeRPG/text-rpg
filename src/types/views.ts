@@ -236,6 +236,7 @@ export type NarrationView = {
   essences?: { name: string; story: string }[];
   /** essences that appeared this turn but failed their quality roll: felt for a moment, then gone */
   essencesFaded?: { name: string; story: string }[];
+  stayedPut?: string; // BG-174: a move that took no step: where the player already stands
   notThere?: string[]; // BG-164: whom this turn's words, action or walk were for, not where the player last saw them
   cameAndWent?: string[]; // BF2e: who the player noticed coming and going over a long turn, one line each, in order
   style: { tone: string; length: string };
