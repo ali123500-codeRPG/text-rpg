@@ -1,5 +1,5 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
-import type { Actor, AchievementBy, AchievementDef, AchievementRule, GameEvent, GameState, XpAward } from '../types';
+import type { Actor, AchievementBy, AchievementDef, AchievementRule, GameEvent, GameState, XpAward, DefeatWhy } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary, itemDef, npcTemplate } from '../library';
 import { classMaxLevel, classPerks } from '../library/spawn';
@@ -31,11 +31,11 @@ export { levelCost, perkPointAt, perkPointsUpTo, xpToReach } from '../ruleset/le
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
 /** Award XP to the player with a trail entry, then level up as often as the XP allows (X9: into the chosen class). */
-export function awardXp(state: GameState, amount: number, source: string): void {
+export function awardXp(state: GameState, amount: number, source: string, why?: DefeatWhy): void {
   const p = state.player, pr = p.progression;
   if (!pr || !(amount > 0)) return;
   pr.xp += amount;
-  (pr.xpLog ??= []).push({ source, amount, turn: state.turn });
+  (pr.xpLog ??= []).push({ source, amount, turn: state.turn, ...(why ? { why } : {}) });
   spendXp(state);
 }
 
@@ -208,7 +208,9 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
     // a foe that surrendered or broke while fighting the player has yielded to it (Q1, Q4); untouched: nothing
     if (isActive(t) ? (!m.moraleState || stance(state, t, state.player) !== 'yielded') : !m.hitByPlayer) continue;
     m.xpPaid = true;
-    awardXp(state, defeatXp(state, t), `defeat:${t.id}`);
+    const why: DefeatWhy = isActive(t) ? (m.moraleState === 'surrendered' ? 'surrendered' : 'broken') : 'down';
+    awardXp(state, defeatXp(state, t), `defeat:${t.id}`, why);
+    if (why !== 'down') logCode(state, 'yielded_to_player', { actorId: t.id, why }); // BG-199: the turn says they gave up to you
     defeatAchievements(state, t);
     defeated.push(t);
   }

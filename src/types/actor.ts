@@ -197,7 +197,9 @@ export type Progression = {
 export type HeldEssence = { essence: LibraryRef; grade: import('../scales').EssenceGradeKey; points: Record<LibraryRef, number>; turn: Turn; from?: string };
 /** an essence on offer: where it came from (a beaten foe's name, or the scenario's ending) and the last turn it can be taken */
 export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; /** AT75: game minutes it waits until */ untilMin: number };
-export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } };
+export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number }; why?: DefeatWhy }; // why: BG-199, how a defeat came
+/** BG-199: how a foe was beaten: down, or still up but broken or surrendered to the player */
+export type DefeatWhy = 'down' | 'broken' | 'surrendered';
 
 export type Mind = {
   control: 'agent' | 'code';

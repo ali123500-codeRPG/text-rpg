@@ -13,7 +13,7 @@ import { tierMult } from '../ruleset/gear';
 import { charLevel, power, tally, xpToNext } from './xp';
 import { logCode } from './effects';
 import { isActive, isEngaged, wary } from './relations';
-import { canSpeak, gripReachM } from '../ruleset/body';
+import { canSpeak, gripReachM, healthLevel } from '../ruleset/body';
 import { threatHere } from './resolve';
 import { dealRolls } from './growth';
 import { fireEssenceAuto } from '../ruleset/threadboundItems';
@@ -127,14 +127,15 @@ export function notable(state: GameState, foe: Actor): boolean {
   return !!t?.notable || foe.core.generation === 'rolled' || foe.core.generation === 'unique' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
 }
 
-/** 2.3: each foe the player beat this turn (payDefeats) rolls once, ever, for an essence on its list (EN4). D-274: a notable
- * foe's essence always appears and a mob's at ESSENCE_APPEAR_CHANCE.mob, so the quality roll alone decides whether a notable
- * foe's fades. The foes go on the running scenario's list (its ending's table). */
+/** 2.3: each foe the player beat this turn (payDefeats) goes on the running scenario's list (its ending's table). An essence
+ * comes only from a death, never a defeat (BG-199): a foe the player hurt who now lies dead rolls once, ever, for an essence
+ * on its list (EN4), on the turn it dies, however long after its defeat. D-274: a notable foe's essence always appears and a
+ * mob's at ESSENCE_APPEAR_CHANCE.mob, so the quality roll alone decides whether a notable foe's fades. */
 export function offersFromDefeats(state: GameState, defeated: Actor[], rng: Rng): void {
-  for (const foe of defeated) {
-    const f = state.stage.scenario;
-    if (f) (f.beaten ??= []).push(foe.id);
-    if (!foe.mind || foe.mind.essenceRolled) continue;
+  const f = state.stage.scenario;
+  if (f) for (const foe of defeated) (f.beaten ??= []).push(foe.id);
+  for (const foe of state.actors) {
+    if (!foe.mind?.hitByPlayer || foe.mind.essenceRolled || healthLevel(foe) !== 'dead') continue;
     foe.mind.essenceRolled = true;
     const rows = rowsFor(state, foe);
     if (!rows.length || (!isEcho(foe) && !appearRoll(rng, notable(state, foe) ? 'foe' : 'mob'))) continue; // HF29 a: an echo always offers one

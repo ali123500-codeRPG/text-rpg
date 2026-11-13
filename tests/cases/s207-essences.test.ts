@@ -13,6 +13,9 @@ import { frameOf } from '../../src/engine/scenarioEnd';
 import { xpToNext } from '../../src/engine/xp';
 import { now } from '../../src/time';
 
+/** BG-199: an essence comes only from a death: the player hurt this foe and it lies dead */
+const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { hitByPlayer?: boolean } }>(a: T): T => { a.core.condition.hpLostPct = 200; a.mind!.hitByPlayer = true; return a; };
+
 /** a die that shows the listed d100s in turn (then the last), and picks the first row */
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
 const level = (s: GameState, n: number) => { s.player.core.classes[0].level = n; };
@@ -44,7 +47,7 @@ describe('207 essences', () => {
     foe.core.skills[SK.unarmed_natural] = { raw: 60, state: 'normal' }; // EN5: Gel Patience is Natural Weapons 2 + Tremor 1
     foe.core.skills[SK.tremor] = { raw: 30, state: 'normal' };
     foe.core.generation = 'rolled'; // notable whatever its power
-    offersFromDefeats(s, [foe], dice(1, 100)); // appears on 1, quality 100
+    offersFromDefeats(s, [slain(foe)], dice(1, 100)); // appears on 1, quality 100
     expect(offers(s)).toHaveLength(1);
     const o = offers(s)[0];
     expect(o).toMatchObject({ essence: ES.gel_patience, grade: 'rare', source: 'foe', untilMin: now(s) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 });
@@ -112,12 +115,12 @@ describe('207 essences', () => {
     const s = makeVillage(), foe = slime(s);
     expect(notable(s, foe)).toBe(false); // D-274: a mob's essence appears only at ESSENCE_APPEAR_CHANCE.mob
     const codes = () => s.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code);
-    offersFromDefeats(s, [foe], dice(CONFIG.ESSENCE_APPEAR_CHANCE.mob + 1, 100)); // the appearance roll misses
+    offersFromDefeats(s, [slain(foe)], dice(CONFIG.ESSENCE_APPEAR_CHANCE.mob + 1, 100)); // the appearance roll misses
     expect(offers(s)).toHaveLength(0);
     expect(codes()).toEqual([]);
     const other = makeVillage(), foe2 = slime(other);
     foe2.core.generation = 'rolled';
-    offersFromDefeats(other, [foe2], dice(1, 10)); // appears, then the quality roll fails: it fades
+    offersFromDefeats(other, [slain(foe2)], dice(1, 10)); // appears, then the quality roll fails: it fades
     expect(other.player.progression!.essenceOffers ?? []).toHaveLength(0);
     expect(other.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code)).toEqual(['essence_appeared', 'essence_faded']);
   });

@@ -24,6 +24,9 @@ import { villageStagePlan } from '../../src/scenario/fixtures';
 import { ageYears } from '../../src/ruleset/age';
 import { CONFIG } from '../../src/config';
 
+/** BG-199: an essence comes only from a death: the player hurt this foe and it lies dead */
+const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { hitByPlayer?: boolean } }>(a: T): T => { a.core.condition.hpLostPct = 200; a.mind!.hitByPlayer = true; return a; };
+
 const ECHO = 'TP_echo_test', ECHO_ESSENCE = 'ES_echo_test';
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
 
@@ -129,7 +132,7 @@ describe('272 echo uniques', () => {
     const s = makeVillage();
     sendHero(s);
     const e = spawnEcho(s);
-    offersFromDefeats(s, [e], dice(1)); // no appearance roll: the one die is the quality roll
+    offersFromDefeats(s, [slain(e)], dice(1)); // no appearance roll: the one die is the quality roll
     expect(s.player.progression!.essenceOffers).toEqual([expect.objectContaining({ essence: ECHO_ESSENCE, grade: 'common', from: e.names.current })]);
   });
 
