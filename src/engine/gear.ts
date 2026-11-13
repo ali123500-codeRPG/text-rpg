@@ -4,8 +4,9 @@ import type { Actor, GameState, GearOp, ImprovisedBase, ItemInstance } from '../
 import { CONFIG } from '../config';
 import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
-import { partStates } from '../ruleset';
-import { healthLevel, working } from '../ruleset/body';
+import { healthLevel, partStates } from '../ruleset';
+import { logCode } from './effects';
+import { working } from '../ruleset/body';
 import { actorById, isActive, stance, zoneById } from './relations';
 import { inContainer, packUp, wearIfNone, wornPack } from './containers';
 import { withinGrip, type Located, type Pos } from './position';
@@ -78,9 +79,10 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
       case 'wear_acc': {
         if (!inst || inst.equippedIn?.length || itemDef(state, inst.itemId).slot !== 'accessory') break;
         // TB6: a Threadbound item is the player's alone: no one else can wear it. WP2: its bond dies with its owner, so the
-        // player may take a dead owner's for themselves
-        const ownerGone = !!inst.boundTo && healthLevel(actorById(state, inst.boundTo) ?? actor) === 'dead';
-        if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id && !ownerGone))) break;
+        // player may take a dead owner's for themselves (never an echo's soulbound copy)
+        // HF18: an echo wears its own soulbound copy of one
+        const ownerGone = !!inst.boundTo && !inst.soulbound && healthLevel(actorById(state, inst.boundTo) ?? actor) === 'dead';
+        if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id && !ownerGone)) && !(inst.soulbound && inst.boundTo === actor.id)) break;
         const slot = freeAccSlot(actor);
         if (slot) { inst.equippedIn = [slot]; ok = true; }
         if (ok && itemDef(state, inst.itemId).threadbound && (!inst.boundTo || ownerGone)) inst.boundTo = actor.id; // D-218: binds to the player on first wear
@@ -120,7 +122,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         const i = list?.findIndex((x) => x.id === op.item && !hiddenFrom(x, actor)) ?? -1;
         const fixed = i >= 0 && !!itemDef(state, list![i].itemId).container?.fixed; // CT1: a chest stays where it stands
         const guarded = i >= 0 && !!src && isActive(src) && !!list![i].equippedIn?.length; // CT5: a yielded owner's pack only
-        if (list && i >= 0 && !fixed && !guarded) {
+        if (list && i >= 0 && !fixed && !guarded && !list[i].soulbound) { // HF18: soulbound gear can't be taken or looted
           const [it] = list.splice(i, 1);
           if (src && wornPack(it)) packUp(src, it); // CT7: a pack taken off its wearer takes what it holds
           delete it.equippedIn;
@@ -141,11 +143,19 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
   return res;
 }
 
+/** HF18: an echo's soulbound gear fades when it dies */
+export function fadeSoulbound(state: GameState, a: Actor): void {
+  if (healthLevel(a) !== 'dead' || !a.core.inventory.some((i) => i.soulbound)) return;
+  const gone = a.core.inventory.filter((i) => i.soulbound);
+  a.core.inventory = a.core.inventory.filter((i) => !i.soulbound);
+  logCode(state, 'soulbound_faded', { actorId: a.id, items: gone.map((i) => i.itemId) });
+}
+
 /** remove an instance from an actor's inventory onto a zone's ground, lying at `at` (default: where the actor stands) */
 export function dropToGround(state: GameState, actor: Actor, instId: string, zoneId: string, at: Pos | undefined = actor.zone === zoneId ? actor.pos : undefined): boolean {
   const i = actor.core.inventory.findIndex((x) => x.id === instId);
   const zone = zoneById(state, zoneId);
-  if (i < 0 || !zone) return false;
+  if (i < 0 || !zone || actor.core.inventory[i].soulbound) return false; // HF18: soulbound gear can't be dropped
   const [it] = actor.core.inventory.splice(i, 1);
   delete it.equippedIn;
   if (at) it.at = { ...at };
@@ -161,7 +171,7 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
   const to = targetId ? actorById(state, targetId) : undefined;
   const i = actor.core.inventory.findIndex((x) => x.id === instId);
   // FR2 (BG-85): handed over within both their grip reaches, in metres (across a counter too: the straight line over it)
-  if (!to || to === actor || !isActive(to) || !withinGrip(state, actor, to, gripReachM(state, to)) || i < 0) return null;
+  if (!to || to === actor || !isActive(to) || !withinGrip(state, actor, to, gripReachM(state, to)) || i < 0 || actor.core.inventory[i].soulbound) return null; // HF18
   const it = actor.core.inventory[i];
   const have = it.qty ?? 1;
   const stackable = itemDef(state, it.itemId).stackable;

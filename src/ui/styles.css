@@ -744,6 +744,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .fame-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
 .fame-h h2 { margin: 0; font-size: 22px; }
 .fame-h small { font-weight: 400; color: var(--muted); }
+.fame-send { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
 .fame-cause { font: italic 16px/1.5 var(--font-story); }
 .fame-list p:last-child { display: flex; flex-wrap: wrap; gap: 4px; }
 
@@ -1077,3 +1078,11 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .rrow.acts li b { color: var(--text); font-weight: 600; }
 .rrow.acts .dg-left { color: var(--c9); font-variant-numeric: tabular-nums; }
 .rrow.acts .dg-end.done { color: var(--ok); } .rrow.acts .dg-end.broken { color: var(--warn); } .rrow.acts .dg-end.stopped { color: var(--muted); }
+/* FR5: furniture on the plan, a quiet line glyph on a disc in the floor's ink; it never outshouts people or exits */
+.map-furn { color: var(--c3); }
+.map-furn .disc { fill: var(--bg); stroke: color-mix(in srgb, var(--c3) 55%, transparent); stroke-width: 1; }
+.map-furn rect, .map-furn path, .map-furn circle:not(.disc) { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.map-tile.remembered .map-furn { opacity: .6; }
+.k-furn { flex: none; overflow: visible; }
+/* SY1: Mentally steady beside Morale, in the morale violet; it lasts until the next morale loss */
+.cs-steady { margin-left: var(--space-2); padding: 0 8px; border: 1px solid color-mix(in srgb, var(--c5) 60%, transparent); border-radius: var(--r-pill); font-size: 11px; font-weight: 600; color: var(--c6); white-space: nowrap; }

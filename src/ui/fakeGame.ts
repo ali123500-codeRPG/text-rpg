@@ -18,7 +18,8 @@ import { ACH } from '../library/achievementIds';
 import { achievementInfo, grantAchievement } from '../engine/xp';
 import { actionNotes, doingSnap, placeName } from '../agents/game';
 import { buildPlayerView } from '../views';
-import { DU } from '../library/tableIds';
+import { DU, FU } from '../library/tableIds';
+import { makeFurniture } from '../engine/furniture';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -131,9 +132,9 @@ const FAKE_PLACES = (): GameState['places'] => placed([
     FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
   ]),
   FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
-    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall } }),
+    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall }, furniture: makeFurniture('tav_common', [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }]) }),
     FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', false], ['tav_cellar', 'the cellar hatch, down', false]], { area: 25 }),
-    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some', area: 150, edges: { n: EK.low, e: EK.low, s: EK.low, w: EK.wall } }),
+    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some', area: 150, edges: { n: EK.low, e: EK.low, s: EK.low, w: EK.wall }, furniture: makeFurniture('tav_yard', [{ kind: FU.woodpile, name: 'woodpile', at: 'nw' }, { kind: FU.water_barrel, name: 'rain barrel', at: 'sw' }, { kind: FU.cart, name: 'hand cart', at: 'e' }]) }),
     FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark', height: 3, area: 9, aspect: 2 }),
     FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark', height: -3, area: 60 }),
   ]),
@@ -189,7 +190,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
         { id: 'q1', state: 'active', text: 'Clear the slimes from the field', giver: 'guard_1', dealId: 'ag_1', goal: { kind: 'defeat', by: 'race', of: slime.core.raceId!, count: 3, noun: 'slimes' }, progress: 1, level: 'i', startTurn: 2, after: 'q0', pay: { coin: 10 }, paid: { coin: 0, qty: 0 }, due: 3 * 1440 + 1080, dueBy: 'dusk' },
       ],
-      settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
+      settings, libraryVersion: 1, blueprints: [{ storyId: 'fake', id: `${IT.short_sword}_m2_1`, kind: 'item', data: { id: `${IT.short_sword}_m2_1`, kind: 'weapon', name: 'Wim’s old blade', look: 'a notched short sword with a wire-bound grip', base: { itemId: IT.short_sword, quality: 'fine' } } }], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     fakeBarriers(state);
@@ -231,6 +232,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         perks: ['Keen Ear', 'Turn the Blade'], achievements: ['First Blood', 'Slime-Bane'], scars: ['First Crack'], defeats: 12, turn: 48, day: 3,
         place: 'The back yard · The Lantern & Ladle', downedBy: { by: 'a lanky youth', weapon: 'dagger', part: 'neck', outcome: 'crushing hit' }, fellAt: '2026-11-10T21:00:00.000Z' }];
     },
+    async sendHero(storyId: string) { return { id: `unique_${storyId}` }; },
+    async sendBlueprint(id: string) { return { id: `item_story_fake_${id}` }; },
+    async librarySends() { return []; },
     async worlds() { return [{ worldId: 'story_fake', name: 'Aldric’s world', lastStoryId: 'story_fake', day: 3, past: [{ name: 'Aldric', fell: true }], threadbound: [IT.varos_loop] }]; },
     async titleWorld() {},
     async reportBug() { return 'BG-99'; },
@@ -286,6 +290,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;
+      // "steady" leaves you Mentally steady, to show the chip beside Morale (SY1); any "fear" after it uses it up
+      if (/^steady\b/i.test(text)) state.player.core.condition.mentallySteady = true;
+      if (/^fear\b/i.test(text)) delete state.player.core.condition.mentallySteady;
       // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
       const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups

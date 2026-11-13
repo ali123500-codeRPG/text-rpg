@@ -23,6 +23,7 @@ import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { moraleLevel } from '../ruleset/morale';
+import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
@@ -105,7 +106,7 @@ function apart(names: string[]): string[] {
 
 /** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Fight and Talk list
  * everyone in view; the other groups show three. */
-export function ideas(pv: PlayerView, broken = false): { group: string; items: { text: string; note?: string }[] }[] {
+export function ideas(pv: PlayerView, broken = false, canSteady = false): { group: string; items: { text: string; note?: string }[] }[] {
   const people = pv.actors.filter((a) => a.level === 'full' && !(a.health && isDownLevel(a.health)));
   const names = apart(people.map((a) => a.name ?? a.label));
   const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('grip:')) && i.kind === 'weapon');
@@ -116,7 +117,9 @@ export function ideas(pv: PlayerView, broken = false): { group: string; items: {
     // MB12: with a broken nerve no attack can come, so Fight gives way to the ways out
     broken ? { group: 'Get away · your nerve is broken', items: [{ text: 'Yield', note: 'ends the fight if they take it' },
       ...pv.zone.links.map((l) => ({ text: `Flee ${l.label}` })), { text: 'Hide', note: 'your action' }], all: true }
-      : { group: 'Fight', items: people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health) })), all: true },
+      : { group: 'Fight', items: [...people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health) })),
+        // SY1: in a fight, above Broken and not within its cooldown: one morale roll as your action
+        ...(canSteady ? [{ text: 'Steady yourself', note: 'your action · a morale roll' }] : [])], all: true },
     { group: 'Talk', items: people.map((_, i) => ({ text: `Talk to ${names[i]}` })), all: true },
     { group: 'Move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined })) },
     // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
@@ -589,7 +592,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
       h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
     else if (open === 'ideas') helpPanel.replaceChildren(head('Ideas · from what you can see now'),
-      h('div', { class: 'idea-groups' }, (pv ? ideas(pv, !!s && moraleLevel(s.player) === 'broken') : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
+      h('div', { class: 'idea-groups' }, (pv ? ideas(pv, !!s && moraleLevel(s.player) === 'broken', !!s && cantSteady(s, s.player) === null) : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
         g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(asI(it.text)) }, it.text, it.note ? h('span', {}, it.note) : null))))
           : h('p', { class: 'hs-note' }, 'Nothing right now')))),
       h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
