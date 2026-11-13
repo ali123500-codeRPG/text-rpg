@@ -65,15 +65,20 @@ const OUT = arg('out', 'playtest-out');
 /** --resume DIR: carry on a stopped run from the end of its last finished turn (its store.json), on today's code; the new
  * run's files go to --out and its turns keep counting from where DIR stopped */
 const RESUME = arg('resume', '');
+/** --call-model ID / --call-effort low|medium|high: every game call (not the player agent) on this model and effort, to compare setups */
+const CALL_MODEL = arg('call-model', '');
+const CALL_EFFORT = arg('call-effort', '');
 let calls = 0;
 /** --fixture: the story opens on the fixture stage plan (Brookmere, its tavern, street and slime field) instead of a Weaver call */
 let fixtureLeft = process.argv.includes('--fixture') ? 1 : 0;
 const cliClient: ClaudeClient = {
   async call(req: ClaudeRequest): Promise<ClaudeResponse> {
     if (fixtureLeft && req.agent === 'weaver') { fixtureLeft--; return { ok: true, value: villageStagePlan(), truncated: false, modelTierApplied: 'complex', modelApplied: 'fixture' }; }
-    const model = req.model ?? TIER_MODEL[req.modelTier ?? 'default'];
+    const model = CALL_MODEL || (req.model ?? TIER_MODEL[req.modelTier ?? 'default']);
+    const effort = CALL_EFFORT || req.effort;
     calls++;
-    const r = await claudeCli(req.input.map((m) => m.content).join('\n\n'), model, req.effort);
+    const r = await claudeCli(req.input.map((m) => m.content).join('\n\n'), model, effort);
+    appendFileSync(join(OUT, 'calls.jsonl'), JSON.stringify({ agent: req.agent, model, effort, ms: r.ms, ttftMs: r.ttftMs, usage: r.usage, costUsd: r.costUsd, error: r.error }) + '\n');
     if (r.error || (req.json && !parseTolerant(r.text).ok)) appendFileSync(join(OUT, 'call-errors.log'), `${req.agent} ${model}: ${r.error ?? r.text.slice(0, 2000)}\n---\n`);
     if (r.error) return { ok: false, error: /rate|limit|usage/i.test(r.error) ? 'rate_limited' : 'upstream_error', message: r.error };
     const meta = { truncated: r.truncated, modelTierApplied: req.modelTier ?? 'default', modelApplied: model };
