@@ -14,7 +14,9 @@ import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
 import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
-import { charLevel, wornTitle } from '../engine/xp';
+import { charLevel, power, wornTitle } from '../engine/xp';
+import { spawnNpc } from '../library/spawn';
+import { uniqueInWorld } from '../library/echo';
 import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
 import { moveSpeed } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
@@ -97,6 +99,11 @@ function furnitureView(state: GameState, zoneId: string): { furniture?: ZoneView
 }
 /** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
 /** BG-181: what someone's wounds were last treated with, by item name, until their next wound */
+/** HF2: an echo's hidden past, for the Narrator only */
+const echoOf = (state: GameState, id: string): { echo?: string } => {
+  const a = actorById(state, id), t = a?.core.origin === 'echo' && a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined;
+  return t?.unique ? { echo: t.unique.past } : {};
+};
 const tendedOf = (state: GameState, a: Actor): { tended?: string } => { const t = a.core.condition.tended; return t ? { tended: itemDef(state, t.itemId).name } : {}; };
 function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: ItemInstance[] = i.contents ?? []): { container?: ContainerView } {
   if (!itemDef(state, i.itemId).container) return {};
@@ -689,7 +696,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...echoOf(state, s.id) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)
@@ -817,6 +824,16 @@ function weaverPlaces(state: GameState, onStage: Actor[]): WeaverView['places'] 
   return [...out.values()];
 }
 
+/** HF9, HF11: the unique templates not yet in this world, each with its power as it would come in and, hidden, its past (HF2) */
+function uniqueCatalog(state: GameState): WeaverView['catalogs']['uniques'] {
+  const lib = getLibrary();
+  return Object.values(lib.templates).filter((t) => t.generation === 'unique' && t.unique && !uniqueInWorld(state, t.id)).map((t) => {
+    const u = t.unique!, probe = spawnNpc(state, t.id, { id: `probe_${t.id}`, zone: '', placeId: '', bandId: '' });
+    return { id: t.id, name: u.name, label: t.label, raceId: t.raceId, classes: u.classes.filter((c) => c.level > 0).map((c) => ({ name: lib.classes[c.classId]?.name ?? c.classId, level: c.level })),
+      level: charLevel(probe), power: Math.round(power(state, probe)), ...(u.origin === 'echo' ? { echo: true as const } : {}), past: u.past };
+  });
+}
+
 export type WeaverTarget = Omit<WeaverView['target'], 'placeName'>;
 export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
@@ -825,7 +842,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
-  const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
+  const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).filter((t) => t.generation !== 'unique').map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
   // D-220: the Weaver placing Threadbound items is parked, so they stay out of its catalog
@@ -845,13 +862,14 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
-    player: { level: charLevel(state.player), ...(state.player.pronouns ? { pronouns: state.player.pronouns } : {}), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
+    player: { level: charLevel(state.player), power: Math.round(power(state, state.player)), ...(state.player.pronouns ? { pronouns: state.player.pronouns } : {}), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
       standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone } },
     previousNote: state.hidden.weaverNote,
     lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
     ...(state.stage.outer ? { outerScenario: { question: state.stage.outer.question, scale: SCENARIO_SCALES.name(state.stage.outer.scale) } } : {}),
     catalogs: {
       templates: [...templates.values()],
+      uniques: uniqueCatalog(state),
       services: Object.values(lib.services ?? {}).map((s) => ({ id: s.id, name: s.name, price: s.price })),
       bodyTypes: [...Object.values(lib.bodyTypes).map((b) => ({ id: b.id, name: b.name })), ...bp('body_type').filter((b) => !lib.bodyTypes[b.id]).map((b) => ({ id: b.id, name: String(b.data.name ?? b.id) }))],
       races: Object.values(lib.races ?? {}).map((r) => ({ id: r.id, name: r.name })),

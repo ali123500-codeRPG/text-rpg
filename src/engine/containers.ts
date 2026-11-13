@@ -75,7 +75,7 @@ export function inContainer(state: GameState, a: Actor, itemId: string): { list:
 
 /** CT7: a worn pack taken off its wearer (picked up from a downed or yielded one) takes their stowed items with it */
 export function packUp(holder: Actor, pack: ItemInstance): void {
-  const stowed = holder.core.inventory.filter((i) => i !== pack && !i.equippedIn?.length);
+  const stowed = holder.core.inventory.filter((i) => i !== pack && !i.equippedIn?.length && !i.soulbound); // HF18: soulbound gear stays with its owner
   holder.core.inventory = holder.core.inventory.filter((i) => !stowed.includes(i));
   pack.contents = [...(pack.contents ?? []), ...stowed];
 }

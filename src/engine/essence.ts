@@ -16,6 +16,7 @@ import { canSpeak } from '../ruleset/body';
 import { threatHere } from './resolve';
 import { dealRolls } from './growth';
 import { fireEssenceAuto } from '../ruleset/threadboundItems';
+import { isEcho } from '../library/echo';
 import { buyingPrice, coins, isSeller, orderReaches, payCoin } from './trade';
 import { gripReachM } from '../ruleset/body';
 import { withinGrip } from './position';
@@ -38,7 +39,7 @@ export const appearRoll = (rng: Rng, source: string): boolean => rng.d100() <= (
  * edges included. Near Miss or worse: the essence fades; Success common, Great Success fine, Critical Success rare; returns the
  * grade and steps past the last grade. `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the
  * Toss, All or Nothing), on this roll only. */
-export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }): { grade: EssenceGradeKey; past: number } | null {
+export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }, echo = false): { grade: EssenceGradeKey; past: number } | null {
   const auto = by && fireEssenceAuto(by.state, by.actor);
   let d = rng.d100();
   if (auto?.kind === 'farther') { const d2 = rng.d100(); if (Math.abs(d2 - 50.5) > Math.abs(d - 50.5)) d = d2; }
@@ -46,17 +47,18 @@ export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; act
   const top = TIERS.keys.length - 1;
   const at = auto?.kind === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(d + base - CONFIG.ESSENCE_ROLL_NEEDED);
   const level = Math.max(0, Math.min(top, at + naturalEdge(d)));
-  const step = level - TIERS.pos('success');
-  if (step < 0) return null;
+  // HF29 a: an echo's roll goes ECHO_ESSENCE_TIERS up, past the last grade too, and never fades below ECHO_ESSENCE_FLOOR
+  const step = level - TIERS.pos('success') + (echo ? CONFIG.ECHO_ESSENCE_TIERS : 0);
+  if (step < 0) return echo ? { grade: CONFIG.ECHO_ESSENCE_FLOOR, past: 0 } : null;
   const last = ESSENCE_GRADES.keys.length - 1;
   return { grade: ESSENCE_GRADES.keys[Math.min(step, last)], past: Math.max(0, step - last) };
 }
 
 /** an essence appears from `row` (logged: the Narrator tells it), then its quality roll decides: held as an offer, or it fades */
 function appearAndRoll(state: GameState, rng: Rng, row: EssenceDef, base: number, source: EssenceOffer['source'], from: string,
-  skills: { skill: string; weight: number }[], measure: (skill: string) => number): void {
+  skills: { skill: string; weight: number }[], measure: (skill: string) => number, echo = false): void {
   logCode(state, 'essence_appeared', { essence: row.id, source, from });
-  const roll = qualityRoll(rng, base, { state, actor: state.player });
+  const roll = qualityRoll(rng, base, { state, actor: state.player }, echo);
   if (roll) return offer(state, row, skills, roll, source, from, measure);
   logCode(state, 'essence_faded', { essence: row.id, source, from });
 }
@@ -91,10 +93,11 @@ function offer(state: GameState, row: EssenceDef, skills: { skill: string; weigh
   logCode(state, 'essence_offered', { essence: row.id, grade: roll.grade, source, from });
 }
 
-/** 2.3: a beaten foe is notable when its power is at least ESSENCE_NOTABLE_SHARE of the player's, or its template is notable or rolled */
+/** 2.3: a beaten foe is notable when its power is at least ESSENCE_NOTABLE_SHARE of the player's, or its template is notable,
+ * rolled or unique */
 export function notable(state: GameState, foe: Actor): boolean {
   const id = foe.core.templateId, t = id ? (() => { try { return npcTemplate(state, id); } catch { return undefined; } })() : undefined;
-  return !!t?.notable || foe.core.generation === 'rolled' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
+  return !!t?.notable || foe.core.generation === 'rolled' || foe.core.generation === 'unique' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
 }
 
 /** 2.3: each foe the player beat this turn (payDefeats) rolls once, ever, for an essence of its race or body type, if notable.
@@ -106,9 +109,9 @@ export function offersFromDefeats(state: GameState, defeated: Actor[], rng: Rng)
     if (!foe.mind || foe.mind.essenceRolled || !notable(state, foe)) continue;
     foe.mind.essenceRolled = true;
     const rows = rowsFor(state, foe);
-    if (!rows.length || !appearRoll(rng, 'foe')) continue;
+    if (!rows.length || (!isEcho(foe) && !appearRoll(rng, 'foe'))) continue; // HF29 a: an echo always offers one
     const row = pick(rows, rng)!;
-    appearAndRoll(state, rng, row, CONFIG.ESSENCE_ROLL_BASE.foe, 'foe', foe.names.current, row.skills, (sk) => (foe.core.skills[sk]?.raw ?? 0) * tierMult(sk));
+    appearAndRoll(state, rng, row, CONFIG.ESSENCE_ROLL_BASE.foe, 'foe', foe.names.current, row.skills, (sk) => (foe.core.skills[sk]?.raw ?? 0) * tierMult(sk), isEcho(foe));
   }
 }
 

@@ -121,4 +121,4 @@ export function takeFilched(state: GameState, a: Actor, list: ItemInstance[], in
 
 /** FL2: what can be filched from someone: what they carry that is not held or worn (in a pack or loose), small enough */
 export const filchable = (state: GameState, t: Actor): ItemInstance[] =>
-  t.core.inventory.filter((i) => !i.equippedIn?.length && filchSize(itemDef(state, i.itemId).bulk) !== null);
+  t.core.inventory.filter((i) => !i.equippedIn?.length && !i.soulbound && filchSize(itemDef(state, i.itemId).bulk) !== null);

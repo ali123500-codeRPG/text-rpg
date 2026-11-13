@@ -308,7 +308,10 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   const left = Math.round(max * (100 - lost) / 100);
   const ticks = full ? CONFIG.MORALE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Morale'), h('b', {}, h('span', { 'data-m': 'morale-level' }, level),
+    h('span', { class: 'cs-row' }, h('span', {}, 'Morale',
+      // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
+      p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
+      h('b', {}, h('span', { 'data-m': 'morale-level' }, level),
       full ? [' · ', h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`] : null)),
     h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),

@@ -266,7 +266,7 @@ export type NarrationView = {
   player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; mentallySteady?: true; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; activityLook?: string; age?: string; tended?: string }[]; // tended: BG-181; age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; activityLook?: string; age?: string; tended?: string; echo?: string }[]; // echo: HF2, hidden: who an echo was; tended: BG-181; age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
@@ -301,6 +301,8 @@ export type WeaverView = {
   flags: Record<string, string | number | boolean>;
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;
+    /** HF9: rating + gear rating, to set a unique's power against */
+    power: number;
     /** NW6: where the player stands (place and area) */
     standsIn: { place: string; placeName: string; area: string } };
   previousNote: string;
@@ -310,6 +312,9 @@ export type WeaverView = {
   outerScenario?: { question: string; scale: string };
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string }[];
+    /** HF9, HF2: unique NPCs not yet in this world: one specific person each (an echo: a fallen hero), with its power and,
+     * hidden, who it was */
+    uniques: { id: string; name: string; label: string; raceId: string; classes: { name: string; level: number }[]; level: number; power: number; echo?: true; past: string }[];
     services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup
     bodyTypes: { id: string; name: string }[]; // BT… id and name, plus story body types
     races: { id: string; name: string }[]; // RC… id and name: what a template's raceId names
