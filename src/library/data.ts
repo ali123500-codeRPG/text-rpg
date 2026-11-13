@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, BK, CP, DU, EK, FR, GC, HL, PA, PY, RL, VL, ZK } from './tableIds';
+import { AM, BK, CP, DU, EK, FR, GC, HL, PA, PY, RL, TN, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -31,6 +31,32 @@ import { IT } from './itemIds';
 /** AG3–AG6: life stage start ages per race (placeholders but the human row) */
 const ages = (y: number[]) => Object.fromEntries(LIFE_STAGES.keys.map((k, i) => [k, y[i]])) as Record<LifeStageKey, number>;
 const AGES = { human: ages([0, 13, 18, 40, 60, 80, 100]), elf: ages([0, 13, 20, 150, 250, 350, 450]), dragon: ages([0, 5, 100, 200, 300, 400, 500]) };
+/** PL19: a short behaviour hint for each value, given to the agent with the value */
+const VALUE_HINTS: Record<keyof typeof VL, string> = {
+  duty: 'does what is expected of them, sees obligations through',
+  wealth: 'wants money and fine things, counts the cost of everything',
+  family: 'puts their own family first, protects and provides for them',
+  faith: 'lives by their gods and their teachings',
+  power: 'wants control over others and over events',
+  freedom: 'hates being told what to do, chooses their own path',
+  safety: 'avoids danger, wants things secure and settled',
+  pleasure: 'lives for food, drink, fun and a good show',
+  knowledge: 'studies, practises and seeks out learning',
+  kindness: 'helps people in need, hates to see suffering',
+  glory: 'wants great deeds and to be remembered for them',
+  adventure: 'seeks out new places, thrills and challenges',
+  reputation: 'cares what others think of them, guards their good name',
+  humility: 'accepts their lot, asks for nothing, gives others the credit',
+  nature: 'loves the wild, animals and growing things',
+  justice: 'wants wrongs put right and the guilty punished',
+  tolerance: 'accepts people who are different, hates prejudice',
+  loyalty: 'stands by their friends and their own',
+  courtesy: 'minds their manners, avoids giving offence',
+  order: 'likes rules, routine and things in their place',
+  propriety: 'keeps to what is proper for their place, and keeps private matters private',
+  gratitude: 'repays kindness in kind or better, and offers to at once',
+  desire: 'drawn to attractive people; notices them, flirts and chases romance',
+};
 const SMALLER_PAYS_MORE = { small: 1, extra_small: 1, tiny: 2 };
 
 const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
@@ -582,25 +608,42 @@ export function prototypeLibrary(): Library {
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
-    // PL6: personality axes, with the words for each end; PL19, PL28: values (Schwartz's 19 refined values plus family;
-    // VL11–VL20 from PL29); PL10, PL21–PL27: named types
+    // PL6: personality axes, with the words and hints for each end (Levity from the personality line voice tests); PL19,
+    // PL28: values (Schwartz's 19 refined values plus family; VL11–VL20 from PL29; propriety, gratitude and desire from the
+    // voice tests); PL10, PL21–PL27: archetypes
     personalityAxes: {
-      [PA.honesty]: { id: PA.honesty, name: 'Honesty', low: 'deceitful', high: 'honest' },
-      [PA.pride]: { id: PA.pride, name: 'Pride', low: 'humble', high: 'proud' },
-      [PA.temper]: { id: PA.temper, name: 'Temper', low: 'patient', high: 'quick to anger' },
-      [PA.sociability]: { id: PA.sociability, name: 'Sociability', low: 'quiet', high: 'talkative' },
-      [PA.discipline]: { id: PA.discipline, name: 'Discipline', low: 'impulsive', high: 'disciplined' },
-      [PA.curiosity]: { id: PA.curiosity, name: 'Curiosity', low: 'set in its ways', high: 'curious' },
+      [PA.honesty]: { id: PA.honesty, name: 'Honesty', low: 'deceitful', high: 'honest', lowHint: 'bends the truth when it suits them', highHint: 'says what they think, keeps their word' },
+      [PA.pride]: { id: PA.pride, name: 'Pride', low: 'humble', high: 'proud', lowHint: 'plays themself down, lets others shine', highHint: 'rates themself above others and says so' },
+      [PA.temper]: { id: PA.temper, name: 'Temper', low: 'patient', high: 'quick to anger', lowHint: 'slow to anger, lets slights pass', highHint: 'flares up fast when crossed' },
+      [PA.sociability]: { id: PA.sociability, name: 'Sociability', low: 'quiet', high: 'talkative', lowHint: 'keeps to themself, says little', highHint: 'chatters, makes friends easily, fills silences' },
+      [PA.discipline]: { id: PA.discipline, name: 'Discipline', low: 'impulsive', high: 'disciplined', lowHint: 'acts first, thinks later', highHint: 'keeps to plans and habits, finishes what they start' },
+      [PA.curiosity]: { id: PA.curiosity, name: 'Curiosity', low: 'set in their ways', high: 'curious', lowHint: 'sticks to what they know, distrusts the new', highHint: 'wants to know how things work, asks and pokes' },
+      [PA.levity]: { id: PA.levity, name: 'Levity', low: 'earnest', high: 'playful', lowHint: 'takes things seriously, rarely jokes', highHint: 'jokes and teases, and talks lightly even about serious things' },
     },
-    values: Object.fromEntries(Object.entries(VL).map(([k, id]) => [id, { id, name: k }])),
+    values: Object.fromEntries(Object.entries(VL).map(([k, id]) => [id, { id, name: k, hint: VALUE_HINTS[k as keyof typeof VL] }])),
+    // archetypes: the nearest target (six axes, Nerve, and the drives counted ARCHETYPE_VALUE_WEIGHT times) is the
+    // character's; ties go to the earlier row, so Ordinary comes first. Targets are placeholders.
     personalityTypes: {
-      [PY.prideful]: { id: PY.prideful, name: 'Prideful', when: { [PA.pride]: { min: 40 } }, hint: 'saves face, won\'t back down in front of others, takes insults personally' },
-      [PY.mature]: { id: PY.mature, name: 'Mature', when: { [PA.discipline]: { min: 40 }, [PA.temper]: { max: -20 }, [SK.resolve]: { min: 40 } }, hint: 'thinks before acting, keeps a cool head, owns their mistakes' },
-      [PY.childish]: { id: PY.childish, name: 'Childish', when: { [PA.discipline]: { max: -40 }, [PA.temper]: { min: 20 } }, hint: 'acts on impulse, sulks or lashes out when crossed' },
-      [PY.honourable]: { id: PY.honourable, name: 'Honourable', when: { [PA.honesty]: { min: 40 }, [PA.pride]: { min: 20 } }, hint: 'keeps their word and answers any insult to their name' },
-      [PY.schemer]: { id: PY.schemer, name: 'Schemer', when: { [PA.honesty]: { max: -40 }, [PA.discipline]: { min: 20 } }, hint: 'plans ahead, lies patiently, uses people' },
-      [PY.bully]: { id: PY.bully, name: 'Bully', when: { [PA.pride]: { min: 40 }, [PA.temper]: { min: 40 }, [PA.honesty]: { max: -20 } }, hint: 'picks on the weak, backs down from the strong' },
-      [PY.busybody]: { id: PY.busybody, name: 'Busybody', when: { [PA.sociability]: { min: 40 }, [PA.curiosity]: { min: 40 } }, hint: 'pokes into other people\'s business and passes on what they learn' },
+      [PY.ordinary]: { id: PY.ordinary, name: 'Ordinary', target: {}, hint: 'an everyday sort, nothing to extremes' },
+      [PY.prideful]: { id: PY.prideful, name: 'Prideful', target: { [PA.pride]: 70, [PA.temper]: 20 }, nerve: 20, values: [VL.reputation, VL.glory], hint: 'won\'t back down in front of others, takes insults personally' },
+      [PY.mature]: { id: PY.mature, name: 'Mature', target: { [PA.discipline]: 60, [PA.temper]: -40, [PA.honesty]: 20 }, values: [VL.duty, VL.order], hint: 'thinks before acting, keeps a cool head, owns their mistakes' },
+      [PY.childish]: { id: PY.childish, name: 'Childish', target: { [PA.discipline]: -70, [PA.temper]: 30, [PA.sociability]: 40, [PA.curiosity]: 40 }, nerve: 20, values: [VL.pleasure, VL.adventure], hint: 'acts on impulse, sulks when crossed' },
+      [PY.honourable]: { id: PY.honourable, name: 'Honourable', target: { [PA.honesty]: 70, [PA.pride]: 40, [PA.discipline]: 30 }, nerve: 20, values: [VL.justice, VL.loyalty, VL.duty], hint: 'keeps their word and answers any insult to their name' },
+      [PY.schemer]: { id: PY.schemer, name: 'Schemer', target: { [PA.honesty]: -60, [PA.discipline]: 50, [PA.temper]: -20, [PA.sociability]: 20 }, nerve: -20, values: [VL.power, VL.wealth], hint: 'plans ahead, lies patiently, uses people' },
+      [PY.bully]: { id: PY.bully, name: 'Bully', target: { [PA.pride]: 60, [PA.temper]: 60, [PA.honesty]: -30, [PA.curiosity]: -20 }, values: [VL.power], hint: 'picks on the weak, backs down from the strong' },
+      [PY.loner]: { id: PY.loner, name: 'Loner', target: { [PA.sociability]: -60 }, values: [VL.freedom, VL.safety], hint: 'keeps to themself and relies on no one; dodges group ties and promises rather than argue about them' },
+      [PY.busybody]: { id: PY.busybody, name: 'Busybody', target: { [PA.sociability]: 60, [PA.curiosity]: 60, [PA.discipline]: -20 }, values: [VL.reputation], hint: 'pokes into other people\'s business and passes on what they learn' },
+      [PY.free_spirit]: { id: PY.free_spirit, name: 'Free spirit', target: { [PA.discipline]: -60, [PA.sociability]: 50 }, nerve: 40, values: [VL.freedom, VL.pleasure, VL.desire], hint: 'lives for the moment, laughs off trouble, hates being tied down' },
+    },
+    // tensions, shown in row order, at most TENSIONS_SHOWN. Thresholds are placeholders.
+    tensions: {
+      [TN.unshakeable_scatterbrained]: { id: TN.unshakeable_scatterbrained, name: 'unshakeable yet scatterbrained', hint: 'nothing frightens them, yet they can\'t keep to a plan', when: { min: { [SK.resolve]: 80 }, max: { [PA.discipline]: -40 } } },
+      [TN.bold_unbacked]: { id: TN.bold_unbacked, name: 'bold with nothing to back it', hint: 'laughs at danger, can\'t fight', when: { nerveLine: 'daring', max: { bestFight: 19 } } },
+      [TN.old_head]: { id: TN.old_head, name: 'old head on young shoulders', hint: 'talks and plans like a grown-up, though still a child', when: { ageStage: 'stage_0', min: { [PA.discipline]: 40 } } },
+      [TN.wary_dangerous]: { id: TN.wary_dangerous, name: 'wary but dangerous', hint: 'avoids danger, yet hits hard when pushed', when: { nerveLine: 'cautious', min: { bestAttack: 40 } } },
+      [TN.home_temptation]: { id: TN.home_temptation, name: 'torn between home and temptation', hint: 'loves their own, yet can\'t resist a pretty face', when: { drives: [VL.desire], anyDrive: [VL.family, VL.loyalty] } },
+      [TN.talent_undisciplined]: { id: TN.talent_undisciplined, name: 'talent without discipline', hint: 'brilliant at their craft, careless at everything else', when: { min: { bestSkill: 60 }, max: { [PA.discipline]: -40 } } },
+      [TN.crooked_means]: { id: TN.crooked_means, name: 'good ends, crooked means', hint: 'bends the truth to help the people they care about', when: { max: { [PA.honesty]: -20 }, anyDrive: [VL.loyalty, VL.kindness] } },
     },
     fears: {
       [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 25, rolled: true, health: { from: 'injured', to: 'mauled' } },

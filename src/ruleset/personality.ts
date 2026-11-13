@@ -1,13 +1,20 @@
-// Nerve and personality (PL1–PL19). Points are stored; lines, tiers, words and named types are read from them here.
-// Nerve (risk) picks a line by its lean and a tier by raw Resolve; six personality axes and one or two values describe how
+// Nerve and personality (PL1–PL19). Points are stored; lines, tiers, words, the archetype and tensions are read from them here.
+// Nerve (risk) picks a line by its lean and a tier by raw Resolve; the personality axes and ranked values describe how
 // the character behaves. Perks, the current class and achievements add points while held (PL15, PL16). The words go to
 // the agents that play NPCs (CHARACTER) and to the player's sheet; nothing here changes a roll (numeric effects: D-205).
-import type { Actor, Personality, PersonalityAdd, PersonalityTypeDef } from '../types';
+import type { Actor, GameState, Personality, PersonalityAdd, PersonalityTypeDef, TensionDef } from '../types';
 import { CONFIG } from '../config';
-import { getLibrary } from '../library';
+import { getLibrary, npcTemplate } from '../library';
 import { SK } from '../library/skillIds';
-import { NERVE_LINES, type NerveLine, type Scale } from '../scales';
+import { GR } from '../library/functionIds';
+import { groupsOf } from '../library/functionNames';
+import { NERVE_HINTS, NERVE_LINES, type NerveLine, type Scale } from '../scales';
 import { chainRewards, currentAchievements } from './achRewards';
+import { ageYears, lifeStage } from './age';
+
+/** the skill groups that count as fighting, and as attacking, for the tensions' bestFight and bestAttack */
+const ATTACK_GROUPS: string[] = [GR.melee, GR.ranged];
+const FIGHT_GROUPS: string[] = [...ATTACK_GROUPS, GR.defense];
 
 const NONE: Personality = { nerve: 0, traits: {}, values: [] };
 
@@ -44,52 +51,87 @@ export function nerveTier(a: Actor, p = personalityOf(a)): string {
   return line.name(line.at(i)) + '+'.repeat(plus);
 }
 
+/** PL9: the strength word before a trait ("very ", "", "a bit "), from its distance from 0 */
+const strength = (v: number) => [...CONFIG.TRAIT_WORDS].reverse().find(([from]) => Math.abs(v) >= from)?.[1] ?? '';
+
 /** PL9: the trait words, strongest first; a trait under PERSONALITY_LEAN from 0 is left out */
 export function traitWords(p: Personality): string[] {
   const axes = getLibrary().personalityAxes ?? {};
   return Object.entries(p.traits).filter(([k, v]) => axes[k] && Math.abs(v) >= CONFIG.PERSONALITY_LEAN)
     .sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))
-    .map(([k, v]) => {
-      const w = [...CONFIG.TRAIT_WORDS].reverse().find(([from]) => Math.abs(v) >= from)?.[1] ?? '';
-      return w + (v < 0 ? axes[k].low : axes[k].high);
-    });
+    .map(([k, v]) => strength(v) + (v < 0 ? axes[k].low : axes[k].high));
 }
 
-/** PL10: the named types the actor meets, strongest first (by the smallest margin past a condition), at most PERSONALITY_TYPES_SHOWN */
-export function personalityTypes(a: Actor, p = personalityOf(a)): PersonalityTypeDef[] {
-  const value = (k: string) => (k === 'nerve' ? p.nerve : k === SK.resolve ? rawResolve(a) : p.traits[k] ?? 0);
-  const margin = (t: PersonalityTypeDef) => Math.min(...Object.entries(t.when).map(([k, c]) =>
-    Math.min(c.min !== undefined ? value(k) - c.min : Infinity, c.max !== undefined ? c.max - value(k) : Infinity)));
-  return Object.values(getLibrary().personalityTypes ?? {}).map((t) => ({ t, m: margin(t) })).filter((x) => x.m >= 0)
-    .sort((x, y) => y.m - x.m).slice(0, CONFIG.PERSONALITY_TYPES_SHOWN).map((x) => x.t);
+/** how far the ranked values are from a type's: 0 = the type's values are the top ones held, 100 = none of them */
+function driveGap(values: string[], typeValues: string[] | undefined): number {
+  if (!typeValues?.length) return CONFIG.ARCHETYPE_NO_VALUES_GAP;
+  const W = CONFIG.DRIVE_RANK_WEIGHT, w = (i: number) => W[Math.min(i, W.length - 1)];
+  const got = typeValues.reduce((s, v) => s + (values.includes(v) ? w(values.indexOf(v)) : 0), 0);
+  const best = Array.from({ length: Math.min(typeValues.length, values.length) }, (_, i) => w(i)).reduce((x, y) => x + y, 0);
+  return best ? 100 * (1 - got / best) : CONFIG.ARCHETYPE_NO_VALUES_GAP;
 }
 
-/** PL4, PL9: the line the agent reads, e.g. "Nerve: Timid (Calm right now). Honest, a bit talkative. Values: duty.
- * Type: Mature (thinks before acting…)." The morale level is the mood; the tier never moves with it. */
-export function personalityText(a: Actor, morale: string): string {
-  const p = personalityOf(a), lib = getLibrary();
-  const words = traitWords(p), values = p.values.map((v) => lib.values?.[v]?.name).filter(Boolean), types = personalityTypes(a, p);
+/** PL10: the archetype: the nearest type by the average gap over every axis, Nerve, and the drive fit counted
+ * ARCHETYPE_VALUE_WEIGHT times; a tie goes to the earlier row */
+export function archetypeOf(p: Personality): PersonalityTypeDef {
+  const lib = getLibrary(), axes = Object.keys(lib.personalityAxes ?? {}), W = CONFIG.ARCHETYPE_VALUE_WEIGHT;
+  const gap = (t: PersonalityTypeDef) => (axes.reduce((s, ax) => s + Math.abs((p.traits[ax] ?? 0) - (t.target[ax] ?? 0)), 0)
+    + Math.abs(p.nerve - (t.nerve ?? 0)) + W * driveGap(p.values, t.values)) / (axes.length + 1 + W);
+  return Object.values(lib.personalityTypes ?? {}).reduce((best, t) => (gap(t) < gap(best) ? t : best));
+}
+
+/** the traits the archetype doesn't explain ("but"): BUT_MIN points or more, BUT_GAP or more from its target, and not
+ * just a weaker version of it; widest gap first, at most BUTS_SHOWN */
+export function butsOf(p: Personality, t: PersonalityTypeDef): { axis: string; v: number }[] {
+  return Object.keys(getLibrary().personalityAxes ?? {}).map((axis, i) => ({ axis, i, v: p.traits[axis] ?? 0, t: t.target[axis] ?? 0 }))
+    .filter((b) => Math.abs(b.v) >= CONFIG.BUT_MIN && Math.abs(b.v - b.t) >= CONFIG.BUT_GAP && (Math.sign(b.v) !== Math.sign(b.t) || Math.abs(b.v) > Math.abs(b.t)))
+    .sort((x, y) => Math.abs(y.v - y.t) - Math.abs(x.v - x.t) || x.i - y.i).slice(0, CONFIG.BUTS_SHOWN).map(({ axis, v }) => ({ axis, v }));
+}
+
+/** the tensions the actor meets, in table order (all of them; the line shows TENSIONS_SHOWN) */
+export function tensionsOf(state: GameState, a: Actor, p = personalityOf(a)): TensionDef[] {
+  const lib = getLibrary(), years = ageYears(state, a), stage = years === undefined ? undefined : lifeStage(a.core.raceId, years)?.key;
+  // Resolve is the Nerve tier's own measure, never a craft
+  const best = (groups: string[] | null) => Math.max(0, ...Object.entries(a.core.skills)
+    .filter(([id]) => id !== SK.resolve && (!groups || groupsOf(lib.skills[id]).some((g) => groups.includes(g)))).map(([, e]) => e.raw));
+  const fact: Record<string, number> = { ...p.traits, [SK.resolve]: rawResolve(a), bestSkill: best(null), bestFight: best(FIGHT_GROUPS), bestAttack: best(ATTACK_GROUPS) };
+  const v = (k: string) => fact[k] ?? 0;
+  return Object.values(lib.tensions ?? {}).filter(({ when: w }) =>
+    Object.entries(w.min ?? {}).every(([k, n]) => v(k) >= n) && Object.entries(w.max ?? {}).every(([k, n]) => v(k) <= n)
+    && (!w.nerveLine || w.nerveLine === nerveLine(p)) && (!w.ageStage || w.ageStage === stage)
+    && (w.drives ?? []).every((d) => p.values.includes(d)) && (!w.anyDrive || w.anyDrive.some((d) => p.values.includes(d))));
+}
+
+const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** PL4, PL9: the line the agent reads in CHARACTER: Nerve with its hint and the mood, a unique NPC's signatures, the
+ * archetype with its "but" traits, the top drives and the tensions. The morale level is the mood; the tier never moves with it. */
+export function personalityText(state: GameState, a: Actor, morale: string): string {
+  const p = personalityOf(a), lib = getLibrary(), axes = lib.personalityAxes ?? {}, line = nerveLine(p);
+  const t = a.core.generation === 'unique' && a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined;
+  const arch = archetypeOf(p), buts = butsOf(p, arch).map(({ axis, v }) => `${strength(v)}${v < 0 ? axes[axis].low : axes[axis].high} (${v < 0 ? axes[axis].lowHint : axes[axis].highHint})`);
+  const drives = p.values.slice(0, CONFIG.DRIVES_SHOWN).filter((v) => lib.values?.[v]);
+  const tensions = tensionsOf(state, a, p).slice(0, CONFIG.TENSIONS_SHOWN);
   return [
-    `Nerve: ${nerveTier(a, p)} (${morale} right now).`,
-    ...(words.length ? [`${words.join(', ').replace(/^./, (c) => c.toUpperCase())}.`] : []),
-    ...(values.length ? [`Values: ${values.join(', ')}.`] : []),
-    ...types.map((t) => `Type: ${t.name} (${t.hint}).`),
+    `Nerve: ${nerveTier(a, p)} (${NERVE_HINTS[line]}; ${morale} right now).`,
+    ...(t?.signatures ?? []),
+    `${arch.name} at heart (${arch.hint})${buts.length ? `, but ${list(buts)}` : ''}.`,
+    ...(drives.length ? [`Drives: ${drives.map((v, i) => `${lib.values![v].name}${i === 0 && drives.length > 1 ? ' first' : ''} (${lib.values![v].hint})`).join(', then ')}.`] : []),
+    ...(tensions.length ? [`Tensions: ${tensions.map((x) => `${x.name} (${x.hint})`).join('; ')}.`] : []),
   ].join(' ');
 }
 
-/** PL12, PL14: points for a named Nerve line, named types and values (from the Weaver or the creation screen), on top of
- * `base`: a line sets Nerve to ±NERVE_LINE_POINTS (steady 0); each type sets every trait it names to its threshold if not
- * already past it. Unknown names are ignored. */
+/** PL12, PL14: points for a named Nerve line, archetypes and ranked values (from the Weaver or the creation screen), on top
+ * of `base`: a line sets Nerve to ±NERVE_LINE_POINTS (steady 0); each archetype sets every trait it names to its target if
+ * not already past it. Unknown names are ignored. */
 export function personalityFrom(base: Personality, pick: { nerve?: string; types?: string[]; values?: string[] }): Personality {
   const lib = getLibrary(), out: Personality = { nerve: base.nerve, traits: { ...base.traits }, values: [...base.values] };
   if (pick.nerve && pick.nerve in NERVE_LINES) out.nerve = { cautious: -1, steady: 0, daring: 1 }[pick.nerve as NerveLine] * CONFIG.NERVE_LINE_POINTS;
-  for (const id of pick.types ?? []) for (const [k, c] of Object.entries(lib.personalityTypes?.[id]?.when ?? {})) {
-    if (!lib.personalityAxes?.[k]) continue; // Resolve and Nerve conditions are not set by a pick
+  for (const id of pick.types ?? []) for (const [k, t] of Object.entries(lib.personalityTypes?.[id]?.target ?? {})) {
     const v = out.traits[k] ?? 0;
-    if (c.min !== undefined && v < c.min) out.traits[k] = c.min;
-    if (c.max !== undefined && v > c.max) out.traits[k] = c.max;
+    if (t > 0 ? v < t : v > t) out.traits[k] = t;
   }
   const values = (pick.values ?? []).filter((v) => lib.values?.[v]);
-  if (values.length) out.values = values.slice(0, 2);
+  if (values.length) out.values = values.slice(0, CONFIG.DRIVES_SHOWN);
   return out;
 }

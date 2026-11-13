@@ -211,6 +211,10 @@ export type NpcTemplate = {
   focus: { treeId: LibraryRef; skill: LibraryRef }[];
   resolve: number; // starting Resolve (MB30)
   personality: Personality; // PL11: Nerve, trait and value points
+  /** a unique NPC's title ("the Butler"), given with its name in CHARACTER */
+  title?: string;
+  /** a unique NPC's hand-written if-then lines, given right after Nerve in its personality line */
+  signatures?: string[];
   loadout?: LibraryRef[];
   potential?: number;
   control: 'agent' | 'code';

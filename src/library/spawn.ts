@@ -267,7 +267,7 @@ export function validateBuild(build: CreationBuild): string[] {
     const inRange = (n: number) => Number.isFinite(n) && n >= -100 && n <= 100;
     if (!inRange(pe.nerve)) errs.push('Nerve must be between −100 and 100');
     for (const [k, v] of Object.entries(pe.traits)) if (!lib.personalityAxes?.[k] || !inRange(v)) errs.push(`${lib.personalityAxes?.[k]?.name ?? k} must be a personality trait between −100 and 100`);
-    if (pe.values.length > 2 || new Set(pe.values).size !== pe.values.length || pe.values.some((v) => !lib.values?.[v])) errs.push('Pick up to two different values');
+    if (pe.values.length > CONFIG.DRIVES_SHOWN || new Set(pe.values).size !== pe.values.length || pe.values.some((v) => !lib.values?.[v])) errs.push(`Pick up to ${CONFIG.DRIVES_SHOWN} different values`);
   }
   return errs;
 }

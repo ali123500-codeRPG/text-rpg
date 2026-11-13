@@ -107,11 +107,16 @@ export type BodyType = {
   figure?: { viewBox: string; parts: Record<string, string> };
 };
 
-/** PL6: one personality axis; `low` and `high` are the words for its two ends */
-export type PersonalityAxisDef = { id: string; name: string; low: string; high: string };
-/** PL10: a named type: every condition must hold. Keys are personality axes (PA…), 'nerve', or SK.resolve (raw); `hint`
- * tells the agent how the type acts */
-export type PersonalityTypeDef = { id: string; name: string; when: Record<string, { min?: number; max?: number }>; hint: string };
+/** PL6: one personality axis; `low` and `high` are the words for its two ends, each with a short behaviour hint */
+export type PersonalityAxisDef = { id: string; name: string; low: string; high: string; lowHint: string; highHint: string };
+/** PL10: an archetype, a whole-person target: points on the axes (PA…, left out = 0) and Nerve (left out = 0), and the
+ * values (VL…) the type lives by. A character's archetype is the nearest row (src/ruleset/personality.ts archetypeOf). */
+export type PersonalityTypeDef = { id: string; name: string; target: Record<string, number>; nerve?: number; values?: string[]; hint: string };
+/** a tension: two parts of a character that pull against each other; every condition given must hold. min/max keys: an
+ * axis (PA…), raw Resolve (SK.resolve), or bestSkill, bestFight, bestAttack (the best raw skill of any kind, of a fighting
+ * group, of an attacking group). `drives`: every one of these values is held; `anyDrive`: at least one is */
+export type TensionDef = { id: string; name: string; hint: string; when: { min?: Record<string, number>; max?: Record<string, number>;
+  nerveLine?: import('../scales').NerveLine; ageStage?: import('../scales').LifeStageKey; drives?: string[]; anyDrive?: string[] } };
 /** PL15, PL16: points a perk, class or achievement adds while held, by 'nerve' or personality axis (PA…) */
 export type PersonalityAdd = Record<string, number>;
 
@@ -133,8 +138,9 @@ export type Library = {
   composure?: Record<string, ComposureDef>; // what restores morale, apart from healing so each tunes on its own
   fears?: Record<string, FearDef>; // MB21: what costs morale
   personalityAxes?: Record<string, PersonalityAxisDef>; // PL6: PA…
-  values?: Record<string, { id: string; name: string }>; // PL19: VL…, what a character cares about
-  personalityTypes?: Record<string, PersonalityTypeDef>; // PL10: PY…, named mixes read from the points
+  values?: Record<string, { id: string; name: string; hint: string }>; // PL19: VL…, what a character cares about
+  personalityTypes?: Record<string, PersonalityTypeDef>; // PL10: PY…, archetypes; the nearest is the character's
+  tensions?: Record<string, TensionDef>; // TN…, shown in row order
   essences?: Record<string, EssenceDef>; // growth proposal: ES…, packages a beaten foe or a scenario's deeds can offer
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock

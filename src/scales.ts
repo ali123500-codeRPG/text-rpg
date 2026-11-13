@@ -172,3 +172,5 @@ export const NERVE_LINES = {
   daring: scale([['blustering', 'Blustering'], ['brash', 'Brash'], ['spirited', 'Spirited'], ['bold', 'Bold'], ['fearless', 'Fearless'], ['dauntless', 'Death-defying']]),
 } as const;
 export type NerveLine = keyof typeof NERVE_LINES;
+/** what each Nerve line means, given with its tier */
+export const NERVE_HINTS: Record<NerveLine, string> = { cautious: 'keeps out of danger when they can', steady: 'neither seeks nor flees danger', daring: 'takes risks gladly' };

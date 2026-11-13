@@ -19,7 +19,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { ESSENCE_GRADES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { ESSENCE_GRADES, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -851,23 +851,35 @@ function nerveView(): HTMLElement[] {
         row('When', when[l]), row('Tiers', (NERVE_LINES[l] as Scale<string>).keys.map((k) => (NERVE_LINES[l] as Scale<string>).name(k)).join(', ')))))),
   ];
 }
-/** a named type's condition in words: "Pride 40 or more", "Resolve (raw) 40 or more" */
-const typeCond = (k: string, c: { min?: number; max?: number }) => {
-  const name = k === 'nerve' ? 'Nerve' : k === SK.resolve ? 'Resolve (raw)' : lib.personalityAxes?.[k]?.name ?? k;
-  const sign = (n: number) => (n > 0 && k !== SK.resolve ? `+${n}` : n < 0 ? `−${-n}` : String(n));
-  return `${name} ${c.min !== undefined && c.max !== undefined ? `${sign(c.min)} to ${sign(c.max)}` : c.min !== undefined ? `${sign(c.min)} or more` : `${sign(c.max!)} or less`}`;
-};
+/** a point or condition in words: "Pride +40", "Resolve (raw) 80 or more", "best fighting skill 19 or less" */
+const FACT_NAMES: Record<string, string> = { nerve: 'Nerve', [SK.resolve]: 'Resolve (raw)', bestSkill: 'best skill', bestFight: 'best fighting skill', bestAttack: 'best attacking skill' };
+const factName = (k: string) => FACT_NAMES[k] ?? lib.personalityAxes?.[k]?.name ?? k;
+const signed = (k: string, n: number) => (lib.personalityAxes?.[k] || k === 'nerve' ? `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}` : String(n));
 function personalityTypesView(): HTMLElement[] {
-  return [h('p', { class: 'hs-note' }, `A character has a named type when every condition holds. The agent playing it is given at most ${CONFIG.PERSONALITY_TYPES_SHOWN}, strongest first.`),
+  return [h('p', { class: 'hs-note' }, `A character's archetype is the nearest row: the gap over every axis and Nerve (left out = 0), and how far its top values are from the row's, counted ${CONFIG.ARCHETYPE_VALUE_WEIGHT} times. The agent gets it with up to ${CONFIG.BUTS_SHOWN} traits it doesn't explain.`),
     h('div', { class: 'lv-grid' }, Object.values(lib.personalityTypes ?? {}).map((t) => card('personalityTypes', t.id, t, t.name, [],
-      row('When', h('ul', { class: 'lv-names' }, Object.entries(t.when).map(([k, c]) => h('li', {}, typeCond(k, c))))),
+      row('Target', Object.entries({ ...t.target, ...(t.nerve ? { nerve: t.nerve } : {}) }).map(([k, n]) => `${factName(k)} ${signed(k, n)}`).join(', ') || none('all 0')),
+      row('Values', t.values?.length ? links('values', t.values.map((v): [string, string] => [v, lib.values?.[v]?.name ?? v])) : none('none')),
+      row('Acts', t.hint))))];
+}
+function tensionsView(): HTMLElement[] {
+  return [h('p', { class: 'hs-note' }, `Two parts of a character that pull against each other. The agent gets the first ${CONFIG.TENSIONS_SHOWN} met, in this order.`),
+    h('div', { class: 'lv-grid' }, Object.values(lib.tensions ?? {}).map((t) => card('tensions', t.id, t, t.name, [],
+      row('When', h('ul', { class: 'lv-names' }, [
+        ...Object.entries(t.when.min ?? {}).map(([k, n]) => h('li', {}, `${factName(k)} ${signed(k, n)} or more`)),
+        ...Object.entries(t.when.max ?? {}).map(([k, n]) => h('li', {}, `${factName(k)} ${signed(k, n)} or less`)),
+        ...(t.when.nerveLine ? [h('li', {}, `${label(t.when.nerveLine)} nerve`)] : []),
+        ...(t.when.ageStage ? [h('li', {}, LIFE_STAGES.name(t.when.ageStage))] : []),
+        ...(t.when.drives ?? []).map((d) => h('li', {}, `values ${lib.values?.[d]?.name ?? d}`)),
+        ...(t.when.anyDrive ? [h('li', {}, `values ${t.when.anyDrive.map((d) => lib.values?.[d]?.name ?? d).join(' or ')}`)] : []),
+      ])),
       row('Acts', t.hint))))];
 }
 function personalityAxesView(): HTMLElement[] {
   const words = CONFIG.TRAIT_WORDS.map(([n, w]) => (w.trim() ? `"${w.trim()}" from ${n}` : `no word from ${n}`)).join(', ');
   return [h('p', { class: 'hs-note' }, `Each axis runs −100 to +100. A trait counts from ${CONFIG.PERSONALITY_LEAN} away from 0; the word before it comes from the distance: ${words}.`),
     h('div', { class: 'lv-grid' }, Object.values(lib.personalityAxes ?? {}).map((a) => card('personalityAxes', a.id, a, a.name, [],
-      row('Low end', a.low), row('High end', a.high),
+      row('Low end', `${a.low} (${a.lowHint})`), row('High end', `${a.high} (${a.highHint})`),
       row('NPCs', ((ts) => ts.length ? links('templates', ts) : none('none lean here'))(Object.values(lib.templates).filter((t) => Math.abs(t.personality?.traits?.[a.id] ?? 0) >= CONFIG.PERSONALITY_LEAN).map((t): [string, string] => [t.id, t.label ?? t.id]))))))];
 }
 
@@ -950,7 +962,8 @@ const CUSTOM: Section[] = [
   { key: 'fears', title: 'Fears', table: 'fears', view: fears },
   { key: 'nerve', title: 'Nerve lines', table: 'perks', view: nerveView, count: Object.keys(NERVE_LINES).length },
   { key: 'personalityAxes', title: 'Personality axes', table: 'personalityAxes', view: personalityAxesView },
-  { key: 'personalityTypes', title: 'Personality types', table: 'personalityTypes', view: personalityTypesView },
+  { key: 'personalityTypes', title: 'Archetypes', table: 'personalityTypes', view: personalityTypesView },
+  { key: 'tensions', title: 'Tensions', table: 'tensions', view: tensionsView },
   { key: 'quests', title: 'Quests', table: 'perks', view: questsView, count: 4 + QUEST_STATES.length + GOAL_KINDS.length },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
   { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
@@ -1008,7 +1021,7 @@ const RAIL_GROUPS: [string, string[] | null][] = [
   ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'roles', 'activities', 'routines', 'routineSets', 'services']],
-  ['Personality', ['nerve', 'personalityAxes', 'personalityTypes', 'values']],
+  ['Personality', ['nerve', 'personalityAxes', 'personalityTypes', 'tensions', 'values']],
   ['More', null], // a table not named above (a new one) lands here
 ];
 const railFolds = new Set<string>(remember<string[]>('lv-railfolds', []));

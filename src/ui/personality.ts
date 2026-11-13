@@ -1,18 +1,14 @@
 // PL14, PL17: the player's personality: the creation picker (Nerve line, trait points, values) and the sheet's block
-// (Nerve tier, trait words, values, named types). Everything shown is read from the points by src/ruleset/personality.ts.
+// (Nerve tier, trait words, values, archetype). Everything shown is read from the points by src/ruleset/personality.ts.
 import type { Actor, Personality } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { NERVE_LINES, type NerveLine } from '../scales';
-import { nerveLine, nerveTier, personalityFrom, personalityOf, personalityTypes, traitWords } from '../ruleset/personality';
+import { NERVE_HINTS, NERVE_LINES, type NerveLine } from '../scales';
+import { archetypeOf, nerveLine, nerveTier, personalityFrom, personalityOf, traitWords } from '../ruleset/personality';
 import { h } from './kit';
 
 const cap = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
-const LINE_HINT: Record<NerveLine, string> = {
-  cautious: 'Weighs the risk first and backs off from a bad bet',
-  steady: 'Neither drawn to danger nor shy of it',
-  daring: 'Drawn to risk and quick to take a chance',
-};
+const LINE_HINT = (l: NerveLine) => cap(NERVE_HINTS[l]);
 const lineName = (l: NerveLine) => cap(l);
 export const blankPersonality = (): Personality => ({ nerve: 0, traits: {}, values: [] });
 
@@ -21,21 +17,20 @@ function traitWord(k: string, v: number): string | null {
   return traitWords({ nerve: 0, traits: { [k]: v }, values: [] })[0] ?? null;
 }
 
-/** what others will read: trait words, values and named types, one line */
+/** what others will read: trait words, values and the archetype, one line */
 function readLine(a: Actor): string {
   const p = personalityOf(a), lib = getLibrary();
   const words = traitWords(p), values = p.values.map((v) => lib.values?.[v]?.name).filter(Boolean) as string[];
-  const types = personalityTypes(a, p).map((t) => t.name);
   return [
     words.length ? `${cap(words.join(', '))}.` : 'No strong leanings.',
-    values.length ? `Values ${values.join(' and ')}.` : '',
-    types.length ? `${types.length > 1 ? 'Types' : 'Type'}: ${types.join(', ')}.` : '',
+    values.length ? `Values ${values.join(', ')}.` : '',
+    `${archetypeOf(p).name} at heart.`,
   ].filter(Boolean).join(' ');
 }
 
 /**
  * PL14: the creation picker. `st` is kept by the caller so it survives a class switch; `actor` builds the preview
- * sheet (Resolve, class and perks change the tier and types). Returns the element and a refresh for the caller's render.
+ * sheet (Resolve, class and perks change the tier and archetype). Returns the element and a refresh for the caller's render.
  */
 export function personalityPicker(st: { p: Personality }, actor: () => Actor): { el: HTMLElement; refresh: () => void } {
   const lib = getLibrary();
@@ -43,7 +38,7 @@ export function personalityPicker(st: { p: Personality }, actor: () => Actor): {
   const values = Object.values(lib.values ?? {});
   const tierOut = h('b', { class: 'pe-tier' });
   const readOut = h('p', { class: 'pe-read', 'aria-live': 'polite' });
-  const lines = (Object.keys(NERVE_LINES) as NerveLine[]).map((l) => h('button', { type: 'button', title: LINE_HINT[l],
+  const lines = (Object.keys(NERVE_LINES) as NerveLine[]).map((l) => h('button', { type: 'button', title: LINE_HINT(l),
     onclick: () => { st.p = personalityFrom(st.p, { nerve: l }); refresh(); } }, lineName(l)));
   const axisRows = axes.map((a) => {
     const word = h('span', { class: 'pe-word' });
@@ -57,7 +52,7 @@ export function personalityPicker(st: { p: Personality }, actor: () => Actor): {
   });
   const valueBtns = values.map((v) => h('button', { type: 'button', 'data-value': v.id, onclick: () => {
     const i = st.p.values.indexOf(v.id);
-    if (i >= 0) st.p.values.splice(i, 1); else if (st.p.values.length < 2) st.p.values.push(v.id);
+    if (i >= 0) st.p.values.splice(i, 1); else if (st.p.values.length < CONFIG.DRIVES_SHOWN) st.p.values.push(v.id);
     refresh();
   } }, cap(v.name)));
 
@@ -77,7 +72,7 @@ export function personalityPicker(st: { p: Personality }, actor: () => Actor): {
     valueBtns.forEach((b) => {
       const on = st.p.values.includes(b.dataset.value!);
       b.setAttribute('aria-pressed', String(on));
-      (b as HTMLButtonElement).disabled = !on && st.p.values.length >= 2;
+      (b as HTMLButtonElement).disabled = !on && st.p.values.length >= CONFIG.DRIVES_SHOWN;
     });
     readOut.textContent = readLine(a);
   }
@@ -89,21 +84,21 @@ export function personalityPicker(st: { p: Personality }, actor: () => Actor): {
     h('div', { class: 'pe-top' },
       h('div', { class: 'pe-nerve' }, h('span', { class: 'hs-label' }, 'Nerve'), h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Nerve line' }, lines),
         h('span', { class: 'pe-tierline', title: `Your tier on the line comes from raw Resolve (${CONFIG.NERVE_TIER_FROM.join(', ')})` }, 'Now ', tierOut, ', rising with Resolve')),
-      h('div', { class: 'pe-values' }, h('span', { class: 'hs-label' }, 'Values · up to 2'), h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Values' }, valueBtns))),
+      h('div', { class: 'pe-values' }, h('span', { class: 'hs-label' }, `Values · up to ${CONFIG.DRIVES_SHOWN}, strongest first`), h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Values' }, valueBtns))),
     h('div', { class: 'pe-axes' }, axisRows.map((r) => r.row)),
     readOut);
   refresh();
   return { el, refresh };
 }
 
-/** PL17: the sheet's block: Nerve tier and line, trait words, values and named types (with how each acts) */
+/** PL17: the sheet's block: Nerve tier and line, trait words, values and the archetype (with how it acts) */
 export function personalityBlock(a: Actor): HTMLElement {
   const p = personalityOf(a), lib = getLibrary(), line = nerveLine(p);
   const words = traitWords(p), values = p.values.map((v) => lib.values?.[v]?.name).filter(Boolean) as string[];
-  const types = personalityTypes(a, p);
+  const arch = archetypeOf(p);
   return h('div', { class: 'cs-gear cs-pe' }, h('p', { class: 'hs-label' }, 'Personality'),
-    h('span', { title: `${LINE_HINT[line]}. Your tier on the line rises with raw Resolve.` }, h('b', { class: 'cs-pe-v' }, nerveTier(a, p)), ` · ${lineName(line)} nerve`),
+    h('span', { title: `${LINE_HINT(line)}. Your tier on the line rises with raw Resolve.` }, h('b', { class: 'cs-pe-v' }, nerveTier(a, p)), ` · ${lineName(line)} nerve`),
     h('span', {}, words.length ? cap(words.join(', ')) : 'No strong leanings'),
-    values.length ? h('span', {}, `Values ${values.join(' and ')}`) : null,
-    types.map((t) => h('span', {}, h('b', { class: 'cs-pe-v' }, t.name), ` · ${t.hint}`)));
+    values.length ? h('span', {}, `Values ${values.join(', ')}`) : null,
+    h('span', {}, h('b', { class: 'cs-pe-v' }, arch.name), ` · ${arch.hint}`));
 }
