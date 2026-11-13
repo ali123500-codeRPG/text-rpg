@@ -75,7 +75,7 @@ export function soundDb(state: GameState, noise: NoiseKey | undefined, from: Loc
   if (r.loss === 0 && A.zone !== B.zone) m = Math.min(m, sightDistM(state, A, B));
   // HB8: whispering to someone within reach, the speaker leans in to their ear
   const near = leanIn && r.loss === 0 && m <= CONFIG.WHISPER_REACH_M;
-  return base + keenDb - 20 * Math.log10(near ? CONFIG.WHISPER_LEAN_M : Math.max(m, CONFIG.SAME_ZONE_M)) - r.loss;
+  return base + keenDb - 20 * Math.log10(near ? CONFIG.WHISPER_LEAN_M : Math.max(m, CONFIG.NEAREST_M)) - r.loss;
 }
 
 /** HB1: how well the listener hears it: 'full' (who and what) from CLEAR_ABOVE_FLOOR_DB over HEARING_FLOOR_DB, 'partial'
@@ -87,12 +87,12 @@ export function hearingOf(state: GameState, noise: NoiseKey | undefined, from: L
   return db >= floor + CONFIG.CLEAR_ABOVE_FLOOR_DB ? 'full' : db >= floor ? 'partial' : null;
 }
 
-/** how many metres a sound of this noise carries in the open (no walls), [clearly, at all] (0: not even at SAME_ZONE_M;
+/** how many metres a sound of this noise carries in the open (no walls), [clearly, at all] (0: not even at NEAREST_M;
  * null: silence). For the library's noise table and the Keen Ear text. */
 export function openAirReachM(noise: NoiseKey, keenDb = 0): [number, number] | null {
   const base = CONFIG.NOISE_DB[noise];
   if (base === null || base === undefined) return null;
   const floor = CONFIG.HEARING_FLOOR_DB;
-  const far = (min: number) => { const m = 10 ** ((base + keenDb - min) / 20); return m < CONFIG.SAME_ZONE_M ? 0 : Math.round(m); };
+  const far = (min: number) => { const m = 10 ** ((base + keenDb - min) / 20); return m < CONFIG.NEAREST_M ? 0 : Math.round(m); };
   return [far(floor + CONFIG.CLEAR_ABOVE_FLOOR_DB), far(floor)];
 }

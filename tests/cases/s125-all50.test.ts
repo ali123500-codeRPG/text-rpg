@@ -4,7 +4,7 @@ import { AM } from '../../src/library/tableIds';
 import { TR } from '../../src/library/treeIds';
 import { ACH } from '../../src/library/achievementIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fit, forcedRng, makeVillage, place } from '../harness';
+import { fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
 import { grantAllSteps, shareSpotted } from '../../src/ruleset/allSteps';
 import { breakFree } from '../../src/engine/held';
@@ -124,7 +124,7 @@ describe('125 All-50 parts', () => {
   it("Fighter's Frame: melee hits on the owner cost ×0.9 health, after armor", () => {
     const dmg = (perk: boolean) => {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
+      beside(s, 'patron_1');
       arm(s, 'patron_1');
       s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
       if (perk) give(s.player, PK.fighters_frame);
@@ -168,7 +168,7 @@ describe('125 All-50 parts', () => {
   it('Iron Knuckles: unarmed hits deal ×1.1 damage before armor', () => {
     const dmg = (perk: boolean) => {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
+      beside(s, 'patron_1');
       for (const i of s.player.core.inventory) delete i.equippedIn;
       const foe = s.actors.find((a) => a.id === 'patron_1')!;
       foe.core.inventory = foe.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
@@ -180,7 +180,7 @@ describe('125 All-50 parts', () => {
   });
   it('Bare-Handed Guard: +5 true Dodge always, +5 effective on Dodge rolls only while holding no weapon', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     arm(s, 'patron_1');
     set(s.player, [SK.dodge], 30);
     give(s.player, PK.bare_handed_guard);
@@ -195,7 +195,7 @@ describe('125 All-50 parts', () => {
   });
   it('Hard to Hold: the owner\'s break-free roll gets tier shift +1', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     s.player.heldBy = 'patron_1';
     give(s.player, PK.hard_to_hold);
     const spy = vi.spyOn(ruleset, 'roll');
@@ -230,7 +230,7 @@ describe('125 All-50 parts', () => {
   });
   it('Steady Guard: +5 true Parry always, +5 effective on Parry rolls made with a medium weapon', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     arm(s, 'patron_1');
     arm(s, 'player', IT.arming_sword);
     set(s.player, [SK.parry], 30);
@@ -246,7 +246,7 @@ describe('125 All-50 parts', () => {
   it('Thick Hide: a hit on the owner is ×0.95 before armor', () => {
     const dmg = (perk: boolean) => {
       const s = makeVillage();
-      place(s, 'patron_1', s.player.zone);
+      beside(s, 'patron_1');
       arm(s, 'patron_1');
       s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
       if (perk) give(s.player, PK.thick_hide);
@@ -268,7 +268,7 @@ describe('125 All-50 parts', () => {
   });
   it('Dodgy: attack rolls against the owner get −10 effective skill', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     arm(s, 'patron_1');
     give(s.player, PK.dodgy);
     const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
@@ -293,7 +293,7 @@ describe('125 All-50 moves', () => {
   const fumble = (r: AttackResult) => ({ ...r, attack: { ...r.attack, tier: 'critical_failure' as const }, outcome: 'missed' as const, damage: 0, location: null });
   it('Counter: a melee attack on the owner that ends in Critical Failure earns one free attack back', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     arm(s, 'player');
     arm(s, 'patron_1');
     give(s.actors.find((a) => a.id === 'patron_1')!, PK.counter);
@@ -313,7 +313,7 @@ describe('125 All-50 moves', () => {
   });
   it('Second Wind: once per engagement, at Wounded or worse the health track moves one level better', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     arm(s, 'player');
     const foe = s.actors.find((a) => a.id === 'patron_1')!;
     give(foe, PK.second_wind);
@@ -325,7 +325,7 @@ describe('125 All-50 moves', () => {
   });
   it('Strike and Fade: right after an attack from hiding the owner is stealthy again and vanishes in place', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     arm(s, 'player');
     give(s.player, PK.strike_and_fade);
     s.player.posture = 'stealthy';
@@ -352,7 +352,7 @@ describe('125 All-50 moves', () => {
   });
   it('Opening Strike: the first melee attack on each foe in an engagement gets tier shift +1', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     arm(s, 'player');
     give(s.player, PK.opening_strike);
     const shifts: unknown[] = [];
@@ -389,7 +389,7 @@ describe('125 All-50 moves', () => {
 describe('125 All-50 Easy Speaker', () => {
   it('a listener with Easy Speaker answers the player\'s speech one outcome better', () => {
     const s = makeVillage();
-    place(s, 'patron_1', s.player.zone);
+    beside(s, 'patron_1');
     const foe = s.actors.find((a) => a.id === 'patron_1')!;
     const spy = vi.spyOn(ruleset, 'roll');
     const shiftsOf = () => spy.mock.calls.filter((c) => c[0].actorId === 'patron_1').map((c) => c[0].tierShifts);

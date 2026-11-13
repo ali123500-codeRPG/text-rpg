@@ -284,7 +284,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   const from = a.zone, fromPos = a.pos && { ...a.pos };
   // SD3–SD5: a barrier not open to the walker on the next way: walk up to it, then open it (a key, the bolt's side) or try it
   const gate = gateAhead(state, a, goal.zone);
-  const walked = walkLeg(state, a, goal, metres, stopShort, fresh, a, !!gate);
+  const walked = walkLeg(state, a, goal, metres, stopShort, a, !!gate);
   if (walked === null) return null;
   if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate); // an NPC tries a shut way once
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
@@ -1106,7 +1106,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true):
     let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
     for (let i = 0; i < 100 && left > 0.01 && a.zone !== d.zone; i++) {
       if (gateAhead(state, a, d.zone)) break; // a way that is not simply open
-      const r = walkLeg(state, a, { zone: d.zone }, left, 0, false, a);
+      const r = walkLeg(state, a, { zone: d.zone }, left, 0, a);
       if (!r) break;
       left -= r;
     }

@@ -1,4 +1,4 @@
-// 170 Real distances: every distance rule comes from real metres turned into zone links by one conversion (reachLinks).
+// 170 Real distances: every distance rule is in real metres, between points on the map.
 // A walk covers 1.4 m/s and a run 5 m/s over a 6 s fight turn; ranged penalties grow with the distance as a share of the
 // weapon's real range; a line's words carry only as far as its sound, however far the speaker is seen.
 import { afterEach, describe, expect, it } from 'vitest';
@@ -9,7 +9,6 @@ import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import { BT } from '../../src/library/raceIds';
 import { rangeMod } from '../../src/ruleset';
-import { reachLinks } from '../../src/ruleset/range';
 import { hearsWords, perceptionOf } from '../../src/perception';
 import { CONFIG, resetConfig } from '../../src/config';
 import type { GameEvent, GameState, Intent } from '../../src/types';
@@ -20,21 +19,15 @@ const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, {
 describe('170 real distances', () => {
   afterEach(() => resetConfig());
 
-  it('one conversion: a link is LINK_PACES × PACE_M metres; anything shorter is the same zone', () => {
-    expect(reachLinks(7.9)).toBe(0);
-    expect(reachLinks(8)).toBe(1);
-    expect(reachLinks(50)).toBe(6); // a shortbow
-  });
-
-  it('speed comes from the body type, less worn armor (flat, then a share); a walk is 1 link and a dash 2 more', () => {
+  it('speed comes from the body type, less worn armor (flat, then a share); a walk is 8.4 m and a dash 21.6 m more', () => {
     const s = makeVillage();
     for (const i of s.player.core.inventory) if (i.equippedIn?.includes('armor')) delete i.equippedIn;
     expect(moveSpeed(s, s.player)).toEqual({ walk: 1.4, run: 5 });
     expect(slotMetres(s, s.player, 'move')).toBeCloseTo(8.4); // 1.4 m/s × 6 s
     expect(slotMetres(s, s.player, 'main')).toBeCloseTo(21.6); // (5 − 1.4) m/s × 6 s
     place(s, 'player', 'street_door');
-    turn(s, intent({ toZone: 'field_mid' })); // 4 links: a dash reaches 3
-    expect(s.player.zone).toBe('field_edge');
+    const ev = turn(s, intent({ toZone: 'field_far' })); // farther than a dash
+    expect(ev.filter((e) => e.kind === 'move' && e.actorId === 'player').reduce((m, e) => m + ((e as { metres?: number }).metres ?? 0), 0)).toBeCloseTo(30, 0);
     // heavy armor: (5 − 0.2) × 0.85 = 4.08 m/s run
     const t = makeVillage();
     for (const i of t.player.core.inventory) if (i.equippedIn?.includes('armor')) delete i.equippedIn;
@@ -54,15 +47,15 @@ describe('170 real distances', () => {
     expect(rangeMod(17.5, 17.5)).toBe(-15); // a spear thrown at its full range
   });
 
-  it('words carry only by sound: a talker seen three zones off is seen, not heard', () => {
+  it('words carry only by sound: a talker made out 20 m off is seen, but a normal voice is clear only to about 18 m', () => {
     const s = makeVillage({ playerZone: 'street_square' });
-    place(s, 'guard_1', 'field_mid');
-    const said = { id: 'e', turn: 1, actorId: 'guard_1', kind: 'speak', zone: 'field_mid', effects: [], noise: 'normal', visibility: 'normal',
+    const g = s.actors.find((a) => a.id === 'guard_1')!; // at the gate, 20 m off
+    const said = { id: 'e', turn: 1, actorId: 'guard_1', kind: 'speak', zone: g.zone, pos: g.pos, effects: [], noise: 'normal', visibility: 'normal',
       line: { text: 'The captain said you could go.', volume: 'normal' }, perception: {} } as GameEvent;
     const p = perceptionOf(said, s, s.player);
     expect(p).toEqual({ level: 'full', cue: 'sight' });
     expect(hearsWords(p ?? undefined)).toBe(false);
-    const near = perceptionOf({ ...said, zone: 'gate_inner' }, s, s.player);
+    const near = perceptionOf({ ...said, zone: s.player.zone, pos: { x: s.player.pos!.x + 5, y: s.player.pos!.y } }, s, s.player);
     expect(hearsWords(near ?? undefined)).toBe(true);
   });
 
