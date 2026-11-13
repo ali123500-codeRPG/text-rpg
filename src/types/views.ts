@@ -10,12 +10,15 @@ import type { HealthLevelKey, PartStateKey } from '../scales';
 export type HealthLevel = HealthLevelKey;
 export type PartState = PartStateKey;
 
-export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number };
-export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'carried' }; // carried: stowed, found by a search (SE11)
+/** CT1/CT3: a container as a viewer knows it: open or shut, with a lock (and the viewer's key to it), and what is inside
+ * once it stands open. The Weaver's view (no viewer) has it all, and its owner. */
+export type ContainerView = { open?: true; lock?: 'locked' | 'unlocked'; key?: true; contents?: { id: string; name: string }[]; owner?: string };
+export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView };
+export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView }; // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string }[] };
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[] };
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
 
 export type BeliefView = {
@@ -288,7 +291,7 @@ export type WeaverView = {
     races: { id: string; name: string }[]; // RC… id and name: what a template's raceId names
     classes: { id: string; name: string }[]; // CL… id and name: what a template's classId names
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
-    items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
+    items: { id: string; name: string; kind: string; boon: number; container?: string }[]; // boon: worth as a reward (loot V8); container: CT2, worn, fixed or carried
     skills: { id: string; name: string }[];
     personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2

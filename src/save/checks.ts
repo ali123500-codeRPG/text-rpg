@@ -265,6 +265,7 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       p.headlines = keep(k, p.headlines, (f) => factIds.has(f), 'headlines');
       // an item the library no longer has would make every zone view throw: drop it, as for inventories
       for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
+      for (const z of p.zones) for (const c of z.groundItems) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
       // every link runs both ways (scenarios planned before the fix kept one-way links among their new zones)
       for (const z of p.zones) for (const l of z.links) {
         if (l.frontier) continue;
@@ -287,6 +288,7 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
         if (a.mind.routine && !lib.routines[a.mind.routine.id]) { fix(k, `dropped current routine ${a.mind.routine.id}`); delete a.mind.routine; }
       }
       a.core.inventory = keep(k, a.core.inventory, (it) => L.hasItem(it.itemId), 'unknown items');
+      for (const c of a.core.inventory) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
       if (a.core.templateId && !L.hasTemplate(a.core.templateId)) r.warnings.push(`${a.id} template ${a.core.templateId} unknown`);
       const bands = (pages.engine as EnginePage).bands.map((b) => b.id);
       if (!bands.includes(a.bandId)) r.warnings.push(`${a.id} band ${a.bandId} unknown`);

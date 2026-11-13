@@ -34,7 +34,7 @@ describe('player creation', () => {
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
       // the starter kit: per gear class the highest 'starter' item met (the spear ties the sword and is not given; the gambeson beats the clothes;
       // the recommended swordsman parries, so with Block 0 it gets no shield)
-      [IT.arming_sword, 'grip:right_arm', undefined], [IT.gambeson, 'armor', undefined],
+      [IT.arming_sword, 'grip:right_arm', undefined], [IT.gambeson, 'armor', undefined], [IT.pack, 'pack', undefined], // CT7: a worn pack
       [IT.coin, undefined, CONFIG.STARTING_COIN], [IT.bandage, undefined, CONFIG.STARTING_BANDAGES],
     ]);
     expect(p.core.classes).toEqual([{ classId: CL.swordsman, state: 'current', level: 4 }]); // EQ13: the player starts at level 4

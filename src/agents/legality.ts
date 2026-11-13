@@ -1,6 +1,6 @@
 // Legality checks on accepted agent outputs (Leak prevention, validation and failure handling).
 // Parser: against PlayerView. Planner / Responder / Voice: against the actor's own view.
-import type { ActorView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
+import type { ActorView, ContainerView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
 import { SPEECH_ACTIONS, WAY_ORDERS } from '../types';
 import { TIME_OF_DAY } from '../scales';
 import { meltAwayHere } from '../ruleset/perks';
@@ -37,9 +37,12 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const isSpeechType = (t: string) => (SPEECH_ACTIONS as readonly string[]).includes(t);
   const dead = new Set(view.actors.filter((a) => a.health === 'dead').map((a) => a.id));
   const own = view.player.inventory;
-  const ground = new Set([view.zone, ...view.zones].flatMap((z) => z.groundItems.map((g) => g.id)));
-  const seenItems = new Set(view.actors.flatMap((a) => a.gear.map((g) => g.id)));
-  const items = new Set([...own.map((i) => i.id), ...ground]);
+  // CT3: what lies in an open container counts as lying there; a container is a target for open and pick
+  const inside = (c?: ContainerView) => c?.contents?.map((x) => x.id) ?? [];
+  const ground = new Set([view.zone, ...view.zones].flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...inside(g.container)])));
+  const seenItems = new Set(view.actors.flatMap((a) => a.gear.flatMap((g) => [g.id, ...inside(g.container)])));
+  const items = new Set([...own.flatMap((i) => [i.id, ...inside(i.container)]), ...ground]);
+  const boxes = new Set([...[view.zone, ...view.zones].flatMap((z) => z.groundItems), ...view.actors.flatMap((a) => a.gear), ...own].filter((g) => g.container).map((g) => g.id));
   const illegal: string[] = [];
   const gearErrors: string[] = [];
   const out: Intent = { ...intent, move: intent.move ? { ...intent.move } : null, action: intent.action ? { ...intent.action } : null };
@@ -86,7 +89,9 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
       illegal.push(`action.target ${a.target}`);
     // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
-    else if (WAY_ORDERS.includes(a.type) && a.target !== null && !zones.has(a.target)) illegal.push(`action.target ${a.target}`); // BG-128: a lock is on a way
+    else if (WAY_ORDERS.includes(a.type) && a.target !== null && !zones.has(a.target) && !boxes.has(a.target)) illegal.push(`action.target ${a.target}`); // BG-128: a lock is on a way or a container (CT3)
+    else if (a.type === 'open' && (a.target === null || !boxes.has(a.target))) illegal.push(`action.target ${a.target}`);
+    else if (a.type === 'restrain' && (a.target === null || !actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // BF5: someone in view
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
     if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish' || a.type === 'search' || a.type === 'stash') a.skill = ''; // SE2/SE9: code picks the roll
@@ -120,7 +125,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   if (out.gear) {
     out.gear = out.gear.filter((op) => {
       const ok = op.op === 'summon' ? !!view.player.summonable?.some((x) => x.id === op.item) : op.op === 'pick_up'
-        ? ground.has(op.item) || (!!op.from && actors.has(op.from) && view.actors.find((x) => x.id === op.from)!.gear.some((g) => g.id === op.item))
+        ? ground.has(op.item) || items.has(op.item) && !own.some((i) => i.id === op.item) || (!!op.from && actors.has(op.from) && view.actors.find((x) => x.id === op.from)!.gear.some((g) => g.id === op.item || inside(g.container).includes(op.item)))
         : own.some((i) => i.id === op.item);
       if (!ok) gearErrors.push(`gear ${op.op} ${op.item}`);
       return ok;

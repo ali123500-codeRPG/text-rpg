@@ -30,7 +30,7 @@ import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
-import { applyHold, breakFree, releaseHolds } from './held';
+import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
@@ -38,6 +38,7 @@ import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
+import { findContainer, openContainer, theft } from './containers';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode } from './effects';
 import { falseName } from '../words';
@@ -65,7 +66,7 @@ const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   way: ['quiet', 'normal'], pick: ['hushed', 'low'], stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
-const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'pick_up']);
+const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);
 /** first build: checks only change beliefs (OQ-22). */
 const CHECK_TYPES = new Set(['observe', 'interact', 'use_item', 'other']);
 
@@ -853,11 +854,15 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
  * skill or tools get better. Critical Failure: the pick snaps (the lockpicks used are lost). Quiet: a whisper. */
 function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
-  const b = barrierTo(state, a, o.target);
+  // CT3: a container's lock is picked the same way, at the container's grade; an owner watching over it makes it theft
+  const c = findContainer(state, o.target);
+  if (c) c.inst.grade ??= 'minor';
+  const b = (c?.inst ?? barrierTo(state, a, o.target)) as Pick<Barrier, 'id' | 'grade' | 'lock' | 'beyond' | 'work'> | undefined;
+  if (c && theft(state, a, c)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'theft' }), o));
   if (!b?.lock?.locked) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: b?.lock ? 'not_locked' : 'no_lock' }), o));
-  if (!atDoor(state, a, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
+  if (c ? !withinGrip(state, a, c.at) : !atDoor(state, a, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   const to = o.target!;
-  const way = (did: WayDid, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'pick', { target: to, way: { to, barrier: b.id, did }, ...extra }), o);
+  const way = (did: WayDid, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'pick', { target: to, way: { to, ...(c ? {} : { barrier: b.id }), did }, ...(c ? { itemId: to } : {}), ...extra }), o);
   const skill = fnRoller(state, a, FN.lockpicking);
   const tool = pickTool(state, a, skill).itemId ?? undefined;
   const eff = effectiveSkill(state, a, skill, { itemId: tool }).value;
@@ -888,6 +893,15 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, way('picked', extra));
 }
 
+/** CT3: opening a container within grip reach is the turn's action: it stands open and its contents show. Locked, the
+ * key turns if they carry it (else they find it locked); one its owner guards is theft, which waits for Filching (CT4). */
+function doOpen(ctx: Ctx, a: Actor, o: Order): void {
+  const { state } = ctx;
+  const c = findContainer(state, o.target);
+  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : openContainer(state, a, c);
+  emit(ctx, bark(mk(ctx, a, why ? 'wasted' : 'open', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), ...(why ? { reason: why } : {}) }), o));
+}
+
 function doMain(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   switch (o.type) {
@@ -907,6 +921,15 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doSearch(ctx, a, o);
     case 'stash':
       return doStash(ctx, a, o);
+    case 'open':
+      return doOpen(ctx, a, o);
+    case 'restrain': {
+      // BF5: a grab to hold someone back, within the grabber's grip reach; no damage, no hostility
+      const t = o.target ? actorById(state, o.target) : undefined;
+      const why = !t || t === a ? 'no_target' : !isActive(t) ? 'already_down' : !withinGrip(state, a, t) ? 'out_of_reach' : t.heldBy === a.id ? 'already_held' : null;
+      if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
+      return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
+    }
     case 'hide':
       // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
       return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));
@@ -1080,10 +1103,10 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
-  if (need === 'grip' && t && t !== a) return grip(t, gripReachM(state, t), t.id); // handed over: both grip reaches
-  const d = need === 'grip' && !t ? door(o.target) : null;
+  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5): the grabber's
+  const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
-  for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op); if (p) return grip(p); }
+  for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
   return null;
 }
 
@@ -1094,7 +1117,7 @@ function atDoor(state: GameState, a: Actor, to: string | null | undefined): bool
 }
 
 /** FR2: a pick-up whose item is within grip reach (or gone: applyGearOps reports it) */
-const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUpAt(state, op); return !p || withinGrip(state, a, p); };
+const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUpAt(state, op, a); return !p || withinGrip(state, a, p); };
 
 /** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
  * from the actor's zone it is reached over from the actor's side of it (BG-62) */

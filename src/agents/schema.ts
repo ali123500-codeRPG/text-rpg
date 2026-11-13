@@ -1,7 +1,7 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
-import type { AgreementMade, CheckinAnswer, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { AgreementMade, CheckinAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
@@ -60,7 +60,7 @@ const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool, pace: oneOf(TRAVEL_PACES.keys),
     spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str }, ['near', 'awayFrom', 'side'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
   action: nul(obj<NonNullable<Intent['action']>>({
-    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick'] as const),
+    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'restrain'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
     target: nul(str),
     targetPart: nul(str),
@@ -210,13 +210,20 @@ const weaver = obj<StagePlan>({
     qty: num,
     place: (v, p, e) => (isObj(v) && typeof v.carriedBy === 'string' ? { carriedBy: v.carriedBy }
       : isObj(v) && typeof v.groundIn === 'string' ? { groundIn: v.groundIn, ...(v.hiddenAt !== undefined ? { hiddenAt: TIERS.keyOf(v.hiddenAt) ?? (e.push(`${p}.hiddenAt: expected one of ${TIERS.list()}`), 'success') } : {}) }
-      : (e.push(`${p}: expected {carriedBy} or {groundIn}`), { groundIn: '' })),
+      : isObj(v) && typeof v.in === 'string' ? { in: v.in }
+      : (e.push(`${p}: expected {carriedBy}, {groundIn} or {in}`), { groundIn: '' })),
   }, ['qty'])),
+  containers: arr(obj<NonNullable<StagePlan['containers']>[number]>({
+    key: str, item: str, owner: str,
+    place: (v, p, e) => (isObj(v) && typeof v.carriedBy === 'string' ? { carriedBy: v.carriedBy }
+      : isObj(v) && typeof v.groundIn === 'string' ? { groundIn: v.groundIn } : (e.push(`${p}: expected {carriedBy} or {groundIn}`), { groundIn: '' })),
+    locked: obj<{ grade?: Grade; keys?: string[] }>({ grade: any as V<Grade>, keys: arr(str) }, ['grade', 'keys']),
+  }, ['owner', 'locked'])),
   hiddenTerms: arr(str),
   weaverNote: str,
   spars: arr(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])),
   scenario: any as V<StagePlan['scenario']>, // SC1/SC2/SC7: checked by the validator (src/scenario/validate.ts)
-}, ['timeOfDay', 'spars', 'scenario']);
+}, ['timeOfDay', 'spars', 'scenario', 'containers']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);

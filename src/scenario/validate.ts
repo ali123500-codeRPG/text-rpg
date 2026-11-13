@@ -443,7 +443,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
 
   // ---- rewards: repaired, never blocking (loot L1) ----
-  errs.push(...tidyRewards(state, plan).notes);
+  errs.push(...tidyContainers(state, plan).notes, ...tidyRewards(state, plan).notes);
 
   return errs;
 }
@@ -452,6 +452,37 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 const PLAN_ENDINGS = SCENARIO_ENDINGS.filter((e) => e !== 'worn_out' && e !== 'broken_off');
 
 type Reward = StagePlan['rewards'][number];
+type PlanContainer = NonNullable<StagePlan['containers']>[number];
+
+/** CT2: a bad container is dropped, never fails the plan (as rewards, L1): it needs a new key, a container item, a known
+ * place (a fixed one, such as a chest, only in a zone), a known owner, a lock grade and key holders that exist */
+export function tidyContainers(state: GameState, plan: StagePlan): { containers: PlanContainer[]; notes: PlanError[] } {
+  const notes: PlanError[] = [];
+  const note = (code: string, message: string) => notes.push({ code, message, routineOnly: false, repaired: true });
+  const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
+  const who = new Set([...arr(plan.cast).map((c) => c.key), ...state.actors.map((a) => a.id)]);
+  const zones = new Set([...arr(plan.zones).map((z) => z.key), ...state.stage.zoneIds]);
+  const keys = new Set<string>();
+  const containers: PlanContainer[] = [];
+  arr(plan.containers).forEach((c, i) => {
+    const where = `container ${i}`;
+    let def;
+    try { def = typeof c?.item === 'string' ? itemDef(state, c.item) : undefined; } catch { def = undefined; }
+    const pl = c?.place as { carriedBy?: string; groundIn?: string } | undefined;
+    const why = typeof c?.key !== 'string' || !c.key || keys.has(c.key) ? 'needs a key of its own'
+      : !def?.container ? `item ${c.item} is not a container`
+      : pl?.carriedBy !== undefined && !who.has(pl.carriedBy) ? `carriedBy ${pl.carriedBy} unknown`
+      : pl?.carriedBy !== undefined && def.container.fixed ? `a ${def.name} can't be carried`
+      : pl?.carriedBy === undefined && (pl?.groundIn === undefined || !zones.has(pl.groundIn)) ? 'needs a known carriedBy or groundIn'
+      : c.owner !== undefined && !who.has(c.owner) ? `owner ${c.owner} unknown`
+      : c.locked && c.locked.grade !== undefined && !GRADES.includes(c.locked.grade) ? `locked.grade must be one of ${GRADES.join(', ')}`
+      : arr(c.locked?.keys).find((k) => !who.has(k)) ? `key holder ${arr(c.locked?.keys).find((k) => !who.has(k))} unknown` : '';
+    if (why) return note('container_dropped', `${where}: ${why}`);
+    keys.add(c.key);
+    containers.push(c);
+  });
+  return { containers, notes };
+}
 
 /** Loot V8: a reward's Boon = the item's boon (or its value ÷ BOON_COIN, src/ruleset/value.ts) × qty, × BOON_QUALITY for a minted item. */
 export function boon(state: GameState, item: Reward['item'], qty = 1): number {
@@ -481,13 +512,14 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
   let boonLeft = GRADES.includes(gain) ? CONFIG.BOON_BUDGET[gain] ?? 0 : 0; // V8: Boon is the only limit on rewards
   const known = (id: unknown) => { try { return typeof id === 'string' ? itemDef(state, id) : undefined; } catch { return undefined; } };
 
+  const boxes = new Set(tidyContainers(state, plan).containers.map((c) => c.key));
   const rewards: Reward[] = [];
   arr(plan.rewards).forEach((r, i) => {
     const where = `reward ${i}`;
-    const pl = r?.place as { carriedBy?: string; groundIn?: string } | undefined;
+    const pl = r?.place as { carriedBy?: string; groundIn?: string; in?: string } | undefined;
     const placed = pl?.carriedBy !== undefined ? castKeys.has(pl.carriedBy) || actorIds.has(pl.carriedBy)
-      : pl?.groundIn !== undefined && (zoneKeys.has(pl.groundIn) || stageZones.has(pl.groundIn));
-    if (!placed) return note('reward_dropped', `${where}: needs a known carriedBy (not the player) or groundIn`);
+      : pl?.groundIn !== undefined ? zoneKeys.has(pl.groundIn) || stageZones.has(pl.groundIn) : pl?.in !== undefined && boxes.has(pl.in);
+    if (!placed) return note('reward_dropped', `${where}: needs a known carriedBy (not the player), groundIn or in (a container key)`);
     let qty = r.qty;
     if (qty !== undefined && (!Number.isInteger(qty) || qty < 1)) { note('reward_qty', `${where}: qty ${qty} set to 1`); qty = 1; }
     let item: Reward['item'];

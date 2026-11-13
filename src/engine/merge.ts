@@ -24,7 +24,7 @@ export function needOf(state: GameState, actor: Actor, type: string): Need | und
 }
 export const NEEDS: Record<string, Need> = {
   ...Object.fromEntries(SPEECH_ACTIONS.map((t) => [t, 'voice' as const])), buy: 'voice', sell: 'voice',
-  give: 'grip', pick: 'grip', interact: 'grip', attack: 'weapon',
+  give: 'grip', pick: 'grip', open: 'grip', restrain: 'grip', interact: 'grip', attack: 'weapon',
 };
 
 /** BG-80: the move an actor makes for an action at someone (one rule for talking, trading and handing over, by NEEDS):
