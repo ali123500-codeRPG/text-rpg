@@ -121,6 +121,38 @@ describe('turn checker (TQ1)', () => {
     expect(rules(s)).toEqual([]); // no pronouns to lose
   });
 
+  it('move_event, travel: a companion who set out with the player rides on the trip; anyone else does not', () => {
+    const s = makeVillage();
+    const before = snapTurn(s);
+    const p = s.actors.find((a) => a.id === 'patron_1')!;
+    const trip = ev(s, { actorId: 'player', kind: 'travel', zone: 'gate_inner' });
+    s.player.zone = 'gate_inner';
+    Object.assign(p, { zone: 'gate_inner', pos: undefined });
+    expect(rules(s, [trip], before)).not.toContain('move_event'); // both set out from the common room
+    const g = s.actors.find((a) => a.id === 'guard_1')!;
+    const gb = snapTurn(s);
+    gb.zones.player = 'tav_common';
+    gb.zones.guard_1 = 'street_square';
+    expect(checkTurn(s, gb, [trip]).filter((b) => b.rule === 'move_event').map((b) => b.detail).join()).toContain(`guard_1 street_square -> ${g.zone}`);
+  });
+
+  it('fight_ends: a hunt left open is caught like an engagement; real_zone: stage zones must exist', () => {
+    const s = makeVillage();
+    s.turn = 10;
+    s.actors.find((a) => a.id === 'patron_1')!.mind!.knowledge.player = { status: 'hunting', source: 'seen', revealed: [], closedTurn: 9 - CONFIG.ENGAGEMENT_END_TURNS };
+    expect(rules(s)).toContain('fight_ends');
+    const t = makeVillage();
+    t.stage.zoneIds.push('nowhere');
+    expect(rules(t)).toContain('real_zone');
+  });
+
+  it('one_item_one_place: an item inside a carried container counts too', () => {
+    const s = makeVillage();
+    const held = s.player.core.inventory[0];
+    s.player.core.inventory.push({ id: 'bag1', itemId: IT.dagger, contents: [{ ...held }] } as never);
+    expect(rules(s)).toContain('one_item_one_place');
+  });
+
   it('every rule has a test above', () => {
     const src = readFileSync(expect.getState().testPath!, 'utf8');
     expect(TURN_RULES.filter((r) => !src.includes(`'${r}'`))).toEqual([]);

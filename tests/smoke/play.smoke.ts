@@ -1,4 +1,4 @@
-// TQ7 browser smoke tests: the play page, built as in production, on the real game (tests/smoke/game.ts: in-memory save,
+// TQ7 browser smoke tests: the play page, built (and minified) as in production, on the real game (tests/smoke/game.ts: in-memory save,
 // stand-in Claude). Few flows, the ones where screen wiring broke before: load and create (the opening), play a turn,
 // report a bug (BG-27), switch story (BG-63), restore a backup (BG-123). Run: npm run smoke.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -15,7 +15,7 @@ let browser: Browser, page: Page, url: string, errors: string[];
 beforeAll(async () => {
   const dir = mkdtempSync(`${tmpdir()}/smoke-`);
   await build({
-    entryPoints: ['tests/smoke/entry.ts'], bundle: true, format: 'iife', target: 'es2022', outdir: dir, logLevel: 'warning',
+    entryPoints: ['tests/smoke/entry.ts'], bundle: true, minify: true, format: 'iife', target: 'es2022', outdir: dir, logLevel: 'warning',
     loader: { '.woff2': 'file', '.webp': 'file' }, assetNames: 'assets/[name]', define: { __BUILD__: JSON.stringify({ sha: 'smoke', date: '2026-01-01' }) },
   });
   writeFileSync(`${dir}/index.html`, '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="entry.css"></head><body><script src="entry.js"></script></body></html>');
@@ -28,6 +28,7 @@ beforeEach(async () => {
   page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && /not saved|unhandled/i.test(m.text()))) errors.push(`console: ${m.text()}`); });
   await page.goto(url);
   await page.getByRole('button', { name: 'Begin the story' }).click();
   await page.getByText(/^Turn 0/).waitFor();

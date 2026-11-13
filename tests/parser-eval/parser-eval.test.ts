@@ -1,5 +1,5 @@
 // TQ4: the Parser test set against the real model, nightly only: PARSER_EVAL=1 and a signed-in `claude` CLI
-// (CI: CLAUDE_CODE_OAUTH_TOKEN). Each line is parsed by today's Parser prompt and legality on the test village; a case
+// (it runs as a daily scheduled Claude task, not in GitHub CI). Each line is parsed by today's Parser prompt and legality on the test village; a case
 // that misses twice in a row fails, so one odd answer is not a red night.
 import { describe, expect, it } from 'vitest';
 import type { ClaudeClient } from '../../src/types';
