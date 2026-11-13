@@ -11,6 +11,7 @@ import { type Sample, pickSample } from './voiceSamples';
 import { type Crossroad, type TurnSnap, askKey, spotCrossroads, turnSnap } from '../agents/crossroads';
 import { getLibrary } from '../library';
 import { recommendedBuild } from '../library/spawn';
+import { cap } from '../words';
 
 const KEY = 'rpg.autopilot';
 /** style: a VOICE_STYLES id; voiceName: 'rpg:<voice>' (the RPG Voice connector) or 'claude:<voice>' (one of Claude's own
@@ -301,7 +302,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       } },
       h('option', { value: 'off', selected: !prefs.voice }, 'Off'),
       mcp ? h('optgroup', { label: 'RPG Voice (acted)' }, voices.map(({ voice, style }) => h('option', { value: `rpg:${voice}`, selected: prefs.voice && rv === voice }, style ? `${voice} · ${style}` : voice))) : '',
-      h('optgroup', { label: 'Claude' }, claudeVoices.map((v) => h('option', { value: `claude:${v}`, selected: prefs.voice && !rv && claudeVoice() === v }, `${v[0].toUpperCase()}${v.slice(1)}`))));
+      h('optgroup', { label: 'Claude' }, claudeVoices.map((v) => h('option', { value: `claude:${v}`, selected: prefs.voice && !rv && claudeVoice() === v }, cap(v)))));
     const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
       RATES.map((r) => h('option', { value: String(r), selected: prefs.rate === r }, `${r}×`)));
     const noVoice = prefs.voice && !tts && !rv ? 'Claude’s voice isn’t available in this view, so the commentary is shown only.' : '';

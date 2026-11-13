@@ -22,7 +22,7 @@ import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES,
 import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
-import { cap } from '../words';
+import { cap, r1 } from '../words';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -356,7 +356,7 @@ export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
   ];
 }
 
-const fmt1 = (n: number) => String(Math.round(n * 10) / 10);
+const fmt1 = (n: number) => String(r1(n));
 
 /** MB40–MB43: after /yield, who took it, who is still deciding and who fights on; nothing when the player has not yielded */
 export function yieldBlock(s: GameState): HTMLElement | null {

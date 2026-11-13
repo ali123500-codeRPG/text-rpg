@@ -3,7 +3,7 @@ import type { Actor, AgreementMade, GameEvent, GameState, Trigger } from '../typ
 import { STANCES } from '../scales';
 import { CONFIG } from '../config';
 import { calmBandmatesSwitch, headTo, letSearch, switchRoutine } from '../minds';
-import { actorById, allActors, countsInFight, hostile, isActive, isEngaged, knowsName, nameBook, stance } from './relations';
+import { actorById, allActors, countsInFight, hostile, isEngaged, knowsName, nameBook, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
@@ -72,7 +72,6 @@ export type EffectsCtx = {
   heardNow(listener: string, speaker: string): boolean;
 };
 
-/** one stance step toward `other`; a yielded actor steps from opposed: talked colder it fights again, warmer it lets the grudge go (Q1) */
 /** a break or a surrender takes hold of an NPC: from fear (MB7), or said aloud in a real fight (BG-177). Q1/Q4: it replaces
  * hostile with yielded toward everyone it was fighting (broken shares the yielded stance so both tune together) */
 export function loseNerve(state: GameState, a: Actor, r: 'broken' | 'surrendered'): void {
@@ -84,6 +83,7 @@ export function loseNerve(state: GameState, a: Actor, r: 'broken' | 'surrendered
 /** actions that are only words or waiting: an answer made of them sets no errand going (BG-180) */
 const WORDS_ONLY = new Set(['hold', 'talk', 'persuade', 'deceive', 'intimidate', 'barter']);
 
+/** one stance step toward `other`; a yielded actor steps from opposed: talked colder it fights again, warmer it lets the grudge go (Q1) */
 export function stepStance(state: GameState, a: Actor, other: Actor, step: 'friendlier' | 'colder'): void {
   if (!a.mind) return;
   const cur = stance(state, a, other);

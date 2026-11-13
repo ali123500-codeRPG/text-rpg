@@ -12,6 +12,7 @@ import { achievementInfo, atScenarioEnd, charLevel, grantAchievement, spendXp, u
 import { logCode } from './effects';
 import { offerAtEnding } from './essence';
 import { ESSENCE_GRADES } from '../scales';
+import { cap } from '../words';
 
 type Part = NonNullable<ScenarioFrame['gains']>;
 const empty = (): Part => ({ skills: [], perks: [], allPerks: [] });
@@ -137,7 +138,7 @@ export function xpParts(state: GameState, since: XpAward[], achs: AchievementNot
     if (kind === 'defeat') { foes++; add('defeat', '', x.amount); }
     else if (kind === 'achievement') add('achievement', achs.find((a) => a.id === id)?.name ?? 'An achievement', x.amount);
     else if (kind === 'quest') add('quest', state.quests.find((q) => q.id === id)?.text ?? 'A quest', x.amount);
-    else add('other', kind.charAt(0).toUpperCase() + kind.slice(1), x.amount);
+    else add('other', cap(kind), x.amount);
   }
   const f = out.find((x) => x.kind === 'defeat');
   if (f) f.label = foes === 1 ? '1 foe defeated' : `${foes} foes defeated`;

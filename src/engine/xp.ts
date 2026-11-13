@@ -18,6 +18,7 @@ import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
 import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
 import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
+import { r1 } from '../words';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
 /** character level: every class's level, plus bonus levels (levels no class gets) */
@@ -258,7 +259,7 @@ export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.m
 export function defeatXp(state: GameState, t: Actor): number {
   const theirs = power(state, t), mine = power(state, state.player);
   const taper = weakFoeTaper(theirs, mine);
-  return Math.round(theirs * taper * CONFIG.DEFEAT_XP_MULT * 10) / 10;
+  return r1(theirs * taper * CONFIG.DEFEAT_XP_MULT);
 }
 
 const title = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -409,7 +410,7 @@ export function achievementInfo(state: GameState, a: { id: string; key?: string;
   if (!d) return { id: a.id, name, level: '', levelName: '', xp: 0, scar: false, earnedAt: '', why: '', rewards: [] as string[] };
   const level = achLevel(d, a.of), earnedAt = earnedAtText(state, d, a.of);
   // the value reached is named only when it went past what the row needs (a high-water mark like a 137-point power gap)
-  const reached = a.reached === undefined ? undefined : Math.round(a.reached * 10) / 10;
+  const reached = a.reached === undefined ? undefined : r1(a.reached);
   const why = reached !== undefined && !d.every && reached !== d.count
     ? `Turn ${a.turn}: you reached ${fmtCount(reached)}; this needs ${earnedAt}.`
     : `Turn ${a.turn}: you reached ${earnedAt}.`;

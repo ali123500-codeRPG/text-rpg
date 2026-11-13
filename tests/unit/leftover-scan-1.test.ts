@@ -11,14 +11,15 @@ import { makeVillage, place, forcedRng } from '../harness';
 import { M_EPS } from '../../src/engine/position';
 import { MILESTONES } from '../../src/ruleset/perks';
 import { perkSeries } from '../../src/ui/perks';
-import { cap } from '../../src/words';
+import { cap, r1 } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
 import type { Actor, RollResult } from '../../src/types';
 
 // files the leftover scan has covered (add each round's files)
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
 const ROUND_2 = ['src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/engine/merge.ts', 'src/ui/perks.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2];
+const ROUND_3 = ['src/views/index.ts', 'src/agents/game.ts', 'src/engine/effects.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3];
 // files whose GAP notes are settled into the spec (round 1: CS2)
 const GAPS_SETTLED = ROUND_1;
 // names the spec mentions only to say they are gone
@@ -90,8 +91,15 @@ describe('leftover scan round 1', () => {
     expect(SCANNED.filter((f) => /\*\/\n[ \t]*\/\*\*/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
   });
 
-  it('no copy of the capitalising helper is left', () => {
-    const copies = files('src').filter((f) => f !== 'src/words.ts' && /const cap = \(/.test(readFileSync(f, 'utf8') as string));
+  it('no copy of the capitalising helper is left (round 3: nor written inline)', () => {
+    const inline = /const cap = \(|charAt\(0\)\.toUpperCase\(\) \+|\[0\]\.toUpperCase\(\)\}\$\{|replace\(\/\^\.\/, \(\w\) => \w\.toUpperCase\(\)\)/;
+    const copies = files('src').filter((f) => f !== 'src/words.ts' && f !== 'src/library/data.ts' && inline.test(readFileSync(f, 'utf8') as string));
+    expect(copies).toEqual([]);
+  });
+
+  it('round 3: one-decimal rounding has one helper (r1)', () => {
+    expect([r1(2.345), r1(-0.06), r1(10)]).toEqual([2.3, -0.1, 10]);
+    const copies = files('src').filter((f) => f !== 'src/words.ts' && f !== 'src/library/data.ts' && /Math\.round\([^)]*\* 10\) \/ 10/.test(readFileSync(f, 'utf8') as string));
     expect(copies).toEqual([]);
   });
 
