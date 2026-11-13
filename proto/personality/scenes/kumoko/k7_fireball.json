@@ -1,0 +1,129 @@
+{
+ "case": "VT-S7",
+ "pass": "Keeps fighting for her life with an active answer this turn: a dodge, a shield of thread or magic, a counterattack, or a dash for any gap. No surrender, no giving up and no waiting to die. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 53,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "ledge",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "burned and hurt",
+   "parts": [],
+   "morale": "Shaken",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "ledge",
+    "source": "seen",
+    "revealed": [],
+    "stance": "hostile",
+    "hostile": true,
+    "active": true,
+    "label": "a fire dragon many times her size, a deep half-healed wound in its side"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 53,
+    "zone": "ledge",
+    "level": "full",
+    "cue": "sight",
+    "kind": "attack",
+    "actorId": "player",
+    "target": "wyn",
+    "outcome": "its fireball blew away the ball of poison she was about to throw"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has been fighting this fire dragon for several turns. It is much stronger and faster than her.",
+   "She is pinned against the rock wall with nowhere to dodge to."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "ledge",
+    "links": [
+     {
+      "to": "lava_path",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "lava_path",
+    "links": [
+     {
+      "to": "ledge",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "ledge",
+    "name": "rock ledge",
+    "look": "a ledge of black rock above the lava, walled in on three sides",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "lava_path",
+      "label": "toward the only path out",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "lava_path",
+    "name": "lava path",
+    "look": "a narrow stone path between lava pools, the only way off the ledge",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "ledge",
+      "label": "back to the ledge",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a fire dragon many times her size, a deep half-healed wound in its side",
+    "pronouns": "it",
+    "zone": "ledge",
+    "level": "full",
+    "activityLook": "drawing in breath for a huge fireball, aimed straight at her"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

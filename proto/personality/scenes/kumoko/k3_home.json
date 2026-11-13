@@ -1,0 +1,162 @@
+{
+ "case": "VT-S3",
+ "pass": "Makes herself safe first: builds a web shelter or home, most likely in the crevice, or settles there. Does not head off to explore the unexplored passage or chase the bat. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 4,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "tunnel_bend",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "deep_passage",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a cave bat"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 4,
+    "zone": "deep_passage",
+    "level": "partial",
+    "cue": "hearing",
+    "kind": "noise",
+    "actorId": null,
+    "target": null,
+    "outcome": "distant scraping and chittering from deeper in"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has survived alone in the tunnels for several days, sleeping in the open.",
+   "She has just eaten and is tired. She has no shelter yet."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "tunnel_bend",
+    "links": [
+     {
+      "to": "crevice",
+      "sight": true
+     },
+     {
+      "to": "deep_passage",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "crevice",
+    "links": [
+     {
+      "to": "tunnel_bend",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "deep_passage",
+    "links": [
+     {
+      "to": "tunnel_bend",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "tunnel_bend",
+    "name": "tunnel bend",
+    "look": "a bend in a rock tunnel, open on both sides",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "crevice",
+      "label": "up toward a narrow crevice in the ceiling",
+      "sight": true
+     },
+     {
+      "to": "deep_passage",
+      "label": "toward an unexplored passage",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "crevice",
+    "name": "ceiling crevice",
+    "look": "a narrow crevice high in the rock, a dead end with a single way in",
+    "cover": "full",
+    "light": "dark",
+    "links": [
+     {
+      "to": "tunnel_bend",
+      "label": "down to the tunnel bend",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "deep_passage",
+    "name": "unexplored passage",
+    "look": "a passage sloping down into the dark, faint glowing moss on the walls",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "tunnel_bend",
+      "label": "back to the tunnel bend",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a cave bat",
+    "pronouns": "it",
+    "zone": "deep_passage",
+    "level": "partial",
+    "activityLook": "flitting about far down the passage"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

@@ -1,0 +1,117 @@
+{
+ "case": "VT-S4",
+ "pass": "Lets the web do the work: waits or hides in the web for the frog to blunder in, or adds thread or a snare to trap it. Does not charge it in the open before it is caught, and does not flee from it. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 6,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "web_home",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "tunnel",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a frog monster twice her size, its skin glistening with poison"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has built herself a web home in a crevice and strung sticky web across the tunnel below.",
+   "She is hungry again. Frogs like this one spit acid."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "web_home",
+    "links": [
+     {
+      "to": "tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "tunnel",
+    "links": [
+     {
+      "to": "web_home",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "web_home",
+    "name": "web home",
+    "look": "a crevice spun over with her own sticky web; the web spans the tunnel mouth below it",
+    "cover": "full",
+    "light": "dark",
+    "links": [
+     {
+      "to": "tunnel",
+      "label": "down to the tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "tunnel",
+    "name": "tunnel",
+    "look": "a rock tunnel; her sticky web stretches across it",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "web_home",
+      "label": "up to the web home",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a frog monster twice her size, its skin glistening with poison",
+    "pronouns": "it",
+    "zone": "tunnel",
+    "level": "full",
+    "activityLook": "hopping up the tunnel toward her web, not looking her way"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

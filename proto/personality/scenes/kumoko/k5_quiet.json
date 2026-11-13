@@ -1,0 +1,117 @@
+{
+ "case": "VT-S5",
+ "pass": "Uses the quiet to get stronger: practises magic or a skill, or tests a new ability (any training act). Does not simply rest, sleep or idle, and does not go looking for a fight. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 40,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "niche",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "lava_shelf",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a small fire lizard"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has fought her way down to the lava-filled middle layer of the labyrinth and grown much stronger.",
+   "She has eaten and rested. Part of her mind has spent days working out how magic works, and she has not yet tried casting a spell."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "niche",
+    "links": [
+     {
+      "to": "lava_shelf",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "lava_shelf",
+    "links": [
+     {
+      "to": "niche",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "niche",
+    "name": "rock niche",
+    "look": "a hollow in a hot rock wall, her web across its mouth; the air shimmers with heat",
+    "cover": "full",
+    "light": "dim",
+    "links": [
+     {
+      "to": "lava_shelf",
+      "label": "out to the lava shelf",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "lava_shelf",
+    "name": "lava shelf",
+    "look": "a wide stone shelf above slow-moving lava, lit red",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "niche",
+      "label": "back into the niche",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a small fire lizard",
+    "pronouns": "it",
+    "zone": "lava_shelf",
+    "level": "partial",
+    "activityLook": "basking far off on the shelf, paying her no attention"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

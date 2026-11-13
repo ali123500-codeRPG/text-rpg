@@ -1,0 +1,117 @@
+{
+ "case": "VT-S2",
+ "pass": "Eats the dead sibling this turn (any action whose intent is eating it), even if the intent shows disgust or reluctance. Does not leave it to go and look for other food. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 3,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "side_tunnel",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "weak with hunger",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "side_tunnel",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a dead spider, one of her siblings, killed in the hatching fight"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn fled the hatching chamber two days ago and has eaten nothing since.",
+   "She is weak with hunger and has found no other food in these tunnels."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "side_tunnel",
+    "links": [
+     {
+      "to": "main_tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "main_tunnel",
+    "links": [
+     {
+      "to": "side_tunnel",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "side_tunnel",
+    "name": "side tunnel",
+    "look": "a low, winding tunnel of damp rock",
+    "cover": "partial",
+    "light": "dark",
+    "links": [
+     {
+      "to": "main_tunnel",
+      "label": "toward the main tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "main_tunnel",
+    "name": "main tunnel",
+    "look": "a broad stone tunnel leading off into the dark",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "side_tunnel",
+      "label": "back to the side tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a dead spider, one of her siblings, killed in the hatching fight",
+    "pronouns": "it",
+    "zone": "side_tunnel",
+    "level": "full",
+    "activityLook": "lying still, legs curled"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}

@@ -116,6 +116,45 @@ export const CHARACTERS: Character[] = [
       'When his advice brings trouble, he calls it bad luck or the dreamer\'s own doing, never his, and cheerfully offers more; the dreamer\'s troubles amuse him, and he admits it with a laugh.',
     ],
   },
+  {
+    key: 'kumoko_e1', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
+    bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
+    nerve: -50, resolve: 40, ageStage: 'youth', skills: [{ name: 'spider thread', value: 20 }, { name: 'poison fang', value: 20, fight: true, attack: true }],
+    axes: { honesty: 0, pride: -20, temper: 20, sociability: -40, discipline: -20, curiosity: 60 },
+    drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko', only: ['k1_hatch', 'k2_corpse', 'k3_home', 'k4_frog'] },
+    signatures: [
+      'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
+      'Cowardly but practical: she runs from any fight she cannot win, and kills what she can with traps, thread and poison rather than a fair fight.',
+      'Will eat anything to stay alive, however foul, and moans about the taste the whole time.',
+    ],
+  },
+  {
+    key: 'kumoko_e8', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
+    bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
+    nerve: -30, resolve: 80, ageStage: 'youth', skills: [{ name: 'spider thread', value: 50 }, { name: 'poison fang', value: 50, fight: true, attack: true }, { name: 'magic', value: 20 }],
+    axes: { honesty: 0, pride: 20, temper: 20, sociability: -40, discipline: 40, curiosity: 70 },
+    drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko', only: ['k5_quiet', 'k6_dragon', 'k7_fireball'] },
+    signatures: [
+      'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
+      'Cowardly but practical: she runs from any fight she cannot win, and kills what she can with traps, thread and poison rather than a fair fight.',
+      'Pours every quiet moment into getting stronger: studying magic, raising skills, testing what each new skill can do.',
+      'Never gives up: cornered by something far stronger and faster, she knows she cannot outrun it, so she stands and fights with every trick she has and keeps hunting for a way to win.',
+    ],
+  },
+  {
+    key: 'kumoko', name: 'Wyn', title: 'the Nameless', role: 'a newborn spider monster no bigger than a cat, white with black markings, living in a vast cave labyrinth; she cannot speak, she can only think',
+    bandGoals: 'stay alive; grow stronger', temperament: 'a cave monster', tactics: 'cunning',
+    nerve: -40, resolve: 60, ageStage: 'youth', skills: [{ name: 'spider thread', value: 50 }, { name: 'poison fang', value: 50, fight: true, attack: true }, { name: 'magic', value: 20 }],
+    axes: { honesty: 0, pride: 0, temper: 20, sociability: -40, discipline: 20, curiosity: 70 },
+    drives: ['safety', 'knowledge'], scenes: { dir: 'kumoko' },
+    signatures: [
+      'Inside she is a teenage girl from another world, a shut-in gamer reborn as a spider: she reads her new life like a game, counting levels, skills and stats, and grumbles at the voice in her head that hands out skills.',
+      'Cowardly but practical: she runs from any fight she cannot win, and kills what she can with traps, thread and poison rather than a fair fight.',
+      'Will eat anything to stay alive, however foul, and moans about the taste the whole time.',
+      'Pours every quiet moment into getting stronger: studying magic, raising skills, testing what each new skill can do.',
+      'Never gives up: cornered by something far stronger and faster, she knows she cannot outrun it, so she stands and fights with every trick she has and keeps hunting for a way to win.',
+    ],
+  },
 ];
 
 /** what the prototype must compute for each character (self-check) */
@@ -129,4 +168,7 @@ export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensi
   mangod_e9: { archetype: 'busybody', buts: ['honesty'], tensions: [], nerve: 'Prudent' },
   mangod_e12: { archetype: 'schemer', buts: ['pride'], tensions: [], nerve: 'Prudent' },
   mangod: { archetype: 'busybody', buts: ['honesty', 'pride', 'temper'], tensions: [], nerve: 'Prudent' },
+  kumoko_e1: { archetype: 'busybody', buts: ['sociability'], tensions: [], nerve: 'Careful' },
+  kumoko_e8: { archetype: 'ordinary', buts: ['curiosity', 'sociability', 'discipline'], tensions: ['wary_dangerous'], nerve: 'Cool-headed' },
+  kumoko: { archetype: 'ordinary', buts: ['curiosity', 'sociability'], tensions: ['wary_dangerous'], nerve: 'Prudent' },
 };

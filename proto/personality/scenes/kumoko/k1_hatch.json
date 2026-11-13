@@ -1,0 +1,177 @@
+{
+ "case": "VT-S1",
+ "pass": "Gets away from the slaughter: flees, sneaks or hides, heading out of the chamber (the crack or the tunnel). Does not attack anyone or join the fight. She cannot speak: dialogue is null (no spoken line).",
+ "view": {
+  "turn": 1,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "wyn",
+   "label": "a small white spider with black markings",
+   "name": "Wyn",
+   "kind": "npc",
+   "zone": "egg_chamber",
+   "placeId": "great_labyrinth",
+   "bandId": "wyn",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "egg_chamber",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "a newly hatched spider, one of her siblings"
+   }
+  ],
+  "perceived": [
+   {
+    "id": "e1",
+    "turn": 1,
+    "zone": "egg_chamber",
+    "level": "full",
+    "cue": "sight",
+    "kind": "attack",
+    "actorId": "player",
+    "target": "sibs",
+    "outcome": "hit"
+   }
+  ],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Wyn has just hatched from her egg, along with hundreds of siblings."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "egg_chamber",
+    "links": [
+     {
+      "to": "side_crack",
+      "sight": true
+     },
+     {
+      "to": "main_tunnel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "side_crack",
+    "links": [
+     {
+      "to": "egg_chamber",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "main_tunnel",
+    "links": [
+     {
+      "to": "egg_chamber",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "egg_chamber",
+    "name": "egg chamber",
+    "look": "a wide cave chamber littered with split egg sacs and sticky silk",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "side_crack",
+      "label": "toward a narrow crack in the wall",
+      "sight": true
+     },
+     {
+      "to": "main_tunnel",
+      "label": "toward the main tunnel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "side_crack",
+    "name": "narrow crack",
+    "look": "a crack in the rock barely wide enough for a small spider",
+    "cover": "full",
+    "light": "dark",
+    "links": [
+     {
+      "to": "egg_chamber",
+      "label": "back to the egg chamber",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "main_tunnel",
+    "name": "main tunnel",
+    "look": "a broad stone tunnel leading away into the dark",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "egg_chamber",
+      "label": "back to the egg chamber",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "a newly hatched spider, one of her siblings",
+    "pronouns": "it",
+    "zone": "egg_chamber",
+    "level": "full",
+    "activityLook": "biting into another hatchling and eating it"
+   },
+   {
+    "id": "sibs",
+    "label": "dozens of newly hatched spiders",
+    "pronouns": "they",
+    "zone": "egg_chamber",
+    "level": "full",
+    "activityLook": "attacking and eating one another"
+   },
+   {
+    "id": "mother",
+    "label": "an enormous spider, far bigger than a horse",
+    "pronouns": "it",
+    "zone": "egg_chamber",
+    "level": "full",
+    "activityLook": "looming at the far end of the chamber, plucking up hatchlings"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": []
+}
