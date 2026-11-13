@@ -28,7 +28,7 @@ import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
-export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, clearMarkCounts, markEndurance, markUse } from './improve';
+export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
 export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';

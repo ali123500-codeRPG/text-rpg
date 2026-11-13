@@ -68,6 +68,10 @@ export type OfferView = { id: string; name: string; price: string };
 /** MB40–MB43: the player's yield this scenario, by name: who took it (truce), who has yet to answer, who fought on */
 export type YieldView = { took: string[]; waiting: string[]; refused: string[] };
 
+/** FT20: the player's stamina bar: points left of the long-term bar (the level word reads from it) and of the thin short
+ * line under it (its size shrinks with the level, FT22); spent: the bar is full, nothing above Light (FT10) */
+export type StaminaView = { level: string; left: number; max: number; lineLeft: number; lineMax: number; spent?: true };
+
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
@@ -77,6 +81,7 @@ export type SeenActor = {
   distanceM?: number; // ZP5: metres from the viewer, once both stand at points on the map (to 0.1 m)
   health?: HealthLevel; // others: only from CONFIG.HEALTH_SHOWN_FROM down
   morale?: string; // MB16: others' morale level, only from CONFIG.MORALE_SHOWN_FROM down
+  fatigue?: string; // FT17: others' fatigue level, only from CONFIG.FATIGUE_SHOWN_FROM down
   stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
   crippled?: string[]; destroyed?: string[];
   tended?: string; // BG-181: what its wounds were last treated with (a bandage), until its next wound
@@ -106,6 +111,7 @@ export type PlayerView = {
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)
     mentallySteady?: true; // SY1: the next morale loss is halved
+    stamina: StaminaView; // FT20: the stamina bar and its short line
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
     standingDefense: DefenseKind;
@@ -152,6 +158,7 @@ export type ActorView = {
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level
     mentallySteady?: true; // SY1: the next morale loss is halved
+    fatigue: string; // FT1: its fatigue level (Collapsed awake: Spent, nothing above Light)
     active: boolean; broken: boolean; surrendered: boolean;
     control: 'agent' | 'code';
     standingDefense: DefenseKind;
@@ -268,10 +275,10 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; mentallySteady?: true; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; fatigue: string; mentallySteady?: true; parts: { id: string; state: PartState }[]; tended?: string; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; activityLook?: string; age?: string; tended?: string; echo?: string }[]; // echo: HF2, hidden: who an echo was; tended: BG-181; age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; fatigue?: string; activityLook?: string; age?: string; tended?: string; echo?: string }[]; // echo: HF2, hidden: who an echo was; tended: BG-181; age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)

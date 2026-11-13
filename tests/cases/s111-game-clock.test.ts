@@ -4,6 +4,7 @@
 import { HL } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
+import { sleepDebtFor } from '../harness/sleep';
 import { resolveTurn } from '../../src/engine';
 import { mechanicsLines } from '../../src/agents/game';
 import { buildNarrationView, buildWeaverView, zoneView } from '../../src/views';
@@ -65,10 +66,11 @@ describe('111 game clock', () => {
     expect(mechanicsLines(f, f.events.slice(-5))).toContain('Wait: not while a fight is going on around you');
     expect(f.stage.breakCause).toBeUndefined();
   });
-  it('sleep takes the sleep row and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
+  it('sleep runs until rested (FT9) and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
     const s = makeVillage();
     startClock(s, 'morning');
     s.player.core.condition.hpLostPct = 80;
+    sleepDebtFor(s, 8);
     const t0 = now(s);
     turn(s, act('sleep'));
     expect(now(s) - t0).toBe(480 + 1);

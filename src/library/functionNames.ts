@@ -10,14 +10,15 @@ export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
   [FN.sight]: GR.notice, [FN.hearing]: GR.notice, [FN.stealth]: GR.stealth, [FN.influence]: GR.influence,
   [FN.initiative]: GR.speed, [FN.morale]: GR.will, [FN.engagement_aura]: GR.aura, [FN.offensive_aura]: GR.aura,
   [FN.lockpicking]: GR.sleight, [FN.filching]: GR.sleight, // FL1: the Sleight group, clever fingers on locks and purses
+  [FN.stamina]: GR.stamina, // FT15: its own group, at quarter XP
 };
 export const FUNCTION_NAMES: Record<SkillFunction, string> = {
   [FN.arms]: 'Arms', [FN.unarmed]: 'Unarmed', [FN.ranged]: 'Ranged', [FN.defense]: 'Defense', [FN.armor]: 'Armor', [FN.health]: 'Health',
   [FN.sight]: 'Sight', [FN.hearing]: 'Hearing', [FN.stealth]: 'Stealth', [FN.influence]: 'Influence', [FN.initiative]: 'Initiative', [FN.morale]: 'Morale',
-  [FN.engagement_aura]: 'Engagement aura', [FN.offensive_aura]: 'Offensive aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching',
+  [FN.engagement_aura]: 'Engagement aura', [FN.offensive_aura]: 'Offensive aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina',
 };
 export const GROUP_NAMES: Record<SkillGroup, string> = {
-  [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.speed]: 'Speed', [GR.will]: 'Will', [GR.aura]: 'Aura', [GR.sleight]: 'Sleight',
+  [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.speed]: 'Speed', [GR.will]: 'Will', [GR.aura]: 'Aura', [GR.sleight]: 'Sleight', [GR.stamina]: 'Stamina',
 };
 export const functionName = (id: string): string => (FUNCTION_NAMES as Record<string, string>)[id] ?? id;
 export const groupName = (id: string): string => (GROUP_NAMES as Record<string, string>)[id] ?? id;

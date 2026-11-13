@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Actor, GameEvent, GameState, Intent, ParserActionType } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
+import { sleepDebtFor } from '../harness/sleep';
 import { resolveTurn } from '../../src/engine';
 import { headTo, installRoutines } from '../../src/minds';
 import { now, startClock } from '../../src/time';
@@ -34,10 +35,11 @@ const companion = (s: GameState, id: string) => {
 const ev = (over: Partial<GameEvent>): GameEvent => ({ id: 'x', turn: 1, actorId: 'guard_1', kind: 'attack', zone: 'tav_cellar', effects: [], noise: 'normal', visibility: 'normal', perception: {}, ...over });
 
 describe('214 sleeping and keeping watch', () => {
-  it('NW12: alone and undisturbed, a sleep runs its 8 hours, heals a rest per 4 hours and wakes you rested', () => {
+  it('NW12/FT9: alone and undisturbed, a sleep runs until rested (8 hours of debt here), heals a rest per 4 hours and wakes you rested', () => {
     const s = quiet();
     startClock(s, 'evening');
     s.player.core.condition.hpLostPct = 80;
+    sleepDebtFor(s, 8);
     const t0 = now(s);
     turn(s, act('sleep'));
     expect(now(s) - t0).toBe(480 + 1);
@@ -139,8 +141,9 @@ describe('214 sleeping and keeping watch', () => {
     expect(n.end - n.start).toBe(720); // three: 12 hours, 4-hour watches
     expect(n.watches.map((w) => [w.actorId, w.to - w.from])).toEqual([['comp_a', 240], [s.player.id, 240], ['comp_b', 240]]);
     expect(planNight(s, 480, [one, two, { id: 'comp_c' } as Actor]).end - now(s)).toBe(640); // four: 10 hours 40
-    // the whole night runs in one turn when nothing happens; you sleep 8 hours of it
+    // the whole night runs in one turn when nothing happens; you sleep 8 hours of it (FT9: the 8 hours your debt needs)
     s.player.core.condition.hpLostPct = 80;
+    sleepDebtFor(s, 8);
     const t0 = now(s);
     turn(s, act('sleep'));
     expect(now(s) - t0).toBe(720 + 1);

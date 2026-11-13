@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, BK, CP, DU, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK } from './tableIds';
+import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -79,9 +79,11 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   { ...sk(SK.dodge, TR.defense, [FN.defense], [RL.move]), groups: [GR.speed] }, // Defense and Speed groups; no Initiative function, so it doesn't add to initiative
   sk(SK.block, TR.defense, [FN.defense], [RL.grip]), // shields only: a held weapon parries instead
   sk(SK.parry, TR.defense, [FN.defense], [RL.grip]), // turn a melee blow aside with a held melee weapon; a full stop earns a free strike back
-  // Fortitude (MB5, MB32): body and mind. Endurance sets total HP; Resolve sets max morale and rolls the morale roll
+  // Fortitude (MB5, MB32, FT15): body and mind. Endurance sets total HP; Resolve sets max morale and rolls the morale roll;
+  // Stamina sets the stamina bar
   sk(SK.endurance, TR.fortitude, [FN.health], []),
   sk(SK.resolve, TR.fortitude, [FN.morale], []),
+  sk(SK.stamina, TR.fortitude, [FN.stamina], []),
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked (D-184); equip requirements will read it.
   sk(SK.light_armor, TR.armor, [FN.armor], []),
@@ -537,7 +539,7 @@ export function prototypeLibrary(): Library {
       [TR.unarmed]: { id: TR.unarmed, name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
       [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: RC.dragon }] } /* the shape's slam; the dragon's own attacks */ },
       [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.parry] },
-      [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve] }, // third slot open (MB32)
+      [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve, SK.stamina] },
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
       [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
@@ -623,6 +625,13 @@ export function prototypeLibrary(): Library {
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
       [CP.steady]: { id: CP.steady, name: 'Steadying yourself', pct: 0, inFight: true }, // SY1: the share comes from the roll's tier (CONFIG.STEADY_PCT)
     },
+    // FT7/FT8/FT28: what restores stamina, beside healing and composure; every refill goes through engine/fatigue.ts
+    recovery: {
+      [RV.sleep]: { id: RV.sleep, name: 'Sleep', linePct: 100, debtPctPerHour: CONFIG.SLEEP_CLEAR_PCT }, // × spot and worn armour (SLEEP_SPOT_MULT, SLEEP_ARMOR_MULT)
+      [RV.rest]: { id: RV.rest, name: 'Rest', linePct: 100 }, // by the share of its hour that ran
+      [RV.breath]: { id: RV.breath, name: 'Catching your breath', perMinute: { pct: CONFIG.BREATH_BASE_PCT, perPoint: CONFIG.BREATH_PER_POINT_PCT } },
+      [RV.perk]: { id: RV.perk, name: 'Perks', countOnly: true },
+    },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
     // PL6: personality axes, with the words and hints for each end (Levity from the personality line voice tests); PL19,
     // PL28: values (Schwartz's 19 refined values plus family; VL11–VL20 from PL29; propriety, gratitude and desire from the
@@ -682,53 +691,56 @@ export function prototypeLibrary(): Library {
         partCostOf: { fear: FR.own_part_crippled, mult: 1.5 } },
     },
     // The Action times table (T1, AT1, AT11, AT12): seconds at a time factor of 1, for a skill-50 professional, from the real
-    // references on the Action Time pages (action-time/action-time-research.md). Unset: no movement lock, focus reflex, stop
+    // references on the Action Time pages (action-time/action-time-research.md). FT24/FT25: each row's effort tier pays its
+    // strain ([Proposed] placement: Base free actions, words, a drawn weapon, a door, rest, sleep, waiting; Light a look round,
+    // handing over; Moderate bandaging, picking, hiding, armour; Hard a blow, a throw, a shot, a span; All-out a heavy span,
+    // Battle Cry). Unset: no movement lock, focus reflex, stop
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
-      [DU.action]: { id: DU.action, name: 'Move, talk or other action', seconds: 60 },
-      [DU.trade]: { id: DU.trade, name: 'Trade', seconds: 10 * 60, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
-      [DU.rest]: { id: DU.rest, name: 'Rest', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
-      [DU.sleep]: { id: DU.sleep, name: 'Sleep', seconds: 8 * 60 * 60, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
-      [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', seconds: 0, focus: 'deep' },
+      [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 60 },
+      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 10 * 60, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
+      [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
+      [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
+      [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', effort: 'base', seconds: 0, focus: 'deep' },
       // attacks (AT11a-e): a melee or unarmed blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own
-      [DU.blow]: { id: DU.blow, name: 'Melee or unarmed blow', seconds: 3, attack: true },
-      [DU.throw]: { id: DU.throw, name: 'Throw', seconds: 3, attack: true, locksMove: true },
-      [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', seconds: 5, attack: true, locksMove: true, focus: 'steady' },
-      [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', seconds: 6, attack: true, locksMove: true, focus: 'steady' },
-      [DU.crossbow_shot]: { id: DU.crossbow_shot, name: 'Crossbow shot', seconds: 2, attack: true, locksMove: true, focus: 'steady' },
+      [DU.blow]: { id: DU.blow, name: 'Melee or unarmed blow', effort: 'hard', seconds: 3, attack: true },
+      [DU.throw]: { id: DU.throw, name: 'Throw', effort: 'hard', seconds: 3, attack: true, locksMove: true },
+      [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', effort: 'hard', seconds: 5, attack: true, locksMove: true, focus: 'steady' },
+      [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', effort: 'hard', seconds: 6, attack: true, locksMove: true, focus: 'steady' },
+      [DU.crossbow_shot]: { id: DU.crossbow_shot, name: 'Crossbow shot', effort: 'light', seconds: 2, attack: true, locksMove: true, focus: 'steady' },
       // spanning stays done when broken off: a spanned crossbow stays loaded (AT11c b)
-      [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', seconds: 4, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
-      [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', seconds: 8, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
-      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', seconds: 28, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', effort: 'hard', seconds: 4, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', effort: 'hard', seconds: 8, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'all_out', seconds: 28, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
       // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
-      [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', seconds: 1 },
-      [DU.talk]: { id: DU.talk, name: 'Talking (a word)', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
+      [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
+      [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       // gear and things in hand (AT11h-j)
-      [DU.draw]: { id: DU.draw, name: 'Draw a weapon', seconds: 1 },
-      [DU.stow]: { id: DU.stow, name: 'Stow a weapon', seconds: 2 },
-      [DU.swap]: { id: DU.swap, name: 'Swap weapons', seconds: 3 },
-      [DU.pick_up_reach]: { id: DU.pick_up_reach, name: 'Pick up within reach', seconds: 1 },
-      [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', seconds: 4, locksMove: true },
-      [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', seconds: 2 },
+      [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 1 },
+      [DU.stow]: { id: DU.stow, name: 'Stow a weapon', effort: 'base', seconds: 2 },
+      [DU.swap]: { id: DU.swap, name: 'Swap weapons', effort: 'base', seconds: 3 },
+      [DU.pick_up_reach]: { id: DU.pick_up_reach, name: 'Pick up within reach', effort: 'base', seconds: 1 },
+      [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', effort: 'base', seconds: 4, locksMove: true },
+      [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', effort: 'light', seconds: 2 },
       // ways (AT11k-l): you stop at the door; picking keeps its work and is sped by Lockpicking (BA2)
-      [DU.door]: { id: DU.door, name: 'Open or close a door', seconds: 1, locksMove: true },
-      [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', seconds: 2, locksMove: true },
-      [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', seconds: 4, locksMove: true },
-      [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', seconds: 60, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
+      [DU.door]: { id: DU.door, name: 'Open or close a door', effort: 'base', seconds: 1, locksMove: true },
+      [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', effort: 'base', seconds: 2, locksMove: true },
+      [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', effort: 'base', seconds: 4, locksMove: true },
+      [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 60, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
         speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },
       // care (AT11m-n): a bandage broken off is not used up
-      [DU.bandage]: { id: DU.bandage, name: 'Bandage', seconds: 40, locksMove: true, focus: 'careful' },
-      [DU.drink]: { id: DU.drink, name: 'Drink a potion', seconds: 3 },
+      [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 40, locksMove: true, focus: 'careful' },
+      [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },
       // senses (AT11o)
-      [DU.hide]: { id: DU.hide, name: 'Hide', seconds: 2, locksMove: true },
-      [DU.look]: { id: DU.look, name: 'Look around', seconds: 3, focus: 'steady' },
+      [DU.hide]: { id: DU.hide, name: 'Hide', effort: 'moderate', seconds: 2, locksMove: true },
+      [DU.look]: { id: DU.look, name: 'Look around', effort: 'light', seconds: 3, focus: 'steady' },
       // armour on and off with help (AT12): each piece counts once on; heavy alone takes ARMOR_ALONE_MULT times as long
-      [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', seconds: 2 * 60, ...ARMOR_TIME },
-      [DU.armor_light_off]: { id: DU.armor_light_off, name: 'Take off light armour', seconds: 60, ...ARMOR_TIME },
-      [DU.armor_medium_on]: { id: DU.armor_medium_on, name: 'Put on medium armour', seconds: 60, ...ARMOR_TIME },
-      [DU.armor_medium_off]: { id: DU.armor_medium_off, name: 'Take off medium armour', seconds: 30, ...ARMOR_TIME },
-      [DU.armor_heavy_on]: { id: DU.armor_heavy_on, name: 'Put on heavy armour', seconds: 10 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
-      [DU.armor_heavy_off]: { id: DU.armor_heavy_off, name: 'Take off heavy armour', seconds: 3 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
+      [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'moderate', seconds: 2 * 60, ...ARMOR_TIME },
+      [DU.armor_light_off]: { id: DU.armor_light_off, name: 'Take off light armour', effort: 'moderate', seconds: 60, ...ARMOR_TIME },
+      [DU.armor_medium_on]: { id: DU.armor_medium_on, name: 'Put on medium armour', effort: 'moderate', seconds: 60, ...ARMOR_TIME },
+      [DU.armor_medium_off]: { id: DU.armor_medium_off, name: 'Take off medium armour', effort: 'moderate', seconds: 30, ...ARMOR_TIME },
+      [DU.armor_heavy_on]: { id: DU.armor_heavy_on, name: 'Put on heavy armour', effort: 'moderate', seconds: 10 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
+      [DU.armor_heavy_off]: { id: DU.armor_heavy_off, name: 'Take off heavy armour', effort: 'moderate', seconds: 3 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
     },
     // Humans and elves for now, identical but for lifespan
     // AG3–AG6: years at which each life stage starts. Human from real references (adolescence 13, majority 18, middle age 40,

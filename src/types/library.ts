@@ -103,6 +103,8 @@ export type BodyType = {
   fallback: { attackSkill: string };
   /** RD7 base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both (engine/speed) */
   speed: { walk: number; run: number };
+  /** FT12: × the sleep debt each hour awake adds (left out = 1; 0 = never needs sleep, still feels strain) */
+  sleepNeed?: number;
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
   figure?: { viewBox: string; parts: Record<string, string> };
 };
@@ -136,6 +138,7 @@ export type Library = {
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
   composure?: Record<string, ComposureDef>; // what restores morale, apart from healing so each tunes on its own
+  recovery?: Record<string, RecoveryDef>; // FT7: what restores stamina, beside healing and composure
   fears?: Record<string, FearDef>; // MB21: what costs morale
   personalityAxes?: Record<string, PersonalityAxisDef>; // PL6: PA…
   values?: Record<string, { id: string; name: string; hint: string }>; // PL19: VL…, what a character cares about
@@ -281,6 +284,8 @@ export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 
  * read as: no movement lock, focus reflex, stop any, output end, broken off = lost. */
 export type DurationDef = {
   id: string; name: string; seconds: number; orders?: string[];
+  /** FT24: the effort tier it pays strain at (once, or per STRAIN_LONG_S seconds for a row longer than that) */
+  effort: import('../scales').EffortKey;
   /** the seconds are per word said (talking) */
   perWord?: boolean;
   /** AT19: the action takes the same seconds from move time */
@@ -325,6 +330,15 @@ export type ComposureDef = {
   id: string; name: string; pct: number; inFight: boolean;
   hourly?: { skill: string; pctPerPoint: number };
   /** never applied itself: a source achievements count restored morale under (CP.perk: morale from perks) */
+  countOnly?: true;
+};
+
+/** FT7/FT28: a stamina recovery source, the stamina twin of a healing row. `linePct`: % of the short line it fills (a rest:
+ * by the share of its hour that ran); `perMinute`: % of the line a minute, + Stamina × perPoint (catching your breath);
+ * `debtPctPerHour`: % of the bar it clears from the long term an hour (sleep) */
+export type RecoveryDef = {
+  id: string; name: string; linePct?: number; perMinute?: { pct: number; perPoint: number }; debtPctPerHour?: number;
+  /** never applied itself: a source stamina restored by perks is counted under */
   countOnly?: true;
 };
 

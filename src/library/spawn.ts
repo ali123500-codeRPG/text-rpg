@@ -91,6 +91,7 @@ export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, Skill
       if (!left) break;
     }
   }
+  if (raw[SK.endurance] && raw[SK.stamina] === undefined) raw[SK.stamina] = raw[SK.endurance]; // FT15: [Proposed] Stamina copies Endurance
   const tagged = new Set(t.focus.map((f) => f.skill));
   return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, { raw: v, state: tagged.has(k) ? 'tagged' as const : 'normal' as const }]));
 }

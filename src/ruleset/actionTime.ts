@@ -23,7 +23,7 @@ export function actionSeconds(row: DurationDef, skill = 50, factor = timeFactor(
 /** AT58: reaction time in seconds for an initiative total: the same equation as a row sped by a function, the Initiative
  * function's total standing in for its skill (REACT_BASE_S at 50, halved every REACT_HALVING points above) */
 export const reactSeconds = (total: number, factor = timeFactor()): number =>
-  actionSeconds({ id: 'react', name: 'Reaction', seconds: CONFIG.REACT_BASE_S, speed: { fn: FN.initiative, halving: CONFIG.REACT_HALVING } }, total, factor);
+  actionSeconds({ id: 'react', name: 'Reaction', effort: 'base', seconds: CONFIG.REACT_BASE_S, speed: { fn: FN.initiative, halving: CONFIG.REACT_HALVING } }, total, factor);
 
 /** AT72: an engagement ends after the slowest attack cycle in the table (a reload and the shot it readies, or one attack)
  * plus one round to react, so a crossbowman spanning between shots never drops out of the fight */

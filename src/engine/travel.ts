@@ -13,6 +13,7 @@ import { minutesUntil, now, timeOfDay } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { logCode } from './effects';
 import { passiveHealing } from './heal';
+import { passiveFatigue } from './fatigue';
 import { getLibrary } from '../library';
 import { TIERS, type TravelPaceKey } from '../scales';
 import { fnRoller, ruleset, situational } from '../ruleset';
@@ -99,6 +100,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     trip.metres += walked; trip.minutes += minutes; trip.legs += 1;
     advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
     passiveHealing(state, minutes);
+    passiveFatigue(state, minutes); // FT4/FT28
     // TV4: on a road, a chance per hour by its danger (more in the dark) that something meets you here
     const road = zoneById(state, a.zone);
     if (isRoad(road) && !there()) {

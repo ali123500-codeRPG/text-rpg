@@ -168,6 +168,13 @@ export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
 /** morale levels, calmest first (MB2); bands and penalties per level are CONFIG.MORALE_TRACK */
 export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken']]);
 export type MoraleLevel = (typeof MORALE_LEVELS.keys)[number];
+/** FT3/FT22 fatigue levels, freshest first; where each starts, its roll penalty and its short-line band are CONFIG.FATIGUE_TRACK */
+export const FATIGUE_LEVELS = scale([['rested', 'Rested'], ['fine', 'Fine'], ['tired', 'Tired'], ['weary', 'Weary'], ['exhausted', 'Exhausted'], ['drained', 'Drained'], ['dead_on_feet', 'Dead on your feet'], ['collapsed', 'Collapsed']]);
+export type FatigueLevel = (typeof FATIGUE_LEVELS.keys)[number];
+/** FT24/FT25 effort tiers, least first: every Action times row names one and pays its strain (CONFIG.STRAIN_COST). A harder
+ * tier (supernatural efforts above All-out) is a new row here and a cost there */
+export const EFFORT = scale([['base', 'Base'], ['light', 'Light'], ['moderate', 'Moderate'], ['hard', 'Hard'], ['all_out', 'All-out']]);
+export type EffortKey = (typeof EFFORT.keys)[number];
 /** how much a skill group counts in a foe's defeat-XP rating, least first; the factor per level is CONFIG.XP_FACTOR_MULT */
 export const XP_FACTORS = scale([['none', 'None'], ['quarter', 'Quarter'], ['half', 'Half'], ['three_quarters', 'Three quarters'], ['full', 'Full']]);
 export type XpFactorKey = (typeof XP_FACTORS.keys)[number];
