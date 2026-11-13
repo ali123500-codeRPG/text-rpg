@@ -366,8 +366,21 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
 /** SE11: patting someone down needs their consent or force: within grip reach of someone down, asleep, surrendered or
  * held by the searcher */
 /** SE11: someone who can't stop hands going through their things: down, dead, asleep, yielded, or held by `a` */
-export const openToHands = (a: Actor, t: Actor): boolean => !isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id;
-export const handsOn = (state: GameState, a: Actor, t: Actor): boolean => withinGrip(state, a, t) && openToHands(a, t);
+export const openToHands = (state: GameState, a: Actor, t: Actor): boolean => !isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id
+  || (t.letsSearch?.by === a.id && t.letsSearch.until >= state.turn); // BF16: or they let `a` search them
+export const handsOn = (state: GameState, a: Actor, t: Actor): boolean => withinGrip(state, a, t) && openToHands(state, a, t);
+/** BF16: letting someone search you hands-on, this turn and the next */
+export function letSearch(state: GameState, a: Actor, by: string | null | undefined): void {
+  if (by && by !== a.id && actorById(state, by)) a.letsSearch = { by, until: state.turn + 1 };
+}
+
+/** what `a` now knows `t` carries: the player's journal, an NPC's belief (SE11, BF16) */
+export function revealItems(state: GameState, a: Actor, t: Actor, items: ItemInstance[]): void {
+  for (const i of items) {
+    if (a.kind === 'player') ((a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never).revealed ??= []).push(`item:${i.id}`);
+    else updateBeliefs(state, { kind: 'reveal', observerId: a.id, aboutId: t.id, fact: `item:${i.id}` });
+  }
+}
 /** what `a` has found of someone's gear ('item:<instance id>'): the player's journal, an NPC's belief */
 export const revealedTo = (a: Actor, about: string): string[] => (a.kind === 'player' ? a.journal?.revealed : a.mind?.knowledge[about]?.revealed) ?? [];
 /** SE11: searching a person. Hands-on finds all their gear, concealed and stowed, with no roll; anyone else is only looked
@@ -387,10 +400,7 @@ export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { 
     found = hidden.filter((i) => roll && tierLevel(roll) > TIERS.pos(itemDef(state, i.itemId).hiddenAt!));
     if (roll) markAgainst(state, a, roll, Math.max(...hidden.map((i) => tierSkill(itemDef(state, i.itemId).hiddenAt!)))); // SE25
   }
-  for (const i of found) {
-    if (a.kind === 'player') ((a.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {} } as never).revealed ??= []).push(`item:${i.id}`);
-    else updateBeliefs(state, { kind: 'reveal', observerId: a.id, aboutId: t.id, fact: `item:${i.id}` });
-  }
+  revealItems(state, a, t, found);
   return { ...(r ? { r } : {}), found: [...again, ...found] };
 }
 

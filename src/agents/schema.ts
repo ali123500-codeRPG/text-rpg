@@ -82,8 +82,9 @@ const intent = obj<Intent>({
   deferred: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
   clarify: nul(str),
   yields: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
+  letsSearch: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null,
   look: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(['stats', 'inv'] as const)(v, p, e)) as 'stats' | 'inv',
-}, ['perkMove', 'yields', 'way', 'volume', 'look']);
+}, ['perkMove', 'yields', 'letsSearch', 'way', 'volume', 'look']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(NPC_ACTIONS),
@@ -131,8 +132,9 @@ const endAgreements = (v: unknown, p: string, e: string[]) => (v === undefined |
 const spar = nul(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel']));
 const yields = (v: unknown, p: string, e: string[]) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean;
 const acceptYield = yields;
+const letsSearch = (v: unknown, p: string, e: string[]) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null; // BF16
 const spare = yields; // D-239
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'acceptYield', 'spare', 'headTo', 'lead', 'goals', 'steps'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'acceptYield' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps')[];
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'spare', 'headTo', 'lead', 'goals', 'steps'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps')[];
 const headTo = nStr; // NW2
 // UG5/UG16: a goal holder's goals met, failed or added, and its next steps
 const goalOps = nul(obj<GoalOps>({
@@ -145,16 +147,16 @@ const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, 
 const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
 const npcMove = nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after']));
-const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield, spare, headTo, lead, goals: goalOps, steps,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, spare, headTo, lead, goals: goalOps, steps,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({
   action: npcAction, line: str, volume: VOLUME,
   shares: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-  gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, acceptYield, spare, headTo, lead,
-}, ['agreement', 'questEnd', 'spar', 'yields', 'acceptYield', 'spare', 'headTo', 'lead']);
+  gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, letsSearch, acceptYield, spare, headTo, lead,
+}, ['agreement', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'spare', 'headTo', 'lead']);
 const narrator = obj<NarratorOutput>({
   text: (v, p, e) => {
     const s = str(v, p, e);
@@ -226,7 +228,8 @@ const weaver = obj<StagePlan>({
       : isObj(v) && typeof v.groundIn === 'string' ? { groundIn: v.groundIn, ...(v.hiddenAt !== undefined ? { hiddenAt: TIERS.keyOf(v.hiddenAt) ?? (e.push(`${p}.hiddenAt: expected one of ${TIERS.list()}`), 'success') } : {}) }
       : isObj(v) && typeof v.in === 'string' ? { in: v.in }
       : (e.push(`${p}: expected {carriedBy}, {groundIn} or {in}`), { groundIn: '' })),
-  }, ['qty'])),
+    owner: str, // BF18
+  }, ['qty', 'owner'])),
   containers: arr(obj<NonNullable<StagePlan['containers']>[number]>({
     key: str, item: str, owner: str,
     place: (v, p, e) => (isObj(v) && typeof v.carriedBy === 'string' ? { carriedBy: v.carriedBy }

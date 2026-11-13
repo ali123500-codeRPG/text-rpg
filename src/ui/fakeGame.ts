@@ -15,6 +15,7 @@ import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
 import { ACH } from '../library/achievementIds';
+import { barMax, lineMax } from '../ruleset/fatigue';
 import { achievementInfo, grantAchievement } from '../engine/xp';
 import { actionNotes, doingSnap, placeName } from '../agents/game';
 import { buildPlayerView } from '../views';
@@ -203,6 +204,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     player.core.inventory.push({ id: 'player_loop', itemId: IT.varos_loop, qty: 1, equippedIn: ['acc:0'], boundTo: player.id });
     if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
+    player.core.condition.fatigue = { debt: 6, line: 8 }; // a long day's walk and the fight with the slime (FT20)
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scenario: 1 },
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
@@ -303,6 +305,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id)); // a way to walk
       }
       if (/^stop\b/i.test(text)) delete state.player.walking;
+      // "tire" adds sleep debt (a fatigue level's worth) and spends half the breath line; "breathe" fills the line again, to
+      // show the stamina bar (FT20)
+      if (/^tire\b/i.test(text)) { const f = state.player.core.condition.fatigue ?? { debt: 0, line: 0 }; state.player.core.condition.fatigue = { debt: Math.min(barMax(state.player), f.debt + barMax(state.player) * 0.16), line: f.line + lineMax(state.player) / 2 }; }
+      if (/^breathe\b/i.test(text) && state.player.core.condition.fatigue) state.player.core.condition.fatigue.line = 0;
       // "steady" leaves you Mentally steady, to show the chip beside Morale (SY1); any "fear" after it uses it up
       if (/^steady\b/i.test(text)) state.player.core.condition.mentallySteady = true;
       if (/^fear\b/i.test(text)) delete state.player.core.condition.mentallySteady;
