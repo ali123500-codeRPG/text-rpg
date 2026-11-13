@@ -30,6 +30,7 @@ import { LIGHT_SLEEPER } from '../engine/sleep';
 import { actorById, isActive, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
+import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
@@ -658,8 +659,11 @@ export function createGame(deps: GameDeps): Game {
     const now = clock.now();
     const storyId = `story_${now.toString(36)}`;
     const seed = (now >>> 0) || 1;
-    state = newState(storyId, seed, { ...createPlayer(build, storyId, { world }), placeId: CONFIG.STORY_START_PLACE }, new Date(now).toISOString());
-    if (world) state = { ...save.carryOn(world, state), meta: { ...state.meta, worldId: free!.worldId } };
+    const player = createPlayer(build, storyId, { world });
+    // WP2 b: a Threadbound start needs a Threadbound item free in that world
+    if (player.core.perks.some((k) => getLibrary().perks[k.perkId]?.grantsThreadboundItem && !k.granted)) throw new Error('No Threadbound item is free in this world');
+    state = newState(storyId, seed, { ...player, placeId: CONFIG.STORY_START_PLACE }, new Date(now).toISOString());
+    if (world) state = { ...save.carryOn(world, state, free!.past.at(-1)!.fell), meta: { ...state.meta, worldId: free!.worldId } };
     state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
     if (owner === 'agent') state.meta.owner = 'agent'; // the autopilot's own save: one story per owner
     lines = [];
@@ -770,6 +774,7 @@ export function createGame(deps: GameDeps): Game {
       return { id };
     },
     worlds: () => save.listWorlds(store),
+    titleWorld: (worldId, name) => save.titleWorld(store, worldId, name),
     reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
@@ -799,7 +804,11 @@ export function createGame(deps: GameDeps): Game {
         // D-73: archive, so a reload starts fresh instead of loading the old story again
         const at = new Date(clock.now()).toISOString();
         // hall of fame: a character archived while down is kept as they fell
-        await save.archiveStory(store, state.storyId, at, downNow(state.player) ? fameEntry(state, lines, placeName(state), at) : undefined);
+        // HF31: how it ended, for the world list: who, the day, and the Threadbound items left in the world (WP1 b: a
+        // character reset while standing leaves with what they carry)
+        const fell = downNow(state.player), p = state.player;
+        const end = { name: p.names.current, day: dayOf(now(state)), threadbound: threadboundInWorld(fell ? state : { ...state, player: { ...p, core: { ...p.core, inventory: [] } } }) };
+        await save.archiveStory(store, state.storyId, at, fell ? fameEntry(state, lines, placeName(state), at) : undefined, end);
         await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
       }
       state = null;

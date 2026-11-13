@@ -5,7 +5,7 @@ import type { Actor, GameState, ItemDef, ItemInstance, Turn } from '../types';
 import { getLibrary } from '../library';
 import { createRng } from '../rng';
 import { freeAccSlot, isWorn } from './gear';
-import { THREADBOUND_RANKS } from '../scales';
+import { THREADBOUND_RANKS, type ThreadboundRankKey } from '../scales';
 import { now } from '../time';
 
 const libItem = (id: string): ItemDef | undefined => getLibrary().items[id];
@@ -62,6 +62,22 @@ export function summon(state: GameState, a: Actor, instId: string): boolean {
   return false;
 }
 
+/** the library's Threadbound items of at least `minRank` that are not `taken` */
+export const freeThreadboundItems = (minRank: ThreadboundRankKey, taken: (itemId: string) => boolean): ItemDef[] =>
+  Object.values(getLibrary().items).filter((d) => d.threadbound && THREADBOUND_RANKS.pos(d.threadbound.rank) >= THREADBOUND_RANKS.pos(minRank) && !taken(d.id));
+
+/** every Threadbound item in the world (carried by anyone or on any ground) */
+export const threadboundInWorld = (state: GameState): string[] => [...new Set(itemHolders(state).flat().filter((i) => libItem(i.itemId)?.threadbound).map((i) => i.itemId))];
+
+/** WP2 b: a starting class whose level 1 perk grants a Threadbound item has none free in a world holding `taken` */
+export function threadboundStartBlocked(classId: string, taken: string[]): boolean {
+  const lib = getLibrary();
+  return (lib.classes[classId]?.levelPerks?.[1] ?? []).some((p) => {
+    const g = lib.perks[p]?.grantsThreadboundItem;
+    return !!g && !freeThreadboundItems(g.minRank, (id) => taken.includes(id)).length;
+  });
+}
+
 /** TB7: each owned perk with grantsThreadboundItem gives, once, a random Threadbound item of at least its Rank (TB11) not
  * yet in the world (state given), bound to the owner and worn in a free accessory slot. The pick is seeded by the story
  * id, so a replay gives the same. */
@@ -70,8 +86,7 @@ export function grantThreadboundItem(a: Actor, state?: GameState): void {
   for (const p of a.core.perks) {
     const grant = lib.perks[p.perkId]?.grantsThreadboundItem;
     if (p.dormant || p.granted || !grant) continue;
-    const free = Object.values(lib.items).filter((d) => d.threadbound && THREADBOUND_RANKS.pos(d.threadbound.rank) >= THREADBOUND_RANKS.pos(grant.minRank)
-      && !(state && inWorld(state, d.id)) && !a.core.inventory.some((i) => i.itemId === d.id));
+    const free = freeThreadboundItems(grant.minRank, (id) => !!(state && inWorld(state, id)) || a.core.inventory.some((i) => i.itemId === id));
     if (!free.length) continue;
     const pick = free[createRng([...a.storyId].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1).int(0, free.length - 1)];
     const slot = pick.slot === 'accessory' ? freeAccSlot(a) : undefined;

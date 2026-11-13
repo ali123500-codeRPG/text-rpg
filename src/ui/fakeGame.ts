@@ -235,7 +235,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     async sendHero(storyId: string) { return { id: `unique_${storyId}` }; },
     async sendBlueprint(id: string) { return { id: `item_story_fake_${id}` }; },
     async librarySends() { return []; },
-    async worlds() { return [{ worldId: 'story_fake', name: 'Aldric’s world', lastStoryId: 'story_fake', day: 3, fell: ['Aldric'] }]; },
+    async worlds() { return [{ worldId: 'story_fake', name: 'Aldric’s world', lastStoryId: 'story_fake', day: 3, past: [{ name: 'Aldric', fell: true }], threadbound: [IT.varos_loop] }]; },
+    async titleWorld() {},
     async reportBug() { return 'BG-99'; },
     async openBugs() { return [{ id: 'BG-12', code: 'player_report', storyId: 'story_fake', turn: 4, status: 'open' as const, at: Date.now(), note: 'Walking to the back of the cellar did nothing.' }]; },
     // guided mode: every other move is a question (screenshots and UI checks)

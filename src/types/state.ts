@@ -149,6 +149,8 @@ export type StoryMeta = {
   owner?: StoryOwner;
   /** hall of fame: the character as they fell, written when a fallen story is archived */
   fame?: FameEntry;
+  /** HF31: how the story ended, written by a reset: the character, the day, and the Threadbound items left in the world */
+  end?: { name: string; day: number; threadbound: string[] };
   /** HF25: the world this story carries on (absent: the story began a world of its own, whose id is its storyId) */
   worldId?: string;
 };
