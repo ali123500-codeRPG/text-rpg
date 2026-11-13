@@ -1,0 +1,110 @@
+// Paying and recovering stamina (FT1–FT28). Every action pays its effort tier's strain (no roll): the short line drains
+// first, and what an empty line can't hold spills into the long term at SPILL_SHARE. Hours awake add sleep debt; only sleep
+// clears the long term. All stamina recovery goes through recoverLine and recoverDebt, one per layer, from the library
+// recovery table (RV), as healing and composure go through applyHealing and calm.
+import type { Actor, DurationDef, GameState } from '../types';
+import { CONFIG } from '../config';
+import { actorBody, getLibrary } from '../library';
+import { FU, RV } from '../library/tableIds';
+import { EFFORT, type EffortKey } from '../scales';
+import { now } from '../time';
+import { barMax, fatigueOf, isSpent, lineMax, lineUsed, staminaSkill, wornWeight } from '../ruleset/fatigue';
+import { markStamina } from '../ruleset';
+import { allActors, isActive, isAsleep, zoneById } from './relations';
+import { logCode } from './effects';
+import { fallAsleep, planNight } from './sleep';
+
+const fat = (a: Actor) => (a.core.condition.fatigue ??= { debt: 0, line: 0 });
+const row = (id: string) => getLibrary().recovery?.[id];
+const harder = (e: EffortKey, than: EffortKey) => EFFORT.pos(e) > EFFORT.pos(than);
+
+/** FT24: pays `units` of an effort tier's strain, × worn armour (FT5). Above Light it resets catching your breath; Hard or
+ * harder counts toward the player's Stamina marks (FT27). Spill that fills the bar leaves the actor Spent (FT10). */
+export function payStrain(state: GameState, a: Actor, effort: EffortKey, units = 1): void {
+  const cost = CONFIG.STRAIN_COST[effort] * units * (CONFIG.STRAIN_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1);
+  if (cost <= 0 || !isActive(a)) return;
+  const f = fat(a);
+  if (harder(effort, 'light')) f.hardAt = now(state);
+  const used = lineUsed(a), left = lineMax(a) - used;
+  f.line = used + Math.min(cost, left);
+  if (cost > left) {
+    const was = isSpent(a);
+    f.debt = Math.min(barMax(a), f.debt + (cost - left) * CONFIG.SPILL_SHARE);
+    f.line = Math.min(f.line, lineMax(a));
+    if (!was && isSpent(a)) logCode(state, 'spent', { actorId: a.id });
+  }
+  if (a === state.player && !harder(CONFIG.STAMINA_MARK_FROM, effort)) {
+    f.toMark = (f.toMark ?? 0) + cost;
+    for (; f.toMark >= CONFIG.STAMINA_MARK_EVERY; f.toMark -= CONFIG.STAMINA_MARK_EVERY) markStamina(state, a);
+  }
+}
+/** FT24: an Action times row's strain for `seconds` of it: once for a short row, per STRAIN_LONG_S it runs for a longer one */
+export const payRow = (state: GameState, a: Actor, r: DurationDef | undefined, seconds: number): void => {
+  if (r) payStrain(state, a, r.effort, r.seconds > CONFIG.STRAIN_LONG_S ? seconds / CONFIG.STRAIN_LONG_S : 1);
+};
+/** FT24: movement pays per STRAIN_MOVE_S moved: a walk (move time) or a run (a dash, main time) */
+export const payMove = (state: GameState, a: Actor, paid: 'move' | 'main', seconds: number): void =>
+  payStrain(state, a, paid === 'main' ? CONFIG.RUN_EFFORT : CONFIG.WALK_EFFORT, seconds / CONFIG.STRAIN_MOVE_S);
+/** FT10: a Spent actor can't make an effort above Light */
+export const tooSpent = (a: Actor, effort: EffortKey | undefined): boolean => isSpent(a) && harder(effort ?? 'base', 'light');
+
+/** refills `pct` % of the short line from recovery row `sourceId`; every line refill goes through here. Returns the points */
+export function recoverLine(a: Actor, sourceId: string, pct: number): number {
+  const r = row(sourceId), used = lineUsed(a);
+  if (!r || r.countOnly || pct <= 0 || used <= 0) return 0;
+  const got = Math.min(used, (pct / 100) * lineMax(a));
+  fat(a).line = used - got;
+  return got;
+}
+/** clears `pct` % of the bar from the long term, from recovery row `sourceId`; every long-term clear goes through here */
+export function recoverDebt(a: Actor, sourceId: string, pct: number): number {
+  const r = row(sourceId), f = fatigueOf(a);
+  if (!r || r.countOnly || pct <= 0 || f.debt <= 0) return 0;
+  const got = Math.min(f.debt, (pct / 100) * barMax(a));
+  fat(a).debt = f.debt - got;
+  return got;
+}
+/** FT8: sleep's speed here: in a bed or elsewhere, × the worn armour's weight */
+export const sleepMult = (state: GameState, a: Actor): number =>
+  CONFIG.SLEEP_SPOT_MULT[zoneById(state, a.zone)?.furniture?.some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * (CONFIG.SLEEP_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1);
+/** FT9: minutes of sleep that clear the long term here, within SLEEP_MIN_HOURS to SLEEP_MAX_HOURS */
+export function sleepMinutes(state: GameState, a: Actor): number {
+  const perHour = ((row(RV.sleep)?.debtPctPerHour ?? 0) / 100) * barMax(a) * sleepMult(state, a);
+  const h = perHour > 0 ? fatigueOf(a).debt / perHour : CONFIG.SLEEP_MAX_HOURS;
+  return Math.ceil(Math.min(CONFIG.SLEEP_MAX_HOURS, Math.max(CONFIG.SLEEP_MIN_HOURS, h)) * 60);
+}
+
+/** FT4/FT7/FT28: `minutes` of game time just ran (the clock already moved on). Every actor, on stage or not: asleep it
+ * sleeps (the long term clears, the line fills); awake it gains sleep debt, and catches its breath for the part of the
+ * time BREATH_CALM_S after its last effort above Light. Sleep debt that fills the bar puts it to sleep (FT10). */
+export function passiveFatigue(state: GameState, minutes: number): void {
+  if (minutes <= 0) return;
+  const t1 = now(state);
+  for (const a of allActors(state)) {
+    if (!isActive(a)) continue;
+    if (isAsleep(a)) {
+      const s = row(RV.sleep);
+      recoverDebt(a, RV.sleep, (s?.debtPctPerHour ?? 0) * (minutes / 60) * sleepMult(state, a));
+      recoverLine(a, RV.sleep, s?.linePct ?? 0);
+      continue;
+    }
+    const f = fat(a), max = barMax(a);
+    const add = (CONFIG.SLEEP_DEBT_FLAT + (CONFIG.SLEEP_DEBT_PCT / 100) * max) * (actorBody(state, a).sleepNeed ?? 1) * (minutes / 60);
+    if (add > 0 && f.debt < max) {
+      f.debt = Math.min(max, f.debt + add);
+      if (f.debt >= max) collapse(state, a);
+    }
+    const calm = t1 - Math.max(t1 - minutes, (f.hardAt ?? -Infinity) + CONFIG.BREATH_CALM_S / 60);
+    const b = row(RV.breath)?.perMinute;
+    if (calm > 0 && b) recoverLine(a, RV.breath, (b.pct + staminaSkill(a) * b.perPoint) * calm);
+  }
+}
+
+/** FT10: sleep debt filled the bar: the actor falls asleep where it stands, until rested (normal waking rules). The player's
+ * sleep is a night of its own, so the clock runs it */
+function collapse(state: GameState, a: Actor): void {
+  logCode(state, 'collapsed', { actorId: a.id });
+  const until = now(state) + sleepMinutes(state, a);
+  if (a === state.player && !state.night) state.night = planNight(state, until - now(state), []);
+  fallAsleep(state, a, a === state.player && state.night ? state.night.end : until);
+}

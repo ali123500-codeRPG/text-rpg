@@ -8,7 +8,7 @@ import { ageText, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  SparView, WalkingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
+  SparView, StaminaView, WalkingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
@@ -48,9 +48,14 @@ import { modeName } from '../ruleset/gear';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
-import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
+import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUsed } from '../ruleset/fatigue';
+import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
+const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
+const r1 = (x: number) => Math.round(x * 10) / 10;
+/** FT20: the player's stamina bar as points left, to a tenth */
+const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
 /** a rolled NPC's title from its template, given with its name in CHARACTER only */
 const rolledTitle = (state: GameState, a: Actor): string | undefined =>
   a.core.generation === 'rolled' && a.core.templateId ? npcTemplate(state, a.core.templateId).title : undefined;
@@ -240,6 +245,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
       ...(!isDownLevel(h) && moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
+      ...(!isDownLevel(h) && fatigueShows(fatigueLevel(a)) ? { fatigue: fatigueWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
@@ -421,7 +427,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...walkingOf(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
-      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p),
+      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
       standingDefense: p.core.standingDefense,
@@ -488,7 +494,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     self: {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc', ...(ageText(state, a) ? { age: ageText(state, a)! } : {}), // AG16
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
-      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a),
+      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a), fatigue: fatigueWord(a),
       ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
@@ -699,12 +705,12 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), ...steadyOf(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
+    player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), fatigue: fatigueWord(p), ...steadyOf(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...echoOf(state, s.id) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...echoOf(state, s.id) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)

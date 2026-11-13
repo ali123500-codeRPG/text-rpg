@@ -141,6 +141,10 @@ export type SavedCondition = {
   mentallySteady?: true;
   /** SY1: the turn it last steadied itself (STEADY_COOLDOWN_S of game time before the next try) */
   steadiedTurn?: number;
+  /** FT1/FT18: the stamina bar, in flat points used: debt = the long term (sleep debt and spilled strain), line = the short
+   * line (strain); hardAt = game minute of its last effort above Light (catching your breath waits BREATH_CALM_S after it);
+   * toMark = strain from Hard or harder efforts not yet counted into a Stamina mark */
+  fatigue?: { debt: number; line: number; hardAt?: number; toMark?: number };
 };
 
 export type Progression = {

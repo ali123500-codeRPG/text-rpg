@@ -4,7 +4,7 @@
 import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
-import { GRADE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel, type PartStateKey } from '../scales';
+import { FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel, type PartStateKey } from '../scales';
 import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
@@ -83,6 +83,8 @@ export const MOD_SOURCES: ModSource[] = [
     value: list(Object.fromEntries(CONFIG.HEALTH_TRACK.map(([l, , v]) => [HEALTH_LEVELS.name(l), v]))) },
   { type: 'wounds', roll: 'skill', source: 'Morale level', at: 'src/ruleset/morale.ts', when: 'Every roll, the morale roll included (fear feeds on itself), by the actor\'s morale level (MB3).',
     value: CONFIG.MORALE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${MORALE_LEVELS.name(k as MoraleLevel)} ${sg(v as number)}`).join(' · ') },
+  { type: 'wounds', roll: 'skill', source: 'Fatigue level', at: 'src/ruleset/fatigue.ts', when: 'Every roll, by the actor\'s fatigue level (FT3): the share of the long-term stamina bar used.',
+    value: CONFIG.FATIGUE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${FATIGUE_LEVELS.name(k)} ${sg(v)}`).join(' · ') },
   { type: 'wounds', roll: 'skill', source: 'Role wounds', at: 'src/ruleset/body.ts',
     when: 'Rolls whose skill uses a body role (grip, strike, sense …) on a damaged or crippled part. Shared roles split it across their parts; a crippled sense part hits every roll.',
     value: list(Object.fromEntries(Object.entries(CONFIG.ROLE_PENALTY).map(([k, v]) => [PART_STATES.name(k as PartStateKey), v]))) }, // BG-91

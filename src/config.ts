@@ -1,5 +1,5 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
-import type { GradeLevel, HealthLevelKey, MoraleLevel, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
+import type { EffortKey, FatigueLevel, GradeLevel, HealthLevelKey, MoraleLevel, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -244,6 +244,50 @@ const DEFAULTS = {
   /** the sheet's morale bar spells out the stakes (roll penalty, what Broken stops) from this level down */
   MORALE_HINT_FROM: 'terrified',
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
+  // ---- fatigue and stamina (FT1-FT28; src/ruleset/fatigue.ts, src/engine/fatigue.ts). All placeholders ----
+  /** FT2: the stamina bar (both layers) = STAMINA_BASE + STAMINA_PER_POINT × Stamina, like HP from Endurance */
+  STAMINA_BASE: 50,
+  STAMINA_PER_POINT: 1,
+  /** FT3/FT22: [FATIGUE_LEVELS key, from % of the long-term bar used, roll penalty (type wounds), short line's band in %
+   * of the bar]; collapsed = the bar is full */
+  FATIGUE_TRACK: [
+    ['rested', 0, 0, 100], ['fine', 15, 0, 90], ['tired', 30, -5, 80], ['weary', 45, -10, 65], ['exhausted', 60, -15, 50],
+    ['drained', 75, -20, 35], ['dead_on_feet', 90, -30, 20], ['collapsed', 100, -30, 20],
+  ] as [FatigueLevel, number, number, number][],
+  /** FT17: others' fatigue shows (as words) from this level down */
+  FATIGUE_SHOWN_FROM: 'exhausted' as FatigueLevel,
+  /** FT4: each hour awake adds SLEEP_DEBT_FLAT points + SLEEP_DEBT_PCT % of the bar, × the body type's sleepNeed */
+  SLEEP_DEBT_FLAT: 0.5,
+  SLEEP_DEBT_PCT: 1.5,
+  /** FT25: strain each effort tier pays (EFFORT keys) */
+  STRAIN_COST: { base: 0, light: 0.5, moderate: 1, hard: 2, all_out: 4 } as Record<EffortKey, number>,
+  /** FT24: an action row longer than this pays its tier per this many seconds it runs; a shorter one pays it once */
+  STRAIN_LONG_S: 10,
+  /** FT24: movement pays its tier per this many seconds moved: a walk (move time) at WALK_EFFORT, a run (a dash) at RUN_EFFORT */
+  STRAIN_MOVE_S: 3,
+  WALK_EFFORT: 'base' as EffortKey,
+  RUN_EFFORT: 'hard' as EffortKey,
+  /** FT5: a dodge, block or parry (no Action times row of its own) */
+  DEFENSE_EFFORT: 'light' as EffortKey,
+  /** FT5: worn armour multiplies all strain, by weight */
+  STRAIN_ARMOR_MULT: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
+  /** FT23: strain past an empty short line spills into the long-term bar at this share */
+  SPILL_SHARE: 0.5,
+  /** FT27: one Stamina mark per this many points of strain paid by actions of STAMINA_MARK_FROM or harder */
+  STAMINA_MARK_EVERY: 50,
+  STAMINA_MARK_FROM: 'hard' as EffortKey,
+  /** FT28: catching your breath: in a calm stretch (nothing above Light for BREATH_CALM_S) the line refills BREATH_BASE_PCT
+   * + Stamina × BREATH_PER_POINT_PCT % of its size a minute */
+  BREATH_CALM_S: 10,
+  BREATH_BASE_PCT: 15,
+  BREATH_PER_POINT_PCT: 0.05,
+  /** FT7/FT8: sleep clears SLEEP_CLEAR_PCT % of the bar an hour × the spot (in a bed or not) × worn armour by weight */
+  SLEEP_CLEAR_PCT: 4,
+  SLEEP_SPOT_MULT: { bed: 1, elsewhere: 0.75 } as Record<string, number>,
+  SLEEP_ARMOR_MULT: { light: 1, medium: 0.75, heavy: 0.5 } as Record<string, number>,
+  /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
+  SLEEP_MIN_HOURS: 1,
+  SLEEP_MAX_HOURS: 24,
   // ---- game clock (T1-T8); how long each action takes is the library's Action times table (durations) ----
   /** AT35/AT74: the round, one exchange of blows: the one lever for short durations (perk marks, per-round limits). A code
    * ID only: the game never names it, it shows seconds */
@@ -546,7 +590,7 @@ const DEFAULTS = {
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
-  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
   /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
   SKILL_RATING_AT_50: 23.1,

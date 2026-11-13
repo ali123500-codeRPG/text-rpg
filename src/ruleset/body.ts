@@ -8,6 +8,7 @@ import { skillOpen } from './access';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { moraleMods } from './morale';
+import { fatigueMods } from './fatigue';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 
 export function totalHp(state: GameState, actor: Actor): number {
@@ -84,6 +85,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
   const lv = woundsOfLevel(level);
   if (lv) out.push({ source: `health: ${HEALTH_LEVELS.name(level)}`, type: 'wounds', value: lv });
   out.push(...moraleMods(actor)); // MB3: the morale level's penalty is wounds too
+  out.push(...fatigueMods(actor)); // FT3: so is the fatigue level's
   const lib = getLibrary();
   const ct = actorBody(state, actor);
   const uses = ctx.roles ?? lib.skills[skill]?.roles ?? [];

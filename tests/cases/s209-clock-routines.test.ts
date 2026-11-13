@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState, Intent, ParserActionType, Routine } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
+import { sleepDebtFor } from '../harness/sleep';
 import { resolveTurn } from '../../src/engine';
 import { desiredState, installRoutines } from '../../src/minds';
 import { buildActorView } from '../../src/views';
@@ -53,8 +54,9 @@ describe('209 routines on the clock (NW10, NW11, NW13)', () => {
     // a patrol from the gate to the tavern door and back, 30 minutes a stop
     installRoutines(g, 'patrol_guard', { route: ['gate_inner', 'street_square', 'street_door'] }, 'route', s.turn, createRng(1), now(s));
     const before = now(s);
+    sleepDebtFor(s, 8); // FT9: 8 hours of sleep debt
     turn(s, act('sleep'));
-    expect(now(s) - before).toBe(481); // the sleep row, plus the action minute
+    expect(now(s) - before).toBe(481); // the sleep, plus the action minute
     // 481 minutes into a 90-minute loop: 31 minutes in, the second stop
     expect(desiredState(buildActorView(s, g.id))!.zone).toBe('street_square');
     expect(g.zone).toBe('street_square');

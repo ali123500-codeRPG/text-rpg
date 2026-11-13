@@ -5,7 +5,8 @@ import { noticeGoals, runSteps } from './goals';
 import { noteHappened } from './happened';
 import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
-import { DU, FR, HL, RL } from '../library/tableIds';
+import { DU, FR, HL, RL, RV } from '../library/tableIds';
+import { passiveFatigue, payMove, payRow, payStrain, recoverLine, sleepMinutes, tooSpent } from './fatigue';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
@@ -109,6 +110,7 @@ const useMain = (ctx: Ctx, a: Actor, cost?: { row?: DurationDef; seconds?: numbe
   s.main -= take;
   if (cost?.row?.locksMove && !cost.lockPaid) s.move = Math.max(0, s.move - take);
   ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
+  payRow(ctx.state, a, cost?.row, take); // FT24: its effort tier's strain
   if (seconds !== undefined && seconds <= take + T_EPS) ctx.finished.add(a.id); else ctx.finished.delete(a.id);
   if (a === ctx.state.player && ctx.state.mode !== 'tactical') { const own = (ctx.own ??= { over: 0, fill: 0 }); if (seconds === undefined) own.fill += take; else own.over += seconds - take; }
   return true;
@@ -134,6 +136,7 @@ function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[]): void {
     s.main -= take;
     if (row.locksMove) s.move = Math.max(0, s.move - take);
     ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
+    payRow(ctx.state, a, row, take);
   }
 }
 /** AT11/AT19: a way op (a door, a bar, a key) takes its row's seconds from move time and main time; when the move time is
@@ -145,6 +148,7 @@ function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
   s.move = Math.max(0, s.move - secs);
   s.main = Math.max(0, s.main - secs);
   ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + secs);
+  payRow(ctx.state, a, row, secs);
   return true;
 }
 /** AT11: the Action times row an order's action uses, and its seconds (a crossbow's shot includes its spanning until
@@ -511,6 +515,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
     const s = slotsOf(ctx, a), back = Math.max(0, Math.min(paid.seconds, metres / perS));
     if (paid.pool !== 'none') s[paid.pool ?? paid.paid] += back;
     s.walkedS += paid.seconds - back;
+    payMove(state, a, paid.paid, paid.seconds - back); // FT24: a walk is Base, a run (dash) Hard
     if (there()) s.arrived = true;
   };
   let left = 0;
@@ -524,6 +529,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
       paid = slot(n++);
       if (!paid) return true;
       if (paid.paid === 'main' && lame(state, a)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' }); return true; }
+      if (paid.paid === 'main' && tooSpent(a, CONFIG.RUN_EFFORT)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: 'spent' }); slotsOf(ctx, a).main += paid.seconds; paid = null; return true; } // FT10: no run, its time kept
       perS = slotMetres(state, a, paid.paid, 1);
       left = perS * paid.seconds;
       fresh = true;
@@ -643,7 +649,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
       context: { defenderUnaware: surprised, defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
     state, rng,
   );
-  if (res.defense) ctx.defenses.set(roundKey(ctx, t.id), (ctx.defenses.get(roundKey(ctx, t.id)) ?? 0) + 1);
+  if (res.defense) { ctx.defenses.set(roundKey(ctx, t.id), (ctx.defenses.get(roundKey(ctx, t.id)) ?? 0) + 1); payStrain(state, t, CONFIG.DEFENSE_EFFORT); } // FT5: a dodge, block or parry
   ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
   afterAttack(state, a, t, res, m.mode.tree === 'ranged', modeSkill(m.mode)); // perk marks (A2, A5, A10, B15)
   const hold = applyHold(a, t, res, modeSkill(m.mode)); // A8 Hold
@@ -782,6 +788,7 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
     // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, once paid for (PY8), else the rest row
     const row = restRow(state, a);
     applyHealing(state, a, row);
+    recoverLine(a, RV.rest, getLibrary().recovery?.[RV.rest]?.linePct ?? 0);
     if (row !== HL.rest) a.paid = a.paid?.filter((x) => x !== row);
     state.clocks[key] = now(state);
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
@@ -818,9 +825,9 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
     if (o.type === 'sleep') {
-      // NW12/NW15: the night: alone, the sleep row; with companions, one watch each. "Sleep" again during a night that
-      // was stopped (on watch, or after someone came and went) carries it on.
-      const sleepMin = (getLibrary().durations?.[DU.sleep]?.seconds ?? 0) / 60;
+      // NW12/NW15: the night: alone, until rested (FT9) or the time named; with companions, one watch each. "Sleep" again
+      // during a night that was stopped (on watch, or after someone came and went) carries it on.
+      const sleepMin = named ? minutesUntil(t, named) : sleepMinutes(state, a);
       if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
       logCode(state, 'night_started', { actorId: a.id, end: state.night.end, watches: state.night.watches });
       runNight(ctx);
@@ -951,7 +958,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     if (ran > 0) logCode(state, 'walked_on', { actorId: p.id, seconds: Math.round(ran), arrived: !!st.walk && walkThere(state, p, st.walk) });
   } else if (st.kind === 'busy') {
     const b = p.busy;
-    if (b) b.done = Math.min(b.need, b.done + ran);
+    if (b) { const was = b.done; b.done = Math.min(b.need, b.done + ran); payRow(state, p, actionRow(b.row), b.done - was); }
     if (b && b.done >= b.need - T_EPS) { delete p.busy; doMain(ctx, p, st.order!); } // AT45: its time is done: it takes effect
     else if (b && stop && actionRow(b.row)?.focus === 'deep') breakOff(state, p, st.ev); // AT65: deep breaks on any stop; else it waits for the same order again
   } else if (st.kind === 'rest') {
@@ -959,6 +966,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     if (share > 0) {
       const row = restRow(state, p);
       applyHealing(state, p, row, share < 1 ? { share } : {});
+      recoverLine(p, RV.rest, (getLibrary().recovery?.[RV.rest]?.linePct ?? 0) * share); // FT7: the line by the share of the hour
       if (row !== HL.rest) p.paid = p.paid?.filter((x) => x !== row);
       state.clocks[`rest:${p.id}`] = now(state);
       st.ev.effects.push({ kind: 'rested', actorId: p.id, data: share < 1 ? { share: Math.round(share * 100) / 100 } : {} });
@@ -976,6 +984,7 @@ const asleepOrder = (a: Actor): Order => ({ actorId: a.id, type: 'idle', target:
 function passTime(state: GameState, minutes: number): void {
   advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
   passiveHealing(state, minutes);
+  passiveFatigue(state, minutes); // FT4/FT7/FT28
 }
 
 /** NW12/NW15/NW18: the player's night runs on. The clock steps SLEEP_STEP_MIN at a time (to the next change of watch
@@ -1240,8 +1249,10 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const need = pickSeconds(eff);
   if (state.mode === 'tactical') {
     const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + ctx.turnS);
+    payRow(state, a, actionRow(DU.pick_lock), ctx.turnS); // FT24: picking has no order row of its own, so it pays here
     if (work < need || !tierAtLeast(r.tier, 'success')) return emit(ctx, way(tierAtLeast(r.tier, 'success') ? 'picking' : 'not_yet', extra));
   } else {
+    payRow(state, a, actionRow(DU.pick_lock), need);
     const extraMin = need / 60 - turnMinutes(state, o);
     if (extraMin > 0) { passTime(state, extraMin); logCode(state, 'time_passed', { actorId: a.id, minutes: extraMin, picking: true }); }
     if (!tierAtLeast(r.tier, 'success')) return emit(ctx, way('not_yet', extra));
@@ -1483,6 +1494,13 @@ function step(ctx: Ctx, id: string): void {
   // AT48: the main action finishes after the walk that led to it and the gear ops before it
   const pools = slotsOf(ctx, a);
   if (!o.moveAfter) ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, pools.walkedS));
+  // FT10: Spent, an action above Light comes to nothing (picking pays at the lock's row)
+  if (!ctx.spoke.has(id) && tooSpent(a, o.type === 'pick' ? actionRow(DU.pick_lock)?.effort : cost?.row.effort)) {
+    logCode(state, 'spent_no_action', { actorId: id, type: o.type });
+    emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'spent' }), o));
+    if (o.moveAfter && !turned) move(false);
+    return;
+  }
   // AT2/AT17: an action longer than the turn goes on over turns; one that ends this turn spends only what is left of it
   if (a.busy && (!cost || ctx.spoke.has(id))) setAside(state, a);
   if (cost && !ctx.spoke.has(id)) {
@@ -1655,6 +1673,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
 function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): void {
   const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
+  if (pm.perk === PK.battle_cry && tooSpent(a, actionRow(DU.battle_cry)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' }); // FT10
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);

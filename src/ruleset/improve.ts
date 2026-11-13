@@ -142,6 +142,11 @@ export function markResolve(state: GameState, actor: Actor, lostPct: number): vo
   if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
 }
 
+/** FT27: the player's Stamina is marked once per STAMINA_MARK_EVERY points of strain from Hard or harder efforts (no rolls) */
+export function markStamina(state: GameState, actor: Actor): void {
+  if (actor.id === state.player.id) mark(actor, SK.stamina);
+}
+
 /** the most raw training can reach: SKILL_CAP, plus TAG_CAP_BONUS for a tagged skill (EG16), minus FLAW_CAP_PENALTY for a
  * flawed one. A skill already above its cap keeps its raw and gains nothing. */
 export const skillCap = (s: Pick<SkillEntry, 'state'>): number =>
