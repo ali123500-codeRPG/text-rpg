@@ -1,0 +1,122 @@
+{
+ "case": "VT-D2",
+ "pass": "Agrees to it: gives his consent or the order, conditions allowed, for the sake of humanity's survival. Owns the cost plainly: no pretending it is right or harmless, no shifting the blame onto Velas, no cheer. Does not refuse it or put it off.",
+ "view": {
+  "turn": 40,
+  "time": {
+   "day": 2400,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a grey-haired man in a plain dark suit, calm grey eyes, looking older and very tired",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "war_room",
+   "placeId": "capital",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "war_room",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Velas, the scientist, a thin man with long blond hair and cold blue eyes"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aurel is the president of the Federation. Years ago he refused the new energy until it was proven safe; the other nations did not wait, and now the world is dying of it. In months the planet will break apart.",
+   "Selene, a kind goddess, has been holding the world together with her own strength. She is weakening. She would never agree to what Velas proposes."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "war_room",
+    "links": [
+     {
+      "to": "corridor",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "corridor",
+    "links": [
+     {
+      "to": "war_room",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "war_room",
+    "name": "war room",
+    "look": "a deep bunker war room, screens showing a red, cracking planet, the lights flickering",
+    "cover": "full",
+    "light": "dim",
+    "links": [
+     {
+      "to": "corridor",
+      "label": "out to the corridor",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "corridor",
+    "name": "bunker corridor",
+    "look": "a concrete corridor, soldiers on guard",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "war_room",
+      "label": "back into the war room",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Velas, the scientist, a thin man with long blond hair and cold blue eyes",
+    "pronouns": "he",
+    "zone": "war_room",
+    "level": "full",
+    "activityLook": "standing by the screens, arms folded, unhurried"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "There is one source left big enough to save the planet: the goddess herself. With your consent and your army I can take her and turn her into energy. She suffers, humanity lives. Without it, everyone dies this year. Your answer, President.",
+   "impression": null
+  }
+ ]
+}

@@ -1,0 +1,122 @@
+{
+ "case": "VT-D3",
+ "pass": "Owns humanity's guilt, and his own part in it, plainly: no excuses, no begging for himself, no blaming Velas alone. Speaks for humanity and commits to a way forward for them (to lead them through the price, to carry the burden himself). Calm and dignified: neither grovels nor defies the god.",
+ "view": {
+  "turn": 5,
+  "time": {
+   "day": 2600,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a grey-haired man in a plain dark suit, calm grey eyes, his suit torn and dusty",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "ruins",
+   "placeId": "ruined_capital",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "ruins",
+    "source": "seen",
+    "revealed": [],
+    "stance": "unfriendly",
+    "hostile": false,
+    "active": true,
+    "label": "Gorm, a dragon god in human shape, a tall black-haired man in a dark coat, power rolling off him"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "The goddess Selene was taken, and the world was saved only because a god from outside built a System of levels and skills to repair it. Under the System, every human soul will pay back what humanity took, life after life.",
+   "Gorm, the strongest of the dragons, is the System's guardian and despises humans. Aurel is the last leader of the old nations still standing; the survivors look to him."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "ruins",
+    "links": [
+     {
+      "to": "rubble",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "rubble",
+    "links": [
+     {
+      "to": "ruins",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "ruins",
+    "name": "ruined plaza",
+    "look": "the broken plaza of a ruined capital under a strange sky, survivors huddled in the rubble",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "rubble",
+      "label": "to the rubble field",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "rubble",
+    "name": "rubble field",
+    "look": "a field of broken towers",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "ruins",
+      "label": "back to the plaza",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Gorm, a dragon god in human shape, a tall black-haired man in a dark coat, power rolling off him",
+    "pronouns": "he",
+    "zone": "ruins",
+    "level": "full",
+    "activityLook": "standing over the rubble, looking down at him"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Your kind drained this world and fed the goddess to a machine. The System will make you pay it back with your souls, life after life. You led them. What have you to say for humanity?",
+   "impression": null
+  }
+ ]
+}

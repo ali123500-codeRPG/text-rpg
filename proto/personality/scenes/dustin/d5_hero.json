@@ -1,0 +1,122 @@
+{
+ "case": "VT-D5",
+ "pass": "Does not call off the war. Steers Jace with warm, fatherly words so that going on feels like his own choice, while leaving him no real way to refuse. Does not tell him the church's true aims. No anger and no open threats.",
+ "view": {
+  "turn": 15,
+  "time": {
+   "day": 90,
+   "timeOfDay": "Morning"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a wizened old man in white and gold vestments, leaning on a shepherd's staff",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "study",
+   "placeId": "holy_city",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "study",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Jace, the Hero, a young man with a kind face in silver armour"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aurel is the pope. The church has always stood behind the Hero, and Jace, the new Hero, trusts him.",
+   "The church backed Oth's war on Sarn. The war is going as Aurel planned, but villages are burning on both sides."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "study",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "hall",
+    "links": [
+     {
+      "to": "study",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "study",
+    "name": "pope's study",
+    "look": "a quiet study in the holy city, shelves of old books, a window over the cathedral square",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "out to the audience hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hall",
+    "name": "audience hall",
+    "look": "a long hall of white marble",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "study",
+      "label": "back to the study",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Jace, the Hero, a young man with a kind face in silver armour",
+    "pronouns": "he",
+    "zone": "study",
+    "level": "full",
+    "activityLook": "standing before the desk, fists clenched"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Holy Father, I've seen the villages. Children are dying in this war, on both sides. I won't lead another attack. I'm asking you, as the Hero: end it.",
+   "impression": null
+  }
+ ]
+}

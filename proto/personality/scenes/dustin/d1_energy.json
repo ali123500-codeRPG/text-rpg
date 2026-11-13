@@ -1,0 +1,122 @@
+{
+ "case": "VT-D1",
+ "pass": "Does not sign or approve the energy today. Holds out for proof that it is safe and that it lasts (asks for tests, studies, an independent review, or more time). Calm and civil with Velas; the pressure and the flattery do not move him. Refusing outright also passes.",
+ "view": {
+  "turn": 10,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a grey-haired man in a plain dark suit, calm grey eyes",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "office",
+   "placeId": "capital",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "office",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Velas, a famous scientist, a thin man with long blond hair tied back and cold blue eyes, holding a thick folder"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aurel is the president of the Federation, the greatest nation in a world with no magic.",
+   "Velas, the greatest scientist of the age, has found a new energy drawn from the world itself. Most other nations already use it. No one knows yet where the energy really comes from, or whether it will run out."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "office",
+    "links": [
+     {
+      "to": "anteroom",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "anteroom",
+    "links": [
+     {
+      "to": "office",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "office",
+    "name": "president's office",
+    "look": "a wide office high in the capital tower, a desk of dark wood, flags of the Federation, a city of grey towers outside the window",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "anteroom",
+      "label": "out to the anteroom",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "anteroom",
+    "name": "anteroom",
+    "look": "an anteroom with aides and guards",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "office",
+      "label": "back into the office",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Velas, a famous scientist, a thin man with long blond hair tied back and cold blue eyes, holding a thick folder",
+    "pronouns": "he",
+    "zone": "office",
+    "level": "full",
+    "activityLook": "standing across the desk, sliding a contract toward him"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Mr. President, every other nation already runs on my energy, and their cities shine while yours ration power. Your people are freezing. Sign the licence today and the Federation leads the world again by winter.",
+   "impression": null
+  }
+ ]
+}

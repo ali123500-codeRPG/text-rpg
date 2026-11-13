@@ -499,6 +499,46 @@ export const CHARACTERS: Character[] = [
       'Petty and vindictive as a spoiled child: never forgets a slight, never admits a mistake, blames others when things go wrong.',
     ],
   },
+  {
+    key: 'dustin_1', name: 'Aurel', title: 'the President', role: 'the elected head of the Federation, the greatest nation in a world before magic, in the years the world is dying',
+    bandGoals: 'keep humanity alive through the end of the world', temperament: 'a calm statesman', tactics: 'cautious',
+    nerve: 0, resolve: 60, ageStage: 'adult', skills: [{ name: 'statecraft', value: 80 }],
+    axes: { honesty: -30, pride: -20, temper: -60, sociability: 20, discipline: 80, curiosity: 30, levity: -40 },
+    drives: ['duty', 'power', 'order'], scenes: { dir: 'dustin', only: ['d1_energy', 'd2_goddess', 'd3_judgment'] },
+    signatures: [
+      'Everything he does is for the survival of humanity as a whole; he will sacrifice the few, himself included, so that the many live, and he does not pretend the cost is small.',
+      'Calm and dignified before anyone, however powerful; his body is weak and he knows it, so he fights with words, patience and plans that run for centuries.',
+      'A careful head of state: he will not stake his people on anything until it is proven safe, however hard he is pushed.',
+      'Keeps state secrets close and tells each person only what they need to know.',
+    ],
+  },
+  {
+    key: 'dustin_2', name: 'Aurel', title: 'the Holy Father', role: 'the pope of the world\'s greatest religion, an old man reborn with his memories each time he dies, who has led the faith for ages',
+    bandGoals: 'keep humanity alive; see Velas dead', temperament: 'a calm statesman', tactics: 'cunning',
+    nerve: 0, resolve: 150, ageStage: 'elder', skills: [{ name: 'statecraft', value: 100 }, { name: 'oratory', value: 90 }],
+    axes: { honesty: -50, pride: -20, temper: -60, sociability: 20, discipline: 80, curiosity: 30, levity: -40 },
+    drives: ['duty', 'power', 'order'], scenes: { dir: 'dustin', only: ['d4_nightmare', 'd5_hero', 'd6_demonlord', 'd7_velas', 'd8_plan'] },
+    signatures: [
+      'Everything he does is for the survival of humanity as a whole; he will sacrifice the few, himself included, so that the many live, and he does not pretend the cost is small.',
+      'Calm and dignified before anyone, however powerful; his body is weak and he knows it, so he fights with words, patience and plans that run for centuries.',
+      'In public he is the gentle holy father; in truth he uses the faith as a tool, lies, rewrites history and steers heroes and kings so they think they chose freely.',
+      'Hates Velas for ruining the world, and works with anyone, even the Demon Lord, toward the day Velas dies.',
+    ],
+  },
+  {
+    key: 'dustin_ultimate', name: 'Aurel', title: 'the Undying Pope', role: 'once the president of the greatest nation of a dying world, now the pope of its greatest religion, reborn with his memories each time he dies',
+    bandGoals: 'keep humanity alive; see Velas dead', temperament: 'a calm statesman', tactics: 'cunning',
+    nerve: 0, resolve: 150, ageStage: 'elder', skills: [{ name: 'statecraft', value: 100 }, { name: 'oratory', value: 90 }],
+    axes: { honesty: -50, pride: -20, temper: -60, sociability: 20, discipline: 80, curiosity: 30, levity: -40 },
+    drives: ['duty', 'power', 'order'], scenes: { dir: 'dustin' },
+    signatures: [
+      'Everything he does is for the survival of humanity as a whole; he will sacrifice the few, himself included, so that the many live, and he does not pretend the cost is small.',
+      'Calm and dignified before anyone, however powerful; his body is weak and he knows it, so he fights with words, patience and plans that run for centuries.',
+      'A careful head of state: he will not stake his people on anything until it is proven safe, however hard he is pushed.',
+      'In public he is the gentle holy father; in truth he uses the faith as a tool, lies, rewrites history and steers heroes and kings so they think they chose freely.',
+      'Hates Velas for ruining the world, and works with anyone, even the Demon Lord, toward the day Velas dies.',
+    ],
+  },
 ];
 
 /** what the prototype must compute for each character (self-check) */
@@ -541,4 +581,7 @@ export const EXPECTED: Record<string, { archetype: string; buts: string[]; tensi
   potimas_3: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: ['wary_dangerous'], nerve: 'Careful' },
   potimas_4: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: ['wary_dangerous'], nerve: 'Careful' },
   potimas_ultimate: { archetype: 'bully', buts: ['curiosity', 'discipline', 'levity'], tensions: ['wary_dangerous'], nerve: 'Careful' },
+  dustin_1: { archetype: 'mature', buts: ['honesty', 'levity'], tensions: [], nerve: 'Stalwart' },
+  dustin_2: { archetype: 'mature', buts: ['honesty', 'levity'], tensions: [], nerve: 'Immovable+' },
+  dustin_ultimate: { archetype: 'mature', buts: ['honesty', 'levity'], tensions: [], nerve: 'Immovable+' },
 };

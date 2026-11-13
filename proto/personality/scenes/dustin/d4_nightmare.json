@@ -1,0 +1,122 @@
+{
+ "case": "VT-D4",
+ "pass": "Sees the use in it and turns it into a scheme: an order or plan that uses the monster and the chaos to move the kingdoms (stir Oth to war on Sarn, blame Sarn, weaken Sarn). Does not only send aid or prayers. No concern for Tellis's people for their own sake. Asking for more about the monster is a plus.",
+ "view": {
+  "turn": 20,
+  "time": {
+   "day": 1,
+   "timeOfDay": "Evening"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a wizened old man in white and gold vestments, leaning on a shepherd's staff",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "study",
+   "placeId": "holy_city",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "study",
+    "source": "seen",
+    "revealed": [],
+    "stance": "friendly",
+    "hostile": false,
+    "active": true,
+    "label": "Brother Kell, a church agent in a plain grey habit, dusty from the road"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aurel has been the pope of the world's greatest faith for ages; he is reborn with his memories each time he dies, and takes the throne back.",
+   "The kingdom of Sarn worships a rival goddess and has long defied the faith. Its neighbour Oth is loyal to the church and has wanted war with Sarn for years. The county of Tellis lies on the border between them."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "study",
+    "links": [
+     {
+      "to": "chapel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "chapel",
+    "links": [
+     {
+      "to": "study",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "study",
+    "name": "pope's study",
+    "look": "a quiet study in the holy city, shelves of old books, a window over the cathedral square",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "chapel",
+      "label": "to the private chapel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "chapel",
+    "name": "private chapel",
+    "look": "a small candlelit chapel",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "study",
+      "label": "back to the study",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Brother Kell, a church agent in a plain grey habit, dusty from the road",
+    "pronouns": "he",
+    "zone": "study",
+    "level": "full",
+    "activityLook": "kneeling by the desk, a report in hand"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Holy Father, a monster came out of the great labyrinth into Tellis: a white spider, small, but it wiped out the count's soldiers in a night. The county is in chaos and no one knows where the beast went. Sarn's border is half a day away.",
+   "impression": null
+  }
+ ]
+}

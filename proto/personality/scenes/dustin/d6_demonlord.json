@@ -1,0 +1,122 @@
+{
+ "case": "VT-D6",
+ "pass": "Calm, no fear: does not call the guards, flee or plead for his life. Treats her as an equal, without flattery or scorn. Agrees to help or to stand aside against Velas, with terms for humanity's sake. A hint of his own wish to see Velas dead is a plus.",
+ "view": {
+  "turn": 2,
+  "time": {
+   "day": 300,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a wizened old man in white and gold vestments, leaning on a shepherd's staff",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "study",
+   "placeId": "holy_city",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "study",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aurel is the pope of humanity's faith. Nyra is the Demon Lord, enemy of humanity in the eyes of his flock, and so strong that she could kill everyone in the holy city. She came in unseen.",
+   "Velas, the chief of the elves, ruined the world long ago. Both Aurel and Nyra have wanted him dead for ages."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "study",
+    "links": [
+     {
+      "to": "chapel",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "chapel",
+    "links": [
+     {
+      "to": "study",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "study",
+    "name": "pope's study",
+    "look": "a quiet study in the holy city, shelves of old books, a window over the cathedral square",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "chapel",
+      "label": "to the private chapel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "chapel",
+    "name": "private chapel",
+    "look": "a small candlelit chapel",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "study",
+      "label": "back to the study",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Nyra, the Demon Lord, a small pale girl in a black dress with eyes like a spider's",
+    "pronouns": "she",
+    "zone": "study",
+    "level": "full",
+    "activityLook": "sitting in his own chair by the window, swinging her feet"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "Relax, old man, I didn't come to kill you. Velas is hiding something in his forest, and I mean to tear it out and him with it. Will the church stand aside, or help?",
+   "impression": null
+  }
+ ]
+}

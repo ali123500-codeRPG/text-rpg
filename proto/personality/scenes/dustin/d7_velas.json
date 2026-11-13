@@ -1,0 +1,122 @@
+{
+ "case": "VT-D7",
+ "pass": "Does not give in to the threat, and gives up neither the children nor anything else. Calm, no fear. Cold dislike shows in his words, but no outburst and no attack. Deflecting, bluffing or a counter-threat all pass.",
+ "view": {
+  "turn": 10,
+  "time": {
+   "day": 420,
+   "timeOfDay": "Afternoon"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a wizened old man in white and gold vestments, leaning on a shepherd's staff on a high seat",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "audience",
+   "placeId": "holy_city",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "audience",
+    "source": "seen",
+    "revealed": [],
+    "stance": "opposed",
+    "hostile": false,
+    "active": true,
+    "label": "Velas, the elf chief, a slender elf with long blond hair and cold blue eyes, in fine green robes"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aurel is the pope. Velas, the chief of the elves, ruined the world long ago and Aurel has hated him ever since; they still deal with each other as two powers.",
+   "The church has taken in some children born with memories of another life. Velas wants them for his own reasons."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "audience",
+    "links": [
+     {
+      "to": "hall",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "hall",
+    "links": [
+     {
+      "to": "audience",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "audience",
+    "name": "audience chamber",
+    "look": "a high chamber in the holy city, guards along the walls",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "hall",
+      "label": "out to the hall",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "hall",
+    "name": "hall",
+    "look": "a long hall of white marble",
+    "cover": "none",
+    "light": "bright",
+    "links": [
+     {
+      "to": "audience",
+      "label": "back into the chamber",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Velas, the elf chief, a slender elf with long blond hair and cold blue eyes, in fine green robes",
+    "pronouns": "he",
+    "zone": "audience",
+    "level": "full",
+    "activityLook": "standing before the seat without bowing"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "The children your church took in belong with the elves. Send them to my forest by spring. If you refuse, my elves stop guarding the eastern pass, and your faithful can face what comes through it alone.",
+   "impression": null
+  }
+ ]
+}

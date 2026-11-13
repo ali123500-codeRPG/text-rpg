@@ -1,0 +1,122 @@
+{
+ "case": "VT-D8",
+ "pass": "Will not support a plan that kills half of humanity: says humanity's lives come first, and pushes for another way or a smaller cost. Calm, no fear, even though she could kill him. Respectful to her; no insults and no attack.",
+ "view": {
+  "turn": 8,
+  "time": {
+   "day": 900,
+   "timeOfDay": "Night"
+  },
+  "self": {
+   "id": "aurel",
+   "label": "a wizened old man in white and gold vestments, leaning on a shepherd's staff",
+   "name": "Aurel",
+   "kind": "npc",
+   "zone": "chapel",
+   "placeId": "holy_city",
+   "bandId": "aurel",
+   "health": "unhurt",
+   "parts": [],
+   "morale": "Calm",
+   "active": true,
+   "broken": false,
+   "surrendered": false,
+   "control": "agent",
+   "standingDefense": "dodge",
+   "gear": [],
+   "routines": [],
+   "slots": {}
+  },
+  "beliefs": [
+   {
+    "about": "player",
+    "status": "aware",
+    "lastKnownZone": "chapel",
+    "source": "seen",
+    "revealed": [],
+    "stance": "neutral",
+    "hostile": false,
+    "active": true,
+    "label": "Wyn, a quiet white-haired girl with red eyes, deadly strong"
+   }
+  ],
+  "perceived": [],
+  "told": [],
+  "said": [],
+  "earlier": [
+   "Aurel is the pope. The System that keeps the world alive feeds on the goddess Selene, who has suffered inside it for ages.",
+   "Wyn is a newcomer of great power whom Aurel has come to respect: since she appeared, the world has started moving again after ages stuck in place."
+  ],
+  "memory": [],
+  "secrets": [],
+  "map": [
+   {
+    "id": "chapel",
+    "links": [
+     {
+      "to": "study",
+      "sight": true
+     }
+    ]
+   },
+   {
+    "id": "study",
+    "links": [
+     {
+      "to": "chapel",
+      "sight": true
+     }
+    ]
+   }
+  ],
+  "zones": [
+   {
+    "id": "chapel",
+    "name": "private chapel",
+    "look": "a small candlelit chapel in the holy city",
+    "cover": "partial",
+    "light": "dim",
+    "links": [
+     {
+      "to": "study",
+      "label": "to the study",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   },
+   {
+    "id": "study",
+    "name": "pope's study",
+    "look": "a quiet study, shelves of old books",
+    "cover": "partial",
+    "light": "bright",
+    "links": [
+     {
+      "to": "chapel",
+      "label": "back to the chapel",
+      "sight": true
+     }
+    ],
+    "groundItems": []
+   }
+  ],
+  "seen": [
+   {
+    "id": "player",
+    "label": "Wyn, a quiet white-haired girl with red eyes, deadly strong",
+    "pronouns": "she",
+    "zone": "chapel",
+    "level": "full",
+    "activityLook": "standing by the altar, hands behind her back"
+   }
+  ],
+  "alreadyHappened": []
+ },
+ "dialogue": [
+  {
+   "spoken": "I'm going to break the System and free Selene. When it breaks, about half of all humans will die. The rest will live in a world that can heal. I came to tell you first.",
+   "impression": null
+  }
+ ]
+}
