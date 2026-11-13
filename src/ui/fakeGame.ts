@@ -18,7 +18,8 @@ import { ACH } from '../library/achievementIds';
 import { achievementInfo, grantAchievement } from '../engine/xp';
 import { actionNotes, doingSnap, placeName } from '../agents/game';
 import { buildPlayerView } from '../views';
-import { DU } from '../library/tableIds';
+import { DU, FU } from '../library/tableIds';
+import { makeFurniture } from '../engine/furniture';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -131,9 +132,9 @@ const FAKE_PLACES = (): GameState['places'] => placed([
     FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
   ]),
   FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
-    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall } }),
+    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall }, furniture: makeFurniture('tav_common', [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }]) }),
     FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', false], ['tav_cellar', 'the cellar hatch, down', false]], { area: 25 }),
-    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some', area: 150, edges: { n: EK.low, e: EK.low, s: EK.low, w: EK.wall } }),
+    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some', area: 150, edges: { n: EK.low, e: EK.low, s: EK.low, w: EK.wall }, furniture: makeFurniture('tav_yard', [{ kind: FU.woodpile, name: 'woodpile', at: 'nw' }, { kind: FU.water_barrel, name: 'rain barrel', at: 'sw' }, { kind: FU.cart, name: 'hand cart', at: 'e' }]) }),
     FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark', height: 3, area: 9, aspect: 2 }),
     FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark', height: -3, area: 60 }),
   ]),
@@ -285,6 +286,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;
+      // "steady" leaves you Mentally steady, to show the chip beside Morale (SY1); any "fear" after it uses it up
+      if (/^steady\b/i.test(text)) state.player.core.condition.mentallySteady = true;
+      if (/^fear\b/i.test(text)) delete state.player.core.condition.mentallySteady;
       // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
       const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
