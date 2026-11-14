@@ -355,6 +355,57 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .gp-rows dd { margin: 0; }
 .pe-pop .cs-gear { border-top: 0; padding-top: 0; }
 .pe-pop .cs-gear .hs-label { display: none; }
+/* the class line on the card: the class tree's button */
+.cs-class { display: flex; align-items: baseline; gap: var(--space-2); width: 100%; margin-top: var(--space-1); padding: var(--space-2) var(--space-3); text-align: left; border: 1px solid var(--border); border-radius: var(--r-md);
+  background: none; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
+.cs-class:hover, .cs-class:focus-visible { border-color: var(--accent); }
+.cs-class .hs-label { flex: none; }
+.cs-class b { flex: 1; min-width: 0; font-weight: 700; }
+.cs-class-go { color: var(--accent); font-size: 16px; line-height: 1; }
+.cs-bank { color: var(--warn); font-size: 12px; }
+/* the class tree, full screen: one band per class tier, Common at the bottom; arrows drawn over the bands */
+.ct-full .fpop-body { height: 100%; }
+.ct { box-sizing: border-box; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--space-4); padding: 20px var(--space-8) var(--space-6); }
+.ct-h { padding-right: 56px; }
+.ct-h h2 { margin: 0; font-size: 18px; }
+.ct-h p { margin: 4px 0 0; color: var(--muted); }
+.ct-bands { position: relative; display: grid; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.ct-band { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; border-left: 1px dashed var(--rule); }
+.ct-band:first-of-type { border-left: 0; }
+.ct-band[data-tier="tier_0"] { background: color-mix(in oklch, var(--accent) 3%, var(--bg)); }
+.ct-band[data-tier="tier_1"] { background: color-mix(in oklch, var(--accent) 7%, var(--bg)); }
+.ct-band[data-tier="tier_2"] { background: color-mix(in oklch, var(--accent) 11%, var(--bg)); }
+.ct-band[data-tier="tier_3"] { background: color-mix(in oklch, var(--perk-40) 10%, var(--bg)); }
+.ct-band[data-tier="tier_4"] { background: color-mix(in oklch, var(--perk-40) 15%, var(--bg)); }
+.ct-band[data-tier="tier_5"] { background: color-mix(in oklch, var(--scenario-mark) 12%, var(--bg)); }
+.ct-tier { padding: var(--space-4) var(--space-4) 0; white-space: nowrap; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ct-band[data-tier="tier_5"] .ct-tier { color: var(--scenario-mark); }
+.ct-col { display: grid; justify-items: center; align-items: center; gap: var(--space-6) 0; padding: var(--space-4); min-height: 0; }
+.ct-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.ct-link { fill: none; stroke: var(--accent); stroke-width: 2; stroke-opacity: .75; }
+.ct-head { fill: var(--accent); fill-opacity: .9; }
+.ct-link.gold { stroke: var(--scenario-mark); stroke-width: 3; stroke-opacity: 1; }
+.ct-link.gold.planned { stroke-dasharray: 7 5; }
+.ct-head.gold { fill: var(--scenario-mark); fill-opacity: 1; }
+.ct-node { position: relative; z-index: 2; display: grid; gap: 2px; justify-items: start; align-self: center; align-content: start; min-width: 170px; max-width: 100%; padding: var(--space-2) var(--space-4); text-align: left;
+  border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
+.ct-node:hover, .ct-node:focus-visible { border-color: var(--accent); }
+.ct-node b { font-size: 15px; }
+.ct-st { font-size: 12px; color: var(--muted); }
+.ct-src { font-size: 12px; color: var(--faint); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-node.next { border-style: dashed; background: color-mix(in oklch, var(--surface) 45%, transparent); }
+.ct-node.next b { color: var(--muted); }
+.ct-node.target { border-color: var(--scenario-mark); }
+.ct-chip { font-size: 11px; font-weight: 700; padding: 0 8px; border-radius: var(--r-pill); border: 1px solid currentColor; }
+.ct-chip.next, .ct-chip.start { color: var(--scenario-mark); }
+.ct-chip.start { border-style: dashed; }
+.ct-chip.dead { color: var(--danger); }
+.ct-chip.all { color: var(--perk-40); }
+.ct-pop { width: min(460px, calc(100vw - 32px)); }
+.ct-pop .dpop-body { justify-items: stretch; }
+.ct-story { font-style: italic; color: var(--muted); }
+.ct-now { color: var(--scenario-mark); font-weight: 700; }
+@media (max-width: 760px) { .ct { padding: 20px var(--space-4); } .ct-node { min-width: 0; } .ct-tier { padding-inline: var(--space-2); } }
 .pe-signs { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
 .pe-sign { width: 100%; resize: vertical; font: 14px/1.5 var(--font-ui, inherit); padding: 8px 10px; }
 /* CP2: the full-screen pop-up, for a board too big for a panel; partial pop-ups and the perk card open over it */

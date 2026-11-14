@@ -22,6 +22,7 @@ import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize,
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
+import { classTreeView } from './classTree';
 import { archetypeOf, nerveLine, nerveTier, personalityOf } from '../ruleset/personality';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
@@ -114,19 +115,21 @@ export function characterPage(api: GameApi) {
     openPop({ title: 'Essences', tone: 'essence', cls: 'ess-pop ess-all', opener, body: essencesBody(api, s, () => { closePop(); again(); }) });
   };
   const openPerks = (opener?: HTMLElement | null) => { openFull({ label: 'Perks', cls: 'pk-full', opener, body: [perks] }); refreshPerks(); };
+  // the class tree, full screen from the card's class line; choosing a class there redraws the page under it
+  const openClasses = (opener?: HTMLElement | null) => { const s = api.state(); if (s) openFull({ label: 'Class tree', cls: 'ct-full', opener, body: [classTreeView(s, update)] }); };
   function update() {
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const p = s.player;
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats. Click a skill, the body or a tile for more.'))),
-      h('div', { class: 'cs-split' }, charCard(s, p), h('div', { class: 'cs-right' }, treeBars(p),
+      h('div', { class: 'cs-split' }, charCard(s, p, openClasses), h('div', { class: 'cs-right' }, treeBars(p),
         h('p', { class: 'hs-note cs-foot' }, `✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`))),
       charTiles(s, { essences: openEss, perks: openPerks, sign: (lines) => api.setSignatures(lines) }));
     if (fullOpen()?.contains(perks)) refreshPerks();
     const go = charFocus.open;
     charFocus.open = null;
-    if (go) setTimeout(() => (go === 'perks' ? openPerks(tileOf('perks')) : openEss(tileOf('essences'))));
+    if (go) setTimeout(() => (go === 'perks' ? openPerks(tileOf('perks')) : go === 'classes' ? openClasses(el.querySelector<HTMLElement>('.cs-class')) : openEss(tileOf('essences'))));
   }
   return { el, update };
 }

@@ -26,7 +26,7 @@ async function main(): Promise<void> {
     return;
   }
   const unavailable: Notice[] = mode ? [] : [{ kind: 'stop_play', text: 'Claude or the save database is not available in this view. Sign in to Claude and allow the page to use Claude and its database, then reload.' }];
-  mountApp(createFakeGame({
+  const fake = createFakeGame({
     autoStart: !!mode,
     fell: mode === 'fell',
     banner: mode === 'notices',
@@ -36,7 +36,10 @@ async function main(): Promise<void> {
       { kind: 'scenario_fallback', text: 'Scenario planning failed: placeholder area.' },
       { kind: 'rate_limited', text: 'Too many requests. The story waits a moment before the next turn.' },
     ] : unavailable,
-  }));
+  });
+  // screenshot scripts set up a case (classes, offers…) through it; only in fake mode
+  if (mode) (globalThis as { __FAKE_GAME__?: GameApi }).__FAKE_GAME__ = fake;
+  mountApp(fake);
 }
 
 void main();
