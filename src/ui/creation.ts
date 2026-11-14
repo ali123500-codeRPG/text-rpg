@@ -5,10 +5,11 @@ import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, createPlayer, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { classFloors, createPlayer, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
-import { blankPersonality, personalityPicker } from './personality';
+import { personalityPicker } from './personality';
+import { createRng } from '../rng';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
@@ -54,8 +55,11 @@ function startFacts(startId: string): { tier: string; classes: string[]; perks: 
 
 // name and gender carry over when the player switches Start
 const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
-const identity: { name: string; pronouns: Pronouns; age?: number } = { name: 'Aldric', pronouns: 'he' }; // age: left out = the start's default (AG15)
-const persona = { p: blankPersonality() }; // PL14: carries over too
+// a new character opens on a random name, gender, age and personality, all editable; Random picks again
+const roll = () => randomIdentity(createRng(Math.floor(Math.random() * 2 ** 31) || 1));
+const first = roll();
+const identity: { name: string; pronouns: Pronouns; age?: number } = { name: first.name, pronouns: first.pronouns, age: first.age }; // age: left out = the start's default (AG15)
+const persona = { p: first.personality }; // PL14: carries over too
 const world: { id?: string; list: FreeWorld[] } = { list: [] }; // HF31: the free world picked (left out = a new world); carries over too
 
 function startScreen(api: GameApi, onStarted: () => void, startId: string, switchTo: (id: string) => void): HTMLElement {
@@ -228,10 +232,15 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     const gender = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label]) =>
       h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,
         onclick: (e: Event) => { identity.pronouns = p; (e.currentTarget as HTMLElement).parentElement!.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, label)));
-    return h('div', { class: 'who-row' },
+    const row: HTMLElement = h('div', { class: 'who-row' },
       h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: CONFIG.NAME_CAP, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
         oninput: (e: Event) => { identity.name = (e.target as HTMLInputElement).value; } })),
-      h('span', { class: 'hs-label' }, 'Gender'), gender, ageField());
+      h('span', { class: 'hs-label' }, 'Gender'), gender, ageField(),
+      h('button', { class: 'hs-btn-text', type: 'button', title: 'Pick a new random name, gender, age and personality', onclick: () => {
+        const r = roll(); Object.assign(identity, { name: r.name, pronouns: r.pronouns, age: r.age }); persona.p = r.personality;
+        row.replaceWith(whoRow()); picker.refresh(); // the skill points stay as they are
+      } }, 'Random'));
+    return row;
   }
   /** AG15: whole years from the race's Youth start to its Venerable start, with the life stage it gives */
   function ageField(): HTMLElement | null {
