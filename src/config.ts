@@ -659,7 +659,9 @@ const DEFAULTS = {
   ENCOUNTER_M: 20,
   /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
    * personal distance (Hall's proxemics, 0.45–1.2 m) */
-  PLACE_GAP_M: 1,
+  PLACE_SPACING_M: 1, // BF71: arm's length: the grid code places people on, how far a walk up to someone stops, and a step in from a door
+  PLACE_GAP_M: 0.2, // BF71: the room a walk's end keeps from everyone but the one it closes in on
+  RING_STEPS: 24, // BF71: the spots round someone a walk closing in on them tries when the straight-line spot is taken
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
    * wall or a way out stops this far inside it */
   ENTER_M: 1,

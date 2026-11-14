@@ -68,7 +68,7 @@ describe('BF35 following at a distance', () => {
     o.pos = { x: -80, y: 0 };
     w.pos = { x: -70, y: 0 };
     play(s, { intent: intent({ move: { toZone: 'field_mid', spot: { near: 'patron_1' } } }) });
-    expect(gap(s, s.player, w)).toBeCloseTo(CONFIG.PLACE_GAP_M, 1);
+    expect(gap(s, s.player, w)).toBeCloseTo(CONFIG.PLACE_SPACING_M, 1);
     expect(gap(s, s.player, o)).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
   });
   it('an NPC following the player with a bow stays inside its reach; with none it closes to striking reach', () => {

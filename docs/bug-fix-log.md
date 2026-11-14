@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-247
+
+**What was wrong:** From turn 104 to 112 Hob's punches were all lost as out of reach about 1 m short: a walk never ended within 1 m of anyone, the target included, and only went in a straight line, so with Osric beside his line in he stopped 1.7 m away; the drover ended on Hob's very spot because anyone near a walk's start was let off.
+
+**What was done:** Ali approved the fix (BF71), with the gap cut to 0.2 m. Closing in keeps no gap from its target and stops at the action's reach; a taken straight-line spot makes the walker step round to the nearest free spot at that reach within its walk (src/engine/position.ts walkLeg, ringSpots). Hemmed in on every side, the blow or grab is lost with no_room (roomAround). A walk's end keeps PLACE_GAP_M (0.2 m) from everyone, no one let off; placing people and walking up to someone keep PLACE_SPACING_M (1 m). The code-run opening move closes to the blow's reach.
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
 ## BG-246
 
 **What was wrong:** A roll line read "d100 49 → Critical Failure−−−−−− [weapon +9, light −5, Shaken −5]" with nothing to say how a 49 got there: the eight outcome steps lost for an old sword far beyond Corwin's skill were never shown, and his own view never told him the sword was beyond him, so he kept swinging it.
