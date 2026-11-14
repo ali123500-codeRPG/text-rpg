@@ -226,6 +226,15 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   return used;
 }
 
+/** BG-226: where someone stands on coming into zone `zoneId` from the linked zone `fromId`: the doorway between them, a step
+ * (ENTER_M) inside, as a walk through it ends. null without rectangles. */
+export function entryPoint(state: GameState, zoneId: string, fromId: string): Pos | null {
+  const z = zoneById(state, zoneId), from = zoneById(state, fromId);
+  if (!z?.rect || !from?.rect) return null;
+  const at = crossing(from, z).at, c = centre(z)!, d = flat(at, c), m = Math.min(CONFIG.ENTER_M, d);
+  return d > EPS ? { x: at.x + (c.x - at.x) * m / d, y: at.y + (c.y - at.y) * m / d } : at;
+}
+
 /** BG-49: at story start outdoors, the player stands at the way from its zone into the building of the scenario's place (`placeId`; else any other
  * place), PLACE_GAP_M back from it toward the zone's centre, as the openings tell it (arriving at the door) */
 export function startAtDoor(state: GameState, placeId?: string): void {
