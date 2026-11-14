@@ -211,6 +211,8 @@ export type Mind = {
   xpPaid?: true; // its defeat has paid XP (B4)
   essenceRolled?: true; // growth proposal 2.3: its defeat has rolled for an essence (one offer per foe, ever)
   knowledge: Record<ActorId, Belief>;
+  /** GD3: a guard's suspicions: whom it suspects, over which locked container, since when (src/engine/suspicion.ts) */
+  suspects?: Record<ActorId, { box: string; turn: number; asked?: number }>; // asked: the turn a code-run guard last asked to see inside
   /** BG-95: names this NPC heard said aloud while it saw who they belong to (learnNames) */
   namesKnown?: ActorId[];
   heardOf?: ActorId[]; // NM2, as Journal.heardOf

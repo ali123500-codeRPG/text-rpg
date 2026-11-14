@@ -69,7 +69,10 @@ const SPAR_RULE = (n: number) => `\n${n}. A spar is a fight every fighter agrees
    If self.standDownOffer (or this turn's impression says it is an offer to stop fighting), someone on the other side has offered you a way out of the fight, and it says how the offer struck you: "convinces you" is a strong reason to stop, "tempts you" a reason to weigh, "does not move you" none. If it has demand "yield" (or the impression says it is a demand that you surrender), they ask you to give up, not only to stop: set "yields": true to surrender to them, or leave it out to fight on; "standDown" does not answer it. Otherwise set "standDown": true to stop fighting them (you and your bandmates with you who heard it, for the rest of the scenario; neither side may attack the other; any coin offered is paid to you) or false to fight on, as your character would. No answer is no. "you cannot refuse it" means you must set true.
    To offer a foe the same (lay down arms and part), persuade or deceive them in words; they decide.
    If self.playerAtMercy, the player lies down before you, beaten in a fight to the death: set "spare": true to let them
-   live (they wake later somewhere safe, badly hurt) or false to finish them. No answer finishes them.`;
+   live (they wake later somewhere safe, badly hurt) or false to finish them. No answer finishes them.
+   If self.suspects lists someone, your search found a locked container on them and you suspect them until they show you
+   inside: you decide what to do about it (ask them to open it, watch them, call others). Opening it where you see inside
+   clears them or catches them with what you are after (stolen or forbidden goods); so can their words, if they win you over.`;
 /** QT2–QT6, QT10, QT12, QT22–QT25: how a giver offers, records and ends a job (Planner, Responder, Voice) */
 const JOB_RULE = (n: number) => `\n${n}. A job is a deal in which the player does something for you. Offer one in talk when your character wants
    something done. Only once the player accepts aloud, give the agreement with a job: line is one short line of what you
@@ -145,6 +148,7 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
  "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tier,"againstActorId"}}]},
  "rewards":[{"item":itemId|{"base","quality":${QUALITY_LEVELS.keys.map((k) => JSON.stringify(k)).join('|')},"boosts","name","look","fragility"?:${FRAGILITY.keys.map((k) => JSON.stringify(k)).join('|')}},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone,"hiddenAt"?:${words(TIERS)}}|{"in":containerKey},"owner"?:key}],
  "containers"?:[{"key","item":container itemId from catalogs.items,"place":{"carriedBy":key}|{"groundIn":zone},"owner"?:castKey|actorId,"locked"?:{"grade"?:grade,"keys"?:[castKey|actorId]}}],
+ "forbidden"?:[itemId],
  "hiddenTerms":[string],"weaverNote":string,
  "spars"?:[{"sides":[[cast key|actor id]],"cruel"?:true}],
  "scenario"?:{"question":string,"scale":${words(SCENARIO_SCALES)},"endings":[{"when":endCheck,"as":"resolved"|"lost"|"left"|"escaped"|"interrupted","text":string}]}}
@@ -189,6 +193,7 @@ ${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q ?? 'no minted ite
 A reward that breaks these rules is not refused: code drops it or places it as its plain base item.\nA reward on the ground may be hidden (hiddenAt): a search finds it only with a result better than that tier, so Failure is easy and Critical Success very hard to find. Hide rewards and clues where hiding fits the place.
 A container (catalogs.items with "container") holds things: a chest or crate stands in a zone ("fixed": it never moves), a sack is carried or set down, a pack ("worn") is worn on someone's back and holds what they carry. Place what is inside with rewards whose place is {"in": the container's key}; the container itself costs no Boon. Give "owner" when it belongs to someone (taking from it under their eyes is theft); "locked" works as on a barrier, with "keys" for who carries its key.
 A reward that belongs to someone who does not have it (stolen, lost, pawned) gives "owner": that person knows it is missing.
+Guards (class Guard) look for stolen goods and for "forbidden": catalog item ids not allowed in this scenario's place (weapons in a temple, smuggled wares at a gate); leave it out when nothing is. A guard whose search finds a locked container on someone suspects them until it is opened in the guard's sight or they talk the guard out of it.
 A minted item with no close library match uses the nearest generic base: ${IT.improvised_light}, ${IT.improvised_medium} or
 ${IT.improvised_heavy} (an improvised light, medium or heavy weapon) for an odd weapon, ${IT.curio} (curio) for a thing with no game effect.`;
 

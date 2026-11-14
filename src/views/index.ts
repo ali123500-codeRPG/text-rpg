@@ -570,6 +570,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
+      ...(a.mind?.suspects && Object.keys(a.mind.suspects).length ? { suspects: Object.entries(a.mind.suspects).map(([id, s]) => ({ id, name: callName(state, a.id, id), item: `a locked ${boxName(state, s.box)}` })) } : {}), // GD3
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
     },
     beliefs, perceived, told, said,
@@ -683,6 +684,8 @@ function eventTarget(state: GameState, me: string, target: string, seenIds: Set<
   return itemName(state, target);
 }
 
+/** GD3: a container's name by instance id (anywhere), else "container" */
+const boxName = (state: GameState, id: string): string => itemName(state, id) ?? 'container';
 /** the library item of an item instance anyone carries or that lies on the ground, or one inside a container there (BK2) */
 function instanceItem(state: GameState, instanceId: string): string | undefined {
   const find = (list: ItemInstance[]): ItemInstance | undefined => {

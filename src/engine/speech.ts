@@ -1,4 +1,5 @@
 // Dialogue turns: spokespeople, the player's speech check, impressions (Dialogue input table), SLIPS.
+import { talkedPast } from './suspicion';
 import { FN } from '../library/functionIds';
 import type { Actor, ContestResult, GameEvent, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
@@ -224,6 +225,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest), ...(type === 'deceive' && contest.winner === 'b' ? { tell: true as const } : {}) };
     // N4a/N4c: a speech contest won counts for the influence skill used, and against a better speaker
     if (contest.winner === 'a' && INFLUENCE().includes(mine.skill)) tally(state, 'speech_won', { by: 'skill', of: mine.skill });
+    if (contest.winner === 'a' && (type === 'persuade' || type === 'deceive')) talkedPast(state, state.actors.find((x) => x.id === sp), p); // GD4 b
     contestFeat(state, contest);
     markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
     if (!fight) countTry(p, sp, type);

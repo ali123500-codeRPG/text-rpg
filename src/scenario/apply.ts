@@ -1,4 +1,5 @@
 // Applying a stage plan (Scenario setup steps 4–8), the fallback stage, opening events.
+import { endSuspicions } from '../engine/suspicion';
 import { expireOffers } from '../engine/essence';
 import { frameOf } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
@@ -160,6 +161,8 @@ export function beginScenario(state: GameState, tier: Tier, beyond?: number): vo
   expireOffers(state, true); // growth proposal 2.5: an essence offer lasts until a new scenario starts
   state.scenarioCaps = { promotions: 0, minted: 0 };
   endYields(state);
+  delete state.stage.forbidden; // GD1 b: each scenario sets its own
+  endSuspicions(state); // GD5 a
 }
 
 /** Q1 (option A): when the scenario ends, a yielded actor holds a grudge (opposed) toward those it
@@ -403,6 +406,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       if (kh) kh.core.inventory.push({ id: `key_${inst.id}_${kh.id}`, itemId: IT.key, opens: [inst.id] });
     }
   }
+
+  // GD1 b: what guards are after here this scenario (catalog items only)
+  const forbidden = (plan.forbidden ?? []).filter((id) => { try { return !!itemDef(state, id); } catch { return false; } });
+  if (forbidden.length) state.stage.forbidden = forbidden;
 
   // ---- rewards ----
   const { rewards, notes } = tidyRewards(state, plan);

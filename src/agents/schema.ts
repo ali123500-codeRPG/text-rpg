@@ -245,7 +245,8 @@ const weaver = obj<StagePlan>({
   weaverNote: str,
   spars: arr(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])),
   scenario: any as V<StagePlan['scenario']>, // SC1/SC2/SC7: checked by the validator (src/scenario/validate.ts)
-}, ['timeOfDay', 'spars', 'scenario', 'containers']);
+  forbidden: arr(str), // GD1 b
+}, ['timeOfDay', 'spars', 'scenario', 'containers', 'forbidden']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);
