@@ -19,7 +19,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF28). The walk names the person as the player knows them ("the spot where you last saw the lean man"), and the Narrator is told that anyone like him there is him. A follow of someone out of sight stays a follow: once they are seen or heard on the way it keeps after them on the next turns; not found at the spot, they are lost and the following line says so. A case test replays the turn.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
 
 ## BG-213
 
@@ -27,7 +27,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF41). A held-back action now comes back on arrival as the player's own line, built from the action ("give Corwin the lucky charm"), when there are no spoken words. A unit test covers the give.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
 
 ## BG-202
 
@@ -35,7 +35,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF38). A whisper keeps the player stealthy, whatever action carries it; speaking louder still ends it. A case test checks both.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
 
 ## BG-194
 
@@ -43,7 +43,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF39). Only ids that look like ids (with digits, underscores or dots) are scanned as ids. Strangers' first names (capitalised, not common words like Will or Rose at a sentence start) and unlearned secret ids are scanned as words. A case test checks both.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
 
 ## BG-207
 
@@ -51,7 +51,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF30). Someone down, asleep or held in a grip fails the defense roll outright (Critical Failure, "can't defend"), so the rest of the attack works as normal. A case test checks all three.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
 
 ## BG-193
 
@@ -59,7 +59,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF32). The player's view lists the body's own attacks (punch, grapple, kick...), and the Parser uses one for a blow with the body; a strangle is a grapple. With every hand full, the game asks the player to put the held item away first instead of going ahead. Case and unit tests cover the sword and the bow.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
 
 ## BG-206
 
@@ -67,7 +67,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF29). A hands-on search looks inside the unlocked bags someone carries, and what it finds there can be picked up from them. A locked bag is found and named as locked. A case test checks the charm in the sack.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
 
 ## BG-200
 
