@@ -1516,3 +1516,52 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .loot-foot { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
 .loot-order { font-style: italic; }
 .loot-btns { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-3); }
+
+/* ---- the play screen's minimap (AD8–AD16, src/ui/minimap.ts), the mock-up's look; its doors, stairs, furniture and people
+   are the full Map's own marks. Only colour changes, on hover (M-70) */
+.mm { border: 1px solid var(--border); border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 70%, transparent); overflow: hidden; }
+.mm-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); font-size: 13px; border-bottom: 1px solid var(--border); }
+.mm-head b { font-weight: 800; }
+.mm-floor { color: var(--muted); }
+.mm-tools { margin-left: auto; display: flex; gap: var(--space-1); }
+.mm-tools button { width: 30px; height: 30px; padding: 0; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; font-weight: 700; cursor: pointer;
+  transition: border-color var(--m-feedback) var(--m-ease); }
+.mm-tools button:hover { border-color: var(--accent); }
+.mm-svg { display: block; width: 100%; height: 360px; cursor: crosshair; touch-action: none; }
+.mm-svg.no-way { cursor: not-allowed; }
+.mm-svg:focus { outline: none; }
+.mm-svg:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.mm-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); min-height: 32px; padding: 6px var(--space-3); font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+.mm-foot b { color: var(--text); }
+.mm-foot b.now { color: var(--accent); }
+.mm-foot b.far { color: var(--warn); }
+.mm-say { flex: 1 1 220px; }
+.mm-carry { margin-left: auto; font-size: 11px; color: var(--faint); white-space: nowrap; }
+.mm-carry:empty { display: none; }
+.mm-go { height: 26px; padding: 0 10px; border: 1px solid var(--accent); border-radius: var(--r-md); background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer;
+  transition: background-color var(--m-feedback) var(--m-ease); }
+.mm-go:hover { background: var(--accent-soft); }
+.mm-zone .mm-ground { fill: color-mix(in srgb, var(--surface) 90%, black); }
+.mm-zone.outdoor .mm-ground { fill: color-mix(in srgb, var(--c12) 20%, var(--bg)); }
+.mm-zone.current .mm-ground { fill: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.mm-zone.seen .mm-ground { fill-opacity: .55; }
+.mm-zone .map-edge { stroke: color-mix(in srgb, var(--text) 75%, transparent); }
+.mm-zone .map-edge.wall { stroke-width: 2; }
+.mm-zone.seen .map-edge { stroke-dasharray: 2 4; } /* MAP-34: seen, not been in, reads without colour */
+.mm-zone.current .map-edge { stroke: var(--accent); }
+.mm-here { fill: none; stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
+.mm-name { font-family: var(--font-round); font-weight: 700; fill: color-mix(in srgb, var(--text) 35%, transparent); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; pointer-events: none; }
+.mm-ring { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-dasharray: 4 4; pointer-events: none; }
+.mm-path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1 6; pointer-events: none; }
+.mm-path.far { stroke: var(--warn); }
+.mm-path.set { stroke-dasharray: none; opacity: .7; }
+.mm-goal { fill: none; stroke: var(--accent); stroke-width: 2; pointer-events: none; }
+.mm-goal.far { stroke: var(--warn); }
+.mm-goal.set { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
+.mm-you { pointer-events: none; }
+.mm-you circle, .mm-you path { fill: var(--scenario-mark); }
+.mm-you circle { stroke: var(--bg); stroke-width: 2; }
+.mm-you text { font: 800 7px var(--font-round); fill: var(--on-pill); }
+.mm-svg .map-who { cursor: pointer; }
+.mm-svg .map-who circle { transition: stroke var(--m-feedback) var(--m-ease); }
+.mm-svg .map-who:hover circle, .mm-svg .map-who:focus-visible circle { stroke: var(--scenario-mark); }
