@@ -335,7 +335,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
     await submit(true);
   }, () => update());
-  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell, edge, nerveEdge);
+  const el = h('main', { class: 'playmain' }, title, who, wrap, fell, edge, nerveEdge, auto.el); // the agent's pop-up floats over the page
   /** Who's here sits in the header line, between the place and the switches, while everyone fits there; a crowd drops it
    *  to its own row under the header. It moves only when that changes, so its beats are never restarted. */
   function placeWho() {
@@ -350,7 +350,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const room = tl.left - t.right - 2 * gap;
     const fits = oneLine && need <= room;
     if (fits && (who.parentElement !== title || who.nextElementSibling !== tools)) { who.classList.add('inline'); title.insertBefore(who, tools); }
-    else if (!fits && who.parentElement !== el) { who.classList.remove('inline'); el.insertBefore(who, auto.el); }
+    else if (!fits && who.parentElement !== el) { who.classList.remove('inline'); el.insertBefore(who, wrap); }
   }
   if (typeof ResizeObserver === 'function') new ResizeObserver(() => placeWho()).observe(el);
   applyMotion();

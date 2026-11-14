@@ -747,8 +747,8 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
    filling the space on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
 .playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto auto auto minmax(0, 1fr); padding-bottom: 0; }
 /* fixed rows, so a row that is empty or moved (Who's here inside the header line) leaves the story where it is */
-.playmain { row-gap: 0; } .playmain > .who, .playmain > .auto, .playmain > .play-wrap, .playmain > .fell { margin-top: var(--space-6); }
-.playmain > .head { grid-row: 1; } .playmain > .who { grid-row: 2; } .playmain > .auto { grid-row: 3; } .playmain > .play-wrap { grid-row: 4; }
+.playmain { row-gap: 0; } .playmain > .who, .playmain > .play-wrap, .playmain > .fell { margin-top: var(--space-6); }
+.playmain > .head { grid-row: 1; } .playmain > .who { grid-row: 2; } .playmain > .play-wrap { grid-row: 4; }
 /* Who's here in the header line while everyone fits: it takes the room between the place and the switches */
 .head > .who.inline { flex: 1 1 0; align-self: center; }
 /* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
@@ -865,25 +865,19 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .quest-line .ok { color: var(--ok); font-weight: 600; }
 .quest-line .warn { color: var(--warn); }
 .quest-line .more { color: var(--faint); }
-/* Watch an agent play: the autopilot bar under who's here */
-.auto { display: grid; gap: var(--space-2); min-width: 0; } .auto-panel, .auto-row { min-width: 0; }
-.auto:empty { display: none; }
+/* Watch an agent play: the autopilot panel in its own pop-up, floating over the story (wider than a details pop-up) */
+.dpop.auto-pop { width: min(720px, calc(100vw - 32px)); z-index: 45; } .auto-pop[hidden] { display: none; }
+.auto-pop .dpop-body { justify-items: stretch; } .auto-panel, .auto-row { min-width: 0; }
 /* the settings and the agent's words are parts kept apart, so one can stay put while a list in it is open; they lay out as if unwrapped */
 .auto-fields, .auto-live { display: contents; }
 .auto-row[hidden] { display: none; }
-/* the agent bar: one quiet panel under Who's here; settings on the left, the go controls pushed right */
-.auto-panel { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-lg);
-  background: color-mix(in oklch, var(--surface) 82%, transparent); }
+/* settings first, the go controls pushed right */
+.auto-panel { display: grid; gap: var(--space-2); }
 .auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
-/* the controls row stays one line on a wide screen: its lists shrink, cutting long names, before anything wraps */
-@media (min-width: 900px) { .auto-row:first-child { flex-wrap: nowrap; gap: var(--space-2); } .auto-row:first-child .auto-field { min-width: 0; flex: 0 1 auto; gap: 6px; font-size: 12px; }
-  .auto-row:first-child .hs-picker { flex-wrap: nowrap; } .auto-row:first-child .hs-picker button { padding: 0 8px; }
-  .auto-row:first-child .auto-field select { field-sizing: content; min-width: 3.5em; max-width: 100%; text-overflow: ellipsis; } .auto-row:first-child > :not(.auto-field) { flex: none; } }
 .auto-field { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: 13px; }
 .auto-field select { font: 14px/1 var(--font-round); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
   height: var(--control-h); padding: 0 var(--space-2); }
 .auto-go { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
-.auto-x { font-size: 20px; line-height: 1; min-width: var(--control-h); color: var(--muted); }
 .auto-say { margin: 0; display: flex; gap: var(--space-3); align-items: baseline; font: italic 15px/1.5 var(--font-story); }
 .auto-who { flex: none; font: 600 11px/1 var(--font-round); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-style: normal; }
 .auto-panel .hs-note { margin: 0; }

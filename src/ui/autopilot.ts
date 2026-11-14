@@ -1,9 +1,12 @@
-// Watch an agent play: an autopilot bar on the Play screen. The agent picks each command (typed into the box where you can
+// Watch an agent play: an autopilot panel on the Play screen, in its own pop-up that floats over the story (it can be dragged
+// by its head and never blocks the page, so you watch the turns under it). The agent picks each command (typed into the box where you can
 // see it) and says a few lines of commentary, acted out by the RPG Voice connector or read in one of Claude's own voices. It plays on your story,
 // or on its own save (one story per owner: yours and the agent's), and you can switch between them. Mode "Asks me at
-// crossroads" (GA1–GA17) hands the big calls to the watcher in a question card here in the bar.
+// crossroads" (GA1–GA17) hands the big calls to the watcher in a question card in the pop-up.
 import type { GameApi } from '../types';
 import { h } from './kit';
+import { dragByHead, placeNear } from './pop';
+import { arrive } from './motion';
 import { PERSONA_NAMES, VOICE_STYLES, autoPerk, plainLine } from '../agents/autopilot';
 import { type Mcp, type McpError, RPG_DEFAULT_VOICE, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from './rpgVoice';
 import { CONFIG } from '../config';
@@ -45,7 +48,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** a step still running after this long shows how long it has taken */
 const SLOW_MS = 5000;
 
-/** el: the bar under Who's here (empty while closed); opener: the header switch beside Show rolls; asking: a question
+/** el: the agent's pop-up (hidden while closed; it lives in the Play screen so it goes when you leave it); opener: the header switch beside Show rolls; asking: a question
  * waits for the watcher (the action box is theirs then); playedTurn: they played a turn themselves */
 export type Autopilot = { el: HTMLElement; opener: HTMLElement; update: () => void; playing: () => boolean; asking: () => boolean; playedTurn: () => void };
 
@@ -74,9 +77,19 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     try { mcp = ((await (globalThis as { claude?: { use(n: string): Promise<unknown> } }).claude?.use('mcp')) ?? null) as Mcp | null; } catch { mcp = null; }
     update();
   })();
-  const el = h('section', { class: 'auto', 'aria-label': 'Watch an agent play' });
+  // its own pop-up, not the one-at-a-time details pop-up: opening a skill or an item's details doesn't close it. Closing it
+  // pauses the agent, as before
+  const close = () => { pause(''); open = false; update(); };
+  const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label', id: 'auto-pop-t' }, 'Watch an agent play'),
+    h('button', { type: 'button', class: 'hs-icon-btn dpop-x', 'aria-label': 'Close the agent pop-up', title: 'Close (pauses the agent)', onclick: close }, '✕'));
+  const popBody = h('div', { class: 'dpop-body' });
+  const el = h('aside', { class: 'dpop auto-pop', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'auto-pop-t', tabindex: '-1', hidden: true }, head, popBody);
+  dragByHead(el, head);
+  el.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !(e.target as Element).closest('select')) { e.stopPropagation(); close(); opener.focus({ preventScroll: true }); } });
+  /** placed beside the opener the first time it shows; after that it stays where it was dragged */
+  let placed = false;
   const opener = h('button', { type: 'button', class: 'hs-btn-text auto-open', title: 'An agent plays while you watch, with spoken commentary',
-    onclick: () => { if (open) pause(''); open = !open; update(); } });
+    onclick: () => { if (open) { close(); return; } open = true; update(); if (el.isConnected) { arrive(el, 0, 6); el.focus({ preventScroll: true }); } } });
   const agentStory = () => api.state()?.meta.owner === 'agent';
   const stopped = () => api.notices().some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
 
@@ -279,8 +292,10 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     // on the agent's own story the opener and the "Agent’s" choice turn yellow instead of a banner (no extra row)
     opener.classList.toggle('auto-agent', agentStory());
     opener.title = agentStory() ? 'You’re watching the agent’s own story. Your story is kept as it is.' : 'An agent plays while you watch, with spoken commentary';
-    if (!open) { el.replaceChildren(); return; }
-    if (el.firstChild !== panel) el.replaceChildren(panel);
+    el.hidden = !open;
+    if (!open) { popBody.replaceChildren(); return; }
+    if (popBody.firstChild !== panel) popBody.replaceChildren(panel);
+    if (!placed && el.isConnected) { placed = true; placeNear(el, opener.isConnected ? opener : null); }
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
     const style = h('select', { 'aria-label': 'Voice style', onchange: (e: Event) => { prefs.style = (e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
@@ -337,8 +352,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       h('label', { class: 'auto-field' }, 'Speed', rate));
     goBox.replaceChildren(
       btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
-      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
-      h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'));
+      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }));
     if (!held(ordersBox)) { ordersBox.replaceChildren(orders); ordersBox.hidden = !orders; }
     if (!held(liveBox)) liveBox.replaceChildren(
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), `“${plainLine(said)}”`) : ''),

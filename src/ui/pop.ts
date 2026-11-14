@@ -74,22 +74,17 @@ if (typeof document !== 'undefined') {
   addEventListener('hashchange', () => { closeFull(true); });
 }
 
-/** opens a details pop-up near its opener; tone names a colour token for its edge (scenario-mark, danger…) */
-export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; tone?: string; cls?: string }): HTMLElement {
-  closePop();
-  const tid = `dpop-t${Date.now()}`;
-  const x = h('button', { type: 'button', class: 'hs-icon-btn dpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closePop() }, '✕');
-  const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label', id: tid }, o.title), x);
-  const el = h('aside', { class: `dpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1', style: o.tone ? `--pc: var(--${o.tone})` : undefined },
-    head, h('div', { class: 'dpop-body' }, ...o.body));
-  // beside the opener when there is room, else near the top right
-  const r = o.opener ? boxOf(o.opener) : undefined, v = viewSize();
-  document.body.append(el);
+/** puts a floating panel (already in the page) beside its opener when there is room, else near the top right */
+export function placeNear(el: HTMLElement, opener?: HTMLElement | null): void {
+  const r = opener?.isConnected ? boxOf(opener) : undefined, v = viewSize();
   const w = el.offsetWidth || 360, hgt = el.offsetHeight || 200;
   const left = r ? Math.min(v.w - w - 16, Math.max(16, r.left + r.width / 2 - w / 2)) : v.w - w - 32;
   const top = r ? (r.top - hgt - 12 > 16 ? r.top - hgt - 12 : Math.min(v.h - hgt - 16, r.bottom + 12)) : 96;
   el.style.left = `${left}px`; el.style.top = `${Math.max(16, top)}px`;
-  // drag by the head
+}
+
+/** lets a floating panel be dragged by its head (not by a link or button in it), kept inside the window */
+export function dragByHead(el: HTMLElement, head: HTMLElement): void {
   head.addEventListener('pointerdown', (ev) => {
     if ((ev.target as Element).closest('a, button')) return;
     const b = boxOf(el), p0 = pointOf(ev);
@@ -103,6 +98,19 @@ export function openPop(o: { title: string; body: (Node | string | null)[]; open
     addEventListener('pointermove', move);
     addEventListener('pointerup', up);
   });
+}
+
+/** opens a details pop-up near its opener; tone names a colour token for its edge (scenario-mark, danger…) */
+export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; tone?: string; cls?: string }): HTMLElement {
+  closePop();
+  const tid = `dpop-t${Date.now()}`;
+  const x = h('button', { type: 'button', class: 'hs-icon-btn dpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closePop() }, '✕');
+  const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label', id: tid }, o.title), x);
+  const el = h('aside', { class: `dpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1', style: o.tone ? `--pc: var(--${o.tone})` : undefined },
+    head, h('div', { class: 'dpop-body' }, ...o.body));
+  document.body.append(el);
+  placeNear(el, o.opener);
+  dragByHead(el, head);
   current = { el, opener: o.opener };
   arrive(el, 0, 6);
   el.focus({ preventScroll: true });

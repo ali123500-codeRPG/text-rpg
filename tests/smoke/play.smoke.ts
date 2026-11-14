@@ -199,6 +199,24 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('the agent panel is a pop-up over the story: inside the window, closed by its ✕, gone on other pages', async () => {
+    await page.getByRole('button', { name: 'Watch an agent play' }).click();
+    const pop = page.getByRole('dialog', { name: 'Watch an agent play' });
+    await pop.waitFor();
+    const b = (await pop.boundingBox())!;
+    expect(b.x).toBeGreaterThanOrEqual(0); expect(b.y).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.width).toBeLessThanOrEqual(1400); expect(b.y + b.height).toBeLessThanOrEqual(900);
+    expect(await page.locator('.playmain .play-wrap').isVisible()).toBe(true); // the story stays on the page under it
+    await nav('Quests');
+    await page.locator('h1', { hasText: 'Quests' }).waitFor();
+    expect(await pop.count()).toBe(0); // it belongs to the Play screen
+    await nav('Play');
+    await pop.waitFor(); // still open when you come back
+    await pop.getByRole('button', { name: 'Close the agent pop-up' }).click();
+    await expect.poll(() => pop.isVisible()).toBe(false);
+    expect(errors).toEqual([]);
+  });
+
   it('restores a backup from the GM view', async () => {
     for (let n = 1; n <= 12; n++) await turn('wait', n);
     await page.getByRole('button', { name: 'GM off' }).click();
