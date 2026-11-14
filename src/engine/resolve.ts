@@ -59,6 +59,7 @@ import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushConte
 import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
+import { cantExtract, extractEssence } from './extract';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, gaveUpFeats, turnFeats } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
@@ -1519,6 +1520,13 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doPick(ctx, a, o);
     case 'filch':
       return doFilch(ctx, a, o);
+    case 'extract': { // DX1-DX5: pulling out the essence of someone Down and broken or surrendered (src/engine/extract.ts)
+      const t = o.target ? actorById(state, o.target) : undefined;
+      const why = cantExtract(state, a, t);
+      if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
+      const r = extractEssence(state, a, t!, ctx.rng);
+      return emit(ctx, bark(mk(ctx, a, 'extract', { target: t!.id, extract: { essence: r.essence, grade: r.grade } }), o));
+    }
     case 'show':
       return doShow(ctx, a, o);
     case 'steady': { // SY1: steadying yourself (engine/steady.ts); a loss goes through fear(), which applies a break

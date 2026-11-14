@@ -182,6 +182,20 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'You were never meant for one path, so no road is closed to you.',
     rules: { kind: 'passive', trigger: 'any check of whether the owner can use a skill tree or skill', conditions: [], effect: 'the access rules (Must, Either of, Blocked by) do not apply: every tree and skill is open, and its skills can be used, marked and raised', lasts: 'always' },
   },
+  // DX1-DX5: essence extraction, a blessing of the god of essences (D-311; the blessed Start grants it), and the quirk it leaves.
+  // Names are placeholders until NM1/NM2.
+  [PK.pull_the_thread]: {
+    id: PK.pull_the_thread, name: 'Pull the Thread', built: true,
+    story: 'A god who works in threads has shown you where another life is knotted. With them beaten and helpless before you, you can pull a strand of it loose and keep it.',
+    rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down and have broken or surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
+      effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
+  },
+  [PK.hollowed]: {
+    id: PK.hollowed, name: 'Hollowed', built: true, quirk: true,
+    story: 'Someone pulled a strand of you loose and kept it. What it held is gone, and the rest of you never sits quite right again.',
+    rules: { kind: 'Always on (quirk)', trigger: 'Left by an essence extraction.', conditions: ['For good.'],
+      effect: `Each of the taken essence's skills loses ${CONFIG.HOLLOWED_SHARE_MULT} times the essence's share of true skill, and every skill loses ${CONFIG.HOLLOWED_ALL_LOSS * 100}% of true skill.`, lasts: 'always' },
+  },
   // a quirk no race, class or template has yet: the mechanism for a being that everyone fears or hates at first sight
   [PK.dreaded_on_sight]: {
     id: PK.dreaded_on_sight, name: 'Dreaded on Sight', built: true, quirk: true, onSight: { colder: 1, fear: FR.dreaded_sight },

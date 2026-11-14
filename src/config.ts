@@ -570,6 +570,10 @@ const DEFAULTS = {
   ESSENCE_VALUE_MULT: 10,
   /** EG3 b + EG15 b: removing a held essence (at rest) costs this many levels' worth of XP; the bar may go into debt */
   ESSENCE_REMOVE_LEVELS: 1,
+  /** DX5: Hollowed (essence extraction) takes this many times the essence's share from each of its skills, and this share
+   * of every skill, both from true skill, for good */
+  HOLLOWED_SHARE_MULT: 2,
+  HOLLOWED_ALL_LOSS: 0.1,
   /** EB3: the first this many essence changes (letting one go, or swapping one out for an offer) cost no XP */
   ESSENCE_FREE_CHANGES: 3,
   /** EB1: an ending's second offer comes from one of this many bested people with the highest power (placeholder) */

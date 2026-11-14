@@ -274,6 +274,7 @@ export type NarrationEvent = {
   surrender?: { with: string[] }; // TF19: someone talked into surrendering: who gave up with them (names)
   breakOpen?: { opened: boolean; cut?: true; broke?: string[] }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ...")
   mentallySteady?: true; // SY1: it left them Mentally steady
+  extract?: { essence: string }; // DX3: an essence pulled out of the target: its name (the target is left Hollowed)
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
   way?: { what: string; did: string; to: string }; // SD3–SD5, BA2: a barrier on the way to `to`: what kind, and what was done at it
   from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
