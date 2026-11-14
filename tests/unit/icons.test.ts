@@ -11,6 +11,8 @@ import { CL } from '../../src/library/classIds';
 import { ICON_ART } from '../../src/ui/iconArt';
 import { classIconName, iconName, ICON_CREDIT } from '../../src/ui/itemIcons';
 import { instanceItem } from '../../src/views';
+import { zoneById } from '../../src/engine/relations';
+import { intent } from '../cases/w4-kit';
 
 describe('icons', () => {
   it('every library item picks an icon that exists; only the curio and unlisted misc things fall back on the pouch', () => {
@@ -27,11 +29,13 @@ describe('icons', () => {
     for (const id of Object.keys(getLibrary().classes)) if (id !== CL.commoner) expect(classIconName(id), id).not.toBe('commoner');
   });
 
-  it('the loot pop-up finds a thing inside an open chest on the ground by its instance id', () => {
-    const s = wholeTurn().state;
-    const z = s.zones.find((x) => x.id === s.player.zone)!;
+  it('after a whole turn, the loot pop-up finds a thing inside an open chest by its instance id, in any place\'s zones', async () => {
+    const g = wholeTurn();
+    const z = zoneById(g.state, g.state.player.zone)!;
     z.groundItems.push({ id: 'chest_1', itemId: IT.chest, open: true, contents: [{ id: 'picks_1', itemId: IT.lockpicks }] } as never);
-    expect(instanceItem(s, 'picks_1')).toBe(IT.lockpicks);
+    await g.turn(intent({ action: { type: 'wait' } } as never));
+    expect(instanceItem(g.state, 'picks_1')).toBe(IT.lockpicks);
+    expect(iconName(g.state, instanceItem(g.state, 'picks_1')!)).toBe('picks');
   });
 
   it('the credit the CC BY licence asks for is on the GM page and in the licence file', () => {
