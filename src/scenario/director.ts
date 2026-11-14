@@ -4,7 +4,7 @@
 import { placeAll } from '../engine/position';
 import { noteLeft } from '../engine/trail';
 import { noteCrossing } from '../engine/chase';
-import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
+import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView, WindowAnswer } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
 import { buildWeaverView, type WeaverTarget } from '../views';
@@ -26,6 +26,9 @@ export type RegionCall = (view: RegionCallView) => Promise<unknown | null>;
 
 /** SC8: one Weaver check-in call about the running scenario. null = the call failed. */
 export type CheckIn = (view: WeaverView) => Promise<CheckinAnswer | null>;
+
+/** WB6: one Weaver call on a scenario window in free roam: start one now, or not now. null = the call failed. */
+export type Window = (view: WeaverView) => Promise<WindowAnswer | null>;
 
 export type ScenarioOutcome = 'applied' | 'degraded' | 'fallback' | 'loaded';
 export type ScenarioResult = {
@@ -55,7 +58,29 @@ export class ScenarioDirector {
 
   /** WZ18: region briefs asked for in the background, keyed by square; never saved (a reload asks again) */
   private regionCalls = new Map<string, { gx: number; gy: number; back: boolean; raw?: unknown }>();
-  constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn; region?: RegionCall }) {}
+  /** WB6: the window call in flight; never saved (a reload drops it and the window stays shut) */
+  private window: { done: boolean; answer: WindowAnswer | null } | null = null;
+
+  constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn; region?: RegionCall; window?: Window }) {}
+
+  /** WB6: after a save, ask the Weaver about the open window in the background (again after a reload dropped the call). With
+   * no window call wired (tests), the answer is "start" at once. Returns whether one was asked. */
+  startWindow(state: GameState): boolean {
+    if (!state.stage.window || this.window) return false;
+    state.stage.window = 'asked';
+    const w: { done: boolean; answer: WindowAnswer | null } = { done: !this.opts.window, answer: this.opts.window ? null : { start: true } };
+    this.window = w;
+    this.opts.window?.(buildWeaverView(state, { kind: 'window', placeId: state.player.placeId })).then((a) => { w.answer = a; }, () => { w.answer = null; }).finally(() => { w.done = true; });
+    return true;
+  }
+
+  /** WB6: the window's answer once it is back, taken once (undefined: none back yet; null: the call failed) */
+  takeWindow(): WindowAnswer | null | undefined {
+    const w = this.window;
+    if (!w?.done) return undefined;
+    this.window = null;
+    return w.answer;
+  }
 
   /** WZ1/WZ2: a story in a world with no land yet draws its first region before its first plan: the Weaver's brief, then
    * code. Without a region call wired (tests with a scripted Weaver) the world stays without land, and a story already
@@ -98,9 +123,8 @@ export class ScenarioDirector {
     return [...this.held.keys()];
   }
 
-  /** Scenario setup (steps 1–8 minus the save): one event roll, one Weaver call (+ one repair), apply or fallback.
-   * frontierKey (CH3 a): free roam crossed an unbuilt frontier; the scenario's opening plan builds the ground beyond it. */
-  async startScenario(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open', frontierKey?: string): Promise<ScenarioResult> {
+  /** Scenario setup (steps 1–8 minus the save): one event roll, one Weaver call (+ one repair), apply or fallback. */
+  async startScenario(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<ScenarioResult> {
     const placeId = state.player.placeId; // step 1
     ensurePlace(state, placeId);
     const eventRoll = state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng); // step 2; TV4: an encounter's roll was made on the road
@@ -109,19 +133,16 @@ export class ScenarioDirector {
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
     // HF26: a new character standing nowhere yet, in a world that already has ground
     const arrive = !state.player.zone && state.places.some((p) => p.zones.length);
-    const label = frontierKey ? zoneById(state, state.player.zone)?.links.find((l) => l.to === frontierKey)?.label : undefined;
     beginScenario(state, eventRoll.tier, eventRoll.beyond);
     // WZ1 + WZ13: the land comes first; the story's first settlement stands on the brief's start site
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
     if (this.opening) await this.firstRegion(state, deadline);
     const start = state.regions?.[0]?.sites.find((x) => x.id === state.regions![0].start && !x.placeId);
-    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(start ? { site: start.id } : {}), ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
+    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(start ? { site: start.id } : {}), ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}) };
     // WEAVER_TIMEOUT bounds the whole scenario-start wait (the region call, the first call and repair together)
-    const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
+    const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}) };
     const planned = await this.plan(state, ctx, target, deadline);
-    const res = { ...finish(state, ctx, planned, rng, entry), eventRoll };
-    if (frontierKey && entry === 'stealthy') stealthyArrival(state, rng);
-    return res;
+    return { ...finish(state, ctx, planned, rng, entry), eventRoll };
   }
 
   /** Story start: setup alone, as turn 0; returns the opening events (also pushed to state.events). The pipeline saves turn 0 and makes the one Narrator call. */
@@ -134,13 +155,13 @@ export class ScenarioDirector {
   }
 
   /** After a turn is saved: start one background Weaver call per unbuilt frontier linked from the player's zone. Returns the frontier keys started.
-   * None in free roam (SD2 a): no scenario runs, so crossing one starts a scenario of its own (CH3 a). */
+   * In free roam too (WB5): crossing a frontier only builds the ground beyond it. */
   afterSave(state: GameState): string[] {
     const started: string[] = [];
     this.startCheckin(state);
+    this.startWindow(state);
     this.drawAhead(state);
     started.push(...this.buildAhead(state));
-    if (state.stage.roam) return started;
     for (const key of frontiersNearPlayer(state)) {
       if (this.held.has(key)) continue;
       this.held.set(key, this.extension(state, key));
@@ -234,11 +255,11 @@ export class ScenarioDirector {
     return out;
   }
 
-  /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no event roll.
-   * In free roam an unbuilt frontier starts a new scenario there instead, with its own event roll (CH3 a: eventRoll is set). */
+  /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no event roll,
+   * in free roam too (WB5, which reverses CH3 a): crossing only builds the ground beyond. */
   async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<ScenarioResult> {
     const from = state.player.zone;
-    const res = state.stage.roam && !isSavedZone(state, key) ? await this.startScenario(state, rng, entry, key) : await this.crossTo(state, key, rng, entry);
+    const res = await this.crossTo(state, key, rng, entry);
     noteLeft(state, from); // the trail: "go back" leads to the zone the frontier was crossed from
     if (state.player.zone !== from) {
       noteCrossing(state, from, state.player.zone); // CH6: pursuers who saw it follow

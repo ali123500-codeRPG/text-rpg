@@ -92,6 +92,8 @@ export type ScenarioFrame = {
 };
 /** SC8/SC15: why a Weaver check-in is asked */
 export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';
+/** WB6: the Weaver's answer to a scenario window: start one now, or not now */
+export type WindowAnswer = { start: boolean; note?: string };
 /** SC8/SC12: a check-in's answer. continue may also change the scenario (question, scale, endings), send people in through
  * ways that already exist (arrivals: new bands, cast and seeds, as in a stage plan, starting out of the player's sight),
  * and add frontiers on stage zones (new ways out, built later like any frontier). It never builds zones. */

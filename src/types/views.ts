@@ -328,7 +328,7 @@ export type WeaverView = {
   stakes: string;
   ways: string; // BA8: how the tier leans the ways in and out (locks, bars, guards), never a limit
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scenario' | 'frontier' | 'checkin'; placeId: string; /** NW6 */ placeName: string; label?: string; frontierKey?: string; wake?: true; /** HF26: a new character arrives in a world with a past */ arrive?: true;
+  target: { kind: 'scenario' | 'frontier' | 'checkin' | 'window'; placeId: string; /** NW6 */ placeName: string; label?: string; frontierKey?: string; wake?: true; /** HF26: a new character arrives in a world with a past */ arrive?: true;
     /** NW3: the ground past this frontier is built ahead for someone else heading there; the player is not crossing */
     ahead?: true;
     /** SC8: why this check-in was asked, and the running scenario it is about */
@@ -338,7 +338,7 @@ export type WeaverView = {
       happened: { turn: number; text: string }[]; remembered: { who: string; turn: number; text: string }[] };
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
     encounter?: { zone: string; danger: string; noticed: boolean };
-    /** SW3 a: the player's own doing started this scenario in free roam: why, what happened in the roam, who saw them */
+    /** SW3 a / WB6: what started this scenario, or opened this window, in free roam: why, what happened in the roam, who saw them */
     cause?: { why: string; happened: { turn: number; text: string }[]; seenBy: string[] } };
   headlines: string[];
   /** WZ1 the region's land (absent before any land is drawn) */

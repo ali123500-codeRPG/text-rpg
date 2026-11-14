@@ -523,9 +523,15 @@ const DEFAULTS = {
   /** SD2 a: scenario endings (SCENARIO_ENDINGS) after which free roam starts instead of the next scenario. Every ending for now, so
    * players can explore the world; broken_off is a knock-out, whose wake-up is always a new scenario */
   ROAM_AFTER: ['resolved', 'lost', 'left', 'escaped', 'interrupted', 'worn_out'] as string[],
-  /** FR1 b (placeholder): a calm start (talk, trade, a quest goal reached) starts a scenario only once free roam has lasted this
-   * many turns; danger (an attack, a hostile spotting the player), road encounters and unbuilt frontiers never wait */
-  ROAM_MIN_TURNS: 5,
+  /** WB7: the rest after a scenario ends, in game minutes by its challenge grade (placeholders): only danger and the player's
+   * own acts open a scenario window during it */
+  ROAM_REST_MIN: { none: 0, minor: 30, moderate: 60, major: 120, extreme: 240 } as Record<string, number>,
+  /** WB6: a quiet stretch of free roam past the rest that opens a scenario window (game minutes, placeholder) */
+  ROAM_QUIET_MIN: 120,
+  /** WB6: an active job older than this (game minutes since taken, placeholder) is a stale thread: past the rest it opens a window */
+  THREAD_STALE_MIN: 240,
+  /** WB6: after the Weaver declines a window, no quiet or stale window for this long (game minutes, placeholder) */
+  WINDOW_DECLINED_MIN: 60,
   /** BF4/AT34 (placeholder): game seconds an NPC that led someone somewhere (head_to with lead) waits there for them before going back to its routine */
   LEAD_WAIT_S: 90,
   /** D-226 (LF3): while a scenario runs, the player's achievements and All-XXX steps wait for the scenario's end and are

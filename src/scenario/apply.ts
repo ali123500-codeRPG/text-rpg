@@ -189,6 +189,7 @@ export function beginScenario(state: GameState, tier: Tier, beyond?: number): vo
   state.stage.quiet = 0;
   delete state.stage.breakCause;
   delete state.stage.roam; // SD2 a: free roam ends when a scenario starts
+  delete state.stage.window; // WB6: an open window is moot once a scenario starts
   expireOffers(state, true); // growth proposal 2.5: an essence offer lasts until a new scenario starts
   state.scenarioCaps = { promotions: 0, minted: 0 };
   endYields(state);
@@ -290,7 +291,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     newZones.push(zone);
   }
   ensureBackLinks(state, newZones);
-  // an extension's entry, or (CH3 a) a scenario started in free roam by crossing an unbuilt frontier: joined before placing (BG-225)
+  // an extension's entry: joined before placing (BG-225)
   if (ctx.frontierKey && newZones[0]) joinFrontier(state, ctx.frontierKey, newZones[0]);
   const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);
