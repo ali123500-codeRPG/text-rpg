@@ -1,12 +1,17 @@
 // Character age (AG1–AG27): life stages per race, the old-age decline, NPC ages at spawn, the youngest age per rank and
-// talent, creation and the stage line.
+// talent, no children, creation and the stage line.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { ageFloor, ageKeeps, ageText, ageYears, advanceAging, bornDayFor, lifeStage, stageName, stageOf, stageReaches, talentMult, talentName } from '../../src/ruleset/age';
+import { bannedLines } from '../harness/guard';
+import { intent, wholeTurn } from '../harness/turn';
+import { FIXED } from '../../src/agents/prompts';
+import { ageFloor, ageKeeps, ageText, ageYears, advanceAging, bornDayFor, lifeStage, stageName, stageOf, stageReaches, talentMult, talentName, youngestAge } from '../../src/ruleset/age';
 import { effectiveSkill } from '../../src/ruleset/gear';
-import { composeTemplate, createPlayer, presetAgeFloor, presetTalent, rankRow, recommendedBuild, refreshCopies, spawnNpc, templateRank, validateBuild } from '../../src/library/spawn';
-import { RO, TH } from '../../src/library/npcLayerIds';
-import { npcTemplate } from '../../src/library';
+import { createPlayer, presetAgeFloor, presetTalent, rankRow, recommendedBuild, refreshCopies, spawnNpc, validateBuild } from '../../src/library/spawn';
+import { getLibrary, npcTemplate } from '../../src/library';
+import { fromPages, toPages } from '../../src/save/pages';
+import { newReport, repairReferences } from '../../src/save/checks';
+import type { Head } from '../../src/types';
 import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { RC } from '../../src/library/raceIds';
@@ -80,14 +85,14 @@ describe('youngest age per rank (AG12, AG21–AG25)', () => {
     expect(presetTalent(g)).toBe(CONFIG.NPC_TALENT_DEFAULT);
     expect(presetTalent({ ...g, talent: 'talent_3' })).toBe('talent_3');
     expect(presetTalent({ ...g, talent: 'talent_3' }, 'talent_0')).toBe('talent_0');
-    expect(presetAgeFloor(g, 'talent_2')).toBe(17); // a Trained human: 13 + 4
+    expect(presetAgeFloor(g, 'talent_2')).toBe(18); // a Trained human: 13 + 4, but no one is under 18
   });
   it('never spawns an NPC under its floor, and saves the talent that set it', () => {
     const s = makeVillage();
     for (let i = 0; i < 30; i++) {
       const a = spawnNpc(s, TP.guard, { id: `npc_y${i}`, zone: 'z', placeId: 'p', bandId: 'b', ageStage: 'stage_1' });
-      expect(ageYears(s, a)).toBeGreaterThanOrEqual(17);
-      expect(stageOf(s, a)).toBe('Youth');
+      expect(ageYears(s, a)).toBeGreaterThanOrEqual(18); // no one is under 18: Youth rolls in Adult instead
+      expect(stageOf(s, a)).toBe('Adult');
       expect(a.core.talent).toBe('talent_2');
       const c = spawnNpc(s, TP.guard, { id: `npc_c${i}`, zone: 'z', placeId: 'p', bandId: 'b', ageStage: 'stage_1', talent: 'talent_0' });
       expect(ageYears(s, c)).toBeGreaterThanOrEqual(25); // Youth is wholly under a Common guard's 25: it rolls in Adult instead
@@ -102,45 +107,64 @@ describe('youngest age per rank (AG12, AG21–AG25)', () => {
       Object.assign(g, { age, ...(talent ? { talent } : {}) });
       return validateStagePlan(s, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }).map((e) => e.code);
     };
-    expect(plan('Youth')).not.toContain('bad_age');
-    expect(plan('Youth', 'Common')).toContain('bad_age');
+    expect(plan('Youth')).toContain('bad_age'); // no one is under 18
+    expect(plan('Adult')).not.toContain('bad_age');
+    expect(plan('Adult', 'Prodigy')).not.toContain('bad_age');
+    expect(plan('Middle-aged', 'Common')).not.toContain('bad_age');
     expect(plan('Adult', 'Common')).not.toContain('bad_age');
     expect(plan('Adult', 'Genius')).toContain('bad_talent');
     expect(stageReaches(RC.human, 'stage_6', 500)).toBe(true); // Ancient never runs out
   });
 });
 
-describe('children', () => {
-  it('needs no age for no training, so an Untrained NPC can be a Child', () => {
-    expect(ageFloor(RC.human, 0, 'talent_0')).toBe(0);
-    expect(ageFloor(RC.human, rankRow('rank_1').training, 'talent_2')).toBe(14); // a Novice is past childhood
+describe('no children', () => {
+  it('puts no one under the race\'s Adult start, whatever the rank, talent or stage', () => {
+    expect(youngestAge(RC.human)).toBe(18);
+    expect(ageFloor(RC.human, 0, 'talent_4')).toBe(18); // Untrained
+    expect(ageFloor(RC.elf, rankRow('rank_1').training, 'talent_2')).toBe(20);
+    const s = makeVillage();
+    for (let i = 0; i < 20; i++) expect(stageOf(s, spawnNpc(s, TP.patron, { id: `npc_k${i}`, zone: 'z', placeId: 'p', bandId: 'b', ageStage: 'stage_0' }))).toBe('Adult');
+    expect(Object.values(getLibrary().templates).some((t) => t.label.includes('child'))).toBe(false);
   });
-  it('has a Child role with no rank floor, and a village child preset drawn from the Child stage', () => {
-    const s = makeVillage(), t = npcTemplate(null, TP.child);
-    expect(templateRank(t)).toBe('rank_0');
-    for (let i = 0; i < 20; i++) expect(stageOf(s, spawnNpc(s, TP.child, { id: `npc_k${i}`, zone: 'z', placeId: 'p', bandId: 'b' }))).toBe('Child');
-    const composed = composeTemplate({ race: RC.human, role: RO.child, theme: TH.village_folk, rank: 'Untrained' }, 'a stable boy');
-    expect(templateRank(composed)).toBe('rank_0');
+  it('has no child preset, role or tension left in the code', () => {
+    expect(bannedLines(/TP\.child|RO\.child|TN\.old_head|kind: 'child'|ageStage: 'stage_0'/)).toEqual([]);
   });
-  it('lets the Weaver cast a Child from the child preset, but not from a guard', () => {
+  it('tells every agent the world holds adults only, and offers the Weaver no stage under Adult', async () => {
+    const t = wholeTurn();
+    await t.turn(intent());
+    expect(t.claude.callsFor('narrator')[0].input[0].content).toMatch(/no children or teenagers/);
+    expect(FIXED.weaver).toMatch(/"age"\?:"Adult"\|/);
+  });
+  it('refuses a Weaver Child for any preset', () => {
     const s = toStoryStart(makeVillage());
-    const codes = (template: string) => {
-      const p = villageStagePlan();
-      Object.assign(p.cast.find((c) => c.template === TP.guard)!, { template, age: 'Child' });
-      return validateStagePlan(s, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }).map((e) => e.code);
-    };
-    expect(codes(TP.child)).not.toContain('bad_age');
-    expect(codes(TP.guard)).toContain('bad_age');
+    const p = villageStagePlan();
+    for (const c of p.cast) if (c.template) c.age = 'Child';
+    const bad = validateStagePlan(s, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }).filter((e) => e.code === 'bad_age');
+    expect(bad.map((e) => e.castKey).sort()).toEqual(p.cast.map((c) => c.key).sort());
+    expect(bad.find((e) => e.castKey === 'guard_1')?.message).toMatch(/no children/);
+  });
+  it('on load drops an NPC who is still a child and ages anyone else too young up to 18', () => {
+    const s = makeVillage();
+    const [kid, teen] = s.actors.filter((a) => a.kind === 'npc' && a.core.raceId === RC.human);
+    kid.core.bornDay = bornDayFor(s, 9);
+    teen.core.bornDay = bornDayFor(s, 16);
+    s.player.core.bornDay = bornDayFor(s, 13);
+    const pages = toPages(s);
+    repairReferences(pages, getLibrary(), newReport());
+    const after = fromPages(s.meta, { libraryVersion: s.libraryVersion } as Head, pages);
+    expect(after.actors.some((a) => a.id === kid.id)).toBe(false);
+    expect(Math.round(ageYears(after, after.actors.find((a) => a.id === teen.id)!)!)).toBe(18);
+    expect(Math.round(ageYears(after, after.player)!)).toBe(18);
   });
 });
 
 describe('creation age (AG15)', () => {
   const base = () => ({ ...recommendedBuild(), name: 'Aldric' });
-  it('defaults to 20 and allows Youth up to Venerable', () => {
+  it('defaults to 20 and allows Adult up to Venerable', () => {
     const s = makeVillage();
     expect(ageText(s, createPlayer(base(), 's'))).toBe(`Age ${CONFIG.CREATION_AGE_DEFAULT} · Adult`);
-    expect(validateBuild({ ...base(), age: 13 })).toEqual([]);
-    expect(validateBuild({ ...base(), age: 12 }).join()).toMatch(/Age/);
+    expect(validateBuild({ ...base(), age: 18 })).toEqual([]);
+    expect(validateBuild({ ...base(), age: 17 }).join()).toMatch(/Age/);
     expect(validateBuild({ ...base(), age: 81 }).join()).toMatch(/Age/);
   });
 });

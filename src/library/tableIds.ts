@@ -17,7 +17,7 @@ export const VL = { duty: 'VL1', wealth: 'VL2', family: 'VL3', faith: 'VL4', pow
   loyalty: 'VL18', courtesy: 'VL19', order: 'VL20', propriety: 'VL21', gratitude: 'VL22', desire: 'VL23' } as const;
 export const PY = { prideful: 'PY1', mature: 'PY2', childish: 'PY3', honourable: 'PY4', schemer: 'PY5', bully: 'PY6', busybody: 'PY7', ordinary: 'PY8', loner: 'PY9', free_spirit: 'PY10' } as const;
 /** tensions: two parts of a character that pull against each other (personality line) */
-export const TN = { unshakeable_scatterbrained: 'TN1', bold_unbacked: 'TN2', old_head: 'TN3', wary_dangerous: 'TN4', home_temptation: 'TN5', talent_undisciplined: 'TN6', crooked_means: 'TN7' } as const;
+export const TN = { unshakeable_scatterbrained: 'TN1', bold_unbacked: 'TN2', wary_dangerous: 'TN4', home_temptation: 'TN5', talent_undisciplined: 'TN6', crooked_means: 'TN7' } as const; // TN3 (old head on young shoulders) retired: no children
 /** linked perks: a set of perks that together grant one more perk, or merge into one (src/library/perkLinks.ts) */
 export const LK = { crushing_presence: 'LK1', ghost_blade: 'LK2', combination: 'LK3', blind_spot: 'LK4', bulwark: 'LK5' } as const;
 /** the Action times table (AT11); DU1 (the fight turn) is retired: it is CONFIG.FIGHT_TURN_S */

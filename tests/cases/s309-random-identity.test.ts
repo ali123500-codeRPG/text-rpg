@@ -1,5 +1,5 @@
 // 309 Random identity: a new character opens on a random name, gender, age and personality, all editable. Age stays from
-// the race's Youth start to just before its Old start (no old-age decline at the start); the personality is a random
+// the race's Adult start (no children) to just before its Old start (no old-age decline at the start); the personality is a random
 // archetype on a random Nerve line; every pick makes a valid build.
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../../src/rng';
@@ -7,11 +7,12 @@ import { playableRaces, randomIdentity, recommendedBuild, validateBuild } from '
 import { getLibrary } from '../../src/library';
 import { RC } from '../../src/library/raceIds';
 import { LIFE_STAGES } from '../../src/scales';
+import { CONFIG } from '../../src/config';
 import { PLAYER_NAMES } from '../../src/library/names';
 import { ST } from '../../src/library/startIds';
 
 describe('309 random identity at creation', () => {
-  it('every pick is a valid build, the age is Youth to before Old, and the name fits the gender', () => {
+  it('every pick is a valid build, the age is Adult to before Old, and the name fits the gender', () => {
     const seen = new Set<string>(), races = new Set<string>();
     for (let seed = 1; seed <= 200; seed++) {
       const r = randomIdentity(createRng(seed));
@@ -19,7 +20,7 @@ describe('309 random identity at creation', () => {
       const st = getLibrary().races![r.raceId].ageStages;
       if (!st) expect(r.age).toBeUndefined(); // an ageless race (Slime)
       else {
-        expect(r.age).toBeGreaterThanOrEqual(st[LIFE_STAGES.at(1)]!); // Youth starts
+        expect(r.age).toBeGreaterThanOrEqual(st[CONFIG.YOUNGEST_STAGE]!); // no children: Adult starts
         expect(r.age).toBeLessThan(st[LIFE_STAGES.at(4)]!); // before Old
       }
       if (r.raceId === RC.human) expect(r.age).toBeLessThan(60);
