@@ -27,7 +27,6 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, itemDef } from '../library';
-import { LIGHT_SLEEPER } from '../engine/sleep';
 import { actorById, isActive, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
@@ -1314,6 +1313,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   // ER5: a scenario's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
   if (eventRoll) out.push(`Event roll d100 ${eventRoll.roll} → ${tierName(eventRoll)}${mods(eventRoll.modifiers)}`);
   for (const e of events) {
+    // PG9: the player's make-out roll on something half seen or half heard
+    if (e.madeOut) out.push(`${roll(e.madeOut.roll)} to make out ${name(e.actorId).toLowerCase() === 'someone' ? 'someone' : name(e.actorId)} vs difficulty ${e.madeOut.target}: ${e.madeOut.passed ? 'made out' : 'not made out'}`);
     const target = e.attack?.targetId ?? e.target;
     if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;
     if (e.attack) {
@@ -1372,9 +1373,9 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   // TV7: a trip says how far it went and why it stopped
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'travelled') continue;
-    const d = l.detail as { actorId: string; metres: number; pace: string; night: boolean; stop: string };
+    const d = l.detail as { actorId: string; metres: number; night: boolean; stop: string };
     if (d.actorId !== s.player.id) continue;
-    out.push(`Travelled ${views.distText(d.metres)} at a ${d.pace} pace${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
+    out.push(`Travelled ${views.distText(d.metres)} ${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
   }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {
@@ -1400,7 +1401,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
       const i = d.watches.findIndex((w) => w.actorId === s.player.id);
       out.push(`Night watch: ${d.watches.length} watches; yours is ${clockText(d.watches[i].from)} to ${clockText(d.watches[i].to)}`);
     } else if (l.code === 'woke') {
-      const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: `you hear someone come (${getLibrary().perks[LIGHT_SLEEPER]?.name ?? 'Light Sleeper'})`, rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
+      const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: 'you hear someone come', rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
       out.push(`Awake: ${why}`);
     }
   }

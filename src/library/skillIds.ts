@@ -17,6 +17,8 @@ export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge, block or parry, a choice, not a skill) and the skill it rolls */
 export const DEFENSE_SKILL = { dodge: SK.dodge, block: SK.block, parry: SK.parry } as const;
 /** a sense function's default skill: a function roll asks for it, and the best skill with the function rolls */
+/** an item effect's skill rolled for each piece (a charmed ring): ruleset/gear rolledSkill names it from the piece's id */
+export const ROLLED_SKILL = '$rolled';
 export const SENSE_SKILL = { [FN.sight]: SK.eyesight, [FN.hearing]: SK.earshot } as const;
 /** an armor weight and the skill that wears it */
 export const ARMOR_SKILL: Record<string, SkillId> = { light: SK.light_armor, medium: SK.medium_armor, heavy: SK.heavy_armor };

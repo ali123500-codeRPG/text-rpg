@@ -4,7 +4,7 @@
 import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
-import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, TRAVEL_PACES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey, type TravelPaceKey } from '../scales';
+import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
 import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
@@ -107,6 +107,8 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
   { type: 'situational', roll: 'skill', source: 'Waking', at: 'src/engine/sleep.ts', when: 'A light sleeper\'s hearing check against someone hostile moving openly near it (NW19): the grade their noise sets, louder is easier.',
     value: Object.entries(CONFIG.WAKE_GRADE).map(([k, g]) => `${NOISE.name(k as NoiseKey)} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'How faint', at: 'src/engine/makeOut.ts', when: 'A make-out roll on something half seen or half heard (PG4): the grade set by how far past the clear range it is (darkness one step harder) or how many dB above the hearing floor it reaches.',
+    value: [...new Set([...CONFIG.MAKE_OUT_SIGHT_GRADES, ...CONFIG.MAKE_OUT_SOUND_GRADES].map(([, g]) => g))].map((g) => `${g} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Attention', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): how closely they watch.', value: Object.entries(CONFIG.FILCH_ATTENTION).filter(([k]) => k !== 'asleep').map(([k, v]) => `${ATTENTION.name(k as AttentionKey)} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Item size', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): the item\'s bulk.', value: CONFIG.FILCH_SIZE.map((v, b) => `bulk ${b} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ') },
@@ -115,8 +117,6 @@ export const MOD_SOURCES: ModSource[] = [
     when: 'Persuading, lying, threatening or haggling again at the same listener, out of a fight (plain talk never counts; in a fight there is no repeat penalty, TF9).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
   { type: 'situational', roll: 'skill', source: 'Coin offered', at: 'src/engine/speech.ts', when: 'A bribe in a fight (TF10): the briber\'s Barter roll, by the coin offered against the listener\'s price (OFFER_BRIBE_PRICE per level).',
     value: `${sg(CONFIG.OFFER_BRIBE_MOD)} per doubling over the price, as much less per halving` },
-  { type: 'situational', roll: 'skill', source: 'Travel pace', at: 'src/engine/travel.ts', when: 'The noticing roll on a road trip when something meets you, by pace (TV8).',
-    value: Object.entries(CONFIG.TRAVEL_NOTICE_MOD).filter(([, v]) => v).map(([k, v]) => `${TRAVEL_PACES.name(k as TravelPaceKey)} ${sg(v)}`).join(' · ') },
   // status
   { type: 'status', roll: 'skill', source: 'Shaken', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose intimidation beat you, until your engagement ends.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },

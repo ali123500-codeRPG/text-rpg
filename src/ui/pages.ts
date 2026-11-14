@@ -12,7 +12,8 @@ import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, t
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
-import { accSlot, gripSlot, gripWord, isHeld, kitBonus, modeName } from '../ruleset/gear';
+import { accSlot, effectValue, gripSlot, gripWord, isHeld, kitBonus, modeName, pieceName, rolledSkill } from '../ruleset/gear';
+import { ROLLED_SKILL } from '../library/skillIds';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
@@ -137,7 +138,7 @@ export function characterPage(api: GameApi) {
 /** CP5: what the character holds and wears, each a button that opens the piece's stats in the same pop-up */
 function openGearPop(s: GameState, opener?: HTMLElement | null): void {
   const on = s.player.core.inventory.filter((i) => i.equippedIn?.length);
-  const name = (i: ItemInstance) => cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId);
+  const name = (i: ItemInstance) => cap(safe(() => pieceName(s, i)) ?? i.itemId);
   openPop({ title: 'Gear', cls: 'gear-pop', opener, body: on.length ? [
     h('p', { class: 'hs-note' }, 'What you hold and wear. Click a piece for its stats.'),
     h('div', { class: 'gp-list' }, on.map((i) => {
@@ -149,7 +150,7 @@ function openGearPop(s: GameState, opener?: HTMLElement | null): void {
 
 /** one piece of gear: its exact stats (the Inventory's rows), a way back to the list, and a link to it in the Inventory */
 function openItemPop(s: GameState, i: ItemInstance, opener?: HTMLElement | null): void {
-  openPop({ title: cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId), cls: 'gear-pop', opener, body: [
+  openPop({ title: cap(safe(() => pieceName(s, i)) ?? i.itemId), cls: 'gear-pop', opener, body: [
     h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
     h('div', { class: 'actions' },
       h('button', { type: 'button', class: 'hs-btn-text', onclick: () => openGearPop(s, opener) }, '‹ All gear'),
@@ -173,7 +174,7 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },
     tile('essences', 'Essences', ess.used, ess.waiting ? h('span', { class: 'ess-waiting' }, `◆ ${ess.waiting} on offer`) : 'slots used', open.essences, false, !!ess.waiting),
     tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : `perk${owned === 1 ? '' : 's'} taken`, open.perks, true, pts > 0),
-    tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
+    tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => pieceName(s, i)) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
     tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), signaturesBox(p, open.sign)] })),
   );
 }
@@ -185,7 +186,7 @@ const KIND_GROUP: Record<string, [string, string, string]> = {
 const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
 
 /** an item's exact stats: the Inventory's side panel and the equipment panel's hover card share these rows */
-export function itemRows(s: GameState, it: { itemId: string; boundTo?: string; qty?: number }): PanelRow[] {
+export function itemRows(s: GameState, it: { id?: string; itemId: string; boundTo?: string; qty?: number }): PanelRow[] {
   const d = safe(() => itemDef(s, it.itemId));
   if (!d) return [];
   const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
@@ -194,7 +195,7 @@ export function itemRows(s: GameState, it: { itemId: string; boundTo?: string; q
   for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach} m, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
   if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
   if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
-  for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+  for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(effectValue(d, e))} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : e.skill === ROLLED_SKILL ? (it.id ? skillName(rolledSkill(s, { id: it.id }, e)) : 'one skill, rolled for each piece') : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
   // EQ7: the requirement, red while the player is short, grey once met
   const need = requirement(d);
   if (need) {
@@ -242,7 +243,8 @@ export function gearWords(s: GameState, it: InvItem): { label: string; text: str
   const d = safe(() => itemDef(s, it.itemId));
   if (!d) return null;
   const on = !!it.equippedIn?.length;
-  if (d.slot === 'armor' || d.slot === 'accessory') return on ? { label: 'Unequip', text: `I take off my ${d.name}` } : { label: 'Equip', text: `I put on my ${d.name}` };
+  const nm = safe(() => pieceName(s, it)) ?? d.name; // AX3 c: a charmed ring by its skill, so the right ring is named
+  if (d.slot === 'armor' || d.slot === 'accessory') return on ? { label: 'Unequip', text: `I take off my ${nm}` } : { label: 'Equip', text: `I put on my ${nm}` };
   // anything held can be put away; only weapons and shields offer Equip, so a draught or a bandage stays a pack item
   if (d.grips && on) return { label: 'Unequip', text: `I put away my ${d.name}` };
   if (d.grips && (d.kind === 'weapon' || d.kind === 'shield')) return { label: 'Equip', text: `I draw my ${d.name}` };
@@ -255,7 +257,7 @@ function showTip(s: GameState, it: InvItem, at: HTMLElement) {
   if (!d) return;
   tipEl ??= document.body.appendChild(h('div', { class: 'itip', role: 'tooltip', hidden: true }));
   tipEl.dataset.kind = d.kind;
-  tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, d.name, it.qty))),
+  tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, safe(() => pieceName(s, it)) ?? d.name, it.qty))),
     h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])));
   tipEl.hidden = false;
   const r = boxOf(at), v = viewSize(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
@@ -331,7 +333,7 @@ export const coinLine = (s: GameState) => `Coin: ${coinWords(coins(s.player))}`;
 type Inside = { it: ItemInstance; path: string; box: ItemInstance };
 export function insideOf(s: GameState, box: ItemInstance, path = ''): Inside[] {
   return (box.contents ?? []).flatMap((it) => {
-    const name = cap(safe(() => itemDef(s, it.itemId).name) ?? it.itemId), here = path ? `${path} › ${name}` : name;
+    const name = cap(safe(() => pieceName(s, it)) ?? it.itemId), here = path ? `${path} › ${name}` : name;
     return [{ it, path: here, box }, ...insideOf(s, it, here)];
   });
 }
@@ -347,7 +349,7 @@ export function putInto(s: GameState, it: ItemInstance, inside = false): string[
  * carried container (its row, its "In your …" group, or anything already inside it) puts it in; an item inside a container
  * dropped anywhere else in the pack takes it out. Null: no order (the same container, or not a place to drop). */
 export function dropOrder(s: GameState, itemId: string, onto: { row?: string; group?: string }): string | null {
-  const nameOf = (i: ItemInstance) => (safe(() => itemDef(s, i.itemId).name) ?? i.itemId).toLowerCase();
+  const nameOf = (i: ItemInstance) => (safe(() => pieceName(s, i)) ?? i.itemId).toLowerCase();
   const inside = allInside(s), from = inside.find((x) => x.it.id === itemId);
   const it = from?.it ?? s.player.core.inventory.find((i) => i.id === itemId);
   if (!it) return null;
@@ -409,7 +411,7 @@ export function inventoryPage(api: GameApi) {
       const rows = itemRows(s, it);
       // CT1: something in a carried container: where it is, and Take out, which drafts the order on Play (a pick-up)
       if (inside) {
-        const boxName = safe(() => itemDef(s, inside.box.itemId).name) ?? 'container', name = safe(() => itemDef(s, it.itemId).name) ?? it.itemId;
+        const boxName = safe(() => itemDef(s, inside.box.itemId).name) ?? 'container', name = safe(() => pieceName(s, it)) ?? it.itemId;
         rows.splice(rows.length - 1, 0, { k: 'Inside', v: `Your ${boxName.toLowerCase()}` },
           { k: 'Take out', v: h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'take-out', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
             onclick: () => { playDraft.text = `I take the ${name.toLowerCase()} out of my ${boxName.toLowerCase()}`; closePanel(); location.hash = 'play'; } }, 'Take it out') });
@@ -417,7 +419,7 @@ export function inventoryPage(api: GameApi) {
       // CT1: something loose in the pack, while a container is carried: Put in drafts the order on Play (a stow into it)
       const boxes = putInto(s, it, !!inside);
       if (boxes.length) {
-        const name = (safe(() => itemDef(s, it.itemId).name) ?? it.itemId).toLowerCase();
+        const name = (safe(() => pieceName(s, it)) ?? it.itemId).toLowerCase();
         rows.splice(rows.length - 1, 0, { k: 'Put in', v: h('span', { class: 'put-in' }, boxes.map((box) =>
           h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'put-in', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
             onclick: () => { playDraft.text = `I put the ${name} in my ${box}`; closePanel(); location.hash = 'play'; } }, `Put it in your ${box}`))) });

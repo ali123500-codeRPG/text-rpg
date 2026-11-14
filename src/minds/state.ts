@@ -138,9 +138,9 @@ export function isCalm(state: GameState, a: Actor): boolean {
   return !isEngaged(state, a) && !alarm?.armed && secondsSince(state, last) >= CONFIG.DECAY_AWARE_S;
 }
 
-const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body']);
-/** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body */
-const SELF_ALARM = new Set(['struck', 'found_body']);
+const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body', 'impact']);
+/** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body; BG-251: the one a missile lands by */
+const SELF_ALARM = new Set(['struck', 'found_body', 'impact']);
 
 /** onAlert once (queued as onAlertDue), switch to the alert variant anchored now, save returnTo. */
 export function raiseAlarm(state: GameState, a: Actor): void {
@@ -346,9 +346,10 @@ const sightRoll = (state: GameState, a: Actor, at: Zone | undefined, rng: Rng): 
 /** SE25 b table: the skill a hidden-at tier stands for when no one did the hiding */
 export const tierSkill = (t: Tier | TierRoll): number =>
   Math.max(0, CONFIG.HIDDEN_TIER_SUCCESS_SKILL + CONFIG.HIDDEN_TIER_SKILL_STEP * (tierLevel(t) - TIERS.pos('success')));
-/** SE25 a: an item search or a stash learns like a check against one number (marks stay invisible, SE7) */
-export const markAgainst = (state: GameState, a: Actor, r: RollResult, opposition: number): void =>
-  markUse(state, a, r.skill, { actorId: a.id, skill: r.skill, ...(r.asked ? { asked: r.asked } : {}), target: opposition, passed: true, modifiers: [] });
+/** SE25 a: an item search or a stash learns like a check against one number (marks stay invisible, SE7); `passed`: the
+ * roll beat that number (PG2: a pass teaches however hard the number) */
+export const markAgainst = (state: GameState, a: Actor, r: RollResult, opposition: number, passed: boolean): void =>
+  markUse(state, a, r.skill, { actorId: a.id, skill: r.skill, ...(r.asked ? { asked: r.asked } : {}), target: opposition, passed, modifiers: [] });
 /** SE25 a: a hidden item's level to learn against: its stasher's stealth skill, else its hidden-at tier on the table */
 const itemLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hiddenAt!);
 /** SE8: one sight roll against every hidden ground item in reach that the searcher doesn't know of: beating an item's
@@ -362,7 +363,7 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
   const r = sightRoll(state, a, z, rng);
   const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));
   for (const i of found) (i.knownTo ??= []).push(a.id);
-  markAgainst(state, a, r, Math.max(...hidden.map(itemLevel))); // SE25: against the best-hidden thing searched for
+  markAgainst(state, a, r, Math.max(...hidden.map(itemLevel)), found.length === hidden.length); // SE25: against the best-hidden thing searched for; passed when it was found too
   log(state, 'search_items', { actorId: a.id, tier: r.tier, hidden: hidden.length, found: found.length });
   return { r, found, hint: !found.length && hidden.some((i) => tierLevel(r) === tierLevel(i.hiddenAt!)) };
 }
@@ -403,7 +404,7 @@ export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { 
     const hidden = unknown.filter(hiddenGear);
     const roll = hidden.length ? (r = sightRoll(state, a, zoneById(state, t.zone), rng)) : undefined;
     found = hidden.filter((i) => roll && tierLevel(roll) > TIERS.pos(itemDef(state, i.itemId).hiddenAt!));
-    if (roll) markAgainst(state, a, roll, Math.max(...hidden.map((i) => tierSkill(itemDef(state, i.itemId).hiddenAt!)))); // SE25
+    if (roll) markAgainst(state, a, roll, Math.max(...hidden.map((i) => tierSkill(itemDef(state, i.itemId).hiddenAt!))), found.length === hidden.length); // SE25
   }
   revealItems(state, a, t, found);
   return { ...(r ? { r } : {}), found: [...again, ...found] };
@@ -422,8 +423,8 @@ export function searchSecrets(state: GameState, a: Actor, t: Actor, rng: Rng): {
     if (!ss.length) continue;
     const roll = senseRoll(state, a, fn, zoneById(state, t.zone), rng);
     const min = (s: (typeof ss)[number]) => (s.revealWhen as { minTier: Tier }).minTier;
-    markAgainst(state, a, roll, Math.max(...ss.map((s) => tierSkill(min(s))))); // SE25: a secret's minTier on the table
     const got = ss.filter((s) => tierLevel(roll) >= TIERS.pos(min(s)));
+    markAgainst(state, a, roll, Math.max(...ss.map((s) => tierSkill(min(s)))), got.length === ss.length); // SE25: a secret's minTier on the table
     if (got.length) { r = roll; found.push(...got.map((s) => s.id)); j.secretsKnown.push(...got.map((s) => s.id)); }
   }
   return { ...(r ? { r } : {}), found };

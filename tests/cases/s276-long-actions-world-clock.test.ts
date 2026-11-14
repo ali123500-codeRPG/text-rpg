@@ -1,5 +1,5 @@
 // 276 Action time stage 3d-2 (AT42, AT45, AT46, AT65): outside a fight a turn lasts as long as the player's order, at most
-// EXPLORE_TURN_S; an action longer than that (a trade, heavy armour) runs on the world clock and takes effect when its time
+// EXPLORE_TURN_S; an action longer than that (a trade) runs on the world clock and takes effect when its time
 // is done. Stopped on the way, it waits (busy) for the same order again, unless its focus is deep; one that would be
 // refused is refused at once. A night runs on as one stretch: a foe after the sleeper that reaches them stops it.
 import { describe, expect, it } from 'vitest';
@@ -43,8 +43,11 @@ describe('276 long actions on the world clock', () => {
     expect(now(s) - t0).toBeLessThanOrEqual(CONFIG.EXPLORE_TURN_S / 60);
     expect(s.player.busy).toBeUndefined();
   });
-  it('AT45/AT65: stopped on the way, heavy armour waits half on; the same order again finishes it in the time left', () => {
+  it('AT45/AT65: stopped on the way, a slow action waits half done; the same order again finishes it in the time left', () => {
+    // armour is instant now (less realism); give it its old 10 minutes here, so the long-action rules still have one to run
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+    const row = getLibrary().durations![DU.armor_heavy_on], was = row.seconds;
+    row.seconds = 10 * 60;
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     place(s, 'guard_1', 'street_square');
     g.mind!.overrides = { player: 'hostile' };
@@ -69,6 +72,7 @@ describe('276 long actions on the world clock', () => {
     expect(worn(s)).toBe(true);
     expect(s.player.busy).toBeUndefined();
     expect(now(s) - t1).toBeCloseTo(Math.max(left, 0), 0);
+    row.seconds = was;
   });
   it('AT46: a short order outside a fight is a short turn (a look around), an order with no time of its own the action row', () => {
     const s = shop();

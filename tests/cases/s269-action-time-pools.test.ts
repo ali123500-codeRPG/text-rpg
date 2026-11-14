@@ -1,6 +1,6 @@
 // 269 Action time, stage 2 (AT19, AT20, AT23, AT48, AT78): each actor's turn is seconds of main and move time. An attack
 // repeats while main time lasts; a finished action's leftover seconds carry into the next turn, so slow shots even out
-// over turns, and the carry never passes one turn's length.
+// over turns, and the carry never passes CARRY_MAX_TURNS turns' length (TP4).
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -29,7 +29,7 @@ const archer = () => {
 };
 
 describe('269 action time pools', () => {
-  it('AT20/AT23: a light bow shot leaves seconds over; they carry, never past one turn, and the shots even out', () => {
+  it('AT20/AT23: a light bow shot leaves seconds over; they carry, never past CARRY_MAX_TURNS turns, and the shots even out', () => {
     const s = archer();
     const shot = actionSeconds(actionRow(DU.bow_light)!);
     let shots = 0;
@@ -39,7 +39,7 @@ describe('269 action time pools', () => {
       slime.core.condition.hpLostPct = 0; // keep the target standing
       const ev = turn(s, intent({ target: 'slime_1' }), 10 + i);
       shots += ev.filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
-      expect(s.player.carry?.main ?? 0).toBeLessThanOrEqual(CONFIG.FIGHT_TURN_S);
+      expect((s.player.carry ?? []).reduce((n, c) => n + c.main, 0)).toBeLessThanOrEqual(CONFIG.CARRY_MAX_TURNS * CONFIG.FIGHT_TURN_S);
     }
     expect(shots).toBe(Math.floor((turns * CONFIG.FIGHT_TURN_S) / shot));
   });
@@ -54,6 +54,31 @@ describe('269 action time pools', () => {
     const ev = turn(s, intent({ target: 'guard_1' }));
     const blows = ev.filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
     expect(blows).toBe(CONFIG.FIGHT_TURN_S / actionSeconds(actionRow(DU.blow)!));
+  });
+  it('TP4: carried time lasts CARRY_TURNS turns: three seconds left two turns ago still buy a blow, three turns ago they are gone', () => {
+    const blows = (age: number) => {
+      const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+      const g = s.actors.find((a) => a.id === 'guard_1')!;
+      g.zone = s.player.zone; g.placeId = s.player.placeId; g.pos = { x: s.player.pos!.x + 0.5, y: s.player.pos!.y };
+      s.mode = 'tactical';
+      inFight(s);
+      s.player.carry = [{ main: actionSeconds(actionRow(DU.blow)!), move: 0, turn: s.turn + 1 - age }];
+      return turn(s, intent({ target: 'guard_1' })).filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
+    };
+    const plain = CONFIG.FIGHT_TURN_S / actionSeconds(actionRow(DU.blow)!);
+    expect(blows(CONFIG.CARRY_TURNS)).toBe(plain + 1);
+    expect(blows(CONFIG.CARRY_TURNS + 1)).toBe(plain);
+  });
+  it('TP3: a blow that could not happen (the target already dead) spends none of its time: the whole turn carries', () => {
+    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_2', 'guard_1'] });
+    const dead = s.actors.find((a) => a.id === 'slime_1')!;
+    dead.zone = s.player.zone; dead.placeId = s.player.placeId; dead.pos = { x: s.player.pos!.x + 0.5, y: s.player.pos!.y };
+    dead.core.condition.hpLostPct = 150;
+    s.mode = 'tactical';
+    inFight(s);
+    const ev = turn(s, intent({ target: 'slime_1' }));
+    expect(ev.find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('already_dead');
+    expect((s.player.carry ?? []).reduce((n, c) => n + c.main, 0)).toBeCloseTo(CONFIG.FIGHT_TURN_S, 6);
   });
   it('AT79 Flurry: every punch thrown with two Grip parts free brings a free one, one tier less sure', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });

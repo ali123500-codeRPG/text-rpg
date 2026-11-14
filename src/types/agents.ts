@@ -25,7 +25,7 @@ export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
  * last perceived them */
 export type MoveSpot = { near?: string; awayFrom?: string; side?: string; lastSeen?: true; follow?: boolean; keep?: number | 'melee' | 'range' }; // keep: BF35, a follow's distance in metres, or striking reach (melee) or 80% of the ranged weapon's reach (range) // follow: BG-190, keep after the one near names
 export type Intent = {
-  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62/BG-158, the player crosses a counter, fence or rail (going behind it or coming out); after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
+  move: { toZone: string; after?: boolean; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62/BG-158, the player crosses a counter, fence or rail (going behind it or coming out); after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {
     type: ParserActionType;
     skill: string;

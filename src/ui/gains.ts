@@ -6,7 +6,7 @@
 // finishing or motion off always shows every gain at once. Each step's length comes from the --m-* tokens, never from how
 // long the turn took (M-03); only how many gains there are sets how long it runs, as long as the moment needs.
 import { h, plural } from './kit';
-import { arrive, bar as barMove, count, impact, later, measured, motionOn, ms, paced, play, stamp } from './motion';
+import { arrive, bar as barMove, count, impact, later, measured, ms, paced, play, stamp } from './motion';
 import { skillName } from './creation';
 import { perkSeries } from './perks';
 import { getLibrary } from '../library';
@@ -119,7 +119,6 @@ function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLEleme
  * Thread fills (and wraps for a level), and a level-up is the finale: the number lands, holds, and one ring of light
  * leaves it once. The thread draws down each section while its gains land, so it reaches the next knot as they finish. */
 export function playGains(veil: HTMLElement, g: ScenarioGains, t0: number): number {
-  if (!motionOn()) return 0;
   // the moment runs slower than a turn's beats: every token inside it is stretched by --m-gains-pace, and further when the
   // gains are few, so the whole moment lasts at least --m-gains-min (a skip still lands it at once, M-12)
   const base = ms('--m-gains-pace') || 1, min = ms('--m-gains-min');

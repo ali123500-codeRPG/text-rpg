@@ -81,7 +81,7 @@ EssenceSource { key: string; when: SourceCheck; rollBase: number; table: ES[] }
 ```
 
 - **Notable foe** (row per body type, race or template tag). A foe is notable when any of these is true:
-  - its power is at least ESSENCE\_NOTABLE\_SHARE (0.75) × the player's;
+  - its power is at least ESSENCE\_NOTABLE\_SHARE (2) × the player's, so only a foe twice as strong or more counts by power;
   - its template is tagged `notable` (leaders, permanent and unique NPCs);
   - it holds an essence itself (later, D-226).
 
@@ -106,7 +106,7 @@ Natural edges apply as on every roll. The result's tier decides the offer:
 
 Then code picks which row by weight from the source's table. Modifiers come only from perks, gear and statuses whose rows name the essence roll, stacked by type at STACK\_RATIO, as on the event roll.
 
-With rollBase 80, the notable-foe default, an offer comes 31% of the time: 25% common, 1% fine and 5% rare (the fine and rare split comes from the natural edges). With rollBase 100, the default for a resolved ending at Critical Success, offers come 51% of the time. Ending rows at Great Success use 80.
+The roll is d100 + rollBase − 100 (ESSENCE\_ROLL\_NEEDED 100). With rollBase 80, the notable-foe default, an offer comes 81% of the time: 25% common, 50% fine, 1% rare and 5% epic (the natural edges move a few rolls a tier). With rollBase 100, the default for a resolved ending at Critical Success, offers come 95% of the time: 19% common, 50% fine, 21% rare and 5% epic. Ending rows at Great Success use 80.
 
 ### 2.5 Taking, declining, room
 
@@ -308,7 +308,7 @@ Proposal growth moments are scenario payouts that raised something. Essences com
 **Essences:**
 - ESSENCE\_SHARE 0.07
 - ESSENCE\_GRADES (names table with GRADE\_MULT)
-- ESSENCE\_NOTABLE\_SHARE 0.75
+- ESSENCE\_NOTABLE\_SHARE 2
 - essence sources' rollBase (80 / 100)
 - ESSENCE\_SLOTS\_BASE 1
 - ESSENCE\_SLOT\_EVERY 4

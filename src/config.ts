@@ -183,6 +183,10 @@ const DEFAULTS = {
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
+  /** BG-251: how loud a missile's impact is where it lands: on armour, a shield or a hard surface like an axe biting wood
+   * (3M Noise Navigator: chopping wood 66-71 dBA at 5 m, pounding tent stakes 66 dBA at 15.2 m, about 80-90 dB at 1 m);
+   * on flesh, clothing or soft ground some 20 dB less (Brüel: soft-material impacts peak 20-25 dB below metal; an estimate) */
+  IMPACT_NOISE: { hard: 'loud', soft: 'raised' } as const,
   /** hearing (perception/noise.ts, BG-57, HB1–HB5): a sound weakens 20·log10(metres) with distance (the inverse-square
    * law, never nearer than NEAREST_M) and loses SOUND_LOSS_DB at each crossing on its way, by the least-loss route. It is
    * heard while at least HEARING_FLOOR_DB and heard clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it: ANSI/ASA S12.60
@@ -204,6 +208,15 @@ const DEFAULTS = {
    * visibilityLevels rows); null = nothing to see. Sight distance is never under NEAREST_M (seeingM), so a level made
    * out only nearer than that (faint) is at most glimpsed. A dark zone caps sight at partial. */
   SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
+  // ---- making out what is half seen or half heard (PG3-PG9; placeholders) ----
+  /** PG4 a: a make-out roll's grade for something half seen: by how far past its clear range it is, as a share of the way
+   * to its glimpse range (CONFIG.SIGHT_M), the first row whose share it is within */
+  MAKE_OUT_SIGHT_GRADES: [[0.25, 'minor'], [0.5, 'moderate'], [0.75, 'major'], [1, 'extreme']] as [number, GradeLevel][],
+  /** PG4 a: darkness where it happens makes the sight grade this many steps harder (Night Eyes cancels it) */
+  MAKE_OUT_DARK_STEPS: 1,
+  /** PG4 a: a make-out roll's grade for something half heard: by the decibels it reaches above HEARING_FLOOR_DB, the first
+   * row it reaches (clear starts at CLEAR_ABOVE_FLOOR_DB, 15) */
+  MAKE_OUT_SOUND_GRADES: [[11, 'minor'], [7, 'moderate'], [3, 'major'], [0, 'extreme']] as [number, GradeLevel][],
   // ---- searching (SE20, SE21, SE24, SA8; placeholders) ----
   /** SE20: what one search covers outside a fight at the base skill: the game's room size (a tavern common room) */
   SEARCH_AREA_M2: 60,
@@ -301,10 +314,10 @@ const DEFAULTS = {
   RUN_EFFORT: 'hard' as EffortKey,
   /** FT5: a dodge, block or parry (no Action times row of its own) */
   DEFENSE_EFFORT: 'light' as EffortKey,
-  /** FT5: worn armour multiplies all strain, by weight */
-  STRAIN_ARMOR_MULT: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** FT23: strain past an empty short line spills into the long-term bar at this share */
   SPILL_SHARE: 0.5,
+  /** SR4: every strain point paid also adds this share of itself to the long-term bar */
+  STRAIN_RESIDUE: 0.1,
   /** FT27/FB6: one Stamina mark per this many points of strain paid, any effort, armour included */
   STAMINA_MARK_EVERY: 50,
   /** FT28: catching your breath: in a calm stretch (nothing above Light for BREATH_CALM_S) the line refills BREATH_BASE_PCT
@@ -315,7 +328,7 @@ const DEFAULTS = {
   /** FT7/FT8: sleep clears SLEEP_CLEAR_PCT % of the bar an hour × the spot (in a bed or not) × worn armour by weight */
   SLEEP_CLEAR_PCT: 4,
   SLEEP_SPOT_MULT: { bed: 1, elsewhere: 0.75 } as Record<string, number>,
-  SLEEP_ARMOR_MULT: { light: 1, medium: 0.75, heavy: 0.5 } as Record<string, number>,
+  SLEEP_ARMOR_MULT: { light: 1, medium: 1, heavy: 1 } as Record<string, number>, // sleeping in armour makes no difference (less realism; was 1 / 0.75 / 0.5)
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
   /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
@@ -324,7 +337,6 @@ const DEFAULTS = {
   HIGH_PERK_SPREAD: 0.01,
   /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
   CATNAP_SLEEP_HOURS: 1, // SS1 Catnap: a full rest clears the sleep debt this many hours of sleep would
-  FORCED_MARCH_RUN_EFFORT: 'moderate' as EffortKey, // SS3 Forced March: the owner's run pays this tier instead of RUN_EFFORT
   DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
   SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
@@ -345,9 +357,12 @@ const DEFAULTS = {
   /** AE12/AT13: the most a fight turn lasts, in seconds, and the least (a turn lasts as long as the player's order) */
   FIGHT_TURN_S: 6,
   FIGHT_TURN_MIN_S: 3,
+  /** AT20/TP4: carried time lasts this many turns, and each pool carries at most CARRY_MAX_TURNS fight turns of it */
+  CARRY_TURNS: 2,
+  CARRY_MAX_TURNS: 2,
   /** AT46: the most a turn outside a fight lasts, in seconds (as long as the player's order); longer actions, walks, rests
    * and waits run on the world clock instead (AT45) */
-  EXPLORE_TURN_S: 120,
+  EXPLORE_TURN_S: 30,
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
   // ---- the world clock (AT56, AT65 to AT68; src/engine/comingNear.ts). Placeholders from the Action Time part three page.
@@ -385,8 +400,10 @@ const DEFAULTS = {
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
   // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
-  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, the same for every race */
+  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, in human years (AB7: scaled by race, TRAINING_ADULT_AGE) */
   RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_8: { anchor: 400, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  /** AB7 a: a rank's training years are human years; a race trains in (its Adult start ÷ this) of them (humans unchanged) */
+  TRAINING_ADULT_AGE: 18,
   /** NG3: past the last rank row, each step adds this */
   RANK_BEYOND_STEP: { anchor: 100, level: 20, training: 10 },
   /** NG2: a role's bands as shares of the rank's anchor */
@@ -480,7 +497,9 @@ const DEFAULTS = {
   LOCK_LEASE_MS: 60_000, // Q2
   SCHEMA_VERSION: 9, // v9: land (regions, WZ12): older saves end; v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
   // ---- Part 5 ----
-  ACCESSORY_SLOTS: 3,
+  ACCESSORY_SLOTS: 5,
+  /** AX1/AX2: an accessory's bonus = this × EQUIP_NEED of its level: Common 5, Fine 10, Superior 15, Masterwork 20 */
+  ACCESSORY_FACTOR: 0.2,
   /** GD3: a code-run guard asks someone it suspects to open their locked container once every this many turns (placeholder) */
   SUSPECT_ASK_TURNS: 3,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
@@ -558,7 +577,7 @@ const DEFAULTS = {
   /** each grade past the last row multiplies the last row's multiplier by this */
   ESSENCE_GRADE_PAST_MULT: 1.5,
   /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or rolled */
-  ESSENCE_NOTABLE_SHARE: 0.75,
+  ESSENCE_NOTABLE_SHARE: 2,
   /** EN1 a: an essence row is on a template's list when the template's weighted average in the row's skills (raw × tier) is
    * at least this share of its best skill [placeholder] */
   ESSENCE_FIT_SHARE: 0.4,
@@ -566,8 +585,8 @@ const DEFAULTS = {
    * ending's tier). D-274: a notable foe always has one and a mob 5%, so for a foe only the quality roll fails. Placeholders */
   ESSENCE_APPEAR_CHANCE: { foe: 100, mob: 5, great_success: 60, critical_success: 70 } as Record<string, number>,
   /** an appeared essence's quality roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table; Near Miss or worse,
-   * it fades (base 80: it holds 51%; 100: 71%) */
-  ESSENCE_ROLL_NEEDED: 130,
+   * it fades (the growth proposal's d100 + base − 100: base 80 holds 81%, mostly Fine; base 100 holds 95%) */
+  ESSENCE_ROLL_NEEDED: 100,
   ESSENCE_ROLL_BASE: { foe: 80, great_success: 80, critical_success: 100 } as Record<string, number>,
   /** HF18, HF29 a: a beaten echo always offers an essence (no appearance roll); its quality roll goes this many tiers up,
    * and a result below Success still gives ECHO_ESSENCE_FLOOR */
@@ -641,13 +660,14 @@ const DEFAULTS = {
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
-  /** TV2 travel paces as shares of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels slow 3, normal
-   * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
-  TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
-  CATCH_UP_PACE: 'normal' as import('./scales').TravelPaceKey, // NW11: the pace NPCs keep while a turn's time moves them on
+  /** TV2/SR5: travel is one pace, a share of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels 4.5 km/h
+   * (US Army FM 21-18: about 4 km/h on a day march); NPCs keep it too while a turn's time moves them on (NW11) */
+  TRAVEL_SPEED_SHARE: 0.9,
+  /** TV5: pressing on in the dark, the travel speed is this share of the walking speed instead (3 km/h) */
+  TRAVEL_DARK_SPEED_SHARE: 0.6,
+  /** SR5: each hour of travel adds this many points of strain straight to the long-term bar, whatever the armour (placeholder) */
+  TRAVEL_STRAIN_PER_HOUR: 1,
   LONG_TURN_LINES: 5, // BF2e4: a long turn's summary names at most this many people; the rest are "others came and went"
-  /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
-  TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
   TRAVEL_LEG_MIN: 60,
   TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn

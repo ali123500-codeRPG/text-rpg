@@ -2,8 +2,8 @@
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { AWARENESS, NOISE, type NoiseKey } from '../scales';
-import { hearingOf, VOLUME_NOISE } from './noise';
+import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
+import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
 import { seeingM, type Located } from '../engine/position';
 import { sightLevel } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
@@ -87,6 +87,37 @@ export function sightAt(state: GameState, observer: Actor, at: Located, visibili
 /** BG-89: event kinds that touch their target */
 const CONTACT = new Set(['attack', 'give', 'break_free', 'restrain']);
 
+/** the event carries words (speech, a line said) */
+export const hasWords = (event: GameEvent): boolean => event.kind === 'speak' || (SPEECH_ACTIONS as readonly string[]).includes(event.kind) || !!event.speech || !!event.line;
+/** HB8: a whisper said to this observer (its target or one it was addressed to) is said leaning in */
+const leansIn = (event: GameEvent, observer: Actor): boolean =>
+  event.noise === 'hushed' && hasWords(event) && (event.target === observer.id || !!event.speech?.addressees.includes(observer.id) || event.line?.to === observer.id);
+
+/** PG4 a: how hard it is for `observer` to make out an event it only half perceives by this sense, as a task grade, or
+ * null when that sense gets nothing of it. Sight: how far past the visibility's clear range it is, as a share of the way to
+ * its glimpse range (MAKE_OUT_SIGHT_GRADES), MAKE_OUT_DARK_STEPS harder in the dark (Night Eyes cancels it); the easier of
+ * where it happened and where a leg set off (BG-23). Sound: the decibels it reaches above the hearing floor
+ * (MAKE_OUT_SOUND_GRADES). */
+export function faintness(state: GameState, event: GameEvent, observer: Actor, cue: 'sight' | 'sound'): GradeLevel | null {
+  const pick = (rows: [number, GradeLevel][], ok: (n: number) => boolean) => rows.find(([n]) => ok(n))?.[1] ?? rows.at(-1)![1];
+  if (cue === 'sound') {
+    const db = soundDb(state, event.noise, { zone: event.zone, pos: event.pos }, observer, perkSum(observer, 'hearingDb'), leansIn(event, observer));
+    const above = db === null ? null : db - CONFIG.HEARING_FLOOR_DB;
+    return above === null || above < 0 ? null : pick(CONFIG.MAKE_OUT_SOUND_GRADES, (n) => above >= n);
+  }
+  const band = CONFIG.SIGHT_M[event.visibility];
+  const at = (p: Located): number | null => {
+    const m = seeingM(state, observer, p);
+    if (!band || m === null || m > band[1]) return null;
+    const share = Math.max(0, (m - band[0]) / (band[1] - band[0]));
+    const dark = zoneLight(state, zoneById(state, p.zone)) === 'dark' && !hasPerk(observer, PK.night_eyes);
+    const g = GRADE_LEVELS.pos(pick(CONFIG.MAKE_OUT_SIGHT_GRADES, (n) => share <= n)) + (dark ? CONFIG.MAKE_OUT_DARK_STEPS : 0);
+    return Math.min(g, GRADE_LEVELS.keys.length - 1);
+  };
+  const ps = [at({ zone: event.zone, pos: event.pos }), event.fromZone ? at({ zone: event.fromZone, pos: event.fromPos }) : null].filter((g): g is number => g !== null);
+  return ps.length ? GRADE_LEVELS.at(Math.min(...ps)) : null;
+}
+
 /** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
 export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
   if (!isActive(observer)) return null;
@@ -108,10 +139,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     const d = seeingM(state, observer, at);
     if (d !== null && d <= lookReach()) sight = { level: 'full', cue: 'sight' };
   }
-  // HB8: a whisper said to this observer (its target or one it was addressed to) is said leaning in
-  const toMe = event.target === observer.id || !!event.speech?.addressees.includes(observer.id) || event.line?.to === observer.id;
-  const words = event.kind === 'speak' || (SPEECH_ACTIONS as readonly string[]).includes(event.kind) || !!event.speech || !!event.line;
-  const nl = soundReach(state, observer, at, event.noise, event.noise === 'hushed' && toMe && words);
+  const nl = soundReach(state, observer, at, event.noise, leansIn(event, observer));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // Perception All-150 Every Sense One: what the owner hears it sees, and what it sees it hears. The better sense sets the
@@ -121,7 +149,9 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // the target of a blow, a hand-over or a grip broken always feels it (at least partial, touch), e.g. a missile from an
   // unseen zone. BG-72/BG-89: only contact is felt; words, a walk toward them, a trade or a wasted action reach them only by
   // sound or sight
-  if (event.target === observer.id && CONTACT.has(event.kind)) best = better(best, { level: 'partial', cue: 'touch' });
+  // BG-251: a shot or throw is felt only when it meets them (a shield or the body); a miss reaches them by its impact
+  const felt = !event.ranged || !event.attack || HIT_OUTCOMES.pos(event.attack.outcome) >= HIT_OUTCOMES.pos('blocked');
+  if (event.target === observer.id && CONTACT.has(event.kind) && felt) best = better(best, { level: 'partial', cue: 'touch' });
   // words need the sound heard clearly (CLEAR_ABOVE_FLOOR_DB over the hearing floor: who and what; a sound heard only partly is a voice without its
   // words), or Every Sense One
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;

@@ -1,5 +1,6 @@
 // Paying and recovering stamina (FT1–FT28). Every action pays its effort tier's strain (no roll): the short line drains
-// first, and what an empty line can't hold spills into the long term at SPILL_SHARE. Hours awake add sleep debt; only sleep
+// first, and what an empty line can't hold spills into the long term at SPILL_SHARE; STRAIN_RESIDUE of every point stays there
+// too (SR4), and travel pays by the hour straight into it (SR5). Hours awake add sleep debt; only sleep
 // clears the long term. All stamina recovery goes through recoverLine and recoverDebt, one per layer, from the library
 // recovery table (RV), as healing and composure go through applyHealing and calm.
 import type { Actor, DurationDef, GameState } from '../types';
@@ -8,7 +9,7 @@ import { actorBody, getLibrary } from '../library';
 import { FU, RV } from '../library/tableIds';
 import { EFFORT, type EffortKey } from '../scales';
 import { now } from '../time';
-import { barMax, fatigueOf, isSpent, lineMax, lineUsed, perkSleepMult, runEffort, staminaSkill, wornWeight } from '../ruleset/fatigue';
+import { barMax, fatigueOf, isSpent, lineMax, lineUsed, perkSleepMult, staminaSkill, wornWeight } from '../ruleset/fatigue';
 import { hasPerk } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { usableThisEngagement, useThisEngagement } from './engagement';
@@ -21,10 +22,26 @@ const fat = (a: Actor) => (a.core.condition.fatigue ??= { debt: 0, line: 0 });
 const row = (id: string) => getLibrary().recovery?.[id];
 const harder = (e: EffortKey, than: EffortKey) => EFFORT.pos(e) > EFFORT.pos(than);
 
-/** FT24: pays `units` of an effort tier's strain, × worn armour (FT5). Above Light it resets catching your breath.
- * Every point paid counts toward the player's Stamina marks (FT27, FB6). Spill that fills the bar leaves the actor Spent (FT10). */
+/** adds points to the long-term bar; filling it leaves the actor Spent (FT10) */
+function addDebt(state: GameState, a: Actor, points: number): void {
+  const f = fat(a), was = isSpent(a);
+  f.debt = Math.min(barMax(a), f.debt + points);
+  f.line = Math.min(f.line, lineMax(a));
+  if (!was && isSpent(a)) logCode(state, 'spent', { actorId: a.id });
+}
+/** FT27/FB6: every strain point the player pays counts toward a Stamina mark */
+function countMarks(state: GameState, a: Actor, cost: number): void {
+  if (a !== state.player) return;
+  const f = fat(a);
+  f.toMark = (f.toMark ?? 0) + cost;
+  for (; f.toMark >= CONFIG.STAMINA_MARK_EVERY; f.toMark -= CONFIG.STAMINA_MARK_EVERY) markStamina(state, a);
+}
+
+/** FT24: pays `units` of an effort tier's strain (worn armour no longer multiplies it: TP6 d retired FT5). Above Light it resets catching your breath. The short
+ * line drains first; what it can't hold spills at SPILL_SHARE, and STRAIN_RESIDUE of every point also stays in the long term
+ * (SR4). Every point paid counts toward the player's Stamina marks (FT27, FB6). */
 export function payStrain(state: GameState, a: Actor, effort: EffortKey, units = 1): void {
-  const cost = CONFIG.STRAIN_COST[effort] * units * (CONFIG.STRAIN_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1) * (hasPerk(a, PK.bottomless) ? CONFIG.BOTTOMLESS_STRAIN : 1);
+  const cost = CONFIG.STRAIN_COST[effort] * units * (hasPerk(a, PK.bottomless) ? CONFIG.BOTTOMLESS_STRAIN : 1);
   if (cost <= 0 || !isActive(a)) return;
   const f = fat(a);
   if (harder(effort, 'light')) f.hardAt = now(state);
@@ -36,16 +53,15 @@ export function payStrain(state: GameState, a: Actor, effort: EffortKey, units =
     logCode(state, 'second_breath', { actorId: a.id });
   }
   f.line = used + Math.min(pay, left);
-  if (pay > left) {
-    const was = isSpent(a);
-    f.debt = Math.min(barMax(a), f.debt + (pay - left) * CONFIG.SPILL_SHARE);
-    f.line = Math.min(f.line, lineMax(a));
-    if (!was && isSpent(a)) logCode(state, 'spent', { actorId: a.id });
-  }
-  if (a === state.player) {
-    f.toMark = (f.toMark ?? 0) + cost;
-    for (; f.toMark >= CONFIG.STAMINA_MARK_EVERY; f.toMark -= CONFIG.STAMINA_MARK_EVERY) markStamina(state, a);
-  }
+  addDebt(state, a, Math.max(0, pay - left) * CONFIG.SPILL_SHARE + cost * CONFIG.STRAIN_RESIDUE);
+  countMarks(state, a, cost);
+}
+/** SR5: `minutes` of travel add TRAVEL_STRAIN_PER_HOUR a hour straight to the long-term bar, whatever the armour */
+export function payTravel(state: GameState, a: Actor, minutes: number): void {
+  const cost = CONFIG.TRAVEL_STRAIN_PER_HOUR * (minutes / 60);
+  if (cost <= 0 || !isActive(a)) return;
+  addDebt(state, a, cost);
+  countMarks(state, a, cost);
 }
 /** SS8 Second Breath: once per engagement, only in one */
 function secondBreath(a: Actor): boolean {
@@ -59,7 +75,7 @@ export const payRow = (state: GameState, a: Actor, r: DurationDef | undefined, s
 };
 /** FT24: movement pays per STRAIN_MOVE_S moved: a walk (move time) or a run (a dash, main time) */
 export const payMove = (state: GameState, a: Actor, paid: 'move' | 'main', seconds: number): void =>
-  payStrain(state, a, paid === 'main' ? runEffort(a) : CONFIG.WALK_EFFORT, seconds / CONFIG.STRAIN_MOVE_S);
+  payStrain(state, a, paid === 'main' ? CONFIG.RUN_EFFORT : CONFIG.WALK_EFFORT, seconds / CONFIG.STRAIN_MOVE_S);
 /** FT10: a Spent actor can't make an effort above Light */
 export const tooSpent = (a: Actor, effort: EffortKey | undefined): boolean => isSpent(a) && harder(effort ?? 'base', 'light');
 

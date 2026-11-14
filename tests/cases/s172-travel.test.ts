@@ -1,6 +1,6 @@
 // 172 Travel on the road (TV1–TV8): a move along a road with nothing going on is a trip walked in one turn, leg by leg at
-// the pace; it stops on arrival, at dusk (setting off in the dark presses on, slow, with a worse event roll), or at an
-// encounter, whose event roll becomes the next scenario's tier.
+// one pace (SR5); it stops on arrival, at dusk (setting off in the dark presses on, slower, with a worse event roll), or at an
+// encounter, whose event roll becomes the next scenario's tier. Each hour of it adds strain to the long-term bar (SR5).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
@@ -14,6 +14,7 @@ import { createRng } from '../harness';
 import { CONFIG } from '../../src/config';
 import { ZK } from '../../src/library/tableIds';
 import { now, timeOfDay } from '../../src/time';
+import { fatigueOf } from '../../src/ruleset/fatigue';
 import type { GameState, Zone } from '../../src/types';
 
 /** the test village laid out on the map, with a road north out of the gate to Ashford (or to a frontier) */
@@ -39,11 +40,11 @@ function withRoad(km: number, danger: 'safe' | 'quiet' | 'wild' | 'dangerous' = 
   s.clocks.time = 7 * 60; // day 1, morning
   return s;
 }
-const trip = (s: GameState) => s.log.find((l) => l.code === 'travelled')?.detail as { metres: number; minutes: number; pace: string; night: boolean; stop: string; companions: string[] } | undefined;
-const go = (s: GameState, to: string, pace?: 'slow' | 'normal' | 'fast', seed = 1) => play(s, { intent: intent({ move: { toZone: to, ...(pace ? { pace } : {}) } }) }, seed);
+const trip = (s: GameState) => s.log.find((l) => l.code === 'travelled')?.detail as { metres: number; minutes: number; night: boolean; stop: string; companions: string[] } | undefined;
+const go = (s: GameState, to: string, seed = 1) => play(s, { intent: intent({ move: { toZone: to } }) }, seed);
 
 describe('172 travel', () => {
-  it('TV1/TV2: a move along a road walks the whole road in one turn at the pace; the clock moves by distance ÷ speed', () => {
+  it('TV1/TV2: a move along a road walks the whole road in one turn at one pace; the clock moves by distance ÷ speed', () => {
     const s = withRoad(9);
     const t0 = now(s);
     const ev = go(s, 'ashford_gate');
@@ -51,22 +52,24 @@ describe('172 travel', () => {
     const d = trip(s)!;
     expect(d.stop).toBe('arrived');
     expect(d.metres).toBeGreaterThan(9000);
-    const speed = travelSpeed(s, s.player, 'normal');
-    expect(speed * 3.6).toBeCloseTo(4.5, 1); // a 1.4 m/s walker travels 4.5 km/h at a normal pace
+    const speed = travelSpeed(s, s.player);
+    expect(speed * 3.6).toBeCloseTo(4.5, 1); // a 1.4 m/s walker travels 4.5 km/h
     expect(now(s) - t0).toBeGreaterThanOrEqual(d.metres / speed / 60 - 1);
     expect(ev.filter((e) => e.kind === 'travel')).toHaveLength(1);
     expect(ev.some((e) => e.kind === 'move' && e.actorId === 'player')).toBe(false);
   });
 
-  it('TV2: a fast pace gets there sooner than a slow one', () => {
-    const a = withRoad(9), b = withRoad(9);
-    go(a, 'ashford_gate', 'fast');
-    go(b, 'ashford_gate', 'slow');
-    expect(trip(a)!.pace).toBe('fast');
-    expect(now(a)).toBeLessThan(now(b));
+  it('SR5: each hour of travel adds TRAVEL_STRAIN_PER_HOUR to the long-term bar, whatever the armour, on top of hours awake', () => {
+    const s = withRoad(9);
+    s.player.core.condition.fatigue = { debt: 0, line: 0 };
+    go(s, 'ashford_gate');
+    const hours = trip(s)!.minutes / 60;
+    const awake = (CONFIG.SLEEP_DEBT_FLAT + (CONFIG.SLEEP_DEBT_PCT / 100) * CONFIG.STAMINA_BASE) * hours;
+    expect(hours).toBeGreaterThan(1);
+    expect(fatigueOf(s.player).debt).toBeCloseTo(awake + CONFIG.TRAVEL_STRAIN_PER_HOUR * hours, 1);
   });
 
-  it('TV5: a trip that reaches dusk stops there; setting off in the dark presses on, slow, through the dark', () => {
+  it('TV5: a trip that reaches dusk stops there; setting off in the dark presses on, slower, through the dark', () => {
     const s = withRoad(30);
     s.clocks.time = CONFIG.TIME_OF_DAY_FROM.dusk - 30;
     go(s, 'ashford_gate');
@@ -74,8 +77,9 @@ describe('172 travel', () => {
     expect(s.player.zone).toBe('north_road');
     expect(timeOfDay(now(s))).toBe('dusk');
     expect(trip(s)!.minutes).toBe(30);
-    go(s, 'ashford_gate', 'fast');
-    expect(trip(s)!).toMatchObject({ pace: 'fast', night: true, stop: 'arrived' }); // the asked pace, walked slow in the dark
+    go(s, 'ashford_gate');
+    expect(trip(s)!).toMatchObject({ night: true, stop: 'arrived' });
+    expect(trip(s)!.metres / (trip(s)!.minutes * 60)).toBeCloseTo(travelSpeed(s, s.player, true), 1); // walked slower in the dark
     expect(s.player.zone).toBe('ashford_gate');
   });
 

@@ -16,13 +16,13 @@ import { openAirReachM } from '../perception/noise';
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
-import { SK, OLD_SKILL_IDS } from './skillIds';
+import { SK, OLD_SKILL_IDS, ROLLED_SKILL } from './skillIds';
 import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
@@ -36,7 +36,18 @@ import { IT } from './itemIds';
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 /** AG3–AG6: life stage start ages per race (placeholders but the human row) */
 const ages = (y: number[]) => Object.fromEntries(LIFE_STAGES.keys.map((k, i) => [k, y[i]])) as Record<LifeStageKey, number>;
-const AGES = { human: ages([0, 13, 18, 40, 60, 80, 100]), elf: ages([0, 13, 20, 150, 250, 350, 450]), dragon: ages([0, 5, 100, 200, 300, 400, 500]) };
+const AGES = { human: ages([0, 13, 18, 40, 60, 80, 100]), elf: ages([0, 13, 20, 150, 250, 350, 450]), dragon: ages([0, 5, 100, 200, 300, 400, 500]),
+  // animals: Youth = weaned and on its own feet, Adult = grown and breeding, Old about the usual wild lifespan, Ancient the
+  // longest kept animals live (dog: AAHA 2019 life stages, 10-13 years; wolf: 4-6 wild, 15 kept; tiger: grown at 4-5, 10-15
+  // wild, 20-26 kept; brown bear: 20-25 wild, 35+ kept; wild boar: 10-14; horse: grown at 5, 25-30; Komodo: grown at 8-9,
+  // about 30; python: grown at 3-4, 20-25). Placeholders built on those figures.
+  dog: ages([0, 0.5, 2, 7, 10, 13, 16]), wolf: ages([0, 0.5, 2, 5, 8, 11, 14]), tiger: ages([0, 1.5, 4, 9, 14, 18, 22]),
+  bear: ages([0, 2, 5, 12, 20, 26, 32]), boar: ages([0, 0.5, 1.5, 5, 8, 11, 14]), horse: ages([0, 1, 5, 12, 18, 25, 30]),
+  lizard: ages([0, 1, 8, 15, 22, 28, 33]), python: ages([0, 1, 3, 10, 18, 23, 28]),
+  // AB8, AB14 (same basis): giant spider as a large tarantula (grown at 3-6, females live 15-25); lion grown at 4, 10-14 wild,
+  // 20 kept; leopard 12-17 wild, 23 kept; spotted hyena grown at 3, up to 25; Nile crocodile grown at 12-16, lives 45-70
+  spider: ages([0, 0.5, 3, 10, 15, 20, 25]), lion: ages([0, 1.5, 4, 8, 12, 15, 20]), leopard: ages([0, 1, 3, 8, 12, 17, 23]),
+  hyena: ages([0, 1, 3, 9, 15, 20, 25]), crocodile: ages([0, 1, 12, 30, 45, 60, 70]) };
 /** PL19: a short behaviour hint for each value, given to the agent with the value */
 const VALUE_HINTS: Record<keyof typeof VL, string> = {
   duty: 'does what is expected of them, sees obligations through',
@@ -146,6 +157,11 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
 const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });
+/** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
+const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });
+/** AX4 c: a charmed ring's skill weights by tree (placeholders): fighting and senses most, other common trees next, the rest 1 */
+const RING_WEIGHTS: Record<string, number> = { [TR.melee]: 3, [TR.ranged]: 3, [TR.unarmed]: 3, [TR.defense]: 3, [TR.perception]: 3,
+  [TR.fortitude]: 2, [TR.armor]: 2, [TR.stealth]: 2, [TR.speech]: 2, [TR.trickery]: 2, [TR.tools]: 2 };
 
 /** class-level perks (ClassDef.levelPerks), granted by a class at a level */
 const CLASS_PERKS: Record<string, PerkDef> = {
@@ -341,6 +357,17 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
       { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
     ] } },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
+  // accessories: each gives a flat skill bonus while worn, sized by its equipment level (ACC: ACCESSORY_FACTOR × EQUIP_NEED, AX1/AX2)
+  { id: IT.spectacles, level: 'common', kind: 'accessory', fragility: 'fragile', name: 'spectacles', look: 'a pair of round glass lenses in a thin wire frame', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.eyesight)] },
+  { id: IT.charmed_ring, level: 'common', kind: 'accessory', name: 'charmed ring', look: 'a thin band of worn brass, faintly warm to the touch', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [{ ...ACC(ROLLED_SKILL), weights: RING_WEIGHTS }] },
+  { id: IT.ear_cup, level: 'common', kind: 'accessory', name: 'ear cup', look: 'a small carved horn cup that hooks over the ear', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.earshot)] },
+  { id: IT.amulet, level: 'common', kind: 'accessory', name: 'amulet', look: 'a smooth stone amulet on a leather cord', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.resolve)] },
+  { id: IT.hooded_cloak, level: 'common', kind: 'accessory', fragility: 'sturdy', name: 'dark hooded cloak', look: 'a long dark wool cloak with a deep hood', bulk: 1, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.sneaking)] },
   { id: IT.lucky_charm, kind: 'misc', fragility: 'delicate', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, grips: 1,
@@ -367,7 +394,6 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
-    speed: { walk: 1.4, run: 5 }, // an everyday walk about 1.4 m/s; a run in kit about 5 m/s (a sprinter reaches 8–10)
     naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' },
       { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, grips: 0, name: 'grapple' }],
     parts: [
@@ -398,14 +424,12 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
-    speed: { walk: 0.5, run: 1 }, // no real reference: a placeholder for a creeping mass
     naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, grips: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [BT.winged_quadruped]: {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
-    speed: { walk: 1.8, run: 12 }, // a horse on the ground: walk about 1.8 m/s, gallop about 12 m/s (flight not modelled)
     naturalAttacks: [],
     parts: [
       // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does; a horse's head and neck reach about
@@ -419,7 +443,48 @@ export const BODY_TYPES: Record<string, BodyType> = {
     ],
     fallback: { attackSkill: SK.unarmed_natural },
   },
+  // NR14 a: one four-legged shape for every land beast; each race sets its own speeds and attacks (a dog, a tiger, a horse)
+  [BT.quadruped]: {
+    id: BT.quadruped, name: 'Quadruped', general: { name: 'body', size: 'big' },
+    naturalAttacks: [], // by race: bite force differs too much between a dog and a tiger for one shape attack
+    parts: [
+      // FR4: takes and carries things in its jaws; a medium dog's head and neck reach about 0.5 m forward of its chest (estimate)
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike, RL.grip], adjacent: ['general', 'neck'], reachM: 0.5 },
+      { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
+      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
+    ],
+    fallback: { attackSkill: SK.unarmed_natural },
+  },
+  // legless: the coils move it and squeeze; nothing to carry with (grip reach 0, as amorphous)
+  [BT.serpent]: {
+    id: BT.serpent, name: 'Serpent', general: { name: 'body', size: 'normal' },
+    naturalAttacks: [],
+    parts: [
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
+      { id: 'coils', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.move] },
+    ],
+    fallback: { attackSkill: SK.unarmed_natural },
+  },
+  // a spider's shape (CS24: 5 of 8 legs Crippled, or 4 Destroyed, stop it running); fangs on the head; no grip
+  [BT.eight_legged]: {
+    id: BT.eight_legged, name: 'Eight-legged', general: { name: 'body', size: 'normal' },
+    naturalAttacks: [],
+    parts: [
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
+      ...[1, 2, 3, 4].flatMap((n) => (['left', 'right'] as const).map((side) => ({ id: `${side}_leg_${n}`, size: 'extra_small' as const, impact: 'normal' as const, roles: [RL.move] }))),
+    ],
+    fallback: { attackSkill: SK.unarmed_natural },
+  },
 };
+
+/** AB13 a: natural armor equal to Common light armor (the hide skill that raises it waits on round 2) */
+const HIDE = (({ reduction, multiplier }) => ({ reduction, multiplier }))(ARMOR('light', 'common'));
+/** a race's natural attack: unarmed tree, natural weapons skill unless given, reach in metres from the race's comment */
+const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: string, name: string, skill: string = SK.unarmed_natural): AttackMode =>
+  ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, partId, name });
 
 /** AP2: an achievement's personality points, written in steps of CONFIG.ACH_PERSONALITY_STEP (the one balance lever) */
 const ap = (steps: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(steps).map(([k, n]) => [k, n * CONFIG.ACH_PERSONALITY_STEP]));
@@ -610,7 +675,7 @@ export function prototypeLibrary(): Library {
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
-      [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', rating: 'inferior', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
+      [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.slime, RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11: snakes and spiders feel vibration too
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
@@ -781,8 +846,8 @@ export function prototypeLibrary(): Library {
     // Battle Cry). Unset: no movement lock, focus reflex, stop
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
-      [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 60 },
-      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 10 * 60, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
+      [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 30 }, // an out-of-fight turn's own time (EXPLORE_TURN_S)
+      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 3, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
       [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', effort: 'base', seconds: 0, focus: 'deep' },
@@ -795,50 +860,123 @@ export function prototypeLibrary(): Library {
       // spanning stays done when broken off: a spanned crossbow stays loaded (AT11c b)
       [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', effort: 'hard', seconds: 4, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
       [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', effort: 'hard', seconds: 8, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
-      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'all_out', seconds: 28, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot }, // less realism: the heavy crossbow spans at once
       // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
       [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
       [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
-      // gear and things in hand (AT11h-j)
-      [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 1 },
-      [DU.stow]: { id: DU.stow, name: 'Stow a weapon', effort: 'base', seconds: 2 },
-      [DU.swap]: { id: DU.swap, name: 'Swap weapons', effort: 'base', seconds: 3 },
-      [DU.pick_up_reach]: { id: DU.pick_up_reach, name: 'Pick up within reach', effort: 'base', seconds: 1 },
-      [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', effort: 'base', seconds: 4, locksMove: true },
-      [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', effort: 'light', seconds: 2 },
-      // ways (AT11k-l): you stop at the door; picking keeps its work and is sped by Lockpicking (BA2)
-      [DU.door]: { id: DU.door, name: 'Open or close a door', effort: 'base', seconds: 1, locksMove: true },
-      [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', effort: 'base', seconds: 2, locksMove: true },
-      [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', effort: 'base', seconds: 4, locksMove: true },
-      // in a fight, taking something out of a container you carry (a sack) takes your action; the pack itself is as quick as a draw (no pockets)
-      [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a container', effort: 'base', seconds: 6 },
+      // gear and things in hand (AT11h-j): changing gear is instant and costs no strain (less realism)
+      [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 0 },
+      [DU.stow]: { id: DU.stow, name: 'Stow a weapon', effort: 'base', seconds: 0 },
+      [DU.swap]: { id: DU.swap, name: 'Swap weapons', effort: 'base', seconds: 0 },
+      [DU.pick_up_reach]: { id: DU.pick_up_reach, name: 'Pick up within reach', effort: 'base', seconds: 0 },
+      [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', effort: 'base', seconds: 0 },
+      [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', effort: 'base', seconds: 0 }, // instant, like gear
+      // ways (AT11k-l): doors, bars and keys are instant and never stop the walk (less realism); picking keeps its work
+      // and is sped by Lockpicking (BA2)
+      [DU.door]: { id: DU.door, name: 'Open or close a door', effort: 'base', seconds: 0 },
+      [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', effort: 'base', seconds: 0 },
+      [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', effort: 'base', seconds: 0 },
+      // taking something out of a container you carry (a sack): instant, like all gear
+      [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a container', effort: 'base', seconds: 0 },
       [DU.break_open]: { id: DU.break_open, name: 'Break something open', effort: 'hard', seconds: 6, locksMove: true, focus: 'steady' }, // BF31
-      [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 60, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
+      [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 30, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
         speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },
       // care (AT11m-n): a bandage broken off is not used up
-      [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 40, locksMove: true, focus: 'careful' },
+      [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 20, locksMove: true, focus: 'careful' },
       [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },
       // senses (AT11o)
       [DU.hide]: { id: DU.hide, name: 'Hide', effort: 'moderate', seconds: 2, locksMove: true },
       [DU.look]: { id: DU.look, name: 'Look around', effort: 'light', seconds: 3, focus: 'steady' },
-      // armour on and off with help (AT12): each piece counts once on; heavy alone takes ARMOR_ALONE_MULT times as long
-      [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'moderate', seconds: 2 * 60, ...ARMOR_TIME },
-      [DU.armor_light_off]: { id: DU.armor_light_off, name: 'Take off light armour', effort: 'moderate', seconds: 60, ...ARMOR_TIME },
-      [DU.armor_medium_on]: { id: DU.armor_medium_on, name: 'Put on medium armour', effort: 'moderate', seconds: 60, ...ARMOR_TIME },
-      [DU.armor_medium_off]: { id: DU.armor_medium_off, name: 'Take off medium armour', effort: 'moderate', seconds: 30, ...ARMOR_TIME },
-      [DU.armor_heavy_on]: { id: DU.armor_heavy_on, name: 'Put on heavy armour', effort: 'moderate', seconds: 10 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
-      [DU.armor_heavy_off]: { id: DU.armor_heavy_off, name: 'Take off heavy armour', effort: 'moderate', seconds: 3 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
+      // armour on and off (AT12): instant and no strain, like all gear (heavy alone keeps ARMOR_ALONE_MULT, × 0 today)
+      [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_light_off]: { id: DU.armor_light_off, name: 'Take off light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_medium_on]: { id: DU.armor_medium_on, name: 'Put on medium armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_medium_off]: { id: DU.armor_medium_off, name: 'Take off medium armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_heavy_on]: { id: DU.armor_heavy_on, name: 'Put on heavy armour', effort: 'base', seconds: 0, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
+      [DU.armor_heavy_off]: { id: DU.armor_heavy_off, name: 'Take off heavy armour', effort: 'base', seconds: 0, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
     },
     // Humans and elves for now, identical but for lifespan
     // AG3–AG6: years at which each life stage starts. Human from real references (adolescence 13, majority 18, middle age 40,
     // the UN's older persons 60, oldest old 80, centenarian 100); elf (Ancient 450) and dragon (Ancient 500) are placeholders. Slime: ageless.
     // innate perks and quirks per race: lists, empty until chosen
     races: {
-      [RC.human]: { id: RC.human, name: 'Human', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.human, playable: true },
-      [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.elf, playable: true },
+      // AB1 c: speed is the race's (m/s, real references): a person walks about 1.4 m/s and runs about 5 in kit (a sprinter reaches 8–10)
+      [RC.human]: { id: RC.human, name: 'Human', bodyTypeId: BT.humanoid, hpMultiplier: 1, speed: { walk: 1.4, run: 5 }, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.human, playable: true },
+      [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, speed: { walk: 1.4, run: 5 }, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.elf, playable: true },
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
-      [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent', playable: true },
-      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon, playable: true },
+      [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, speed: { walk: 0.5, run: 1 }, // a creeping mass: a placeholder
+        innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent', playable: true },
+      // on the ground as a horse: walk about 1.8 m/s, gallop about 12 (flight not modelled, D-323)
+      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon, playable: true },
+      // Animals (NR14, NR15). hpMultiplier (AB6 a): (mass ÷ a 70 kg person)^(2/3), rounded: dog 30 kg, wolf 40, tiger 220,
+      // bear 300, boar 90, horse 500, Komodo 70, python 75. Run = the cited burst; walk = an everyday gait (estimates unless cited).
+      // Attack class by bite or blow force [Proposed]: a weak bite light, a tiger's or bear's (about 1,000 psi, National
+      // Geographic) or a horse's kick heavy. Reach in metres: head and neck forward of the chest, a foreleg's swipe, a kick behind.
+      [RC.dog]: { id: RC.dog, name: 'Dog', bodyTypeId: BT.quadruped, hpMultiplier: 0.6, intelligence: 'semi', ageStages: AGES.dog,
+        speed: { walk: 1.4, run: 8.9 }, // AKC: most dogs 15–20 mph
+        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite')],
+        innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] }, // dogs hear sounds about 10 dB fainter than people at their best pitch (Heffner 1983)
+      [RC.wolf]: { id: RC.wolf, name: 'Wolf', bodyTypeId: BT.quadruped, hpMultiplier: 0.7, intelligence: 'semi', ageStages: AGES.wolf,
+        speed: { walk: 2.4, run: 15.6 }, // travels at 8.7 km/h (Mech, J. Mammalogy 1994, USGS); bursts 56–64 km/h (Mech and Boitani 2003)
+        naturalAttacks: [nat(AM.bite, 'light', 0.5, 'head', 'bite')],
+        innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] },
+      [RC.tiger]: { id: RC.tiger, name: 'Tiger', bodyTypeId: BT.quadruped, hpMultiplier: 2.1, intelligence: 'semi', ageStages: AGES.tiger,
+        speed: { walk: 1.4, run: 15.6 }, // short bursts of about 56 km/h
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'medium', 1, 'forelegs', 'claws')],
+        innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] }, // a cat sees in about a sixth of the light a person needs
+      [RC.bear]: { id: RC.bear, name: 'Bear', bodyTypeId: BT.quadruped, hpMultiplier: 2.6, intelligence: 'semi', ageStages: AGES.bear,
+        speed: { walk: 1.4, run: 15.6 }, // a brown bear charges at up to about 56 km/h
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'heavy', 1, 'forelegs', 'claws')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      [RC.boar]: { id: RC.boar, name: 'Wild boar', bodyTypeId: BT.quadruped, hpMultiplier: 1.2, intelligence: 'semi', ageStages: AGES.boar,
+        speed: { walk: 1.4, run: 11.1 }, // about 40 km/h
+        naturalAttacks: [nat(AM.gore, 'medium', 0.5, 'head', 'tusks')],
+        naturalArmor: { covers: ['general'], ...HIDE }, // AB13 a: a shoulder shield of gristle up to about 5 cm thick
+        innatePerks: [], innateQuirks: [], tags: [] },
+      [RC.horse]: { id: RC.horse, name: 'Horse', bodyTypeId: BT.quadruped, hpMultiplier: 3.7, intelligence: 'semi', ageStages: AGES.horse,
+        speed: { walk: 1.8, run: 12 }, // walk about 1.8 m/s, gallop about 12 m/s (as the winged quadruped)
+        // the head and neck reach about 1.5 m forward (FR4); a kick lands up to about 1.8 m (6 ft) behind
+        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, 'hind_legs', 'kick'), nat(AM.bite, 'light', 1.5, 'head', 'bite')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      // a monitor lizard sized as the largest, the Komodo dragon: about 3 m long, half of it tail; bursts to about 20 km/h; a weak
+      // bite (about 39 N, Fry et al., PNAS 2009) that tears with serrated teeth
+      [RC.lizard]: { id: RC.lizard, name: 'Monitor lizard', bodyTypeId: BT.quadruped, hpMultiplier: 1, intelligence: 'unintelligent', ageStages: AGES.lizard,
+        speed: { walk: 1, run: 5.6 },
+        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash')],
+        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE }, // AB13 a: bony scales (osteoderms)
+        innatePerks: [], innateQuirks: [], tags: [] },
+      // a large constrictor (reticulated or Burmese python, 5–6 m): strikes about a third of its length, then coils and squeezes;
+      // slow on land. Venomous snakes wait on a venom rule.
+      [RC.python]: { id: RC.python, name: 'Python', bodyTypeId: BT.serpent, hpMultiplier: 1, intelligence: 'unintelligent', ageStages: AGES.python,
+        speed: { walk: 0.4, run: 1 },
+        naturalAttacks: [nat(AM.bite, 'light', 1.5, 'head', 'bite'), nat(AM.grapple, 'grapple', 1.5, 'coils', 'constrict', SK.unarmed_grapple)],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      // AB8 a: a monster: a real spider's shape and the fastest real spider's sprint at the size of a wolf (about 40 kg). Its
+      // venom waits on D-322.
+      [RC.spider]: { id: RC.spider, name: 'Giant spider', bodyTypeId: BT.eight_legged, hpMultiplier: 0.7, intelligence: 'unintelligent', ageStages: AGES.spider,
+        speed: { walk: 0.5, run: 3.6 }, // an Australian huntsman spider sprints 3.59 m/s (EWN news report, July 2026; study not yet peer reviewed)
+        naturalAttacks: [nat(AM.bite, 'light', 0.5, 'head', 'fangs')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      // AB14 a: more predators on the Quadruped
+      [RC.lion]: { id: RC.lion, name: 'Lion', bodyTypeId: BT.quadruped, hpMultiplier: 1.9, intelligence: 'semi', ageStages: AGES.lion,
+        speed: { walk: 1.4, run: 15.6 }, // short bursts of about 50–60 km/h; 190 kg
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'medium', 1, 'forelegs', 'claws')],
+        innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
+      [RC.leopard]: { id: RC.leopard, name: 'Leopard', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.leopard,
+        speed: { walk: 1.4, run: 16.1 }, // about 58 km/h; 60 kg; a smaller bite than the big cats'
+        naturalAttacks: [nat(AM.bite, 'medium', 0.5, 'head', 'bite'), nat(AM.claw, 'medium', 0.8, 'forelegs', 'claws')],
+        innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
+      [RC.hyena]: { id: RC.hyena, name: 'Hyena', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.hyena,
+        speed: { walk: 1.4, run: 16.7 }, // a spotted hyena: up to about 60 km/h; 60 kg; bites about 1,100 psi, as a bear
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.5, 'head', 'bite')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      // a Nile crocodile, about 400 kg: about 14 km/h on land; the strongest bite measured (saltwater crocodile about 3,700 psi,
+      // Erickson et al. 2012); swimming is not modelled
+      [RC.crocodile]: { id: RC.crocodile, name: 'Crocodile', bodyTypeId: BT.quadruped, hpMultiplier: 3.2, intelligence: 'unintelligent', ageStages: AGES.crocodile,
+        speed: { walk: 0.5, run: 3.9 },
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.8, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash')],
+        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE }, // AB13 a: bony scales (osteoderms)
+        innatePerks: [], innateQuirks: [], tags: [] },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     // gear classes (GC): the class sets which skill an item asks for; its level sets how much (EQUIP_NEED)

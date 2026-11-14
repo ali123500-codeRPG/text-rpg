@@ -22,7 +22,9 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-k { color: var(--faint); font-weight: 500; }
 .lv-v { min-width: 0; overflow-wrap: anywhere; }
 .lv-sub { display: grid; gap: var(--space-1); }
-.lv-sub .lv-row { grid-template-columns: 104px minmax(0, 1fr); }
+/* nested rows share one key column sized to their own keys, so a box inside a box keeps room for its values */
+.lv-sub:has(> .lv-row) { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); column-gap: var(--space-3); }
+.lv-sub > .lv-row { display: contents; }
 .lv-plist { display: grid; gap: var(--space-1); }
 .lv-part b { font-weight: 600; }
 .lv-bits { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); color: var(--muted); font-size: 12px; }
@@ -223,7 +225,6 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .lv-scartag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--danger); }
 .lv-pop-body .lv-face, .lv-pop-body .lv-gist { display: none; }
 .lv-pop-body .lv-card.lv-toned { box-shadow: none; }
-@media (prefers-reduced-motion: reduce) { .lv-track > .lv-medal { transition: none; } .lv-track > .lv-medal:hover { transform: none; } }
 .lv-grid.lv-track > .lv-card.lv-medal { grid-row: auto; align-self: stretch; }
 
 /* Rail groups: Library, Rules and World each carry a colour; the group's label is a tinted band in it, so the breaks stand out at first glance */

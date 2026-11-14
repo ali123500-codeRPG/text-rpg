@@ -164,7 +164,7 @@ export const cowerOrder = (actorId: string, source: Order['source']): Order => (
 /** BF37: the order a broken nerve leaves: the blocked parts taken away (the move, an attack, a perk move), the rest kept
  * (its words, gear and an allowed action); nothing allowed left, it cowers. `blocked` says whether anything was taken. */
 export function nerveHolds(o: Order): { order: Order; blocked: boolean } {
-  const { move: _m, moveAfter: _ma, moveSpot: _ms, jump: _j, vanish: _v, perkMove: _pm, pace: _p, ...rest } = o;
+  const { move: _m, moveAfter: _ma, moveSpot: _ms, jump: _j, vanish: _v, perkMove: _pm, ...rest } = o;
   const cry = o.perkMove && NERVE_ALLOWED_PERK_MOVES.includes(o.perkMove.perk) ? { perkMove: o.perkMove } : {};
   const kept: Order = { ...rest, ...cry };
   const blocked = !!o.move || (!!o.perkMove && !cry.perkMove) || !!o.vanish || NERVE_BLOCKED.includes(o.type);

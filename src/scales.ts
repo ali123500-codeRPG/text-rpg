@@ -177,9 +177,6 @@ export type RoadLengthKey = (typeof ROAD_LENGTHS.keys)[number];
 /** TV4 how dangerous a road is, safest first; the encounter chance per hour of each is CONFIG.ROAD_ENCOUNTER_PCT */
 export const ROAD_DANGERS = scale([['safe', 'safe'], ['quiet', 'quiet'], ['wild', 'wild'], ['dangerous', 'dangerous']]);
 export type RoadDangerKey = (typeof ROAD_DANGERS.keys)[number];
-/** TV2 travel paces, slowest first; each is a share of the walking speed (CONFIG.TRAVEL_PACE_SHARE) */
-export const TRAVEL_PACES = scale([['slow', 'slow'], ['normal', 'normal'], ['fast', 'fast']]);
-export type TravelPaceKey = (typeof TRAVEL_PACES.keys)[number];
 
 /** Skill tiers: a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);

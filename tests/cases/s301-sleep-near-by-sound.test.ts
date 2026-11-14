@@ -1,6 +1,6 @@
 // 301 CS20: a sleeper's "near" is a sound rule, never a zone. Someone hostile is near a sleeper when their steps reach it
 // (their movement sound, a sneaker's at its sneaking noise, carried as for a listener awake: metres, walls and doors).
-// Light Sleeper rolls only against those; the player's night stops only for those.
+// A sleeper's hearing check (every sleeper sleeps light) rolls only against those; the player's night stops only for those.
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
@@ -9,6 +9,7 @@ import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { fallAsleep, hostilesNear, wakeCheck, wakeChecksNear } from '../../src/engine/sleep';
 import { distM } from '../../src/engine/position';
+import { SK } from '../../src/library/skillIds';
 
 // the village's fields are 40 m squares side by side: field_edge spans x 50..90, field_mid x 90..130
 const Y = -13.872983346207416;
@@ -17,7 +18,6 @@ const setUp = () => {
   const g = s.actors.find((a) => a.id === 'guard_1')!;
   (g.mind!.overrides ??= {}).player = 'hostile';
   s.player.pos = { x: 91, y: Y };
-  s.player.core.perks.push({ perkId: PK.light_sleeper, source: 'level', gainedTurn: 0 });
   fallAsleep(s, s.player, now(s) + 480);
   return { s, g };
 };
@@ -55,5 +55,35 @@ describe('301 sleepers hear who is near by sound, not by zone', () => {
     put(s, g, 'field_edge', 88);
     wakeCheck(s, s.player, g, 'quiet', createRng(1));
     expect(s.log.find((l) => l.code === 'wake_check')!.detail).toMatchObject({ sneaking: true });
+  });
+  // BG-249: wake checks learn like any other roll
+  it('a Light Sleeper\'s hearing check against open steps marks its Earshot', () => {
+    const { s, g } = setUp();
+    s.player.core.skills[SK.earshot] = { raw: 50, state: 'normal' };
+    CONFIG.WAKE_GRADE.quiet = 'moderate'; // 50: inside Earshot 50's learning window, passed or not
+    put(s, g, 'field_edge', 88);
+    wakeCheck(s, s.player, g, 'quiet', createRng(1));
+    expect(s.player.progression!.marks).toContain(SK.earshot);
+  });
+  it('a Light Sleeper\'s contest against a sneaker marks its Earshot', () => {
+    const { s, g } = setUp();
+    s.player.core.skills[SK.earshot] = { raw: 50, state: 'normal' };
+    g.core.skills[SK.sneaking] = { raw: 50, state: 'normal' };
+    g.posture = 'stealthy';
+    put(s, g, 'field_edge', 88);
+    wakeCheck(s, s.player, g, 'quiet', createRng(1));
+    expect(s.player.progression!.marks).toContain(SK.earshot);
+  });
+  it('the player sneaking past a Light Sleeper learns Sneaking from the contest', () => {
+    const { s, g } = setUp();
+    delete s.player.asleep;
+    s.player.core.skills[SK.sneaking] = { raw: 50, state: 'normal' };
+    s.player.posture = 'stealthy';
+    g.core.skills[SK.earshot] = { raw: 50, state: 'normal' };
+    put(s, g, 'field_edge', 88);
+    fallAsleep(s, g, now(s) + 480);
+    wakeCheck(s, g, s.player, 'quiet', createRng(1));
+    expect(s.log.find((l) => l.code === 'wake_check')!.detail).toMatchObject({ actorId: 'guard_1', sneaking: true });
+    expect(s.player.progression!.marks).toContain(SK.sneaking);
   });
 });

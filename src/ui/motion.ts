@@ -2,27 +2,8 @@
 // change from what the screen showed before a turn to what it shows now. Every element is drawn in its final state first
 // and the animation plays on top of it (M-74), so finishing, skipping or a failed animation always leaves the right state
 // (M-73). Durations come from the --m-* tokens in styles.css (M-50) and from what is on screen, never from how long the
-// turn took or which agents ran (M-03). Motion off (the system's reduced-motion setting or the Motion switch) means
-// nothing moves: values land at once and only their colour marks the change (M-72).
-
-const KEY = 'motion'; // per viewer: 'on' or 'off'; unset follows the system setting
-const sysCalm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-const stored = (): string | null => { try { return localStorage.getItem(KEY); } catch { return null; } };
-
-/** BF66: what decides motion in this browser: the Motion switch ('on', 'off', or null: unset) and the system's reduce-motion setting */
-export const motionSettings = () => ({ switch: stored(), systemReduce: sysCalm(), on: motionOn() });
-/** whether motion is on: the viewer's Motion switch, else the system setting */
-export const motionOn = (): boolean => { const v = stored(); return v ? v === 'on' : !sysCalm(); };
-/** the Motion switch; also finishes anything still moving so turning it off never leaves a value half-way */
-export function setMotion(on: boolean): void {
-  try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch { /* kept for this page only */ }
-  finishAll();
-  applyMotion();
-}
-/** the root's calm class turns CSS transitions and keyframe animations off as well (styles.css) */
-export function applyMotion(): void {
-  if (typeof document !== 'undefined') document.documentElement.classList.toggle('calm', !motionOn());
-}
+// turn took or which agents ran (M-03). Motion always plays: the game has no Motion switch and does not follow the
+// system's reduced-motion setting (M-72).
 
 /** a duration token in ms ('--m-beat' → 220); inside paced(), durations are stretched by its factor (unitless tokens are not) */
 let pace = 1;
@@ -55,7 +36,7 @@ export function measured<T>(fn: () => T): T {
   dry = true;
   try { return fn(); } finally { dry = was; }
 }
-const canAnimate = (el: Element | null | undefined): el is HTMLElement => !dry && !!el && typeof (el as HTMLElement).animate === 'function' && motionOn();
+const canAnimate = (el: Element | null | undefined): el is HTMLElement => !dry && !!el && typeof (el as HTMLElement).animate === 'function';
 
 /** one animation on top of an element's final state; before its delay the first frame holds (fill backwards) */
 export function play(el: Element | null | undefined, frames: Keyframe[], o: { dur: number; delay?: number; exit?: boolean; pseudo?: string; done?: () => void }): void {
@@ -248,7 +229,7 @@ export function shake(els: (HTMLElement | null | undefined)[], amount: number, d
 
 /** a step that only moves the view (a scroll) at its time; skipping drops it, since the final state never depends on it */
 export function later(fn: () => void, delay: number): void {
-  if (dry || !motionOn()) return;
+  if (dry) return;
   const r: Running = { finish: () => { clearTimeout(timer); running.delete(r); } };
   const timer = setTimeout(() => { running.delete(r); fn(); }, delay);
   running.add(r);

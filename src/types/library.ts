@@ -135,8 +135,6 @@ export type BodyType = {
   naturalAttacks: AttackMode[];
   parts: PartDef[];
   fallback: { attackSkill: string };
-  /** RD7 base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both (engine/speed) */
-  speed: { walk: number; run: number };
   /** FT12: × the sleep debt each hour awake adds (left out = 1; 0 = never needs sleep, still feels strain) */
   sleepNeed?: number;
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
@@ -423,6 +421,9 @@ export type FearDef = { id: string; name: string; cost: number; rolled: boolean;
 export type RaceDef = {
   id: string; name: string; bodyTypeId: string; hpMultiplier: number;
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
+  /** RD7, AB1 c: base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both
+   * (engine/speed). On the race, not the body type: one Quadruped shape serves a dog and a tiger */
+  speed: { walk: number; run: number };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
   playable?: true; // CC7 a: the player can pick this race on the creation screen

@@ -50,7 +50,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
-import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, usableModes } from '../ruleset/gear';
+import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, pieceName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -102,7 +102,7 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
-    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name, ...containerOf(state, i, viewer) })), // SE8
+    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
     ...furnitureView(state, z.id),
   };
 }
@@ -125,7 +125,7 @@ function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: 
   const key = viewer && i.lock && viewer.core.inventory.some((k) => k.opens?.includes(i.id)) ? { key: true as const } : {};
   const shows = !viewer || i.open;
   return { container: { ...(i.open ? { open: true as const } : { shut: true as const }), ...(itemDef(state, i.itemId).container?.fixed ? { fixed: true as const } : {}), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
-    ...(shows ? { contents: inside.map((c) => ({ id: c.id, name: itemDef(state, c.itemId).name, ...(itemDef(state, c.itemId).stackable ? { qty: c.qty ?? 1 } : {}) })) } : {}) } };
+    ...(shows ? { contents: inside.map((c) => ({ id: c.id, name: pieceName(state, c), ...(itemDef(state, c.itemId).stackable ? { qty: c.qty ?? 1 } : {}) })) } : {}) } };
 }
 const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));
 
@@ -161,7 +161,7 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
     const d = itemDef(state, i.itemId);
     const classes = [...new Set((d.weapon?.modes ?? []).map((m) => m.class))];
     return {
-      id: i.id, itemId: i.itemId, name: d.name, look: d.look, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
+      id: i.id, itemId: i.itemId, name: pieceName(state, i), look: d.look, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
       modes: (d.weapon?.modes ?? []).map((m) => ({ id: m.id, name: modeName(m) })),
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
@@ -180,11 +180,11 @@ function seenGear(state: GameState, a: Actor, revealed: string[], viewerId?: str
     const slot = i.equippedIn?.[0];
     const d = itemDef(state, i.itemId);
     const mine = viewerId && i.stolenFrom === viewerId ? { stolenFromYou: true as const } : {}; // FL6: its owner knows it on sight
-    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried', ...mine }); continue; }
+    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: pieceName(state, i), look: d.look, where: 'carried', ...mine }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
     const where = isGripSlot(slot) ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : isAccSlot(slot) && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
     // CT5/CT7: a worn pack shows; once opened (its wearer downed or yielded), what it holds shows in it
-    if (where) out.push({ id: i.id, name: d.name, look: d.look, where, ...mine, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
+    if (where) out.push({ id: i.id, name: pieceName(state, i), look: d.look, where, ...mine, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
   }
   return out;
 }
@@ -322,6 +322,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
+    ...(e.impact ? { impact: e.impact } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
     ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor(viewer) } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
     ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
@@ -367,10 +368,10 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
     if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
-      const d = f.data as { metres: number; minutes: number; pace: string; night: boolean; stop: string };
+      const d = f.data as { metres: number; minutes: number; night: boolean; stop: string };
       const km = distText(d.metres);
       const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
-      out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
+      out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)}${d.night ? ' through the dark' : ''}${stop}`);
     }
     if (f.kind === 'part_state_changed') {
       const to = f.data.to as PartState;
@@ -662,6 +663,8 @@ function agreementViews(state: GameState, viewerId: string): AgreementView[] {
 export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): string | null {
   if (['hold', 'idle', 'wait', 'rest', 'sleep', 'presence'].includes(e.kind)) return null;
   const v = eventView(state, viewer, e);
+  // BG-251: a missile landing shows where it struck, never who sent it
+  if (e.kind === 'impact') return `${v.level === 'full' ? 'saw' : 'heard'} something shot or thrown strike ${e.actorId === viewer.id ? 'beside you' : v.level === 'full' ? `by ${callName(state, viewer.id, e.actorId)}` : 'nearby'}${v.where ? ` ${v.where}` : ''}`;
   if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
@@ -761,6 +764,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(full && e.spar ? { spar: true as const } : {}),
+    ...(e.impact ? { impact: e.impact } : {}),
       ...(e.push?.listener === me && pressedWords(e, p) ? { pressed: pressedWords(e, p) } : {}),
       ...(e.overheard?.includes(me) ? { overheard: tellFor(p) } : {}), // LI5a
       ...(item ? { item } : {}),

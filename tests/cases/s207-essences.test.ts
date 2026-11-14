@@ -33,13 +33,14 @@ describe('207 essences', () => {
   });
 
   it('the quality roll: d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural edges included', () => {
-    expect(qualityRoll(dice(69), 60)).toBeNull(); // Near Miss
-    expect(qualityRoll(dice(70), 60)).toEqual({ grade: 'common', past: 0 });
-    expect(qualityRoll(dice(95), 60)).toEqual({ grade: 'fine', past: 0 });
-    expect(qualityRoll(dice(96), 60)).toEqual({ grade: 'rare', past: 0 }); // a natural high lifts Great to Critical
+    const base = CONFIG.ESSENCE_ROLL_NEEDED - 70; // margin = d100 − 70
+    expect(qualityRoll(dice(69), base)).toBeNull(); // Near Miss
+    expect(qualityRoll(dice(70), base)).toEqual({ grade: 'common', past: 0 });
+    expect(qualityRoll(dice(95), base)).toEqual({ grade: 'fine', past: 0 });
+    expect(qualityRoll(dice(96), base)).toEqual({ grade: 'rare', past: 0 }); // a natural high lifts Great to Critical
     // CS13: a natural high on a Critical Success is a step past it, one grade more; the base alone tops at Critical Success
-    expect(qualityRoll(dice(90), 200)).toEqual({ grade: 'rare', past: 0 });
-    expect(qualityRoll(dice(96), 200)).toEqual({ grade: 'epic', past: 0 });
+    expect(qualityRoll(dice(90), base + 140)).toEqual({ grade: 'rare', past: 0 });
+    expect(qualityRoll(dice(96), base + 140)).toEqual({ grade: 'epic', past: 0 });
   });
 
   it('a notable foe beaten offers once, ever, an essence from its template list (EN4); points come from its skills', () => {
@@ -50,8 +51,8 @@ describe('207 essences', () => {
     offersFromDefeats(s, [slain(foe)], dice(1, 100)); // appears on 1, quality 100
     expect(offers(s)).toHaveLength(1);
     const o = offers(s)[0];
-    expect(o).toMatchObject({ essence: ES.gel_patience, grade: 'rare', source: 'foe', untilMin: now(s) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 });
-    // source skill = (60 × 2 + 30 × tremor tier × 1) ÷ 3, × 0.07 × 2.5, split 2 : 1
+    expect(o).toMatchObject({ essence: ES.gel_patience, grade: 'epic', source: 'foe', untilMin: now(s) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 });
+    // source skill = (60 × 2 + 30 × tremor tier × 1) ÷ 3, × 0.07 × 4 (a natural 100 lifts the Critical Success one grade), split 2 : 1
     const total = Object.values(o.points).reduce((n, v) => n + v, 0);
     expect(total).toBeGreaterThan(0);
     expect(o.points[SK.unarmed_natural]).toBeGreaterThanOrEqual(o.points[SK.tremor] ?? 0);

@@ -25,6 +25,7 @@ describe('80 Aim is code-set', () => {
     const guard = game.gm().state!.actors.find((a) => a.id === 'guard_1')!;
     guard.core.skills[SK.parry] = { raw: 50, state: 'normal' };
     guard.core.standingDefense = 'parry';
+    game.gm().state!.player.core.skills[SK.resolve] = { raw: 100, state: 'normal' }; // nerve holds for the three turns, whatever the dice
     // turn 1: the Parser claims aimed at no part (a top-level claim too); no toggle -> not aimed
     claude.push('parser', { ...attack({ aimed: true, targetPart: null }), aimed: true }).pushResponse({ agent: 'narrator', response: narrateAll('You swing.') });
     await game.submit('I aim at his head', { aimed: false });

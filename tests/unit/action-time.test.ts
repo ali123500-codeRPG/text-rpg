@@ -20,15 +20,15 @@ describe('the Action times table', () => {
       for (const b of r.onBreak ?? []) expect(b.upTo).toBeLessThanOrEqual(1);
     }
   });
-  it('AT72: an engagement ends after the slowest attack cycle (span a crossbow and shoot it) plus one round', () => {
-    expect(engagementEndS()).toBe(actionRow(DU.span_crossbow)!.seconds + actionRow(DU.crossbow_shot)!.seconds + CONFIG.ROUND_S);
-    expect(engagementEndS()).toBe(33);
+  it('AT72: an engagement ends after the slowest attack cycle (span a stirrup crossbow and shoot it) plus one round', () => {
+    expect(engagementEndS()).toBe(actionRow(DU.span_stirrup)!.seconds + actionRow(DU.crossbow_shot)!.seconds + CONFIG.ROUND_S);
+    expect(engagementEndS()).toBe(13); // 33 s until the heavy crossbow's 28 s spanning went (TP6 f)
   });
   it('D-248: a row naming a speed function halves every N points above 50; one naming none ignores skill', () => {
     const pick = actionRow(DU.pick_lock)!;
-    expect(actionSeconds(pick)).toBe(60);
-    expect(actionSeconds(pick, 50 + pick.speed!.halving)).toBe(30);
-    expect(actionSeconds(actionRow(DU.bandage)!, 200)).toBe(40);
+    expect(actionSeconds(pick)).toBe(30);
+    expect(actionSeconds(pick, 50 + pick.speed!.halving)).toBe(15);
+    expect(actionSeconds(actionRow(DU.bandage)!, 200)).toBe(20);
     expect(actionSeconds(actionRow(DU.blow)!, 50, 2)).toBe(6); // the time factor multiplies
   });
   it('AT10: a healing draught heals by its own row, 25% of health and parts up to Damaged', () => {

@@ -38,7 +38,7 @@ export type Actor = {
   asleep?: { since: number; until?: number };
   wokeAt?: number; // NW20: the game minute it last woke; it falls asleep again only FALL_ASLEEP_MIN after
   /** AT20: main and move seconds left after its last finished action, carried into the next turn only (`turn` they came from) */
-  carry?: { main: number; move: number; turn: number };
+  carry?: { main: number; move: number; turn: number }[]; // AT20/TP4: carried time, one entry per turn it was left over in
   /** AT58: the reaction rolled when the actor's fight started (seconds, the initiative total that breaks ties), and the last
    * fight turn it counted in: a fight turn after a turn without one rolls again */
   react?: { s: number; init: number; turn: number };

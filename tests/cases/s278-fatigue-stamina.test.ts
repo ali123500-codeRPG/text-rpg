@@ -3,6 +3,7 @@
 // drains first by the effort tier every action names (no roll), spills at half, and comes back by catching your breath,
 // resting and sleeping. Sleep lasts until rested. Debt that fills the bar puts you to sleep; spill that fills it leaves you
 // Spent. Stamina is the third Fortitude skill, its own group at quarter XP, marked per 50 strain of any effort (FB6).
+import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { makeVillage } from '../harness';
@@ -54,11 +55,18 @@ describe('278 fatigue and stamina', () => {
     expect(barMax(s.player)).toBe(CONFIG.STAMINA_BASE);
     payStrain(s, s.player, 'hard', 30); // 60 strain on a 50-point line
     expect(lineUsed(s.player)).toBe(lineMax(s.player));
-    expect(fatigueOf(s.player).debt).toBeCloseTo(10 * CONFIG.SPILL_SHARE);
+    expect(fatigueOf(s.player).debt).toBeCloseTo(10 * CONFIG.SPILL_SHARE + 60 * CONFIG.STRAIN_RESIDUE); // SR4: a tenth of all 60 stays
     const m = quiet();
     m.player.core.inventory = m.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
     payStrain(m, m.player, 'moderate', 4);
     expect(lineUsed(m.player)).toBe(4);
+  });
+
+  it('SR4: every strain point also leaves STRAIN_RESIDUE of itself in the long term, even when the line holds it', () => {
+    const s = quiet();
+    payStrain(s, s.player, 'hard');
+    expect(lineUsed(s.player)).toBeCloseTo(CONFIG.STRAIN_COST.hard);
+    expect(fatigueOf(s.player).debt).toBeCloseTo(CONFIG.STRAIN_COST.hard * CONFIG.STRAIN_RESIDUE);
   });
 
   it('FT25 check: a blow and a defence every 3 s (2.5 a round) empties the line in 1 min at Stamina 0, 2 at 50, 3 at 100', () => {
@@ -121,7 +129,7 @@ describe('278 fatigue and stamina', () => {
     sleepDebtFor(s, 3);
     const t0 = now(s);
     play(s, { intent: intent({ action: { type: 'sleep' } }) });
-    expect(now(s) - t0).toBe(3 * 60 + 1);
+    expect(now(s) - t0).toBe(3 * 60 + actionRow(DU.action)!.seconds / 60);
     expect(fatigueOf(s.player).debt).toBeLessThan(0.1); // only the turn's own awake minute since
     const r = quiet();
     r.player.core.condition.fatigue = { debt: 0, line: 40 };

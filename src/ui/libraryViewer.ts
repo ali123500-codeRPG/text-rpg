@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, RoutineSet, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
@@ -15,7 +15,7 @@ import { modTotal, stackType } from '../ruleset';
 import { stackWeight } from '../ruleset/stacking';
 import { equations } from '../ruleset/equations';
 import { benefits, itemValue } from '../ruleset/value';
-import { fnSkills, kitBonus, modeName, modeReach, standInShare, standInTable } from '../ruleset/gear';
+import { effectValue, fnSkills, kitBonus, modeName, modeReach, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
@@ -38,7 +38,7 @@ import { skillName } from './creation';
 import { ALL_BUNDLES } from '../library/allPerks';
 import { classFloors, presetPersonality, rankName, templateLevel, templateLoadout, templatePerks, templateRank, templateSkills } from '../library/spawn';
 import { partName } from './healing';
-import { SENSE_SKILL, SK } from '../library/skillIds';
+import { ROLLED_SKILL, SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { classMaxLevel, creationPoints, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
@@ -136,6 +136,7 @@ function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   return Object.entries(table).map(([id, e]) => {
     const title = String(e.name ?? e.label ?? e.brief ?? e.look ?? label(id));
     if (sec === 'npcRoles' || sec === 'themes') return layerCard(sec, id, e, title);
+    if (sec === 'routineSets') return routineSetCard(id, e as unknown as RoutineSet, title);
     if (sec !== 'templates') return card(sec, id, e, title, [], ...fields(e, ['id', 'name']));
     const t = e as unknown as NpcTemplate;
     const skills = templateSkills(t);
@@ -152,6 +153,13 @@ const templateHead = (t: NpcTemplate): HTMLElement[] => [
   row('Role', t.roleId ? link('npcRoles', t.roleId, lib.npcRoles?.[t.roleId]?.name ?? t.roleId) : none('none')),
   row('Theme', t.themeId ? link('themes', t.themeId, lib.themes?.[t.themeId]?.name ?? t.themeId) : none('none')),
 ];
+/** RT: a routine set: one line per slot (its hint, then zone or route and whether it may stay unbound), its routines as
+ * links, the first being the default */
+function routineSetCard(id: string, d: RoutineSet, title: string): HTMLElement {
+  const slots = Object.entries(d.slots).map(([k, v]) => row(label(k), `${v.hint} `, h('span', { class: 'lv-none' }, `(${[v.kind, ...(v.optional ? ['optional'] : [])].join(', ')})`)));
+  return card('routineSets', id, d, title, [], ...fields(d as unknown as Entry, ['id', 'name', 'brief', 'slots', 'routines']),
+    ...slots, row('Routines', h('span', {}, ...d.routines.flatMap((r, i) => [i ? ', ' : '', link('routines', r, label(r)), i === 0 ? ' (default)' : '']))));
+}
 /** NG14: a role's or theme's personality lean: only the parts it sets (a later layer wins per axis) */
 const leanText = (l?: PersonalityLean) => {
   const sg = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
@@ -205,8 +213,8 @@ const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essentia
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
 function effectParts(e: ItemEffect, def?: ItemDef): [string, string[]] {
-  const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : skillName(String(e.skill))) : `${e.roll} rolls`;
-  const v = e.kit && def ? kitBonus(def, e) : e.value; // a kit piece: EQUIP_FACTOR × its need, as the game reads it
+  const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : e.skill === ROLLED_SKILL ? 'one skill, rolled for each piece when it comes into being (any tier 2 skill; common trees weigh more)' : skillName(String(e.skill))) : `${e.roll} rolls`;
+  const v = def ? effectValue(def, e) : e.value; // a kit piece: EQUIP_FACTOR × its need; an accessory: ACCESSORY_FACTOR × its level's need (AX1)
   return [`${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what}`, [ACTIVE[e.active], ...(e.scope === 'withItem' ? ['with this item only'] : []), ...(e.kit ? ['kit'] : [])]];
 }
 /** a multi-part value as one line: the lead in full, the rest as quiet aligned bits (no " · " strings) */
@@ -508,12 +516,13 @@ function races(): HTMLElement[] {
         row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
+        r.speed ? row('Speed', `walk ${r.speed.walk} m/s · run ${r.speed.run} m/s`) : null,
         r.naturalAttacks?.length ? row('Own natural attacks', val(r.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`))) : null,
         r.naturalArmor ? row('Natural armor', val(r.naturalArmor)) : null,
         r.fallback ? row('Fallback attack', skillName(r.fallback.attackSkill)) : null,
         row('Innate perks', perkList(r.innatePerks)), row('Innate quirks', perkList(r.innateQuirks)),
         row('NPC templates', usedBy((t) => t.raceId === r.id)))),
-      ...fields(r as unknown as Entry, ['id', 'name', 'bodyTypeId', 'hpMultiplier', 'naturalAttacks', 'naturalArmor', 'fallback', 'innatePerks', 'innateQuirks', 'intelligence']));
+      ...fields(r as unknown as Entry, ['id', 'name', 'bodyTypeId', 'hpMultiplier', 'speed', 'naturalAttacks', 'naturalArmor', 'fallback', 'innatePerks', 'innateQuirks', 'intelligence']));
   }))];
 }
 function bodyTypes(): HTMLElement[] {

@@ -24,6 +24,9 @@ import { villageStagePlan } from '../../src/scenario/fixtures';
 import { ageYears } from '../../src/ruleset/age';
 import { CONFIG } from '../../src/config';
 
+/** a quality-roll base whose margin is d100 − 70 whatever ESSENCE_ROLL_NEEDED is */
+const LOW = CONFIG.ESSENCE_ROLL_NEEDED - 70;
+
 /** BG-199: an essence comes only from a death: the player hurt this foe and it lies dead */
 const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { hitByPlayer?: boolean } }>(a: T): T => { a.core.condition.hpLostPct = 200; a.mind!.hitByPlayer = true; return a; };
 
@@ -126,9 +129,9 @@ describe('272 echo uniques', () => {
   });
 
   it('HF29 a: a beaten echo always offers an essence; its quality roll is two tiers up and never below Common', () => {
-    expect(qualityRoll(dice(1), 60, undefined, true)).toEqual({ grade: 'common', past: 0 }); // Critical Failure: floor
-    expect(qualityRoll(dice(69), 60, undefined, true)).toEqual({ grade: 'fine', past: 0 }); // Near Miss + 2 = Great Success
-    expect(qualityRoll(dice(96), 60, undefined, true)).toEqual({ grade: 'legendary', past: 0 }); // Critical + 2
+    expect(qualityRoll(dice(1), LOW, undefined, true)).toEqual({ grade: 'common', past: 0 }); // Critical Failure: floor
+    expect(qualityRoll(dice(69), LOW, undefined, true)).toEqual({ grade: 'fine', past: 0 }); // Near Miss + 2 = Great Success
+    expect(qualityRoll(dice(96), LOW, undefined, true)).toEqual({ grade: 'legendary', past: 0 }); // Critical + 2
     const s = makeVillage();
     sendHero(s);
     const e = spawnEcho(s);
