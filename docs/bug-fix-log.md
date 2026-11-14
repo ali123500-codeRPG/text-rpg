@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (PG11 a). The turn's make-out results live in src/perception/madeOut.ts; seenActors counts anyone the viewer made out by sight this turn as seen clearly, for the player and NPCs alike. The player keeps anyone seen clearly named while they stay put and can still be glimpsed (stillGlimpsed in src/perception/sight.ts), the same rule in event perception and in Who's here, in light and dark.
 
-**Fixed by:** [PR #TBD](https://github.com/ali123500-codeRPG/text-rpg/pull/TBD)
+**Fixed by:** [PR #854](https://github.com/ali123500-codeRPG/text-rpg/pull/854)
 
 ## BG-251
 
