@@ -860,7 +860,7 @@ export function prototypeLibrary(): Library {
     // The Action times table (T1, AT1, AT11, AT12): seconds at a time factor of 1, for a skill-50 professional, from the real
     // references on the Action Time pages (action-time/action-time-research.md). FT24/FT25: each row's effort tier pays its
     // strain ([Proposed] placement: Base free actions, words, a drawn weapon, a door, rest, sleep, waiting; Light a look round,
-    // handing over; Moderate bandaging, picking, hiding, armour; Hard a blow, a throw, a bow shot; All-out a Battle Cry;
+    // handing over; Moderate bandaging, picking, hiding, armour; Hard a blow, a throw, any shot; All-out a Battle Cry;
     // crossbow spans are instant at Base, TP8 a). Unset: no movement lock, focus reflex, stop
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
@@ -869,12 +869,13 @@ export function prototypeLibrary(): Library {
       [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', effort: 'base', seconds: 0, focus: 'deep' },
-      // attacks (AT11a-e): a melee or unarmed blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own
+      // attacks (AT11a-e): a melee or unarmed blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own.
+      // TP9 a: one shot time per weapon class, all Hard: light 3 s (light bows), medium 4 s (medium bows), heavy 5 s (crossbows)
       [DU.blow]: { id: DU.blow, name: 'Melee or unarmed blow', effort: 'hard', seconds: 3, attack: true },
       [DU.throw]: { id: DU.throw, name: 'Throw', effort: 'hard', seconds: 3, attack: true, locksMove: true },
-      [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', effort: 'hard', seconds: 5, attack: true, locksMove: true, focus: 'steady' },
-      [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', effort: 'hard', seconds: 6, attack: true, locksMove: true, focus: 'steady' },
-      [DU.crossbow_shot]: { id: DU.crossbow_shot, name: 'Crossbow shot', effort: 'light', seconds: 2, attack: true, locksMove: true, focus: 'steady' },
+      [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', effort: 'hard', seconds: 3, attack: true, locksMove: true, focus: 'steady' },
+      [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', effort: 'hard', seconds: 4, attack: true, locksMove: true, focus: 'steady' },
+      [DU.crossbow_shot]: { id: DU.crossbow_shot, name: 'Crossbow shot', effort: 'hard', seconds: 5, attack: true, locksMove: true, focus: 'steady' },
       // spanning is instant for every crossbow (less realism, TP6 f, TP8 a); the rows stay so a crossbow names its spanning
       [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },
       [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },

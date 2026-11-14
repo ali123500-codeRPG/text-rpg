@@ -368,6 +368,8 @@ const DEFAULTS = {
   /** AT20/TP4: carried time lasts this many turns, and each pool carries at most CARRY_MAX_TURNS fight turns of it */
   CARRY_TURNS: 2,
   CARRY_MAX_TURNS: 2,
+  /** TP10: an engagement or hunt never ends sooner than this many fight turns with no blow (engagementEndS) */
+  ENGAGEMENT_END_MIN_TURNS: 3,
   /** AT46: the most a turn outside a fight lasts, in seconds (as long as the player's order); longer actions, walks, rests
    * and waits run on the world clock instead (AT45) */
   EXPLORE_TURN_S: 30,
