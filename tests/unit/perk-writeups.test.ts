@@ -20,7 +20,7 @@ describe('perk write-ups (story and rules views)', () => {
   it('the 20 milestone picks are in the library; only built ones can be taken', () => {
     resetLibrary();
     const twenties = PERK_WRITEUPS.filter((p) => p.place === '20');
-    expect(twenties).toHaveLength(25); // A1–A17, then A18–A23, Bluff (LI1c) and Overheard (LI5a) for the skills added later
+    expect(twenties).toHaveLength(26); // A1–A17, then A18–A23, Bluff (LI1c), Overheard (LI5a) and Catnap (SS1) for the skills added later
     const L = getLibrary().perks;
     for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: BUILT_PERKS.has(p.id), story: p.story });
     for (const id of BUILT_PERKS) expect(L[id]).toBeDefined(); // no stale ids

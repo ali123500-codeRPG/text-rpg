@@ -309,6 +309,20 @@ const DEFAULTS = {
   SLEEP_ARMOR_MULT: { light: 1, medium: 0.75, heavy: 0.5 } as Record<string, number>,
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
+  /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
+   * to every skill sharing a group (beside the +1). Placeholders */
+  HIGH_PERK_SHARE: 0.05,
+  HIGH_PERK_SPREAD: 0.01,
+  /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
+  CATNAP_SLEEP_HOURS: 1, // SS1 Catnap: a full rest clears the sleep debt this many hours of sleep would
+  FORCED_MARCH_RUN_EFFORT: 'moderate' as EffortKey, // SS3 Forced March: the owner's run pays this tier instead of RUN_EFFORT
+  DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
+  SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
+  BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
+  SECOND_BREATH_PCT: 50, // SS8 Second Breath: once per engagement an emptied line refills to this % of its size
+  HEAVY_SLEEPER_STEPS: 1, // SS10 Heavy Sleeper: noise levels louder than WAKE_NOISE it takes to wake the owner
+  INSOMNIAC_CLEAR: 0.75, // SS11 Insomniac: sleepClear multiplier
+  SHORT_SLEEPER_CLEAR: 1.33, // SS13 Short Sleeper (banked, D-300): sleepClear multiplier
   SLEEP_MAX_HOURS: 24,
   // ---- game clock (T1-T8); how long each action takes is the library's Action times table (durations) ----
   /** AT35/AT74: the round, one exchange of blows: the one lever for short durations (perk marks, per-round limits). A code

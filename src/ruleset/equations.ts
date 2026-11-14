@@ -67,9 +67,9 @@ export function equations(lib: Library): EquationGroup[] {
   return [
     { key: 'skills', title: 'Skills', about: 'What a skill counts for before any roll: true skill, then effective skill.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
-        formula: 'true skill = raw + perk true skill + achievement true skill',
+        formula: 'true skill = flat + shares; flat = raw + perk true skill + achievement true skill + essence points',
         terms: [['raw', 'the points in the skill'], ['perk true skill', `the ${BOOSTS} perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), perks that add to every skill of a function (fnSkill), and linked perks that add to every aura skill (auraSkill, Crushing Presence)`], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
-        notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.'] },
+        notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.', `shares: a ${MILESTONES[5]} perk adds ${CONFIG.HIGH_PERK_SHARE} × its own skill\'s flat true skill to that skill (shareOwn), and ${CONFIG.HIGH_PERK_SPREAD} × it to every skill sharing a group (shareGroup). Shares read flat true skill only, so they never feed each other; several on one skill stack, the largest in full and each next one at ×${CONFIG.STACK_RATIO} more (SH7).`] },
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
         formula: 'effective skill = best of ( true skill + gear ) × share × tier multiplier × age, over the skill and its stand-ins; + augments × age',
         terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab; perks and achievements such as Master of the Moment add to it). A function roll counts every skill with the function at 1 (with the Perception All-150 Every Sense One, a sight or hearing roll counts the skills of both).`],

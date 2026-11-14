@@ -27,7 +27,7 @@ export function personalityOf(a: Actor): Personality {
     for (const [k, v] of Object.entries(x ?? {})) if (k === 'nerve') out.nerve += v; else out.traits[k] = (out.traits[k] ?? 0) + v;
   };
   const lib = getLibrary();
-  for (const p of a.core.perks) add(lib.perks[p.perkId]?.personality);
+  for (const p of a.core.perks) if (!p.dormant) add(lib.perks[p.perkId]?.personality); // PN6: a dormant perk adds none
   for (const c of a.core.classes) if (c.state === 'current') add(lib.classes[c.classId]?.personality);
   for (const x of currentAchievements(a)) for (const e of chainRewards(x.d)) {
     if (e.field === 'personality') add(e.from.personality);

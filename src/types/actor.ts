@@ -76,7 +76,7 @@ export type Actor = {
 
 /** a perk's lasting effect: target is the actor it names (an opening on that foe); made: the turn a timed mark was made (it
  * lasts PERK_MARK_ROUNDS rounds of game time from then); none: until used */
-export type PerkMark = { perk: string; target?: string; made?: number };
+export type PerkMark = { perk: string; target?: string; made?: number; /** the tier shift it gives, when not 1 (LR2 Combination) */ value?: number };
 
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
@@ -259,6 +259,8 @@ export type NpcTemplate = {
   fallback?: { attackSkill: LibraryRef }; // overrides the body type's (Fallback behavior)
   /** perks every NPC made from this template has (any patrolling template has Keen Ear) */
   perks?: LibraryRef[];
+  /** SS12: for each tag, every NPC made from it rolls one quirk carrying that tag (PerkDef.tags) */
+  quirkTags?: string[];
   /** CH5: how far NPCs made from it chase the player when their band names no range */
   chase?: import('../scales').ChaseRange;
   /** AG13: the life stages NPCs made from it are drawn from; left out = CONFIG.NPC_AGE_STAGES */

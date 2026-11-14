@@ -262,6 +262,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The speaker's Lying against the owner's answer to a lie (Insight, or the better of Insight and Lying with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
 - **Lasts:** Each lie overheard.
 
+### Catnap (Stamina) · SS1
+
+*Story:* You can sleep anywhere, for a moment, and wake up better for it. A rest also pays back sleep debt, as much as an hour of real sleep would.
+
+- **Kind:** Always on
+- **Trigger:** The owner rests (the Rest long action).
+- **Effect:** Besides refilling the short-term line, the rest clears sleep debt as 1 hour of sleep would there (the Sleep row's share of max an hour, × the spot, worn armour and sleep perks; CONFIG.CATNAP_SLEEP_HOURS, placeholder), by the share of the rest's hour that ran.
+- **Lasts:** Each rest.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
@@ -388,6 +397,33 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** Always.
 - **Effect:** +5 true skill in Earshot. +1 true skill in every skill of group Notice. +10 true skill in Sneaking.
+- **Lasts:** Always.
+
+### Iron Lungs (Stamina) · SS2
+
+*Story:* +5 Stamina, +1 Stamina. A body that keeps going learns to take punishment: +10 Endurance.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Stamina. +1 true skill in every skill of group Stamina. +10 true skill in Endurance.
+- **Lasts:** Always.
+
+### Deep Lungs (Stamina) · SS4
+
+*Story:* +5 Stamina, +1 Stamina. You breathe deeper than other people: your short-term stamina is half again as large.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Stamina. +1 true skill in every skill of group Stamina. The owner's short-term line is ×1.5 its size (CONFIG.DEEP_LUNGS_LINE, placeholder), before the fatigue level bands shrink it.
+- **Lasts:** Always.
+
+### Bottomless (Stamina) · SS6
+
+*Story:* +5% Stamina, +1 and +1% Stamina. Effort that would empty anyone else barely touches you: every strain you pay is halved.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5% of the owner's true Stamina (HIGH_PERK_SHARE, placeholder) as true skill in Stamina. +1 true skill, and +1% of the owner's true Stamina (HIGH_PERK_SPREAD, placeholder), in every skill of group Stamina. Shares read true skill without shares; several on one skill stack (the second and later at half). Every strain cost the owner pays is ×0.5 (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.
 - **Lasts:** Always.
 
 ## Higher milestone
@@ -621,6 +657,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner is told plainly that the speaker is lying, instead of the hint that something doesn't sit right.
 - **Lasts:** Each lie seen through.
 
+### Forced March (Stamina) · SS3
+
+*Story:* You run the way others walk. A run costs you Moderate effort instead of Hard, and a legion's march would leave you ready to fight.
+
+- **Kind:** Always on
+- **Trigger:** The owner runs (a dash).
+- **Effect:** The run costs the owner the moderate effort tier instead of RUN_EFFORT (Hard) (CONFIG.FORCED_MARCH_RUN_EFFORT), for its strain and for whether a Spent owner may run.
+- **Lasts:** Always.
+- **Open:** Once travel paces get an effort tier, the normal and fast paces should cost the owner no strain (SS3 a).
+
 ## Very high milestone
 
 ### Never Surprised (Earshot) · C1
@@ -692,6 +738,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner's health-track penalty is taken from one level less hurt. Each body part's effective state is one step milder on the part-state scale, by position in the names table: Destroyed counts as Crippled, Crippled as Damaged, Damaged as Healthy. Only penalties change: a Destroyed part is still gone from the hit table.
 - **Lasts:** Always.
 - **Banked as:** an All-X candidate for the Fortitude tree, suggested for All-100
+
+### Sleepless (Stamina) · SS5
+
+*Story:* Eleven days awake, and still on your feet. Hours awake build your sleep debt five times slower than anyone else's.
+
+- **Kind:** Always on
+- **Trigger:** Time passes while the owner is awake.
+- **Effect:** The sleep debt hours awake add is ×0.2 (sleepNeed, CONFIG.SLEEPLESS_NEED, placeholder), with the body type's sleepNeed. Strain that spills past an empty line still fills the bar as usual, and every point of strain still counts toward Stamina's marks.
+- **Lasts:** Always.
 
 ## Banked, no milestone yet
 
@@ -836,6 +891,17 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Always.
 - **Open:** The perception All-50 Night Eyes (T5e) is the one-step version of this; this two-step one is kept for the All-100 after it.
 - **Banked as:** an All-X candidate for the Perception tree, suggested for All-100
+
+### Short Sleeper (Stamina) · SS13
+
+*Story:* Six hours, and you wake as rested as anyone after eight. Your sleep clears your sleep debt a third faster.
+
+- **Kind:** Always on (innate)
+- **Trigger:** The owner sleeps.
+- **Effect:** Sleep clears sleep debt ×1.33 (sleepClear, CONFIG.SHORT_SLEEPER_CLEAR, placeholder), with the spot and armour multipliers.
+- **Lasts:** Always.
+- **Open:** Banked until the lore thread picks the race that is born with it (D-300).
+- **Banked as:** other
 
 ## All-X parts (All-50, All-100, All-150)
 
@@ -1045,6 +1111,18 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Lasts:** Always.
 - **Built:** yes
 
+### Second Breath (Fortitude, Stamina) · SS8
+
+*Story:* Just when your lungs give out, they find more. Once a fight, when your breath runs out, half of it comes back at once.
+
+- **Kind:** Automatic
+- **Trigger:** A strain cost would empty the owner's short-term line.
+- **Conditions:** Once per engagement. The owner is in an engagement.
+- **Effect:** The line refills to 50% at once (CONFIG.SECOND_BREATH_PCT, placeholder) and the rest of the cost is paid from it; no strain spills into sleep debt that time.
+- **Lasts:** Permanent (it is recovery).
+- **Cooldown:** Once per engagement.
+- **Built:** yes
+
 ### Spotter (Perception, passive) · T5b
 
 *Story:* What you see, your people sense. Your band-mates who can hear your call or see your signal know something is there whenever you do.
@@ -1198,3 +1276,44 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Trigger:** The owner has both Dread Presence and Overwhelm.
 - **Effect:** +5 true skill to every aura skill (the skills the game's auras roll: today Intimidation).
 - **Lasts:** While the owner has both perks.
+
+### Ghost Blade (Light weapons) · LR1
+
+*Story:* Strike, fade, strike again. Someone who only half-saw you go is no readier for your blade: once a fight, Hidden Strike also works on a foe who is merely suspicious of you.
+
+- **Kind:** Always on (linked perk)
+- **Trigger:** The owner attacks someone suspicious of the owner (not aware, not unaware).
+- **Conditions:** The owner has both Hidden Strike and Strike and Fade. Once per target per engagement.
+- **Effect:** Tier shift +1 on the attack roll, as Hidden Strike gives on an unaware target.
+- **Lasts:** That attack.
+- **Cooldown:** Once per target per engagement.
+
+### Combination (Strike) · LR2
+
+*Story:* The throw, the punch, the finisher. The opening your follow-up punch makes is twice as wide.
+
+- **Kind:** Always on (linked perk)
+- **Trigger:** One-Two's free Strike leaves a Set Them Up mark.
+- **Conditions:** The owner has both Set Them Up and One-Two.
+- **Effect:** That mark gives tier shift +2 instead of +1 on the owner's next improvised attack on that target.
+- **Lasts:** Until the mark is used or the engagement ends.
+
+### Blind Spot (Vanishing) · LR3
+
+*Story:* The dirt makes its own cover. While a foe is still clawing at its eyes, you can vanish right in front of it.
+
+- **Kind:** Always on (linked perk)
+- **Trigger:** The owner Vanishes in place (Melt Away).
+- **Conditions:** The owner has both Dirt in the Eyes and Melt Away. A foe of the owner has its sight spoiled by Dirt in the Eyes right now.
+- **Effect:** Melt Away needs no cover and no dim light. Each observer still makes its Vanishing contest as usual.
+- **Lasts:** That Vanish.
+
+### Bulwark (Block) · LR4
+
+*Story:* Not while you still stand, and not just against arrows. You step in front of the sword aimed at a friend, too.
+
+- **Kind:** Always on (linked perk)
+- **Trigger:** A melee attack targets an actor friendly to the owner within the owner's grip reach.
+- **Conditions:** The owner has both Shield Wall and Cover Ally. Every Cover Ally condition holds (block standing defense with a shield, a better block than the ally's own defense, switched on).
+- **Effect:** Cover Ally covers the melee attack as it covers missiles: the owner blocks in the ally's place and takes any hit that gets through. Shield Wall keeps the cover from counting toward being outnumbered.
+- **Lasts:** Each attack.

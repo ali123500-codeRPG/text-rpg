@@ -15,7 +15,7 @@ import type { Actor, AttackResult, GameState, PerkMark } from '../types';
 import { itemDef } from '../library';
 import { hasPerk } from '../ruleset/perks';
 import { canBlock, defenseItem, effectiveSkill, parryItem, usableDefense } from '../ruleset/gear';
-import { allActors, isActive, stance, warm } from './relations';
+import { allActors, foe, isActive, stance, warm } from './relations';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
@@ -45,12 +45,13 @@ const SET_UP: Record<string, { leaves: string; uses: string }> = {
   [SK.unarmed_improvised]: { leaves: 'set_up:unarmed_strike', uses: 'set_up:unarmed_improvised' },
 };
 export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean, skill?: string) {
-  const has = (a: Actor, perk: string, target?: string) => !!a.perkMarks?.some((m) => m.perk === perk && m.target === target && live(state, m));
+  const mark = (a: Actor, perk: string, target?: string) => a.perkMarks?.find((m) => m.perk === perk && m.target === target && live(state, m));
+  const has = (a: Actor, perk: string, target?: string) => !!mark(a, perk, target);
   const open = ranged ? PK.hunters_mark : PK.turn_the_blade;
   const dirt = [{ source: MARK_SOURCE[PK.dirt_in_the_eyes], value: -2 }];
   return {
     attack: [...(has(A, open, D.id) ? [{ source: MARK_SOURCE[open], value: 1 }] : []), ...(has(A, PK.dirt_in_the_eyes) ? dirt : []),
-      ...(skill && SET_UP[skill] && has(A, SET_UP[skill].uses, D.id) ? [{ source: MARK_SOURCE[PK.set_them_up], value: 1 }] : [])],
+      ...(skill && SET_UP[skill] && has(A, SET_UP[skill].uses, D.id) ? [{ source: MARK_SOURCE[PK.set_them_up], value: mark(A, SET_UP[skill].uses, D.id)?.value ?? 1 }] : [])],
     defense: [...(has(D, PK.make_them_stumble) ? [{ source: MARK_SOURCE[PK.make_them_stumble], value: -1 }] : []), ...(has(D, PK.dirt_in_the_eyes) ? dirt : [])],
   };
 }
@@ -60,6 +61,11 @@ export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean
 export const bluffed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.bluff && m.made !== undefined && live(state, m));
 /** AT60: the hesitation is spent once waited out */
 export const spendBluff = (a: Actor): void => drop(a, (m) => m.perk === PK.bluff);
+/** Dirt in the Eyes is spoiling this actor's sight right now */
+const blinded = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.dirt_in_the_eyes && live(state, m));
+/** LR3 Blind Spot: the owner may Melt Away with no cover or shade while a foe's sight is spoiled by Dirt in the Eyes */
+export const blindSpotNow = (state: GameState, a: Actor): boolean =>
+  hasPerk(a, PK.blind_spot) && allActors(state).some((x) => x !== a && isActive(x) && foe(state, x, a) && blinded(state, x));
 export const slowed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.leg_bolt && live(state, m));
 
 /** a mark that runs out PERK_MARK_ROUNDS rounds from now (AT74) */
@@ -68,7 +74,7 @@ export function markUntilNextTurn(state: GameState, a: Actor, perk: string): voi
 }
 
 /** after an attack resolves: spend the marks it used, then make the ones it earned */
-export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResult, ranged: boolean, skill?: string): void {
+export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResult, ranged: boolean, skill?: string, oneTwo = false): void {
   const used = (src: string, shifts?: { source: string }[]) => !!shifts?.some((x) => x.source === src);
   for (const perk of [PK.turn_the_blade, PK.hunters_mark]) if (used(MARK_SOURCE[perk], r.attack.tierShifts)) drop(A, (m) => m.perk === perk && m.target === D.id);
   if (used(MARK_SOURCE[PK.make_them_stumble], r.defense?.tierShifts)) drop(D, (m) => m.perk === PK.make_them_stumble);
@@ -76,7 +82,8 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   if (used(MARK_SOURCE[PK.dirt_in_the_eyes], r.defense?.tierShifts)) drop(D, (m) => m.perk === PK.dirt_in_the_eyes);
   const setUp = skill ? SET_UP[skill] : undefined;
   if (setUp && used(MARK_SOURCE[PK.set_them_up], r.attack.tierShifts)) drop(A, (m) => m.perk === setUp.uses && m.target === D.id);
-  if (setUp && hasPerk(A, PK.set_them_up)) add(A, { perk: setUp.leaves, target: D.id }); // on the attempt, hit or miss
+  // on the attempt, hit or miss; LR2 Combination: One-Two's free Strike leaves a +2 mark
+  if (setUp && hasPerk(A, PK.set_them_up)) add(A, { perk: setUp.leaves, target: D.id, ...(oneTwo && hasPerk(A, PK.combination) ? { value: 2 } : {}) });
   if (r.legBolt && hasPerk(A, PK.leg_bolt)) markUntilNextTurn(state, D, PK.leg_bolt);
   const clean = r.gap !== null && r.gap >= 2;
   // A2 Turn the Blade: a clean parry made with a weapon (not barehanded)
@@ -91,12 +98,12 @@ export function expireMarks(state: GameState, a: Actor): void {
 }
 
 /** Cover Ally (A11): an actor within its own grip reach of the target (ZR2), friendly to it, with the perk switched on, standing on block and able
- * to block, whose block beats the target's own standing defense, takes a ranged attack in the target's place. */
-export function coverFor(state: GameState, target: Actor): Actor | undefined {
-  // the target's own defense against a missile: parry can't stop one, so it uses its fallback
-  const own = (a: Actor) => { const t = usableDefense(state, a, true); return effectiveSkill(state, a, DEFENSE_SKILL[t], { itemId: defenseItem(state, a, t)?.id }).value; };
+ * to block, whose block beats the target's own standing defense, takes a ranged attack in the target's place. With Bulwark (LR4) a melee one too. */
+export function coverFor(state: GameState, target: Actor, ranged = true): Actor | undefined {
+  // the target's own defense against this attack: parry can't stop a missile, so it uses its fallback
+  const own = (a: Actor) => { const t = usableDefense(state, a, ranged); return effectiveSkill(state, a, DEFENSE_SKILL[t], { itemId: defenseItem(state, a, t)?.id }).value; };
   const mine = own(target);
-  return allActors(state).filter((c) => c !== target && isActive(c) && withinGrip(state, c, target) && hasPerk(c, PK.cover_ally) && !c.core.perksOff?.includes(PK.cover_ally)
+  return allActors(state).filter((c) => c !== target && isActive(c) && withinGrip(state, c, target) && hasPerk(c, PK.cover_ally) && (ranged || hasPerk(c, PK.bulwark)) && !c.core.perksOff?.includes(PK.cover_ally)
     && warm(stance(state, c, target)) && c.core.standingDefense === 'block' && canBlock(state, c) && own(c) > mine)
     .sort((x, y) => own(y) - own(x) || (x.id < y.id ? -1 : 1))[0];
 }

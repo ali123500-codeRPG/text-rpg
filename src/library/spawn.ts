@@ -109,6 +109,15 @@ export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
   return [...(r?.innatePerks ?? []), ...(r?.innateQuirks ?? [])].map((perkId) => ({ perkId, source: 'race', gainedTurn: turn }));
 }
 
+/** SS12: one quirk rolled for each of the template's quirk tags, seeded by the actor's ID, from the quirks that carry it */
+function tagQuirks(t: NpcTemplate, id: string, turn: number): OwnedPerk[] {
+  const rng = createRng(templateSeed(`${id}:quirks`)), perks = Object.values(getLibrary().perks ?? {});
+  return (t.quirkTags ?? []).flatMap((tag) => {
+    const pool = perks.filter((p) => p.quirk && p.tags?.includes(tag) && !t.perks?.includes(p.id)).map((p) => p.id).sort();
+    return pool.length ? [{ perkId: pool[rng.int(0, pool.length - 1)], source: 'template' as const, gainedTurn: turn }] : [];
+  });
+}
+
 /** AG13, AG14: drawn once from the Weaver's stage or the template's stages, seeded by the actor's ID, and saved */
 function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?: LifeStageKey): { bornDay?: number } {
   const d = rollBornDay(state, t.raceId, stage ? [stage] : t.ageStages, createRng(templateSeed(id)));
@@ -140,7 +149,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       generation: t.generation,
       skills,
       classes: t.classId ? [{ classId: t.classId, state: 'current', level: t.level }] : [],
-      perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 }))],
+      perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 })), ...tagQuirks(t, opts.id, state?.turn ?? 0)],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player

@@ -2,10 +2,12 @@
 // line (strain), both sized from Stamina as HP is from Endurance. The fatigue level is the share of the long term used
 // (CONFIG.FATIGUE_TRACK); it sets the roll penalty and how much of the bar the short line holds. Paying and recovering:
 // src/engine/fatigue.ts.
-import type { Actor, GameState, Mod } from '../types';
+import type { Actor, GameState, Mod, PerkDef } from '../types';
 import { CONFIG } from '../config';
 import { SK } from '../library/skillIds';
-import { itemDef } from '../library';
+import { getLibrary, itemDef } from '../library';
+import { PK } from '../library/perkIds';
+import { hasPerk } from './perks';
 import { FATIGUE_LEVELS, type FatigueLevel } from '../scales';
 import { skillOpen } from './access';
 
@@ -21,8 +23,19 @@ export const fatigueOf = (a: Actor): { debt: number; line: number } => a.core.co
 export const debtPct = (a: Actor): number => (100 * fatigueOf(a).debt) / barMax(a);
 const trackRow = (a: Actor) => { const pct = debtPct(a) + 1e-9; return [...CONFIG.FATIGUE_TRACK].reverse().find(([, from]) => pct >= from)!; };
 export const fatigueLevel = (a: Actor): FatigueLevel => trackRow(a)[0];
-/** FT19/FT22: the short line holds the level's band of the bar */
-export const lineMax = (a: Actor): number => (barMax(a) * trackRow(a)[3]) / 100;
+/** FT19/FT22: the short line holds the level's band of the bar (× Deep Lungs, SS4) */
+export const lineMax = (a: Actor): number => (barMax(a) * trackRow(a)[3] * (hasPerk(a, PK.deep_lungs) ? CONFIG.DEEP_LUNGS_LINE : 1)) / 100;
+/** SS14: the owner's perks' sleepNeed or sleepClear multipliers, stacked by the same-type rule on their distance from ×1 */
+export function perkSleepMult(a: Actor, field: 'sleepNeed' | 'sleepClear'): number {
+  const perks = getLibrary().perks;
+  const ms = a.core.perks.filter((p) => !p.dormant).map((p) => (perks[p.perkId] as PerkDef | undefined)?.[field]).filter((m): m is number => m !== undefined);
+  // the same-type rule (stackType in src/ruleset/index.ts, not imported: that index re-exports this file), on each one's distance from ×1
+  const part = (xs: number[]) => xs.reduce((n, x, i) => n + x * CONFIG.STACK_RATIO ** i, 0);
+  const d = ms.map((m) => m - 1);
+  return Math.max(0, 1 + part(d.filter((x) => x > 0).sort((x, y) => y - x)) + part(d.filter((x) => x < 0).sort((x, y) => x - y)));
+}
+/** SS3: the tier a run (a dash) pays: Forced March makes it Moderate */
+export const runEffort = (a: Actor) => (hasPerk(a, PK.forced_march) ? CONFIG.FORCED_MARCH_RUN_EFFORT : CONFIG.RUN_EFFORT);
 export const lineUsed = (a: Actor): number => Math.min(fatigueOf(a).line, lineMax(a));
 /** FT10: Spent: the bar is full and the actor awake; no action above Light until it is below full */
 export const isSpent = (a: Actor): boolean => fatigueLevel(a) === 'collapsed' && !a.asleep;
