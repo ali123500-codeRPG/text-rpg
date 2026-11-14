@@ -22,8 +22,8 @@ export function checkMap(svg: SVGSVGElement): string[] {
     const z = zones.find((x) => x.id === l.el.dataset.for);
     if (l.el.dataset.placement === 'inside' && z && !inside(l.b, z.b, 6)) out.push(`MAP-20 label ${l.id} does not fit zone ${z.id}`);
   }
-  // MAP-22, MAP-31: labels, tokens and icons must not overlap each other
-  const marks = [...by('label'), ...by('token'), ...by('icon')];
+  // MAP-22, MAP-31: labels, tokens and icons must not overlap each other; a zone's name is a background layer they may sit on (MZ4)
+  const marks = [...by('label').filter((l) => l.el.dataset.layer !== 'back'), ...by('token'), ...by('icon')];
   for (let i = 0; i < marks.length; i++) for (let j = i + 1; j < marks.length; j++) {
     const a = marks[i], b = marks[j];
     if (hit(a.b, b.b)) out.push(`MAP-22/31 ${a.role} ${a.id} overlaps ${b.role} ${b.id}`);

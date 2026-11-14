@@ -9,15 +9,19 @@ import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
 import type { GameState } from '../../src/types';
 import { brokenLayouts, relayBroken } from '../../src/scenario/geometry';
+import { makeFurniture } from '../../src/engine/furniture';
+import { FU } from '../../src/library/tableIds';
 import { noteLeft, noteZonesSeen, visitedZoneIds } from '../../src/engine/trail';
 
+const FURN_INSET = 12; // a furniture icon's radius (9) and its gap from the walls (3)
 const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 const inside = (a: Box, b: Box, pad: number) => a.x0 >= b.x0 + pad && a.x1 <= b.x1 - pad && a.y0 >= b.y0 + pad && a.y1 <= b.y1 - pad;
 
 /** the checkMap rules on the scene's own boxes: what the browser check measures, without a browser */
 function findings(sc: Scene): string[] {
   const out: string[] = [];
-  const marks: [string, Box][] = [...sc.labels.map((l) => [`label ${l.zoneId}`, l] as [string, Box]), ...sc.places.map((p) => [`title ${p.id}`, p.title] as [string, Box]),
+  // zone names are a background layer the marks may sit on (MZ4): only the marks themselves may not overlap
+  const marks: [string, Box][] = [...sc.places.map((p) => [`title ${p.id}`, p.title] as [string, Box]),
     ...sc.exits.map((e) => [`note ${e.id}`, e.note] as [string, Box]), ...sc.tokens.map((t) => [`token ${t.id}`, t] as [string, Box]),
     ...sc.doors.map((d) => [`icon ${d.id}`, d] as [string, Box]), ...sc.stairs.map((s) => [`icon ${s.id}`, s] as [string, Box]), ...sc.furniture.map((f) => [`icon ${f.id}`, f] as [string, Box])];
   for (let i = 0; i < marks.length; i++) for (let j = i + 1; j < marks.length; j++) if (hit(marks[i][1], marks[j][1])) out.push(`MAP-22/31 ${marks[i][0]} overlaps ${marks[j][0]}`);
@@ -125,14 +129,29 @@ describe('labels, doors and exits', () => {
     expect(lock.cy).toBeCloseTo(room.y1); // on the south wall
     expect(sc.used.has('way:locked')).toBe(true);
   });
-  it('MAP-21: a cut name keeps its full name for the tooltip', () => {
+  it('MZ2: a zone name is bold letters inside its box, as large as fit between 4 and 32 px, and takes no room from the marks', () => {
+    const { sc } = sceneOf(stageState('bent-nail'), 1.6);
+    expect(sc.labels.length).toBe(sc.zones.length);
+    for (const l of sc.labels) {
+      const z = sc.zones.find((x) => x.z.id === l.zoneId)!;
+      expect(l.placement).toBe('inside');
+      expect(l.x0).toBeGreaterThanOrEqual(z.box.x0 + 6);
+      expect(l.x1).toBeLessThanOrEqual(z.box.x1 - 6);
+      expect(l.size).toBeGreaterThanOrEqual(4);
+      expect(l.size).toBeLessThanOrEqual(32);
+      expect(l.lines.join(' ')).toBe(l.full);
+    }
+    // a big room gets bigger letters than the 12 px tag it replaces
+    expect(sc.labels.find((l) => l.zoneId === 'tavern.common')!.size).toBeGreaterThan(12);
+  });
+  it('MZ3: a zone too small for 11 px letters shrinks them to stay inside; one too small for any shows its name in its tooltip only', () => {
     const z: MapZone = { id: 'z', placeId: 'p', name: 'a very long name for a tiny cupboard under the stairs', look: '', outdoor: false, here: false, inView: true, height: 0,
-      rect: { x: 0.5, y: 0.5, w: 1, d: 1 }, links: [], people: [], items: [] };
-    const sc = planScene({ zones: [z], every: [z], places: [], k: 1, measure: roughMeasure, awayName: () => undefined });
-    const l = sc.labels[0];
-    expect(l.full).toBe(z.name);
-    expect(l.placement).toBe('outside');
-    expect(l.leader).toBeDefined();
+      rect: { x: 1, y: 1, w: 2, d: 2 }, links: [], people: [], items: [] };
+    const at = (k: number) => planScene({ zones: [z], every: [z], places: [], k, measure: roughMeasure, awayName: () => undefined }).labels;
+    const l = at(2.5)[0];
+    expect(l.size).toBeLessThan(11);
+    expect(l.lines.join(' ')).toBe(z.name);
+    expect(at(0.3)).toEqual([]);
   });
   it('MAP-33: with a record of visits, a zone only seen is drawn apart from one stood in; without it, none is', () => {
     const { m, zones } = sceneOf(stageState('long-names'), 1);
@@ -144,7 +163,53 @@ describe('labels, doors and exits', () => {
   });
 });
 
+describe('BG-216: marks keep their spot in their zone at every zoom', () => {
+  /** each mark's spot as a share of its zone, keyed by its id */
+  const shares = (sc: Scene) => new Map([...sc.tokens, ...sc.stairs, ...sc.furniture].map((m) => {
+    const b = sc.zones.find((x) => x.z.id === m.zoneId)!.box;
+    return [m.id, [(m.cx - b.x0) / (b.x1 - b.x0), (m.cy - b.y0) / (b.y1 - b.y0)]];
+  }));
+  // furniture and stairs never move; you and people step aside only when zoomed so far out that they would cover another mark
+  for (const key of ['bent-nail', 'one-room', 'long-names']) it(`${key}: zooming moves no icon within its zone, and only hides or shows one in place`, () => {
+    const st = stageState(key), top = shares(sceneOf(st, 2.5).sc);
+    expect(top.size).toBeGreaterThan(0);
+    for (const k of [0.6, 0.8, 1, 1.4, 2]) {
+      const sc = sceneOf(st, k).sc;
+      for (const [id] of shares(sc)) expect(top.has(id)).toBe(true);
+      // wherever it is drawn, a mark sits where it sits at the closest zoom, measured inside the room its size leaves
+      const big = sceneOf(st, 2.5).sc, small = sc;
+      for (const m of [...small.furniture, ...small.stairs]) {
+        const r = m.x1 - m.cx, inset = m.id.startsWith('furn:') ? r + 3 : r + 4;
+        const zb = small.zones.find((x) => x.z.id === m.zoneId)!.box, rb = big.zones.find((x) => x.z.id === m.zoneId)!.box;
+        const o = [...big.furniture, ...big.stairs].find((q) => q.id === m.id)!;
+        const share = (v: number, a: number, b: number) => (b - a - 2 * inset > 0 ? (v - a - inset) / (b - a - 2 * inset) : 0.5);
+        if (zb.x1 - zb.x0 - 2 * inset > 0) expect(share(m.cx, zb.x0, zb.x1)).toBeCloseTo(share(o.cx, rb.x0, rb.x1), 6);
+        if (zb.y1 - zb.y0 - 2 * inset > 0) expect(share(m.cy, zb.y0, zb.y1)).toBeCloseTo(share(o.cy, rb.y0, rb.y1), 6);
+      }
+      // nothing dropped at the closest zoom is ever drawn, and every mark is either drawn or hidden in place
+      for (const f of sc.furniture) expect(sc.dropped).not.toContain(f.id.slice(5));
+    }
+  });
+  it('zooming in never hides a mark that shows when zoomed out', () => {
+    const st = stageState('bent-nail'), drawn = (k: number) => new Set(sceneOf(st, k).sc.furniture.map((f) => f.id));
+    const ks = [0.6, 0.8, 1, 1.4, 2, 2.5];
+    for (let i = 1; i < ks.length; i++) for (const id of drawn(ks[i - 1])) expect(drawn(ks[i]).has(id)).toBe(true);
+  });
+});
+
 describe('whole turn', () => {
+  it('BG-216: after a turn, the map\'s furniture sits at the same share of its zone at two zooms', async () => {
+    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+    g.game.state()!.places.flatMap((p) => p.zones).find((z) => z.id === 'tav_common')!.furniture = makeFurniture('tav_common',
+      [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }]);
+    await g.turn(intent({ action: { type: 'wait' } }));
+    const a = sceneOf(g.game.state()!, 1.2).sc, b = sceneOf(g.game.state()!, 2).sc;
+    const where = (sc: Scene, id: string) => { const f = sc.furniture.find((x) => x.id === id)!, z = sc.zones.find((x) => x.z.id === f.zoneId)!.box, i = FURN_INSET;
+      return [(f.cx - z.x0 - i) / (z.x1 - z.x0 - 2 * i), (f.cy - z.y0 - i) / (z.y1 - z.y0 - 2 * i)]; };
+    const both = a.furniture.filter((f) => b.furniture.some((q) => q.id === f.id));
+    expect(both.length).toBeGreaterThan(0);
+    for (const f of both) { const [x1, y1] = where(a, f.id), [x2, y2] = where(b, f.id); expect(x1).toBeCloseTo(x2, 6); expect(y1).toBeCloseTo(y2, 6); }
+  });
   it('after a turn in the village, the map of what the player knows lays out with no mark covering another', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     await g.turn(intent({ action: { type: 'wait' } }));

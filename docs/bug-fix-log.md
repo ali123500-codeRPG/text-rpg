@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-216
+
+**What was wrong:** On the map, the furniture in "behind the counter" sat in different spots at each zoom (Ali's two screenshots), and on the Bent Nail some pieces vanished when zoomed out and came back when zoomed in. Every zoom placed the marks again in screen pixels and pushed them round the zone's name, which sat inside the zone at one zoom and outside on a leader line at another, so the free spots changed.
+
+**What was done:** Ali approved the fix (MZ1-MZ4). Marks inside a zone (furniture, stairs, you, people) are placed once at the closest zoom, and every zoom keeps each at the same share of its zone. Zoomed out, furniture or stairs that would cover another mark hide in their own spot and come back there; you and people are never hidden and step aside only then. Zone names became bold letters inside the zone, as large as fit its box, on a layer behind the marks, so a name takes no room (MZ2), shrinking to stay inside a small zone (MZ3). The map checker lets marks sit on that layer (MZ4). Tests check the three test stages at six zooms and a whole turn.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-201
 
 **What was wrong:** On turn 24 Wren called "Here! The hare... take it to him" to Happi as he left. The words were placed where his walk ended, beyond the kitchen wall, so Happi never heard them.

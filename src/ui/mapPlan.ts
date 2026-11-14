@@ -1,13 +1,24 @@
 // The stage map's layout (rpg-map MAP-10..42): from the zones the character knows on one floor, code works out where every
 // mark goes, in screen pixels at the map's zoom, before anything is drawn. Zones keep their stored rectangles (metres,
-// MAP-03); labels, tokens, doors, stairs, furniture and exit notes are placed here so none covers another (MAP-22, MAP-31),
-// yielding in the order MAP-23 sets. No DOM: map.ts draws the scene, and a measure function gives text widths (the
-// browser's own in the page, an estimate in tests).
+// MAP-03); tokens, doors, stairs, furniture and exit notes are placed here so none covers another (MAP-31), yielding in the
+// order MAP-23 sets. A zone's name is a background layer inside it, sized to the box, that marks may sit on (MZ2, MZ4).
+// Marks inside a zone keep one spot at every zoom (BG-216): each is placed once, at the widest of a few set zooms with room
+// for it, and every zoom reuses that spot as a share of the zone. No DOM: map.ts draws the scene, and a measure function gives text widths (the browser's
+// own in the page, an estimate in tests).
 import { compassOf, type MapLink, type MapPerson, type MapWay, type MapZone } from './mapData';
 import { verticalOf } from '../scenario/heights';
 
 /** screen pixels per metre before zoom; the scale bar is drawn from it too (MAP-10) */
 export const PX_PER_M = 12;
+/** the closest the map zooms (screen pixels per map pixel) */
+export const MAX_K = 2.5;
+/** BG-216: the zooms marks inside zones are placed at, widest view first; a mark takes its spot at the first that has room
+ *  for it, and keeps that spot (as a share of its zone) at every zoom */
+export const PLACE_KS = [1, 1.6, MAX_K];
+/** a zone name's letters: as large as fit its box, between these sizes in screen pixels (MZ2, MZ3) */
+export const NAME_PX = { max: 32, min: 4 };
+/** the dark edge drawn round a name's letters (its stroke width in .map-name), which adds to the room it needs */
+const NAME_EDGE = 3;
 export type Box = { x0: number; y0: number; x1: number; y1: number };
 /** the text styles the map measures: a zone's name, a place's title, an exit's note */
 export type TextKind = 'label' | 'title' | 'note';
@@ -27,7 +38,8 @@ export type ZoneState = 'current' | 'explored' | 'seen';
 export type SZone = { z: MapZone; box: Box; state: ZoneState };
 export type SPlace = { id: string; name: string; box: Box; title: SText };
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
-export type SLabel = SText & { zoneId: string; placement: 'inside' | 'outside'; leader?: [number, number, number, number] };
+/** a zone's name, drawn behind every mark inside its zone at `size` px (MZ2) */
+export type SLabel = SText & { zoneId: string; placement: 'inside'; size: number; line: number };
 export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening' | 'group'; way?: MapWay; count?: number; title: string; zones: string[] };
 export type SConnector = { id: string; a: string; b: string; x1: number; y1: number; x2: number; y2: number; sight: boolean; title: string };
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
@@ -37,7 +49,7 @@ export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number;
 export type Scene = {
   zones: SZone[]; places: SPlace[]; labels: SLabel[]; doors: SDoor[]; connectors: SConnector[]; exits: SExit[];
   stairs: SStair[]; furniture: SFurn[]; tokens: SToken[];
-  /** furniture with no free spot in its zone: listed in the zone's card, not drawn */
+  /** furniture and stairs with no free spot at this zoom: hidden in place, listed in the zone's card */
   dropped: string[];
   /** exits with no spot for their arrow and note: a finding, never silent (MAP-32) */
   lost: string[];
@@ -118,6 +130,20 @@ export function wrap(text: string, kind: TextKind, max: number, most: number, me
 }
 
 export function planScene(inp: PlanInput): Scene {
+  // BG-216: the marks inside zones are placed once, each at the widest of PLACE_KS with room for it, and every zoom reuses
+  // those spots; zoomed out past where a mark was placed, it shows only where it covers nothing
+  let ref: Scene | undefined;
+  for (const k of PLACE_KS) ref = layout({ ...inp, k }, ref, false);
+  return layout(inp, ref, true);
+}
+
+/** a mark's spot as a share of the room it may move in (its zone less the mark's inset), and back */
+const shareOf = (v: number, a: number, b: number, inset: number) => (b - a - 2 * inset > 0 ? (v - a - inset) / (b - a - 2 * inset) : 0.5);
+const fromShare = (f: number, a: number, b: number, inset: number) => (b - a - 2 * inset > 0 ? a + inset + f * (b - a - 2 * inset) : (a + b) / 2);
+
+/** `ref`: the spots marks already have; `final`: this zoom is drawn, so a mark with no spot yet, or whose spot is covered
+ *  here, is hidden (listed in `dropped`) rather than placed anew */
+function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   const { k, measure } = inp;
   const zones: SZone[] = inp.zones.filter((z) => z.rect).map((z) => ({ z, box: zoneBox(z, k), state: z.here ? 'current' : !inp.visits || inp.visits.has(z.id) ? 'explored' : 'seen' }));
   const byId = new Map(zones.map((x) => [x.z.id, x]));
@@ -152,6 +178,16 @@ export function planScene(inp: PlanInput): Scene {
     }
     return null;
   };
+  /** BG-216: where a mark sat at the closest zoom, carried to this zoom by its share of the zone; undefined with no reference */
+  const refSpots = new Map<string, { cx: number; cy: number; zoneId: string }>(ref ? [...ref.tokens, ...ref.stairs, ...ref.furniture].map((m) => [m.id, m]) : []);
+  const refZones = new Map((ref?.zones ?? []).map((x) => [x.z.id, x.box]));
+  const spotOf = (id: string, zb: Box, inset: number): { cx: number; cy: number } | undefined => {
+    const m = refSpots.get(id), rb = m && refZones.get(m.zoneId);
+    if (!m || !rb) return undefined;
+    return { cx: fromShare(shareOf(m.cx, rb.x0, rb.x1, inset), zb.x0, zb.x1, inset), cy: fromShare(shareOf(m.cy, rb.y0, rb.y1, inset), zb.y0, zb.y1, inset) };
+  };
+  /** you and people are never hidden: their own spot when it is free, else the nearest free one, only when zoomed far out */
+  const keep = (p: { cx: number; cy: number } | undefined, r: number, zb: Box) => (!p ? undefined : free(disc(p.cx, p.cy, r)) ? p : nearFree(p.cx, p.cy, r, zb) ?? outsideNear(p.cx, p.cy, r));
   // ---- doors (MAP-14, MAP-31): a gap drawn in the wall two linked zones share, at its middle (stepped along it only to keep
   // clear of you or another door); zones that don't touch get a connector
   const doors: SDoor[] = [], connectors: SConnector[] = [];
@@ -223,7 +259,7 @@ export function planScene(inp: PlanInput): Scene {
   const here = zones.find((x) => x.z.here);
   if (here) {
     const b = here.box, at = here.z.you ? { x: here.z.you.x * PX_PER_M * k, y: -here.z.you.y * PX_PER_M * k } : { x: b.x1 - PIN_R - 4, y: b.y0 + PIN_R + 4 };
-    const p = nearFree(at.x, at.y, PIN_R, b) ?? { cx: Math.min(b.x1, Math.max(b.x0, at.x)), cy: Math.min(b.y1, Math.max(b.y0, at.y)) };
+    const p = keep(spotOf('you', b, PIN_R + 2), PIN_R, b) ?? nearFree(at.x, at.y, PIN_R, b) ?? { cx: Math.min(b.x1, Math.max(b.x0, at.x)), cy: Math.min(b.y1, Math.max(b.y0, at.y)) };
     tokens.push({ id: 'you', zoneId: here.z.id, ...p, r: PIN_R, ...disc(p.cx, p.cy, PIN_R), you: true, title: 'You are here' });
     take(disc(p.cx, p.cy, PIN_R), 'token');
     used.add('you');
@@ -247,71 +283,23 @@ export function planScene(inp: PlanInput): Scene {
     const named = dir ? sideOf(dir) : fallback, near: Record<Side, Side[]> = { n: ['e', 'w'], s: ['w', 'e'], e: ['s', 'n'], w: ['n', 's'] }, back: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
     stubs.push({ x, l, side: named, sides: dir ? [named, ...near[named]] : [named, ...near[named], back[named]], ...(away ? { away } : {}), ...(other ? { other } : {}) });
   }
-  // ---- zone labels (MAP-20..22): inside the top band when they fit with 6 px to spare, else outside on a leader line
+  // ---- zone names (MZ2, MZ3, MAP-20): bold letters inside the zone, centred and as large as fit its box with 6 px to spare,
+  // over up to three lines; a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216).
+  // A zone too small even for the smallest letters shows its name in its tooltip only.
   const labels: SLabel[] = [];
-  const outsideSpots = (zb: Box, w: number, h: number): Box[] => {
-    const out: Box[] = [], mx = (zb.x0 + zb.x1) / 2, my = (zb.y0 + zb.y1) / 2;
-    for (const g of [8, 22, 40, 64]) {
-      out.push({ x0: mx - w / 2, y0: zb.y0 - g - h, x1: mx + w / 2, y1: zb.y0 - g }, { x0: mx - w / 2, y0: zb.y1 + g, x1: mx + w / 2, y1: zb.y1 + g + h },
-        { x0: zb.x1 + g, y0: my - h / 2, x1: zb.x1 + g + w, y1: my + h / 2 }, { x0: zb.x0 - g - w, y0: my - h / 2, x1: zb.x0 - g, y1: my + h / 2 },
-        { x0: zb.x0, y0: zb.y0 - g - h, x1: zb.x0 + w, y1: zb.y0 - g }, { x0: zb.x1 - w, y0: zb.y0 - g - h, x1: zb.x1, y1: zb.y0 - g },
-        { x0: zb.x0, y0: zb.y1 + g, x1: zb.x0 + w, y1: zb.y1 + g + h }, { x0: zb.x1 - w, y0: zb.y1 + g, x1: zb.x1, y1: zb.y1 + g + h },
-        { x0: zb.x1 + g, y0: zb.y0 - g - h, x1: zb.x1 + g + w, y1: zb.y0 - g }, { x0: zb.x0 - g - w, y0: zb.y0 - g - h, x1: zb.x0 - g, y1: zb.y0 - g },
-        { x0: zb.x1 + g, y0: zb.y1 + g, x1: zb.x1 + g + w, y1: zb.y1 + g + h }, { x0: zb.x0 - g - w, y0: zb.y1 + g, x1: zb.x0 - g, y1: zb.y1 + g + h });
+  for (const x of zones) {
+    const zb = x.box, full = x.z.name, room = { w: zb.x1 - zb.x0 - 2 * PAD, h: zb.y1 - zb.y0 - 2 * PAD };
+    for (let px = NAME_PX.max; px >= NAME_PX.min; px -= 0.5) {
+      const m: Measure = (t, kd) => (measure(t, kd) * px) / TEXT.label.size, line = Math.round(px * 1.2 * 100) / 100;
+      // no plate round a name, so none of the plate's padding; the letters' dark edge instead
+      const lines = room.w > NAME_EDGE ? wrap(full, 'label', room.w - NAME_EDGE + 2 * TEXT.label.pad, 3, m) : null;
+      // the letters' full height (ascenders to descenders) is about 1.3 times their size
+      const h = (lines?.length ?? 1) * line - line + px * 1.3 + NAME_EDGE;
+      if (!lines || h > room.h) continue;
+      const w = Math.ceil(Math.max(...lines.map((l) => m(l, 'label')))) + NAME_EDGE, cx = (zb.x0 + zb.x1) / 2, cy = (zb.y0 + zb.y1) / 2;
+      labels.push({ x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2, text: lines.join(' '), lines, full, cut: false, zoneId: x.z.id, placement: 'inside', size: px, line });
+      break;
     }
-    return out;
-  };
-  /** the leader from an outside label to the nearest point of its zone */
-  const leaderOf = (lb: Box, zb: Box): [number, number, number, number] => {
-    const cx = (lb.x0 + lb.x1) / 2, cy = (lb.y0 + lb.y1) / 2;
-    const zx = Math.min(zb.x1, Math.max(zb.x0, cx)), zy = Math.min(zb.y1, Math.max(zb.y0, cy));
-    const lx = Math.min(lb.x1, Math.max(lb.x0, zx)), ly = Math.min(lb.y1, Math.max(lb.y0, zy));
-    return [lx, ly, zx, zy];
-  };
-  // the current zone first, then the rest by size, small first (they have the fewest spots)
-  const order = [...zones].sort((p, q) => (p.z.here ? -1 : q.z.here ? 1 : (p.box.x1 - p.box.x0) * (p.box.y1 - p.box.y0) - (q.box.x1 - q.box.x0) * (q.box.y1 - q.box.y0)));
-  for (const x of order) {
-    const zb = x.box, full = x.z.name, zw = zb.x1 - zb.x0, mx = (zb.x0 + zb.x1) / 2;
-    const mk = (b: Box, lines: string[], placement: 'inside' | 'outside', isCut = false): SLabel =>
-      ({ ...b, text: lines.join(' '), lines, full, cut: isCut, zoneId: x.z.id, placement, ...(placement === 'outside' ? { leader: leaderOf(b, zb) } : {}) });
-    let lab: SLabel | null = null;
-    // inside: on one line if it fits, else broken over two or three, in the top band
-    for (let n = 1; n <= 3 && !lab; n++) {
-      const lines = wrap(full, 'label', zw - 2 * PAD, n, measure);
-      if (!lines || lines.length < n) continue; // fewer lines were tried already
-      const { w, h } = linesBox(lines, 'label');
-      if (h + 2 * PAD > zb.y1 - zb.y0) break;
-      const top = zb.y0 + PAD;
-      for (const y0 of [top, top + TEXT.label.line, top + 2 * TEXT.label.line]) for (const x0 of [mx - w / 2, zb.x0 + PAD, zb.x1 - PAD - w]) {
-        const b = { x0, y0, x1: x0 + w, y1: y0 + h };
-        if (!lab && within(b, zb, PAD) && free(b)) lab = mk(b, lines, 'inside');
-      }
-    }
-    if (!lab) {
-      // outside, on a leader line: one line, or two when long
-      const lines = wrap(full, 'label', 170, 2, measure) ?? [full];
-      const { w, h } = linesBox(lines, 'label'), leaves = new Set(stubs.filter((st) => st.x === x).map((st) => st.side));
-      // spots off the sides this zone's exit arrows leave by come first
-      const side = (b: Box): Side[] => [...(b.y1 <= zb.y0 ? ['n' as const] : []), ...(b.y0 >= zb.y1 ? ['s' as const] : []), ...(b.x0 >= zb.x1 ? ['e' as const] : []), ...(b.x1 <= zb.x0 ? ['w' as const] : [])];
-      const cands = outsideSpots(zb, w, h), spots = [...cands.filter((b) => !side(b).some((q) => leaves.has(q))), ...cands.filter((b) => side(b).some((q) => leaves.has(q)))];
-      const pick = spots.find((b) => free(b) && !overZone(b)) ?? spots.find((b) => free(b) && !overZone(b, x.z.id) && !hit(b, zb));
-      // then over a neighbour's floor, still whole, before any cut (MAP-21)
-      const over = pick ?? spots.find((b) => free(b) && !hit(b, zb));
-      if (over) lab = mk(over, lines, 'outside');
-    }
-    if (!lab && zb.y1 - zb.y0 >= TEXT.label.h + 2 * PAD && zw >= 2 * PAD + 24) {
-      // MAP-21: the last resort, cut to its zone with the full name in its tooltip
-      const text = cut(full, 'label', zw - 2 * PAD, measure), { w, h } = textBox(text, 'label');
-      const b = { x0: mx - w / 2, y0: zb.y0 + PAD, x1: mx + w / 2, y1: zb.y0 + PAD + h };
-      if (free(b)) lab = mk(b, [text], 'inside', true);
-    }
-    if (!lab) {
-      const text = cut(full, 'label', 140, measure), { w, h } = textBox(text, 'label');
-      const spots = outsideSpots(zb, w, h), pick = spots.find((b) => free(b)) ?? spots[0];
-      lab = mk(pick, [text], 'outside', text !== full);
-    }
-    labels.push(lab);
-    take(lab, 'label');
   }
 
   // ---- place outlines and titles (MAP-13): the box around the place's zones plus padding, its title above the top-left corner
@@ -347,13 +335,13 @@ export function planScene(inp: PlanInput): Scene {
   for (const x of zones) {
     const zb = x.box, row = x.z.people.filter((p) => !p.at), at = x.z.people.filter((p) => p.at);
     for (const who of at) {
-      const p = nearFree(who.at!.x * PX_PER_M * k, -who.at!.y * PX_PER_M * k, WHO_R, zb);
+      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb) ?? nearFree(who.at!.x * PX_PER_M * k, -who.at!.y * PX_PER_M * k, WHO_R, zb);
       if (p) { tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who, title: who.name }); take(disc(p.cx, p.cy, WHO_R), 'token'); }
       else row.push(who);
     }
     row.forEach((who, i) => {
       const cx = (zb.x0 + zb.x1) / 2 + (i - (row.length - 1) / 2) * (2 * WHO_R + 4), cy = zb.y1 - WHO_R - 4;
-      const p = nearFree(cx, cy, WHO_R, zb) ?? outsideNear(cx, zb.y1 + WHO_R + 4, WHO_R);
+      const p = keep(spotOf(`who:${who.id}`, zb, WHO_R + 2), WHO_R, zb) ?? nearFree(cx, cy, WHO_R, zb) ?? outsideNear(cx, zb.y1 + WHO_R + 4, WHO_R);
       tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who, title: who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)` });
       take(disc(p.cx, p.cy, WHO_R), 'token');
     });
@@ -371,7 +359,7 @@ export function planScene(inp: PlanInput): Scene {
 
   // ---- exits to zones not on this map (MAP-24, MAP-32): an arrow out of the wall the exit's compass word names (else the
   // side facing away from the map's middle), ending at a note that names where it goes: "→ the plank gate · unexplored"
-  const exits: SExit[] = [], stairs: SStair[] = [], lost: string[] = [];
+  const exits: SExit[] = [], stairs: SStair[] = [], lost: string[] = [], dropped: string[] = [];
   const bySide = new Map<string, typeof stubs>();
   for (const st of stubs) bySide.set(`${st.x.z.id}:${st.side}`, [...(bySide.get(`${st.x.z.id}:${st.side}`) ?? []), st]);
   for (const group of bySide.values()) group.forEach((st, i) => {
@@ -421,30 +409,32 @@ export function planScene(inp: PlanInput): Scene {
 
   // ---- stairs (icons): inside their zone, clear of its corners; just outside when the zone has no room
   for (const st of stairList) {
-    const zb = st.x.box, inset = STAIR_R + 4;
+    const zb = st.x.box, inset = STAIR_R + 4, id = `stair:${st.x.z.id}:${st.l.to}`;
+    const kept = spotOf(id, zb, inset);
+    if (final && (!kept || !free(disc(kept.cx, kept.cy, STAIR_R)))) { dropped.push(id); continue; } // zoomed out: hidden in its own spot
     const spots = [[zb.x0 + inset, zb.y1 - inset], [zb.x1 - inset, zb.y1 - inset], [zb.x0 + inset, zb.y0 + inset], [zb.x1 - inset, zb.y0 + inset],
       [zb.x0 + inset, (zb.y0 + zb.y1) / 2], [zb.x1 - inset, (zb.y0 + zb.y1) / 2], [(zb.x0 + zb.x1) / 2, zb.y1 - inset]];
-    let p: { cx: number; cy: number } | null = null;
+    let p: { cx: number; cy: number } | null = kept ?? null;
     for (const [cx, cy] of spots) if (!p && within(disc(cx, cy, STAIR_R), zb) && free(disc(cx, cy, STAIR_R))) p = { cx, cy };
     p ??= nearFree((zb.x0 + zb.x1) / 2, zb.y1 - inset, STAIR_R, zb) ?? outsideNear(zb.x0 - STAIR_R - 6, zb.y1 - STAIR_R, STAIR_R);
     const gone = st.other ? `${st.up ? 'up' : 'down'} to ${st.other.name}` : `${st.up ? 'up' : 'down'}, unexplored`;
-    stairs.push({ id: `stair:${st.x.z.id}:${st.l.to}`, zoneId: st.x.z.id, ...p, ...disc(p.cx, p.cy, STAIR_R), up: st.up, ...(st.other ? { goto: st.other.id } : {}), title: `${st.l.label}: ${gone}` });
+    stairs.push({ id, zoneId: st.x.z.id, ...p, ...disc(p.cx, p.cy, STAIR_R), up: st.up, ...(st.other ? { goto: st.other.id } : {}), title: `${st.l.label}: ${gone}` });
     take(disc(p.cx, p.cy, STAIR_R), 'icon');
     used.add(st.up ? 'stairs-up' : 'stairs-down');
   }
 
   // ---- furniture (icons, last to place): at its own point, nudged clear of everything else; left off when its zone is full
-  const furniture: SFurn[] = [], dropped: string[] = [];
+  const furniture: SFurn[] = [];
   for (const x of zones) for (const f of x.z.furniture ?? []) {
-    const p = nearFree(f.x * PX_PER_M * k, -f.y * PX_PER_M * k, FURN_R, x.box, FURN_R + 3);
+    const kept = spotOf(`furn:${f.id}`, x.box, FURN_R + 3);
+    const p = final ? (kept && free(disc(kept.cx, kept.cy, FURN_R)) ? kept : null) : kept ?? nearFree(f.x * PX_PER_M * k, -f.y * PX_PER_M * k, FURN_R, x.box, FURN_R + 3);
     if (!p) { dropped.push(f.id); continue; }
     furniture.push({ id: `furn:${f.id}`, zoneId: x.z.id, kind: f.kind, name: f.name, ...p, ...disc(p.cx, p.cy, FURN_R) });
     take(disc(p.cx, p.cy, FURN_R), 'icon');
     used.add('furniture');
   }
 
-  const bounds = union([...zones.map((x) => x.box), ...places.flatMap((p) => [p.box, p.title]), ...taken.map((t) => t.box),
-    ...labels.flatMap((l) => (l.leader ? [{ x0: Math.min(l.leader[0], l.leader[2]), y0: Math.min(l.leader[1], l.leader[3]), x1: Math.max(l.leader[0], l.leader[2]), y1: Math.max(l.leader[1], l.leader[3]) }] : []))]);
+  const bounds = union([...zones.map((x) => x.box), ...places.flatMap((p) => [p.box, p.title]), ...taken.map((t) => t.box)]);
   return { zones, places, labels, doors, connectors, exits, stairs, furniture, tokens, dropped, lost, used, bounds };
 }
 

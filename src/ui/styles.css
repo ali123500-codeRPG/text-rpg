@@ -990,13 +990,11 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile.plan.here .map-tile-box { stroke-width: 3; }
 .map-tile-hatch { fill: url(#map-hatch); pointer-events: none; }
 .map-hatch-line { stroke: color-mix(in srgb, var(--text) 20%, transparent); stroke-width: 1.2; }
-.map-label { cursor: pointer; }
-.map-label rect { fill: none; }
-.map-label text, .map-place-title text, .map-note text { pointer-events: none; }
-.map-label text { fill: var(--text); font: 700 12px var(--font-round); }
-.map-label.outside rect { fill: var(--bg); stroke: var(--border); stroke-width: 1; }
-.map-label.here text { fill: var(--accent); }
-.map-leader { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 2; }
+.map-place-title text, .map-note text { pointer-events: none; }
+/* a zone's name: bold letters behind every mark, sized to its box by the planner; a dark edge keeps it clear over the hatch */
+.map-name { fill: var(--text); fill-opacity: 0.82; font-family: var(--font-round); font-weight: 700; pointer-events: none;
+  paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+.map-name.here { fill: var(--accent); fill-opacity: 0.9; }
 .map-place-title { cursor: pointer; }
 .map-place-title rect { fill: color-mix(in srgb, var(--bg) 70%, transparent); }
 .map-place-title text { fill: var(--c15); font: 800 11px var(--font-round); letter-spacing: .06em; }
