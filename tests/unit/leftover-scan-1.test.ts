@@ -59,7 +59,7 @@ const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts'];
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts', 'src/ruleset/body.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -400,5 +400,18 @@ describe('leftover scan round 10', () => {
     expect(read('src/ui/doing.ts').match(/const chip =/g)?.length).toBe(1);
     expect(read('src/ui/gains.ts')).not.toMatch(/const plural =|proposed M-39/);
     expect(read('src/agents/narration.ts')).not.toMatch(/p\.(action|outcome)\.replace/);
+  });
+});
+
+describe('answers CS23 to CS25', () => {
+  const read = (f: string) => readFileSync(f, 'utf8') as string;
+  it('CS24: Destroyed weighs DESTROYED_PART_WEIGHT Crippled ones in the role penalty and in no running alike', () => {
+    const b = read('src/ruleset/body.ts');
+    expect(b.match(/CONFIG\.DESTROYED_PART_WEIGHT/g)?.length).toBe(2);
+    expect(b).not.toMatch(/'destroyed'\) \? 2 :/);
+    expect(read('docs/build-spec.md')).not.toMatch(/Destroyed part counting twice/);
+  });
+  it('CS25: filch, ambush and sneaking past sleepers count Against the Odds once per act', () => {
+    for (const f of ['src/engine/filch.ts', 'src/minds/state.ts', 'src/engine/sleep.ts', 'src/engine/resolve.ts']) expect(read(f)).toMatch(/outmatchedOnce\(state, /);
   });
 });

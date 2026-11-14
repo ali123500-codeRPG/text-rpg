@@ -89,7 +89,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: CONFIG.FATIGUE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${FATIGUE_LEVELS.name(k)} ${sg(v)}`).join(' · ') },
   { type: 'wounds', roll: 'skill', source: 'Role wounds', at: 'src/ruleset/body.ts',
     when: 'Rolls whose skill uses a body role (grip, strike, sense …) on a damaged or crippled part. Shared roles split it across their parts; a crippled sense part hits every roll.',
-    value: list(Object.fromEntries(Object.entries(CONFIG.ROLE_PENALTY).map(([k, v]) => [PART_STATES.name(k as PartStateKey), v]))) }, // BG-91
+    value: list({ ...Object.fromEntries(Object.entries(CONFIG.ROLE_PENALTY).map(([k, v]) => [PART_STATES.name(k as PartStateKey), v])), [PART_STATES.name('destroyed')]: CONFIG.ROLE_PENALTY.crippled * CONFIG.DESTROYED_PART_WEIGHT }) }, // BG-91, CS24
   { type: 'wounds', roll: 'skill', source: 'Essential part crippled', at: 'src/ruleset/body.ts',
     when: 'Every roll while any essential part (head, neck …) is Crippled or worse; once, however many such parts.', value: sg(CONFIG.ESSENTIAL_CRIPPLED_PENALTY) },
   { type: 'wounds', roll: 'skill', source: 'Shield damaged', at: 'src/ruleset/body.ts', when: 'Block rolls with a Damaged shield.', value: sg(CONFIG.ROLE_PENALTY.damaged) },
