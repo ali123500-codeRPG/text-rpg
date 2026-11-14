@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF73). Every shot or throw, hit or miss, makes an impact event at its target's spot (src/engine/resolve.ts landImpact): Loud on armour, a shield or a hard surface (a miss indoors), Raised on flesh or soft ground (a miss outdoors), from real impact measurements (CONFIG.IMPACT_NOISE). It raises the alarm and startles those it reaches, so they react; a missed target notices the miss by it instead of feeling it (perception), and the shooter stays as hidden as before.
 
-**Fixed by:** [PR #TBD](https://github.com/ali123500-codeRPG/text-rpg/pull/TBD)
+**Fixed by:** [PR #847](https://github.com/ali123500-codeRPG/text-rpg/pull/847)
 
 ## BG-250
 

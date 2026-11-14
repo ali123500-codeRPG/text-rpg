@@ -3533,7 +3533,7 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-248 | Playtest turn 115: a tapped name in a question added brackets and asked again | 14/11/2026 | fixed (Ali OK'd the fix, BF72) | One way to answer; a tapped name replaces the order's name; the Parser sees its question. PR #824 |
 | BG-249 | Light Sleeper wake checks never taught: the sleeper's Earshot and a sneaker's stealth skill got no mark | 14/11/2026 | fixed (Ali OK'd the fix, PG1) | wakeCheck marks both sides of the contest and records the open hearing check like any check. PR #836 |
 | BG-250 | Animal races attack at skill 0: their natural attacks roll Natural Weapons, whose tree is open only to slimes and dragons, so the skill counts as closed | 14/11/2026 | fixed (Ali OK'd the fix) | A skill one of a being's own natural attacks rolls is always open to it. PR #842 |
-| BG-251 | Shots and throws made no sound where they landed, so people there never learned they were under attack | 14/11/2026 | fixed (Ali OK'd the fix, BF73) | A shot or throw makes an impact where it lands, Loud on armour or a hard surface, Raised on flesh or soft ground; it alarms and startles those it reaches. PR #TBD |
+| BG-251 | Shots and throws made no sound where they landed, so people there never learned they were under attack | 14/11/2026 | fixed (Ali OK'd the fix, BF73) | A shot or throw makes an impact where it lands, Loud on armour or a hard surface, Raised on flesh or soft ground; it alarms and startles those it reaches. PR #847 |
 
 ## Check on release
 
