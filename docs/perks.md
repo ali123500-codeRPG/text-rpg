@@ -757,6 +757,27 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The roll adds 10% of the owner's Stamina (the augment equation: true skill × CONFIG.OVERDRIVE_SHARE × Stamina's tier, placeholder) and costs 1 strain more (CONFIG.OVERDRIVE_STRAIN, with worn armour and Bottomless; it counts toward Stamina's marks like any strain).
 - **Lasts:** Each roll, while the line stays above half.
 
+### Patient Knife (Combat Stealth) · CN6
+
+*Story:* Every trick you have learned for striking from the dark feeds the next blow. An attack you make while hidden draws on your Combat Stealth, more for every ambush perk you own.
+
+- **Kind:** Always on (augment)
+- **Trigger:** An attack roll the owner makes while stealthy.
+- **Conditions:** The owner owns at least one perk tagged ambush (src/library/perkThemes.ts).
+- **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% for the first ambush perk, and each further one adds half what the one before added (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders): 3 pieces give 8.75%, and no count passes 10%.
+- **Lasts:** Always.
+
+### Protagonist Mentality (Resolve) · CN7
+
+*Story:* Every flaw is one more thing the story has to get past, and it never does. Your Resolve grows with every quirk you carry.
+
+- **Kind:** Always on (augment)
+- **Trigger:** A Resolve roll by the owner.
+- **Conditions:** The owner has at least one quirk.
+- **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share counting quirks owned: 5% for the first, each further one half the one before (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders).
+- **Lasts:** Always.
+- **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
+
 ## Banked, no milestone yet
 
 ### Go to Ground (Sneaking) · D9

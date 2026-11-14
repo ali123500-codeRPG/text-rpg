@@ -41,6 +41,8 @@ export type RollRequest = {
   /** gear context: the item instance used, for withItem effects; RollKind for noted roll modifiers */
   itemId?: string;
   rollKind?: import('./items').RollKind;
+  /** situations this roll is made in, for augments that need one (PerkDef.augments when) */
+  when?: import('./library').AugmentWhen[];
   /** skills that count at full value here instead of as substitutes (perks such as Threaten for Answers) */
   fullValue?: string[];
   /** a function roll: every skill with this function counts at full value and the best one rolls,
@@ -68,6 +70,7 @@ export type RollResult = {
   parts?: string[];
   /** the roll's kind, when it had one: augments limited to roll kinds learn only from their own kinds */
   rollKind?: import('./items').RollKind;
+  when?: import('./library').AugmentWhen[];
   d100: number;
   margin: number;
   tier: Tier; // clamped to the TIERS table
@@ -101,6 +104,7 @@ export type AttackRequest = {
     defensesThisTurn?: number; // defenses the target already made this turn (outnumbered)
     attackerMods?: Mod[];
     defenderMods?: Mod[];
+    fromHiding?: boolean; // the attacker was stealthy as it struck (CN6 Patient Knife)
     attackerShifts?: TierShift[]; // engine-side shifts on the attack roll (All-50 Opening Strike)
     defenderShifts?: TierShift[]; // engine-side shifts on the defense roll (All-50 Unerring)
   };

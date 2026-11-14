@@ -1034,7 +1034,7 @@ const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]
 /** every skill a perk belongs to or changes: its ladder or write-up skill, its All-XX part, skills it adds to,
  * skills of the function it boosts, and both ends of an augment */
 const perkSkills = (d: PerkDef & { skill?: string }): string[] => [...new Set([d.ladder?.skill, d.skill, d.allStep?.skill,
-  ...Object.keys(d.trueSkillTo ?? {}), ...(d.fnSkill ? fnSkills(d.fnSkill.fn) : []), ...(d.augments ?? []).flatMap((a) => [a.from, a.skill])]
+  ...Object.keys(d.trueSkillTo ?? {}), ...(d.fnSkill ? fnSkills(d.fnSkill.fn) : []), ...(d.augments ?? []).flatMap((a) => (a.skill ? [a.from, a.skill] : [a.from]))]
   .filter((x): x is string => !!x && !!lib.skills[x]))];
 /** an achievement gives more than XP: a Bane skill bonus, the defeats roll bonus, or any reward line (free levels, perks…) */
 const specialReward = (d: AchievementDef): boolean => (isBane(d) && baneSkill(d.id) > 0) || (d.rule === 'defeats' && !d.by && defeatsRoll(d.id) > 0) || rewardLines(d).length > 0;

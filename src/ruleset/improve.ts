@@ -2,7 +2,7 @@
 // A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
 // costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the
 // scenario (EG7, engine/growth.ts payScenario), in rounds (payRolls). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
-import type { Actor, AttackResult, CheckResult, ContestResult, GameState, RollKind, Rng, SkillEntry } from '../types';
+import type { Actor, AttackResult, CheckResult, ContestResult, AugmentWhen, GameState, RollKind, Rng, SkillEntry } from '../types';
 import { TIERS } from '../scales';
 import { band, extraBands, naturalEdge } from './index';
 import { tierReach } from './achRewards';
@@ -51,8 +51,8 @@ export function markIfClose(state: GameState, actor: Actor | undefined, skill: s
 }
 
 /** a side's level on a roll for augment learning: its true skill plus what its augments added (AU2) */
-const rollLevel = (actor: Actor, r: { skill: string; asked?: string; rollKind?: RollKind }) =>
-  trueSkill(actor, r.skill) + [...augmentsOf(actor, r.asked ?? r.skill, r.rollKind), ...tradesOut(actor, r.skill)].reduce((n, a) => n + a.value, 0);
+const rollLevel = (actor: Actor, r: { skill: string; asked?: string; rollKind?: RollKind; when?: AugmentWhen[] }) =>
+  trueSkill(actor, r.skill) + [...augmentsOf(actor, r.asked ?? r.skill, r.rollKind, r.when), ...tradesOut(actor, r.skill)].reduce((n, a) => n + a.value, 0);
 /** the learning window of a roll of `skill` with these augments (AU1 option B): raw sums to max(raw, true) sums, each augment at share × tier */
 function rollWindow(actor: Actor, skill: string, augs: { id: string; k: number }[]): [number, number] {
   const raw = (id: string) => actor.core.skills[id]?.raw ?? 0, top = (id: string) => Math.max(raw(id), trueSkill(actor, id));
@@ -69,9 +69,9 @@ export function augmentWindow(actor: Actor, skill: string): { via: string; windo
  * skill's window from the roll's sums. Low end: the rolled skill's raw + each augment's raw × share × tier. High end: the
  * rolled skill's max(raw, true) + each augment's max(raw, true) × share × tier. Every augment that added to the roll marks
  * when the opposition (the other side's level, augments included) is inside it, or on a close call (AU4). */
-function markAugments(state: GameState, actor: Actor | undefined, r: { skill: string; asked?: string; rollKind?: RollKind }, opposition: number | undefined, force = false, won = false): void {
+function markAugments(state: GameState, actor: Actor | undefined, r: { skill: string; asked?: string; rollKind?: RollKind; when?: AugmentWhen[] }, opposition: number | undefined, force = false, won = false): void {
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
-  const augs = augmentFactors(actor, r.asked ?? r.skill, r.rollKind); // on the sheet or not: an augment at 0 learns once its tree opens
+  const augs = augmentFactors(actor, r.asked ?? r.skill, r.rollKind, r.when); // on the sheet or not: an augment at 0 learns once its tree opens
   if (!augs.length) return;
   if (force || inWindow(rollWindow(actor, r.skill, augs), opposition, won)) for (const a of augs) mark(actor, a.id);
 }
@@ -96,7 +96,7 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
   // Every Fall a Lesson: losing by exactly one tier step marks too. The gap is B − A in a contest and defense − attack in
   // an attack, so side A (the attacker) loses by one at gap +1 and side B (the defender) at gap −1.
   const near = (who: Actor | undefined, side: 1 | -1) => 'gap' in result && result.gap === side && hasPerk(who, PK.every_fall_a_lesson);
-  const both = (who: Actor | undefined, r: { skill: string; asked?: string; parts?: string[]; rollKind?: RollKind }, opp: number | undefined, side: 1 | -1, augOpp?: number) => {
+  const both = (who: Actor | undefined, r: { skill: string; asked?: string; parts?: string[]; rollKind?: RollKind; when?: AugmentWhen[] }, opp: number | undefined, side: 1 | -1, augOpp?: number) => {
     const force = tied || near(who, side);
     // a win has no top to its window: beating a stronger side teaches. Side A wins at gap < 0, side B at gap > 0.
     const won = 'gap' in result && (result.gap ?? 0) * side < 0;
