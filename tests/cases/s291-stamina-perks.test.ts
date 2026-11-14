@@ -148,6 +148,13 @@ describe('291 stamina perks', () => {
     expect(sleepMult(s, s.player)).toBeCloseTo(base * CONFIG.INSOMNIAC_CLEAR);
     give(s.player, PK.sleepless); // a sleepNeed perk leaves sleepClear alone
     expect(sleepMult(s, s.player)).toBeCloseTo(base * CONFIG.INSOMNIAC_CLEAR);
+    // RN5 c: sleep multipliers multiply in full (Short Sleeper is banked: Heavy Sleeper carries its ×1.33 here)
+    const hs = getLibrary().perks[PK.heavy_sleeper];
+    hs.sleepClear = CONFIG.SHORT_SLEEPER_CLEAR;
+    try {
+      give(s.player, PK.heavy_sleeper);
+      expect(perkSleepMult(s.player, 'sleepClear')).toBeCloseTo(CONFIG.INSOMNIAC_CLEAR * CONFIG.SHORT_SLEEPER_CLEAR);
+    } finally { delete hs.sleepClear; }
   });
 
   it('SS12: a template\'s quirk tag rolls one quirk with that tag per NPC, the same for the same ID', () => {

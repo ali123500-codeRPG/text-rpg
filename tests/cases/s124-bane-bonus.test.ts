@@ -1,6 +1,8 @@
 // 124 D-111 Bane bonuses: an achievement earned against a race or body type gives the lower level's bonus
 // plus +5 skill (I = +5, II = +10, III = +15) on rolls against that race or type. A higher level switches
 // the lower ones off. The best race one and the best body type one both count, the weaker at half (type stacking).
+import { CONFIG } from '../../src/config';
+import { stackWeight } from '../../src/ruleset/stacking';
 import { BT, RC } from '../../src/library/raceIds';
 import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
@@ -44,7 +46,7 @@ describe('124 Bane bonuses', () => {
     expect(earned.find((a) => a.id === `${ACH.defeats_10_race}:${RC.elf}`)?.replacedBy).toBeUndefined();
     expect(bane(s, 'patron_1')).toEqual([{ source: 'bane: Bane of Humankind', type: 'achievement', value: 5 }]);
   });
-  it('the best race and best body type both count, the weaker at half; defenders get it too', () => {
+  it('the best race and best body type both count, the weaker by the stacking rule; defenders get it too', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     grantAchievement(s, ACH.first_defeat_race, RC.human); // +5 skill
@@ -52,9 +54,9 @@ describe('124 Bane bonuses', () => {
     grantAchievement(s, ACH.defeats_10_body_type, BT.humanoid); // +10 skill
     const mods = bane(s, 'patron_1');
     expect(mods.map((m) => m.value).sort()).toEqual([2.5, 5]);
-    expect(modTotal(mods)).toBe(5 + 2.5 * 0.5); // 10 + 5 × 0.5 = 12.5 skill
+    expect(modTotal(mods)).toBeCloseTo(5 + 2.5 * stackWeight(2, CONFIG.MOD_STACK_EXP)); // RN2: the second at √2 − 1
     arm(s, 'patron_1');
     const d = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 50, 50, 50]));
-    expect(modTotal(d.defense!.modifiers.filter((m) => m.type === 'achievement'))).toBe(6.25);
+    expect(modTotal(d.defense!.modifiers.filter((m) => m.type === 'achievement'))).toBeCloseTo(5 + 2.5 * stackWeight(2, CONFIG.MOD_STACK_EXP));
   });
 });

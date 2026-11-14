@@ -1,6 +1,6 @@
 // 307 CN1-CN7 payoff perks that count pieces (D-260). Perks carry theme tags (one table, any number per perk); a payoff
 // perk counts owned perks with its tag, or quirks, whatever their source, each once (dormant ones too, for now: D-307).
-// Its share is PAYOFF_SHARE for the first piece, each further one STACK_RATIO of the one before. Patient Knife (Combat
+// Its share is PAYOFF_SHARE × pieces^PAYOFF_EXP (RN4). Patient Knife (Combat
 // Stealth 100): Combat Stealth augments attack rolls made while stealthy. Protagonist Mentality (Resolve 140): Resolve
 // augments its own rolls, by quirks owned.
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -36,16 +36,17 @@ describe('307 payoff perks', () => {
     expect([BUILT_PERKS.has(PK.patient_knife), BUILT_PERKS.has(PK.protagonist_mentality)]).toEqual([true, true]);
   });
 
-  it('CN3/CN4: pieces count once, any source, dormant too for now; the share halves per further piece', () => {
+  it('CN3/CN4: pieces count once, any source, dormant too for now; the share is PAYOFF_SHARE × pieces^PAYOFF_EXP, no ceiling (RN4)', () => {
     const s = makeVillage();
     expect(themeCount(s.player, 'ambush')).toBe(0);
     give(s.player, PK.hidden_strike); give(s.player, PK.hidden_strike); give(s.player, PK.in_and_out, true);
     expect(themeCount(s.player, 'ambush')).toBe(2);
     give(s.player, PK.heavy_sleeper);
     expect(themeCount(s.player, 'quirk')).toBe(1);
-    const p = CONFIG.PAYOFF_SHARE, r = CONFIG.STACK_RATIO;
-    expect([payoffShare(0), payoffShare(1), payoffShare(3)]).toEqual([0, p, p + p * r + p * r * r]);
-    expect(payoffShare(50)).toBeLessThan(p / (1 - r) + 1e-9);
+    const p = CONFIG.PAYOFF_SHARE, e = CONFIG.PAYOFF_EXP;
+    expect(payoffShare(0)).toBe(0);
+    for (const n of [1, 2, 3, 5, 10]) expect(payoffShare(n)).toBeCloseTo(p * n ** e);
+    expect(payoffShare(50)).toBeGreaterThan(payoffShare(10) + p); // keeps growing
   });
 
   it('CN6 Patient Knife: Combat Stealth augments an attack from hiding by its pieces, itself included; not in the open', () => {

@@ -764,7 +764,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on (augment)
 - **Trigger:** An attack roll the owner makes while stealthy.
 - **Conditions:** Patient Knife is an ambush perk itself, so it always counts at least one piece (perks tagged ambush: src/library/perkThemes.ts).
-- **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% for the first ambush perk, and each further one adds half what the one before added (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders): 3 pieces (Patient Knife and two more) give 8.75%, and no count passes 10%.
+- **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% × ambush pieces^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): Patient Knife alone gives 5%, with two more 12%, with no ceiling.
 - **Lasts:** Always.
 
 ### Protagonist Mentality (Resolve) · CN7
@@ -774,7 +774,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on (augment)
 - **Trigger:** A Resolve roll by the owner.
 - **Conditions:** The owner has at least one quirk.
-- **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share counting quirks owned: 5% for the first, each further one half the one before (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders).
+- **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being 5% × quirks owned^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): 5% for one quirk, 8.7% for two.
 - **Lasts:** Always.
 - **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
 

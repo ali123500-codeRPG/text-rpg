@@ -23,6 +23,7 @@ import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
 import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
+import { powerStack } from './stacking';
 import { lineMax, lineUsed } from './fatigue';
 import { payStrain } from '../engine/fatigue';
 import { augmentK, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
@@ -59,10 +60,10 @@ export function tierName(t: Tier | Tiered): string {
   return TIERS.name(tier) + (past > 0 ? '+'.repeat(past) : '−'.repeat(-past));
 }
 
-/** Stacking within one modifier type (Part 1 §4). */
+/** Stacking within one modifier type (Part 1 §4, RN2 b): bonuses and penalties apart, each by the power rule at MOD_STACK_EXP. */
 export function stackType(values: number[]): number {
-  const part = (xs: number[]) => xs.reduce((s, x, i) => s + x * CONFIG.STACK_RATIO ** i, 0);
-  return part(values.filter((v) => v > 0).sort((a, b) => b - a)) + part(values.filter((v) => v < 0).sort((a, b) => a - b));
+  const p = CONFIG.MOD_STACK_EXP;
+  return powerStack(values.filter((v) => v > 0), p) + powerStack(values.filter((v) => v < 0), p);
 }
 /** sum of all modifiers, each type stacked within itself */
 export function modTotal(mods: { type: string; value: number }[]): number {

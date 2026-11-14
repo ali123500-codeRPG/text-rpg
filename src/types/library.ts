@@ -21,7 +21,7 @@ export type ImpactId = 'non_essential' | 'normal' | 'essential';
 /** D-276: how an augment adds (ruleset/gear.ts augmentK, the one equation). plain (the default): the giving skill's true
  * skill × share (default 1). trade: the same with share default CONFIG.AUGMENT_TRADE_SHARE, and the giving skill's own rolls
  * lose what it gives (points moved, never made; always on). percent: the giving skill's true skill ÷ 100 × share (the rate,
- * default CONFIG.AUGMENT_PERCENT_RATE) × the receiving skill's own true skill; two on one skill stack at STACK_RATIO. */
+ * default CONFIG.AUGMENT_PERCENT_RATE) × the receiving skill's own true skill; several on one skill add in full (RN3 c). */
 export type AugmentKind = 'plain' | 'trade' | 'percent';
 /** a situation an augment needs on the roll (RollRequest.when): from_hiding, an attack made while stealthy (CN6 Patient Knife) */
 export type AugmentWhen = 'from_hiding';
@@ -252,7 +252,7 @@ export type PerkDef = {
   tierUnlocks?: TierUnlock[];
   personality?: PersonalityAdd; // PL16: points added while owned
   /** SS14: multipliers on how fast hours awake add sleep debt (sleepNeed) and how fast sleep clears it (sleepClear); several
-   * stack by the same-type rule (sleepMults in src/ruleset/fatigue.ts) */
+   * multiply together in full (RN5 c; perkSleepMult in src/ruleset/fatigue.ts) */
   sleepNeed?: number; sleepClear?: number;
   /** SS12: tags a template's quirkTags pick from (Heavy Sleeper and Insomniac: 'sleep') */
   tags?: string[];
