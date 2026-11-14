@@ -6,13 +6,15 @@
 import { boxOf, h, pointOf, viewSize } from './kit';
 import { arrive, ms, moving, play } from './motion';
 
-let current: { el: HTMLElement; opener?: HTMLElement | null } | null = null;
+let current: { el: HTMLElement; opener?: HTMLElement | null; back?: true } | null = null;
 
-/** closes the open details pop-up, if any */
-export function closePop(): boolean {
+/** closes the open details pop-up, if any. One opened with `back` added a step to the browser's history, so Back closes it;
+ *  closing it any other way takes that step back off (as the full-screen pop-up does, BG-220) */
+export function closePop(byBack = false): boolean {
   if (!current) return false;
-  const { el, opener } = current;
+  const { el, opener, back } = current;
   current = null;
+  if (back && !byBack && history.state?.dpop) history.back();
   if (el.contains(document.activeElement) && opener?.isConnected) opener.focus();
   fadeOut(el);
   return true;
@@ -70,13 +72,13 @@ if (typeof document !== 'undefined') {
     if (e.key === 'Escape' && full && !moving() && !e.defaultPrevented && !full.el.querySelector('.pk-card')) closeFull();
   });
   // Back closes it (BG-220); leaving the page closes it
-  addEventListener('popstate', () => { closeFull(true); });
-  addEventListener('hashchange', () => { closeFull(true); });
+  addEventListener('popstate', () => { if (current?.back) closePop(true); closeFull(true); });
+  addEventListener('hashchange', () => { if (current?.back) closePop(true); closeFull(true); });
 }
 
 /** opens a details pop-up near its opener; tone names a colour token for its edge (scenario-mark, danger…) */
-export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; tone?: string; cls?: string }): HTMLElement {
-  closePop();
+export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; tone?: string; cls?: string; back?: true }): HTMLElement {
+  closePop(!!(o.back && current?.back)); // one Back pop-up replacing another keeps the history step
   const tid = `dpop-t${Date.now()}`;
   const x = h('button', { type: 'button', class: 'hs-icon-btn dpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closePop() }, '✕');
   const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label', id: tid }, o.title), x);
@@ -103,7 +105,8 @@ export function openPop(o: { title: string; body: (Node | string | null)[]; open
     addEventListener('pointermove', move);
     addEventListener('pointerup', up);
   });
-  current = { el, opener: o.opener };
+  current = { el, opener: o.opener, ...(o.back ? { back: true as const } : {}) };
+  if (o.back && !history.state?.dpop) history.pushState({ dpop: true }, ''); // Back closes it
   arrive(el, 0, 6);
   el.focus({ preventScroll: true });
   return el;

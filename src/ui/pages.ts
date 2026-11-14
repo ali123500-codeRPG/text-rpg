@@ -29,7 +29,7 @@ import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
 import { wornPack } from '../engine/containers';
 import { gripParts } from '../engine/gear';
-import { coins, coinWords, countWords } from '../engine/trade';
+import { coins, coinWords, countWords, itemValue } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
 import { cap, r1 } from '../words';
 
@@ -185,7 +185,7 @@ const KIND_GROUP: Record<string, [string, string, string]> = {
 const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
 
 /** an item's exact stats: the Inventory's side panel and the equipment panel's hover card share these rows */
-export function itemRows(s: GameState, it: { itemId: string; boundTo?: string }): PanelRow[] {
+export function itemRows(s: GameState, it: { itemId: string; boundTo?: string; qty?: number }): PanelRow[] {
   const d = safe(() => itemDef(s, it.itemId));
   if (!d) return [];
   const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
@@ -205,6 +205,9 @@ export function itemRows(s: GameState, it: { itemId: string; boundTo?: string })
       : `${needText(need)} (met)`) });
   }
   rows.push({ k: 'Bulk', v: String(d.bulk) });
+  // what it is worth in coin (the price a trader starts from), and for a stack what the whole stack is worth
+  const worth = safe(() => itemValue(s, it.itemId)) ?? 0, n = it.qty ?? 1;
+  rows.push({ k: 'Value', v: !worth ? 'Worthless' : n > 1 ? `${coinWords(worth)} each, ${coinWords(worth * n)} for ${n}` : coinWords(worth) });
   if (d.threadbound) rows.push(...threadboundRows(s, it, d.threadbound));
   return rows;
 }
