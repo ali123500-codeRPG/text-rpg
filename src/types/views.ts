@@ -312,6 +312,15 @@ export type NarrationView = {
 };
 
 // ---------- WeaverView: Agent Weaver ----------
+/** WZ1/WZ2 the land of the region the player is in, as the Weaver is shown it: a settlement place stands on a site
+ * (places[].site), a road zone runs along a road (zones[].road); `where` is how far and which way from the player */
+export type LandView = {
+  region: string; name: string; look: string; kind: string; start?: string;
+  sites: { id: string; size: string; name: string; look: string; where: string; place?: string }[];
+  roads: { id: string; kind: string; from: string; to: string; km: number; danger: string; crosses?: string; zone?: string }[];
+  landmarks: { name: string; kind: string; look: string; where: string }[];
+  beyond: Record<string, string>;
+};
 export type WeaverView = {
   tier: TierName;
   /** null at story start: the Weaver picks the opening time of day (T8) */
@@ -330,6 +339,8 @@ export type WeaverView = {
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
     encounter?: { zone: string; danger: string; noticed: boolean } };
   headlines: string[];
+  /** WZ1 the region's land (absent before any land is drawn) */
+  land?: LandView;
   /** NW6: the stage sorted by place, each place named, with its areas and the people in them */
   places: { id: string; name: string; kind: string; parent: { id: string; name: string } | null;
     areas: ZoneView[];

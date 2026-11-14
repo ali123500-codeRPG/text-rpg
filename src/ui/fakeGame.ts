@@ -252,7 +252,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
         { id: 'q1', state: 'active', text: 'Clear the slimes from the field', giver: 'guard_1', dealId: 'ag_1', goal: { kind: 'defeat', by: 'race', of: slime.core.raceId!, count: 3, noun: 'slimes' }, progress: 1, level: 'i', startTurn: 2, after: 'q0', pay: { coin: 10 }, paid: { coin: 0, qty: 0 }, due: 3 * 1440 + 1080, dueBy: 'dusk' },
       ],
-      settings, libraryVersion: 1, blueprints: [{ storyId: 'fake', id: `${IT.short_sword}_m2_1`, kind: 'item', data: { id: `${IT.short_sword}_m2_1`, kind: 'weapon', name: 'Wim’s old blade', look: 'a notched short sword with a wire-bound grip', base: { itemId: IT.short_sword, quality: 'fine' } } }], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
+      settings, libraryVersion: 1, blueprints: [{ storyId: 'fake', id: `${IT.short_sword}_m2_1`, kind: 'item', data: { id: `${IT.short_sword}_m2_1`, kind: 'weapon', name: 'Wim’s old blade', look: 'a notched short sword with a wire-bound grip', base: { itemId: IT.short_sword, quality: 'fine' } } }], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: CONFIG.SCHEMA_VERSION, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     fakeBarriers(state);

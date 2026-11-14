@@ -67,7 +67,7 @@ export function toPages(state: GameState): Pages {
   const pages: Pages = { engine, hidden };
   for (const a of [s.player, ...s.actors]) pages[`actor.${a.id}`] = a;
   for (const p of s.places) pages[`place.${p.id}`] = p;
-  for (const r of s.regions ?? []) pages[`region.${r.id}`] = r;
+  for (const r of s.regions ?? []) pages[`region.${r.id}`] = { ...r, storyId: s.storyId }; // every page carries its story id
   const byPlace = new Map<string, StoryFact[]>();
   for (const f of s.facts) byPlace.set(f.placeId, [...(byPlace.get(f.placeId) ?? []), f]);
   for (const [placeId, facts] of byPlace) factsPages(s.storyId, placeId, facts).forEach((fp, n) => (pages[`facts.${placeId}.${n}`] = fp));
@@ -86,7 +86,7 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
   const of = <T>(prefix: string) => Object.keys(p).filter((k) => k.startsWith(prefix)).map((k) => p[k] as T);
   const actors = orderBy(of<Actor>('actor.'), engine.order?.actors);
   const places = orderBy(of<Place>('place.'), engine.order?.places);
-  const regions = orderBy(of<Region>('region.'), engine.order?.regions);
+  const regions = orderBy(of<Region & { storyId?: string }>('region.'), engine.order?.regions).map(({ storyId: _r, ...r }) => r);
   const factKeys = Object.keys(p).filter((k) => k.startsWith('facts.'))
     .sort((a, b) => { const na = +a.slice(a.lastIndexOf('.') + 1), nb = +b.slice(b.lastIndexOf('.') + 1); return a.slice(0, a.lastIndexOf('.')).localeCompare(b.slice(0, b.lastIndexOf('.'))) || na - nb; });
   // shortcut: facts come back grouped by place then sorted by turn (stable), which is chronological per place

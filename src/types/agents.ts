@@ -166,6 +166,8 @@ export type StagePlan = {
     layout?: string; names?: Record<string, string>; looks?: Record<string, string>;
     /** FR2: a layout zone's furniture, by the layout's zone key: the whole list, replacing the layout's */
     furniture?: Record<string, import('./library').PlanFurniture[]>;
+    /** WZ1 a top-level settlement: the region site it stands on (target.region lists them) */
+    site?: string;
   }[];
   zones: {
     key: string; place: string; kind: string; name: string; look: string;
@@ -176,6 +178,7 @@ export type StagePlan = {
     edges?: Partial<Record<import('./core').Side, string>>; // CO15 edge kind ids by side; the kind's default when left out
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
+    road?: string; // WZ1 a road zone: the region road it runs along (its length and danger come from the land)
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
     links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];

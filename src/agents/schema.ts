@@ -192,15 +192,15 @@ const weaver = obj<StagePlan>({
   timeOfDay: level(TIME_OF_DAY),
   // BG-36: every optional field the Weaver may give is named here, or it is dropped before validation
   places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
-    layout: str, names: record(str), looks: record(str), furniture: record(arr(FURNITURE)) }, ['layout', 'names', 'looks', 'furniture'])), // no parent = top level (V5)
+    layout: str, names: record(str), looks: record(str), furniture: record(arr(FURNITURE)), site: str }, ['layout', 'names', 'looks', 'furniture', 'site'])), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
     key: str, place: str, kind: str, name: str, look: str,
     cover: level(COVER), light: level(LIGHT),
     height: num, size: str, area: num, edges: record(str) as V<NonNullable<StagePlan['zones'][number]['edges']>>,
-    length: (v, p, e) => (typeof v === 'number' ? num(v, p, e) : str(v, p, e)), danger: str, fromLayout: any as V<true>, furniture: arr(FURNITURE),
+    length: (v, p, e) => (typeof v === 'number' ? num(v, p, e) : str(v, p, e)), danger: str, road: str, fromLayout: any as V<true>, furniture: arr(FURNITURE),
     links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool, drop: bool,
       barrier: obj<PlanBarrier>({ kind: str, grade: GRADE, locked: bool, barredFrom: str, guarded: bool, keys: arr(str) }, ['grade', 'locked', 'barredFrom', 'guarded', 'keys']) }, ['drop', 'barrier'])),
-  }, ['cover', 'light', 'height', 'size', 'area', 'edges', 'length', 'danger', 'fromLayout', 'furniture'])),
+  }, ['cover', 'light', 'height', 'size', 'area', 'edges', 'length', 'danger', 'road', 'fromLayout', 'furniture'])),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
@@ -275,3 +275,6 @@ const checkin = obj<CheckinAnswer>({
   frontiers: arr(obj<NonNullable<CheckinAnswer['frontiers']>[number]>({ zone: str, key: str, label: str })),
 }, ['as', 'text', 'beats', 'note', 'change', 'arrivals', 'frontiers']);
 export const checkCheckin = run(checkin);
+/** WZ2 the region brief: only its shape is checked here; src/land/brief.ts tidyBrief drops unknown words */
+export const checkRegionBrief = run(obj<Record<string, unknown>>({ kind: str, name: str, look: str, settlements: arr(any), features: arr(any), river: any, exits: any, beyond: any, danger: any },
+  ['river', 'exits', 'beyond', 'danger', 'features']));

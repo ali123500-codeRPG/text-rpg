@@ -14,10 +14,14 @@ import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, validateStagePlan } from './validate';
 import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, stealthyArrival } from './apply';
 import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
+import { addRegion, regionCallView, tidyBrief, type RegionCallView } from '../land/brief';
 
 /** one Agent Weaver call; null = the call failed. `errors` and `rejected` set = the repair retry: the validator's errors and
  * the plan they belong to (V11). */
 export type Weave = (view: WeaverView, errors?: PlanError[], rejected?: StagePlan) => Promise<StagePlan | null>;
+
+/** WZ2: one Weaver call for a region's brief; null = the call failed (code then draws the land from the kind alone) */
+export type RegionCall = (view: RegionCallView) => Promise<unknown | null>;
 
 /** SC8: one Weaver check-in call about the running scenario. null = the call failed. */
 export type CheckIn = (view: WeaverView) => Promise<CheckinAnswer | null>;
@@ -48,7 +52,22 @@ export class ScenarioDirector {
   /** SC8: the check-in in flight, for the scenario numbered `number`; never saved (a reload drops it) */
   private checkin: { number: number; done: boolean; answer: CheckinAnswer | null } | null = null;
 
-  constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn }) {}
+  constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn; region?: RegionCall }) {}
+
+  /** WZ1/WZ2: a story in a world with no land yet draws its first region before its first plan: the Weaver's brief, then
+   * code. Without a region call wired (tests with a scripted Weaver) the world stays without land, and a story already
+   * under way without land (a test village) stays so. */
+  private opening = false; // set while a story opens: only then is a world without land given its first region
+  private async firstRegion(state: GameState, deadline: number): Promise<void> {
+    if (state.regions?.length || !this.opts.region) return;
+    const view = regionCallView(state, 0, 0);
+    const got = await this.timed(this.opts.region(view).catch(() => null), deadline);
+    const raw = got === TIMEOUT ? null : got;
+    const { brief, notes } = tidyBrief(raw, view);
+    const r = addRegion(state, 0, 0, brief);
+    if (!raw) state.log.push({ turn: state.turn, code: 'region_brief_fallback', detail: { region: r.id, kind: r.kind } });
+    if (notes.length) state.log.push({ turn: state.turn, code: 'region_brief_tidied', detail: { region: r.id, notes } });
+  }
 
   /** SC8: after a save, start the check-in the last turn asked for, in the background. Returns whether one started. */
   startCheckin(state: GameState): boolean {
@@ -89,9 +108,12 @@ export class ScenarioDirector {
     const arrive = !state.player.zone && state.places.some((p) => p.zones.length);
     const label = frontierKey ? zoneById(state, state.player.zone)?.links.find((l) => l.to === frontierKey)?.label : undefined;
     beginScenario(state, eventRoll.tier, eventRoll.beyond);
-    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
-    // WEAVER_TIMEOUT bounds the whole scenario-start wait (first call and repair together)
+    // WZ1 + WZ13: the land comes first; the story's first settlement stands on the brief's start site
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
+    if (this.opening) await this.firstRegion(state, deadline);
+    const start = state.regions?.[0]?.sites.find((x) => x.id === state.regions![0].start && !x.placeId);
+    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(start ? { site: start.id } : {}), ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
+    // WEAVER_TIMEOUT bounds the whole scenario-start wait (the region call, the first call and repair together)
     const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
     const planned = await this.plan(state, ctx, target, deadline);
     const res = { ...finish(state, ctx, planned, rng, entry), eventRoll };
@@ -101,7 +123,8 @@ export class ScenarioDirector {
 
   /** Story start: setup alone, as turn 0; returns the opening events (also pushed to state.events). The pipeline saves turn 0 and makes the one Narrator call. */
   async storyStart(state: GameState, rng: Rng): Promise<ScenarioResult & { events: GameEvent[] }> {
-    const r = await this.startScenario(state, rng, 'open');
+    this.opening = true;
+    const r = await this.startScenario(state, rng, 'open').finally(() => { this.opening = false; });
     const events = openingEvents(state, rng);
     state.events.push(...events);
     return { ...r, events };

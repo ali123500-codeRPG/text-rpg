@@ -103,6 +103,8 @@ export type Region = {
   nodes: RoadNode[];
   sites: Site[];
   features: LandFeature[];
+  /** WZ13 the site the story opened in (the first region only) */
+  start?: string;
   /** the regions beyond each edge, by the brief's names, until they are drawn */
   beyond: Partial<Record<Side, { name: string; kind?: string }>>;
 };

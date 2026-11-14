@@ -112,7 +112,7 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   5: notesToLists,
   6: (pages) => Object.values(pages).forEach(senseToKeys),
   7: (pages) => Object.values(pages).forEach(handToGrip),
-  8: () => {}, // never run: LAND_SCHEMA ends older saves
+  // no step 8: LAND_SCHEMA (9) ends older saves; the steps above stay for the record and their tests
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */
@@ -150,7 +150,7 @@ const SHAPES: Record<string, Record<string, Kind>> = {
   place: { id: 'string', storyId: 'string', kind: 'string', names: 'object', zones: 'array', state: 'object', headlines: 'array' },
   facts: { storyId: 'string', placeId: 'string', facts: 'array' },
   blueprint: { storyId: 'string', id: 'string', kind: 'string', data: 'object' },
-  region: { id: 'string', kind: 'string', heights: 'array', cover: 'string', waters: 'array', roads: 'array', nodes: 'array', sites: 'array', features: 'array' },
+  region: { id: 'string', storyId: 'string', kind: 'string', heights: 'array', cover: 'string', waters: 'array', roads: 'array', nodes: 'array', sites: 'array', features: 'array' },
 };
 const kindOf = (key: string) => key.split('.')[0];
 

@@ -20,7 +20,8 @@ export type Where = (typeof WHERE)[number];
 export type RegionBrief = {
   kind: string; name: string; look: string;
   river?: { name: string; from?: Side; to?: Side };
-  settlements: { size: SiteSize; name: string; look: string; where?: Where }[];
+  /** start: WZ13, the settlement the story opens in */
+  settlements: { size: SiteSize; name: string; look: string; where?: Where; start?: true }[];
   features: { kind: string; name: string; look: string; where?: Where }[];
   /** the sides the main road leaves by, toward the regions beyond */
   exits?: Side[];
@@ -51,6 +52,25 @@ function fbm(seed: number, x: number, y: number, scale: number, octaves = 4): nu
   let sum = 0, amp = 1, norm = 0, f = 1 / scale;
   for (let o = 0; o < octaves; o++) { sum += amp * valueNoise(seed + o * 101, x * f, y * f); norm += amp; amp *= 0.5; f *= 2; }
   return sum / norm;
+}
+
+// ---------- a binary min-heap of cell indexes by a key read when pushed (a pushed cell keeps the key it had then) ----------
+function heapOf(key: (i: number) => number) {
+  const items: number[] = [], keys: number[] = [];
+  const swap = (a: number, b: number) => { [items[a], items[b]] = [items[b], items[a]]; [keys[a], keys[b]] = [keys[b], keys[a]]; };
+  return {
+    size: () => items.length,
+    push(i: number) {
+      items.push(i); keys.push(key(i));
+      for (let k = items.length - 1; k > 0; ) { const p = (k - 1) >> 1; if (keys[p] <= keys[k]) break; swap(p, k); k = p; }
+    },
+    pop(): number {
+      const top = items[0], last = items.length - 1;
+      swap(0, last); items.pop(); keys.pop();
+      for (let k = 0; ; ) { const l = 2 * k + 1, r = l + 1; let m = k; if (l < items.length && keys[l] < keys[m]) m = l; if (r < items.length && keys[r] < keys[m]) m = r; if (m === k) break; swap(m, k); k = m; }
+      return top;
+    },
+  };
 }
 
 // ---------- small geometry ----------
@@ -137,6 +157,9 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
 
   // ---- heights: rolling ground (rougher kinds ridged), a valley along the river, tilted downstream ----
   const heights = new Array<number>(cells);
+  // distances to water are measured to the line thinned to about every 300 m: close enough for valleys and site scores
+  const coarse = (pts: Pt[]) => pts.filter((_, k) => k % Math.max(1, Math.round(pts.length / (lineLength(pts) / 300))) === 0 || k === pts.length - 1);
+  const riverCoarse = river ? coarse(river.pts) : [];
   const riverAlong = new Float64Array(cells), riverD = new Float64Array(cells).fill(Infinity);
   for (let i = 0; i < cells; i++) {
     const p = at(i);
@@ -145,22 +168,25 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     n = n * (1 - kind.rough * 0.5) + ridge * kind.rough * 0.5;
     let h = n;
     if (river) {
-      const r = lineDist(p, river.pts);
+      const r = lineDist(p, riverCoarse);
       riverD[i] = r.d; riverAlong[i] = r.along;
       const valley = 1 - Math.exp(-((r.d / (S * 0.22)) ** 2));
       h = 0.15 * n + 0.55 * valley * (0.4 + n) + 0.12 * (1 - r.along);
     }
     heights[i] = Math.round(lo + (hi - lo) * Math.max(0, Math.min(1, h)));
   }
-  const slope = (i: number) => {
+  const slopes = new Float64Array(cells), margin = new Float64Array(cells);
+  for (let i = 0; i < cells; i++) {
     const c = i % N, r = Math.floor(i / N);
     let m = 0;
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const cc = c + dc, rr = r + dr;
       if (cc >= 0 && cc < N && rr >= 0 && rr < N) m = Math.max(m, Math.abs(heights[rr * N + cc] - heights[i]) / C);
     }
-    return m;
-  };
+    slopes[i] = m;
+    margin[i] = (Math.min(c, r, N - 1 - c, N - 1 - r) + 0.5) * C; // metres to the nearest edge
+  }
+  const slope = (i: number) => slopes[i];
   const neighbours = (i: number): number[] => {
     const c = i % N, r = Math.floor(i / N), out: number[] = [];
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
@@ -176,16 +202,13 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   const outlet = (i: number) => { const c = i % N, r = Math.floor(i / N); return c === 0 || r === 0 || c === N - 1 || r === N - 1 || (!!river && riverD[i] < river.width / 2 + C * 0.7); };
   const filled = Float64Array.from(heights);
   {
-    const heap: number[] = [], key = (i: number) => filled[i];
-    const push = (i: number) => { heap.push(i); for (let k = heap.length - 1; k > 0; ) { const p = (k - 1) >> 1; if (key(heap[p]) <= key(heap[k])) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
-    const pop = () => { const top = heap[0], last = heap.pop()!; if (heap.length) { heap[0] = last; for (let k = 0; ; ) { const l = 2 * k + 1, r = l + 1; let m = k; if (l < heap.length && key(heap[l]) < key(heap[m])) m = l; if (r < heap.length && key(heap[r]) < key(heap[m])) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
-    const done = new Uint8Array(cells);
-    for (let i = 0; i < cells; i++) if (outlet(i)) { done[i] = 1; push(i); }
-    while (heap.length) { const i = pop(); for (const j of neighbours(i)) if (!done[j]) { done[j] = 1; filled[j] = Math.max(filled[j], filled[i] + 0.01); push(j); } }
+    const heap = heapOf((i) => filled[i]), done = new Uint8Array(cells);
+    for (let i = 0; i < cells; i++) if (outlet(i)) { done[i] = 1; heap.push(i); }
+    while (heap.size()) { const i = heap.pop(); for (const j of neighbours(i)) if (!done[j]) { done[j] = 1; filled[j] = Math.max(filled[j], filled[i] + 0.01); heap.push(j); } }
   }
   const streamCell = new Int32Array(cells).fill(-1);
   const streamJoins = joins.flatMap((j) => j.waters.filter((w) => w.kind === 'stream' && !w.out).map((w) => ({ ...w, side: j.side })));
-  const sources = [...Array(cells).keys()].filter((i) => heights[i] > lo + (hi - lo) * 0.4 && riverD[i] > 800 && Math.min(...SIDES.map((sd) => nearSide(at(i), sd))) > 300)
+  const sources = [...Array(cells).keys()].filter((i) => heights[i] > lo + (hi - lo) * 0.4 && riverD[i] > 800 && margin[i] > 300)
     .map((i) => ({ i, k: rng.next() })).sort((a, b) => a.k - b.k).map((x) => x.i);
   const starts: { i: number; from?: Pt; width?: number; name?: string }[] = streamJoins.map((w) => ({ i: cellOf(edgePoint(w.side, w.at)), from: edgePoint(w.side, w.at), width: w.width, name: w.name }));
   for (const i of sources) {
@@ -212,7 +235,8 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     waters.push({ id: `${id}_w${n}`, kind: 'stream', name: s.name ?? '', width: s.width ?? Math.round(w0 + (w1 - w0) * rng.next()), pts: soften(pts, 3).map(round) });
   }
   const waterD = new Float64Array(cells);
-  for (let i = 0; i < cells; i++) waterD[i] = Math.min(...waters.map((w) => lineDist(at(i), w.pts).d));
+  const waterCoarse = waters.map((w) => coarse(w.pts));
+  for (let i = 0; i < cells; i++) waterD[i] = Math.min(...waterCoarse.map((pts) => lineDist(at(i), pts).d));
 
   // ---- settlement sites: flat, dry ground near water, spaced like real parishes; the brief's words pull each one ----
   const woodsNoise = (i: number) => fbm(seed + 53, at(i).x, at(i).y, 1800, 4);
@@ -242,7 +266,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     let best = -1, bestScore = -Infinity;
     for (let i = 0; i < cells; i++) {
       const p = at(i);
-      if (Math.min(...SIDES.map((sd) => nearSide(p, sd))) < 600) continue;
+      if (margin[i] < 600) continue;
       if (river && riverD[i] < river.width / 2 + 120) continue; // above the flood
       if (sites.some((s) => dist(s.at, p) < Math.min(CONFIG.SITE_SPACING_M[s.size], CONFIG.SITE_SPACING_M[want.size]))) continue;
       const sl = slope(i);
@@ -280,13 +304,12 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     const g = new Float64Array(cells).fill(Infinity), f = new Float64Array(cells).fill(Infinity), prev = new Int32Array(cells).fill(-1), done = new Uint8Array(cells);
     const goalPts = [...goals].map(at);
     const h = (i: number) => { const p = at(i); let m = Infinity; for (const t of goalPts) m = Math.min(m, dist(p, t)); return m * 0.3; };
-    const open: number[] = [from];
+    const open = heapOf((i) => f[i]);
     g[from] = 0; f[from] = h(from);
-    while (open.length) {
-      let k = 0;
-      for (let q = 1; q < open.length; q++) if (f[open[q]] < f[open[k]]) k = q;
-      const cur = open[k];
-      open[k] = open[open.length - 1]; open.pop();
+    open.push(from);
+    while (open.size()) {
+      const cur = open.pop();
+      if (done[cur]) continue;
       if (goals.has(cur)) {
         const out = [cur];
         for (let p = prev[cur]; p >= 0; p = prev[p]) out.unshift(p);
@@ -303,10 +326,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
         let cost = step * (1 + 60 * rise * rise + wildCost(nb)) + crossCost(cur, nb);
         if (roadClass[nb] && roadClass[cur]) cost *= roadClass[nb] === 2 ? 0.3 : 0.5;
         const ng = g[cur] + cost;
-        if (ng < g[nb]) {
-          if (g[nb] === Infinity) open.push(nb);
-          g[nb] = ng; prev[nb] = cur; f[nb] = ng + h(nb);
-        }
+        if (ng < g[nb]) { g[nb] = ng; prev[nb] = cur; f[nb] = ng + h(nb); open.push(nb); }
       }
     }
     return null;
@@ -379,8 +399,8 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     if (!end || end === node) continue;
     const pts = soften(cellsOn.map((c) => nodeAt.get(c)?.at ?? at(c)), 3).map(round);
     const crossings: RoadLine['crossings'] = [];
-    for (const w of waters) for (let a = 1; a < pts.length; a++) for (let b = 1; b < w.pts.length; b++) {
-      const x = crossAt(pts[a - 1], pts[a], w.pts[b - 1], w.pts[b]);
+    for (let a = 1; a < pts.length; a++) for (const c of new Set([cellOf(pts[a - 1]), cellOf(pts[a])])) for (const ws of bucket.get(c) ?? []) {
+      const x = crossAt(pts[a - 1], pts[a], ws.a, ws.b), w = ws.w;
       if (x && !crossings.some((q) => dist(q.at, x) < 50)) crossings.push({ at: round(x), kind: w.width > CONFIG.FORD_MAX_WIDTH_M ? 'bridge' : 'ford', water: w.id });
     }
     roads.push({ id: `${id}_r${roads.length + 1}`, kind: cls === 2 ? 'road' : 'path', danger, ends: [node.id, end.id], pts, length: Math.round(lineLength(pts)), crossings });
@@ -392,7 +412,8 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   const riverLevel = river ? Math.min(...river.pts.map((p) => heights[cellOf(p)])) : lo;
   for (let i = 0; i < cells; i++) {
     const p = at(i);
-    const near = sites.map((s) => ({ s, d: dist(s.at, p) })).sort((a, b) => a.d / CONFIG.SITE_FIELDS_M[a.s.size] - b.d / CONFIG.SITE_FIELDS_M[b.s.size])[0];
+    let near: { s: Site; d: number } | undefined;
+    for (const s of sites) { const d = dist(s.at, p); if (!near || d / CONFIG.SITE_FIELDS_M[s.size] < near.d / CONFIG.SITE_FIELDS_M[near.s.size]) near = { s, d }; }
     const wet = river && riverD[i] < 100 + 300 * fbm(seed + 83, p.x, p.y, 800, 2) && heights[i] < riverLevel + (hi - lo) * 0.12 + 4;
     if (near && near.d < CONFIG.SITE_BUILT_M[near.s.size]) cover[i] = LC.settlement;
     else if (wet) cover[i] = LC.water_meadow;
@@ -424,7 +445,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     let best = -1, bestScore = -Infinity;
     for (let i = 0; i < cells; i++) {
       const p = at(i);
-      if (Math.min(...SIDES.map((sd) => nearSide(p, sd))) < 300) continue;
+      if (margin[i] < 300) continue;
       if (sites.some((s) => dist(s.at, p) < CONFIG.SITE_BUILT_M[s.size] + 100) || features.some((x) => dist(x.at, p) < 500)) continue;
       const score = whereScore(seek, i) + (seek === 'river' ? 0 : -waterD[i] / 5000) + hash(seed, i, 23) * 2 + (seek ? 0 : Math.min(...sites.map((s) => dist(s.at, p)), S) / 1000);
       if (score > bestScore) { bestScore = score; best = i; }
