@@ -140,6 +140,13 @@ export const WAIT_SOMEONE = 'someone';
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
 export type PartStateKey = (typeof PART_STATES.keys)[number];
+/** LN2: how long a turn's narration is, shortest first; code picks one per turn (narrationBand), never the Narrator */
+export const NARRATION_BANDS = scale([['quick', 'Quick'], ['normal', 'Normal'], ['big', 'Big']]);
+export type NarrationBand = (typeof NARRATION_BANDS.keys)[number];
+/** LN6: the story setting that scales every band, shortest first */
+export const NARRATION_SCALES = scale([['shorter', 'Shorter'], ['normal', 'Normal'], ['longer', 'Longer']]);
+export type NarrationScale = (typeof NARRATION_SCALES.keys)[number];
+
 /** health levels, unhurt first; the % lost and wounds modifier of each are CONFIG.HEALTH_TRACK (keyed by these keys, in this order) */
 export const HEALTH_LEVELS = scale([['unhurt', 'Unhurt'], ['bruised', 'Bruised'], ['hurt', 'Hurt'], ['injured', 'Injured'], ['wounded', 'Wounded'], ['mauled', 'Mauled'], ['critical', 'Critical'], ['incapacitated', 'Incapacitated'], ['dead', 'Dead']]);
 export type HealthLevelKey = (typeof HEALTH_LEVELS.keys)[number];

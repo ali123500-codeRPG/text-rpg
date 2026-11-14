@@ -4,7 +4,7 @@ import type { Pronouns } from './actor';
 import type { AgentTurnLog, Volume } from './agents';
 import type { Tier } from './core';
 import type { LogEntry } from './core';
-import type { HealthLevelKey, PartStateKey } from '../scales';
+import type { HealthLevelKey, NarrationBand, PartStateKey } from '../scales';
 
 export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; startId?: string /* the Start (ST…); left out = the Swordsman start */; pronouns?: Pronouns /* the character's gender as others speak of them; left out = they */; personality?: import('./actor').Personality /* PL14: left out = no lean */; age?: number /* AG15: whole years; left out = the start's default */; raceId?: string /* CC7 a: a playable race (RC…); left out = Human */ };
 
@@ -15,6 +15,7 @@ export type LogLine = {
   aimed?: true; // a player line: the turn was aimed (the Aim toggle or /aim)
   answers?: string[]; // BG-228: a clarify line: replies the player might pick, each a whole order (a tap fills the box)
   mechanics?: string[]; // dice, modifiers, damage from code (shown while SHOW_MECHANICS is on)
+  length?: { band: NarrationBand; words: number; top: number }; // LN7: a narration line's band, its words and the band's top after the setting
   // Play screen extras on a narration line, all built by code from what the character perceived (no numbers):
   check?: LineCheck; // the player's own roll this turn
   speech?: { speaker: string; volume: Volume; text: string }[]; // lines the character heard, word for word

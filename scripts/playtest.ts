@@ -27,6 +27,7 @@ import { getLibrary } from '../src/library';
 import { personalityText } from '../src/ruleset/personality';
 import { skillName as sk } from '../src/library/skillNames';
 import type { LogLine, Personality } from '../src/types';
+import { lengthReport } from '../src/agents/narration';
 
 /** what the play screen shows under a line whatever the mechanics switch: skill-ups, perk unlocks, level-ups, achievements */
 const screenNotes = (l: LogLine): string[] => {
@@ -302,6 +303,8 @@ function writeTranscript(game: ReturnType<typeof createGame>, storyId: string, t
       + (l.mechanics?.length ? `\n\n    ${l.mechanics.join('\n    ')}` : ''))].join('\n');
   writeFileSync(join(OUT, 'transcript.md'), md);
   writeFileSync(join(OUT, 'reports.md'), `# Player reports (${reports.length})\n\n${reports.map((x) => `- ${x}`).join('\n')}\n`);
+  writeFileSync(join(OUT, 'narration-length.md'), lengthReport(game.lines()));
 }
+
 
 main().catch((e) => { console.error(e); process.exit(1); });

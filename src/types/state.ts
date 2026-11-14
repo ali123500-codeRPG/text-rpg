@@ -4,7 +4,7 @@ import type { Actor, NameHistory } from './actor';
 import type { HiddenStore } from './hidden';
 import type { EventRollResult } from './ruleset';
 import type { AgentTurnLog } from './agents';
-import type { QuestRewardLevel, TimeOfDay } from '../scales';
+import type { NarrationScale, QuestRewardLevel, TimeOfDay } from '../scales';
 
 export type Pending = { turn: number; mode: Mode; engaged: string[]; fired: string[] };
 
@@ -67,7 +67,7 @@ export type StageInfo = {
   partner?: string;
 };
 
-export type Settings = { showMechanics: boolean; tone: string };
+export type Settings = { showMechanics: boolean; tone: string; narrationLength?: NarrationScale }; // LN6: missing = normal
 /** QT11/QT21: quest states and goal kinds are unordered categories, so their names are their IDs */
 export const QUEST_STATES = ['active', 'ready', 'done', 'failed', 'abandoned', 'called_off'] as const;
 export type QuestState = (typeof QUEST_STATES)[number];
