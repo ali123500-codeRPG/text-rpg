@@ -846,6 +846,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-area.mine rect { fill: color-mix(in srgb, var(--scenario-mark) 6%, transparent); }
 .map-area.on rect, .map-area:hover rect, .map-area:focus-visible rect { stroke: var(--scenario-mark); stroke-dasharray: none; }
 .map-area-name { fill: var(--c15); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.map-area.real rect { fill: none; stroke-dasharray: none; stroke-width: 2; }
+.map-world-names { pointer-events: none; }
+.map-world-name .map-tile-name { font-size: 14px; }
+.map-world-name.here .map-tile-sub { fill: var(--scenario-mark); }
 .map-area.on .map-area-name { fill: var(--scenario-mark); }
 .map-tile { cursor: pointer; outline: none; }
 .map-tile-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
@@ -899,11 +903,16 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   border: 1px solid var(--rule); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--scenario-mark); font-weight: 800; font-size: 12px; padding-top: 4px; box-sizing: border-box; }
 .map-compass::after { content: ""; position: absolute; left: 50%; top: 19px; width: 2px; height: 14px; margin-left: -1px; background: linear-gradient(var(--scenario-mark), var(--rule)); }
 .map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
-.map-floors { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
-.map-floor { border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted); border-radius: var(--r-pill);
-  padding: 5px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
-.map-floor.on { color: var(--text); border-color: var(--accent); }
-.map-floor .you { color: var(--scenario-mark); }
+/* CO9: the height slider, lowest height at the bottom; the stops beside it name each height the map has */
+.map-floors { position: absolute; left: 12px; bottom: 12px; display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 85%, transparent); }
+.map-floors[hidden] { display: none; }
+.map-floor-track { display: flex; gap: var(--space-2); align-items: stretch; }
+.map-floor-range { writing-mode: vertical-lr; direction: rtl; width: 24px; min-height: 96px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.map-floor-stops { display: flex; flex-direction: column; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.map-floor-stops .on { color: var(--text); font-weight: 700; }
+.map-floor-now { font-size: 13px; font-weight: 700; }
+.map-floor-now .you { color: var(--scenario-mark); }
 /* barriers you know stop you, on their exit: amber locked or barred, red blocked, green when you hold the key */
 .map-way { --wc: var(--warn); }
 .map-way.blocked { --wc: var(--danger); }
