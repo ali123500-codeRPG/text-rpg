@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the plan (stage map questions MR1 to MR3). Zones snap to whole metres and take the free spot that leaves the most room for their named exits; a building is its indoor zones only. A layout pass (src/ui/mapPlan.ts) places every mark in the rpg-map order so nothing covers anything, tags every element, and in dev views the rpg-map checker runs after each render. A stored layout that breaks the rules is placed again once on load (MR2), and the journal keeps the zones the player has stood in so the map draws seen apart from explored (MR1). Tests in tests/unit/map-plan.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #755](https://github.com/ali123500-codeRPG/text-rpg/pull/755)
 ## BG-200
 
 **What was wrong:** On turn 29 Happi's shot read as one tier ahead of Wren's dodge, yet it only grazed him. The midden yard's cover had pushed the result one tier his way, but the roll line never said so, so the outcome looked wrong.
