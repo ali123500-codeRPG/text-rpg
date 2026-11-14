@@ -502,3 +502,15 @@ describe('leftover scan round 11', () => {
     expect(read('docs/build-spec.md')).not.toMatch(/agents that return JSON call sample\.json/);
   });
 });
+
+describe('answer CS26', () => {
+  it('the land maker keeps its shaping numbers in one named table (LAND) at the top, not in the drawing code', () => {
+    const g = readFileSync('src/land/generate.ts', 'utf8') as string;
+    const body = g.slice(g.indexOf('export function drawRegion'));
+    expect(g.indexOf('const LAND = {')).toBeLessThan(g.indexOf('export function drawRegion'));
+    // left in the body: 0, 1 and 2, halves, noise and hash salts and octave counts, the 16 moves and the crossing samples
+    const left = body.replace(/seed \+ \d+|hash\(seed, \w+, \d+\)/g, '').replace(/, [234]\)/g, ')').replace(/\[0, 0\.34, 0\.67, 1\]/, '').replace(/const MOVES[^\n]*/, '')
+      .replace(/\/\/[^\n]*/g, '').match(/(?<![\w.])\d+(\.\d+)?(?![\w])/g)?.filter((n) => !['0', '1', '2', '0.5'].includes(n)) ?? [];
+    expect(left).toEqual([]);
+  });
+});
