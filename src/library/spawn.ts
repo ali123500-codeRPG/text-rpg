@@ -393,6 +393,9 @@ function spawnUnique(state: GameState | null, t: NpcTemplate, opts: SpawnOpts): 
 
 // ---------- player creation (Part 4 §4) ----------
 const PLAYER_START: string = ST.swordsman; // the default Start
+const PLAYER_RACE: string = RC.human; // the default race when a build names none
+/** CC7 a: the races the player can pick on the creation screen (RaceDef.playable), in library order */
+export const playableRaces = (): string[] => Object.values(getLibrary().races ?? {}).filter((r) => r.playable).map((r) => r.id);
 const startDef = (startId: string): StartDef | undefined => getLibrary().starts[startId];
 /** a Start's creation points and starting level (StartDef, else CONFIG) */
 export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.points ?? CONFIG.CREATION_POINTS;
@@ -430,13 +433,13 @@ export function classPerks(classId: string, from: number, to: number, turn = 0):
 /** who a new player is: body type, race, the Start's class and perks. Tree access (TA1) reads these before the sheet exists.
  * A classless start (CC6 b) has no current class: the default class is open (unlocked, level 0), and levels bank until the
  * player picks a class (levelTarget finds none, so XP waits in spendXp). */
-export function newPlayer(startId = PLAYER_START, storyId?: string): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> {
+export function newPlayer(startId = PLAYER_START, storyId?: string, raceId: string = PLAYER_RACE): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> {
   const { classId, blessing } = startGives(startId, storyId), level = startLevel(startId);
   return {
-    bodyTypeId: BT.humanoid,
-    raceId: RC.human, // GAP: no race choice at creation yet
+    bodyTypeId: getLibrary().races?.[raceId]?.bodyTypeId ?? BT.humanoid, // BR5: the body type comes from the race
+    raceId, // CC7 a: picked on the creation screen
     classes: classId ? [{ classId, state: 'current', level }] : classlessStart(startId) && defaultClass() ? [{ classId: defaultClass()!, state: 'unlocked', level: 0 }] : [],
-    perks: [...racePerks(RC.human), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
+    perks: [...racePerks(raceId), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
   };
 }
 
@@ -477,18 +480,19 @@ function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKin
   return kinds.reduce((best, t) => (raw(DEFENSE_SKILL[t]) > raw(DEFENSE_SKILL[best]) ? t : best), kinds[0]);
 }
 
-/** A new character's name, gender, age and personality, picked at random; the creation screen opens on them and every one
+/** A new character's race, name, gender, age and personality, picked at random; the creation screen opens on them and every one
  * stays editable. Age: whole years from the race's Youth start to just before its Old start, so no one starts in old-age
  * decline [Proposed]. Personality: a random archetype's targets and values on a random Nerve line */
-export function randomIdentity(rng: Rng, startId = PLAYER_START): { name: string; pronouns: 'he' | 'she' | 'they'; age?: number; personality: Personality } {
+export function randomIdentity(rng: Rng, raceId?: string): { name: string; pronouns: 'he' | 'she' | 'they'; raceId: string; age?: number; personality: Personality } {
   const pick = <T>(xs: readonly T[]): T => xs[rng.int(0, xs.length - 1)];
   const pronouns = pick(['he', 'she', 'they'] as const);
-  const st = getLibrary().races?.[newPlayer(startId).raceId ?? RC.human]?.ageStages;
+  const race = raceId ?? (playableRaces().length ? pick(playableRaces()) : PLAYER_RACE); // CC7 a: a random playable race unless one is kept
+  const st = getLibrary().races?.[race]?.ageStages;
   const lo = st?.[LIFE_STAGES.at(1)], hi = st?.[LIFE_STAGES.at(4)];
   const type = pick(Object.values(getLibrary().personalityTypes ?? {}));
   return {
     name: pick(pronouns === 'they' ? [...PLAYER_NAMES.he, ...PLAYER_NAMES.she] : PLAYER_NAMES[pronouns]),
-    pronouns,
+    pronouns, raceId: race,
     ...(lo !== undefined && hi !== undefined ? { age: rng.int(lo, hi - 1) } : {}),
     personality: personalityFrom({ nerve: 0, traits: {}, values: [] }, { nerve: pick(Object.keys(NERVE_LINES)), types: type ? [type.id] : [], values: type?.values }),
   };
@@ -516,7 +520,9 @@ export function validateBuild(build: CreationBuild): string[] {
   const st = build.startId ?? PLAYER_START;
   if (!lib.starts[st]) errs.push(`${st} is not a Start`);
   else if (lib.starts[st].blessing && !blessingGods(lib.starts[st].blessing.tier).length) errs.push(`No god gives a ${BLESSING_TIERS.name(lib.starts[st].blessing.tier)} blessing yet`);
-  const who = { core: newPlayer(st) } as Actor, cls = startGives(st).classId;
+  const raceId = build.raceId ?? PLAYER_RACE;
+  if (!playableRaces().includes(raceId)) errs.push(`${getLibrary().races?.[raceId]?.name ?? raceId} is not a race you can play`);
+  const who = { core: newPlayer(st, undefined, raceId) } as Actor, cls = startGives(st).classId;
   if (!build.name?.trim()) errs.push('Name the character');
   let spent = 0;
   for (const [id, v] of Object.entries(build.skills)) {
@@ -564,9 +570,9 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     placeId: '', zone: '', // GAP: set by story-start scenario setup (the village tavern, Part 2 Scenario setup)
     posture: 'open', bandId: 'player_band',
     core: {
-      ...newPlayer(build.startId ?? PLAYER_START, storyId),
+      ...newPlayer(build.startId ?? PLAYER_START, storyId, build.raceId),
       skills,
-      condition: { hpLostPct: 0, parts: fullParts(null, BT.humanoid), status: [] },
+      condition: { hpLostPct: 0, parts: fullParts(null, getLibrary().races?.[build.raceId ?? PLAYER_RACE]?.bodyTypeId ?? BT.humanoid), status: [] },
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
       standingDefense: rawDefense((id) => build.skills[id] ?? 0),

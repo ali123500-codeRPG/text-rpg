@@ -413,6 +413,7 @@ export type RaceDef = {
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
+  playable?: true; // CC7 a: the player can pick this race on the creation screen
   intelligence: IntelligenceKey; // an INTELLIGENCE key (src/scales.ts)
   /** AG4: the age in years at which each life stage starts; left out = ageless (Slime) */
   ageStages?: Partial<Record<import('../scales').LifeStageKey, number>>;

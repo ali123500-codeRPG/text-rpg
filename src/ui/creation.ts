@@ -5,7 +5,7 @@ import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, classlessStart, defaultClass, createPlayer, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { classFloors, classlessStart, defaultClass, createPlayer, playableRaces, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { personalityPicker } from './personality';
@@ -58,7 +58,7 @@ const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they',
 // a new character opens on a random name, gender, age and personality, all editable; Random picks again
 const roll = () => randomIdentity(createRng(Math.floor(Math.random() * 2 ** 31) || 1));
 const first = roll();
-const identity: { name: string; pronouns: Pronouns; age?: number } = { name: first.name, pronouns: first.pronouns, age: first.age }; // age: left out = the start's default (AG15)
+const identity: { name: string; pronouns: Pronouns; raceId: string; age?: number } = { name: first.name, pronouns: first.pronouns, raceId: first.raceId, age: first.age }; // age: left out = the start's default (AG15)
 const persona = { p: first.personality }; // PL14: carries over too
 const world: { id?: string; list: FreeWorld[] } = { list: [] }; // HF31: the free world picked (left out = a new world); carries over too
 
@@ -67,7 +67,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const start = lib.starts[startId], facts = startFacts(startId);
   const cls = facts.classes.length === 1 ? lib.classes[facts.classes[0]] : undefined; // a blessed start's class waits for its god
   const floors = classFloors(cls?.id).all; // the class floors plus its unlock conditions
-  const who = { core: newPlayer(startId) } as Actor;
+  const who = { core: newPlayer(startId, undefined, identity.raceId) } as Actor; // CC7 a: tree access reads the race too
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: SWINGS.start };
@@ -75,7 +75,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
   const recommended = () => { const r = recommendedBuild(startId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
-  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, startId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(startId) });
+  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, startId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(startId), raceId: identity.raceId });
   const picker = personalityPicker(persona, () => createPlayer(build(), 'preview', { preview: true }));
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
 
@@ -232,12 +232,19 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     const gender = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label]) =>
       h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,
         onclick: (e: Event) => { identity.pronouns = p; (e.currentTarget as HTMLElement).parentElement!.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, label)));
+    // CC7 a: the playable races; picking one rolls an age in its range and builds the screen again (its trees and ages)
+    const race = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Race' }, playableRaces().map((id) =>
+      h('button', { type: 'button', 'aria-pressed': String(identity.raceId === id), title: lib.races?.[id]?.name ?? id,
+        onclick: () => { if (id === identity.raceId) return; identity.raceId = id; identity.age = randomIdentity(createRng(Math.floor(Math.random() * 2 ** 31) || 1), id).age; switchTo(startId); } },
+      lib.races?.[id]?.name ?? id)));
     const row: HTMLElement = h('div', { class: 'who-row' },
       h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: CONFIG.NAME_CAP, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
         oninput: (e: Event) => { identity.name = (e.target as HTMLInputElement).value; } })),
-      h('span', { class: 'hs-label' }, 'Gender'), gender, ageField(),
-      h('button', { class: 'hs-btn-text', type: 'button', title: 'Pick a new random name, gender, age and personality', onclick: () => {
-        const r = roll(); Object.assign(identity, { name: r.name, pronouns: r.pronouns, age: r.age }); persona.p = r.personality;
+      h('span', { class: 'hs-label' }, 'Race'), race, h('span', { class: 'hs-label' }, 'Gender'), gender, ageField(),
+      h('button', { class: 'hs-btn-text', type: 'button', title: 'Pick a new random race, name, gender, age and personality', onclick: () => {
+        const r = roll(), same = r.raceId === identity.raceId;
+        Object.assign(identity, { name: r.name, pronouns: r.pronouns, raceId: r.raceId, age: r.age }); persona.p = r.personality;
+        if (!same) return switchTo(startId); // a new race can open other trees and ages: the screen is built again
         row.replaceWith(whoRow()); picker.refresh(); // the skill points stay as they are
       } }, 'Random'));
     return row;
