@@ -393,13 +393,15 @@ function spawnUnique(state: GameState | null, t: NpcTemplate, opts: SpawnOpts): 
 }
 
 // ---------- player creation (Part 4 §4) ----------
-const PLAYER_START: string = ST.swordsman; // the default Start
+const PLAYER_START: string = ST.late_bloomer; // the default Start: the first on the screen
 const PLAYER_RACE: string = RC.human; // the default race when a build names none
 /** CC7 a: the races the player can pick on the creation screen (RaceDef.playable), in library order */
 export const playableRaces = (): string[] => Object.values(getLibrary().races ?? {}).filter((r) => r.playable).map((r) => r.id);
 const startDef = (startId: string): StartDef | undefined => getLibrary().starts[startId];
 /** a Start's creation points and starting level (StartDef, else CONFIG) */
 export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.points ?? CONFIG.CREATION_POINTS;
+/** the most points one skill can take at creation: CREATION_MAX_TAGGED when tagged, else CREATION_MAX_UNTAGGED */
+export const creationCap = (tagged: boolean): number => (tagged ? CONFIG.CREATION_MAX_TAGGED : CONFIG.CREATION_MAX_UNTAGGED);
 /** AG15: the age picker: from the race's youngest age (no children) to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
 export const creationAge = (startId = PLAYER_START) => startDef(startId)?.age ?? CONFIG.CREATION_AGE_DEFAULT;
 export function creationAgeRange(raceId: string = RC.human): { min: number; max: number } | undefined {
@@ -507,13 +509,9 @@ export function randomIdentity(rng: Rng, raceId?: string): { name: string; prono
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, parry, endurance). */
 export function recommendedBuild(startId = PLAYER_START, raceId?: string): CreationBuild {
-  const base: CreationBuild = startId !== PLAYER_START ? { // the 50-point starts; the same kit, so its gear is short at the start
+  const base: CreationBuild = { // every Start: CREATION_POINTS (100), tagged skills up to 40, the rest up to 30
     name: 'Aldric', startId,
-    skills: { [SK.melee_medium]: 15, [SK.parry]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
-    tagged: [SK.melee_medium, SK.parry, SK.endurance],
-  } : {
-    name: 'Aldric',
-    skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
+    skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
   return raceId === undefined || raceId === PLAYER_RACE ? base : raceBuild(base, startId, raceId);
@@ -529,13 +527,13 @@ function raceBuild(base: CreationBuild, startId: string, raceId: string): Creati
   const skills: Record<string, number> = {};
   for (const [k, v] of Object.entries(base.skills)) if (open.includes(k)) skills[k] = Math.max(v, floors[k] ?? 0);
   for (const k of Object.keys(floors)) if (open.includes(k) && !(k in skills)) skills[k] = floors[k];
+  const tagged = base.tagged.filter((k) => open.includes(k)); // the base tags the body keeps; the rest go below
   let spare = creationPoints(startId) - Object.values(skills).reduce((n, v) => n + v, 0);
   for (const k of [...Object.keys(skills), ...open.filter((k) => !(k in skills))]) {
     if (spare <= 0) break;
-    const add = Math.min(spare, CONFIG.CREATION_MAX_SKILL - (skills[k] ?? 0));
+    const add = Math.min(spare, creationCap(tagged.includes(k)) - (skills[k] ?? 0));
     if (add > 0) { skills[k] = (skills[k] ?? 0) + add; spare -= add; }
   }
-  const tagged = base.tagged.filter((k) => open.includes(k));
   for (const k of Object.keys(skills).sort((a, b) => skills[b] - skills[a])) if (tagged.length < CONFIG.CREATION_TAGS && !tagged.includes(k)) tagged.push(k);
   return { ...base, skills, tagged, raceId };
 }
@@ -566,7 +564,7 @@ export function validateBuild(build: CreationBuild): string[] {
   for (const [id, v] of Object.entries(build.skills)) {
     if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} is not open to the point-buy`);
     if (!Number.isInteger(v) || v < 0) errs.push(`${skillName(id)} must be a whole number of points, 0 or more`);
-    else if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${skillName(id)} is above ${CONFIG.CREATION_MAX_SKILL}`);
+    else if (v > creationCap(build.tagged.includes(id))) errs.push(`${skillName(id)} is above ${creationCap(build.tagged.includes(id))}${build.tagged.includes(id) ? ' (tagged)' : ' (untagged; tagged skills take up to ' + CONFIG.CREATION_MAX_TAGGED + ')'}`);
     spent += v;
   }
   const floors = classFloors(cls);

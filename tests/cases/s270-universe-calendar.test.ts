@@ -9,7 +9,7 @@ import { ageYears } from '../../src/ruleset/age';
 import { SK } from '../../src/library/skillIds';
 
 const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
-const build = { name: 'Wren', age: 30, skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
+const build = { name: 'Wren', age: 30, skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 describe('270 universe calendar', () => {

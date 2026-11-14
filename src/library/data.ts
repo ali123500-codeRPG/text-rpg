@@ -644,11 +644,10 @@ export function prototypeLibrary(): Library {
     // DX1: the Starts, the ways to begin on the creation screen, in the order the screen shows them. points/level left out =
     // CONFIG.CREATION_POINTS / START_LEVEL
     starts: {
-      [ST.swordsman]: { id: ST.swordsman, name: 'Swordsman', classId: CL.swordsman },
-      [ST.late_bloomer]: { id: ST.late_bloomer, name: 'Unwritten Legend', classId: CL.late_bloomer, points: 50, level: 1 },
-      [ST.threadbound]: { id: ST.threadbound, name: 'The Threadbound', classId: CL.threadbounded, points: 50, level: 1 },
+      [ST.late_bloomer]: { id: ST.late_bloomer, name: 'Unwritten Legend', classId: CL.late_bloomer, level: 1 },
+      [ST.threadbound]: { id: ST.threadbound, name: 'The Threadbound', classId: CL.threadbounded, level: 1 },
       // DX1: a random god's Tier V blessing, in that god's Blessed class; points and level [Proposed], as the other 50-point starts
-      [ST.blessed]: { id: ST.blessed, name: 'The Blessed', points: 50, level: 1, blessing: { tier: 'tier_5' },
+      [ST.blessed]: { id: ST.blessed, name: 'The Blessed', level: 1, blessing: { tier: 'tier_5' },
         story: 'A god looked your way once, and part of that look stayed with you. Which god it was, you will know when your story starts.' },
     },
     // DX1: the gods, each with a narrow field. Varo and Imbra are minor gods (GOD_RANKS): grand to the average person, the minimum for the divine; lore belongs to the lore thread

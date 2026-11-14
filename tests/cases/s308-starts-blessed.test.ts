@@ -3,7 +3,7 @@
 // while no god gives a Tier V blessing it can't begin. A god's Blessed class opens for anyone that god blesses.
 import { afterEach, describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
-import { createPlayer, recommendedBuild, startGives, validateBuild } from '../../src/library/spawn';
+import { createPlayer, creationPoints, recommendedBuild, startGives, validateBuild } from '../../src/library/spawn';
 import { unlockClasses } from '../../src/engine/xp';
 import { CL } from '../../src/library/classIds';
 import { GD } from '../../src/library/godIds';
@@ -17,11 +17,12 @@ const bless = () => { getLibrary().perks[FIXTURE] = { id: FIXTURE, name: 'Test B
 afterEach(() => { delete getLibrary().perks[FIXTURE]; });
 
 describe('308 Starts and the blessed start', () => {
-  it('every old starting class is a Start with its class, points and level', () => {
+  it('the Starts, with their class and level; every Start has CREATION_POINTS (100); the Swordsman start is gone', () => {
     const lib = getLibrary();
     expect(Object.values(lib.starts).map((s) => [s.name, s.classId, s.points, s.level])).toEqual([
-      ['Swordsman', CL.swordsman, undefined, undefined], ['Unwritten Legend', CL.late_bloomer, 50, 1],
-      ['The Threadbound', CL.threadbounded, 50, 1], ['The Blessed', undefined, 50, 1]]);
+      ['Unwritten Legend', CL.late_bloomer, undefined, 1], ['The Threadbound', CL.threadbounded, undefined, 1], ['The Blessed', undefined, undefined, 1]]);
+    expect(Object.keys(lib.starts).map(creationPoints)).toEqual([100, 100, 100]);
+    expect(Object.values(ST)).not.toContain('ST1'); // retired, never reused
     expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
   });
 
