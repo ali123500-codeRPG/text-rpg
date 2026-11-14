@@ -27,6 +27,7 @@ import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
+import { GD } from './godIds';
 import { ES } from './essenceIds';
 import { PK } from './perkIds';
 import { IT } from './itemIds';
@@ -638,6 +639,11 @@ export function prototypeLibrary(): Library {
         unlockPerkWith: { hearingDb: 1 } },
       [CL.trader]: { id: CL.trader, personality: { [PA.sociability]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
       [CL.merchant]: { id: CL.merchant, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
+    },
+    // DX1: the gods, each with a narrow field. The essence god's name is a placeholder (NM1); lore belongs to the lore thread
+    gods: {
+      [GD.varo]: { id: GD.varo, name: 'Varo', field: 'extreme fortunes' },
+      [GD.essences]: { id: GD.essences, name: 'the god of essences', field: 'essence manipulation' },
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

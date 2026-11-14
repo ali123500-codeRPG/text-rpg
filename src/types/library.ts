@@ -80,6 +80,8 @@ export type EssenceDef = {
 };
 /** PY3: a service a seller can offer; heals names the healing row it pays for */
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
+/** DX1: a god. field: the narrow thing it governs */
+export type GodDef = { id: string; name: string; field: string };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
   personality?: PersonalityAdd; // PL16: points added while it is the current class
@@ -152,6 +154,7 @@ export type Library = {
   skills: Record<string, SkillDef>;
   trees: Record<string, TreeDef>;
   classes: Record<string, ClassDef>;
+  gods?: Record<string, GodDef>; // DX1: GD…, the gods; each has a narrow field (beings above them govern wider ones)
   roles: Record<RoleId, { name: string; shared: boolean }>;
   bodyTypes: Record<string, BodyType>;
   items: Record<string, ItemDef>;
@@ -266,6 +269,8 @@ export type PerkDef = {
   built?: boolean;
   /** a quirk: a perk that is negative in nature */
   quirk?: boolean;
+  /** DX1: a god's blessing: which god gives it and at what tier (BLESSING_TIERS) */
+  blessing?: { god: import('../library/godIds').GodId; tier: import('../scales').BlessingTierKey };
   /** dreaded on sight (src/engine/auras.ts sightDread): whoever sees the owner for the first time pays fear row `fear`, and from
    * then on its stance toward the owner reads `colder` steps colder until play gives it a stance of its own */
   onSight?: { colder: number; fear: string };
