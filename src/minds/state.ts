@@ -214,12 +214,12 @@ export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engageme
 
 type Sense = typeof FN.sight | typeof FN.hearing;
 /** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
- * (a Vanish in place, or hiding from a search) adds the hide tag and ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
+ * (a Vanish in place, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
 function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean) {
   const zone = zoneById(state, s.zone);
   const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {};
-  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, add: still ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
+  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */
 function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined) {
