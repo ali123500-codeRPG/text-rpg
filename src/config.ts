@@ -910,7 +910,7 @@ const DEFAULTS = {
     parser: { model: 'claude-sonnet-5-5' },
   } as Record<string, { model: string; effort?: 'low' | 'medium' | 'high' }>,
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', world: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,
-  STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // (flavor voice V5)
+  STYLE: { tone: 'grounded dark fantasy, told close on the hero\'s shoulder: short, dry lines that size everything up as threat, price or use; big moments count the odds, then one brutal act and one flat line; dark things are told fast and plainly, never lingered on', // TL1 a, TL2 d, TL3 d (was flavor voice V5)
     length: '2 to 4 short paragraphs' },
 };
 
