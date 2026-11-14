@@ -240,7 +240,7 @@ export type RoadDanger = { id: import('../scales').RoadDangerKey; name: string; 
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };
 
 /** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
- * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
+ * that skill (milestones 40/80/120); effect names what kind of thing it does. */
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 /** opens `steps` more tiers past Critical Success (side 'up') or below Critical Failure ('down') on one kind of roll, or
  * on every kind ('any'), while the owner holds the perk or achievement (achievements: added up along the chain). A roll

@@ -1,5 +1,5 @@
 // DX1-DX6 ("Essences: bested foes, extraction, balance"): taking the essence off someone (a small foreign addition to
-// their Thread, never the Thread itself: NM2). A blessing of the god of essences (D-311; the perk PK.extract_essence,
+// their Thread, never the Thread itself: NM2). A blessing of Imbra, goddess of essence manipulation (D-311; the perk PK.extract_essence,
 // which the blessed Start grants) lets its owner, as their main action and within grip reach (DX3 a), take the essence
 // of someone who is Down and has broken or surrendered (DX2 c). No roll decides whether it works; it uses up the
 // target's one essence roll, so a later death gives none. The essence comes from the target's own list (DX4 b): it
