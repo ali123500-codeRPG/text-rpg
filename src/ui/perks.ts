@@ -210,7 +210,7 @@ export function perksSection(api: GameApi): HTMLElement {
       addEventListener('pointermove', move); addEventListener('pointerup', up);
     });
   }
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sel && el.isConnected && el.querySelector('.pk-card')) { ui.sel = null; redraw(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sel && el.isConnected && el.querySelector('.pk-card')) { e.preventDefault(); ui.sel = null; redraw(); } });
   redraw();
   return el;
 }

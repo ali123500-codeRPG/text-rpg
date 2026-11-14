@@ -297,6 +297,72 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* Character sheet (charsheet.ts): card, skill bars by tree, Play side sheet */
 .tag { color: var(--scenario-mark); font-size: 12px; }
 .cs-split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
+/* CP1: the Character page fits one screen: card and trees fill the height between the head and the tile strip; either
+   scrolls inside itself only when it can't fit */
+main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--space-4); padding-bottom: 20px; }
+.cs-page .cs-split { grid-template-columns: clamp(340px, 22vw, 440px) minmax(0, 1fr); align-items: stretch; min-height: 0; }
+.cs-page .cs-card { overflow: auto; min-height: 0; display: flex; flex-direction: column; }
+.cs-page .cs-bodyrow { flex: 1 0 auto; }
+.cs-right { min-height: 0; overflow: auto; display: grid; align-content: start; gap: var(--space-4); padding: var(--space-1) var(--space-2); }
+.cs-foot { margin: 0; }
+.cs-bodyrow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-4); align-items: center; border-top: 1px solid var(--border); padding-top: 14px; }
+.cs-bodyrow .cs-figs { grid-template-columns: 1fr; border-top: 0; padding-top: 0; gap: 10px; }
+.cs-bfbtn { background: none; border: 1px solid transparent; border-radius: var(--r-md); padding: var(--space-1); cursor: pointer; color: inherit; }
+.cs-bfbtn:hover, .cs-bfbtn:focus-visible { border-color: var(--border); }
+.cs-bfbtn .bf-svg svg { width: clamp(92px, calc((var(--vh) - 560px) / 2.2), 200px); }
+.cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
+.cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
+.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
+.cs-tile:hover, .cs-tile:focus-visible { border-color: var(--accent); }
+.cs-tile b { font-size: 20px; font-weight: 800; line-height: 1.2; }
+.cs-tile-sub { max-width: 100%; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-tile.lit[data-tile="essences"] { border-color: color-mix(in oklch, var(--essence) 60%, var(--border)); }
+.cs-tile.lit[data-tile="perks"] { border-color: color-mix(in oklch, var(--perk-20) 60%, var(--border)); }
+.cs-tile.lit[data-tile="perks"] b { color: var(--perk-20); }
+@media (max-width: 900px) {
+  main.cs-page { height: auto; } .cs-page .cs-split { grid-template-columns: minmax(0, 1fr); } .cs-page .cs-card, .cs-right { overflow: visible; }
+  .cs-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* CP5: the skill, body, gear and personality pop-ups */
+.sk-pop .dpop-body, .bp-pop .dpop-body, .gear-pop .dpop-body { justify-items: stretch; }
+.sk-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
+.sk-v { font-size: 28px; font-weight: 800; }
+.sk-top > span { color: var(--muted); font-size: 13px; }
+.sk-chip { display: inline-flex; align-items: center; gap: 4px; }
+.sk-list { display: grid; gap: 2px; }
+.sk-list .hs-label { margin: 0 0 2px; }
+.sk-line { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; padding: 2px 0; }
+.sk-line span { color: var(--muted); }
+.sk-line b { font-variant-numeric: tabular-nums; }
+.sk-line.sk-sum { border-top: 1px solid var(--border); margin-top: 2px; padding-top: var(--space-1); }
+.sk-line.sk-sum span { color: var(--text); font-weight: 700; }
+.sk-line.sk-bad b { color: var(--danger); }
+.bp-list { display: grid; gap: 2px; }
+.bp-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: var(--space-2); align-items: center; padding: 3px var(--space-2); border-radius: var(--r-md); }
+.bp-row.on { background: var(--accent-soft); }
+.bp-row i { width: 10px; height: 10px; border-radius: 2px; }
+.bp-st { font-size: 13px; color: var(--muted); }
+.bp-amt { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+.bp-pop .bf-key { justify-content: flex-start; }
+.gp-list { display: grid; gap: 2px; }
+.gp-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-2); text-align: left; padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--r-md); background: none; color: var(--text); font: inherit; cursor: pointer; }
+.gp-row:hover, .gp-row:focus-visible { background: var(--accent-soft); }
+.gp-row > span { color: var(--muted); font-size: 13px; }
+.gp-rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; margin: 0; font-size: 14px; }
+.gp-rows dt { color: var(--faint); font-weight: 600; }
+.gp-rows dd { margin: 0; }
+.pe-pop .cs-gear { border-top: 0; padding-top: 0; }
+.pe-pop .cs-gear .hs-label { display: none; }
+/* CP2: the full-screen pop-up, for a board too big for a panel; partial pop-ups and the perk card open over it */
+.fpop { position: fixed; inset: 0; z-index: 30; overflow: auto; background: var(--bg); }
+.fpop-x { position: fixed; top: 20px; right: var(--space-6); z-index: 1; }
+.fpop-body { min-height: 100%; display: grid; }
+/* Perks full screen: the board is the whole surface, and its ladders grow to use the height (two rows of boxes) */
+.pk-full .pk { margin: 0; border: 0; border-radius: 0; padding: 20px var(--space-8) var(--space-6); }
+.pk-full .pk-h { padding-right: 56px; }
+.pk-full .pk-lad { --rh: clamp(200px, calc((var(--vh) - 360px) / 2), 320px); }
 .cs-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px; display: grid; gap: var(--space-4); }
 .cs-who { display: flex; gap: 14px; align-items: center; }
 .cs-who b { font-size: 18px; display: block; }
@@ -415,7 +481,6 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* body figure */
 .bf { display: grid; justify-items: center; gap: 4px; }
 .bf-svg svg { width: 140px; height: auto; display: block; cursor: pointer; }
-.cs-card .bf-svg svg { width: 120px; }
 .bf-svg path { stroke: var(--bg); stroke-width: 2; fill-opacity: .8; }
 .bf-svg path:hover, .bf-svg path.on { fill-opacity: 1; stroke: var(--text); }
 .bf-healthy { fill: var(--ok); background: var(--ok); }
@@ -1235,9 +1300,13 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .ess-meta { margin: 0; color: var(--faint); font-size: 13px; }
 .ess-acts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
 .ess-pop .dpop-body { display: grid; gap: var(--space-3); }
-.ess-sec { margin: var(--space-6) 0; }
-.ess-head { display: flex; align-items: baseline; gap: var(--space-3); }
-.ess-head h2 { margin: 0; }
+/* CP4: the Character page's Essences pop-up; a pair on offer side by side as one choice */
+.ess-all { width: min(600px, calc(100vw - 32px)); }
+.ess-all .dpop-body { justify-items: stretch; }
+.ess-all .ess-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin-top: 0; }
+.ess-pair { grid-column: 1 / -1; display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px dashed color-mix(in oklch, var(--essence) 55%, transparent); border-radius: var(--r-lg); }
+.ess-pair-h { margin: 0; font-size: 13px; font-weight: 700; color: var(--essence); }
+.ess-pair-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .ess-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
 .ess-empty { place-items: center; min-height: 72px; border-style: dashed; background: none; color: var(--faint); }
 .ess-offers { margin-top: var(--space-4); }

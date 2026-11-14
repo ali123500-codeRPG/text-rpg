@@ -1,8 +1,10 @@
-// Details pop-ups for the game screens: clicking an entry opens its details in a floating panel that can be dragged by
-// its head and closed, and never blocks the page underneath (non-modal). One is open at a time; opening another
-// replaces it. Esc closes it and focus goes back to what opened it.
+// Pop-ups for the game screens (CP2). A partial pop-up (details): clicking an entry opens its details in a floating panel
+// that can be dragged by its head and closed, and never blocks the page underneath (non-modal). One is open at a time;
+// opening another replaces it. A full-screen pop-up covers the page for a board too big for a panel (Perks); partial
+// pop-ups and the perk card still open on top of it. Both close with ✕ or Esc, focus goes back to what opened them, and
+// each opens and closes with one short fade (exit faster than entrance, M-51; none with motion off, M-72).
 import { h } from './kit';
-import { arrive, moving } from './motion';
+import { arrive, ms, moving, play } from './motion';
 
 let current: { el: HTMLElement; opener?: HTMLElement | null } | null = null;
 
@@ -12,13 +14,60 @@ export function closePop(): boolean {
   const { el, opener } = current;
   current = null;
   if (el.contains(document.activeElement) && opener?.isConnected) opener.focus();
-  el.remove();
+  fadeOut(el);
   return true;
 }
 
-if (typeof document !== 'undefined')
-  // Esc closes the pop-up, unless something is still moving: then Esc only skips (M-12)
+/** one short fade out, then gone; the pop-up stops catching clicks at once */
+function fadeOut(el: HTMLElement): void {
+  el.style.pointerEvents = 'none';
+  el.style.opacity = '0';
+  play(el, [{ opacity: 1 }, { opacity: 0 }], { dur: ms('--m-feedback'), exit: true, done: () => el.remove() });
+}
+
+let full: { el: HTMLElement; opener?: HTMLElement | null; shut: HTMLElement[]; onClose?: () => void } | null = null;
+
+/** closes the full-screen pop-up, if any, and any partial pop-up over it */
+export function closeFull(): boolean {
+  if (!full) return false;
+  const { el, opener, shut, onClose } = full;
+  full = null;
+  closePop();
+  for (const x of shut) x.inert = false;
+  if (opener?.isConnected) opener.focus({ preventScroll: true });
+  fadeOut(el);
+  onClose?.();
+  return true;
+}
+
+/** opens a full-screen pop-up over the page: the page under it can't be reached until it closes (modal). The body
+ * brings its own heading; `label` names the pop-up for screen readers. */
+export function openFull(o: { label: string; body: (Node | string | null)[]; opener?: HTMLElement | null; cls?: string; onClose?: () => void }): HTMLElement {
+  closeFull();
+  closePop();
+  const x = h('button', { type: 'button', class: 'hs-icon-btn fpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closeFull() }, '✕');
+  const el = h('div', { class: `fpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': o.label, tabindex: '-1' }, x, h('div', { class: 'fpop-body' }, ...o.body));
+  const shut = Array.from(document.body.children).filter((c): c is HTMLElement => c instanceof HTMLElement && !c.inert && c.tagName !== 'SCRIPT' && c.tagName !== 'STYLE');
+  for (const c of shut) c.inert = true;
+  document.body.append(el);
+  full = { el, opener: o.opener, shut, onClose: o.onClose };
+  play(el, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') });
+  el.focus({ preventScroll: true });
+  return el;
+}
+/** the full-screen pop-up's element while one is open */
+export const fullOpen = (): HTMLElement | null => full?.el ?? null;
+
+if (typeof document !== 'undefined') {
+  // Esc closes the partial pop-up first, unless something is still moving: then Esc only skips (M-12)
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && current && !moving()) { e.stopPropagation(); closePop(); } }, true);
+  // then a card floating over the full-screen pop-up (the perk card closes itself and marks the key used), then the pop-up
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && full && !moving() && !e.defaultPrevented && !full.el.querySelector('.pk-card')) closeFull();
+  });
+  // leaving the page closes it
+  addEventListener('hashchange', () => { closeFull(); });
+}
 
 /** opens a details pop-up near its opener; tone names a colour token for its edge (scenario-mark, danger…) */
 export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; tone?: string; cls?: string }): HTMLElement {
