@@ -5,6 +5,7 @@ import { ScriptedClaude, makeVillage } from '../harness';
 import { intent, wholeTurn } from '../harness/turn';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
 import { memoryStore, saveTurn } from '../../src/save';
+import { openBugs } from '../../src/save/bugs';
 import { VOICE_STYLES, autopilotTurn } from '../../src/agents/autopilot';
 import { personalityText, setSignatures } from '../../src/ruleset/personality';
 import { guidedPrompt } from '../../src/agents/crossroads';
@@ -64,6 +65,20 @@ describe('311 speech in character', () => {
     await g.agentMove('', 'character');
     await g.agentMove('', 'character');
     expect(claude.callsFor('autopilot')[1].input[1].content).toContain('signature sayings included):\n- Steady now, friend.');
+  });
+
+  it('BG-232: a line the agent says word for word again within its last few moves is filed as a bug', async () => {
+    const clock = new VirtualClock(), store = memoryStore(), s = makeVillage();
+    await saveTurn(store, s, rec(s));
+    const claude = new ScriptedClaude(clock).push('autopilot', { command: 'I tell the barkeep "Steady now, friend."', say: '' })
+      .push('autopilot', { command: 'I wait', say: 'Quiet.' }).push('autopilot', { command: 'I wait', say: 'steady now, friend!' });
+    const g = createGame({ client: claude, clock, store, director: idle });
+    expect(await g.resume()).toBe(true);
+    await g.agentMove('', 'character');
+    await g.agentMove('', 'character');
+    expect((await openBugs(store)).some((b) => b.code === 'agent_repeat')).toBe(false);
+    await g.agentMove('', 'character');
+    await vi.waitFor(async () => expect((await openBugs(store)).find((b) => b.code === 'agent_repeat')?.line).toBe('steady now, friend!'));
   });
 
   it('set in play, signatures are saved at once and a reload keeps them', async () => {
