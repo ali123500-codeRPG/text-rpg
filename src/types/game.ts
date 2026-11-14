@@ -13,6 +13,7 @@ export type LogLine = {
   kind: 'player' | 'narration' | 'clarify' | 'command' | 'notice';
   text: string;
   aimed?: true; // a player line: the turn was aimed (the Aim toggle or /aim)
+  answers?: string[]; // BG-228: a clarify line: replies the player might pick, each a whole order (a tap fills the box)
   mechanics?: string[]; // dice, modifiers, damage from code (shown while SHOW_MECHANICS is on)
   // Play screen extras on a narration line, all built by code from what the character perceived (no numbers):
   check?: LineCheck; // the player's own roll this turn

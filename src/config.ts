@@ -363,6 +363,8 @@ const DEFAULTS = {
   /** AT67: a stretch of time steps at most half the shortest time anyone perceived needs to trigger the check, within these */
   STEP_MIN_S: 3,
   STEP_MAX_S: 60,
+  /** BG-231: a wait until someone appears stops after this many hours if no one comes */
+  WAIT_SOMEONE_MAX_H: 8,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
   SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
   // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN

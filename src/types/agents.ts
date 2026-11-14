@@ -54,6 +54,7 @@ export type Intent = {
   addressees: string[] | null; // actor ids, band ids or "everyone"
   deferred: string[];
   clarify: string | null;
+  answers?: string[]; // BG-228: with a clarify, two or three replies the player might pick (shown as buttons that fill the box)
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
   standDown?: string | null; // TF11: the player takes the offer to stand down that this one made (player.standDownOffers)
   letsSearch?: string | null; // BF16: the one the player lets search them

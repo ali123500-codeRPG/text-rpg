@@ -1,7 +1,8 @@
 // Playtest, turns 43-44. BG-222: the Weaver's check-in pointed the scenario's ending at Corwin's own sword, an item made in
 // play (IT26_m39_0), and the check threw it out because it looked only in the base catalogue. BG-223: the Weaver is told road
 // lengths in words ("an hour's walk") but only the code keys passed, so every length in words was refused. BG-224: the
-// clarifying question named the ways out to places not built yet, and those couldn't be tapped.
+// clarifying question named the ways out to places not built yet, and those couldn't be tapped. BG-227: an ending naming the
+// base of an item its own plan makes means the made item, and is filed as a bug report.
 import { describe, expect, it } from 'vitest';
 import type { GameState, PlanEnding } from '../../src/types';
 import { makeVillage } from '../harness';
@@ -9,6 +10,7 @@ import { checkinPlanErrors } from '../../src/scenario/checkin';
 import { mint } from '../../src/scenario/apply';
 import { frameOf, checkScenarioEnd } from '../../src/engine/scenarioEnd';
 import { validateStagePlan } from '../../src/scenario';
+import { isBugCode } from '../../src/save/bugs';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { ROAD_LENGTHS } from '../../src/scales';
 import { clarifyPicks } from '../../src/ui/play';
@@ -73,5 +75,29 @@ describe('BG-224: the ways out a clarifying question names can be tapped', () =>
     ] }, player: { inventory: [] } } as never;
     const t = 'Which way do you take as the exit: the east road out of the village, the lane down toward the mill stream, or back along the high lane toward the Bent Nail?';
     expect(clarifyPicks(t, pv).map((p) => p.phrase)).toEqual(['the east road out of the village', 'the lane down toward the mill stream', 'the high lane']);
+  });
+});
+
+describe('BG-227: an ending on holding the item the same plan makes', () => {
+  it('a hold ending that names the base of the one item made from it means the made item', async () => {
+    const { applyStagePlan } = await import('../../src/scenario/apply');
+    const { grovePlan } = await import('../../src/scenario/fixtures');
+    const { createRng } = await import('../harness');
+    const s = makeVillage({ playerZone: 'field_far', without: ['slime_1', 'slime_2'] });
+    const p = grovePlan();
+    p.rewards = [{ item: { base: 'IT26', name: 'an old basket-hilted sword', look: 'worn smooth', quality: 'quality_1' }, place: { carriedBy: 'trader' } } as never];
+    p.scenario!.endings = [{ when: { kind: 'hold', item: 'IT26' }, as: 'resolved', text: 'takes the sword' }, { when: { kind: 'judged' }, as: 'lost', text: 'x' }];
+    applyStagePlan(s, p, { kind: 'scenario', tier: 'success', placeId: 'field' }, { entry: 'open' }, createRng(1));
+    const madeId = s.blueprints.find((b) => b.kind === 'item' && b.id.startsWith('IT26_m'))!.id;
+    expect(s.stage.scenario!.endings[0].when).toMatchObject({ kind: 'hold', item: madeId });
+    const filed = s.log.find((l) => l.code === 'ending_item_remapped'); // BF55: always filed as a bug report
+    expect(filed?.detail).toEqual({ from: 'IT26', to: madeId });
+    expect(isBugCode('ending_item_remapped')).toBe(true);
+    s.player.core.inventory.push({ itemId: 'IT26', qty: 1 } as never); // a plain one doesn't count
+    checkScenarioEnd(s, []);
+    expect(s.stage.breakCause).toBeUndefined();
+    s.player.core.inventory.push({ itemId: madeId, qty: 1 } as never);
+    checkScenarioEnd(s, []);
+    expect(s.log.find((l) => l.code === 'scenario_ending_met')?.detail).toMatchObject({ as: 'resolved' });
   });
 });

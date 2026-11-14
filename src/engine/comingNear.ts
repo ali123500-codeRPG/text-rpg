@@ -15,7 +15,7 @@ type Seen = { sneaking: boolean; closing: boolean; armed: number };
 /** a stretch's watch: the watcher's pose, and everyone it accepted (perceived at the start, or carried on past) */
 export type NearWatch = { watcher: string; pose: BodyPoseKey; accepted: Map<string, Seen> };
 /** why the check fired, and who fired it */
-export type NearStop = { why: 'contact' | 'closing' | 'change'; by: string[] };
+export type NearStop = { why: 'contact' | 'closing' | 'change' | 'appeared'; by: string[] };
 
 /** AT67: seconds the watcher needs to see it coming and get ready: READY_S for its pose + DECIDE_S */
 export const warnS = (w: NearWatch): number => CONFIG.READY_S[w.pose] + CONFIG.DECIDE_S;
@@ -35,6 +35,9 @@ const seen = (state: GameState, x: Actor, closing = false): Seen => ({ sneaking:
 const distM = (state: GameState, a: Located, b: Located): number => distOrNull(state, a, b) ?? Infinity;
 /** metres from where the watcher stands at which someone closing at `speed` m/s fires the check */
 const triggerM = (w: NearWatch, speed: number): number => CONFIG.HOSTILE_NEAR_M + speed * warnS(w);
+
+/** BG-231: everyone outside the watcher's band it perceives now (a wait until someone appears stops when this gains anyone) */
+export const inSenses = (state: GameState, w: Actor): Set<string> => new Set(outsiders(state, w).filter((x) => perceived(state, w, x)).map((x) => x.id));
 
 /** AT67: the watch at a stretch's start: everyone the watcher perceives is accepted */
 export function startWatch(state: GameState, w: Actor, pose: BodyPoseKey): NearWatch {

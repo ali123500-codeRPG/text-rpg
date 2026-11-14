@@ -6,6 +6,46 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-231
+
+**What was wrong:** "Wait for someone to appear" passed one minute: a wait could only run to a time of day, so the Parser made it a plain hold, and even a wait to a time of day ran on past a passer-by coming into sight.
+
+**What was done:** Ali approved the fix (BF58, option b). A wait can now run until someone appears (target "someone", WAIT_SOMEONE in src/scales.ts): time runs on until anyone new comes into the player's sight or hearing (inSenses in src/engine/comingNear.ts, why "appeared"), or CONFIG.WAIT_SOMEONE_MAX_H (8 hours). Parser rule 12 sends "wait until someone comes", "hold my place" and watching with no end there, with anything meant for whoever comes deferred (BF57). Test tests/cases/s314-wait-for-someone.test.ts.
+
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
+
+## BG-230
+
+**What was wrong:** Watching the road from behind the log heap passed about 2 seconds a turn: the Parser read it as Hide, and outside a fight a turn lasts as long as its order.
+
+**What was done:** Ali approved the fix (BF58). Parser rule 15 says Hide is getting out of sight; once hidden, staying hidden and watching is the wait until someone appears (BG-231), which keeps the player hidden. Test tests/cases/s314-wait-for-someone.test.ts.
+
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
+
+## BG-229
+
+**What was wrong:** "Hold my place and shoot the first one who appears" was asked about, dropped, or set aside with nothing to fire it.
+
+**What was done:** Ali approved the fix (BF57, as a wait). The hold is the wait until someone appears (BG-231), and the shot goes in deferred, offered back in the box when someone comes. A real readied action is parked as a feature. Test tests/cases/s314-wait-for-someone.test.ts.
+
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
+
+## BG-228
+
+**What was wrong:** The game's clarifying question "Do you want to hold your place and wait...?" had nothing to click: only names in a question could be tapped.
+
+**What was done:** Ali approved the fix (BF56). The Parser gives two or three replies (answers) with a question; they show as buttons under it, and a tap fills the box without sending. Tests tests/cases/s314-wait-for-someone.test.ts and the play smoke test.
+
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
+
+## BG-227
+
+**What was wrong:** A scenario ending "the player holds a basket-hilted sword" could never be met: the same plan made Corwin's sword from the plain one, and the ending named the plain one.
+
+**What was done:** Ali approved the fix (BF55) and asked for a bug report each time. An ending naming the base of the one item its plan makes means the made item (applyStagePlan), and each such ending files an ending_item_remapped bug report. Test tests/cases/s298-turn43-checkin-road-clarify.test.ts.
+
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
+
 ## BG-226
 
 **What was wrong:** Crossing a frontier onto the new east road put the player at the road's middle, about 1 km from the square, in one move: entering a newly built zone set the player's zone but not where in it they stood, so they were put at its centre.

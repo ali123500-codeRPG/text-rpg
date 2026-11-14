@@ -134,6 +134,18 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('BG-228: a question with answers shows them as buttons; a tap fills the box and sends nothing', async () => {
+    await page.getByPlaceholder(/What do you do/).fill('ask me');
+    await page.getByRole('button', { name: 'Send' }).click();
+    const ans = page.locator('.ln-clarify .clar-ans');
+    await ans.first().waitFor();
+    expect(await ans.allTextContents()).toEqual(['I hold my place and wait to see who appears', 'I go back inside']);
+    await ans.first().click();
+    expect(await page.locator('.inbar .hs-input').inputValue()).toBe('I hold my place and wait to see who appears');
+    expect(await page.getByText(/^Turn 1 /).count()).toBe(0); // nothing was sent
+    expect(errors).toEqual([]);
+  });
+
   it('BG-220: Back closes the full-screen Perks pop-up and stays on the Character page; closing it with ✕ leaves Back as it was', async () => {
     await nav('Character');
     const at = page.url();

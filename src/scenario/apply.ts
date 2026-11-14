@@ -443,9 +443,12 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // ---- rewards ----
   const { rewards, notes } = tidyRewards(state, plan);
   if (notes.length) state.log.push({ turn, code: 'reward_repaired', detail: { notes: notes.map((e) => e.message) } });
+  const made = new Map<string, string[]>(), plain = new Set<string>(); // BG-227: what this plan makes from each base item
   rewards.forEach((r, i) => {
     const itemId = typeof r.item === 'string' ? r.item : mint(state, r.item, i);
     const def = itemDef(state, itemId);
+    if (typeof r.item === 'string') plain.add(r.item);
+    else if (def.base) made.set(def.base.itemId, [...(made.get(def.base.itemId) ?? []), itemId]);
     const qty = r.qty ?? 1;
     const id = `rw${turn}_${i}_${itemId}`;
     const own = r.owner && actorById(state, actorRef(r.owner)) ? { owner: actorRef(r.owner) } : {}; // BF18
@@ -466,6 +469,16 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   state.hidden.weaverNote = plan.weaverNote;
   // SC1/SC2/SC7: a new scenario's question, scale and endings, plan keys mapped to ids
   const frameRef = (k: 'band' | 'place' | 'actor', r: string) => (k === 'band' ? bandRef(r) : k === 'actor' ? actorRef(r) : placeMap.get(r) ?? zoneMap.get(r) ?? r);
+  // BG-227: an ending that names the base item this plan makes one item from means that made item (the Weaver can't know
+  // its id yet); with a plain one placed too, or more than one made, it stays as written
+  if (plan.scenario) for (const e of plan.scenario.endings ?? []) {
+    const w = e?.when as { kind?: string; item?: string } | undefined;
+    if (!(w?.kind === 'hold' || w?.kind === 'deliver') || !w.item || !made.has(w.item)) continue;
+    const from = w.item, one = !plain.has(from) && made.get(from)!.length === 1;
+    if (one) w.item = made.get(from)![0];
+    // BF55: filed as a bug either way, so the Weaver's habit can be looked into
+    state.log.push({ turn, code: 'ending_item_remapped', detail: { from, ...(one ? { to: w.item } : { made: made.get(from), plainToo: plain.has(from) }) } });
+  }
   if (ctx.kind === 'scenario') state.stage.scenario = frameOf(state, plan.scenario, ctx.tier, frameRef);
   // CH1: the ground: the start zone, every zone this scenario's plans build, and the stage zones they name (links, slots)
   const named = [...plan.zones.flatMap((z) => z.links.map((l) => l.to)), ...plan.cast.flatMap((c) => Object.values(c.slots ?? {}).flat())]

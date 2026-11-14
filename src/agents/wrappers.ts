@@ -31,13 +31,13 @@ export function actionWords(a: NonNullable<Intent['action']>, view: PlayerView):
 
 // ---------------- Parser ----------------
 
-export type ParserResult = { intent: Intent | null; clarify: string | null; run: RunResult<Intent> };
+export type ParserResult = { intent: Intent | null; clarify: string | null; answers?: string[]; run: RunResult<Intent> };
 
 /** PlayerView only. A clarify, an illegal target/item/skill or a failed call stops the turn with a question. */
 export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, opts: { bandIds?: string[] } = {}): Promise<ParserResult> {
   const run = await runAgent<Intent>(ctx, { agent: 'parser', fixed: FIXED.parser, data: formatPlayerView(text, view), schema: checkIntent });
   if (!run.value) return { intent: null, clarify: GENERIC_CLARIFY, run };
-  if (run.value.clarify) return { intent: null, clarify: run.value.clarify, run };
+  if (run.value.clarify) return { intent: null, clarify: run.value.clarify, ...(run.value.answers?.length ? { answers: run.value.answers.slice(0, 3) } : {}), run }; // BG-228
   const leg = checkParserLegality(run.value, view, opts.bandIds);
   if (leg.gearErrors.length) run.log.errors.push('invalid_gear');
   // Q16: walking over to someone out of sight moves now; what was meant for them waits for arrival
