@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -156,6 +156,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'renown': return [`every foe fighting you takes ${-d.renown!} on its morale rolls`];
     case 'maxMorale': return [`+${d.maxMorale} max morale`];
     case 'aimEase': return [`${d.aimEase}% less aim penalty on parts of that size`];
+    case 'safeBreak': return [`forcing a container open breaks less: every fragility line ${steps(d.safeBreak!, 'tier')} worse`];
     case 'firstSight': {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
       return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];

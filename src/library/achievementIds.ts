@@ -63,6 +63,7 @@ export const ACH = {
   struck_surrendered_1: 'AC221', struck_surrendered_5: 'AC222', struck_surrendered_10: 'AC223', struck_surrendered_25: 'AC224', struck_surrendered_50: 'AC225',
   killed_surrendered_1: 'AC226', killed_surrendered_5: 'AC227', killed_surrendered_25: 'AC228',
   struck_fleeing_1: 'AC229', struck_fleeing_5: 'AC230', struck_fleeing_10: 'AC231', struck_fleeing_25: 'AC232', struck_fleeing_50: 'AC233',
+  broke_open_1: 'AC234', broke_open_10: 'AC235', broke_open_50: 'AC236',
 } as const;
 /** TB6: chain heads with no trunk of their own; their branches are the per-source chains (healing and calming by source) */
 export const ACH_HEADS = { healed: 'AH1', calmed: 'AH2', areas: 'AH3', wounds: 'AH4' } as const;
@@ -105,7 +106,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   survival_rolls: 'survival rolls passed after going Down with no one left to finish you',
   matched_crits: 'contests where you and the other side landed on the same tier, Critical Success or past it',
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
-  won_panicking: 'fights won while your morale is Panicking', won_broken: 'fights won although your morale broke in them', morale_breaks: 'times your morale broke',
+  won_panicking: 'fights won while your morale is Panicking', won_broken: 'fights won although your morale broke in them', broke_open: 'locked containers forced open with a roll', morale_breaks: 'times your morale broke',
   healed: 'HP healed from one source (a healing-table row: Rest, Natural recovery, Perks…)',
   calmed: 'morale restored from one source (a composure-table row: Rest, Natural composure, Perks…)',
   hp_lost: 'HP lost', morale_lost: 'morale lost',
@@ -138,7 +139,7 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   class_max_tiers: 'class tier with a class at its top level', char_level: 'character level, again at every multiple',
   spar_wins: 'spar won', cruel_spar_wins: 'cruel spar won (fought to Incapacitated)', spar_losses: 'spar lost',
   defeated: 'fight lost: you went Down, or got away while a foe still fought you',
-  won_panicking: 'fight won while your morale is Panicking', won_broken: 'fight won although your morale broke in it', morale_breaks: 'time your morale broke',
+  won_panicking: 'fight won while your morale is Panicking', won_broken: 'fight won although your morale broke in it', broke_open: 'locked container forced open with a roll', morale_breaks: 'time your morale broke',
   achievements: 'other achievement earned (scars and these totals do not count; a replaced level still does)',
   essences_taken: 'essence taken', essence_room: 'character level with every essence slot full',
   kills: 'foe who died by your hand (counted apart from defeats; a kill is also a defeat)',
