@@ -16,7 +16,7 @@ import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods, defeatsMods } from './bane';
 import { pressureMods } from './pressure';
-import { bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
+import { achievementAimEase, bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
@@ -240,7 +240,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const am: Mod[] = [];
   const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // 40/80/120 perk aimMult (none uses it today)
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') * (1 - achievementAimEase(A, aimedPart.size)) }); // 40/80/120 perk aimMult (none uses it today); TM26 by-size achievements
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value (CS2)
   const hit = cls.hit + (mode.hitAdj ?? 0);
