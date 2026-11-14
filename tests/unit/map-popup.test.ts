@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
 import { knownMap } from '../../src/ui/mapData';
+import { moveOrder } from '../../src/ui/map';
 
 const src = (f: string): string => readFileSync(`src/ui/${f}`, 'utf8');
 
@@ -24,5 +25,12 @@ describe('map pop-up', () => {
     const m = knownMap(g.game.state()!);
     expect(m.zoneId).toBe('tav_common');
     expect(m.places.some((p) => p.zones.some((z) => z.id === 'tav_common'))).toBe(true);
+  });
+
+  it('Move to here types an order the parser reads as moving: the zone by name, "the" before a plain one', () => {
+    expect(moveOrder('common room')).toBe('I go to the common room');
+    expect(moveOrder('the high lane')).toBe('I go to the high lane');
+    expect(moveOrder('Millbrook square')).toBe('I go to Millbrook square');
+    expect(src('app.ts')).toMatch(/mapPage\(api, \(order\) => \{ playDraft\.text = order; closeFull\(\); go\('play'\); \}\)/);
   });
 });
