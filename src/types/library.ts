@@ -56,10 +56,14 @@ export type SkillBands = { high?: readonly LibraryRef[]; moderate?: readonly Lib
 export type PersonalityLean = { nerve?: number; traits?: Record<LibraryRef, number>; values?: readonly LibraryRef[] };
 /** NG1: an NPC role (RO): the skills its work trains; nothing else rises (NG8). kind sets its rank floor (NG13: combat
  * CONFIG.RANK_FLOOR.combat, civilian .civilian; a beast has none and no personality spread). traits: its rank-trait pool (NG12) */
-export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civilian' | 'beast'; bands: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[] };
+export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civilian' | 'beast'; bands: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
+  /** NG10: the gear classes (GC…) its work uses; spawn picks the best item of each its skill meets, up to its theme's wealth */
+  gear?: readonly LibraryRef[] };
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank
  * titles (display only) */
-export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[]; rankNames?: Partial<Record<import('../scales').RankKey, string>>; talent?: import('../scales').TalentKey /* AG25: its presets' talent when they name none */ };
+export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
+  /** NG10: the highest equip level its people's gear reaches (an EQUIP_LEVELS key); none = no picked gear */
+  wealth?: import('../scales').EquipLevelKey; rankNames?: Partial<Record<import('../scales').RankKey, string>>; talent?: import('../scales').TalentKey /* AG25: its presets' talent when they name none */ };
 
 /** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */

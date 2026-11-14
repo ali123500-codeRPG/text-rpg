@@ -214,6 +214,7 @@ const weaver = obj<StagePlan>({
     key: str, band: str, routineSetId: str,
     slots: record<string | string[]>((v, p, e) => (Array.isArray(v) ? arr(str)(v, p, e) : str(v, p, e))),
     startAt: str, routineGap: str, awarenessOfPlayer: AWARENESS,
+    compose: obj<NonNullable<Cast['compose']>>({ race: str, role: str, theme: str, rank: str, class: str }, ['class']), templateGap: str, // NG15
     awarenessOfBands: arr(obj<{ band: string; awareness: 'unaware' | 'suspicious' | 'aware' }>({ band: str, awareness: AWARENESS })),
     overrides: arr(obj<{ actor: string; stance: Stance }>({ actor: str, stance: STANCE_WORD })),
     motive: str,
@@ -225,7 +226,7 @@ const weaver = obj<StagePlan>({
     age: str,
     talent: str, // AG25
     goals: arr(obj<GoalOps['add'][number]>({ text: str, about: arr(str) }, ['about'])), // UG3
-  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'talent', 'goals'])),
+  }, ['template', 'actor', 'compose', 'templateGap', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'talent', 'goals'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
     item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: QualityKey; boosts: string; name: string; look: string; fragility?: FragilityKey }>(

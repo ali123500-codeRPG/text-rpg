@@ -205,6 +205,64 @@ export function presetPersonality(t: NpcTemplate, actorId?: string): Personality
   return out;
 }
 
+/** NG10: a preset's gear: its pinned items (NpcTemplate.loadout), then for each gear class its role uses, the highest-level
+ * library item its skills meet, up to its theme's wealth (a starter item first on a tie, then by ID). The starter kit's
+ * rule, without the starter tag. A slot a pin already fills (weapon, shield, armor) gets no pick, nor does a shield beside
+ * a two-handed weapon. */
+export function templateLoadout(t: NpcTemplate, skills: Record<string, SkillEntry>): string[] {
+  const lib = getLibrary(), pins = [...(t.loadout ?? [])];
+  const role = t.roleId ? lib.npcRoles?.[t.roleId] : undefined, wealth = t.themeId ? lib.themes?.[t.themeId]?.wealth : undefined;
+  if (!role?.gear?.length || !wealth) return pins;
+  const who = { core: { raceId: t.raceId, bodyTypeId: race(t.raceId).bodyTypeId, classes: [], perks: [], skills } } as unknown as Actor;
+  const slot = (d: ItemDef) => (d.armor ? 'armor' : d.shield ? 'shield' : d.kind === 'weapon' ? 'weapon' : undefined);
+  const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
+  const filled = new Set(pins.map((id) => lib.items[id]).filter(Boolean).map(slot));
+  let twoHanded = pins.some((id) => (lib.items[id]?.grips ?? 1) > 1);
+  const out = [...pins];
+  for (const gc of role.gear) {
+    const best = Object.values(lib.items).filter((d) => d.gearClass === gc && !d.threadbound && slot(d) && lvl(d) <= EQUIP_LEVELS.pos(wealth) && !shortBy(who, d))
+      .sort((x, y) => lvl(y) - lvl(x) || Number(!!y.tags?.includes('starter')) - Number(!!x.tags?.includes('starter')) || (x.id < y.id ? -1 : 1))[0];
+    const s = best && slot(best);
+    if (!best || filled.has(s) || (s === 'shield' && twoHanded)) continue;
+    filled.add(s);
+    if ((best.grips ?? 1) > 1) twoHanded = true;
+    out.push(best.id);
+  }
+  return out;
+}
+
+/** NG15: a composed preset (race, role, theme, rank, optional class), as the Weaver names it from the catalog: a copy, with
+ * Resolve, control and chase range from its role's kind (CONFIG.COMPOSED_NPC). Its ID names its parts, so the same
+ * composition is one story blueprint. */
+export function composeTemplate(c: { race: string; role: string; theme: string; rank: string; class?: string }, label: string): NpcTemplate {
+  const kind = getLibrary().npcRoles?.[c.role]?.kind ?? 'civilian', d = CONFIG.COMPOSED_NPC[kind];
+  return { id: composedId(c), raceId: c.race, ...(c.class ? { classId: c.class } : {}), generation: 'copy', minimums: {},
+    roleId: c.role, themeId: c.theme, rank: rankKeyOf(c.rank) ?? 'rank_0', resolve: d.resolve, control: d.control, chase: d.chase, label };
+}
+/** NG15: a rank as the Weaver may write it: its key (rank_3, rank_10), or its name (Veteran, Divine++) */
+export function rankKeyOf(w: unknown): RankKey | undefined {
+  if (typeof w !== 'string') return undefined;
+  if (/^rank_\d+$/.test(w)) return w as RankKey;
+  const k = RANKS.keyOf(w);
+  if (k) return k;
+  const last = RANKS.keys.length - 1, m = w.trim().match(/^(.*?)(\++)$/);
+  return m && RANKS.keyOf(m[1]) === RANKS.keys[last] ? (`rank_${last + m[2].length}` as RankKey) : undefined;
+}
+
+/** NG15: what is wrong with a composition, or undefined: every part an ID from the catalog, the rank a rank */
+export function composeError(c: { race: string; role: string; theme: string; rank: string; class?: string }): string | undefined {
+  const lib = getLibrary(), list = (o: Record<string, { name: string }> | undefined) => Object.entries(o ?? {}).map(([id, d]) => `${id} (${d.name})`).join(', ');
+  if (!lib.races?.[c.race]) return `compose race ${c.race} unknown; known: ${list(lib.races)}`;
+  if (!lib.npcRoles?.[c.role]) return `compose role ${c.role} unknown; known: ${list(lib.npcRoles)}`;
+  if (!lib.themes?.[c.theme]) return `compose theme ${c.theme} unknown; known: ${list(lib.themes)}`;
+  if (!rankKeyOf(c.rank)) return `compose rank ${c.rank} unknown; ranks: ${RANKS.list()}, then Divine+, Divine++ …`;
+  if (c.class !== undefined && !lib.classes[c.class]) return `compose class ${c.class} unknown`;
+  return undefined;
+}
+
+export const composedId = (c: { race: string; role: string; theme: string; rank: string; class?: string }) =>
+  ['NC', c.race, c.role, c.theme, rankKeyOf(c.rank) ?? c.rank, ...(c.class ? [c.class] : [])].join('_');
+
 /** the perks a member of this race is born with: its innate perks and innate quirks */
 
 export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
@@ -244,6 +302,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   if (t.generation === 'rolled' && !rng) throw new Error(`rolled template ${t.id} needs the seeded rng`);
   const skills = t.generation === 'rolled' ? presetSkills(t, rng!) : templateSkills(t, opts.id); // NG9: a copy's spread is seeded by its ID
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
+  const loadout = templateLoadout(t, skills); // NG10: its pinned items, then gear by role, skill and theme wealth
   const a: Actor = {
     id: opts.id,
     storyId: opts.storyId ?? state?.storyId ?? 'story',
@@ -262,8 +321,8 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       classes: t.classId ? [{ classId: t.classId, state: 'current', level: Math.min(templateLevel(t), classMaxLevel(t.classId)) }] : [], // NG7: capped by the class's top level
       perks: [...racePerks(t.raceId, state?.turn ?? 0), ...templatePerks(t, opts.id).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 })), ...tagQuirks(t, opts.id, state?.turn ?? 0)],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
-      inventory: equipLoadout(state, t.loadout ?? [], opts.id),
-      standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player
+      inventory: equipLoadout(state, loadout, opts.id),
+      standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, loadout), // GAP: raw skill; ties go block, parry, dodge like the player
       personality: opts.personality ?? presetPersonality(t, opts.id), // NG14: the layers and the copy's spread, or the Weaver's pick on them (PL12)
       ...npcBornDay(state, t, opts.id, opts.ageStage, opts.talent),
     },

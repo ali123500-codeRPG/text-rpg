@@ -12,10 +12,10 @@ import type { AttackOutcome, ScenarioFrame, Tier,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
+import { COVER, LIGHT, NERVE_LINES, RANKS, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
 import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
 import { charLevel, power, wornTitle } from '../engine/xp';
-import { presetAgeFloor, presetTalent, spawnNpc } from '../library/spawn';
+import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
 import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
 import { moveSpeed } from '../engine/speed';
@@ -967,6 +967,11 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       bodyTypes: [...Object.values(lib.bodyTypes).map((b) => ({ id: b.id, name: b.name })), ...bp('body_type').filter((b) => !lib.bodyTypes[b.id]).map((b) => ({ id: b.id, name: String(b.data.name ?? b.id) }))],
       races: Object.values(lib.races ?? {}).map((r) => ({ id: r.id, name: r.name })),
       classes: Object.values(lib.classes).map((c) => ({ id: c.id, name: c.name })),
+      compose: { // NG15
+        roles: Object.values(lib.npcRoles ?? {}).map((r) => ({ id: r.id, name: r.name, skills: (r.bands.high ?? []).map((id) => skillName(id)) })),
+        themes: Object.values(lib.themes ?? {}).map((t) => ({ id: t.id, name: t.name })),
+        ranks: RANKS.keys.map((k) => ({ key: k, name: rankName(k), level: rankRow(k).level })),
+      },
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),
         slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint, ...(v.optional ? { optional: true } : {}) }])),

@@ -176,6 +176,23 @@ export function gmPage(api: GameApi) {
             h('td', { class: 'hs-num' }, String(r.barriers)), h('td', {}, r.shut || '–'), h('td', {}, r.grades || '–')))))
           : h('p', { class: 'empty' }, 'No scenario has ended yet.')),
 
+      // NG15: who the Weaver wanted and couldn't field (templateGap), so a template can be made; composed presets are under "Made this story"
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Templates wanted · who the Weaver could not field'),
+        s?.hidden.templateWants?.length ? h('table', { class: 'hs-tbl' },
+          h('thead', {}, h('tr', {}, ['Scenario', 'Cast as', 'Wanted', 'Used instead'].map((t) => h('th', {}, t)))),
+          h('tbody', {}, [...s.hidden.templateWants].reverse().map((w) => h('tr', {}, h('td', { class: 'hs-num' }, `${w.scenario} · turn ${w.turn}`),
+            h('td', {}, w.label), h('td', {}, w.wanted), h('td', {}, w.template || '–')))))
+          : h('p', { class: 'empty' }, 'Nothing wanted yet. The Weaver writes templateGap when no template or composition gives who it means.')),
+
+      // NG16 b: the hostile cast's power against the player's, by the challenge grade's band; logged only while the bands are tuned
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Cast power · against the challenge grade'),
+        s?.hidden.castPower?.length ? h('table', { class: 'hs-tbl' },
+          h('thead', {}, h('tr', {}, ['Scenario', 'Challenge', 'Hostile power', 'Player power', 'Ratio', 'Band', ''].map((t) => h('th', {}, t)))),
+          h('tbody', {}, [...s.hidden.castPower].reverse().map((c) => h('tr', {}, h('td', { class: 'hs-num' }, `${c.scenario} · turn ${c.turn}`), h('td', {}, c.challenge),
+            h('td', { class: 'hs-num' }, String(c.hostile)), h('td', { class: 'hs-num' }, String(c.player)), h('td', { class: 'hs-num' }, c.ratio.toFixed(2)),
+            h('td', {}, c.band ? `${c.band[0]}–${c.band[1]}` : '–'), h('td', {}, c.off ? h('span', { class: 'hs-chip' }, 'Off band') : '')))))
+          : h('p', { class: 'empty' }, 'No scenario has opened yet.')),
+
       madeSection(s),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Hidden plans'), s ? json(s.hidden) : h('p', { class: 'empty' }, 'No story yet.')),

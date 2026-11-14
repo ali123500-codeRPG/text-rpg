@@ -187,6 +187,10 @@ export type StagePlan = {
   }[];
   cast: {
     template?: string; actor?: string;
+    /** NG15: instead of a template, a composition from the catalog's IDs; code builds the sheet (a story blueprint) */
+    compose?: { race: string; role: string; theme: string; rank: string; class?: string };
+    /** NG15: who the Weaver wanted when no template or composition fits; flagged in the GM view so a template can be made */
+    templateGap?: string;
     label: string; name: string; appearance: string; pronouns?: 'he' | 'she' | 'they' | 'it';
     knownOnSight?: boolean; knows?: { id: string; text: string }[];
     key: string; band: string; routineSetId: string;

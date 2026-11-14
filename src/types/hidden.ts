@@ -16,7 +16,11 @@ export type HiddenStore = {
   weaverNote: string;
   stage: { eventSummary: string; challenge: Grade; gain: Grade; hiddenTerms: string[] };
   /** W6: per-actor hidden Weaver text (motive, routineGap); GM view only. Not an agenda (hasAgenda ignores it). */
-  castNotes?: Record<string, { motive: string; routineGap?: string }>;
+  castNotes?: Record<string, { motive: string; routineGap?: string; templateGap?: string }>;
+  /** NG15: every templateGap the Weaver wrote, for the GM view's "Templates wanted" list (kept across scenarios) */
+  templateWants?: { turn: number; scenario: number; actorId: string; label: string; wanted: string; template: string }[];
+  /** NG16 b: each scenario's hostile cast power against the player's, with the challenge grade's band; logged only */
+  castPower?: { turn: number; scenario: number; challenge: string; hostile: number; player: number; ratio: number; band?: [number, number]; off: boolean }[];
   /** SC6: how each scenario went, oldest first (CONFIG.SCENARIO_RECORDS_SAVED kept); the next Weaver gets the last few */
   scenarios?: ScenarioRecord[];
 };

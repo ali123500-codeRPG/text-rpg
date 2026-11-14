@@ -11,7 +11,7 @@ import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
-import { presetAgeFloor, presetTalent, rankName, templateRank } from '../library/spawn';
+import { composeError, composeTemplate, presetAgeFloor, presetTalent, rankName, templateRank } from '../library/spawn';
 import { stageReaches, talentName } from '../ruleset/age';
 import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
@@ -102,7 +102,7 @@ export function fillPlanDefaults(plan: StagePlan): void {
   plan.weaverNote = trimNote(plan.weaverNote) as string;
   for (const p of arr(plan.places)) if (p && (p.parent === undefined || p.parent === null)) p.parent = '';
   for (const b of arr(plan.bands)) if (b) { b.goals = trimNote(b.goals) as string; b.temperament = trimNote(b.temperament) as string; }
-  for (const c of arr(plan.cast)) if (c) { c.motive = trimNote(c.motive) as string; c.routineGap = trimNote(c.routineGap) as string | undefined; }
+  for (const c of arr(plan.cast)) if (c) { c.motive = trimNote(c.motive) as string; c.routineGap = trimNote(c.routineGap) as string | undefined; c.templateGap = trimNote(c.templateGap) as string | undefined; }
   const seeds = plan.seeds;
   if (!seeds) return;
   const trig = (t: StagePlan['seeds']['triggers'][number], owner?: string) => {
@@ -318,13 +318,15 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (knows.length > P.knows) err('cap_exceeded', `cast ${k}: knows ${knows.length} > ${P.knows}`, k);
     for (const f of knows) text(`cast ${k} knows ${f.id}`, f.text, true, k);
 
-    if (c.template !== undefined && c.actor !== undefined) err('bad_cast', `cast ${k}: template or actor, not both`, k);
+    text(`cast ${k} templateGap`, c.templateGap, false, k);
+    if ([c.template, c.compose, c.actor].filter((x) => x !== undefined).length > 1) err('bad_cast', `cast ${k}: one of template, compose or actor`, k);
     else if (c.actor !== undefined) {
       if (!actorIds.has(c.actor) || c.actor === state.player.id) err('unresolved_actor', `cast ${k}: actor ${c.actor} unknown`, k);
-    } else if (c.template === undefined) err('bad_cast', `cast ${k}: names no template or actor`, k);
+    } else if (c.template === undefined && c.compose === undefined) err('bad_cast', `cast ${k}: names no template, composition or actor`, k);
     else {
       let tpl;
-      try { tpl = npcTemplate(state, c.template); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
+      if (c.compose) { const e = composeError(c.compose); if (e) err('bad_compose', `cast ${k}: ${e}`, k); else tpl = composeTemplate(c.compose, c.label); } // NG15
+      else try { tpl = npcTemplate(state, c.template!); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
       // HF11: a unique comes into a world once; already here, it is cast by its actor id
       if (tpl?.generation === 'unique' && uniqueInWorld(state, tpl.id)) err('unique_in_world', `cast ${k}: ${tpl.id} is already in this world; cast its actor instead`, k);
       if (tpl?.generation === 'unique' && cast.filter((x) => x.template === tpl!.id).length > 1) err('unique_in_world', `cast ${k}: ${tpl.id} is one person; cast it once`, k);
