@@ -10,6 +10,7 @@ import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { getLibrary } from '../../src/library';
 import { notable, offersFromDefeats, removeEssence, takeEssence } from '../../src/engine/essence';
+import { power } from '../../src/engine/xp';
 import { hasPerk, trueSkill } from '../../src/ruleset/perks';
 import { now } from '../../src/time';
 
@@ -58,4 +59,16 @@ it('FP8: the same trait held twice counts once; its points add; it goes only wit
   } finally {
     if (had === undefined) delete row.trait; else row.trait = had;
   }
+});
+
+it('a foe is notable by power only at ESSENCE_NOTABLE_SHARE (2) times the player\'s power or more', () => {
+  expect(CONFIG.ESSENCE_NOTABLE_SHARE).toBe(2);
+  const s = makeVillage(), guard = s.actors.find((a) => a.id === 'guard_1')!;
+  expect(power(s, guard) / power(s, s.player)).toBeGreaterThanOrEqual(2);
+  expect(notable(s, guard)).toBe(true);
+  // the player grows until the guard is under twice its power (but still well over the old 0.75 share)
+  const ids = Object.keys(s.player.core.skills);
+  for (let i = 0; power(s, guard) / power(s, s.player) >= 2; i++) s.player.core.skills[ids[i % ids.length]].raw += 1;
+  expect(power(s, guard) / power(s, s.player)).toBeGreaterThan(1.5);
+  expect(notable(s, guard)).toBe(false);
 });

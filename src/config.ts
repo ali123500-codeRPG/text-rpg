@@ -558,7 +558,7 @@ const DEFAULTS = {
   /** each grade past the last row multiplies the last row's multiplier by this */
   ESSENCE_GRADE_PAST_MULT: 1.5,
   /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or rolled */
-  ESSENCE_NOTABLE_SHARE: 0.75,
+  ESSENCE_NOTABLE_SHARE: 2,
   /** EN1 a: an essence row is on a template's list when the template's weighted average in the row's skills (raw × tier) is
    * at least this share of its best skill [placeholder] */
   ESSENCE_FIT_SHARE: 0.4,
@@ -566,8 +566,8 @@ const DEFAULTS = {
    * ending's tier). D-274: a notable foe always has one and a mob 5%, so for a foe only the quality roll fails. Placeholders */
   ESSENCE_APPEAR_CHANCE: { foe: 100, mob: 5, great_success: 60, critical_success: 70 } as Record<string, number>,
   /** an appeared essence's quality roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table; Near Miss or worse,
-   * it fades (base 80: it holds 51%; 100: 71%) */
-  ESSENCE_ROLL_NEEDED: 130,
+   * it fades (the growth proposal's d100 + base − 100: base 80 holds 81%, mostly Fine; base 100 holds 95%) */
+  ESSENCE_ROLL_NEEDED: 100,
   ESSENCE_ROLL_BASE: { foe: 80, great_success: 80, critical_success: 100 } as Record<string, number>,
   /** HF18, HF29 a: a beaten echo always offers an essence (no appearance roll); its quality roll goes this many tiers up,
    * and a result below Success still gives ECHO_ESSENCE_FLOOR */
