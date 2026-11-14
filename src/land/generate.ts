@@ -4,6 +4,7 @@
 // ones, so they branch at junctions, WZ8), then the cover, then the brief's landmarks. The same seed and brief always give
 // the same land. Agents never give coordinates (MAP-02): the brief is words; code finds the places.
 import type { LandFeature, Pt, Region, RoadLine, RoadNode, Side, Site, Water } from '../types';
+import { OPP_SIDE, SIDES } from '../types';
 import type { RoadDangerKey } from '../scales';
 import type { RegionKind } from '../types';
 import { createRng } from '../rng';
@@ -12,6 +13,8 @@ import { getLibrary } from '../library';
 import { LC, RK } from '../library/tableIds';
 
 export type SiteSize = Site['size'];
+/** settlement sizes, largest first: sites are placed in this order */
+export const SITE_SIZES: readonly SiteSize[] = ['town', 'village', 'hamlet'];
 /** WZ2 where the brief asks a settlement or landmark to be, in words code understands */
 export const WHERE = ['river', 'crossing', 'confluence', 'hill', 'valley', 'woods', 'remote', 'edge_n', 'edge_e', 'edge_s', 'edge_w'] as const;
 export type Where = (typeof WHERE)[number];
@@ -33,8 +36,6 @@ export type RegionBrief = {
  * one per cell from the west or south end, so the land rises and falls on across it (WZ18) */
 export type EdgeJoin = { side: Side; roads: number[]; waters: { at: number; width: number; kind: Water['kind']; name: string; out: boolean }[]; heights?: number[] };
 
-const SIDES: Side[] = ['n', 'e', 's', 'w'];
-const OPP: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
 
 // ---------- noise (seeded value noise) ----------
 function hash(seed: number, x: number, y: number): number {
@@ -142,8 +143,8 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   if (kind.river || brief.river || riverJoin.length) {
     const inJ = riverJoin.find((w) => !w.out), outJ = riverJoin.find((w) => w.out);
     const pick = brief.river?.from ?? SIDES[rng.int(0, 3)];
-    const from: Side = inJ?.side ?? (outJ && pick === outJ.side ? OPP[outJ.side] : pick);
-    const to: Side = outJ?.side ?? (brief.river?.to && brief.river.to !== from ? brief.river.to : OPP[from]);
+    const from: Side = inJ?.side ?? (outJ && pick === outJ.side ? OPP_SIDE[outJ.side] : pick);
+    const to: Side = outJ?.side ?? (brief.river?.to && brief.river.to !== from ? brief.river.to : OPP_SIDE[from]);
     const a = edgePoint(from, inJ?.at ?? S * (0.3 + 0.4 * rng.next())), b = edgePoint(to, outJ?.at ?? S * (0.3 + 0.4 * rng.next()));
     const steps = Math.ceil(dist(a, b) / C);
     const nx = -(b.y - a.y) / dist(a, b), ny = (b.x - a.x) / dist(a, b);
@@ -261,8 +262,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     ...Array.from({ length: rng.int(...kind.settlements.village) }, () => ({ size: 'village' as const, name: '', look: '' })),
     ...Array.from({ length: rng.int(...kind.settlements.hamlet) }, () => ({ size: 'hamlet' as const, name: '', look: '' })),
   ];
-  const ORDER: SiteSize[] = ['town', 'village', 'hamlet'];
-  sizes.sort((a, b) => ORDER.indexOf(a.size) - ORDER.indexOf(b.size));
+  sizes.sort((a, b) => SITE_SIZES.indexOf(a.size) - SITE_SIZES.indexOf(b.size));
   const sites: Site[] = [];
   const whereScore = (w: Where | undefined, i: number): number => {
     const p = at(i), hn = (heights[i] - lo) / Math.max(1, hi - lo);

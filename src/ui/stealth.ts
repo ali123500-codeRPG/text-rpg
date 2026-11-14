@@ -2,7 +2,7 @@
 // action bar beside Aim (they fill the box; nothing is sent until Send), and while the player is stealthy the header shows a
 // filled "Stealthy" badge in the Stealth tree's colour and the action bar is outlined in it. The name comes from POSTURES.
 import { POSTURES } from '../scales';
-import { h } from './kit';
+import { h, lineIcon } from './kit';
 
 type Kind = 'sneak' | 'unseen' | 'vanish';
 const PATHS: Record<Kind, string[]> = {
@@ -13,17 +13,7 @@ const PATHS: Record<Kind, string[]> = {
   vanish: ['M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4', 'M16 17l5-5-5-5', 'M21 12H9'],
 };
 
-export function stealthIcon(kind: Kind): SVGSVGElement {
-  const NS = 'http://www.w3.org/2000/svg';
-  const s = document.createElementNS(NS, 'svg');
-  s.setAttribute('class', 'st-i'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
-  for (const d of PATHS[kind]) {
-    const p = document.createElementNS(NS, 'path');
-    p.setAttribute('d', d);
-    s.append(p);
-  }
-  return s;
-}
+export const stealthIcon = (kind: Kind): SVGSVGElement => lineIcon('st-i', PATHS[kind]);
 
 /** the header badge while the player is stealthy */
 export const stealthBadge = () =>

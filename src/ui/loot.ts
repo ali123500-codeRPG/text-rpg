@@ -1,5 +1,5 @@
 // Loot: what the character can see to take where they stand, in one pop-up. Bodies that are down (what a search turned up
-// and what they wear), open containers and the ground each list their things; the player picks the ones to pocket and
+// and what they wear), open containers and the ground each list their things; the player picks the ones to take and
 // "Take" types one order for them in the action box, unsent, like the map's Move to here. Built from PlayerView only, so it
 // never lists anything the character doesn't know of; whether each take works is still the turn's to decide.
 import type { PlayerView } from '../types';

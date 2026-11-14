@@ -2,19 +2,17 @@
 // so it opens even when no story is running, which is right after a reset. HF34 a: "Send to NPC template" puts the
 // character's echo sheet on the library send list and wakes Claude, who adds it to the code library by PR.
 import type { FallenCharacter, GameApi } from '../types';
-import { h } from './kit';
+import { claudeComments, h, type CommentsApi } from './kit';
 import { fellFacts, fellLine } from './fell';
 
 const REFRESH_MS = 5000;
-type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
 
 export function famePage(api: GameApi) {
   const el = h('main', { class: 'fame' });
   let rows: FallenCharacter[] | null = null, failed = false, fetchedAt = 0;
   let comments: CommentsApi | null = null;
   const notes = new Map<string, string>(); // what the last send said, by story
-  const rt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
-  rt?.use('comments').then(async (c) => { if (c && (await c.canSendToClaude().catch(() => 'off')) === 'available') comments = c; }).catch(() => undefined);
+  claudeComments().then((c) => { comments = c; }).catch(() => undefined);
   async function send(c: FallenCharacter, btn: HTMLButtonElement) {
     btn.disabled = true;
     notes.set(c.storyId, 'Sending…');

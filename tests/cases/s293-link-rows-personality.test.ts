@@ -15,7 +15,7 @@ import { PA } from '../../src/library/tableIds';
 import { CL } from '../../src/library/classIds';
 import { SK } from '../../src/library/skillIds';
 import { actorById, zoneById } from '../../src/engine/relations';
-import { afterAttack, coverFor, markShifts, markUntilNextTurn } from '../../src/engine/perkMarks';
+import { afterAttack, coverFor, markShifts, markForRounds } from '../../src/engine/perkMarks';
 import { syncPerkLinks } from '../../src/ruleset/perkLinks';
 import { personalityOf } from '../../src/ruleset/personality';
 import { trueSkill } from '../../src/ruleset/perks';
@@ -85,7 +85,7 @@ describe('293 link rows and personality nudges', () => {
       give(s.player, PK.dirt_in_the_eyes, PK.melt_away, PK.blind_spot);
       const foe = place(s, 'patron_1', 'tav_counter');
       foe.mind!.overrides = { player: 'hostile' };
-      if (dirt) markUntilNextTurn(s, foe, PK.dirt_in_the_eyes);
+      if (dirt) markForRounds(s, foe, PK.dirt_in_the_eyes);
       const i = intent({ action: { type: 'vanish' } });
       const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
       const ev = play(s, { intent: i });

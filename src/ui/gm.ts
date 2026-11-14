@@ -6,7 +6,7 @@ import { ageText, talentName } from '../ruleset/age';
 import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
 import { HIT_OUTCOMES, QUALITY_LEVELS, TIERS } from '../scales';
-import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
+import { claudeComments, fmtDate, h, openPanel, readouts, plural, unitOf, type CommentsApi } from './kit';
 import { ICON_CREDIT } from './itemIcons';
 import { openPop } from './pop';
 import { CONFIG } from '../config';
@@ -23,7 +23,6 @@ function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: num
   }).filter((r) => r.scenarios);
 }
 
-type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
 const KIND_WORD: Record<BlueprintPage['kind'], string> = { item: 'an item', body_type: 'a body type', npcTemplate: 'an NPC template' };
 
 const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null, 2) ?? 'null');
@@ -45,8 +44,7 @@ export function gmPage(api: GameApi) {
   const notes = new Map<string, string>();
   let sent = new Set<string>(), sendsAt = 0;
   let comments: CommentsApi | null = null;
-  const rt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
-  rt?.use('comments').then(async (c) => { if (c && (await c.canSendToClaude().catch(() => 'off')) === 'available') comments = c; }).catch(() => undefined);
+  claudeComments().then((c) => { comments = c; }).catch(() => undefined);
   function refreshSends(storyId: string) {
     if (Date.now() - sendsAt < 5000) return;
     sendsAt = Date.now();

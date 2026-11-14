@@ -7,6 +7,7 @@
 // own in the page, an estimate in tests).
 import { compassOf, type MapLink, type MapPerson, type MapWay, type MapZone } from './mapData';
 import { verticalOf } from '../scenario/heights';
+import { OPP_SIDE, type Side } from '../types';
 
 /** screen pixels per metre before zoom; the scale bar is drawn from it too (MAP-10) */
 export const PX_PER_M = 12;
@@ -84,7 +85,6 @@ const within = (a: Box, b: Box, pad = 0) => a.x0 >= b.x0 + pad - 1e-6 && a.x1 <=
 const disc = (cx: number, cy: number, r: number): Box => ({ x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r });
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const union = (bs: Box[]): Box => bs.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }), { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
-type Side = 'n' | 'e' | 's' | 'w';
 /** a compass word's side on screen (y down): [east, south] */
 const sideOf = (d: [number, number]): Side => (Math.abs(d[0]) >= Math.abs(d[1]) ? (d[0] >= 0 ? 'e' : 'w') : d[1] >= 0 ? 's' : 'n');
 /** a shut way's entry in the map key */
@@ -282,8 +282,8 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     // with no compass word: the side facing away from the map's middle, else the side with the most open floor beyond it
     const fallback: Side = Math.abs(c.x - mid.x) >= Math.abs(c.y - mid.y) && (c.x !== mid.x) ? (c.x > mid.x ? 'e' : 'w') : c.y !== mid.y ? (c.y > mid.y ? 's' : 'n') : 'e';
     // the sides to try: the named one (then the two beside it), or with no compass word every side, the open one first
-    const named = dir ? sideOf(dir) : fallback, near: Record<Side, Side[]> = { n: ['e', 'w'], s: ['w', 'e'], e: ['s', 'n'], w: ['n', 's'] }, back: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
-    stubs.push({ x, l, side: named, sides: dir ? [named, ...near[named]] : [named, ...near[named], back[named]], ...(away ? { away } : {}), ...(other ? { other } : {}) });
+    const named = dir ? sideOf(dir) : fallback, near: Record<Side, Side[]> = { n: ['e', 'w'], s: ['w', 'e'], e: ['s', 'n'], w: ['n', 's'] };
+    stubs.push({ x, l, side: named, sides: dir ? [named, ...near[named]] : [named, ...near[named], OPP_SIDE[named]], ...(away ? { away } : {}), ...(other ? { other } : {}) });
   }
   // ---- zone names (MZ2, MZ3, MAP-20): bold letters inside the zone, centred and as large as fit its box with 6 px to spare,
   // over up to three lines; a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216).

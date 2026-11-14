@@ -69,7 +69,7 @@ describe('115 Dirt in the Eyes', () => {
     give(s.player, PK.dirt_in_the_eyes);
     expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, 'nobody')).toBe('no_target');
     crossbow(s); // both hands on the crossbow
-    expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, wim.id)).toBe('no_free_hand');
+    expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, wim.id)).toBe('no_free_grip');
     for (const i of s.player.core.inventory) delete i.equippedIn;
     expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, wim.id)).toBeNull();
     resolvePerkMove(s, s.player, PK.dirt_in_the_eyes, wim.id, forcedRng([90, 10]));

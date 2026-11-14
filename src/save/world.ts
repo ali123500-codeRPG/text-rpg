@@ -6,6 +6,7 @@ import { fromPages, toPages } from './pages';
 import { newReport, repairReferences } from './checks';
 import { CONFIG } from '../config';
 import { itemHolders } from '../ruleset/threadboundItems';
+import { levelMaxPct } from '../ruleset/body';
 import { isActive, stance } from '../engine/relations';
 import { itemValue } from '../engine/trade';
 import { itemDef } from '../library';
@@ -41,7 +42,7 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
   const past = w.player;
   past.kind = 'npc';
   past.mind ??= { control: 'code', knowledge: {}, knows: [] };
-  past.core.condition.hpLostPct = Math.max(past.core.condition.hpLostPct, CONFIG.HEALTH_TRACK.find(([l]) => l === 'incapacitated')![1] + 0.001);
+  past.core.condition.hpLostPct = Math.max(past.core.condition.hpLostPct, levelMaxPct('incapacitated') + 0.001);
   const band = w.bands.find((b) => b.id === past.bandId);
   if (band) band.name = player.names.current;
   for (const a of [past, ...w.actors]) {

@@ -5,10 +5,9 @@
 // button stays for sending again; it is hidden, and a report is only saved, when the page can't send to Claude.
 import type { GameApi } from '../types';
 import { isNewReport, type FiledBug } from '../save/bugs';
-import { h } from './kit';
+import { claudeComments, h, plural, type CommentsApi } from './kit';
 
 const REFRESH_MS = 5000;
-type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
 
 /** one line saying what went wrong: the player's note, else the first error, else the code */
 export function bugSummary(b: FiledBug): string {
@@ -52,9 +51,8 @@ export function bugsPage(api: GameApi) {
     report.disabled = false;
     draw();
   };
-  const rt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
-  rt?.use('comments').then(async (c) => {
-    if (!c || (await c.canSendToClaude().catch(() => 'off')) !== 'available') return;
+  claudeComments().then((c) => {
+    if (!c) return;
     comments = c;
     toClaude.hidden = false;
     toClaude.onclick = async () => {
@@ -63,7 +61,7 @@ export function bugsPage(api: GameApi) {
       toClaude.disabled = true;
       claudeNote.textContent = 'Sending…';
       const sent = await sendOpen(open, toClaude).catch(() => false);
-      claudeNote.textContent = sent ? `Sent ${open.length} bug${open.length === 1 ? '' : 's'} to Claude.` : 'Couldn’t reach Claude from here. Leave a comment and send it to Claude instead.';
+      claudeNote.textContent = sent ? `Sent ${plural(open.length, 'bug')} to Claude.` : 'Couldn’t reach Claude from here. Leave a comment and send it to Claude instead.';
       toClaude.disabled = false;
     };
   }).catch(() => undefined);

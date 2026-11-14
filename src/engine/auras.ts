@@ -13,7 +13,7 @@ import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { CP, FR } from '../library/tableIds';
 import { calm } from './heal';
-import { allActors, atLeast, isActive, onSightPerks, stance, wary } from './relations';
+import { allActors, atLeast, atLeastStance, isActive, onSightPerks, stance, wary } from './relations';
 import { STANCES } from '../scales';
 import { probe } from './yield';
 import { distM, withinM } from './position';
@@ -109,7 +109,7 @@ export type CryResult = { target: Actor; contest?: ContestResult; took?: boolean
  * someone fighting beside them */
 export function cryAlly(state: GameState, t: Actor, owner: Actor): boolean {
   const s = stance(state, t, owner);
-  return (!!t.bandId && t.bandId === owner.bandId) || (s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friend')) || (owner === state.player && besidePlayer(state, t));
+  return (!!t.bandId && t.bandId === owner.bandId) || atLeastStance(s, 'friend') || (owner === state.player && besidePlayer(state, t));
 }
 
 /** TM28: a battle cry's rally restores morale through the composure table (CP.rallied), unless the actor already broke */

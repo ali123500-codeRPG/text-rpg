@@ -12,6 +12,7 @@ import { tally } from './xp';
 import { HEALTH_LEVELS, type HealthLevelKey } from '../scales';
 import { secondsSince } from '../time';
 import { engagementEndS } from '../ruleset/actionTime';
+import { freshId } from '../ids';
 
 /** SP4: the health level that puts a fighter out: SPAR_LIMIT, or Incapacitated in a cruel spar (both fighters accepted it) */
 export const sparLimit = (sp: Spar): HealthLevelKey => (sp.cruel ? 'incapacitated' : CONFIG.SPAR_LIMIT);
@@ -26,8 +27,7 @@ export function startSpar(state: GameState, sides: string[][], cruel: boolean, b
     || ids.some((id) => { const a = actorById(state, id); return !a || !isActive(a) || !!sparOf(state, id); });
   if (bad) { logCode(state, 'invalid_spar', { by, sides }); return undefined; }
   const list = (state.spars ??= []);
-  let id = `spar_${state.turn}_${by}`;
-  for (let i = 2; list.some((x) => x.id === id); i++) id = `spar_${state.turn}_${by}_${i}`;
+  const id = freshId(`spar_${state.turn}_${by}`, new Set(list.map((x) => x.id)));
   list.push({ id, sides: sides.map((s) => [...s]), ...(cruel ? { cruel: true as const } : {}), start: state.turn, last: state.turn, out: {} });
   logCode(state, 'spar_started', { id, sides, cruel, by });
   return id;

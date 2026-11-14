@@ -4,12 +4,13 @@ import type { Actor, AgreementEnd, AgreementMade, GameState, MemoryOps } from '.
 import { CONFIG } from '../config';
 import { actorById, isActive } from './relations';
 import { tally } from './xp';
+import { freshId } from '../ids';
 
 const logCode = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
 /** drop by number (as the view numbers them, from 1), then add; past the limit the oldest go (PM2) */
-export function applyMemoryOps(state: GameState, a: Actor, ops: MemoryOps | null | undefined, legacyNote?: string): void {
-  const adds = [...(ops?.add ?? []), ...(legacyNote ? [legacyNote] : [])].map((t) => t.trim()).filter(Boolean);
+export function applyMemoryOps(state: GameState, a: Actor, ops: MemoryOps | null | undefined, note?: string): void {
+  const adds = [...(ops?.add ?? []), ...(note ? [note] : [])].map((t) => t.trim()).filter(Boolean);
   const drop = new Set(ops?.drop ?? []);
   if (!adds.length && !drop.size) return;
   const cur = state.hidden.memory[a.id] ?? [];
@@ -34,8 +35,7 @@ export function makeAgreement(state: GameState, a: Actor, made: AgreementMade, h
     return undefined;
   }
   const list = (state.hidden.agreements ??= []);
-  let id = `deal_${state.turn}_${a.id}`;
-  for (let i = 2; list.some((g) => g.id === id); i++) id = `deal_${state.turn}_${a.id}_${i}`;
+  const id = freshId(`deal_${state.turn}_${a.id}`, new Set(list.map((g) => g.id)));
   list.push({ id, parties: [a.id, other.id], text, madeTurn: state.turn, madeBy: a.id });
   logCode(state, 'agreement_made', { id, parties: [a.id, other.id] });
   if (a === state.player || other === state.player) tally(state, 'deals');

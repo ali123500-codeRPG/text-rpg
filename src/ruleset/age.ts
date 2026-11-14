@@ -11,6 +11,10 @@ type Stages = Partial<Record<LifeStageKey, number>>;
 const stagesOf = (raceId?: string): Stages | undefined => (raceId ? getLibrary().races?.[raceId]?.ageStages : undefined);
 const startOf = (st: Stages, k: LifeStageKey): number => st[k] ?? 0;
 const last = LIFE_STAGES.keys[LIFE_STAGES.keys.length - 1];
+/** the stages AG12 trains from: Youth (training starts) and Adult (the race's grown-up age) */
+const YOUTH: LifeStageKey = 'stage_1', ADULT: LifeStageKey = 'stage_2';
+/** a talent key's step: talent_3 → 3 (keys past the last row go on: talent_5 …) */
+const talentStep = (k: TalentKey): number => Number(k.slice('talent_'.length));
 /** AG7: years per step past the last stage: the gap between the race's last two stages */
 const beyondStep = (st: Stages): number => Math.max(1, startOf(st, last) - startOf(st, LIFE_STAGES.at(LIFE_STAGES.keys.length - 2)));
 
@@ -72,12 +76,12 @@ function span(st: Stages, k: LifeStageKey): [number, number] {
 
 /** AG23: a talent's multiplier on training years; past the last row each step multiplies by CONFIG.TALENT_BEYOND_MULT, never zero */
 export function talentMult(k: TalentKey): number {
-  const n = Number(k.slice(7)), last = TALENTS.keys.length - 1;
+  const n = talentStep(k), last = TALENTS.keys.length - 1;
   return n <= last ? CONFIG.TALENT_MULT[k] : CONFIG.TALENT_MULT[TALENTS.keys[last]] * CONFIG.TALENT_BEYOND_MULT ** (n - last);
 }
 /** AG23: a talent's name; past the last row the last name gains a + per step (Prodigy+, Prodigy++) */
 export function talentName(k: TalentKey): string {
-  const n = Number(k.slice(7)), last = TALENTS.keys.length - 1;
+  const n = talentStep(k), last = TALENTS.keys.length - 1;
   return n <= last ? TALENTS.name(k as (typeof TALENTS.keys)[number]) : TALENTS.name(TALENTS.keys[last]) + '+'.repeat(n - last);
 }
 /** No children: the youngest anyone of a race may be, the start of CONFIG.YOUNGEST_STAGE; undefined for an ageless race */
@@ -90,7 +94,7 @@ export function youngestAge(raceId: string | undefined): number | undefined {
  * a person, so it trains 9 times faster), never under its youngest age. Undefined for an ageless race. */
 export function ageFloor(raceId: string | undefined, training: number, talent: TalentKey): number | undefined {
   const st = stagesOf(raceId);
-  return st ? Math.max(youngestAge(raceId)!, startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent) * startOf(st, LIFE_STAGES.at(2)) / CONFIG.TRAINING_ADULT_AGE) : undefined;
+  return st ? Math.max(youngestAge(raceId)!, startOf(st, YOUTH) + training * talentMult(talent) * startOf(st, ADULT) / CONFIG.TRAINING_ADULT_AGE) : undefined;
 }
 /** AG14: whether a life stage has any year at or past the floor (the last stage always does) */
 export function stageReaches(raceId: string | undefined, k: LifeStageKey, floor: number): boolean {

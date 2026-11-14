@@ -3,8 +3,8 @@ import type { Tier } from '../types';
 
 /** repaired: code already fixed it (rewards); it never blocks a plan or asks for a repair call. */
 export type PlanError = { code: string; message: string; routineOnly: boolean; castKey?: string; repaired?: true };
-/** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake */
-/** ahead (NW3): an extension built for an NPC heading through the frontier; the player is not moved in */
+/** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake.
+ * ahead (NW3): an extension built for an NPC heading through the frontier; the player is not moved in */
 export type PlanContext = { tier: Tier; kind: 'scenario' | 'extension' | 'checkin'; frontierKey?: string; placeId: string; wake?: true; arrive?: true; ahead?: true; /** WZ13 the region site the story opens in */ site?: string;
   /** WB1: built by the World builder: no tier (no grade check), no story (scenario, rewards and beats dropped) */ world?: true };
 

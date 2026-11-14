@@ -1,6 +1,6 @@
 // App shell: side rail (64px items, active pill fills the item, rail scrolls on its own), page area and the push-aside panel.
 import type { GameApi } from '../types';
-import { boxOf, h, setPanelHost, closePanel, playDraft } from './kit';
+import { boxOf, h, lineIcon, plural, setPanelHost, closePanel, playDraft } from './kit';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
@@ -25,13 +25,7 @@ const ICON: Record<string, string> = {
   journal: 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6',
   bugs: 'M9 7a3 3 0 0 1 6 0v1H9zM7 9h10v6a5 5 0 0 1-10 0zM12 10v9M4 12h3M17 12h3M4 17l3-1M20 17l-3-1M6 6l2 2M18 6l-2 2',
 };
-const icon = (k: string) => {
-  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  s.setAttribute('class', 'hs-i'); s.setAttribute('viewBox', '0 0 24 24');
-  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  p.setAttribute('d', ICON[k]); s.append(p);
-  return s;
-};
+const icon = (k: string) => lineIcon('hs-i', ICON[k]);
 
 const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['gains', 'Gains'], ['journal', 'Journal'], ['fame', 'Hall of fame'], ['bugs', 'Bugs']] as const;
 const GM_KEY = 'rpg.gmDebug';
@@ -113,7 +107,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     // V2b: perk points waiting to be spent; after a turn the Play screen holds a new count back until its level-up lands (M-38)
     function pointsBadge() {
       const n = railPoints;
-      return n > 0 ? h('span', { class: 'hs-badge', 'data-m': 'points', title: `${n} perk point${n === 1 ? '' : 's'} to spend` }, `✦${n}`) : null;
+      return n > 0 ? h('span', { class: 'hs-badge', 'data-m': 'points', title: `${plural(n, 'perk point')} to spend` }, `✦${n}`) : null;
     }
     rail.replaceChildren(
       h('div', { class: 'hs-brand' }, 'RPG', h('span', { class: 'ar' }, 'v0')),

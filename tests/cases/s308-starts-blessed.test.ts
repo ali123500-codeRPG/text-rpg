@@ -13,7 +13,7 @@ import { PK } from '../../src/library/perkIds';
 import { makeVillage } from '../harness';
 
 const FIXTURE = 'PK_test_blessing'; // a stand-in tier V blessing until the essence god's extraction perk is tagged
-const bless = () => { getLibrary().perks[FIXTURE] = { id: FIXTURE, name: 'Test Blessing', blessing: { god: GD.essences, tier: 'tier_5' } }; };
+const bless = () => { getLibrary().perks[FIXTURE] = { id: FIXTURE, name: 'Test Blessing', blessing: { god: GD.imbra, tier: 'tier_5' } }; };
 afterEach(() => { delete getLibrary().perks[FIXTURE]; });
 
 describe('308 Starts and the blessed start', () => {
@@ -41,26 +41,26 @@ describe('308 Starts and the blessed start', () => {
     expect(validateBuild(recommendedBuild(ST.blessed))).toEqual([]);
     expect(startGives(ST.blessed).classId).toBeUndefined(); // the screen has no story id yet, so no roll
     const p = createPlayer(recommendedBuild(ST.blessed), 's1');
-    expect(p.core.classes).toEqual([{ classId: CL.blessed_essences, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
+    expect(p.core.classes).toEqual([{ classId: CL.blessed_by_imbra, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
     const b = p.core.perks.find((x) => getLibrary().perks[x.perkId]?.blessing);
     expect(b && { god: getLibrary().perks[b.perkId].blessing!.god, tier: getLibrary().perks[b.perkId].blessing!.tier, source: b.source })
-      .toEqual({ god: GD.essences, tier: 'tier_5', source: 'start' });
+      .toEqual({ god: GD.imbra, tier: 'tier_5', source: 'start' });
     expect(createPlayer(recommendedBuild(ST.blessed), 's1').core.perks).toEqual(p.core.perks);
   });
 
   it('today the only Tier V blessing is Imbra\'s Extract Essence', () => {
     const p = createPlayer(recommendedBuild(ST.blessed), 's2');
     expect(p.core.perks).toContainEqual({ perkId: PK.extract_essence, source: 'start', gainedTurn: 0 });
-    expect(p.core.classes[0].classId).toBe(CL.blessed_essences);
+    expect(p.core.classes[0].classId).toBe(CL.blessed_by_imbra);
   });
 
   it('a god\'s Blessed class opens for a character that god blesses, and not before', () => {
     const s = makeVillage(); // the village loads a fresh library
     bless();
     unlockClasses(s);
-    expect(s.player.core.classes.some((c) => c.classId === CL.blessed_essences)).toBe(false);
+    expect(s.player.core.classes.some((c) => c.classId === CL.blessed_by_imbra)).toBe(false);
     s.player.core.perks.push({ perkId: FIXTURE, source: 'start', gainedTurn: 0 });
     unlockClasses(s);
-    expect(s.player.core.classes).toContainEqual({ classId: CL.blessed_essences, state: 'unlocked', level: 0 });
+    expect(s.player.core.classes).toContainEqual({ classId: CL.blessed_by_imbra, state: 'unlocked', level: 0 });
   });
 });

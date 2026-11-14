@@ -32,7 +32,7 @@ import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
 import { itemLevel, requirement } from '../ruleset/requirements';
-import { fmtDate, h } from './kit';
+import { claudeComments, fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
 import { ALL_BUNDLES } from '../library/allPerks';
@@ -1147,10 +1147,8 @@ const body = h('div', { class: 'lv-body' });
 // from main and republish. Hidden when the page runs outside claude.ai or the viewer can't send to Claude.
 const refreshNote = h('span', { class: 'lv-refresh-note' });
 const refresh = h('button', { type: 'button', class: 'hs-btn-main lv-refresh', hidden: true }, 'Refresh from code');
-type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
-const claudeRt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
-claudeRt?.use('comments').then(async (api) => {
-  if (!api || (await api.canSendToClaude().catch(() => 'off')) !== 'available') return;
+claudeComments().then((api) => {
+  if (!api) return;
   refresh.hidden = false;
   refresh.onclick = async () => {
     (refresh as HTMLButtonElement).disabled = true;

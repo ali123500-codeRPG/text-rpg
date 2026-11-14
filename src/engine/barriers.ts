@@ -50,7 +50,7 @@ export function openWay(b: Barrier, a: Actor, from: string): ('unlocked' | 'unba
 }
 
 /** why a barrier stops someone who tried it: the first of blocked, barred (from the far side), locked */
-export function shutBy(b: Barrier, a: Actor, from: string): 'blocked' | 'barred' | 'locked' {
+export function shutBy(b: Barrier, from: string): 'blocked' | 'barred' | 'locked' {
   if (b.blocked) return 'blocked';
   if (b.bar?.drawn && !boltSide(b, from)) return 'barred';
   return 'locked';

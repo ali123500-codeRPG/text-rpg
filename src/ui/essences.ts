@@ -31,7 +31,7 @@ function tile(e: HeldEssence, extra: (Node | string | null)[] = []): HTMLElement
 }
 
 /** the buttons for one offer: Take it (or, with every slot full, Take it in place of each held one), Let it go */
-function offerButtons(s: GameState, p: Actor, i: number, run: (cmd: string) => void, later?: () => void): HTMLElement {
+function offerButtons(p: Actor, i: number, run: (cmd: string) => void, later?: () => void): HTMLElement {
   const held = p.progression?.essences ?? [], full = held.length >= essenceSlots(p);
   return h('div', { class: 'ess-acts' },
     ...(full
@@ -52,7 +52,7 @@ export function essenceOfferBody(s: GameState, o: EssenceOffer, i: number, run: 
     tile(o, [storyOf(o) ? h('p', { class: 'ess-story' }, storyOf(o)) : null]),
     h('p', { class: 'ess-meta' }, `${slotsText(p)} · ${waitText(s, o)}`),
     full ? h('p', { class: 'hs-note' }, `Every slot is full: taking it means giving one up, which works only at rest and costs ${removeCostText(p)}.`) : '',
-    offerButtons(s, p, i, run, later),
+    offerButtons(p, i, run, later),
   ];
 }
 
@@ -82,7 +82,7 @@ export function openEssencePop(api: GameApi, s: GameState, i: number, after: () 
 export function essencesBody(api: GameApi, s: GameState, after: () => void): (Node | string | null)[] {
   const p = s.player, held = p.progression?.essences ?? [], offers = p.progression?.essenceOffers ?? [], slots = essenceSlots(p);
   const run = (cmd: string) => { void api.submit(cmd, { aimed: false }).then(after); };
-  const offer = (o: EssenceOffer, i: number) => tile(o, [h('p', { class: 'ess-meta' }, waitText(s, o, true)), offerButtons(s, p, i, run)]);
+  const offer = (o: EssenceOffer, i: number) => tile(o, [h('p', { class: 'ess-meta' }, waitText(s, o, true)), offerButtons(p, i, run)]);
   // each pair once, where its first offer stands; lone offers on their own
   const seen = new Set<string>();
   const groups = offers.flatMap((o, i) => {

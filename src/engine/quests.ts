@@ -16,6 +16,7 @@ import { applyMemoryOps } from './memory';
 import { logCode, stepStance } from './effects';
 import { awardXp, power, tally, weakFoeTaper } from './xp';
 import { coinWords } from './trade';
+import { freshId } from '../ids';
 
 export const isOpen = (q: Quest) => q.state === 'active' || q.state === 'ready';
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
@@ -81,8 +82,7 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
   const goal = readGoal(state, job.goal);
   // QT27, BF61: a job code cannot check (a chore, or a target that isn't in the world) is refused, and filed as a gap
   if (goal.kind === 'other') { logCode(state, 'quest_goal_gap', { text, giver: giver.id, asked: job.goal }); return refuse('unchecked_goal'); }
-  let id = `quest_${state.turn}_${giver.id}`;
-  for (let i = 2; state.quests.some((q) => q.id === id); i++) id = `quest_${state.turn}_${giver.id}_${i}`;
+  const id = freshId(`quest_${state.turn}_${giver.id}`, new Set(state.quests.map((q) => q.id)));
   // QT24: the quest it follows, as named; else the giver's own job handed in during this talk
   const named = job.after ? state.quests.find((q) => q.id === job.after) : undefined;
   if (job.after && !named) logCode(state, 'invalid_quest_after', { id, after: job.after });
