@@ -670,6 +670,7 @@ Every actor gets exactly one order per turn, from the first controller in this o
 | A trigger it owns fired | The trigger's order | Overrides everything below; when several fire, the first in plan order wins |
 | Addressed spokesperson | Its dialogue call: Responder if it has an agenda, else Voice | Its Planner or combat-list order is discarded this turn |
 | Significant and engaged | One Planner call | Engaged = active, and believes (suspicious or higher) in an active actor it is hostile to |
+| Significant and in a fight, between turning points (NV1 b) | Its type's combat list (Fallback behavior) | A Planner call comes only on its first fight turn and at a turning point: someone on either side goes down, breaks or yields, it is asked to yield or offered terms, or a newcomer joins (src/agents/game.ts fightKey). Schemers and goal holders, deal partners, errand runners and the startled keep a call every turn (plansEveryTurn); schemer = holds a secret, a unique, or the sneak role \[Proposed\] |
 | Minor and engaged | Its type's combat list (Fallback behavior) | \[Proposed\] |
 | Over the call cap | Its type's combat list | \[Proposed\] |
 | First leaving unaware of a wary actor (opposed or hostile toward it), or first perceiving an attack or alarm. Knowing one from a scenario's opening is not leaving unaware (BF1): the cast starts aware of everyone it can see except those set up hiding, armed with no alarm | Its routine's onAlert order, once, on the next turn only: a higher order that turn (trigger, flight, its agent) spends it (BG-94) | Then the alert variant of the routine it was following, until DECAY\_TURNS pass with no attack or alarm perceived; then it returns to the routine saved in returnTo. |
@@ -677,6 +678,8 @@ Every actor gets exactly one order per turn, from the first controller in this o
 | No valid order | Engaged: its type's combat list. Not engaged: its routine's desired state | Failed or late calls, dropped orders |
 
 Every code mind, combat lists included, reads only its actor's ActorView, never GameState.
+
+**Creatures that can't speak (NV5).** An actor whose race is below `intelligent` (slimes, beasts) is never a spokesperson and gets no Responder or Voice call; code runs it. Words the player says to it give a `not_understood` effect: the story says it does not understand words.
 
 **Call cap.** At most MAX\_PLANNER\_CALLS Planner calls run per turn (config). Engaged actors beyond the cap run their type's combat list (Fallback behavior), the same one minor actors use \[Proposed\]; actors nearest the player get calls first. Dialogue calls are outside this cap; spokespeople are capped by MAX\_SPOKESPEOPLE. The values and the ordering rule are still to be reviewed (D-18).
 
@@ -3554,6 +3557,8 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-250 | Animal races attack at skill 0: their natural attacks roll Natural Weapons, whose tree is open only to slimes and dragons, so the skill counts as closed | 14/11/2026 | fixed (Ali OK'd the fix) | A skill one of a being's own natural attacks rolls is always open to it. PR #842 |
 | BG-251 | Shots and throws made no sound where they landed, so people there never learned they were under attack | 14/11/2026 | fixed (Ali OK'd the fix, BF73) | A shot or throw makes an impact where it lands, Loud on armour or a hard surface, Raised on flesh or soft ground; it alarms and startles those it reaches. PR #847 |
 | BG-252 | Someone made out by the make-out roll was named in the story but stayed "someone" in Who's here, in the Narrator's people and for name learning, which went by distance alone | 14/11/2026 | fixed (Ali OK'd the fix, PG11) | Made out by sight counts as seen clearly everywhere that turn, for every observer; the player keeps anyone seen clearly named while they stay put and can still be glimpsed (no longer only within 25 m). PR #854 |
+| BG-254 | The playtest script started every run as the Swordsman class (CL1), which is no longer a Start, so every run crashed at once ("CL1 is not a Start") | 14/11/2026 | fixed (Ali OK'd the fix, NV8 b) | With no --class given, the script picks a random Start from the library's starts and says which. PR #859 |
+| BG-255 | Code-run fighters swing at foes across the zone: a slime 5-12 m off walks its 3 m and the blow is lost (out of reach), turn after turn; an agent's stale blow falls back to the same order | 14/11/2026 | open (fix plan NV9 awaiting Ali) | The combat list orders an attack on any foe in its zone however far; the close-in walk before a blow uses only the move slot (ZP3), so a foe beyond that is never reached that turn. |
 
 ## Check on release
 

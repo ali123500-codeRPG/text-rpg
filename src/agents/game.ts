@@ -26,8 +26,10 @@ import { NERVE_BLOCKED } from '../minds';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
-import { actorBody, getLibrary, itemDef } from '../library';
-import { actorById, isActive, zoneById } from '../engine/relations';
+import { actorBody, getLibrary, hasTemplate, itemDef, npcTemplate } from '../library';
+import { RO } from '../library/npcLayerIds';
+import { fightingWith } from '../engine/engagement';
+import { actorById, allActors, isActive, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { threadboundInWorld } from '../ruleset/threadboundItems';
@@ -142,6 +144,8 @@ export function createGame(deps: GameDeps): Game {
     void Promise.resolve().then(() => save.listBackups(store, storyId)).then((b) => { if (state?.storyId === storyId) { backups = b; emit(); } }).catch(() => {});
   };
   let background = new Map<string, Background>();
+  /** NV1 b: each fighter's fightKey when last checked, by story and actor id; a change is a turning point */
+  const fightSeen = new Map<string, string>();
   const subs = new Set<() => void>();
   const emit = () => subs.forEach((cb) => cb());
   let calls = 0; // Claude calls this session, shown on the Play screen
@@ -193,7 +197,13 @@ export function createGame(deps: GameDeps): Game {
     if (!s || rateLimited || stopped) return;
     const world = worldIds(s);
     const ctx = ctxFor(s.turn, []);
-    const fights = plannerActors(s);
+    const fights = plannerActors(s).filter((id) => {
+      const a = actorById(s, id)!, key = `${s.storyId}:${id}`;
+      if (!inFight(s, a) || plansEveryTurn(s, a)) { fightSeen.delete(key); return true; }
+      const k = fightKey(s, a), turning = fightSeen.get(key) !== k || answerDue(s, a);
+      fightSeen.set(key, k);
+      return turning; // NV1 b: between turning points code runs its deeds (merge.ts: combat list)
+    });
     for (const actorId of [...fights.slice(0, CONFIG.MAX_PLANNER_CALLS), ...goalThinkers(s, new Set(fights)).slice(0, CONFIG.UNIQUE_THINKS_PER_TURN)]) {
       const controller = new AbortController();
       const view = views.buildOppositionView(s, actorId); // from saved state, before submit
@@ -953,6 +963,31 @@ export function plannerActors(s: GameState): string[] {
     .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && (!busyNow(a) || !!a.busy!.alert)) // NW20: a sleeper is not asked; AT47: nor one at a long action, unless its coming-near check fired (AT67)
     .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
+}
+
+/** NV1 b: a's own side (itself and its bandmates) and their foes, while a fights someone */
+function fightSides(s: GameState, a: Actor): Actor[] {
+  const all = allActors(s), fights = (x: Actor) => all.some((y) => fightingWith(s, x, y) || fightingWith(s, y, x));
+  const side = all.filter((x) => x === a || (!!a.bandId && x.bandId === a.bandId && fights(x)));
+  return all.filter((x) => side.includes(x) || side.some((m) => fightingWith(s, m, x) || fightingWith(s, x, m)));
+}
+export const inFight = (s: GameState, a: Actor): boolean => fightSides(s, a).length > 1;
+/** NV1 b: what a fighter sees of its fight, as a key that changes at a turning point: a newcomer joins, someone in it goes down
+ * (an ally falls), a nerve breaks or someone surrenders, or someone yields */
+export function fightKey(s: GameState, a: Actor): string {
+  const yielded = (x: Actor) => (x === s.player ? !!s.yielding && !s.yielding.ended : Object.values(x.mind?.overrides ?? {}).includes('yielded'));
+  return fightSides(s, a).map((x) => `${x.id}:${isActive(x) ? 'up' : 'down'}:${x.mind?.moraleState ?? (moraleLevel(x) === 'broken' ? 'broken' : '')}:${yielded(x) ? 'yielded' : ''}`).sort().join('|');
+}
+/** NV1 b: an offer to stand down, a demand to surrender or the player's yield waits for this AI-run foe's answer */
+const answerDue = (s: GameState, a: Actor): boolean => !!s.yielding?.pending.includes(a.id) || !!s.offers?.pending.some((o) => o.to === a.id);
+/** NV1 b / NV2: who keeps a Planner call every turn of a fight: those deciding the player's fate, in a deal, on an errand or
+ * startled (plannerActors' other reasons), goal holders and uniques, and schemers: a secret holder or a Sneak role [Proposed] */
+export function plansEveryTurn(s: GameState, a: Actor): boolean {
+  const tpl = a.core.templateId && hasTemplate(s, a.core.templateId) ? npcTemplate(s, a.core.templateId) : undefined;
+  return !!s.mercy?.pending.includes(a.id) || !!s.hidden.agreements?.some((g) => g.parties.includes(a.id))
+    || (a.mind?.errandUntil ?? -Infinity) > s.turn || (a.mind?.startled ?? -Infinity) >= s.turn - 1
+    || !!s.hidden.drives?.[a.id]?.goals.length || tpl?.generation === 'unique'
+    || s.hidden.secrets.some((x) => x.holderId === a.id) || tpl?.roleId === RO.sneak;
 }
 
 /** UG7/UG8/UG9: goal holders due to think (their queue ran out or a step failed, they noticed what a goal names, or they
