@@ -17,6 +17,12 @@ export function clockText(minutes: number): string {
   const d = ((Math.round(minutes) % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
 }
+/** a clock time of day from game minutes, to the second, as 24-hour "07:30:15" */
+export function clockSecondsText(minutes: number): string {
+  const d = ((Math.round(minutes * 60) % (DAY_MINUTES * 60)) + DAY_MINUTES * 60) % (DAY_MINUTES * 60);
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${two(Math.floor(d / 3600))}:${two(Math.floor(d / 60) % 60)}:${two(d % 60)}`;
+}
 const from = (k: TimeOfDay): number => CONFIG.TIME_OF_DAY_FROM[k];
 
 /** has the story's clock been set (false at story start and in saves from before the clock) */
