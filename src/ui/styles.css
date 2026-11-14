@@ -499,6 +499,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-key b { color: var(--pk-c); }
 .pk-inn { display: grid; gap: var(--space-2); }
 .pk-inn h3 { margin: 0; font-size: 13px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
+.pk-inn-h { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+/* the Story / Effect toggle sits beside where the perks are written: compact, under the section or card heading's weight */
+.pk-vt button { min-height: 28px; padding: 0 10px; font-size: 13px; }
 .pk-in { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: 8px; }
 .pk-in p, .pk-in dl { flex-basis: 100%; margin: 0; font-size: 13px; }
 .pk-tag { font-size: 11px; font-weight: 700; border-radius: var(--r-pill); padding: 1px 8px; color: var(--scenario-mark); border: 1px solid color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
@@ -512,13 +515,20 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--space-3) 0 var(--space-4); border-bottom: 1px solid var(--border); }
 .pk-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 6px 10px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
 .pk-tabs button[aria-selected="true"] { color: var(--scenario-mark); border-color: var(--scenario-mark); font-weight: 700; }
-.pk-board { max-width: 720px; margin: 0 auto; }
-.pk-lad { --rh: 360px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 64px; }
+/* every tree in its own box, side by side in rows; a box starts as wide as its skills (--n) need and the boxes of a row
+   share out the rest of its width, so no row leaves a gap (fit the screen) */
+.pk-trees { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+.pk-board { flex: var(--n) 1 calc(48px + var(--n) * 150px); min-width: 0; box-sizing: border-box;
+  padding: var(--space-2) var(--space-3) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-md); }
+.pk-board h3 { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 700; color: var(--muted); }
+.pk-lad { --rh: 200px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 48px; }
 .pk-mb { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in oklch, var(--scenario-mark) 40%, transparent); }
-.pk-mb b { position: absolute; left: 0; top: -18px; color: var(--scenario-mark); font-size: 12px; }
+.pk-mb b { position: absolute; left: 0; top: -16px; color: var(--scenario-mark); font-size: 11px; }
 .pk-mb small { position: absolute; left: 0; top: 2px; color: var(--faint); font-size: 10px; }
-.pk-col { display: grid; grid-template-rows: 46px var(--rh); justify-items: center; gap: 10px; min-width: 0; }
-.pk-ch { text-align: center; } .pk-ch b { display: block; font-size: 13px; } .pk-ch span { color: var(--scenario-mark); font-weight: 800; font-size: 16px; }
+/* the rail sits to the left of its column, so the perk names beside its milestones have the rest of the width */
+.pk-col { display: grid; grid-template-rows: 38px var(--rh); justify-items: start; gap: 8px; min-width: 0; padding-left: 14px; }
+.pk-ch { min-width: 0; max-width: 100%; margin-left: -10px; } .pk-ch b { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-ch span { color: var(--scenario-mark); font-weight: 800; font-size: 14px; }
 .pk-rail { position: relative; width: 8px; border-radius: 4px; background: var(--bg); }
 .pk-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px; background: var(--scenario-mark); }
 .pk-at { position: absolute; left: 50%; height: 0; }
@@ -534,9 +544,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-n.open::before { background: var(--surface); border: 2px solid var(--pk-c); } .pk-n.open span { color: var(--pk-c); }
 .pk-n.empty::before, .pk-n.other::before { background: var(--surface); border: 1.5px dashed var(--faint); } .pk-n.empty span, .pk-n.other span { color: var(--faint); }
 .pk-n.sel::before { outline: 2px solid var(--text); outline-offset: 2px; }
-.pk-n em { position: absolute; left: 30px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-style: normal; font-size: 12px; font-weight: 700; color: var(--pk-c); }
+.pk-n em { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); max-width: 104px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: normal; font-size: 11px; font-weight: 700; color: var(--pk-c); }
 .pk-n.open em { color: var(--text); }
-.pk-trk, .pk-eff { display: grid; gap: 14px; }
+.pk-trk { display: grid; gap: 14px; }
 .pk-trk { display: none; }
 .pk-tr { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: center; }
 .pk-tl b { display: block; font-size: 13px; } .pk-tl span { color: var(--scenario-mark); font-weight: 800; }
@@ -545,10 +555,6 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-tf { position: absolute; left: 0; top: 12px; height: 6px; border-radius: 3px; background: var(--scenario-mark); }
 .pk-tm { position: absolute; top: 2px; width: 2px; height: 26px; margin-left: -1px; background: color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
 .pk-ta { position: absolute; top: 15px; width: 0; height: 0; }
-.pk-g { display: grid; gap: 10px; }
-.pk-gh { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--scenario-mark); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
-.pk-gh::before { content: "▾ "; display: inline-block; transition: transform .15s; }
-.pk-gh[aria-expanded="false"]::before { transform: rotate(-90deg); }
 /* the perk card floats over the page like the details pop-ups and can be dragged by its head */
 .pk-card { position: fixed; z-index: 40; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; padding: 0 var(--space-4) var(--space-4);
   border: 1px solid color-mix(in oklch, var(--pk-c) 45%, transparent); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-toast); }

@@ -1,7 +1,8 @@
-// Character page perks (Part 2 Play screen, Perks, K1–K4, S1, S7). Two views: By tree (a ladder per
-// skill, tracks on narrow screens) and By effect (tracks grouped by what the perks do, each group folds). Sealed milestones
-// show only their number and nothing hints at what comes next (K4). A small card beside the tapped milestone takes or undoes.
-import type { Actor, GameApi, GameState, PerkDef, PerkEffect } from '../types';
+// Character page perks (Part 2 Play screen, Perks, K1–K4, S1, S7). Every tree at once, each in its own compact box of
+// ladders (one per skill; tracks on narrow screens), the boxes side by side in rows. Sealed milestones show only their
+// number and nothing hints at what comes next (K4). A small card beside the tapped milestone takes or undoes, with its
+// own Story / Effect toggle for the write-up, as the innate and linked lists have.
+import type { Actor, GameApi, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { MILESTONES, allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
 import { h } from './kit';
@@ -11,13 +12,12 @@ import { PK } from '../library/perkIds';
 import { allStepNeed, skillsAt } from '../ruleset/allSteps';
 import { PERK_LINKS } from '../library/perkLinks';
 
-const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
-// Story or Rules: the player picks which write-up the perk card shows; kept per browser
+// Story or Effect: the player picks which write-up a perk shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
-const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>(),
+const ui = { text: readText(), sel: null as null | { skill: string; milestone: number },
   /** where the floating perk card was dragged to (viewport px); null = beside the tapped milestone */
   pos: null as null | { left: number; top: number } };
-type Show = MilestoneState | 'other';
+type Show = MilestoneState;
 /** which perk series a milestone belongs to: 20/60/100/140 change what you can do, 40/80/120 raise numbers; each series has its own colour */
 export const perkSeries = (milestone: number): '20' | '40' => (milestone % 40 === 20 ? '20' : '40');
 const seriesList = (series: '20' | '40') => MILESTONES.filter((m) => perkSeries(m) === series).join(', ');
@@ -28,7 +28,8 @@ const railTop = (p: Actor) => {
 };
 const pctOf = (top: number) => (v: number) => `${Math.min(100, (v / top) * 100).toFixed(2)}%`;
 
-function treesOf(p: Actor) {
+/** the boxes the Perks section draws, one per tree the actor has a skill in, in the tree order every page uses */
+export function treesOf(p: Actor) {
   const lib = getLibrary();
   return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => ({ id: t.id, name: lib.trees[t.id].name, skills: lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined) }))
     .filter((t) => t.skills.length);
@@ -40,6 +41,7 @@ function node(skill: string, milestone: number, st: Show, label: boolean) {
   return h('button', {
     type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, 'data-series': perkSeries(milestone), disabled: st === 'sealed',
     'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : st === 'empty' ? ', no perk yet' : ''}`,
+    ...(label && d ? { title: d.name } : {}), // the name beside it may be cut short in a narrow box
     onclick: () => { ui.sel = sel ? null : { skill, milestone }; redraw(); },
   }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
 }
@@ -72,21 +74,6 @@ function track(p: Actor, k: string, show: (r: number, st: MilestoneState) => Sho
       milestonesUpTo(top).map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)), false)))));
 }
 
-function effectView(p: Actor) {
-  const lib = getLibrary();
-  const groups = EFFECTS.map(([id, name]) => {
-    const skills = [...new Set(Object.values(lib.perks).filter((d) => d.effect === id && d.ladder && ['own', 'open'].includes(milestoneState(p, d.ladder.skill, d.ladder.milestone))).map((d) => d.ladder!.skill))];
-    return { id, name, skills };
-  }).filter((g) => g.skills.length);
-  if (!groups.length) return h('p', { class: 'empty' }, 'No perks taken or open yet.');
-  return h('div', { class: 'pk-eff' }, groups.map((g) => {
-    const open = !ui.folded.has(g.id);
-    return h('section', { class: 'pk-g' },
-      h('button', { type: 'button', class: 'pk-gh', 'aria-expanded': String(open), onclick: () => { if (open) ui.folded.add(g.id); else ui.folded.delete(g.id); redraw(); } }, g.name),
-      open ? g.skills.map((k) => track(p, k, (r, st) => (st === 'sealed' ? st : milestonePerk(k, r)?.effect === g.id ? st : 'other'))) : null);
-  }));
-}
-
 /** perks the owner can switch on and off */
 const SWITCHABLE = new Set<string>([PK.cover_ally]);
 
@@ -98,7 +85,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
   const d = milestonePerk(skill, milestone);
   const pts = p.progression?.unspentPerkPoints ?? 0;
   // a floating card like the details pop-ups: dragged by its head, closed with ✕ or Esc, and it stays where it was put
-  const head = h('div', { class: 'pk-card-head' }, h('p', { class: 'k' }, `${skillName(skill)} · ${milestone}`),
+  const head = h('div', { class: 'pk-card-head' }, h('p', { class: 'k' }, `${skillName(skill)} · ${milestone}`), d?.rules ? textToggle() : null,
     h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { ui.sel = null; redraw(); } }, '✕'));
   return h('aside', { class: 'pk-card', 'data-series': perkSeries(milestone), role: 'dialog', 'aria-modal': 'false', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
     head,
@@ -112,6 +99,13 @@ function card(s: GameState, p: Actor, api: GameApi) {
       p.core.perksOff?.includes(d.id) ? 'Off · switch on' : 'On · switch off') : null,
     st === 'own' && d && canUndo(s, p, d.id) ? h('button', { type: 'button', class: 'hs-btn-text', onclick: () => api.undoPerk(d.id) }, 'Undo') : null,
     st === 'open' && pts > 0 ? h('p', { class: 'tiny' }, 'You can undo until you play the next turn.') : null);
+}
+
+/** Story / Effect: which write-up the perks show, beside where they are written */
+function textToggle() {
+  const tt = (v: 'story' | 'rules', label: string) => h('button', { type: 'button', 'aria-pressed': String(ui.text === v),
+    onclick: () => { ui.text = v; try { localStorage.setItem('perkText', v); } catch { /* not saved */ } redraw(); } }, label);
+  return h('div', { class: 'hs-picker pk-vt', role: 'group', 'aria-label': 'Perk write-up' }, tt('story', 'Story'), tt('rules', 'Effect'));
 }
 
 function writeup(d: PerkDef) {
@@ -151,7 +145,7 @@ export function linkNote(p: Actor, perkId: string): string | null {
 function linked(p: Actor) {
   const lib = getLibrary(), list = linkViews(p);
   if (!list.length) return null;
-  return h('section', { class: 'pk-inn pk-links', 'aria-label': 'Linked perks' }, h('h3', {}, 'Linked'),
+  return h('section', { class: 'pk-inn pk-links', 'aria-label': 'Linked perks' }, h('div', { class: 'pk-inn-h' }, h('h3', {}, 'Linked'), textToggle()),
     list.map((v) => h('div', { class: `pk-in pk-link ${v.kind}` }, h('b', {}, v.name), h('span', { class: 'pk-tag' }, v.kind === 'merge' ? 'Merged' : 'Linked'),
       h('p', { class: 'pk-link-from' }, v.kind === 'merge' ? 'Merged from ' : 'From ',
         ...v.needs.flatMap((n, i) => [i ? ' + ' : '', h('span', { class: n.asleep ? 'asleep' : '' }, h('b', {}, n.name), n.where || n.asleep ? ` (${[n.where, n.asleep ? 'asleep' : ''].filter(Boolean).join(', ')})` : '')]),
@@ -164,7 +158,7 @@ function innate(p: Actor) {
   const lib = getLibrary();
   const list = p.core.perks.filter((o) => o.source === 'race').map((o) => lib.perks[o.perkId]).filter((d): d is PerkDef => !!d);
   if (!list.length) return null;
-  return h('section', { class: 'pk-inn', 'aria-label': 'Innate perks and quirks' }, h('h3', {}, 'Innate'),
+  return h('section', { class: 'pk-inn', 'aria-label': 'Innate perks and quirks' }, h('div', { class: 'pk-inn-h' }, h('h3', {}, 'Innate'), textToggle()),
     list.map((d) => h('div', { class: `pk-in${d.quirk ? ' quirk' : ''}` }, h('b', {}, d.name), h('span', { class: 'pk-tag' }, d.quirk ? 'Quirk' : 'Perk'), ...writeup(d))));
 }
 
@@ -177,15 +171,9 @@ export function perksSection(api: GameApi): HTMLElement {
     if (!s) { el.replaceChildren(); return; }
     const p = s.player;
     const trees = treesOf(p);
-    if (!trees.some((t) => t.id === ui.tree)) ui.tree = trees[0]?.id ?? '';
-    const tree = trees.find((t) => t.id === ui.tree);
     const pts = p.progression?.unspentPerkPoints ?? 0;
-    const tt = (v: 'story' | 'rules', label: string) => h('button', { type: 'button', 'aria-pressed': String(ui.text === v),
-      onclick: () => { ui.text = v; try { localStorage.setItem('perkText', v); } catch { /* not saved */ } redraw(); } }, label);
-    const vt = (v: 'tree' | 'effect', label: string) => h('button', { type: 'button', 'aria-pressed': String(ui.view === v), onclick: () => { ui.view = v; ui.sel = null; redraw(); } }, label);
     const kids: (HTMLElement | null)[] = [
-      h('div', { class: 'pk-h' }, h('h2', {}, 'Perks'), h('div', { class: 'hs-picker pk-vt' }, vt('tree', 'By tree'), vt('effect', 'By effect')),
-        h('div', { class: 'hs-picker pk-vt', 'aria-label': 'Perk write-up' }, tt('story', 'Story'), tt('rules', 'Rules')),
+      h('div', { class: 'pk-h' }, h('h2', {}, 'Perks'),
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
       // the two perk series, in the colours their milestones use everywhere
       h('ul', { class: 'pk-key', 'aria-label': 'Perk series' },
@@ -193,10 +181,10 @@ export function perksSection(api: GameApi): HTMLElement {
         h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Refinement'), ` ${seriesList('40')}`)),
       innate(p),
       linked(p),
-      ...(ui.view === 'tree'
-        ? [h('div', { class: 'pk-tabs', role: 'tablist' }, trees.map((t) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(t.id === ui.tree), onclick: () => { ui.tree = t.id; ui.sel = null; redraw(); } }, t.name))),
-          tree ? h('div', { class: 'pk-board' }, ladders(p, tree.id, tree.skills), h('div', { class: 'pk-trk' }, tree.skills.map((k) => track(p, k, (_r, st) => st)))) : null]
-        : [effectView(p)]),
+      // every tree in its own box, side by side; a box is as wide as its skills need
+      trees.length ? h('div', { class: 'pk-trees' }, trees.map((t) => h('section', { class: 'pk-board', 'aria-label': t.name, style: `--n:${t.skills.length}` },
+        h('h3', {}, t.name), ladders(p, t.id, t.skills), h('div', { class: 'pk-trk' }, t.skills.map((k) => track(p, k, (_r, st) => st))))))
+        : h('p', { class: 'empty' }, 'No skills yet.'),
       card(s, p, api)];
     el.replaceChildren(...kids.filter((x): x is HTMLElement => !!x));
     place();
