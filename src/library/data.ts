@@ -501,6 +501,7 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('drink', 'nursing a drink', 'distracted', 'quiet', 'normal'),
   act('chat', 'chatting', 'distracted', 'normal', 'normal'),
   act('sleep', 'asleep', 'asleep', 'quiet', 'low'),
+  act('lie_awake', 'lying awake', 'distracted', 'quiet', 'low'), // BF65: on a sleep step but awake (woken, or not yet dropped off)
   act('eat', 'eating', 'distracted', 'quiet', 'normal'),
   act('rest', 'resting', 'distracted', 'silent', 'low'),
   act('cower', 'keeping out of sight', 'alert', 'silent', 'close'), // NV4

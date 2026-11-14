@@ -237,6 +237,8 @@ export type Mind = {
   /** BF4: on head_to, who it leads there; at the end it waits for them (since: the turn it got there) */
   leading?: { id: string; since?: number };
   stay?: { zone: string; since: number }; // BF11: a place its own agent moved it to holds AGENT_STAY_S from this turn
+  startled?: number; // BF65: the turn it was struck unseen, saw someone struck, or found a body: it gets a Planner call to react
+  bodiesFound?: string[]; // BF65: the bodies it has come upon or seen fall (each found once)
   lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, until it does that kind of thing
   errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
   /** AT63: time ran on past its agent's order (a stretch or a night) while it went on by code; its next Planner call is told */

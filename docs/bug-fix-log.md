@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-241
+
+**What was wrong:** The player shot the girl from hiding, then killed the keeper a step from her, and she never reacted; hours later she walked past his body as if nothing had happened, and the story kept calling her asleep. A hidden striker's attack reached no one, not even what it did; nobody ever noticed a body; only those already fighting got to think; and someone woken on a sleep step still showed as sleeping.
+
+**What was done:** Ali approved the fix (BF65). A blow that hurts or downs someone is felt by them and seen by anyone who sees them as a struck event, while the striker stays as hidden as the stealth rolls say (src/engine/resolve.ts struckSeen). Someone who first sees a body it did not see fall finds it once (findBodies, Mind.bodiesFound). Both raise the alarm (src/minds/state.ts updateAlarms) and the existing fears, and startle the NPC so it gets a Planner call to react even outside a fight (src/agents/game.ts plannerActors). Awake on a sleep step reads as lying awake.
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
 ## BG-237
 
 **What was wrong:** "Take the hinge pins from the trough" only walked the player to the trough, three times: the Parser could not pick up something not in view and its rules said nothing for that case, so it kept just the walk, and it put the rest off as "interact them", which nobody would type.

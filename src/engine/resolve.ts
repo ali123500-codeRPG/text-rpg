@@ -27,7 +27,7 @@ import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
-import { buildActorView } from '../views';
+import { buildActorView, seesClearlyNow } from '../views';
 import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -264,6 +264,7 @@ function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): 
 
 function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {
   if (!id) return ev;
+  if (id === 'sleep' && !isAsleep(a)) id = 'lie_awake'; // BF65: the sleeping look only while really asleep
   try {
     const d = activity(id);
     return { ...ev, activity: id, noise: armorNoise(ctx.state, a, ev.kind, d.noise), visibility: d.visibility };
@@ -376,6 +377,51 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
     if ((cur.source === 'routine' || cur.source === 'fallback') && !ctx.surprised.has(a.id)) {
       const [al] = alertOrders(state, [buildActorView(state, a.id)]);
       if (al && al.actorId === a.id) ctx.orders.set(a.id, al);
+    }
+  }
+}
+
+/** BF65: the one struck always feels a blow that hurt or downed it, and anyone who sees it sees the hit, the fall or the death,
+ * though not who struck from hiding: a 'struck' event by the victim for those the attack itself never reached. They are
+ * startled (a Planner call to react) and, seeing it go down, know of that body. Returns who perceived it. */
+function struckSeen(ctx: Ctx, t: Actor, ev: GameEvent, before: { lost: number; active: boolean }): GameEvent['perception'] {
+  const { state } = ctx;
+  if (t.core.condition.hpLostPct <= before.lost && isActive(t) === before.active) return {};
+  const s = mk(ctx, t, 'struck', { effects: ev.effects.filter((f) => f.actorId === t.id), ...(ev.spar ? { spar: true as const } : {}) }); // SP11: a spar blow raises no alarm
+  s.perception = computePerception(s, state, ctx.rng);
+  if (healthLevel(t) !== 'dead' && !ev.perception[t.id]) s.perception[t.id] = { level: 'full', cue: 'touch' };
+  else delete s.perception[t.id];
+  for (const id of Object.keys(ev.perception)) delete s.perception[id];
+  if (!Object.keys(s.perception).length) return {};
+  emit(ctx, s, undefined, true);
+  for (const id of Object.keys(s.perception)) {
+    const m = actorById(state, id)?.mind;
+    if (!m) continue;
+    m.startled = state.turn;
+    if (!isActive(t)) m.bodiesFound = [...new Set([...(m.bodiesFound ?? []), t.id])];
+  }
+  return s.perception;
+}
+
+/** BF65: someone who comes upon a body it did not see fall finds it, once per body: alarm (updateAlarms), a Planner call
+ * to react, and the bandmate fear when it is one of its own. One that saw it fall already knows of it. */
+function findBodies(ctx: Ctx): void {
+  const { state } = ctx;
+  const bodies = state.actors.filter((b) => !isActive(b));
+  if (!bodies.length) return;
+  for (const x of state.actors) {
+    const m = x.mind;
+    if (!m || !isActive(x) || isAsleep(x)) continue;
+    for (const b of bodies) {
+      if (m.bodiesFound?.includes(b.id) || !seesClearlyNow(state, x, b.id)) continue;
+      m.bodiesFound = [...(m.bodiesFound ?? []), b.id];
+      if (ctx.events.some((e) => (e.target === b.id || e.actorId === b.id) && ['attack', 'struck'].includes(e.kind) && e.perception[x.id])) continue; // saw it fall
+      const ev = mk(ctx, x, 'found_body', { target: b.id });
+      ev.perception = computePerception(ev, state, ctx.rng);
+      ev.perception[x.id] ??= { level: 'full', cue: 'sight' };
+      emit(ctx, ev, undefined, true);
+      m.startled = state.turn;
+      if (!!b.bandId && b.bandId === x.bandId) fear(ctx, x, FR.bandmate_down, {}, ev.perception);
     }
   }
 }
@@ -732,16 +778,18 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
     ev.effects.push({ kind: 'item_landed', actorId: a.id, data: { itemId: m.itemId, zone: t.zone } });
   }
   emit(ctx, ev, res, true);
+  const seenBy = { ...struckSeen(ctx, t, ev, before), ...ev.perception }; // BF65
   // Destroyed arm drops what it held: ruleset.applyEffects moves the item; each drop is its own perceived event
   for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
   // morale (MB21–MB23): a new health level a health fear covers; bandmates who perceive a fall; the one who downed it
   const after = healthLevel(t);
   const hf = HEALTH_LEVELS.pos(after) > HEALTH_LEVELS.pos(before.level) ? healthFear(t, after) : undefined;
-  if (hf) fear(ctx, t, hf.id, {}, ev.perception);
-  for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, ev.perception); // parts Crippled (or worse) by this hit
+  if (hf) fear(ctx, t, hf.id, {}, seenBy);
+  for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, seenBy); // parts Crippled (or worse) by this hit
   if (!isActive(t) && before.active) { // newly down: a blow on someone already down downs no one
     if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.foe_downed); // TM28: a composure row, so it counts as calmed
-    for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
+    for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && seenBy[p.id]) fear(ctx, p, FR.bandmate_down, {}, seenBy);
+    for (const id of Object.keys(seenBy)) { const m = actorById(state, id)?.mind; if (m) m.bodiesFound = [...new Set([...(m.bodiesFound ?? []), t.id])]; } // BF65: seen to fall, never found later
   }
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
@@ -2238,6 +2286,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   applyBeliefDecay(state);
   const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
+  findBodies(ctx); // BF65
   updateAlarms(state, ctx.events);
   headArrivals(state); // NW2: a head_to walk that got there goes back to its routine
   // QT8: talking to a giver hands in its finished job, before its agent's output (so it may offer the next one)

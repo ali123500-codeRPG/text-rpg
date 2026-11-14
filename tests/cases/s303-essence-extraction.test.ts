@@ -56,6 +56,7 @@ it('DX6 a: extraction is an attack: the target and bandmates who see it turn hos
   g.bandId = mate.bandId; // a bandmate in the same room, watching the player
   mate.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
   down(g);
+  mate.mind!.bodiesFound = [g.id]; // it watched g fall (BF65: so it does not come upon the body later)
   g.mind!.moraleState = 'surrendered';
   g.mind!.overrides = { player: 'yielded' };
   const lost = mate.core.condition.moraleLost ?? 0;

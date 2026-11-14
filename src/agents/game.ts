@@ -948,7 +948,8 @@ export function plannerActors(s: GameState): string[] {
   const dealt = (s.hidden.agreements ?? []).flatMap((g) => g.parties).filter((id) => id !== s.player.id && !s.pending.engaged.includes(id));
   const errand = (a: Actor) => (a.mind?.errandUntil ?? -Infinity) > s.turn; // BG-180: a deed it said it was doing, run by code or not
   const errands = s.actors.filter((a) => errand(a) && isActive(a)).map((a) => a.id);
-  return [...new Set([...(s.mercy?.pending ?? []), ...s.pending.engaged, ...dealt, ...errands])] // D-239: those deciding the player's fate
+  const startled = s.actors.filter((a) => (a.mind?.startled ?? -Infinity) >= s.turn - 1 && isActive(a)).map((a) => a.id); // BF65: struck unseen, saw it, or found a body
+  return [...new Set([...(s.mercy?.pending ?? []), ...s.pending.engaged, ...dealt, ...errands, ...startled])] // D-239: those deciding the player's fate
     .map((id) => s.actors.find((a) => a.id === id))
     .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && (!busyNow(a) || !!a.busy!.alert)) // NW20: a sleeper is not asked; AT47: nor one at a long action, unless its coming-near check fired (AT67)
     .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))

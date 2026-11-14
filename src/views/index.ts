@@ -665,6 +665,9 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
   if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
+  // BF65: struck by someone unseen; a body come upon
+  if (e.kind === 'struck') return `${who} ${who === 'you' ? 'were' : 'was'} struck by someone unseen`;
+  if (e.kind === 'found_body' && e.target) return `${who} found ${name(e.target)} lying ${actorById(state, e.target) && healthLevel(actorById(state, e.target)!) === 'dead' ? 'dead' : 'down'}`;
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
   const moving = e.kind === 'move' || e.kind === 'flee';
   const where = moving && (e.fromZone || !v.target) ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
