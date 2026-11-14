@@ -6,6 +6,54 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-226
+
+**What was wrong:** Crossing a frontier onto the new east road put the player at the road's middle, about 1 km from the square, in one move: entering a newly built zone set the player's zone but not where in it they stood, so they were put at its centre.
+
+**What was done:** Ali approved the fix (BF54). Crossing into a newly built zone puts the player a step inside the way they came in by (entryPoint in src/engine/position.ts), as walking into any zone does. Test tests/cases/s299-frontier-road-joins.test.ts.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-225
+
+**What was wrong:** The east road was built apart from Thornbury's square, about 23 m east and 24 m south of it: the new zones were placed on the map before the square's frontier was joined to them, so the road had no placed neighbour and went in the fallback spot east of everything.
+
+**What was done:** Ali approved the fix (BF53). The frontier is joined to the new zone before the zones are placed, so it is laid touching the zone it leads from (also for the fallback zone when the Weaver fails). Zones already placed don't move, so roads in existing saves stay where they are. Test tests/cases/s299-frontier-road-joins.test.ts.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-224
+
+**What was wrong:** A clarifying question named the ways out of the square ("the east road out of the village", "the lane down toward the mill stream"), but only the high lane could be clicked: tappable phrases came from the names of people, places and items, and ways out to places not built yet have only a label.
+
+**What was done:** Ali approved the fix (BF52). The labels of the ways out of where the player stands are tappable too. Test in tests/cases/s298-turn43-checkin-road-clarify.test.ts.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-223
+
+**What was wrong:** The Weaver's road lengths in words ("an hour's walk") were always refused: it is told the words, but the check took only the code's keys (hour), so every new road needed a repair call.
+
+**What was done:** Ali approved the fix (BF51). The check reads a length in words as its key, and "2 km" written as text as km; anything else is still refused. Test in tests/cases/s298-turn43-checkin-road-clarify.test.ts.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-222
+
+**What was wrong:** A Weaver check-in that pointed the scenario's ending at Corwin's own sword (an item made in play, IT26_m39_0) was thrown out as "item unknown": endings that ask for an item were checked against the base catalogue only.
+
+**What was done:** Ali approved the fix (BF50). Hold and deliver endings are checked with the same lookup as the rest of the game, which knows items made in play. The Weaver's world summary names items made in play too. Test in tests/cases/s298-turn43-checkin-road-clarify.test.ts.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-221
+
+**What was wrong:** The tinker woman hailed the player with no words ("the words slide past you unheard"): her Weaver beat fired in the middle of the turn, the moment she saw him, but a beat's words are written only for beats due at the start of a turn.
+
+**What was done:** Ali approved the fix (BF49). A speech beat aimed at the player that comes due mid-turn waits for the next turn's start, where the speaker's own call writes the words. Other beats still fire at once. Test tests/cases/s297-mid-turn-speech-beat-waits.test.ts.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-220
 
 **What was wrong:** Back (the browser's or the mouse's back button) went to another tab instead of closing the full-screen Perks pop-up: opening it added no step to the browser's history, so Back left the Character page.
