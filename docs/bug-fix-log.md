@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF36). Words beside a walk are heard from where they are said. An NPC says them as it sets off, unless its move says to say them on arrival (speakAt "end"). A walk up to someone to be heard still comes first. For the player, the order of their words decides, through the Parser's "after". A case test covers an NPC talking as it leaves, a line beside a dash, speakAt "end", and the player both ways.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #759](https://github.com/ali123500-codeRPG/text-rpg/pull/759)
 
 ## BG-208
 
