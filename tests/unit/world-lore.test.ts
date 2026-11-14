@@ -10,11 +10,11 @@ describe('world lore in the fixed instructions', () => {
   it('is not sent to the parser, planner, responder or voice', () => {
     for (const k of ['parser', 'planner', 'responder', 'voice'] as const) expect(FIXED[k]).not.toContain(WORLD_LORE);
   });
-  it('stays about one page (calls are not cached)', () => {
-    expect(WORLD_LORE.split(/\s+/).length).toBeLessThanOrEqual(900);
+  it('stays short (calls are not cached)', () => {
+    expect(WORLD_LORE.split(/\s+/).length).toBeLessThanOrEqual(350);
   });
   it('keeps the Thread hidden and gods away from it', () => {
-    expect(WORLD_LORE).toMatch(/Never name, describe or hint at the Thread/);
+    expect(WORLD_LORE).toMatch(/Never name or hint at it/);
     expect(WORLD_LORE).toMatch(/no god touches it/);
   });
 });
