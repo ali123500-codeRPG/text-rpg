@@ -368,10 +368,10 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
     if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
-      const d = f.data as { metres: number; minutes: number; pace: string; night: boolean; stop: string };
+      const d = f.data as { metres: number; minutes: number; night: boolean; stop: string };
       const km = distText(d.metres);
       const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
-      out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
+      out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)}${d.night ? ' through the dark' : ''}${stop}`);
     }
     if (f.kind === 'part_state_changed') {
       const to = f.data.to as PartState;

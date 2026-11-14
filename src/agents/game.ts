@@ -1373,9 +1373,9 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   // TV7: a trip says how far it went and why it stopped
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'travelled') continue;
-    const d = l.detail as { actorId: string; metres: number; pace: string; night: boolean; stop: string };
+    const d = l.detail as { actorId: string; metres: number; night: boolean; stop: string };
     if (d.actorId !== s.player.id) continue;
-    out.push(`Travelled ${views.distText(d.metres)} at a ${d.pace} pace${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
+    out.push(`Travelled ${views.distText(d.metres)} ${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
   }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {

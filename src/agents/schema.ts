@@ -5,7 +5,7 @@ import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinA
 import { OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, TRAVEL_PACES, type FragilityKey, type QualityKey, type Scale, type TimeOfDay, type TravelPaceKey } from '../scales';
+import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
@@ -59,8 +59,8 @@ const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
 const intent = obj<Intent>({
-  move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool, pace: oneOf(TRAVEL_PACES.keys),
-    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str, follow: bool, keep: KEEP }, ['near', 'awayFrom', 'side', 'follow', 'keep'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
+  move: nul(obj<{ toZone: string; after?: boolean; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool,
+    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str, follow: bool, keep: KEEP }, ['near', 'awayFrom', 'side', 'follow', 'keep'])) }, ['after', 'spot', 'jump', 'behind'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(PARSER_ACTIONS),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),

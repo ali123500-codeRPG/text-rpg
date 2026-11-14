@@ -93,7 +93,6 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     source: 'player',
     move: mv?.toZone ?? null,
     ...(mv?.after ? { moveAfter: true } : {}),
-    ...(mv?.pace ? { pace: mv.pace } : {}),
     ...(mv?.spot ? { moveSpot: mv.spot } : {}),
     ...(mv?.jump ? { jump: true as const } : {}),
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),

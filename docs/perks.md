@@ -643,16 +643,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner is told plainly that the speaker is lying, instead of the hint that something doesn't sit right.
 - **Lasts:** Each lie seen through.
 
-### Forced March (Stamina) · SS3
-
-*Story:* You run the way others walk. A run costs you Moderate effort instead of Hard, and a legion's march would leave you ready to fight.
-
-- **Kind:** Always on
-- **Trigger:** The owner runs (a dash).
-- **Effect:** The run costs the owner the moderate effort tier instead of RUN_EFFORT (Hard) (CONFIG.FORCED_MARCH_RUN_EFFORT), for its strain and for whether a Spent owner may run.
-- **Lasts:** Always.
-- **Open:** Once travel paces get an effort tier, the normal and fast paces should cost the owner no strain (SS3 a).
-
 ## Very high milestone
 
 ### Never Surprised (Earshot) · C1
