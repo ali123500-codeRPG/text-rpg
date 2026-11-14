@@ -1,7 +1,8 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
 import type { Actor, AchievementBy, AchievementDef, AchievementRule, GameEvent, GameState, XpAward, DefeatWhy } from '../types';
 import { CONFIG } from '../config';
-import { bodyType, getLibrary, itemDef, npcTemplate } from '../library';
+import { bodyType, getLibrary, hasTemplate, itemDef, npcTemplate } from '../library';
+import { templateLevel } from '../library/spawn';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
 import { isActive, stance } from './relations';
@@ -252,7 +253,7 @@ export function rating(a: Actor): number {
 }
 
 /** an actor's level: its full character level (free and bonus levels count), else an NPC's template level */
-export const actorLevel = (a: Actor): number => charLevel(a) || (a.core.templateId ? npcTemplate(null, a.core.templateId)?.level ?? 0 : 0);
+export const actorLevel = (a: Actor): number => charLevel(a) || (a.core.templateId && hasTemplate(null, a.core.templateId) ? templateLevel(npcTemplate(null, a.core.templateId)) : 0);
 /** levels in the rating (the thread the foe wove): LEVEL_RATING_SHARE × what the XP curve asks to reach that level */
 export const levelRating = (a: Actor): number => CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(a));
 

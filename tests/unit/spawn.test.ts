@@ -1,9 +1,8 @@
 import { TP } from '../../src/library/templateIds';
 import { RC } from '../../src/library/raceIds';
-import { TR } from '../../src/library/treeIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
-import { createPlayer, recommendedBuild, refreshCopies, rollUniqueSkills, spawnNpc, validateBuild } from '../../src/library/spawn';
+import { createPlayer, presetSkills, rankName, rankRow, recommendedBuild, refreshCopies, spawnNpc, templateLevel, validateBuild } from '../../src/library/spawn';
 import { getLibrary, itemDef, npcTemplate, resetLibrary, setLibrary } from '../../src/library';
 import { shortBy } from '../../src/ruleset/requirements';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -44,57 +43,72 @@ describe('player creation', () => {
   });
 });
 
-describe('unique generation', () => {
-  const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', classId: undefined, generation: 'rolled' as const };
-  // MB30: Resolve from personality comes on top of the minimums and level points
-  const sum = (s: Record<string, { raw: number }>) => Object.entries(s).reduce((n, [k, e]) => n + (k === SK.resolve ? 0 : e.raw), 0);
+describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
+  const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', classId: undefined, generation: 'rolled' as const, minimums: {} };
+  const banded = (t: typeof bandit) => presetSkills(t); // the preset's centre values, no spread
 
-  it('is seeded: minimums plus level x POINTS_PER_LEVEL + bonus, preferred skills tagged', () => {
-    const a = rollUniqueSkills(bandit, createRng(5));
-    expect(rollUniqueSkills(bandit, createRng(5))).toEqual(a);
-    expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + bandit.level * CONFIG.POINTS_PER_LEVEL + bandit.bonusPoints);
-    expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium, SK.eyesight].sort());
-    const seeds = new Set([1, 2, 3, 4, 5, 6].map((n) => JSON.stringify(rollUniqueSkills(bandit, createRng(n)))));
-    expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
+  it('NG2: each banded skill sits at rank anchor × band share; high-band skills are tagged; nothing else rises (NG8)', () => {
+    const s = banded(bandit); // Soldier, Town watch, Trained (anchor 50)
+    expect([s[SK.melee_medium].raw, s[SK.block].raw]).toEqual([50, 50]);
+    expect([s[SK.medium_armor].raw, s[SK.endurance].raw, s[SK.eyesight].raw]).toEqual([40, 40, 40]);
+    expect([s[SK.parry].raw, s[SK.earshot].raw]).toEqual([30, 30]); // earshot: a common skill (NG8)
+    expect(Object.entries(s).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium].sort());
+    expect(s[SK.melee_light]).toBeUndefined(); // no spill into the tree
+    expect(s[SK.barter]).toBeUndefined();
   });
-  it('never goes above the skill\'s own cap (a focus skill is tagged: 125, CS14); the rest spills into the tree', () => {
-    const t = { ...bandit, minimums: { [SK.melee_medium]: 118 }, level: 0, bonusPoints: 30, focus: [{ treeId: TR.melee, skill: SK.melee_medium }] };
-    const s = rollUniqueSkills(t, createRng(1));
-    expect(s[SK.melee_medium].raw).toBe(CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS);
-    expect(s[SK.melee_medium].state).toBe('tagged');
-    expect(sum(s)).toBe(148);
-    // a tree skill that is not a focus pick stops at SKILL_CAP
-    const u = { ...bandit, minimums: { [SK.melee_medium]: 125, [SK.melee_light]: 98 }, level: 0, bonusPoints: 30, focus: [{ treeId: TR.melee, skill: SK.melee_medium }] };
-    expect(rollUniqueSkills(u, createRng(1))[SK.melee_light].raw).toBe(CONFIG.SKILL_CAP);
+  it('NG5 b: the cap is the player\'s, 100 or 125 tagged, at every rank; NG3: ranks go on past Divine', () => {
+    for (const rank of ['rank_5', 'rank_6', 'rank_8', 'rank_10'] as const) {
+      const s = banded({ ...bandit, rank });
+      expect(s[SK.melee_medium].raw).toBe(Math.min(rankRow(rank).anchor, CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS));
+      expect(s[SK.medium_armor].raw).toBe(Math.min(rankRow(rank).anchor * 0.8, CONFIG.SKILL_CAP));
+    }
+    expect(rankRow('rank_10')).toEqual({ anchor: 500, level: 100 });
+    expect([rankName('rank_2'), rankName('rank_8'), rankName('rank_10')]).toEqual(['Trained', 'Divine', 'Divine++']);
   });
-  it('spawnNpc rolls a unique once (needs the rng) and saves its perk points; copies get fixed level points', () => {
+  it('NG9: each copy moves by up to ± COPY_SPREAD, seeded by its ID; minimums and class floors still hold', () => {
+    const a = presetSkills(bandit, createRng(5));
+    expect(presetSkills(bandit, createRng(5))).toEqual(a);
+    expect(JSON.stringify(presetSkills(bandit, createRng(6)))).not.toBe(JSON.stringify(a));
+    const centre = banded(bandit);
+    for (const [k, e] of Object.entries(a)) if (k !== SK.resolve) expect(Math.abs(e.raw - centre[k].raw)).toBeLessThanOrEqual(Math.ceil(centre[k].raw * CONFIG.COPY_SPREAD));
+    const guard = npcTemplate(null, TP.guard), g = presetSkills(guard, createRng(9));
+    for (const [k, v] of Object.entries(guard.minimums)) expect(g[k].raw).toBeGreaterThanOrEqual(v);
+  });
+  it('NG7: level comes from the rank; spawnNpc rolls a rolled NPC once, and copies differ by ID but rebuild the same', () => {
     const lib = getLibrary();
     lib.templates.bandit = bandit;
     setLibrary(lib);
     const opts = { id: 'b1', zone: 'z', placeId: 'p', bandId: 'x' };
     expect(() => spawnNpc(null, 'bandit', opts)).toThrow(/seeded rng/);
     const b = spawnNpc(null, 'bandit', opts, createRng(5));
-    expect(b.core.generation).toBe('rolled');
-    expect(b.core.skills).toEqual(rollUniqueSkills(bandit, createRng(5)));
-    expect(b.progression!.unspentPerkPoints).toBe(Math.floor(bandit.level / 2));
-    // Q3: copies get level points too, with a fixed per-template seed, so every guard is alike
+    expect(b.core.skills).toEqual(presetSkills(bandit, createRng(5)));
+    expect(templateLevel(bandit)).toBe(4);
+    expect(b.progression!.unspentPerkPoints).toBe(2);
     const g1 = spawnNpc(null, TP.guard, opts), g2 = spawnNpc(null, TP.guard, { ...opts, id: 'b2' });
-    expect(g1.core.skills).toEqual(g2.core.skills);
-    const guard = npcTemplate(null, TP.guard);
-    expect(sum(g1.core.skills)).toBe(sum(Object.fromEntries(Object.entries(guard.minimums).map(([k, v]) => [k, { raw: v }]))) + guard.level * CONFIG.POINTS_PER_LEVEL + guard.bonusPoints);
+    expect(JSON.stringify(g1.core.skills)).not.toBe(JSON.stringify(g2.core.skills));
+    expect(spawnNpc(null, TP.guard, opts).core.skills).toEqual(g1.core.skills);
+    expect(g1.core.classes[0].level).toBe(4);
   });
-  it('the level lever reaches existing copies: refreshCopies rebuilds them from the current CONFIG', () => {
+  it('NG2: one lever over every NPC (NPC_BAND_MULT) reaches existing copies: refreshCopies rebuilds them', () => {
     const s = makeVillage();
     const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
-    const before = sum(g.core.skills);
-    const keep = CONFIG.POINTS_PER_LEVEL;
-    try {
-      (CONFIG as { POINTS_PER_LEVEL: number }).POINTS_PER_LEVEL = keep + 5;
-      g.core.perks = [];
-      refreshCopies(s);
-      expect(sum(g.core.skills)).toBe(before + 5 * npcTemplate(null, TP.guard).level);
-      expect(g.core.perks.map((p) => p.perkId)).toContain(PK.keen_ear);
-    } finally { (CONFIG as { POINTS_PER_LEVEL: number }).POINTS_PER_LEVEL = keep; }
+    const before = g.core.skills[SK.melee_medium].raw;
+    (CONFIG as { NPC_BAND_MULT: number }).NPC_BAND_MULT = 1.5;
+    g.core.perks = [];
+    refreshCopies(s);
+    expect(g.core.skills[SK.melee_medium].raw).toBeGreaterThan(before);
+    expect(g.core.perks.map((p) => p.perkId)).toContain(PK.keen_ear);
+  });
+  it('NG1, NG21: every preset names a known role, theme and rank; every role and theme is used or available', () => {
+    const lib = getLibrary();
+    for (const t of Object.values(lib.templates).filter((x) => x.generation !== 'unique')) {
+      expect(lib.npcRoles?.[t.roleId!], t.id).toBeDefined();
+      expect(lib.themes?.[t.themeId!], t.id).toBeDefined();
+      expect(t.rank, t.id).toMatch(/^rank_\d+$/);
+      expect(t.level, t.id).toBeUndefined(); // NG7: presets never set a level
+    }
+    expect(Object.keys(lib.npcRoles ?? {})).toHaveLength(9);
+    expect(Object.keys(lib.themes ?? {})).toHaveLength(4);
   });
 });
 

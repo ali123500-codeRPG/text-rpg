@@ -110,6 +110,7 @@ describe('body', () => {
 describe('ruleset methods', () => {
   it('attack does not mutate state; applyEffects damages part and health track', () => {
     const s = makeVillage();
+    actor(s, 'patron_1').core.skills[SK.endurance] = { raw: 0, state: 'normal' }; // pin HP at HP_BASE 50; the worker role gives Endurance
     const before = JSON.stringify(s);
     // player 50 → Success; patron dodge 30 → Failure: gap −2; location 20 → left arm
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: sword, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
