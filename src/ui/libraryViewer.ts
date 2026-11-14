@@ -403,6 +403,7 @@ function healing(): HTMLElement[] {
 function composureText(d: ComposureDef): string {
   if (d.countOnly) return 'nothing itself: it only tallies morale restored by perks, for achievements that count morale by source';
   if (d.hourly) return `every hour, ${d.hourly.pctPerPoint} % of max morale per ${skillName(d.hourly.skill)} point (${+(d.hourly.pctPerPoint * 50).toFixed(2)} % at 50)`;
+  if (d.points !== undefined) return `${d.points} morale points`;
   return `${d.pct} % of max morale`;
 }
 function composure(): HTMLElement[] {

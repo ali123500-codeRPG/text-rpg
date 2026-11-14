@@ -5,7 +5,7 @@ import { noticeGoals, runSteps } from './goals';
 import { noteHappened } from './happened';
 import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
-import { DU, FR, HL, RL, RV } from '../library/tableIds';
+import { CP, DU, FR, HL, RL, RV } from '../library/tableIds';
 import { passiveFatigue, payMove, payRow, payStrain, recoverLine, sleepMinutes, tooSpent } from './fatigue';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
@@ -21,7 +21,7 @@ import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
 import { M_EPS, distM, distOrNull, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
-import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
+import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
@@ -700,7 +700,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (hf) fear(ctx, t, hf.id, {}, ev.perception);
   for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, ev.perception); // parts Crippled (or worse) by this hit
   if (!isActive(t) && before.active) { // newly down: a blow on someone already down downs no one
-    fear(ctx, a, FR.foe_downed);
+    if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.foe_downed); // TM28: a composure row, so it counts as calmed
     for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
   }
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe

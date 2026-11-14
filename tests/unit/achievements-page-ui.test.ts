@@ -15,13 +15,13 @@ describe('Achievements page', () => {
     await g.turn(intent(), 'I look around');
     const s = g.game.state()!;
     expect(s.player.progression!.achievements!.some((a) => a.key === ACH.defeats_10)).toBe(true);
-    expect(achievementChain(ACH.defeats_100)).toEqual([ACH.defeats_10, ACH.defeats_100, ACH.defeats_250, ACH.defeats_1000]);
+    expect(achievementChain(ACH.defeats_100)).toEqual([ACH.defeats_10, ACH.defeats_50, ACH.defeats_100, ACH.defeats_250]);
     const levels = achievementLevels(s, ACH.defeats_10);
     expect(levels.map((l) => [l.name, l.earnedAt, l.level, l.got])).toEqual([
       ['Blooded Fighter', '10 defeats', 'I', true],
-      ['Calamity of a Hundred Blades', '100 defeats', 'II', false],
-      ['Harvester of the Fallen', '250 defeats', 'III', false],
-      ['Thousand-Slayer, Herald of Ruin', '1,000 defeats', 'IV', false],
+      ['Carver of Fifty Graves', '50 defeats', 'II', false],
+      ['Calamity of a Hundred Blades', '100 defeats', 'III', false],
+      ['Harvester of the Fallen', '250 defeats', 'IV', false],
     ]);
   });
 

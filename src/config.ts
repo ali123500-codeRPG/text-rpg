@@ -110,6 +110,7 @@ const DEFAULTS = {
   PART_SHARE: { tiny: 0.15, extra_small: 0.15, small: 0.2, normal: 0.3, big: 0.5 } as Record<string, number>,
   HIT_WEIGHT: { tiny: 0.25, extra_small: 0.5, small: 1, normal: 2, big: 4 } as Record<string, number>,
   AIM_PENALTY: { tiny: -40, extra_small: -35, small: -30, normal: -20, big: -10, general: 0 } as Record<string, number>,
+  AIM_EASE_PCT: 10, // TM26: each aimed-hits-by-size achievement row takes this % off the aim penalty for its size (carried up the chain)
   GENERAL_MIN_PCT: 30,
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,

@@ -636,6 +636,9 @@ export function prototypeLibrary(): Library {
       // never applied itself: morale restored straight by a perk is counted here for achievements (calmFromPerk)
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
       [CP.steady]: { id: CP.steady, name: 'Steadying yourself', pct: 0, inFight: true }, // SY1: the share comes from the roll's tier (CONFIG.STEADY_PCT)
+      // TM28: moved here from the fears table, so they count toward the Calmed achievements; flat morale points
+      [CP.foe_downed]: { id: CP.foe_downed, name: 'You down a foe', pct: 0, points: 10, inFight: true }, // MB10
+      [CP.rallied]: { id: CP.rallied, name: 'An ally\'s battle cry rallies you', pct: 0, points: 10, inFight: true }, // I9 b
     },
     // FT7/FT8/FT28: what restores stamina, beside healing and composure; every refill goes through engine/fatigue.ts
     recovery: {
@@ -688,10 +691,8 @@ export function prototypeLibrary(): Library {
       [FR.bandmate_down]: { id: FR.bandmate_down, name: 'A bandmate goes down', cost: 25, rolled: true },
       [FR.bandmate_broken]: { id: FR.bandmate_broken, name: 'A bandmate breaks', cost: 25, rolled: true }, // MB23
       [FR.lost_intimidation]: { id: FR.lost_intimidation, name: 'You lose to intimidation', cost: 10, rolled: false, perTier: true }, // MB28, per tier of gap
-      [FR.foe_downed]: { id: FR.foe_downed, name: 'You down a foe', cost: -10, rolled: false }, // MB10
       [FR.dread_presence]: { id: FR.dread_presence, name: 'An aura of dread gets to you', cost: 10, rolled: false, perTier: true }, // MB37: each failed aura check costs its own morale
       [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
-      [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
       // the Dreaded on Sight quirk: paid once per owner, in a fight or out of one
       [FR.steady_slipped]: { id: FR.steady_slipped, name: 'Trying to steady yourself makes it worse', cost: 0, rolled: false }, // SY1: the cost comes from the roll's tier (CONFIG.STEADY_PCT)
       [FR.dreaded_sight]: { id: FR.dreaded_sight, name: 'You set eyes on someone dreaded', cost: 15, rolled: true, unengaged: true },
@@ -856,9 +857,10 @@ export function prototypeLibrary(): Library {
       [ACH.defeats_10_race]: { id: ACH.defeats_10_race, name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'race', after: ACH.first_defeat_race, firstSight: 'unintelligent' },
       [ACH.defeats_100_race]: { id: ACH.defeats_100_race, name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'race', after: ACH.defeats_10_race, firstSight: 'semi', excludes: ['firstSight'] },
       [ACH.defeats_10]: { id: ACH.defeats_10, name: 'Blooded Fighter', level: 'i', rule: 'defeats', tags: ['combat'], count: 10 },
-      [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_10 },
-      [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iii', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
-      [ACH.defeats_1000]: { id: ACH.defeats_1000, name: 'Thousand-Slayer, Herald of Ruin', level: 'iv', rule: 'defeats', tags: ['combat'], count: 1000, after: ACH.defeats_250 },
+      // TM4/TM25: 10 / 50 / 100 / 250; the roll bonus goes by chain position (+1 to +4)
+      [ACH.defeats_50]: { id: ACH.defeats_50, name: 'Carver of Fifty Graves', level: 'ii', rule: 'defeats', tags: ['combat'], count: 50, after: ACH.defeats_10 },
+      [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_50 },
+      [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iv', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
       // kills are counted apart from defeats (a kill is the defeat where the foe died, so both tallies move); ordeal rows pay
       // max morale, never the skill used
       [ACH.kills_1]: { id: ACH.kills_1, name: 'A Life Taken', level: 'zero', rule: 'kills', tags: ['combat'], count: 1, maxMorale: 1 },
@@ -909,9 +911,11 @@ export function prototypeLibrary(): Library {
       [ACH.quests_25]: { id: ACH.quests_25, name: 'Sought After', level: 'iii', rule: 'quests_done', tags: ['social'], count: 25, after: ACH.quests_10, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_50]: { id: ACH.quests_50, name: 'The One They Send For', level: 'iv', rule: 'quests_done', tags: ['social'], count: 50, after: ACH.quests_25, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_abandoned_5]: { id: ACH.quests_abandoned_5, name: 'Word Not Kept', level: 'i', rule: 'quests_abandoned', tags: ['social'], count: 5, scar: true, personality: ap({ [PA.honesty]: -1 }) },
-      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10 },
+      // TM8: 1 / 10 / 100 / 500 (the first of an act is an achievement; the first row's name is a placeholder)
+      [ACH.clean_1]: { id: ACH.clean_1, name: 'Turned Aside', level: 'zero', rule: 'clean_defense', tags: ['combat'], count: 1 },
+      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10, after: ACH.clean_1 },
       [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10 },
-      [ACH.clean_1000]: { id: ACH.clean_1000, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 1000, after: ACH.clean_100 },
+      [ACH.clean_500]: { id: ACH.clean_500, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 500, after: ACH.clean_100 },
       [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10 },
       [ACH.unseen_50]: { id: ACH.unseen_50, name: 'Slipped Past', level: 'ii', rule: 'unseen_moves', tags: ['stealth'], count: 50, after: ACH.unseen_10 },
       [ACH.unseen_250]: { id: ACH.unseen_250, name: 'Never Was Here', level: 'iii', rule: 'unseen_moves', tags: ['stealth'], count: 250, after: ACH.unseen_50 },
@@ -953,10 +957,14 @@ export function prototypeLibrary(): Library {
       [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10 },
       [ACH.holds_100]: { id: ACH.holds_100, name: 'No Getting Loose', level: 'ii', rule: 'holds', tags: ['combat', 'skill'], count: 100, after: ACH.holds_10 },
       [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10 },
-      [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Where I Said', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_10 },
-      [ACH.aimed_1000]: { id: ACH.aimed_1000, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1000, after: ACH.aimed_100 },
-      [ACH.aimed_size_10]: { id: ACH.aimed_size_10, name: '{size} Target', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10, by: 'size', levelUp: SMALLER_PAYS_MORE },
-      [ACH.aimed_size_100]: { id: ACH.aimed_size_100, name: 'Threads the Needle ({size})', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_size_10, by: 'size', levelUp: SMALLER_PAYS_MORE },
+      // TM7: 10 / 50 / 100
+      [ACH.aimed_50]: { id: ACH.aimed_50, name: 'Where I Said', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 50, after: ACH.aimed_10 },
+      [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_50 },
+      // TM26/TM27: per part size 1 / 10 / 50; each row takes AIM_EASE_PCT % off that size's aim penalty (carried up: 10 / 20 / 30 %).
+      // The first row's name is a placeholder.
+      [ACH.aimed_size_1]: { id: ACH.aimed_size_1, name: 'Found the {size} Mark', level: 'zero', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
+      [ACH.aimed_size_10]: { id: ACH.aimed_size_10, name: '{size} Target', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10, after: ACH.aimed_size_1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
+      [ACH.aimed_size_50]: { id: ACH.aimed_size_50, name: 'Threads the Needle ({size})', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 50, after: ACH.aimed_size_10, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
       [ACH.quests_giver_5]: { id: ACH.quests_giver_5, name: 'Go-To for {giver}', level: 'i', rule: 'quests_for_giver', tags: ['social'], count: 5, by: 'giver' },
       [ACH.quest_givers_10]: { id: ACH.quest_givers_10, name: 'Known in Every House', level: 'ii', rule: 'quest_givers', tags: ['social'], count: 10 },
       [ACH.quest_chain_1]: { id: ACH.quest_chain_1, name: 'Saw It Through', level: 'i', rule: 'quest_chains', tags: ['social'], count: 1 },

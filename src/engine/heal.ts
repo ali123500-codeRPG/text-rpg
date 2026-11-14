@@ -8,7 +8,7 @@ import { boostMult, healthLevel, partStates, totalHp, trueSkill } from '../rules
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
-import { moraleLost, restoreMorale } from '../ruleset/morale';
+import { moraleLost, restoreMorale, setMoraleLost } from '../ruleset/morale';
 import { tally } from './xp';
 
 export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? id;
@@ -30,13 +30,13 @@ export function creditHealing(state: GameState, a: Actor, sourceId: string, pct:
   if (a === state.player && pct > 0) tally(state, 'healed', { by: 'heal_source', of: sourceId, add: pct / 100 * totalHp(state, a) });
 }
 
-/** Restores morale from a composure-table row (the morale twin of applyHealing): the row's pct of max morale, or `pct` for
- * hourly rows. Every morale restore goes through here, so achievements count it by source (morale-writes.test.ts enforces).
+/** Restores morale from a composure-table row (the morale twin of applyHealing): the row's pct of max morale (or its flat
+ * `points`), or `pct` for hourly rows. Every morale restore goes through here, so achievements count it by source (morale-writes.test.ts enforces).
  * Returns the morale points restored. */
 export function calm(state: GameState, a: Actor, sourceId: string, opts: { pct?: number } = {}): number {
   const src = getLibrary().composure?.[sourceId];
   if (!src || src.countOnly) return 0;
-  const got = -restoreMorale(a, opts.pct ?? src.pct);
+  const got = src.points !== undefined && opts.pct === undefined ? -setMoraleLost(a, moraleLost(a) - src.points) : -restoreMorale(a, opts.pct ?? src.pct);
   creditCalm(state, a, sourceId, got);
   return got;
 }
@@ -57,7 +57,7 @@ function creditCalm(state: GameState, a: Actor, sourceId: string, points: number
 /** does the composure row restore anything now? */
 const wouldCalm = (a: Actor, sourceId?: string): boolean => {
   const src = sourceId ? getLibrary().composure?.[sourceId] : undefined;
-  return !!src && !src.countOnly && src.pct > 0 && moraleLost(a) > 0;
+  return !!src && !src.countOnly && (src.pct > 0 || (src.points ?? 0) > 0) && moraleLost(a) > 0;
 };
 
 /** Restores the row's share of HP and of each part pool (`pct` replaces both, for hourly rows). A part heals only if its state is no worse

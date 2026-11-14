@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -85,6 +85,11 @@ export const achievementSkill = (a: Actor, skill: string): number => currentAchi
 /** maxMorale: the flat max morale the actor's current achievements add, lower levels' amounts included */
 export const achievementMaxMorale = (a: Actor): number => currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, 'maxMorale'), 0);
 
+/** aimEase (TM26): the share (0-1) taken off the aim penalty for a part of `size`, from the actor's current by-size row
+ * for that size, lower levels' amounts included */
+export const achievementAimEase = (a: Actor, size: string): number =>
+  Math.min(100, bestReward(a, 'aimEase', (x) => x.d.by === 'size' && x.of === size)?.value ?? 0) / 100;
+
 /** standIn: the share stand-ins gain on rolls of `skill`, from achievements earned for a group the skill is in */
 export function achievementStandIn(a: Actor, skill: string): number {
   const groups: string[] = groupsOf(getLibrary().skills[skill]);
@@ -150,6 +155,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'skillAdd': return Object.entries(d.skillAdd ?? {}).map(([sk, n]) => `+${n} true skill in ${skillName(sk)}`);
     case 'renown': return [`every foe fighting you takes ${-d.renown!} on its morale rolls`];
     case 'maxMorale': return [`+${d.maxMorale} max morale`];
+    case 'aimEase': return [`${d.aimEase}% less aim penalty on parts of that size`];
     case 'firstSight': {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
       return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];
