@@ -2,6 +2,7 @@ import { PK } from './perkIds';
 // Perks whose rules are coded (perks are coded, so each is built against its Rules write-up in perks.ts).
 // A perk listed here can be taken; the rest show on the Perks screen but can't be taken yet.
 export const BUILT_PERKS = new Set<string>([
+  PK.plead, PK.buy_them_off, // B12, C3 (TF10): offers that can't be refused, src/engine/offer.ts cannotRefuse()
   PK.fists_do_the_talking, // essence trait (Tavern Brawler), D-276 trade augment: src/ruleset/gear.ts augmentRows() and tradesOut()
   PK.dreaded_on_sight, // quirk: src/engine/auras.ts sightDread(), src/engine/relations.ts stance()
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()

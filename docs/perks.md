@@ -514,15 +514,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Beg for Mercy (Persuasion) · B12
 
-*Story:* Pride is for the living. Beaten and about to fall, you beg for mercy. At the last health level before going down, you can plead with a hostile foe; win a persuasion contest and it stops attacking you for the rest of the fight.
+*Story:* Pride is for the living. Beaten and about to fall, you beg for mercy. At the last health level before going down, a plea that wins over a foe can't be refused: it lays down its weapon.
 
-- **Kind:** Move
-- **Trigger:** The owner pleads for mercy with a foe.
-- **Conditions:** The owner is at the lowest health level above downed. The foe is hostile to the owner.
-- **Effect:** Persuasion contest against the foe. If the owner wins, the foe stops attacking the owner.
-- **Lasts:** For the rest of the engagement.
-- **Needs first:** Moves.
-- **Banked as:** a later Persuasion perk, suggested for the 100 perk
+- **Kind:** Always on
+- **Trigger:** The owner makes an offer to stop fighting by persuasion (TF13).
+- **Conditions:** The owner is at the lowest health level above downed. The foe can take an offer: it speaks and fights the owner.
+- **Effect:** Any win of the persuasion contest is an offer that can't be refused (TF10): the foe stands down even if its AI would not, and with it its bandmates together with it who heard. A stand-down is a truce: neither side may attack the other.
+- **Lasts:** For the rest of the scenario.
 
 ### Make an Example (Intimidation) · B13
 
@@ -677,15 +675,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Buy Them Off (Barter) · C3
 
-*Story:* Everyone has a price, even mid-swing. In the middle of a fight you offer coin, as much as you choose; a bigger offer is harder to refuse. Win a barter contest and the foe takes the coin and stops attacking you for the rest of the fight.
+*Story:* Everyone has a price, even mid-swing. In the middle of a fight you offer coin, as much as you choose; a bigger offer is harder to refuse. Win the barter contest and the foe takes the coin and stops fighting you, whatever it meant to do.
 
-- **Kind:** Move
-- **Trigger:** The owner offers coin to a foe in a fight.
-- **Conditions:** The owner has the coin.
-- **Effect:** The owner names the amount. Barter contest against the foe; a bigger offer adds a modifier to the owner's roll (scale set with trade prices). If the owner wins, the coin changes hands and the foe stops attacking the owner.
-- **Lasts:** For the rest of the engagement.
-- **Needs first:** Moves.
-- **Banked as:** a later Barter perk, suggested for the 100 perk
+- **Kind:** Always on
+- **Trigger:** The owner offers coin to a foe in a fight (a bribe, TF10).
+- **Conditions:** The owner has the coin when the foe agrees.
+- **Effect:** Anyone may bribe: the owner names the amount, Barter against the foe's Barter, + CONFIG.OFFER_BRIBE_MOD for each doubling of the coin over the foe's price (CONFIG.OFFER_BRIBE_PRICE per level), as much less per halving (placeholders). With this perk any win is an offer that can't be refused: the coin changes hands and the foe stands down (a truce: neither side may attack the other).
+- **Lasts:** For the rest of the scenario.
 
 ### Tough It Out (Endurance) · D6
 

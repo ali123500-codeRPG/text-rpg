@@ -169,6 +169,7 @@ function endYields(state: GameState): void {
   // Q4: broken and surrendered last only the scenario (Morale); MB9: a bar still at Broken moves up to Panicking, one point short of Broken
   for (const a of state.actors) if (a.mind?.moraleState) delete a.mind.moraleState;
   delete state.yielding; // MB42: the truce lasts the scenario
+  delete state.offers; // TF16: so does a stand-down truce
   for (const a of [state.player, ...state.actors]) if (moraleLevel(a) === 'broken') setMoraleLost(a, maxMorale(a) - 1);
   for (const a of state.actors) {
     const o = a.mind?.overrides;

@@ -57,6 +57,7 @@ export function toPages(state: GameState): Pages {
     ...(s.recentEvents?.length ? { recentEvents: s.recentEvents } : {}),
     ...(s.spars?.length ? { spars: s.spars } : {}),
     ...(s.yielding ? { yielding: s.yielding } : {}),
+    ...(s.offers ? { offers: s.offers } : {}),
     ...(s.mercy ? { mercy: s.mercy } : {}),
     ...(s.barriers && Object.keys(s.barriers).length ? { barriers: s.barriers } : {}),
     ...(s.turnEnds ? { turnEnds: s.turnEnds } : {}),
@@ -91,12 +92,12 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
     .sort((a, b) => a[0].turn - b[0].turn || a[1] - b[1]).map(([f]) => f);
   const zoneById = new Map(places.flatMap((pl) => pl.zones.map((z) => [z.id, z] as const)));
   const player = actors.find((a) => a.kind === 'player')!;
-  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, flags, bands, quests, recentEvents, spars, yielding, mercy, barriers, turnEnds } = engine;
+  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, flags, bands, quests, recentEvents, spars, yielding, offers, mercy, barriers, turnEnds } = engine;
   return {
     storyId: meta.storyId, turn, mode,
     zones: stage.zoneIds.map((id) => zoneById.get(id)!).filter(Boolean),
     player, actors: actors.filter((a) => a !== player), bands,
-    hidden, events: [], agentLog: [], log: [], ...(recentEvents ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(mercy ? { mercy } : {}), ...(barriers ? { barriers } : {}), ...(turnEnds ? { turnEnds } : {}),
+    hidden, events: [], agentLog: [], log: [], ...(recentEvents ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(offers ? { offers } : {}), ...(mercy ? { mercy } : {}), ...(barriers ? { barriers } : {}), ...(turnEnds ? { turnEnds } : {}),
     rngSeed, rngState, pending, places, facts, stage, scenarioCaps, clocks, flags, quests,
     settings: structuredClone(meta.settings), libraryVersion: head.libraryVersion,
     blueprints: of<BlueprintPage>('blueprint.'), meta: structuredClone(meta),

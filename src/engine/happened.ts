@@ -32,6 +32,7 @@ export function happenedLines(state: GameState, events: GameEvent[], defeated: A
       case 'spar_ended': out.push(`the spar ended${names(d.winners) ? `: won by ${names(d.winners)}` : ''}`); break;
       case 'player_yielded': out.push('the player yielded'); break;
       case 'yield_accepted': out.push(d.by ? `${who(state, String(d.by))} yielded to ${who(state, String(d.actorId))}` : `${who(state, String(d.actorId))} accepted the player's yield`); break;
+      case 'stood_down': out.push(`${who(state, String(d.actorId))} stood down from ${who(state, String(d.from))}${names(d.with) ? `, with ${names(d.with)}` : ''}`); break; // TF16
       case 'yield_refused': out.push(`${who(state, String(d.actorId))} refused the player's yield`); break;
       case 'quest_made': case 'quest_ready': case 'quest_ended': {
         const q = state.quests.find((x) => x.id === d.id);

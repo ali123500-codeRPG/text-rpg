@@ -85,6 +85,10 @@ export type Quest = {
 export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
 /** MB40–MB43: the player's yield this scenario: foes yet to answer, those that took it (truce) and those that fought on */
 export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[]; ended?: boolean }; // ended: YD3, the fight already ended on it
+/** TF13–TF16: offers to stand down in a fight this scenario: those an AI-run listener (or the player) has yet to answer,
+ * and the stand-down truces, each actor id to those it may no longer attack nor be attacked by (cleared at scenario end) */
+export type StandDownOffer = { from: string; to: string; landed: 'convinced' | 'tempted' | 'unmoved'; turn: number; heard: string[]; coin?: number };
+export type StandDowns = { pending: StandDownOffer[]; truces: Record<string, string[]> };
 /** D-239: the player is down in a lethal fight and foes decide, in their next output, whether to finish or spare (acceptYield's shape) */
 export type PlayerMercy = { turn: number; pending: string[]; spared: string[]; finish: string[] };
 
@@ -116,6 +120,7 @@ export type GameState = {
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   yielding?: PlayerYield; // MB40: cleared when the scenario ends
+  offers?: StandDowns; // TF13–TF16: cleared when the scenario ends
   mercy?: PlayerMercy; // D-239: settled the turn after the player went down
   barriers?: Record<string, import('./core').Barrier>; // SD3–SD5: doors, gates, grates and rubble on ways, by id
   settings: Settings;
@@ -191,6 +196,7 @@ export type EnginePage = {
   quests: Quest[];
   spars?: Spar[];
   yielding?: PlayerYield;
+  offers?: StandDowns;
   mercy?: PlayerMercy;
   barriers?: Record<string, import('./core').Barrier>;
   turnEnds?: Record<number, number>;

@@ -108,7 +108,9 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Item size', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): the item\'s bulk.', value: CONFIG.FILCH_SIZE.map((v, b) => `bulk ${b} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Repeat try', at: 'src/ruleset/pressure.ts',
-    when: 'Persuading, lying, threatening or haggling again at the same listener in one engagement (plain talk never counts).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
+    when: 'Persuading, lying, threatening or haggling again at the same listener, out of a fight (plain talk never counts; in a fight there is no repeat penalty, TF9).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
+  { type: 'situational', roll: 'skill', source: 'Coin offered', at: 'src/engine/speech.ts', when: 'A bribe in a fight (TF10): the briber\'s Barter roll, by the coin offered against the listener\'s price (OFFER_BRIBE_PRICE per level).',
+    value: `${sg(CONFIG.OFFER_BRIBE_MOD)} per doubling over the price, as much less per halving` },
   { type: 'situational', roll: 'skill', source: 'Travel pace', at: 'src/engine/travel.ts', when: 'The noticing roll on a road trip when something meets you, by pace (TV8).',
     value: `slow ${sg(CONFIG.TRAVEL_NOTICE_MOD.slow)}, fast ${sg(CONFIG.TRAVEL_NOTICE_MOD.fast)}` },
   // status

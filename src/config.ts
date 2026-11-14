@@ -374,6 +374,14 @@ const DEFAULTS = {
   // its engagement ends: a roll modifier of −(this × the tier gap) (placeholders)
   SHAKEN_PER_TIER: 5,
   SWAYED_PER_TIER: 5,
+  // TF13–TF16: an offer to stand down in a fight (engine/offer.ts); all placeholders
+  OFFER_WIN_TIERS: 3, // TF14: the win in tiers that convinces a code-run foe
+  OFFER_WIN_TIERS_SHAKEN: 2, // TF14: the win that convinces it once it is hurt (OFFER_EASIER_HEALTH) or uneasy (OFFER_EASIER_MORALE)
+  OFFER_EASIER_HEALTH: 'hurt' as HealthLevelKey,
+  OFFER_EASIER_MORALE: 'uneasy' as MoraleLevel,
+  OFFER_OPEN_TURNS: 2, // TF15: turns an AI-run listener (or the player) has to answer an offer; no answer is no
+  OFFER_BRIBE_PRICE: 5, // TF10: coin per character level that makes a bribe neither help nor hurt the Barter roll
+  OFFER_BRIBE_MOD: 10, // TF10: modifier on the briber's roll per doubling of the coin over that price (as much less per halving)
   /** NT3: each earlier try of the same speech kind at the same listener this engagement, on the speaker's roll */
   REPEAT_TRY: 15,
   HARD_BARGAIN_BUY: 0.9,
