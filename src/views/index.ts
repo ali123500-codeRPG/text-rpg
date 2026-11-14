@@ -4,18 +4,18 @@ import { doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
-import { ageText, stageOf } from '../ruleset/age';
+import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
+  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
 import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
 import { charLevel, power, wornTitle } from '../engine/xp';
-import { spawnNpc } from '../library/spawn';
+import { presetAgeFloor, presetTalent, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
 import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
 import { moveSpeed } from '../engine/speed';
@@ -30,6 +30,7 @@ import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barr
 import { contentsOf, findContainer, wornPack } from '../engine/containers';
 import { pocketName, pocketSlots } from '../engine/pockets';
 import { followGap } from '../engine/follow';
+import { offerTo } from '../engine/handover';
 import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
@@ -49,7 +50,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
-import { gripsOf, isHeld, modeName, usableModes } from '../ruleset/gear';
+import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -172,7 +173,7 @@ function seenGear(state: GameState, a: Actor, revealed: string[], viewerId?: str
     const mine = viewerId && i.stolenFrom === viewerId ? { stolenFromYou: true as const } : {}; // FL6: its owner knows it on sight
     if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried', ...mine }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
-    const where = slot.startsWith('grip:') ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : slot.startsWith('acc:') && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
+    const where = isGripSlot(slot) ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : isAccSlot(slot) && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
     // CT5/CT7: a worn pack shows; once opened (its wearer downed or yielded), what it holds shows in it
     if (where) out.push({ id: i.id, name: d.name, look: d.look, where, ...mine, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
   }
@@ -261,6 +262,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       gear: seenGear(state, a, revealedTo(viewer, a.id), viewer.id),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
+      ...(level === 'full' && offerTo(state, a, viewer.id) ? { holdsOut: { item: a.offer!.item, name: itemName(state, a.offer!.item) ?? 'something' } } : {}), // BF34
       ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
       ...(viewer === state.player && level === 'full' && canDemand(state, viewer, a) && (fightingWith(state, a, viewer) || a.mind?.moraleState === 'broken') ? { demandYield: true as const } : {}), // TF19
     });
@@ -781,7 +783,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     events: out,
     player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), fatigue: fatigueWord(p), ...steadyOf(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
-      gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : g.pocket ? `in a ${g.pocket === 'pocket' ? 'pocket' : `${g.pocket} pocket`}` : 'carried'})${g.container?.contents?.length ? `, holding ${g.container.contents.map((c) => c.name).join(', ')}` : ''}`) }, // PI1: what is in it
+      gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${isHeld(g) ? 'held' : g.equippedIn.length ? 'worn' : g.pocket ? `in a ${g.pocket === 'pocket' ? 'pocket' : `${g.pocket} pocket`}` : 'carried'})${g.container?.contents?.length ? `, holding ${g.container.contents.map((c) => c.name).join(', ')}` : ''}`) }, // PI1: what is in it
     surroundings: perceivedZones(state, p.zone, p),
     heard,
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...echoOf(state, s.id) })),
@@ -930,7 +932,9 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
-  const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).filter((t) => t.generation !== 'unique').map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
+  // AG14: the youngest life stage a preset's rank allows at its own talent, so the Weaver names no stage it would refuse
+  const youngest = (t: NpcTemplate) => { const f = presetAgeFloor(t, presetTalent(t)), s = f === undefined ? undefined : lifeStage(t.raceId, f); return s ? { youngestStage: stageName(s) } : {}; };
+  const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string; youngestStage?: string }>(Object.values(lib.templates).filter((t) => t.generation !== 'unique').map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}), ...youngest(t) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
   // D-220: the Weaver placing Threadbound items is parked, so they stay out of its catalog

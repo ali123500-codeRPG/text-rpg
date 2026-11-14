@@ -30,7 +30,7 @@
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
   --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
-  --m-hold: 80ms; --m-strike: 1600ms; --m-shake: 280ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */ --m-gains-min: 10000ms; /* and lasts at least this long, unless skipped */
+  --m-hold: 80ms; --m-strike: 1600ms; --m-shake: 280ms; --m-pulse-step: 20ms; --m-pulse-max: 290ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */ --m-gains-min: 10000ms; /* and lasts at least this long, unless skipped */
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   color-scheme: dark;
 }
@@ -183,8 +183,6 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .row { display: grid; grid-template-columns: minmax(120px, 1fr) 120px 76px; align-items: center; gap: 0 var(--space-3); padding: 8px 0 4px; border-bottom: 1px solid var(--border); min-height: 44px; }
 .row .bar { grid-column: 1 / -1; grid-row: 2; }
 .row .nm b { font-weight: 700; } .row .nm small { display: block; color: var(--muted); font-size: 13px; }
-.row.locked .nm { color: var(--faint); }
-.lockw { grid-column: 2 / -1; color: var(--faint); font-size: 13px; }
 .bar { position: relative; height: 22px; }
 .bar .tr { position: absolute; left: 0; right: 0; top: 8px; height: 6px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--rule) 70%, transparent); overflow: hidden; }
 .bar .tr i { position: absolute; top: 0; bottom: 0; left: 0; }

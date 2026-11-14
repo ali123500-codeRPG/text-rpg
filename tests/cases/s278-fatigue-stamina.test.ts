@@ -23,7 +23,7 @@ import { actorById } from '../../src/engine/relations';
 import { passiveFatigue, payStrain, sleepMinutes } from '../../src/engine/fatigue';
 import { barMax, debtPct, fatigueLevel, fatigueOf, isSpent, lineMax, lineUsed } from '../../src/ruleset/fatigue';
 import { woundsMods } from '../../src/ruleset/body';
-import { rollUniqueSkills } from '../../src/library/spawn';
+import { presetSkills } from '../../src/library/spawn';
 import { createRng } from '../../src/rng';
 import { buildActorView, buildPlayerView } from '../../src/views';
 import { advanceClock } from '../../src/time';
@@ -169,7 +169,7 @@ describe('278 fatigue and stamina', () => {
     expect(s.player.progression!.marks).not.toContain(SK.stamina);
     payStrain(s, s.player, 'light', 4);
     expect(s.player.progression!.marks).toContain(SK.stamina);
-    const guard = rollUniqueSkills({ ...lib.templates[TP.guard], minimums: { ...lib.templates[TP.guard].minimums, [SK.endurance]: 40 } }, createRng(1));
+    const guard = presetSkills({ ...lib.templates[TP.guard], minimums: { ...lib.templates[TP.guard].minimums, [SK.endurance]: 40 } }, createRng(1));
     expect(guard[SK.stamina].raw).toBe(guard[SK.endurance].raw);
   });
 

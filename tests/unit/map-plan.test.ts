@@ -146,7 +146,7 @@ describe('labels, doors and exits', () => {
   });
   it('MZ3: a zone too small for 11 px letters shrinks them to stay inside; one too small for any shows its name in its tooltip only', () => {
     const z: MapZone = { id: 'z', placeId: 'p', name: 'a very long name for a tiny cupboard under the stairs', look: '', outdoor: false, here: false, inView: true, height: 0,
-      rect: { x: 1, y: 1, w: 2, d: 2 }, links: [], people: [], items: [] };
+      rect: { x: 1.5, y: 1.5, w: 3, d: 3 }, links: [], people: [], items: [] };
     const at = (k: number) => planScene({ zones: [z], every: [z], places: [], k, measure: roughMeasure, awayName: () => undefined }).labels;
     const l = at(2.5)[0];
     expect(l.size).toBeLessThan(11);

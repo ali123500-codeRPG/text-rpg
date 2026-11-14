@@ -586,7 +586,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       effect: "Light is read two steps brighter on the light scale, by position in the names table (dark counts as bright, dim counts as bright). It is coded as +2 steps, not as 'no penalty', so light levels added later shift the same way.",
       lasts: "Always.",
       open: "The perception All-50 Night Eyes (T5e) is the one-step version of this; this two-step one is kept for the All-100 after it." } },
-  // ---- Stamina (SS1-SS14). The 140 perk is open (SS15) ----
+  // ---- Stamina (SS1-SS15) ----
   { id: PK.catnap, ref: "SS1", name: "Catnap", skill: SK.stamina, place: "20",
     ladder: { skill: SK.stamina, milestone: 20 }, effect: "health",
     story: "You can sleep anywhere, for a moment, and wake up better for it. A rest also pays back sleep debt, as much as an hour of real sleep would.",
@@ -612,6 +612,14 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       conditions: [],
       effect: `The sleep debt hours awake add is ×${CONFIG.SLEEPLESS_NEED} (sleepNeed, CONFIG.SLEEPLESS_NEED, placeholder), with the body type's sleepNeed. Strain that spills past an empty line still fills the bar as usual, and every point of strain still counts toward Stamina's marks.`,
       lasts: "Always." } },
+  { id: PK.overdrive, ref: "SS15", name: "Overdrive", skill: SK.stamina, place: "very_high",
+    ladder: { skill: SK.stamina, milestone: 140 }, effect: "health",
+    story: "While you still have breath to burn, you burn it. With your wind above half, every roll you make draws on your stamina, at the price of a little more strain each time.",
+    rules: { kind: "Always on",
+      trigger: "Any roll by the owner.",
+      conditions: ["The owner's short-term line is more than half full before the roll."],
+      effect: `The roll adds ${CONFIG.OVERDRIVE_SHARE * 100}% of the owner's Stamina (the augment equation: true skill × CONFIG.OVERDRIVE_SHARE × Stamina's tier, placeholder) and costs ${CONFIG.OVERDRIVE_STRAIN} strain more (CONFIG.OVERDRIVE_STRAIN, with worn armour and Bottomless; it counts toward Stamina's marks like any strain).`,
+      lasts: "Each roll, while the line stays above half." } },
   { id: PK.short_sleeper, ref: "SS13", name: "Short Sleeper", skill: SK.stamina, place: "banked", bankedAs: "other",
     sleepClear: CONFIG.SHORT_SLEEPER_CLEAR,
     story: "Six hours, and you wake as rested as anyone after eight. Your sleep clears your sleep debt a third faster.",

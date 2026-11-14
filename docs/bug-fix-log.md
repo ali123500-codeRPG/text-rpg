@@ -14,6 +14,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #770](https://github.com/ali123500-codeRPG/text-rpg/pull/770)
 
+## BG-195
+
+**What was wrong:** Wren gave Happi the lucky charm from his sack and nothing happened: a give could only hand over what the giver held or had stowed, never what sat in a bag, and it moved the item at once with no say from the one receiving it.
+
+**What was done:** Giving and taking became trades at no price (BF34). A give holds the item out, from a grip, the pack or the giver's own bag, until the other side takes it by the end of the next turn; an NPC who is not set against the giver takes it at the end of the turn. A new take action is the taker's at once when the item is held out to them, or the owner yielded, surrendered, is down or asleep; anyone else refuses. Both need the grips to reach.
+
+**Fixed by:** [PR #764](https://github.com/ali123500-codeRPG/text-rpg/pull/764)
+
 ## BG-201
 
 **What was wrong:** On turn 24 Wren called "Here! The hare... take it to him" to Happi as he left. The words were placed where his walk ended, beyond the kitchen wall, so Happi never heard them.

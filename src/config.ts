@@ -115,6 +115,8 @@ const DEFAULTS = {
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,
   ROLE_PENALTY: { damaged: -10, crippled: -20 },
+  /** a part or pool is in a state while its % left is above that state's floor: Healthy >50, Damaged >0, Crippled >−100; else Destroyed */
+  PART_STATE_ABOVE: { healthy: 50, damaged: 0, crippled: -100 } as Record<string, number>,
   ESSENTIAL_CRIPPLED_PENALTY: -5, // wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
   WEAPON_CLASSES: {
@@ -320,6 +322,8 @@ const DEFAULTS = {
   SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
   SECOND_BREATH_PCT: 50, // SS8 Second Breath: once per engagement an emptied line refills to this % of its size
+  OVERDRIVE_SHARE: 0.1, // SS15 Overdrive (Stamina 140): while the line is above half, every roll adds this share of Stamina (the augment equation)
+  OVERDRIVE_STRAIN: 1, // SS15 Overdrive: strain points each of those rolls costs (with worn armour and Bottomless)
   HEAVY_SLEEPER_STEPS: 1, // SS10 Heavy Sleeper: noise levels louder than WAKE_NOISE it takes to wake the owner
   INSOMNIAC_CLEAR: 0.75, // SS11 Insomniac: sleepClear multiplier
   SHORT_SLEEPER_CLEAR: 1.33, // SS13 Short Sleeper (banked, D-300): sleepClear multiplier
@@ -367,7 +371,27 @@ const DEFAULTS = {
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
-  POINTS_PER_LEVEL: 10, // 10 × level (was 3)
+  // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
+  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, the same for every race */
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_8: { anchor: 300, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  /** NG3: past the last rank row, each step adds this */
+  RANK_BEYOND_STEP: { anchor: 100, level: 20, training: 10 },
+  /** NG2: a role's bands as shares of the rank's anchor */
+  ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
+  /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
+  NPC_BAND_MULT: 1,
+  /** NG13: the lowest rank of a combat role (fighting experience) and of a civilian role; beasts have none */
+  RANK_FLOOR: { combat: 'rank_2', civilian: 'rank_1' } as Record<'combat' | 'civilian', `rank_${number}`>,
+  /** NG12: traits drawn from the theme's and role's pools, by rank (rank_0 first); past the last row, +RANK_TRAITS_BEYOND per step */
+  RANK_TRAITS: [0, 0, 0, 1, 1, 2, 2, 3, 3],
+  RANK_TRAITS_BEYOND: 1,
+  /** NG14: each personality trait of a copy moves by up to this many points, seeded by its ID */
+  PERSONALITY_SPREAD: 20,
+  /** NG9: each skill moves by up to this share of its band value, seeded by the actor's ID */
+  COPY_SPREAD: 0.1,
+  /** NG8: skills every NPC has at least at this band when its body can use them: the senses. Dodge is left to roles: at Low it
+   * would put the thief's essence (Dodge 2, Insight 1) on every NPC's list (fit 0.6 × 2/3 = ESSENCE_FIT_SHARE) */
+  NPC_COMMON_SKILLS: { [SK.eyesight]: 'low', [SK.earshot]: 'low' } as Record<string, 'high' | 'moderate' | 'low'>,
   CREATION_POINTS: 250,
   START_LEVEL: 4, // EQ13: the player starts at level 4
   CREATION_MAX_SKILL: 60,
@@ -378,6 +402,10 @@ const DEFAULTS = {
   AGE_DECLINE_GROUPS: [GR.melee, GR.ranged, GR.defense, GR.health, GR.stealth, GR.sleight, GR.notice] as string[], // AG19: body skills and the senses (Sleight: FL1, fingers)
   CREATION_AGE_DEFAULT: 20, // AG15: the creation picker's default (a start may set its own, ClassDef.creation.age)
   NPC_AGE_STAGES: ['stage_2', 'stage_3'] as import('./scales').LifeStageKey[], // AG13: the stages an NPC is drawn from when its template names none
+  /** AG23: each talent row's multiplier on a rank's training years; past the last row each step multiplies by TALENT_BEYOND_MULT */
+  TALENT_MULT: { talent_0: 3, talent_1: 2, talent_2: 1, talent_3: 0.75, talent_4: 0.5 } as Record<string, number>,
+  TALENT_BEYOND_MULT: 0.5,
+  NPC_TALENT_DEFAULT: 'talent_2' as import('./scales').TalentKey, // AG24, AG25: Able, a real professional's pace, when neither the preset nor its theme names one
   CREATION_TAGS: 3,
   STARTING_COIN: 20,
   // Trade (D-93, PY4–PY10; placeholders): price = base × MARKUP × haggle × Hard Bargain, rounded up, at least 1
@@ -582,6 +610,8 @@ const DEFAULTS = {
   FOLLOW_SNEAK_M: 5,
   FOLLOW_M: 2,
   FOLLOW_RANGE_SHARE: 0.8,
+  /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
+  TAKE_FROM_STANCE: 'neutral',
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
    * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
   // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about
@@ -739,6 +769,7 @@ const DEFAULTS = {
   PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, knows: 5 }, // Q2
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   WORLD_TITLE_CAP: 60, // WP5: the most characters a world's title keeps
+  NAME_CAP: 40, // the most characters the creation screen takes for the character's name
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<DurationId, number>, // NW10: game minutes a routine step lasts (placeholders)

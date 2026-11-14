@@ -110,6 +110,8 @@ describe('138 quests', () => {
     const q = s.quests[0];
     actor(s, 'trader').core.inventory.push({ id: 'till', itemId: IT.coin, qty: 30 });
     play(s, { agentOutputs: [{ agent: 'planner', actorId: 'trader', output: { action: act('give', 'player', { item: 'till', qty: 4 }), dialogue: null, gear: null, stance: null, planUpdate: null } } as AcceptedAgentOutput] });
+    expect(q.paid).toEqual({ coin: 0, qty: 0 }); // BF34: held out, not yet taken
+    play(s, { intent: intent({ action: { type: 'take', target: 'trader', item: 'till' } }) });
     expect(q.paid).toEqual({ coin: 4, qty: 0 });
     q.state = 'done';
     unpaidQuests(s);

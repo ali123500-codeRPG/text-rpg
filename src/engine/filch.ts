@@ -19,9 +19,8 @@ import { NOISE, type AttentionKey, type NoiseKey } from '../scales';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest } from '../ruleset';
 import { perkSum } from '../ruleset/perks';
 import { hearingOf } from '../perception/noise';
-import { sightLevel } from '../perception/sight';
-import { seeingM, type Located } from './position';
-import { zoneLight } from '../time';
+import { sightAt } from '../perception';
+import type { Located } from './position';
 import { allActors, isActive, isAsleep, nameFor, zoneById } from './relations';
 import { talkingWith } from './speech';
 import { stepStance } from './effects';
@@ -50,7 +49,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
   const perception: GameEvent['perception'] = { [a.id]: { level: 'full', cue: 'sight' } };
   const caught: Actor[] = [], suspicious: Actor[] = [];
   const zone = zoneById(state, at.zone);
-  const size = CONFIG.FILCH_SIZE[bulk] ?? 0;
+  const size = filchSize(bulk) ?? 0;
   for (const w of allActors(state)) {
     if (w === a || w.bandId === a.bandId || (!w.mind && w.kind !== 'player') || !isActive(w) || isAsleep(w)) continue;
     const mods: Mod[] = [{ source: 'attention', type: 'situational', value: CONFIG.FILCH_ATTENTION[attentionOf(state, w, a, events)] ?? 0 }, { source: 'size', type: 'situational', value: size }];
@@ -67,8 +66,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
       perception[w.id] = { level, cue: sense === 'sight' ? 'sight' : 'sound' };
       return gap > 0 && level === 'full' ? 'caught' : 'suspicious';
     };
-    const sl = sightLevel(CONFIG.FILCH_VISIBILITY, seeingM(state, w, at));
-    const seen = sl && (zoneLight(state, zone) === 'dark' ? 'partial' : sl);
+    const seen = sightAt(state, w, at, CONFIG.FILCH_VISIBILITY);
     let got = seen ? contest('sight', seen) : null;
     if (got !== 'caught') {
       const heard = hearingOf(state, noise, at, w, perkSum(w, 'hearingDb'));

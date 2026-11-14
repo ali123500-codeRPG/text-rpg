@@ -19,6 +19,8 @@ export type AgentCtx = {
   background?: boolean;
 };
 
+/** enter hands back the release at once when the call may start now (so a free call starts in the same tick), else a promise of it */
+export type CallGate = { enter(background: boolean, signal?: AbortSignal): (() => void) | Promise<() => void> };
 /**
  * Q4 (Motion Rules Review): the turn's own calls (Parser, dialogue calls, Narrator, a scenario-start Weaver) always
  * go ahead of background Planner and Weaver calls in the viewer's call slots. Background calls start only while no
@@ -26,8 +28,6 @@ export type AgentCtx = {
  * with more significant NPCs answers no slower (that would hint who is significant). A call already running is never
  * cut off.
  */
-/** enter hands back the release at once when the call may start now (so a free call starts in the same tick), else a promise of it */
-export type CallGate = { enter(background: boolean, signal?: AbortSignal): (() => void) | Promise<() => void> };
 export function callGate(slots: number = CONFIG.CALL_SLOTS): CallGate {
   const bgMax = Math.max(1, slots - 1);
   let fg = 0, bg = 0;

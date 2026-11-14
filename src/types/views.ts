@@ -93,6 +93,7 @@ export type SeenActor = {
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
+  holdsOut?: { item: string; name: string }; // BF34: what this person holds out to the viewer: it is the viewer's once they take it (action take, item that id)
   demandYield?: true; // TF19: a foe the player can demand surrender from (as talkDown, or it cowers Broken)
 };
 /** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
@@ -349,7 +350,7 @@ export type WeaverView = {
   /** SC4: the bigger scenario (Episode or Venture) this new scenario sits inside; it carries on when this one ends */
   outerScenario?: { question: string; scale: string };
   catalogs: {
-    templates: { id: string; label: string; raceId: string; classId?: string }[];
+    templates: { id: string; label: string; raceId: string; classId?: string; youngestStage?: string }[];
     /** HF9, HF2: unique NPCs not yet in this world: one specific person each (an echo: a fallen hero), with its power and,
      * hidden, who it was */
     uniques: { id: string; name: string; label: string; raceId: string; classes: { name: string; level: number }[]; level: number; power: number; echo?: true; past: string }[];

@@ -12,7 +12,7 @@ import { branchLabel, chainRows, chainTag, heldChains, isBareHead, type HeldChai
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
-import { gripWord, kitBonus, modeName } from '../ruleset/gear';
+import { accSlot, gripSlot, gripWord, kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
@@ -249,9 +249,9 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const blank = (n: IconName) => { const el = h('span', { class: 'iico blank' }); el.innerHTML = ICONS[n]; return el; };
 
   // slots: one per grip part (an arm's hand, a dragon's head), then armor, then the accessory slots
-  const gripSlots = gripParts(s, p).map((part) => ({ id: `grip:${part}`, label: cap(gripWord(part)), empty: 'sword' as IconName }));
+  const gripSlots = gripParts(s, p).map((part) => ({ id: gripSlot(part), label: cap(gripWord(part)), empty: 'sword' as IconName }));
   const slots = [...gripSlots, { id: 'armor', label: 'Body', empty: 'tunic' as IconName },
-    ...Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => ({ id: `acc:${n}`, label: `Accessory ${n + 1}`, empty: 'ring' as IconName }))];
+    ...Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => ({ id: accSlot(n), label: `Accessory ${n + 1}`, empty: 'ring' as IconName }))];
   const firstSlot = new Map<string, string>(); // a two-grip item shows once, in its first grip
   const slotCards = slots.map((sl) => {
     const it = inv.find((i) => i.equippedIn?.includes(sl.id));

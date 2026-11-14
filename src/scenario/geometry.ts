@@ -6,6 +6,7 @@
 import type { GameState, Rect, Side, Zone } from '../types';
 import { CONFIG } from '../config';
 import { heightOf, verticalOf } from './heights';
+import { getLibrary } from '../library';
 
 /** the compass direction an exit's words name, as a unit [east, north], or null when they name none */
 export function compassOf(label: string): [number, number] | null {
@@ -70,21 +71,28 @@ function exitBetween(from: Zone, to: Zone): { dir: [number, number] | null; vert
   return { dir: fwd ?? (rev ? [-rev[0], -rev[1]] : null), vertical };
 }
 
+/** how far along a wall placement steps a zone, in whole metres each way, and how many free spots it weighs before it
+ *  takes the best so far (a 30 km road has 15 000 metres of side) */
+const STEPS_ALONG = 60, SPOTS_TRIED = 80;
+/** a story's first zone, or one with no link to anything placed, starts this many metres east of everything */
+const START_GAP_M = 20;
+
+/** a place and every place above it, by each place's parent */
+function placeChain(state: GameState): (id: string) => Set<string> {
+  const parentOf = new Map(state.places.map((p) => [p.id, p.parentId]));
+  return (id) => { const out = new Set<string>(); for (let q: string | null | undefined = id, n = 0; q && n < 20; q = parentOf.get(q), n++) out.add(q); return out; };
+}
+
 /** gives each zone in `zones` without a rectangle one, next to a placed zone it links to (CO1 B). Zones already placed
  *  never move (MAP-03), so a stage that grows only adds zones at its edges. A zone touches a zone it links to, on the
  *  side the exit's compass words name when that side is free, and in whole metres (MAP-10). A building stays one piece
  *  (MAP-12): no zone lands inside another place's footprint (the box around its zones on that floor), and a place never
  *  grows its footprint over a zone that isn't its own, so a street runs beside a tavern and never through it. */
-/** how far along a wall placement steps a zone, in whole metres each way, and how many free spots it weighs before it
- *  takes the best so far (a 30 km road has 15 000 metres of side) */
-const STEPS_ALONG = 60, SPOTS_TRIED = 80;
-
 export function placeZones(state: GameState, zones: Zone[]): void {
   const all = state.places.flatMap((p) => p.zones);
   const byId = new Map(all.map((z) => [z.id, z]));
   const parentOf = new Map(state.places.map((p) => [p.id, p.parentId]));
-  /** a place and every place above it */
-  const chain = (id: string): Set<string> => { const out = new Set<string>(); for (let q: string | null | undefined = id, n = 0; q && n < 20; q = parentOf.get(q), n++) out.add(q); return out; };
+  const chain = placeChain(state);
   const open = new Set(zones.filter((z) => !z.rect).map((z) => z.id));
   const placed = () => all.filter((z) => z.rect);
   /** a building's footprint on z's floor (MAP-12): the box around the indoor zones placed in it or in places inside it;
@@ -169,7 +177,7 @@ export function placeZones(state: GameState, zones: Zone[]): void {
       const z = byId.get([...open][0])!;
       const rs = placed().map((o) => o.rect!);
       const [w, d] = dims(z, 'ew');
-      const x = rs.length ? Math.max(...rs.map((r) => r.x + r.w / 2)) + 20 + w / 2 : 0;
+      const x = rs.length ? Math.max(...rs.map((r) => r.x + r.w / 2)) + START_GAP_M + w / 2 : 0;
       z.rect = snap({ x, y: 0, w, d });
       open.delete(z.id);
     }
@@ -180,8 +188,7 @@ export function placeZones(state: GameState, zones: Zone[]): void {
  *  floor, or whose building (the box around its indoor zones) has a zone of somewhere else running through it */
 export function brokenLayouts(state: GameState): { placeId: string; why: string }[] {
   const all = state.places.flatMap((p) => p.zones).filter((z) => z.rect);
-  const parentOf = new Map(state.places.map((p) => [p.id, p.parentId]));
-  const chain = (id: string): Set<string> => { const out = new Set<string>(); for (let q: string | null | undefined = id, n = 0; q && n < 20; q = parentOf.get(q), n++) out.add(q); return out; };
+  const chain = placeChain(state);
   const whole = (v: number) => Math.abs(v - Math.round(v)) < 1e-6;
   const out = new Map<string, string>();
   const flag = (placeId: string, why: string) => { if (!out.has(placeId)) out.set(placeId, why); };
@@ -240,15 +247,15 @@ export function doorway(a: Zone, b: Zone): { x: number; y: number } | null {
 /** metres between two zones' centres across the map (height left out) */
 export const zoneDistanceM = (a: Zone, b: Zone): number | null => (a.rect && b.rect ? Math.hypot(a.rect.x - b.rect.x, a.rect.y - b.rect.y) : null);
 
-/** HB4: the edge kind id of `a`'s side facing `b` (its kind's default when unnamed); null without rectangles */
+/** HB4: the edge kind id of `a`'s side facing `b`, its zone kind's default edge when the side is unnamed (CO15); null
+ *  without rectangles, or with neither */
 export function edgeFacing(a: Zone, b: Zone): string | null {
   if (!a.rect || !b.rect) return null;
-  return a.edges?.[sideOf([b.rect.x - a.rect.x, b.rect.y - a.rect.y])] ?? null;
+  return a.edges?.[sideOf([b.rect.x - a.rect.x, b.rect.y - a.rect.y])] ?? (a.kind ? getLibrary().zoneKinds?.[a.kind]?.edge : undefined) ?? null;
 }
 
 /** BG-62: whether `a`'s side facing `b` is an edge you reach over but don't walk across (a counter, fence or rail) */
 export function reachesOver(a: Zone, b: Zone, edgeKinds: Record<string, { walk: boolean; reach: boolean }>): boolean {
-  if (!a.rect || !b.rect) return false;
-  const k = edgeKinds[a.edges?.[sideOf([b.rect.x - a.rect.x, b.rect.y - a.rect.y])] ?? ''];
+  const k = edgeKinds[edgeFacing(a, b) ?? ''];
   return !!k && k.reach && !k.walk;
 }

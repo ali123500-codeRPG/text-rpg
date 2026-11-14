@@ -5,8 +5,8 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { defenseItem } from '../ruleset/gear';
-import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
+import { defenseItem, isHeld } from '../ruleset/gear';
+import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpFill, xpToNext } from '../engine/xp';
 import { essenceSlots } from '../engine/essence';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
@@ -101,7 +101,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
   const def = standing(s, p);
   const atk = attackOf(s, p);
   const gear = p.core.inventory.filter((i) => i.equippedIn?.length).map((i) =>
-    h('span', {}, h('a', { href: '#inv', class: 'cs-item', title: 'Open in Inventory for its full stats', onclick: () => { invFocus.id = i.id; } }, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${i.equippedIn!.some((x) => x.startsWith('grip:')) ? 'held' : 'worn'}`));
+    h('span', {}, h('a', { href: '#inv', class: 'cs-item', title: 'Open in Inventory for its full stats', onclick: () => { invFocus.id = i.id; } }, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${isHeld(i) ? 'held' : 'worn'}`));
   return h('div', { class: 'cs-card' },
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In the ${place}` : ''].filter(Boolean).join(' · ')))), // AG16
@@ -137,7 +137,7 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const capped = (c: { classId: string; level: number }) => c.level >= classMaxLevel(c.classId);
   const el: HTMLElement = h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
-    h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
+    h('div', { class: 'cs-bar' }, h('b', { style: `width:${xpFill(p).pct}%` })),
     !target ? h('small', {}, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level.`) : null,
     open.length > 1 || !target
       ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
@@ -384,7 +384,7 @@ export function gearNote(s: GameState, i: Actor['core']['inventory'][number]): {
 
 /** the gear lines on the play sheet: each held or worn item by name, with its gearNote (M-35) */
 function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
-  const on = p.core.inventory.filter((i) => i.equippedIn?.length && i.equippedIn.some((x) => x.startsWith('grip:')) === held);
+  const on = p.core.inventory.filter((i) => i.equippedIn?.length && isHeld(i) === held);
   return on.map((i, k) => {
     const n = gearNote(s, i);
     return h('span', { class: 'cs-gi', 'data-gear': i.id }, k ? ' · ' : '', cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId),
@@ -396,7 +396,7 @@ function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
 export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
   const on = p.core.inventory.filter((i) => i.equippedIn?.length);
   const name = (i: Actor['core']['inventory'][number]) => safe(() => itemDef(s, i.itemId).name) ?? i.itemId;
-  return { held: on.filter((i) => i.equippedIn!.some((x) => x.startsWith('grip:'))).map(name), worn: on.filter((i) => !i.equippedIn!.some((x) => x.startsWith('grip:'))).map(name) };
+  return { held: on.filter(isHeld).map(name), worn: on.filter((i) => !isHeld(i)).map(name) };
 }
 
 /** Layout A: the narrow status strip beside the story (health word and bar, damaged parts, what is held); a click opens the full sheet */
@@ -444,12 +444,7 @@ function xpLine(p: Actor): HTMLElement | null {
     h('div', { class: 'cs-row' }, h('span', { 'data-m': 'lvl' }, `Level ${v.level}`), h('b', {}, h('span', { 'data-m': 'xp' }, whole(v.xp)), ` / ${v.need} XP`)),
     h('div', { class: 'cs-bar', 'data-m': 'xp-track' }, h('b', { style: `width:${v.pct}%` })));
 }
-const xpShown = (p: Actor) => {
-  const pr = p.progression;
-  if (!pr) return null;
-  const need = xpToNext(p);
-  return { level: charLevel(p), xp: pr.xp, need, pct: need > 0 ? Math.min(100, (pr.xp / need) * 100) : 100 };
-};
+const xpShown = (p: Actor) => (p.progression ? xpFill(p) : null);
 
 /** M-74: every value the play sheet shows, before and after a turn, so the screen animates only what changed */
 export type ShownValues = {

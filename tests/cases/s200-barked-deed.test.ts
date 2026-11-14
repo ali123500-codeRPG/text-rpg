@@ -12,11 +12,11 @@ it('BG-59: a gift given with a question stays in the receiver\'s view, without t
   s.player.core.inventory.push({ id: 'purse', itemId: IT.coin, qty: 20 });
   actorById(s, 'patron_1')!.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] }; // they have been talking
   const ev = play(s, { intent: intent({ action: { type: 'give', target: 'patron_1', item: 'purse', qty: 1 }, spoken: 'What have you seen tonight?', addressees: ['patron_1'] }) });
-  const give = ev.find((e) => e.kind === 'give')!;
+  const give = ev.find((e) => e.kind === 'offer')!; // BF34: held out, with the words
   expect(give.bark).toBe(true);
   s.recentEvents = pruneRecent(s, ev);
   s.events = [];
-  const seen = buildActorView(s, 'patron_1').perceived.find((e) => e.kind === 'give');
+  const seen = buildActorView(s, 'patron_1').perceived.find((e) => e.kind === 'offer');
   expect(seen).toBeDefined();
   expect((seen as { line?: unknown }).line).toBeUndefined();
 });

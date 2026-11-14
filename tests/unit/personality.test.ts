@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../../src/config';
 import { getLibrary, npcTemplate } from '../../src/library';
-import { spawnNpc } from '../../src/library/spawn';
+import { presetPersonality, spawnNpc } from '../../src/library/spawn';
 import { PA, PY, TN, VL } from '../../src/library/tableIds';
 import { TP } from '../../src/library/templateIds';
 import { ACH } from '../../src/library/achievementIds';
@@ -16,7 +16,8 @@ import { formatDialogueView, formatOppositionView } from '../../src/agents/forma
 import type { Actor } from '../../src/types';
 import { actorView } from './agent-views';
 
-const npc = (tp: string) => spawnNpc(null, tp, { id: 'x', zone: 'z', placeId: 'p', bandId: 'b' });
+// the preset's centre personality, without the copy's spread (NG14), so the words below are the layers'
+const npc = (tp: string) => { const a = spawnNpc(null, tp, { id: 'x', zone: 'z', placeId: 'p', bandId: 'b' }); a.core.personality = presetPersonality(npcTemplate(null, tp)); return a; };
 const withResolve = (a: Actor, r: number) => { a.core.skills[SK.resolve] = { raw: r, state: 'normal' }; return a; };
 
 describe('Nerve', () => {
@@ -108,13 +109,13 @@ describe('personality', () => {
   });
   it('the Weaver may name a line, types and values on top of the template (PL12)', () => {
     const t = npcTemplate(null, TP.guard);
-    const p = personalityFrom(t.personality, { nerve: 'daring', types: [PY.childish, 'nonsense'], values: [VL.family, 'VL999'] });
+    const p = personalityFrom(presetPersonality(t), { nerve: 'daring', types: [PY.childish, 'nonsense'], values: [VL.family, 'VL999'] });
     expect(p.nerve).toBe(CONFIG.NERVE_LINE_POINTS);
     expect(p.traits[PA.discipline]).toBe(-70); // Childish's target
     expect(p.traits[PA.temper]).toBe(30);
     expect(personalityFrom({ nerve: 0, traits: { [PA.temper]: 50 }, values: [] }, { types: [PY.childish] }).traits[PA.temper]).toBe(50); // already past it
     expect(p.values).toEqual([VL.family]);
-    expect(t.personality.traits[PA.discipline]).toBe(40); // the template is untouched
+    expect(presetPersonality(t).traits[PA.discipline]).toBe(40); // the layers are untouched (the soldier role's lean)
   });
 });
 

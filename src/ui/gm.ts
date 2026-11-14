@@ -2,10 +2,10 @@
 // input and output, the red fallback banner, the backup list with restore, and the "Download backup" button.
 import { tierName } from '../ruleset';
 import { getLibrary } from '../library';
-import { ageText } from '../ruleset/age';
+import { ageText, talentName } from '../ruleset/age';
 import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
-import { QUALITY_LEVELS, TIERS } from '../scales';
+import { HIT_OUTCOMES, QUALITY_LEVELS, TIERS } from '../scales';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
 import { openPop } from './pop';
 import { CONFIG } from '../config';
@@ -94,6 +94,7 @@ export function gmPage(api: GameApi) {
 
   function update() {
     const g = api.gm(), s = g.state;
+    const ways = waysByTier(s?.hidden.scenarios ?? []);
     const rolls = (s?.events ?? []).filter((e) => e.attack || e.contest || e.check);
     const confirmRow = (text: string, yes: string, act: () => void) => h('div', { class: 'confirm' }, h('span', { class: 'hs-note' }, text),
       h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = null; act(); update(); } }, yes),
@@ -125,7 +126,7 @@ export function gmPage(api: GameApi) {
         { label: 'Rolls', value: String(rolls.length), unit: unitOf(rolls.length, 'roll'), sub: plural(g.log.length, 'log code'), how: 'Attacks, contests and checks among this turn’s events.' },
       ], how), how,
         // moved here from the play header: the count and the running agents change with the encounter mode (hidden)
-        h('p', { class: 'hs-note' }, `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`,
+        h('p', { class: 'hs-note' }, `${plural(api.calls(), 'Claude call')} this session`,
           api.working().length ? ` · running now: ${api.working().map((w) => w.agent).join(', ')}${api.busy() ? '' : ' (in the background)'}` : '')),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Agent calls · exact input and output'),
@@ -141,20 +142,20 @@ export function gmPage(api: GameApi) {
         rolls.length ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Actor', 'Kind', 'Target', 'Result', 'Detail'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rolls.map((e) => h('tr', {}, h('td', {}, e.actorId), h('td', {}, e.kind), h('td', {}, e.target ?? '–'),
-            h('td', {}, e.attack ? `${e.attack.outcome} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier !== undefined ? tierName(e.tier) : '–')),
+            h('td', {}, e.attack ? `${HIT_OUTCOMES.name(e.attack.outcome)} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier !== undefined ? tierName(e.tier) : '–')),
             h('td', {}, e.attack ? `d100 ${e.attack.attack.d100} vs ${e.attack.defense?.d100 ?? '–'} · gap ${e.attack.gap ?? '–'} · ${e.attack.location ?? '–'}` : '')))))
           : h('p', { class: 'empty' }, 'No rolls this turn.')),
 
       // AG16: exact ages, which the play screen never shows for NPCs; and who an agent runs, with their last agent calls in a pop-up
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'People · age and who an agent runs'),
         s ? h('table', { class: 'hs-tbl gm-people' },
-          h('thead', {}, h('tr', {}, ['Actor', 'Age', 'Run by', 'Agent calls this turn'].map((t) => h('th', {}, t)))),
+          h('thead', {}, h('tr', {}, ['Actor', 'Age · talent', 'Run by', 'Agent calls this turn'].map((t) => h('th', {}, t)))),
           h('tbody', {}, [s.player, ...s.actors].map((a) => {
             const mine = g.agentLog.filter((l) => l.actorId === a.id);
             const runBy = a.id === s.player.id ? 'Player' : a.mind?.control === 'agent' ? 'Agent' : 'Code';
             const name = a.id === s.player.id ? a.names.current
               : h('button', { class: 'hs-btn-text gm-who', type: 'button', title: 'Open their last agent calls', onclick: (e: Event) => void showCalls(a.id, a.names.current, e.currentTarget as HTMLElement) }, a.names.current);
-            return h('tr', { 'data-actor': a.id }, h('td', {}, name), h('td', {}, ageText(s, a) ?? 'Ageless'),
+            return h('tr', { 'data-actor': a.id }, h('td', {}, name), h('td', {}, [ageText(s, a) ?? 'Ageless', a.core.talent ? talentName(a.core.talent) : ''].filter(Boolean).join(' · ')),
               h('td', {}, runBy === 'Agent' ? h('span', { class: 'hs-chip gm-agent' }, 'Agent') : h('span', { class: 'hs-note' }, runBy)),
               h('td', {}, mine.length ? mine.map((l) => l.agent).join(', ') : '–'));
           })))
@@ -169,9 +170,9 @@ export function gmPage(api: GameApi) {
 
       // BA8: the barriers each tier's scenarios put on ways, so the tier's lean can be checked
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Ways per tier · barriers the scenarios put on ways'),
-        waysByTier(s?.hidden.scenarios ?? []).length ? h('table', { class: 'hs-tbl' },
+        ways.length ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Tier', 'Scenarios', 'Barriers', 'Of them', 'Grades'].map((t) => h('th', {}, t)))),
-          h('tbody', {}, waysByTier(s?.hidden.scenarios ?? []).map((r) => h('tr', {}, h('td', {}, r.tier), h('td', { class: 'hs-num' }, String(r.scenarios)),
+          h('tbody', {}, ways.map((r) => h('tr', {}, h('td', {}, r.tier), h('td', { class: 'hs-num' }, String(r.scenarios)),
             h('td', { class: 'hs-num' }, String(r.barriers)), h('td', {}, r.shut || '–'), h('td', {}, r.grades || '–')))))
           : h('p', { class: 'empty' }, 'No scenario has ended yet.')),
 

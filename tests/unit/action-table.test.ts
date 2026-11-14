@@ -26,6 +26,7 @@ const ROWS: Record<string, Row> = {
   use_item: { need: 'grip', who: 'both' }, // BF13: a healing item on someone else is used within arm's reach of them
   equip: { need: 'none', who: 'both' },
   give: { need: 'grip', who: 'both' },
+  take: { need: 'grip', who: 'both' }, // BF34
   pick: { need: 'grip', who: 'both' },
   other: { need: 'none', who: 'both' },
   stash: { need: 'none', who: 'player only: not built for NPCs yet' },

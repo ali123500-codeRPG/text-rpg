@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { NpcTemplate, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { NpcTemplate, ThemeDef, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
@@ -20,7 +20,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { RANKS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -35,7 +35,7 @@ import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
 import { ALL_BUNDLES } from '../library/allPerks';
-import { classFloors } from '../library/spawn';
+import { classFloors, presetPersonality, rankName, templateLevel, templateSkills } from '../library/spawn';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -132,9 +132,31 @@ const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !
 function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   return Object.entries(table).map(([id, e]) => {
     const title = String(e.name ?? e.label ?? e.brief ?? e.look ?? label(id));
+    if (sec === 'npcRoles' || sec === 'themes') return layerCard(sec, id, e, title);
     if (sec !== 'templates') return card(sec, id, e, title, [], ...fields(e, ['id', 'name']));
-    return card(sec, id, e, title, [], ...fields(e, ['id', 'name', 'essences']), row('Essences', essenceList(e as unknown as NpcTemplate)));
+    const t = e as unknown as NpcTemplate;
+    return card(sec, id, e, title, [], ...templateHead(t), ...fields(e, ['id', 'name', 'essences', 'rank', 'roleId', 'themeId', 'level']),
+      row('Skills', skillList(t)), row('Essences', essenceList(t)));
   });
+}
+/** NG1, NG7: a template's rank (its theme's own title first), its level, role and theme, as the game reads them */
+const templateHead = (t: NpcTemplate): HTMLElement[] => [
+  row('Rank', t.rank ? `${rankName(t.rank, t.themeId)}, level ${templateLevel(t)}` : `none (a unique), level ${templateLevel(t)}`),
+  row('Role', t.roleId ? link('npcRoles', t.roleId, lib.npcRoles?.[t.roleId]?.name ?? t.roleId) : none('none')),
+  row('Theme', t.themeId ? link('themes', t.themeId, lib.themes?.[t.themeId]?.name ?? t.themeId) : none('none')),
+];
+/** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged */
+const skillList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : ''}`])) : none('none')))(
+  Object.entries(templateSkills(t)).sort(([, a], [, b]) => b.raw - a.raw));
+/** NG2, NG21: an NPC role or theme: its skill bands (share of the rank's anchor), a theme's rank titles, and the templates using it */
+function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: string): HTMLElement {
+  const d = e as unknown as ThemeDef, key = sec === 'npcRoles' ? 'roleId' : 'themeId';
+  const bands = (Object.keys(CONFIG.ROLE_BAND_SHARE) as (keyof typeof CONFIG.ROLE_BAND_SHARE)[]).filter((b) => d.bands?.[b]?.length)
+    .map((b) => row(`${label(b)} (×${CONFIG.ROLE_BAND_SHARE[b]})`, links('skills', d.bands![b]!.map((s) => [s, skillName(s)]))));
+  const titles = Object.entries(d.rankNames ?? {}).map(([k, n]) => `${RANKS.name(k as (typeof RANKS.keys)[number])} → ${n}`);
+  return card(sec, id, e, title, [], ...(bands.length ? bands : [row('Skills', none('adds none'))]),
+    sec === 'themes' ? row('Rank titles', titles.length ? titles.join(', ') : none('the usual names')) : null,
+    row('NPC templates', usedBy((t) => t[key] === id)));
 }
 /** EN7 a: a template's essences with their fit (templateEssences, as the game reads them); a hand-set list has no fit */
 const fitText = (fit?: number) => (fit === undefined ? 'set by hand' : `fit ${Math.round(fit * 100)}%`);
@@ -892,7 +914,7 @@ function personalityAxesView(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, `Each axis runs −100 to +100. A trait counts from ${CONFIG.PERSONALITY_LEAN} away from 0; the word before it comes from the distance: ${words}.`),
     h('div', { class: 'lv-grid' }, Object.values(lib.personalityAxes ?? {}).map((a) => card('personalityAxes', a.id, a, a.name, [],
       row('Low end', `${a.low} (${a.lowHint})`), row('High end', `${a.high} (${a.highHint})`),
-      row('NPCs', ((ts) => ts.length ? links('templates', ts) : none('none lean here'))(Object.values(lib.templates).filter((t) => Math.abs(t.personality?.traits?.[a.id] ?? 0) >= CONFIG.PERSONALITY_LEAN).map((t): [string, string] => [t.id, t.label ?? t.id]))))))];
+      row('NPCs', ((ts) => ts.length ? links('templates', ts) : none('none lean here'))(Object.values(lib.templates).filter((t) => Math.abs(presetPersonality(t).traits[a.id] ?? 0) >= CONFIG.PERSONALITY_LEAN).map((t): [string, string] => [t.id, t.label ?? t.id]))))))];
 }
 
 /** Threadbound items (D-218): one card per item. Its grants are drawn as unlock paths, one per achievement chain, in
@@ -1024,7 +1046,7 @@ function autoFacets(table: Record<string, Entry>): Facets {
   return (e: Entry) => keys.map((k) => [humanKey(k), typeof e[k] === 'string' ? typedId(e[k] as string)?.textContent ?? (e[k] as string) : (e[k] as string)]);
 }
 
-const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts' };
+const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', npcRoles: 'NPC roles', themes: 'NPC themes', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts' };
 const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[])
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? humanKey(k), table: k }))];
@@ -1034,7 +1056,7 @@ const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'essences', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
   ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
-  ['People', ['templates', 'roles', 'activities', 'routines', 'routineSets', 'services']],
+  ['People', ['templates', 'npcRoles', 'themes', 'roles', 'activities', 'routines', 'routineSets', 'services']],
   ['Personality', ['nerve', 'personalityAxes', 'personalityTypes', 'tensions', 'values']],
   ['More', null], // a table not named above (a new one) lands here
 ];

@@ -55,6 +55,9 @@ export type Actor = {
   walking?: NonNullable<import('./agents').Intent['move']>;
   /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */
   followLost?: { who: string; why: 'down' | 'slipped_away' | 'out_of_sight'; zone: string };
+  /** BF34: something it holds out to `to` (an item instance, from hand, pack or its own bag): it changes hands only when
+   * `to` takes it; withdrawn after the turn after `turn` */
+  offer?: { item: string; qty?: number; to: string; turn: number };
   letsSearch?: { by: string; until: number }; // BF16: lets `by` search it hands-on, until that turn
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-grip modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
@@ -107,6 +110,7 @@ export type Core = {
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
   personality?: Personality; // PL1: Nerve and personality points, before what perks, classes and achievements add (personalityOf)
   bornDay?: number; // AG2: the game day it was born (before day 1 is 0 and below); left out = no age (an ageless race)
+  talent?: import('../scales').TalentKey; // AG25: an NPC's talent, set once at spawn (it set its youngest age); the player has none (AG27)
 };
 
 /** PL1: Nerve runs Cautious (−100) to Daring (+100); traits are points by personality axis (PA…, −100 to +100); values
@@ -249,12 +253,16 @@ export type NpcTemplate = {
    * character: `unique` holds its sheet, spawned exactly as saved, at most once per world) */
   generation: 'rolled' | 'copy' | 'unique';
   unique?: UniqueSheet;
+  /** hand-set floors a preset's story needs (loadout requirements, a search skill); class floors are added in code */
   minimums: Record<LibraryRef, number>;
-  level: number;
-  bonusPoints: number;
-  focus: { treeId: LibraryRef; skill: LibraryRef }[];
+  /** NG1, NG7: a preset's layers; the rank sets its level and, with the role and theme, its skills */
+  roleId?: LibraryRef;
+  themeId?: LibraryRef;
+  rank?: import('../scales').RankKey;
+  /** a unique's level, from its saved sheet; presets never set one (NG7) */
+  level?: number;
   resolve: number; // starting Resolve (MB30)
-  personality: Personality; // PL11: Nerve, trait and value points
+  personality?: import('./library').PersonalityLean; // PL11, NG14: the preset's own pins, over its theme's and role's leans (presetPersonality)
   /** a rolled NPC's title ("the Butler"), given with its name in CHARACTER */
   title?: string;
   /** a rolled NPC's hand-written if-then lines, given right after Nerve in its personality line */
@@ -274,6 +282,8 @@ export type NpcTemplate = {
   chase?: import('../scales').ChaseRange;
   /** AG13: the life stages NPCs made from it are drawn from; left out = CONFIG.NPC_AGE_STAGES */
   ageStages?: import('../scales').LifeStageKey[];
+  /** AG25: how fast NPCs made from it trained, which sets their youngest age for the rank; left out = the theme's, then CONFIG.NPC_TALENT_DEFAULT */
+  talent?: import('../scales').TalentKey;
   /** growth proposal 2.3: a leader or other notable NPC: beating it may offer an essence whatever its power */
   notable?: true;
   /** EN3 b: a hand-set essence list that replaces the worked-out one (templateEssences). An echo carries only its own

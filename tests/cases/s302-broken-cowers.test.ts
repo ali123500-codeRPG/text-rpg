@@ -8,7 +8,7 @@ import { act, intent, play, plannerOut } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { maxMorale } from '../../src/ruleset/morale';
 
-it('a broken NPC who chose to give and walk off gives and stays put', () => {
+it('a broken NPC who chose to give and walk off holds it out and stays put', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
   const w = beside(s, 'patron_1', 'player', 1);
   w.mind!.moraleState = 'broken';
@@ -17,7 +17,7 @@ it('a broken NPC who chose to give and walk off gives and stays put', () => {
   const ev = play(s, { agentOutputs: [plannerOut(w.id, act('give', 'player', { item: 'charm_1' }), { move: { toZone: 'street_door' } })] });
   expect(w.zone).toBe(from.zone);
   expect(w.pos).toEqual(from.pos);
-  expect(ev.some((e) => e.actorId === w.id && e.kind === 'give')).toBe(true);
+  expect(ev.some((e) => e.actorId === w.id && e.kind === 'offer')).toBe(true);
 });
 
 it('a broken NPC with nothing allowed to do cowers where it stands, never flees', () => {

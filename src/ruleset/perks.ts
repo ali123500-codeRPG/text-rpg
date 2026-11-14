@@ -27,13 +27,13 @@ export const ALL_STEPS = allStepsUpTo(CONFIG.PERK_RAILS_TO);
 export const perksNeeded = (milestone: number): number => Math.max(0, Math.floor((milestone / CONFIG.PERK_MILESTONE_EVERY - 1) / 2));
 
 const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
-/** the actor owns this perk and it is not dormant: every coded perk checks this */
 /** the sum of one perk number over an actor's active perks */
-export const perkSum = (a: Actor, key: 'hearingDb' | 'throwReach') => a.core.perks.reduce((n, p) => n + (p.dormant ? 0 : getLibrary().perks[p.perkId]?.[key] ?? 0), 0);
+export const perkSum = (a: Actor, key: 'hearingDb' | 'throwReach') => owned(a).reduce((n, p) => n + (getLibrary().perks[p.perkId]?.[key] ?? 0), 0);
+/** the actor owns this perk and it is not dormant: every coded perk checks this */
 export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks.some((p) => p.perkId === perkId && !p.dormant);
 
-/** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it */
-/** `does` tells the Parser what the move looks like in the player's words, so it is found without its name */
+/** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it.
+ * `does` tells the Parser what the move looks like in the player's words, so it is found without its name */
 export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number; perFoe?: true; untargeted?: true; does: string }> = {
   [PK.dirt_in_the_eyes]: { free: true, perEngagement: 1, does: "throw dirt, sand, a drink or anything at hand in a foe's eyes" },
   // LI1c: once per foe per engagement
@@ -157,4 +157,4 @@ export function undoPerk(s: GameState, a: Actor, perkId: string): void {
 
 /** A19 Melt Away: a zone with some cover or more, or light dim or darker, lets the owner vanish in place */
 export const meltAwayHere = (cover: string | undefined, light: string | undefined): boolean =>
-  COVER.pos(COVER.keyOf(cover) ?? 'none') >= 1 || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= 1;
+  COVER.pos(COVER.keyOf(cover) ?? 'none') >= COVER.pos('some') || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= LIGHT.pos('dim');

@@ -4,7 +4,7 @@
 import type { GameState, ItemDef } from '../types';
 import { qualityMult } from './quality';
 import { CONFIG } from '../config';
-import { getLibrary, itemDef } from '../library';
+import { itemDef } from '../library';
 import { kitBonus, modeReach } from './gear';
 
 const V = () => CONFIG.ITEM_VALUE;

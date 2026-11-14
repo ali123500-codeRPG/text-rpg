@@ -1,10 +1,12 @@
 // 291 SS1-SS14 Stamina perks. Catnap (20): a rest also clears an hour of sleep's debt. Iron Lungs (40): +10 Endurance.
 // Forced March (60): a run is Moderate. Deep Lungs (80): line ×1.5. Sleepless (100): hours awake add debt ×0.2. Bottomless
-// (120): strain ×0.5. Second Breath (All-50 part): once a fight, an emptying line refills to half with no spill. Quirks
+// (120): strain ×0.5. Overdrive (140): above half a line, every roll adds 10% of Stamina for 1 strain. Second Breath (All-50 part): once a fight, an emptying line refills to half with no spill. Quirks
 // Heavy Sleeper (a noise one level louder wakes them) and Insomniac (sleep ×0.75), rolled onto NPCs by template quirk tags.
 import { describe, expect, it } from 'vitest';
 import type { Actor, GameEvent, GameState } from '../../src/types';
-import { makeVillage } from '../harness';
+import { forcedRng, makeVillage } from '../harness';
+import { ruleset } from '../../src/ruleset';
+import { tierMult } from '../../src/ruleset/gear';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
@@ -30,7 +32,7 @@ describe('291 stamina perks', () => {
   it('every built one is on the Stamina ladder at its milestone, and Second Breath is Stamina\'s All-50 part', () => {
     makeVillage();
     const perks = getLibrary().perks;
-    for (const [id, m] of [[PK.catnap, 20], [PK.iron_lungs, 40], [PK.forced_march, 60], [PK.deep_lungs, 80], [PK.sleepless, 100], [PK.bottomless, 120]] as const) {
+    for (const [id, m] of [[PK.catnap, 20], [PK.iron_lungs, 40], [PK.forced_march, 60], [PK.deep_lungs, 80], [PK.sleepless, 100], [PK.bottomless, 120], [PK.overdrive, 140]] as const) {
       expect(perks[id]?.ladder, id).toEqual({ skill: SK.stamina, milestone: m });
       expect(BUILT_PERKS.has(id), id).toBe(true);
     }
@@ -161,5 +163,19 @@ describe('291 stamina perks', () => {
       expect(new Set(all.flat()).size).toBe(2);
       expect(quirks('a')).toEqual(all[0]);
     } finally { t.quirkTags = was; }
+  });
+  it('SS15 Overdrive: with the line above half, every roll adds 10% of Stamina and costs 1 strain; at half or below, nothing', () => {
+    const s = quiet();
+    s.player.core.skills[SK.stamina] = { raw: 140, state: 'normal' };
+    const go = () => ruleset.roll({ actorId: 'player', skill: SK.melee_light, modifiers: [], tierShifts: [] }, s, forcedRng([50]));
+    expect(go().modifiers.some((m) => m.source === 'Overdrive')).toBe(false);
+    expect(lineUsed(s.player)).toBe(0);
+    give(s.player, PK.overdrive);
+    const r = go();
+    expect(r.modifiers.find((m) => m.source === 'Overdrive')?.value).toBeCloseTo(trueSkill(s.player, SK.stamina) * CONFIG.OVERDRIVE_SHARE * tierMult(SK.stamina));
+    expect(lineUsed(s.player)).toBeCloseTo(CONFIG.OVERDRIVE_STRAIN);
+    s.player.core.condition.fatigue!.line = lineMax(s.player) / 2; // half spent: off
+    expect(go().modifiers.some((m) => m.source === 'Overdrive')).toBe(false);
+    expect(lineUsed(s.player)).toBeCloseTo(lineMax(s.player) / 2);
   });
 });

@@ -71,12 +71,15 @@ export function recoverLine(a: Actor, sourceId: string, pct: number): number {
   fat(a).line = used - got;
   return got;
 }
-/** clears `pct` % of the bar from the long term, from recovery row `sourceId`; every long-term clear goes through here */
+/** clears `pct` % of the bar from the long term, from recovery row `sourceId`; every long-term clear goes through here,
+ * and the hours-awake count (FB4) falls by as much */
 export function recoverDebt(a: Actor, sourceId: string, pct: number): number {
   const r = row(sourceId), f = fatigueOf(a);
   if (!r || pct <= 0 || f.debt <= 0) return 0;
   const got = Math.min(f.debt, (pct / 100) * barMax(a));
-  fat(a).debt = f.debt - got;
+  const w = fat(a);
+  w.debt = f.debt - got;
+  if (w.awake) w.awake = Math.max(0, w.awake - got);
   return got;
 }
 /** FT8: sleep's speed here: in a bed or elsewhere, × the worn armour's weight, × the owner's sleepClear perks (SS14) */
@@ -88,9 +91,7 @@ export const sleepMult = (state: GameState, a: Actor): number =>
 export function restRecover(state: GameState, a: Actor, share: number): void {
   recoverLine(a, RV.rest, (row(RV.rest)?.linePct ?? 0) * share);
   if (!hasPerk(a, PK.catnap)) return;
-  const got = recoverDebt(a, RV.perk, (row(RV.sleep)?.debtPctPerHour ?? 0) * CONFIG.CATNAP_SLEEP_HOURS * share * sleepMult(state, a));
-  const f = a.core.condition.fatigue;
-  if (f?.awake) f.awake = Math.max(0, f.awake - got);
+  recoverDebt(a, RV.perk, (row(RV.sleep)?.debtPctPerHour ?? 0) * CONFIG.CATNAP_SLEEP_HOURS * share * sleepMult(state, a));
 }
 /** FT9: minutes of sleep that clear the long term here, within SLEEP_MIN_HOURS to SLEEP_MAX_HOURS */
 export function sleepMinutes(state: GameState, a: Actor): number {
@@ -110,8 +111,7 @@ export function passiveFatigue(state: GameState, minutes: number): void {
     if (!isActive(a)) continue;
     if (isAsleep(a)) {
       const s = row(RV.sleep);
-      const got = recoverDebt(a, RV.sleep, (s?.debtPctPerHour ?? 0) * (minutes / 60) * sleepMult(state, a));
-      if (a.core.condition.fatigue?.awake) a.core.condition.fatigue.awake = Math.max(0, a.core.condition.fatigue.awake - got);
+      recoverDebt(a, RV.sleep, (s?.debtPctPerHour ?? 0) * (minutes / 60) * sleepMult(state, a));
       recoverLine(a, RV.sleep, s?.linePct ?? 0);
       continue;
     }

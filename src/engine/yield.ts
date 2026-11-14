@@ -35,8 +35,9 @@ export function probe(state: GameState, observer: Actor, who: Actor, noise: Nois
 /** YD7: two bandmates are together while each perceives the other just being there (in sight, or close enough to hear
  * a faint sound); apart, they act as the band's faction: same friends and enemies, but a deal made on the spot binds
  * only those together */
-export const together = (state: GameState, a: Actor, b: Actor): boolean =>
-  a.bandId === b.bandId && perceivesNow(state, a, b, 'faint') && perceivesNow(state, b, a, 'faint');
+export const together = (state: GameState, a: Actor, b: Actor): boolean => a.bandId === b.bandId && eachPerceives(state, a, b);
+/** each perceives the other just being there (in sight, or close enough to hear a faint sound) */
+export const eachPerceives = (state: GameState, a: Actor, b: Actor): boolean => perceivesNow(state, a, b, 'faint') && perceivesNow(state, b, a, 'faint');
 
 /** YD1: who hears the player's yield: foes fighting the player, and hostile foes who perceive the player and fight the player's side */
 export function yieldHearers(state: GameState): Actor[] {

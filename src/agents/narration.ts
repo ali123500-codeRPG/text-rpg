@@ -4,6 +4,7 @@ import type { GameState, NarrationEvent, NarrationView, NarratorOutput } from '.
 import { getLibrary, itemDef } from '../library';
 import { knowsName } from '../engine/relations';
 import { CONFIG } from '../config';
+import { mentions, cap } from '../words';
 
 /** what must not appear in the text unless the view itself holds it */
 export type LeakContext = {
@@ -58,7 +59,6 @@ export function buildLeakContext(state: GameState): LeakContext {
 }
 
 export { mentions } from '../words';
-import { mentions, cap } from '../words';
 const uniq = (xs: string[]) => [...new Set(xs.filter((x) => x && x.trim()))];
 /** every forbidden name, id or term found in `text` that the view (or other allowed text) does not itself hold */
 export function leakScan(text: string, allowedText: string, ctx: LeakContext): string[] {
@@ -82,7 +82,7 @@ function firstNameSaid(text: string, n: string): boolean {
 }
 
 const POSITION = new Set(['move', 'arrival', 'flee', 'sneak']);
-const INVENTORY = new Set(['give', 'buy', 'buy_refused', 'sell', 'sell_refused', 'pick_up', 'summon', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen', 'open', 'break_open', 'filch', 'set_down', 'put_in']);
+const INVENTORY = new Set(['give', 'offer', 'take', 'take_refused', 'buy', 'buy_refused', 'sell', 'sell_refused', 'pick_up', 'summon', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen', 'open', 'break_open', 'filch', 'set_down', 'put_in']);
 
 /** full events that must be narrated: presence, and anything changing the player's condition, inventory or position */
 export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {
@@ -129,7 +129,7 @@ function eventLine(e: NarrationEvent): string {
     const p = e.packet;
     const loc = p.location ? ` (${p.location.part})` : '';
     const ch = p.changes.length ? ` ${p.changes.join('; ')}.` : '';
-    return `${cap(who(p.actor))} ${p.action.replace(/_/g, ' ')}${p.actor === 'player' ? '' : 's'} ${who(p.target)}: ${p.outcome.replace(/_/g, ' ')}${loc}.${ch}`;
+    return `${cap(who(p.actor))} ${p.action}${p.actor === 'player' ? '' : 's'} ${who(p.target)}: ${p.outcome}${loc}.${ch}`;
   }
   switch (e.kind) {
     case 'presence':
