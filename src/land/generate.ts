@@ -37,6 +37,88 @@ export type RegionBrief = {
 export type EdgeJoin = { side: Side; roads: number[]; waters: { at: number; width: number; kind: Water['kind']; name: string; out: boolean }[]; heights?: number[] };
 
 
+/** The land maker's shaping numbers (CS26): they change how drawn land looks, never a rule, so they live here, apart from
+ * CONFIG. Sizes play reads (region, cell, site spacing, fields, stream and ford widths) stay in CONFIG. Lengths are
+ * metres; "share" is a part of the region's side or of its height range (0 to 1); a weight scales one term of a score. */
+const LAND = {
+  river: {
+    /** where on its side a river comes in or leaves: from this share of the side, over the next span */
+    edgeFrom: 0.3, edgeSpan: 0.4,
+    /** its winding: noise run along it (m), the noise's feature size (m), and the sway at most, as a share of the side */
+    swayRunM: 4000, swayScaleM: 1500, sway: 0.35,
+    /** width when the kind names none */
+    widthM: 15,
+    /** a cell this many cells beyond the river's bank counts as on the river (streams end there) */
+    reachCells: 0.7,
+  },
+  /** distances to water are measured to the line thinned to about one point every this many metres */
+  waterStepM: 300,
+  heights: {
+    /** rolling ground and ridge noise feature sizes; rough kinds blend this much ridge in at roughness 1 */
+    groundScaleM: 3000, ridgeScaleM: 2200, ridgeShare: 0.5,
+    /** valley width as a share of the side; height = ground x groundShare + valley x depth x (lift + ground) + tilt
+     * downstream */
+    valleyWidth: 0.22, groundShare: 0.15, valleyDepth: 0.55, valleyLift: 0.4, downstreamTilt: 0.12,
+    /** each filled hollow cell stands this much above the one it drains to, so water always runs on */
+    floodStepM: 0.01,
+  },
+  streams: {
+    /** a source: above this share of the height range, this far from the river and the edge, this far from other sources */
+    sourceHeight: 0.4, sourceFromRiverM: 800, sourceFromEdgeM: 300, spacingM: 1500,
+    /** a stream shorter than this is dropped (unless a neighbour brings it in) */
+    shortestM: 800,
+  },
+  /** woods noise feature size: where woods grow, read by site words, road cost and the woods cover */
+  woodsScaleM: 1800,
+  /** how strongly a brief's words pull a site or landmark (WZ2): metres per point, or points at full effect */
+  where: { riverM: 200, confluenceM: 300, confluenceCapM: 5000, hill: 6, valley: 6, woods: 8, remoteM: 800, edgeM: 600 },
+  sites: {
+    /** never nearer the edge than this, nor nearer the river bank than this (above the flood), nor steeper than this */
+    fromEdgeM: 600, aboveFloodM: 120, steepest: 0.15,
+    /** score: slope weight, water within this distance is free, then a point per this many metres, and a little luck */
+    slopeWeight: 40, waterFreeM: 300, waterPerM: 400, luck: 1.5,
+    /** a town likes this far from the river, and the region's centre (points per metre off, with and without a river) */
+    townRiverM: 250, townCentreM: 2500, townCentreDryM: 1500,
+  },
+  roads: {
+    /** the extra effort of crossing water, per crossing: few crossings, and where the road needs them */
+    riverCrossing: 2500, streamCrossing: 150,
+    /** wild-ground effort: woods above this noise, slopes above this, and rough ground noise (feature size in m) */
+    woodsAt: 0.6, woods: 0.6, steepAt: 0.25, steep: 3, rough: 0.5, roughScaleM: 400,
+    /** climbing costs this times the slope squared; the search's guess is this share of the straight distance */
+    climb: 60, guess: 0.3,
+    /** a step along an existing road or path costs this share */
+    onRoad: 0.3, onPath: 0.5,
+    /** with no exits named, each side has this chance to get one; exits keep this many cells from a corner */
+    exitChance: 0.6, exitFromCornerCells: 15,
+    /** exit score: slope weight, cost of meeting the river, and a little luck */
+    exitSlopeWeight: 50, exitAtRiver: 9, exitLuck: 0.5,
+    /** crossings nearer each other than this are one */
+    crossingMergeM: 50,
+  },
+  cover: {
+    /** water meadows: within this distance of the river plus up to the spread (noise feature size), and low ground (a
+     * share of the height range plus metres above the river) */
+    meadowM: 100, meadowSpreadM: 300, meadowScaleM: 800, meadowHeight: 0.12, meadowHeightM: 4,
+    /** fields reach this share of a site's fields distance, plus up to the spread (noise feature size), on gentle ground */
+    fieldsFrom: 0.55, fieldsSpread: 0.9, fieldsScaleM: 900, fieldsSteepest: 0.12,
+    /** each wild cover's pull per cell: the cells it suits best take it */
+    rockSlope: 10,
+    marshFlat: 30, marshLow: 3, marshWaterPerM: 900, marshNoise: 1.5, marshScaleM: 700,
+    woodsNoise: 3, woodsSlope: 4,
+    heathHigh: 2, heathScaleM: 1200,
+    moorHigh: 3, moorScaleM: 2000,
+  },
+  features: {
+    /** a landmark keeps this far from the edge, this far past a settlement's built area, and this far from another */
+    fromEdgeM: 300, pastBuiltM: 100, apartM: 500,
+    /** score: a point per this many metres from water (unless it seeks the river), luck, and with no words a point per
+     * this many metres from the nearest site */
+    waterPerM: 5000, luck: 2, remotePerM: 1000,
+  },
+} as const;
+
+
 // ---------- noise (seeded value noise) ----------
 function hash(seed: number, x: number, y: number): number {
   let h = (seed ^ Math.imul(x, 374761393) ^ Math.imul(y, 668265263)) >>> 0;
@@ -142,39 +224,39 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   let river: Water | undefined;
   if (kind.river || brief.river || riverJoin.length) {
     const inJ = riverJoin.find((w) => !w.out), outJ = riverJoin.find((w) => w.out);
-    const pick = brief.river?.from ?? SIDES[rng.int(0, 3)];
+    const pick = brief.river?.from ?? SIDES[rng.int(0, SIDES.length - 1)];
     const from: Side = inJ?.side ?? (outJ && pick === outJ.side ? OPP_SIDE[outJ.side] : pick);
     const to: Side = outJ?.side ?? (brief.river?.to && brief.river.to !== from ? brief.river.to : OPP_SIDE[from]);
-    const a = edgePoint(from, inJ?.at ?? S * (0.3 + 0.4 * rng.next())), b = edgePoint(to, outJ?.at ?? S * (0.3 + 0.4 * rng.next()));
+    const a = edgePoint(from, inJ?.at ?? S * (LAND.river.edgeFrom + LAND.river.edgeSpan * rng.next())), b = edgePoint(to, outJ?.at ?? S * (LAND.river.edgeFrom + LAND.river.edgeSpan * rng.next()));
     const steps = Math.ceil(dist(a, b) / C);
     const nx = -(b.y - a.y) / dist(a, b), ny = (b.x - a.x) / dist(a, b);
     const pts: Pt[] = [];
     for (let k = 0; k <= steps; k++) {
-      const t = k / steps, sway = (fbm(seed + 7, t * 4000, 0, 1500, 3) - 0.5) * S * 0.35 * Math.sin(Math.PI * t);
+      const t = k / steps, sway = (fbm(seed + 7, t * LAND.river.swayRunM, 0, LAND.river.swayScaleM, 3) - 0.5) * S * LAND.river.sway * Math.sin(Math.PI * t);
       pts.push({ x: a.x + (b.x - a.x) * t + nx * sway, y: a.y + (b.y - a.y) * t + ny * sway });
     }
-    const width = inJ?.width ?? kind.river?.width ?? 15;
+    const width = inJ?.width ?? kind.river?.width ?? LAND.river.widthM;
     river = { id: `${id}_w1`, kind: 'river', name: inJ?.name ?? brief.river?.name ?? '', width, pts: soften(pts).map(round) };
     waters.push(river);
   }
 
   // ---- heights: rolling ground (rougher kinds ridged), a valley along the river, tilted downstream ----
   const heights = new Array<number>(cells);
-  // distances to water are measured to the line thinned to about every 300 m: close enough for valleys and site scores
-  const coarse = (pts: Pt[]) => pts.filter((_, k) => k % Math.max(1, Math.round(pts.length / (lineLength(pts) / 300))) === 0 || k === pts.length - 1);
+  // distances to water are measured to the line thinned to about every LAND.waterStepM: close enough for valleys and site scores
+  const coarse = (pts: Pt[]) => pts.filter((_, k) => k % Math.max(1, Math.round(pts.length / (lineLength(pts) / LAND.waterStepM))) === 0 || k === pts.length - 1);
   const riverCoarse = river ? coarse(river.pts) : [];
   const riverAlong = new Float64Array(cells), riverD = new Float64Array(cells).fill(Infinity);
   for (let i = 0; i < cells; i++) {
     const p = at(i);
-    let n = fbm(seed, p.x, p.y, 3000);
-    const ridge = 1 - Math.abs(2 * fbm(seed + 31, p.x, p.y, 2200, 3) - 1);
-    n = n * (1 - kind.rough * 0.5) + ridge * kind.rough * 0.5;
+    let n = fbm(seed, p.x, p.y, LAND.heights.groundScaleM);
+    const ridge = 1 - Math.abs(2 * fbm(seed + 31, p.x, p.y, LAND.heights.ridgeScaleM, 3) - 1);
+    n = n * (1 - kind.rough * LAND.heights.ridgeShare) + ridge * kind.rough * LAND.heights.ridgeShare;
     let h = n;
     if (river) {
       const r = lineDist(p, riverCoarse);
       riverD[i] = r.d; riverAlong[i] = r.along;
-      const valley = 1 - Math.exp(-((r.d / (S * 0.22)) ** 2));
-      h = 0.15 * n + 0.55 * valley * (0.4 + n) + 0.12 * (1 - r.along);
+      const valley = 1 - Math.exp(-((r.d / (S * LAND.heights.valleyWidth)) ** 2));
+      h = LAND.heights.groundShare * n + LAND.heights.valleyDepth * valley * (LAND.heights.valleyLift + n) + LAND.heights.downstreamTilt * (1 - r.along);
     }
     heights[i] = Math.round(lo + (hi - lo) * Math.max(0, Math.min(1, h)));
   }
@@ -187,7 +269,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     for (let i = 0; i < cells; i++) {
       const p = at(i), d = nearSide(p, j.side);
       if (d >= B) continue;
-      const k = j.side === 'n' || j.side === 's' ? i % N : Math.floor(i / N), t = d / B, w = t * t * (3 - 2 * t);
+      const k = j.side === 'n' || j.side === 's' ? i % N : Math.floor(i / N), w = smooth(d / B);
       heights[i] = Math.round(heights[i] * w + j.heights[k] * (1 - w));
     }
   }
@@ -215,35 +297,35 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
 
   // ---- streams: from high ground down to the river, another stream or the edge. Hollows are filled first (priority
   // flood) so every cell drains somewhere and no stream circles in a pit ----
-  const outlet = (i: number) => { const c = i % N, r = Math.floor(i / N); return c === 0 || r === 0 || c === N - 1 || r === N - 1 || (!!river && riverD[i] < river.width / 2 + C * 0.7); };
+  const outlet = (i: number) => { const c = i % N, r = Math.floor(i / N); return c === 0 || r === 0 || c === N - 1 || r === N - 1 || (!!river && riverD[i] < river.width / 2 + C * LAND.river.reachCells); };
   const filled = Float64Array.from(heights);
   {
     const heap = heapOf((i) => filled[i]), done = new Uint8Array(cells);
     for (let i = 0; i < cells; i++) if (outlet(i)) { done[i] = 1; heap.push(i); }
-    while (heap.size()) { const i = heap.pop(); for (const j of neighbours(i)) if (!done[j]) { done[j] = 1; filled[j] = Math.max(filled[j], filled[i] + 0.01); heap.push(j); } }
+    while (heap.size()) { const i = heap.pop(); for (const j of neighbours(i)) if (!done[j]) { done[j] = 1; filled[j] = Math.max(filled[j], filled[i] + LAND.heights.floodStepM); heap.push(j); } }
   }
   const streamCell = new Int32Array(cells).fill(-1);
   const streamJoins = joins.flatMap((j) => j.waters.filter((w) => w.kind === 'stream' && !w.out).map((w) => ({ ...w, side: j.side })));
-  const sources = [...Array(cells).keys()].filter((i) => heights[i] > lo + (hi - lo) * 0.4 && riverD[i] > 800 && margin[i] > 300)
+  const sources = [...Array(cells).keys()].filter((i) => heights[i] > lo + (hi - lo) * LAND.streams.sourceHeight && riverD[i] > LAND.streams.sourceFromRiverM && margin[i] > LAND.streams.sourceFromEdgeM)
     .map((i) => ({ i, k: rng.next() })).sort((a, b) => a.k - b.k).map((x) => x.i);
   const starts: { i: number; from?: Pt; width?: number; name?: string }[] = streamJoins.map((w) => ({ i: cellOf(edgePoint(w.side, w.at)), from: edgePoint(w.side, w.at), width: w.width, name: w.name }));
   for (const i of sources) {
     if (starts.length >= kind.streams + streamJoins.length) break;
-    if (starts.some((s) => dist(at(s.i), at(i)) < 1500)) continue;
+    if (starts.some((s) => dist(at(s.i), at(i)) < LAND.streams.spacingM)) continue;
     starts.push({ i });
   }
   for (const s of starts) {
     const path = [s.i];
     let cur = s.i, end: Pt | undefined;
     for (let step = 0; step < cells; step++) {
-      if (river && riverD[cur] < river.width / 2 + C * 0.7) { end = river.pts[Math.round(riverAlong[cur] * (river.pts.length - 1))]; break; }
+      if (river && riverD[cur] < river.width / 2 + C * LAND.river.reachCells) { end = river.pts[Math.round(riverAlong[cur] * (river.pts.length - 1))]; break; }
       if (streamCell[cur] >= 0) { end = at(cur); path.pop(); break; }
       if (step && outlet(cur)) break;
       const next = neighbours(cur).filter((j) => filled[j] < filled[cur]).sort((a, b) => filled[a] - filled[b] || heights[a] - heights[b])[0];
       if (next === undefined) break;
       path.push(next); cur = next;
     }
-    if (path.length * C < 800 && !s.from) continue;
+    if (path.length * C < LAND.streams.shortestM && !s.from) continue;
     const n = waters.length + 1;
     for (const i of path) if (streamCell[i] < 0) streamCell[i] = n;
     const pts = [...(s.from ? [s.from] : []), ...path.map(at), ...(end ? [end] : [])];
@@ -255,7 +337,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   for (let i = 0; i < cells; i++) waterD[i] = Math.min(...waterCoarse.map((pts) => lineDist(at(i), pts).d));
 
   // ---- settlement sites: flat, dry ground near water, spaced like real parishes; the brief's words pull each one ----
-  const woodsNoise = (i: number) => fbm(seed + 53, at(i).x, at(i).y, 1800, 4);
+  const woodsNoise = (i: number) => fbm(seed + 53, at(i).x, at(i).y, LAND.woodsScaleM, 4);
   const centre: Pt = { x: ox + S / 2, y: oy + S / 2 };
   const sizes: { size: SiteSize; name: string; look: string; where?: Where }[] = brief.settlements.length ? [...brief.settlements] : [
     ...Array.from({ length: kind.settlements.town }, () => ({ size: 'town' as const, name: '', look: '' })),
@@ -267,13 +349,13 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   const whereScore = (w: Where | undefined, i: number): number => {
     const p = at(i), hn = (heights[i] - lo) / Math.max(1, hi - lo);
     switch (w) {
-      case 'river': case 'crossing': return river ? -riverD[i] / 200 : 0;
-      case 'confluence': return river ? -riverD[i] / 300 - Math.min(...waters.filter((x) => x.kind === 'stream').map((x) => dist(p, x.pts[x.pts.length - 1])), 5000) / 300 : 0;
-      case 'hill': return hn * 6;
-      case 'valley': return -hn * 6;
-      case 'woods': return woodsNoise(i) * 8;
-      case 'remote': return Math.min(...sites.map((s) => dist(s.at, p)), S) / 800;
-      case 'edge_n': case 'edge_e': case 'edge_s': case 'edge_w': return -nearSide(p, w.slice(5) as Side) / 600;
+      case 'river': case 'crossing': return river ? -riverD[i] / LAND.where.riverM : 0;
+      case 'confluence': return river ? -riverD[i] / LAND.where.confluenceM - Math.min(...waters.filter((x) => x.kind === 'stream').map((x) => dist(p, x.pts[x.pts.length - 1])), LAND.where.confluenceCapM) / LAND.where.confluenceM : 0;
+      case 'hill': return hn * LAND.where.hill;
+      case 'valley': return -hn * LAND.where.valley;
+      case 'woods': return woodsNoise(i) * LAND.where.woods;
+      case 'remote': return Math.min(...sites.map((s) => dist(s.at, p)), S) / LAND.where.remoteM;
+      case 'edge_n': case 'edge_e': case 'edge_s': case 'edge_w': return -nearSide(p, w.slice('edge_'.length) as Side) / LAND.where.edgeM;
       default: return 0;
     }
   };
@@ -281,13 +363,13 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     let best = -1, bestScore = -Infinity;
     for (let i = 0; i < cells; i++) {
       const p = at(i);
-      if (margin[i] < 600) continue;
-      if (river && riverD[i] < river.width / 2 + 120) continue; // above the flood
+      if (margin[i] < LAND.sites.fromEdgeM) continue;
+      if (river && riverD[i] < river.width / 2 + LAND.sites.aboveFloodM) continue; // above the flood
       if (sites.some((s) => dist(s.at, p) < Math.min(CONFIG.SITE_SPACING_M[s.size], CONFIG.SITE_SPACING_M[want.size]))) continue;
       const sl = slope(i);
-      if (sl > 0.15) continue;
-      let score = -sl * 40 - Math.max(0, waterD[i] - 300) / 400 + hash(seed, i, 11) * 1.5;
-      if (want.size === 'town') score += river ? -Math.abs(riverD[i] - 250) / 250 - dist(p, centre) / 2500 : -dist(p, centre) / 1500;
+      if (sl > LAND.sites.steepest) continue;
+      let score = -sl * LAND.sites.slopeWeight - Math.max(0, waterD[i] - LAND.sites.waterFreeM) / LAND.sites.waterPerM + hash(seed, i, 11) * LAND.sites.luck;
+      if (want.size === 'town') score += river ? -Math.abs(riverD[i] - LAND.sites.townRiverM) / LAND.sites.townRiverM - dist(p, centre) / LAND.sites.townCentreM : -dist(p, centre) / LAND.sites.townCentreDryM;
       score += whereScore(want.where, i);
       if (score > bestScore) { bestScore = score; best = i; }
     }
@@ -308,17 +390,18 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     const a = at(from), b = at(to), hits = new Set<Water>();
     for (const t of [0, 0.34, 0.67, 1]) for (const x of bucket.get(cellOf({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })) ?? []) if (crossAt(a, b, x.a, x.b)) hits.add(x.w);
     let n = 0;
-    for (const w of hits) n += w.kind === 'river' ? 2500 : 150; // a crossing: few, and where the road needs it
+    for (const w of hits) n += w.kind === 'river' ? LAND.roads.riverCrossing : LAND.roads.streamCrossing;
     return n;
   };
   const roadClass = new Uint8Array(cells); // 0 none, 1 path, 2 road
-  const wildCost = (i: number) => (woodsNoise(i) > 0.6 ? 0.6 : 0) + (slope(i) > 0.25 ? 3 : 0) + 0.5 * fbm(seed + 61, at(i).x, at(i).y, 400, 2);
+  const R = LAND.roads;
+  const wildCost = (i: number) => (woodsNoise(i) > R.woodsAt ? R.woods : 0) + (slope(i) > R.steepAt ? R.steep : 0) + R.rough * fbm(seed + 61, at(i).x, at(i).y, R.roughScaleM, 2);
   // a step goes to any of the 16 cells a king or knight move away, so roads run at many angles, not just the grid's
   const MOVES: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]];
   function route(from: number, goals: Set<number>): number[] | null {
     const g = new Float64Array(cells).fill(Infinity), f = new Float64Array(cells).fill(Infinity), prev = new Int32Array(cells).fill(-1), done = new Uint8Array(cells);
     const goalPts = [...goals].map(at);
-    const h = (i: number) => { const p = at(i); let m = Infinity; for (const t of goalPts) m = Math.min(m, dist(p, t)); return m * 0.3; };
+    const h = (i: number) => { const p = at(i); let m = Infinity; for (const t of goalPts) m = Math.min(m, dist(p, t)); return m * R.guess; };
     const open = heapOf((i) => f[i]);
     g[from] = 0; f[from] = h(from);
     open.push(from);
@@ -338,8 +421,8 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
         const nb = rr * N + cc;
         if (done[nb]) continue;
         const step = Math.hypot(dc, dr) * C, rise = Math.abs(heights[nb] - heights[cur]) / step;
-        let cost = step * (1 + 60 * rise * rise + wildCost(nb)) + crossCost(cur, nb);
-        if (roadClass[nb] && roadClass[cur]) cost *= roadClass[nb] === 2 ? 0.3 : 0.5;
+        let cost = step * (1 + R.climb * rise * rise + wildCost(nb)) + crossCost(cur, nb);
+        if (roadClass[nb] && roadClass[cur]) cost *= roadClass[nb] === 2 ? R.onRoad : R.onPath;
         const ng = g[cur] + cost;
         if (ng < g[nb]) { g[nb] = ng; prev[nb] = cur; f[nb] = ng + h(nb); open.push(nb); }
       }
@@ -358,15 +441,15 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   // the main road leaves by the brief's sides (or where named regions lie beyond, or two to three sides), plus every road
   // a drawn neighbour already brings to the edge
   const named = SIDES.filter((sd) => brief.beyond?.[sd]);
-  const exitSides = brief.exits?.length ? brief.exits : named.length >= 2 ? named : SIDES.filter(() => rng.next() < 0.6).concat(SIDES[rng.int(0, 3)]);
+  const exitSides = brief.exits?.length ? brief.exits : named.length >= 2 ? named : SIDES.filter(() => rng.next() < R.exitChance).concat(SIDES[rng.int(0, SIDES.length - 1)]);
   const exits: { side: Side; at: Pt; cell: number }[] = [];
   for (const j of joins) for (const t of j.roads) { const p = edgePoint(j.side, t); exits.push({ side: j.side, at: p, cell: cellOf(p) }); }
   for (const side of [...new Set(exitSides)]) {
     if (exits.some((e) => e.side === side)) continue;
     let best = -1, bestScore = Infinity;
-    for (let k = 15; k < N - 15; k++) {
+    for (let k = R.exitFromCornerCells; k < N - R.exitFromCornerCells; k++) {
       const p = edgePoint(side, (k + 0.5) * C), i = cellOf(p);
-      const score = slope(i) * 50 + dist(p, at(hub)) / S + (river && riverD[i] < river.width / 2 + C ? 9 : 0) + hash(seed, k, side.charCodeAt(0)) * 0.5;
+      const score = slope(i) * R.exitSlopeWeight + dist(p, at(hub)) / S + (river && riverD[i] < river.width / 2 + C ? R.exitAtRiver : 0) + hash(seed, k, side.charCodeAt(0)) * R.exitLuck;
       if (score < bestScore) { bestScore = score; best = k; }
     }
     const p = edgePoint(side, (best + 0.5) * C);
@@ -416,7 +499,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     const crossings: RoadLine['crossings'] = [];
     for (let a = 1; a < pts.length; a++) for (const c of new Set([cellOf(pts[a - 1]), cellOf(pts[a])])) for (const ws of bucket.get(c) ?? []) {
       const x = crossAt(pts[a - 1], pts[a], ws.a, ws.b), w = ws.w;
-      if (x && !crossings.some((q) => dist(q.at, x) < 50)) crossings.push({ at: round(x), kind: w.width > CONFIG.FORD_MAX_WIDTH_M ? 'bridge' : 'ford', water: w.id });
+      if (x && !crossings.some((q) => dist(q.at, x) < R.crossingMergeM)) crossings.push({ at: round(x), kind: w.width > CONFIG.FORD_MAX_WIDTH_M ? 'bridge' : 'ford', water: w.id });
     }
     roads.push({ id: `${id}_r${roads.length + 1}`, kind: cls === 2 ? 'road' : 'path', danger, ends: [node.id, end.id], pts, length: Math.round(lineLength(pts)), crossings });
   }
@@ -425,23 +508,24 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   const cover: string[] = new Array(cells);
   const wild: number[] = [];
   const riverLevel = river ? Math.min(...river.pts.map((p) => heights[cellOf(p)])) : lo;
+  const V = LAND.cover;
   for (let i = 0; i < cells; i++) {
     const p = at(i);
     let near: { s: Site; d: number } | undefined;
     for (const s of sites) { const d = dist(s.at, p); if (!near || d / CONFIG.SITE_FIELDS_M[s.size] < near.d / CONFIG.SITE_FIELDS_M[near.s.size]) near = { s, d }; }
-    const wet = river && riverD[i] < 100 + 300 * fbm(seed + 83, p.x, p.y, 800, 2) && heights[i] < riverLevel + (hi - lo) * 0.12 + 4;
+    const wet = river && riverD[i] < V.meadowM + V.meadowSpreadM * fbm(seed + 83, p.x, p.y, V.meadowScaleM, 2) && heights[i] < riverLevel + (hi - lo) * V.meadowHeight + V.meadowHeightM;
     if (near && near.d < CONFIG.SITE_BUILT_M[near.s.size]) cover[i] = LC.settlement;
     else if (wet) cover[i] = LC.water_meadow;
-    else if (near && near.d < CONFIG.SITE_FIELDS_M[near.s.size] * (0.55 + 0.9 * fbm(seed + 77, p.x, p.y, 900, 3)) && slope(i) < 0.12) cover[i] = LC.farmland;
+    else if (near && near.d < CONFIG.SITE_FIELDS_M[near.s.size] * (V.fieldsFrom + V.fieldsSpread * fbm(seed + 77, p.x, p.y, V.fieldsScaleM, 3)) && slope(i) < V.fieldsSteepest) cover[i] = LC.farmland;
     else wild.push(i);
   }
   const hn = (i: number) => (heights[i] - lo) / Math.max(1, hi - lo);
   const SCORE: Record<string, (i: number) => number> = {
-    [LC.rock]: (i) => ownSlopes[i] * 10 + hn(i),
-    [LC.marsh]: (i) => -slope(i) * 30 - hn(i) * 3 - waterD[i] / 900 + 1.5 * fbm(seed + 91, at(i).x, at(i).y, 700, 2),
-    [LC.woods]: (i) => woodsNoise(i) * 3 + slope(i) * 4,
-    [LC.heath]: (i) => hn(i) * 2 + fbm(seed + 97, at(i).x, at(i).y, 1200, 3),
-    [LC.moor]: (i) => hn(i) * 3 + fbm(seed + 99, at(i).x, at(i).y, 2000, 2),
+    [LC.rock]: (i) => ownSlopes[i] * V.rockSlope + hn(i),
+    [LC.marsh]: (i) => -slope(i) * V.marshFlat - hn(i) * V.marshLow - waterD[i] / V.marshWaterPerM + V.marshNoise * fbm(seed + 91, at(i).x, at(i).y, V.marshScaleM, 2),
+    [LC.woods]: (i) => woodsNoise(i) * V.woodsNoise + slope(i) * V.woodsSlope,
+    [LC.heath]: (i) => hn(i) * V.heathHigh + fbm(seed + 97, at(i).x, at(i).y, V.heathScaleM, 3),
+    [LC.moor]: (i) => hn(i) * V.moorHigh + fbm(seed + 99, at(i).x, at(i).y, V.moorScaleM, 2),
   };
   let left = wild;
   for (const lc of [LC.rock, LC.marsh, LC.woods, LC.heath, LC.moor].filter((x) => kind.wild[x])) {
@@ -460,9 +544,9 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     let best = -1, bestScore = -Infinity;
     for (let i = 0; i < cells; i++) {
       const p = at(i);
-      if (margin[i] < 300) continue;
-      if (sites.some((s) => dist(s.at, p) < CONFIG.SITE_BUILT_M[s.size] + 100) || features.some((x) => dist(x.at, p) < 500)) continue;
-      const score = whereScore(seek, i) + (seek === 'river' ? 0 : -waterD[i] / 5000) + hash(seed, i, 23) * 2 + (seek ? 0 : Math.min(...sites.map((s) => dist(s.at, p)), S) / 1000);
+      if (margin[i] < LAND.features.fromEdgeM) continue;
+      if (sites.some((s) => dist(s.at, p) < CONFIG.SITE_BUILT_M[s.size] + LAND.features.pastBuiltM) || features.some((x) => dist(x.at, p) < LAND.features.apartM)) continue;
+      const score = whereScore(seek, i) + (seek === 'river' ? 0 : -waterD[i] / LAND.features.waterPerM) + hash(seed, i, 23) * LAND.features.luck + (seek ? 0 : Math.min(...sites.map((s) => dist(s.at, p)), S) / LAND.features.remotePerM);
       if (score > bestScore) { bestScore = score; best = i; }
     }
     if (best >= 0) features.push({ id: `${id}_f${features.length + 1}`, kind: f.kind, name: f.name, look: f.look, at: at(best) });
