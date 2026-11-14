@@ -7,5 +7,5 @@ import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 it('BG-134: the Parser writes deferred in the player\'s own words', () => {
   expect(PARSER_INSTRUCTIONS).toContain('write it as the player would type it next turn, in their own voice');
-  expect(PARSER_INSTRUCTIONS).toContain('never an id, never "the player", and never your own notes or reasons');
+  expect(PARSER_INSTRUCTIONS).toContain('never an id, never "the player", never an action name with a stand-in (\"interact them\"), and never your own notes or reasons');
 });

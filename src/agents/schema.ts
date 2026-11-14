@@ -2,7 +2,7 @@
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // A missing nullable field reads as null; only a missing required field fails the answer (CS9).
 import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
-import { GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
+import { OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
 import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, TRAVEL_PACES, type FragilityKey, type QualityKey, type Scale, type TimeOfDay, type TravelPaceKey } from '../scales';
@@ -127,7 +127,7 @@ const nNum = nul(num), nStr = nul(str);
 type Job = NonNullable<AgreementMade['job']>;
 const job = obj<Job>({
   line: str,
-  goal: obj<Job['goal']>({ kind: oneOf(GOAL_KINDS), target: nStr, count: nNum, item: nStr, qty: nNum, to: nStr }, ['target', 'count', 'item', 'qty', 'to']),
+  goal: obj<Job['goal']>({ kind: oneOf(OFFERED_GOAL_KINDS), target: nStr, count: nNum, item: nStr, qty: nNum, to: nStr }, ['target', 'count', 'item', 'qty', 'to']),
   pay: nul(obj<NonNullable<Job['pay']>>({ coin: nNum, item: nStr, qty: nNum }, ['coin', 'item', 'qty'])),
   due: nul(obj<NonNullable<Job['due']>>({ days: num, by: nul((v, p, e) => TIME_OF_DAY.keyOf(v) ?? (e.push(`${p}: expected one of ${TIME_OF_DAY.keys.join(', ')}`), null)) }, ['by'])),
   after: nStr,

@@ -69,6 +69,8 @@ export type Settings = { showMechanics: boolean; tone: string };
 export const QUEST_STATES = ['active', 'ready', 'done', 'failed', 'abandoned', 'called_off'] as const;
 export type QuestState = (typeof QUEST_STATES)[number];
 export const GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find', 'other'] as const;
+/** BF61: the kinds a giver may offer: only those code can check; "other" stays for jobs already made */
+export const OFFERED_GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find'] as const;
 /** QT7: what code checks from events; "other" is judged by the giver's agent at report-back (QT6) */
 export type QuestGoal =
   | { kind: 'defeat'; by: 'body_type' | 'race' | 'actor'; of: string; count: number; noun?: string } // noun: the giver's word for them

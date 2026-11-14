@@ -881,7 +881,7 @@ const GOAL_TEXT: Record<(typeof GOAL_KINDS)[number], string> = {
   deliver: 'Give a number of an item (or one particular item) to someone. Counted by code from what you hand over.',
   reach: 'Get to a zone or place (a place counts from any zone inside it).',
   find: 'Get a clear sight of one person.',
-  other: 'Anything code cannot check. The giver judges it when you report back.',
+  other: 'Anything code cannot check, judged by the giver when you report back. No job of this kind is offered any more: only jobs made before stay so.',
 };
 function questsView(): HTMLElement[] {
   const fixed = (c: HTMLElement) => { c.querySelector('.lv-id')?.remove(); c.querySelector('.lv-raw')?.remove(); return c; };

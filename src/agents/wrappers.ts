@@ -26,8 +26,14 @@ export function actionWords(a: NonNullable<Intent['action']>, view: PlayerView):
     search: `search ${t}`, attack: `attack ${t}`, observe: `look at ${t}`,
     talk: `talk to ${t}`, persuade: `persuade ${t}`, deceive: `lie to ${t}`, barter: `haggle with ${t}`, intimidate: `threaten ${t}`,
   };
-  return (line[a.type] ?? `${a.type.replace('_', ' ')} ${t}`).replace(/\s+/g, ' ').trim();
+  // BF62: no line the player would type (an action name with a stand-in, someone unnamed) waits as nothing
+  if (!line[a.type] || (a.target && t === 'them')) return '';
+  return line[a.type]!.replace(/\s+/g, ' ').trim();
 }
+
+/** BF62: a put-off line that is only a placeholder (an action name with a stand-in, an id, a snake_case word), never offered back */
+export const placeholderLine = (l: string): boolean =>
+  !l.trim() || /_|\b[A-Z]{2,3}\d+\b/.test(l) || /^(interact|other|observe|hold|idle|wait|use|take|give)(\s+(them|it|something))?\.?$/i.test(l.trim());
 
 // ---------------- Parser ----------------
 
@@ -50,6 +56,7 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
     run.log.errors.push('deferred_to_arrival', ...leg.illegal);
     leg.illegal = [];
   }
+  if (leg.intent.deferred?.some(placeholderLine)) { run.log.errors.push('deferred_placeholder'); leg.intent = { ...leg.intent, deferred: leg.intent.deferred.filter((d) => !placeholderLine(d)) }; }
   if (leg.illegal.length) {
     run.log.errors.push('illegal_intent', ...leg.illegal);
     run.log.output = leg.intent; // kept so the GM view shows what was asked for

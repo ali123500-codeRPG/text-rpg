@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-237
+
+**What was wrong:** "Take the hinge pins from the trough" only walked the player to the trough, three times: the Parser could not pick up something not in view and its rules said nothing for that case, so it kept just the walk, and it put the rest off as "interact them", which nobody would type.
+
+**What was done:** Ali approved the fix (BF62). The Parser's rule now reads taking something not in view from a named place or thing as a search there (move plus search). A put-off line is never an action name with a stand-in: the Parser is told so, an action waiting for arrival with no line the player would type waits as nothing (src/agents/wrappers.ts actionWords), and any placeholder put-off line is dropped and logged (placeholderLine, deferred_placeholder).
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
+## BG-236
+
+**What was wrong:** Ennis gave a job to rehang the pen gate and split the woodpile, and named hinge pins, a mallet and an axe that did not exist: the chore was kind "other", which nothing could do or check, and his reply described things freely.
+
+**What was done:** Ali approved the fix (BF61). Givers may offer only jobs code can check (defeat, deliver, reach, find): "other" is gone from the job schema, the job rule tells them never to offer a chore and never to say a tool or thing is somewhere their view doesn't show, and a job code still can't read is refused (src/engine/quests.ts makeQuest, unchecked_goal) and filed as a gap. Doable chores went to the features thread.
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
 ## BG-247
 
 **What was wrong:** From turn 104 to 112 Hob's punches were all lost as out of reach about 1 m short: a walk never ended within 1 m of anyone, the target included, and only went in a straight line, so with Osric beside his line in he stopped 1.7 m away; the drover ended on Hob's very spot because anyone near a walk's start was let off.
