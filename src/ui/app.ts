@@ -1,6 +1,6 @@
 // App shell: side rail (64px items, active pill fills the item, rail scrolls on its own), page area and the push-aside panel.
 import type { GameApi } from '../types';
-import { h, setPanelHost, closePanel } from './kit';
+import { boxOf, h, setPanelHost, closePanel } from './kit';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
@@ -54,7 +54,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   const showTip = (e: Event) => {
     const t = (e.target as Element).closest?.('[data-tip]') as HTMLElement | null;
     if (!t || !rail.contains(t)) return;
-    const r = t.getBoundingClientRect();
+    const r = boxOf(t);
     tip.textContent = t.dataset.tip!;
     tip.style.top = `${r.top + r.height / 2}px`; tip.style.left = `${r.right + 8}px`;
     tip.hidden = false;

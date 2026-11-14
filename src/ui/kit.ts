@@ -2,6 +2,17 @@
 type Attrs = Record<string, unknown>;
 type Child = Node | string | number | null | undefined | false;
 
+/** BG-219: on 2400px+ screens the page is zoomed 1.3x (styles.css), so the window's size, element boxes and pointer
+ * positions come in screen pixels while a fixed element's left and top are page pixels. These give them in page pixels,
+ * so a pop-up or tip placed by them lands where it was meant to at any zoom. */
+export const pageZoom = (): number => parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+export const viewSize = (): { w: number; h: number } => { const z = pageZoom(); return { w: innerWidth / z, h: innerHeight / z }; };
+export function boxOf(el: Element): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
+  const z = pageZoom(), r = el.getBoundingClientRect();
+  return { left: r.left / z, top: r.top / z, right: r.right / z, bottom: r.bottom / z, width: r.width / z, height: r.height / z };
+}
+export const pointOf = (e: { clientX: number; clientY: number }): { x: number; y: number } => { const z = pageZoom(); return { x: e.clientX / z, y: e.clientY / z }; };
+
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = {}, ...kids: (Child | Child[])[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {

@@ -534,7 +534,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .perk-new.ach.scar { --scenario-mark: var(--danger); background: color-mix(in oklch, var(--danger) 9%, transparent); }
 .perk-new.ach.scar::after { display: none; }
 /* details pop-ups on the game screens: movable by the head, never modal */
-.dpop { position: fixed; z-index: 50; width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 32px); display: grid; grid-template-rows: auto minmax(0, 1fr);
+.dpop { position: fixed; z-index: 50; width: min(380px, calc(100vw - 32px)); max-height: calc(var(--vh) - 32px); display: grid; grid-template-rows: auto minmax(0, 1fr);
   border: 1px solid color-mix(in oklch, var(--pc, var(--accent)) 55%, var(--border)); border-radius: var(--r-lg); background: var(--surface); color: var(--text); }
 .dpop-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); cursor: move; user-select: none; touch-action: none; }
 .dpop-head .hs-label { margin-right: auto; color: var(--pc, var(--accent)); }
@@ -623,7 +623,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .pk-tm { position: absolute; top: 2px; width: 2px; height: 26px; margin-left: -1px; background: color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
 .pk-ta { position: absolute; top: 15px; width: 0; height: 0; }
 /* the perk card floats over the page like the details pop-ups and can be dragged by its head */
-.pk-card { position: fixed; z-index: 40; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; padding: 0 var(--space-4) var(--space-4);
+.pk-card { position: fixed; z-index: 40; width: min(420px, calc(100vw - 32px)); max-height: calc(var(--vh) - 32px); overflow: auto; box-sizing: border-box; padding: 0 var(--space-4) var(--space-4);
   border: 1px solid color-mix(in oklch, var(--pk-c) 45%, transparent); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-toast); }
 .pk-card-head { position: sticky; top: 0; display: flex; align-items: center; gap: var(--space-3); margin: 0 calc(-1 * var(--space-4)) var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--border); background: var(--surface); cursor: move; user-select: none; touch-action: none; }

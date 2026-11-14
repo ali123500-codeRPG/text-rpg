@@ -19,7 +19,7 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { h, dragScroll, playDraft } from './kit';
+import { boxOf, h, dragScroll, playDraft, viewSize } from './kit';
 import { perkSeries } from './perks';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -301,11 +301,11 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const showWhoTip = (e: Event) => {
     const t = (e.target as Element).closest?.('.pp[data-dist]') as HTMLElement | null;
     if (!t || !t.dataset.dist) { whoTip.hidden = true; return; }
-    const r = t.getBoundingClientRect();
+    const r = boxOf(t);
     whoTip.textContent = cap(t.dataset.dist);
     whoTip.hidden = false;
     whoTip.style.top = `${r.bottom + 6}px`;
-    whoTip.style.left = `${Math.max(8, Math.min(innerWidth - whoTip.offsetWidth - 8, r.left + r.width / 2 - whoTip.offsetWidth / 2))}px`;
+    whoTip.style.left = `${Math.max(8, Math.min(viewSize().w - whoTip.offsetWidth - 8, r.left + r.width / 2 - whoTip.offsetWidth / 2))}px`;
   };
   const hideWhoTip = () => { whoTip.hidden = true; };
   who.addEventListener('pointerover', showWhoTip); who.addEventListener('focusin', showWhoTip);

@@ -18,7 +18,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { closePanel, groupedTable, playDraft, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
+import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -252,10 +252,10 @@ function showTip(s: GameState, it: InvItem, at: HTMLElement) {
   tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, d.name, it.qty))),
     h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])));
   tipEl.hidden = false;
-  const r = at.getBoundingClientRect(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
-  const left = r.right + 12 + w < innerWidth ? r.right + 12 : Math.max(12, r.left - 12 - w);
+  const r = boxOf(at), v = viewSize(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
+  const left = r.right + 12 + w < v.w ? r.right + 12 : Math.max(12, r.left - 12 - w);
   tipEl.style.left = `${left}px`;
-  tipEl.style.top = `${Math.max(12, Math.min(innerHeight - ht - 12, r.top))}px`;
+  tipEl.style.top = `${Math.max(12, Math.min(v.h - ht - 12, r.top))}px`;
 }
 const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
