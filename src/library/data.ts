@@ -185,16 +185,16 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'passive', trigger: 'any check of whether the owner can use a skill tree or skill', conditions: [], effect: 'the access rules (Must, Either of, Blocked by) do not apply: every tree and skill is open, and its skills can be used, marked and raised', lasts: 'always' },
   },
   // DX1-DX5: essence extraction, a blessing of the god of essences (D-311; the blessed Start grants it), and the quirk it leaves.
-  // Names are placeholders until NM1/NM2.
-  [PK.pull_the_thread]: {
-    id: PK.pull_the_thread, name: 'Pull the Thread', built: true, blessing: { god: GD.essences, tier: 'tier_5' },
-    story: 'A god who works in threads has shown you where another life is knotted. With them beaten and helpless before you, you can pull a strand of it loose and keep it.',
+  // NM2: the blessing works on the essence, a small foreign addition to someone's Thread; no god touches the Thread itself.
+  [PK.extract_essence]: {
+    id: PK.extract_essence, name: 'Extract Essence', built: true, blessing: { god: GD.essences, tier: 'tier_5' },
+    story: 'The god of essences has shown you where an essence sits on someone, apart from what they are. With them beaten and helpless before you, you can pry it off and keep it.',
     rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down and have broken or surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
   },
   [PK.hollowed]: {
     id: PK.hollowed, name: 'Hollowed', built: true, quirk: true,
-    story: 'Someone pulled a strand of you loose and kept it. What it held is gone, and the rest of you never sits quite right again.',
+    story: 'Someone pried an essence off you and kept it. It tore some of you away with it, and the rest never sits quite right again.',
     rules: { kind: 'Always on (quirk)', trigger: 'Left by an essence extraction.', conditions: ['For good.'],
       effect: `Each of the taken essence's skills loses ${CONFIG.HOLLOWED_SHARE_MULT} times the essence's share of true skill, and every skill loses ${CONFIG.HOLLOWED_ALL_LOSS * 100}% of true skill.`, lasts: 'always' },
   },
@@ -632,7 +632,7 @@ export function prototypeLibrary(): Library {
       [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, levelPerks: { 1: [PK.always_yours] } },
       // DX1: Blessed by X, a variant per god; unlocks on being blessed by that god, and the blessed start (ST5) begins in it.
       // Class perk and capstone to come (about earning a higher blessing from the god); name and story placeholders
-      [CL.blessed_essences]: { id: CL.blessed_essences, name: 'Blessed by the god of essences', tier: 'tier_2', label: 'a young stranger', story: 'A god who works the threads of essence looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.essences },
+      [CL.blessed_essences]: { id: CL.blessed_essences, name: 'Blessed by the god of essences', tier: 'tier_2', label: 'a young stranger', story: 'The god of essences looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.essences },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
