@@ -131,10 +131,16 @@ const FP = (id: string, kind: string, parentId: string | null, name: string, zon
   ({ id, storyId: 'fake', kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
 const FAKE_PLACES = (): GameState['places'] => placed([
   FP('village', 'village', null, 'Millbrook', [
-    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['ash_gate', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
+    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['w_road', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
   ]),
   FP('ashford', 'village', null, 'Ashford', [
-    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
+    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['w_road', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
+  ]),
+  // the west road, a day's walk (30 km) of real road from Millbrook's square to Ashford's gate, so the World shows the two
+  // villages that far apart (CO9); "travel" sets you partway along it
+  FP('west_road', 'road', null, 'the west road', [
+    FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.', [['v_square', 'Millbrook, east', false], ['ash_gate', 'Ashford, west', false]],
+      { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, ...roadShape('day', 'quiet') }),
   ]),
   FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
     FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall }, furniture: makeFurniture('tav_common', [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }]) }),
@@ -178,7 +184,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
 
   function start(b: CreationBuild) {
     const player = playerFromBuild(b, 'fake', 'tav_common', 'tavern');
-    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
+    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'w_road', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
     const settings = defaultSettings();
     const slime = spawnNpc(null, TP.slime, { id: 'slime_1', zone: 'field_mid', placeId: 'field', bandId: 'slimes', storyId: 'fake', name: 'slime' });
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
@@ -296,13 +302,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
       // "attack" lands a heavy hit; "attack hard" a crushing one and "attack light" a full one, to show the strike card's tiers
       const hurt = /^attack\b/i.test(text) ? fightTurn(state, /hard/i.test(text) ? 'crushing hit' : /light/i.test(text) ? 'full hit' : 'heavy hit') : null;
-      // "travel" adds a road west of the village and sets you partway along it, to show your point on the road on the Map (TV7)
+      // "travel" sets you partway along the west road, to show your point on the road on the Map (TV7)
       if (/^travel\b/i.test(text)) {
-        if (!state.places.some((x) => x.id === 'west_road')) {
-          state.places.push(FP('west_road', 'road', null, 'the west road', [FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.',
-            [['v_square', 'Millbrook, east', false], ['ash_gate', 'Ashford, west', false]], { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, ...roadShape('hour', 'quiet') })]));
-          placeZones(state, state.places.find((x) => x.id === 'west_road')!.zones);
-        }
         const road = state.places.find((x) => x.id === 'west_road')!.zones[0];
         state.player.zone = road.id; state.player.placeId = road.placeId;
         if (road.rect) state.player.pos = { x: road.rect.x - road.rect.w * 0.1, y: road.rect.y };
