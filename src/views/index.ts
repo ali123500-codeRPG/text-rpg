@@ -686,8 +686,8 @@ function eventTarget(state: GameState, me: string, target: string, seenIds: Set<
 
 /** GD3: a container's name by instance id (anywhere), else "container" */
 const boxName = (state: GameState, id: string): string => itemName(state, id) ?? 'container';
-/** the library item of an item instance anyone carries or that lies on the ground, or one inside a container there (BK2) */
-function instanceItem(state: GameState, instanceId: string): string | undefined {
+/** the library item of an item instance anyone carries or that lies on the ground anywhere, or one inside a container there (BK2) */
+export function instanceItem(state: GameState, instanceId: string): string | undefined {
   const find = (list: ItemInstance[]): ItemInstance | undefined => {
     for (const x of list) { if (x.id === instanceId) return x; const inner = x.contents && find(x.contents); if (inner) return inner; }
     return undefined;
@@ -696,7 +696,7 @@ function instanceItem(state: GameState, instanceId: string): string | undefined 
     const i = find(a.core.inventory);
     if (i) return i.itemId;
   }
-  for (const z of state.zones) {
+  for (const z of state.places.flatMap((pl) => pl.zones)) { // every place's zones, not only the stage's
     const i = find(z.groundItems);
     if (i) return i.itemId;
   }

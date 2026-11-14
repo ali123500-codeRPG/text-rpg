@@ -66,6 +66,7 @@ export function createDirector(clock: Clock): ScenarioDirector {
       const key = state.scratch?.frontierCrossed as string | undefined;
       if (!key) {
         d.applyBuiltAhead(state, rng); // NW3: ground an NPC is heading into, built in the background, goes on the stage
+        d.applyRegionsDrawn(state); // WZ18: the land beyond the edge, asked for in the background
         // SC8: a check-in that came back since the last turn: applied now, to the scenario it was about
         const ci = d.takeCheckin();
         if (ci) applyCheckin(state, ci.number, ci.answer, events, { errors: (a) => checkinPlanErrors(state, a), apply: (a) => applyCheckinPlan(state, a, rng) });
@@ -80,6 +81,7 @@ export function createDirector(clock: Clock): ScenarioDirector {
       delete (state.scratch as Record<string, unknown>).frontierCrossed;
       const r = await d.cross(state, key, rng, state.player.posture === 'stealthy' ? 'stealthy' : 'open');
       d.applyBuiltAhead(state, rng); // NW3
+      d.applyRegionsDrawn(state); // WZ18
       // BG-73: the crossing's move event ends where the player now stands, so it reads as leaving for the new zone
       const crossed = events.find((e) => e.kind === 'move' && e.actorId === state.player.id && e.effects.some((f) => f.kind === 'frontier_crossed' && f.data.frontier === key));
       if (crossed && state.player.zone !== crossed.zone) Object.assign(crossed, { fromZone: crossed.zone, fromPos: crossed.pos, zone: state.player.zone, pos: state.player.pos, target: state.player.zone });

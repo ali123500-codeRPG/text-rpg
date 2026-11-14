@@ -12,6 +12,7 @@ import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
+import { classIcon } from './itemIcons';
 import { openPop } from './pop';
 import { powerFigure } from './power';
 import { ageText } from '../ruleset/age';
@@ -169,8 +170,8 @@ function xpTrack(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => 
     target && target.classId !== cur?.classId ? `next level to ${name(target.classId)}` : ''].filter(Boolean).join(' · ');
   const cls: HTMLElement = openClasses
     ? h('button', { type: 'button', class: 'cs-class', 'aria-haspopup': 'dialog', title: 'Open the class tree: how classes link, and where your next level goes',
-      onclick: () => openClasses(cls) }, h('span', { class: 'hs-label' }, 'Class'), h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
-    : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, line));
+      onclick: () => openClasses(cls) }, h('span', { class: 'hs-label' }, 'Class'), cur ? classIcon(cur.classId) : '', h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
+    : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, cur ? classIcon(cur.classId) : '', line));
   return h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${xpFill(p).pct}%` })),

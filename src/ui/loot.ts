@@ -48,8 +48,8 @@ export function lootOrder(src: LootSource[], picked: ReadonlySet<string>): strin
   return listWords(phrase);
 }
 
-/** opens the loot pop-up; `onOrder` gets the order to type in the action box. Back closes it */
-export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string) => void): HTMLElement | null {
+/** opens the loot pop-up; `onOrder` gets the order to type in the action box; `iconOf` gives each thing its icon. Back closes it */
+export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string) => void, iconOf?: (id: string) => HTMLElement | null): HTMLElement | null {
   const src = lootSources(pv);
   if (!src.length) return null;
   const picked = new Set<string>();
@@ -68,7 +68,7 @@ export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (o
   };
   const chip = (i: LootItem) => {
     const b = h('button', { type: 'button', class: 'loot-item', 'data-item': i.id, 'aria-pressed': 'false', onclick: () => { if (picked.has(i.id)) picked.delete(i.id); else picked.add(i.id); sync(); } },
-      h('span', { class: 'loot-box', 'aria-hidden': 'true' }), h('span', {}, i.name), i.qty && i.qty > 1 ? h('span', { class: 'loot-qty' }, `×${i.qty}`) : '');
+      h('span', { class: 'loot-box', 'aria-hidden': 'true' }), iconOf?.(i.id) ?? '', h('span', {}, i.name), i.qty && i.qty > 1 ? h('span', { class: 'loot-qty' }, `×${i.qty}`) : '');
     chips.push(b as HTMLButtonElement);
     return b;
   };

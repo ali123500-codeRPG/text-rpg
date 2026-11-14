@@ -9,6 +9,7 @@ import { textSeed } from '../rng';
 import { RK } from '../library/tableIds';
 import { drawRegion, WHERE, type RegionBrief, type SiteSize, type Where } from './generate';
 import { regionAt } from './sight';
+import { joinsFor } from './edge';
 
 const SIDES: Side[] = ['n', 'e', 's', 'w'];
 const SIZES: SiteSize[] = ['town', 'village', 'hamlet'];
@@ -57,7 +58,7 @@ export function tidyBrief(raw: unknown, view: RegionCallView): { brief: RegionBr
   const list = (v: unknown) => (Array.isArray(v) ? v : []) as Record<string, unknown>[];
   const settlements = list(o.settlements).flatMap((x) => {
     if (!SIZES.includes(x?.size as SiteSize)) { notes.push(`settlement ${str(x?.name)} has no size`); return []; }
-    return [{ size: x.size as SiteSize, name: str(x.name), look: str(x.look), ...(where(x.where) ? { where: x.where as Where } : {}), ...(x.start === true ? { start: true as const } : {}) }];
+    return [{ size: x.size as SiteSize, name: str(x.name), look: str(x.look), ...(where(x.where) ? { where: x.where as Where } : {}), ...(x.start === true && view.first ? { start: true as const } : {}) }];
   });
   const features = list(o.features).flatMap((x) => {
     if (!lib.landmarkKinds?.[str(x?.kind)]) { notes.push(`landmark ${str(x?.name)} kind ${str(x?.kind)} unknown`); return []; }
@@ -84,10 +85,13 @@ export function tidyBrief(raw: unknown, view: RegionCallView): { brief: RegionBr
 export function addRegion(state: GameState, gx: number, gy: number, brief: RegionBrief): Region {
   const world = state.meta.worldId ?? state.storyId;
   const id = `rg_${gx}_${gy}`.replace(/-/g, 'm');
-  const r = drawRegion(id, gx, gy, textSeed(`${world}:${id}`), brief);
+  const r = drawRegion(id, gx, gy, textSeed(`${world}:${id}`), brief, joinsFor(state, gx, gy));
   const want = brief.settlements.find((x) => x.start);
   const start = (want && r.sites.find((s) => s.name === want.name && s.size === want.size)) ?? r.sites.find((s) => s.size === 'town') ?? r.sites[0];
-  if (start) r.start = start.id;
+  if (start && (want || !state.regions?.length)) r.start = start.id; // WZ13: only the first region, or one a brief marks
+  // WZ18: each drawn neighbour now knows this region by its name, on the side it lies
+  const STEP: Record<Side, [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] }, OPP: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
+  for (const sd of SIDES) { const nb = state.regions?.find((x) => x.gx === gx + STEP[sd][0] && x.gy === gy + STEP[sd][1]); if (nb && r.name) nb.beyond[OPP[sd]] = { name: r.name, kind: r.kind }; }
   (state.regions ??= []).push(r);
   return r;
 }

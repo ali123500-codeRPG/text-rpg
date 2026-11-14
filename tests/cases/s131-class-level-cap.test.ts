@@ -12,7 +12,7 @@ import { CONFIG } from '../../src/config';
 import { CL } from '../../src/library/classIds';
 import { CLASS_TIERS } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
-import { markUse } from '../../src/ruleset/improve';
+import { clearMarkCounts, markUse } from '../../src/ruleset/improve';
 import type { ContestResult } from '../../src/types';
 import { PK } from '../../src/library/perkIds';
 
@@ -63,14 +63,14 @@ describe('131 Class level cap', () => {
     const p = s.player;
     p.core.skills[SK.dodge] = { raw: 0, state: 'normal' };
     const lost = (gap: number) => {
-      p.progression!.marks = [];
+      p.progression!.marks = []; clearMarkCounts(p);
       const r = { a: { actorId: 'guard_1', skill: SK.melee_medium }, b: { actorId: 'player', skill: SK.dodge }, gap, winner: gap < 0 ? 'a' : 'b' };
       markUse(s, p, SK.dodge, r as unknown as ContestResult);
       return p.progression!.marks!.includes(SK.dodge);
     };
     expect(lost(-1)).toBe(false); // the guard is far outside Dodge 0's window
     p.core.perks.push({ perkId: PK.every_fall_a_lesson, source: 'class', gainedTurn: 0 });
-    expect([lost(-1), lost(-2), lost(1)]).toEqual([true, false, false]); // one step short marks; two short or a win don't
+    expect([lost(-1), lost(-2), lost(1)]).toEqual([true, false, true]); // one step short marks, two short doesn't; a win marks anyway (a won contest's window has no top)
   });
 
   it('alternate capstones: offered at the top level when their conditions hold, swapped in once for the default', () => {

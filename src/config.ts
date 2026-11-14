@@ -72,9 +72,9 @@ const DEFAULTS = {
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
-  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (2: marks 1, 3, 5...).
-   * Infinity: one roll per skill per engagement. */
-  MARK_STACK_EVERY: 2,
+  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (1: every mark;
+   * 2: marks 1, 3, 5...). Infinity: one roll per skill per engagement. */
+  MARK_STACK_EVERY: 1,
   /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
   SKILL_CAP: 100,
   /** EG16: a tagged skill's cap is SKILL_CAP plus this */
@@ -609,6 +609,9 @@ const DEFAULTS = {
   REGION_SIZE_M: 10000,
   /** a region's land is stored on a grid of cells this many metres across (heights and cover per cell) */
   REGION_CELL_M: 100,
+  /** WZ18 how far into a new region its ground eases into a drawn neighbour's heights along the shared edge (a
+   * placeholder: a long valley side, so moor meets vale as a hillside, not a cliff) */
+  REGION_EDGE_BLEND_M: 2500,
   /** the nearest two settlements of a size sit to another settlement: lowland English parishes were mostly 4 to 12 km² (1,000
    * to 3,000 acres), each round one village, which puts villages about 2 to 3.5 km apart */
   SITE_SPACING_M: { town: 3000, village: 2000, hamlet: 900 } as Record<string, number>,
@@ -622,10 +625,6 @@ const DEFAULTS = {
   FORD_MAX_WIDTH_M: 20,
   /** a stream's width in metres, least and most: a brook a few metres across */
   STREAM_WIDTH_M: [2, 5] as [number, number],
-  /** WZ4 how far land is made out at each light, in metres: hills, woods, rivers and roads (WMO visibility: "good" from 10
-   * km in clear daylight; at dusk a few km; on a moonlit night some hundreds of metres; placeholders). Hills and anything
-   * standing (trees, houses) block it. */
-  LAND_SIGHT_M: { bright: 10000, dim: 2000, dark: 300 } as Record<string, number>,
   /** WZ4 an eye this many metres above the ground (a standing adult) */
   LAND_EYE_M: 1.6,
   /** TV3 road lengths in km (ROAD_LENGTHS): a walk of about 4.5 km an hour gives the time words their lengths */

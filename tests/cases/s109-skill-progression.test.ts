@@ -17,8 +17,8 @@ describe('109 skill progression', () => {
     markIfClose(s, p, SK.eyesight, 10); // too easy
     expect(p.progression!.marks).toEqual([]);
     markIfClose(s, p, SK.eyesight, 40 - CONFIG.MARK_WINDOW);
-    markIfClose(s, p, SK.eyesight, 45); // once only
-    expect(p.progression!.marks).toEqual([SK.eyesight]);
+    markIfClose(s, p, SK.eyesight, 45); // every mark owes a roll (MARK_STACK_EVERY 1)
+    expect(p.progression!.marks).toEqual([SK.eyesight, SK.eyesight]);
     const npc = s.actors.find((a) => a.kind === 'npc')!;
     markIfClose(s, npc, Object.keys(npc.core.skills)[0], 0); // NPCs keep no marks (SP7)
     expect(npc.progression?.marks ?? []).toEqual([]);

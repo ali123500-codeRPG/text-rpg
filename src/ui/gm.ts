@@ -7,6 +7,7 @@ import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types
 import { GRADES } from '../types';
 import { HIT_OUTCOMES, QUALITY_LEVELS, TIERS } from '../scales';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
+import { ICON_CREDIT } from './itemIcons';
 import { openPop } from './pop';
 import { CONFIG } from '../config';
 
@@ -210,6 +211,7 @@ export function gmPage(api: GameApi) {
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Full state'),
         h('p', { class: 'hs-note' }, s ? `Story “${s.meta.title}” · started ${fmtDate(s.meta.createdAt)}` : 'No story yet.'),
         h('details', { class: 'raw' }, h('summary', {}, 'Show the full state'), json(s))),
+      h('p', { class: 'hs-note' }, ICON_CREDIT),
     );
   }
   return { el, update };
