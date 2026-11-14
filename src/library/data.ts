@@ -136,7 +136,7 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   [SK.ranged_light]: ['sight', 'ranged'], [SK.ranged_medium]: ['sight', 'ranged'], [SK.ranged_heavy]: ['sight', 'ranged'],
   [SK.unarmed_strike]: ['sight'], [SK.unarmed_grapple]: ['sight'], [SK.unarmed_improvised]: ['sight'], [SK.unarmed_natural]: ['sight'],
   [SK.dodge]: ['sight'], [SK.block]: ['sight'], [SK.parry]: ['sight'], [SK.eyesight]: ['sight'], [SK.earshot]: ['hearing'], [SK.tremor]: ['hearing'], // hearing: no table reads it yet
-  [SK.sneaking]: ['stealth'], [SK.combat_stealth]: ['stealth'], [SK.vanishing]: ['stealth', 'hide'],
+  [SK.sneaking]: ['stealth', 'hide'], [SK.combat_stealth]: ['stealth', 'hide'], [SK.vanishing]: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race

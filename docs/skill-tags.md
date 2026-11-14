@@ -8,7 +8,7 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 | Tree | melee, ranged, unarmed, natural, defense, armor, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
 | Functions (narrow, one or more) | arms, unarmed, ranged, defense, armor, health, sight, hearing, stealth, influence, initiative | Stand-ins: a skill sharing a function stands in for a missing one |
 | Group (broad, from the functions) | melee, ranged, defense, health, notice, stealth, influence, speed | The 40 perk's +1 (every skill sharing a group with the ladder skill), XP category. A skill can also join a group directly (`groups`, e.g. dodge in Speed) without its function |
-| Situation tags | sight, hearing, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. No table reads hearing yet. An action can add a tag (staying put, a Vanish in place or hiding from a search, adds hide, ST22) |
+| Situation tags | sight, hearing, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. No table reads hearing yet. An action can add a tag (a stash adds hide, ST22) |
 | Roles | grip, strike, move, sense, fly, speech | Which wounded body parts lower the roll |
 | Cue | sight, sound (notice skills only) | Which cue a notice roll reads |
 | XP category | offensive, defensive, endurance, notice, influence, misc | XP ratings (X18–X23); comes from the group unless a skill sets its own |
@@ -48,7 +48,7 @@ function in its group; adding a function or group is one row there.
 | light_armor, medium_armor, heavy_armor | armor | | | |
 | sight | perception | sense | sight | sight |
 | hearing | perception | sense | sound | hearing |
-| sneaking, combat_stealth | stealth | move | | stealth |
+| sneaking, combat_stealth | stealth | move | | stealth, hide |
 | vanishing | stealth | move | | stealth, hide |
 | persuasion, intimidation, barter | speech | speech | | |
 | feint, riposte, disarm (placeholders) | swordsman | grip | | |

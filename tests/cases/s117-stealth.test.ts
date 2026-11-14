@@ -126,7 +126,7 @@ describe('117 stealth', () => {
     expect(s.player.posture).toBe('stealthy');
     expect(calls.some(([a, b]) => a.skill === SK.combat_stealth && b.actorId === 'slime_1')).toBe(true);
   });
-  it('darkness helps both rolls; a sneak gets no cover and feels leg wounds (ST6, ST10)', () => {
+  it('darkness and cover help a sneak; it feels leg wounds (ST6, ST10, HA1)', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_cellar');
     place(s, 'trader', 'tav_cellar');
@@ -137,19 +137,19 @@ describe('117 stealth', () => {
     expect(a.skill).toBe(SK.sneaking);
     // P14: darkness gives no help against a listener
     expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 10 }] : []);
-    expect(a.tierShifts).toEqual([]);
+    expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
     expect(a.roles).toBeUndefined();
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
     expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
   });
-  it('tags decide the tables (ST21): a sneak gets no cover, a vanish does (Vanishing has the hide tag)', () => {
+  it('tags decide the tables (ST21, HA1): a sneak and a vanish both get cover (both have the hide tag)', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_counter');
     place(s, 'trader', 'tav_cellar');
     s.player.posture = 'stealthy';
     const calls = rig();
     turn(s, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
-    expect(calls.find(([, b]) => b.actorId === 'trader')![0].tierShifts).toEqual([]);
+    expect(calls.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.sneaking, tierShifts: [{ source: 'cover', value: 1 }] });
     const v = makeVillage();
     place(v, 'player', 'tav_counter');
     place(v, 'trader', 'tav_cellar');
