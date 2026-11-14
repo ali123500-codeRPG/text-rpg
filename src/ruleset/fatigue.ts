@@ -10,6 +10,7 @@ import { PK } from '../library/perkIds';
 import { hasPerk } from './perks';
 import { FATIGUE_LEVELS, type FatigueLevel } from '../scales';
 import { skillOpen } from './access';
+import { wornArmor } from './slots';
 
 /** raw Stamina (like Endurance for HP); a closed or dormant skill counts 0 */
 export function staminaSkill(a: Actor): number {
@@ -43,6 +44,6 @@ export function fatigueMods(a: Actor): Mod[] {
 export const fatigueShows = (l: FatigueLevel): boolean => FATIGUE_LEVELS.pos(l) >= FATIGUE_LEVELS.pos(CONFIG.FATIGUE_SHOWN_FROM);
 /** the weight of the armour the actor wears, if any */
 export function wornWeight(state: GameState | null, a: Actor): string | undefined {
-  const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(a.core.inventory);
   return worn ? itemDef(state, worn.itemId).armor?.weight : undefined;
 }

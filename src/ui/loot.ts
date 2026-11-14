@@ -1,5 +1,5 @@
 // Loot: what the character can see to take where they stand, in one pop-up. Bodies that are down (what a search turned up
-// and what they wear), open containers and the ground each list their things; the player picks the ones to pocket and
+// and what they wear), open containers and the ground each list their things; the player picks the ones to take and
 // "Take" plays one turn taking them, built by code with no Parser call (AD7). Built from PlayerView only, so it
 // never lists anything the character doesn't know of; whether each take works is still the turn's to decide.
 import type { GearOp, PlayerView } from '../types';

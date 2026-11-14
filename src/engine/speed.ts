@@ -3,6 +3,7 @@
 import { CONFIG } from '../config';
 import { actorBody, itemDef } from '../library';
 import type { Actor, GameState } from '../types';
+import { wornArmor } from '../ruleset/slots';
 
 /** the movement speed factor: every speed is multiplied by it (1 until movement speed effects exist) */
 export const speedFactor = (_a: Actor): number => 1;
@@ -10,7 +11,7 @@ export const speedFactor = (_a: Actor): number => 1;
 /** the actor's walk and run speeds in m/s: race speeds, less worn armor's flat slowing, less its share, × speedFactor */
 export function moveSpeed(state: GameState, a: Actor): { walk: number; run: number } {
   const base = actorBody(state, a).speed;
-  const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(a.core.inventory);
   const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
   const slow = armor ? armor.speed ?? CONFIG.ARMOR_SPEED[armor.weight] ?? { flat: 0, pct: 0 } : { flat: 0, pct: 0 };
   const f = speedFactor(a);

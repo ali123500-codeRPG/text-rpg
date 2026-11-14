@@ -160,8 +160,10 @@ const DEFAULTS = {
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
-  /** AT58/AT60: reaction time when a fight starts for an actor: REACT_BASE_S seconds at an initiative total of 50, halving
-   * every REACT_HALVING points above (doubling below), times the time factor; a hesitation waits it out again */
+  /** AT11: the skill at which an Action times row (or a reaction) takes its listed seconds; faster above, slower below */
+  ACTION_SPEED_PIVOT: 50,
+  /** AT58/AT60: reaction time when a fight starts for an actor: REACT_BASE_S seconds at an initiative total of
+   * ACTION_SPEED_PIVOT, halving every REACT_HALVING points above (doubling below), times the time factor; a hesitation waits it out again */
   REACT_BASE_S: 2,
   REACT_HALVING: 50,
   /** AT74: Gut Feeling rolls once every this many rounds for each hidden watcher */
@@ -703,7 +705,7 @@ const DEFAULTS = {
   FOLLOW_M: 2,
   FOLLOW_RANGE_SHARE: 0.8,
   /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
-  TAKE_FROM_STANCE: 'neutral',
+  TAKE_FROM_STANCE: 'neutral' as import('./scales').StanceKey,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
    * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
   // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about
@@ -881,6 +883,18 @@ const DEFAULTS = {
    * steady violet tint (Broken included). Where the red health edge shows too, the red one wins (placeholders) */
   MOTION_NERVE_FROM: 'terrified' as MoraleLevel,
   MOTION_NERVE_STEADY: 'panicking' as MoraleLevel,
+  /** Audio for the game (src/ui/sound.ts; all placeholders). VOLUME_DEFAULT: the volume slider's start. CLICK_GAP_MS: clicks
+   * closer together than this make one sound. TIER (AU8): the player's own roll, one note per tier row from Critical Failure
+   * to Critical Success (HZ), ringing DUR_S[0] in the middle up to DUR_S[1] at either end; failures sag to FALL of their pitch;
+   * each step past either end adds a voice an octave out. SWISH: a swing that met nothing. DEATH: the falling tone of the
+   * death scene. GAIN: each code-made sound's loudness before the slider. */
+  SOUND: {
+    VOLUME_DEFAULT: 0.6,
+    CLICK_GAP_MS: 60,
+    TIER: { HZ: [110, 147, 196, 330, 440, 660], DUR_S: [0.18, 0.7], FALL: 0.7, GAIN: 0.25 },
+    SWISH: { HZ: [2400, 600], DUR_S: 0.22, GAIN: 0.18 },
+    DEATH: { HZ: [196, 55], DUR_S: 2.4, GAIN: 0.3 },
+  },
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder)
   /** agents that name a model and effort; the others run on their MODEL_TIERS tier, which is also the fallback when the
    * named model can't answer. Narrator on Fable 5.2 low: won 15 of 16 blind judgements against the complex tier in playtests */

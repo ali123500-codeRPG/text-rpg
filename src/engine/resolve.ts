@@ -11,6 +11,7 @@ import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
+import { freeGrips, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
@@ -37,7 +38,7 @@ import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
-import { countPerkMove, freeGrips, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { countPerkMove, hasFreeGrip, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -73,6 +74,7 @@ import { met, struck } from '../ruleset/hits';
 import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
+import { wornArmor } from '../ruleset/slots';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
@@ -188,7 +190,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
-    case 'hide': return of(DU.hide);
+    case 'vanish': return of(DU.vanish_in_place); // A19 Melt Away: the only Vanish left after setPosture
     case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
@@ -258,7 +260,7 @@ function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): G
  * a Stealthy move is one step quieter */
 function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): NoiseKey {
   if (!BODY_MOVING.has(kind)) return noise;
-  const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(a.core.inventory);
   const w = worn && itemDef(state, worn.itemId).armor?.weight;
   const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
   const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, PK.soft_tread) ? 1 : 0;
@@ -414,7 +416,7 @@ function struckSeen(ctx: Ctx, t: Actor, ev: GameEvent, before: { lost: number; a
  * missed target notices it here. It shows where it landed, never where it came from. */
 function landImpact(ctx: Ctx, t: Actor, ev: GameEvent, res: AttackResult, struckBy: GameEvent['perception']): void {
   const { state } = ctx;
-  const worn = t.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(t.core.inventory);
   const armored = !!res.location && !!worn && !!itemDef(state, worn.itemId).armor?.covers.includes(res.location);
   const hit = struck(res.outcome);
   const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || !zoneById(state, t.zone)?.outdoor); // blocked or parried: on a shield or weapon
@@ -545,7 +547,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
 function roundShut(state: GameState, a: Actor, goal: string): { way: string; shut: 'blocked' | 'barred' | 'locked' } | undefined {
   const l = zoneById(state, a.zone)?.links.find((x) => x.to === goal), b = barrierOn(state, l);
   if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || wayPath(state, a.zone, goal, a)?.[0] === goal) return undefined;
-  return { way: l.label, shut: shutBy(b, a, a.zone) };
+  return { way: l.label, shut: shutBy(b, a.zone) };
 }
 
 /** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding) */
@@ -566,7 +568,7 @@ function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhea
   if (g.pass === 'shut') noteTried(g.b, a);
   const way = (d: WayDid, i: number) => { const ev = mk(ctx, a, 'way', { target: g.to, way: { to: g.to, barrier: g.b.id, did: d } }); return withLine && i === 0 ? bark(ev, withLine) : ev; };
   if (did.length) did.forEach((d, i) => emit(ctx, way(d, i)));
-  else emit(ctx, way(`found_${shutBy(g.b, a, a.zone)}` as WayDid, 0));
+  else emit(ctx, way(`found_${shutBy(g.b, a.zone)}` as WayDid, 0));
   return 'spent';
 }
 
@@ -845,13 +847,13 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   }
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
-    && isActive(t) && freeHand(state, a)) {
+    && isActive(t) && hasFreeGrip(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
     if (fist && withinM(sightDistM(state, a, t), fist.mode.reach)) { ctx.oneTwo = true; doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true); }
   }
   // AT79 Flurry: every unarmed strike thrown with two Grip parts free, hit or miss, brings one free strike at the same target
   // at once (no time, no action). Its own free strike never sets it off again; One-Two's free punch does
-  if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a) >= 2
+  if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a).length >= 2
     && withinM(sightDistM(state, a, t), m.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: m.itemId, mode: m.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, followUp, true);
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
   parryStrike(ctx, a, t, res);
@@ -934,7 +936,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   // T6a Strike and Fade: right after an attack from hiding, a free Vanishing roll in place
   if (fromHiding && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
     if (a.posture !== 'stealthy') { a.posture = 'stealthy'; stealthStart(state, a); }
-    const ev = mk(ctx, a, 'hide', { vanish: true });
+    const ev = mk(ctx, a, 'vanish', { vanish: true });
     ev.effects.push({ kind: PK.strike_and_fade, actorId: a.id, data: {} });
     emit(ctx, ev);
   }
@@ -1330,7 +1332,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   if (link) {
     const b = barrierOn(state, link), pass = b ? passage(b, a, a.zone) : 'open';
     if (b && pass === 'shut') noteTried(b, a);
-    ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a, a.zone)}` as WayDid) };
+    ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a.zone)}` as WayDid) };
   }
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
     // Q17/SE15: looking is a sight (or hearing) roll with light only, no scene number; Success or better shows everyone in sight clearly
@@ -1425,7 +1427,7 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
   // BG-70: opening a way shut to them is trying it: the move slot goes on it and they learn why it won't open
   if (dryWhy === 'shut' && b && useWayTime(ctx, a, w.op, mainToo)) {
     noteTried(b, a);
-    emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: `found_${shutBy(b, a, a.zone)}` as WayDid } }));
+    emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: `found_${shutBy(b, a.zone)}` as WayDid } }));
     return true;
   }
   const why = dryWhy ?? (!useWayTime(ctx, a, w.op, mainToo) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
@@ -1671,9 +1673,9 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
       return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
     }
-    case 'hide':
-      // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
-      return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));
+    case 'vanish':
+      // A19 Melt Away: a Vanish in place is a Vanishing contest per observer (stealthDetect)
+      return emit(ctx, bark(mk(ctx, a, 'vanish', { vanish: true }), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -2128,15 +2130,15 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 /** AE2: no running (the move role switched off by the shared-role rule, CS8) stops a dash, and so does Leg Bolt's slow (A6) */
 const lame = (state: GameState, a: Actor) => slowed(state, a) || roleOff(state, a, RL.move);
 
-/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
- * Vanish is the turn's move, contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
+/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a
+ * Vanish is the turn's move (in place, with Melt Away, the main action), contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
  * vanish names the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
  * following the player copies the player's posture (NS9). */
 function setPosture(state: GameState, a: Actor, o: Order): void {
   const was = a.posture ?? 'open';
   const npc = a !== state.player;
   const goTo = npc && o.target && o.target !== a.zone && zoneById(state, o.target) ? o.target : null;
-  if (o.type === 'sneak' || o.type === 'vanish') {
+  if (o.type === 'sneak' || (o.type === 'vanish' && !o.vanish)) {
     a.posture = 'stealthy';
     if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
     // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
@@ -2144,9 +2146,8 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
     // LR3 Blind Spot: with a foe's sight spoiled by Dirt in the Eyes, Melt Away needs no cover or shade
     const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, PK.melt_away) && !!zone && (blindSpotNow(state, a) || meltAwayHere(zone.cover, zoneLight(state, zone)));
     if (inPlace) o.vanish = true;
-    o.type = inPlace ? 'hide' : goTo ? 'move' : 'hold';
+    o.type = inPlace ? 'vanish' : goTo ? 'move' : 'hold';
   }
-  if (o.type === 'hide') a.posture = 'stealthy';
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
   if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';
   if (npc && r?.kind === 'follow' && a.bandId === state.player.bandId) a.posture = state.player.posture ?? 'open';
@@ -2471,7 +2472,7 @@ function playerDown(state: GameState, rng: Rng): void {
 /** D-54/D-239: the downed player lives: wakes somewhere safe at Critical, in the next scenario */
 function wakeUp(state: GameState, code?: string): void {
   if (code) logCode(state, code, {});
-  state.player.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
+  state.player.core.condition.hpLostPct = levelMaxPct('critical');
   state.stage.breakCause = 'knocked_out';
 }
 

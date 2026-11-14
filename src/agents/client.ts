@@ -2,8 +2,8 @@
 //   const sample = await window.claude.use('sample')   // null: not served / not granted
 //   await sample(input, { signal, modelTier, model, effort, cache }) -> { text, truncated, modelTierApplied, modelApplied? }
 //   rejects { code, message, text? }
-// GAP: the spec says JSON agents call sample.json, but sample.json resolves only the parsed value and drops
-// modelTierApplied / modelApplied / truncated, which the agent log must record. We call sample() and parse the reply
+// JSON agents call sample(), not sample.json: sample.json resolves only the parsed value and drops
+// modelTierApplied / modelApplied / truncated, which the agent log must record. So we call sample() and parse the reply
 // with sample.json's own tolerant rule (whole reply; else one code fence; else first { or [ to last } or ]).
 import type { ClaudeClient, ClaudeErrorCode, ClaudeRequest, ClaudeResponse } from '../types';
 
@@ -59,7 +59,7 @@ export function parseTolerant(text: string): { ok: true; value: unknown } | { ok
   const unshaped = text.replace(/([}\]"\d]|true|false|null)\s*\|\s*null\b/g, '$1');
   if (unshaped !== text) return parseTolerant(unshaped);
   // BG-35: a model sometimes leaves out the comma before the next key ("text":"…""narrated":[…]) (run 40)
-  const commaed = text.replace(/((?<!\\)"|[}\]]|\d|true|false|null)(\s*)(?="[\w$-]+"\s*:)/g, (m, v: string, ws: string) => `${v},${ws}`);
+  const commaed = text.replace(/((?<!\\)"|[}\]]|\d|true|false|null)(\s*)(?="[\w$-]+"\s*:)/g, (_m, v: string, ws: string) => `${v},${ws}`);
   if (commaed !== text) { const c = tryParse(commaed.slice(Math.max(0, commaed.search(/[{[]/)), Math.max(commaed.lastIndexOf('}'), commaed.lastIndexOf(']')) + 1)); if (c) return c; }
   // BG-45: a model sometimes closes a bracket it never opened ("text":"…"],"narrated":[…]) (run 44)
   const unstray = dropStrayClosers(text);

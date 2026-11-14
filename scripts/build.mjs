@@ -18,7 +18,7 @@ async function page(entry, title, dir) {
   const out = await build({
     entryPoints: { app: entry },
     bundle: true, minify: true, write: false, format: 'iife', target: 'es2022', outdir,
-    loader: { '.woff2': 'file', '.webp': 'file' }, assetNames: 'assets/[name]',
+    loader: { '.woff2': 'file', '.webp': 'file', '.mp3': 'file' }, assetNames: 'assets/[name]',
     define: { __BUILD__: JSON.stringify(BUILD) },
     logLevel: 'warning',
   });

@@ -1,5 +1,6 @@
 // Applying a stage plan (Scenario setup steps 4–8), the fallback stage, opening events.
 import { endSuspicions } from '../engine/suspicion';
+import { freshId } from '../ids';
 import { expireOffers } from '../engine/essence';
 import { frameOf } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
@@ -54,12 +55,7 @@ function logCastPower(state: GameState, challenge: string, cast: Actor[]): void 
 /** every settlement site of the world's land */
 const sites = (state: GameState) => (state.regions ?? []).flatMap((r) => r.sites);
 
-export function freshId(key: string, taken: Set<string>): string {
-  let id = key;
-  for (let n = 2; taken.has(id); n++) id = `${key}_${n}`;
-  taken.add(id);
-  return id;
-}
+export { freshId };
 
 function putOnStage(state: GameState, z: Zone): void {
   if (!state.stage.zoneIds.includes(z.id)) state.stage.zoneIds.push(z.id);

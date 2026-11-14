@@ -15,8 +15,8 @@ import { hearsWords } from '../perception';
 import { falseName, nameSaid } from '../words';
 import { sparOf, startSpar, yieldSpar } from './spar';
 import { applyGoals } from './goals';
+import { PLAN_TRIGGER_TYPES } from '../scenario/triggers';
 
-const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
 
 export function logCode(state: GameState, code: string, detail?: Record<string, unknown>): void {
   state.log.push({ turn: state.turn, code, ...(detail ? { detail } : {}) });
@@ -59,7 +59,7 @@ export function learnNames(state: GameState, ev: GameEvent, earlier: GameEvent[]
 }
 function sanitizeTriggers(triggers: Trigger[] | undefined, ownerId: string): Trigger[] {
   return (triggers ?? [])
-    .filter((t) => t && typeof t.id === 'string' && TRIGGER_TYPES.includes(t.when?.type) && t.then && typeof t.then.type === 'string')
+    .filter((t) => t && typeof t.id === 'string' && PLAN_TRIGGER_TYPES.includes(t.when?.type) && t.then && typeof t.then.type === 'string')
     .map((t) => ({ ...t, ownerId, once: !!t.once }));
 }
 

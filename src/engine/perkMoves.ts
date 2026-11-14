@@ -3,17 +3,16 @@
 // own type (Plead, Battle Cry, Buy Them Off, later milestones).
 //   Battle Cry (C2, I9): the main action, once per engagement, aimed at no one; a Loud roar resolved in resolve.ts
 //   doPerkMove() by battleCry() in auras.ts.
-//   Dirt in the Eyes (A9): free, once per engagement, needs a free hand; an unarmed_improvised roll against the foe's
-//   dodge; unless the foe wins, its next attack or defense roll is two tiers worse (until the end of its next turn).
+//   Dirt in the Eyes (A9): free, once per engagement, needs a free grip; an unarmed_improvised roll against the foe's
+//   dodge; unless the foe wins, its next attack or defense roll is two tiers worse (for PERK_MARK_ROUNDS rounds, AT74).
 //   Bluff (LI1c): free, once per foe per engagement; a Lying roll against the foe's answer to a lie (answerRoll, so
 //   Takes One to Know One counts); unless the foe wins, it believes the lie and acts last next turn (initiativeOrder).
 import type { Actor, ContestResult, Effect, GameState, Rng } from '../types';
 import { PERK_MOVES, hasPerk, markUse, ruleset, toContest } from '../ruleset';
-import { usableGrips } from '../ruleset/body';
-import { gripsOf, isHeld } from '../ruleset/gear';
+import { freeGrips } from '../ruleset/body';
 import { actorById, isActive, wary } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
-import { markUntilNextTurn } from './perkMarks';
+import { markForRounds } from './perkMarks';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
@@ -23,13 +22,8 @@ import { sightDistM, withinM } from './position';
 import { CONFIG } from '../config';
 import { VOLUME_NOISE } from '../perception/noise';
 
-/** the actor has a working Grip arm with nothing held in it */
-export const freeHand = (state: GameState, a: Actor) => freeGrips(state, a) > 0;
-/** AT79: how many working Grip parts hold nothing */
-export const freeGrips = (state: GameState, a: Actor): number => {
-  const busy = new Set(a.core.inventory.filter(isHeld).flatMap(gripsOf));
-  return usableGrips(state, a).filter((g: string) => !busy.has(g)).length;
-};
+/** the actor has a working Grip part with nothing held in it */
+export const hasFreeGrip = (state: GameState, a: Actor) => freeGrips(state, a).length > 0;
 
 /** how near the target must be, by what the move is: a lie must be heard clearly at a normal voice (the speech rule);
  * Dirt in the Eyes is a throw, so it reaches as far as an improvised throw, in sight (ZR1) */
@@ -56,7 +50,7 @@ export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId
   const t = targetId ? actorById(state, targetId) : undefined;
   if (!t || t === a || !isActive(t) || !inRange(state, a, t, perk)) return 'no_target';
   if (def.perEngagement && a.engagement && !usableThisEngagement(a, useKey(perk, targetId), def.perEngagement)) return 'used_this_engagement';
-  if (perk === PK.dirt_in_the_eyes && !freeHand(state, a)) return 'no_free_hand';
+  if (perk === PK.dirt_in_the_eyes && !hasFreeGrip(state, a)) return 'no_free_grip';
   if (perk === PK.bluff && !wary(state, a, t) && !wary(state, t, a)) return 'not_a_foe';
   return null;
 }
@@ -72,7 +66,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     contestFeat(state, c); // N4c
     markUse(state, t, c.b.skill, c);
     const dodged = c.winner === 'b'; // the foe must win outright
-    if (!dodged) markUntilNextTurn(state, t, PK.dirt_in_the_eyes);
+    if (!dodged) markForRounds(state, t, PK.dirt_in_the_eyes);
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   if (perk === PK.bluff) {
@@ -81,7 +75,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     contestFeat(state, c);
     markUse(state, t, c.b.skill, c);
     const seen = c.winner === 'b'; // the foe must win outright to see through it
-    if (!seen) markUntilNextTurn(state, t, PK.bluff);
+    if (!seen) markForRounds(state, t, PK.bluff);
     return { effects: [{ kind: seen ? 'bluff_seen_through' : 'bluff_believed', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   return { effects: [] };

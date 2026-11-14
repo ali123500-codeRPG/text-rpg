@@ -12,6 +12,7 @@ import { heightOf } from '../scenario/heights';
 import { ZK } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
+import { plural } from './kit';
 
 /** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
@@ -181,7 +182,7 @@ export function worldTiles(m: KnownMap): MapZone[] {
     const n = zones.length;
     const along = zones.find((z) => z.along)?.along, line = zones.find((z) => z.line)?.line;
     const rect = extentOf(zones);
-    return { id: r.id, placeId: r.id, name: r.name, look: n ? `${n} zone${n === 1 ? '' : 's'} known` : 'no zones known', outdoor: true,
+    return { id: r.id, placeId: r.id, name: r.name, look: n ? `${plural(n, 'zone')} known` : 'no zones known', outdoor: true,
       here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [], ...(along ? { along } : {}), ...(line ? { line } : {}), ...(rect ? { rect } : {}) };
   });
 }

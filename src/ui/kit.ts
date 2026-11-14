@@ -1,5 +1,20 @@
 // Small DOM helpers and the shared HISAB pieces: readout tiles, visibility tiles, grouped tables, side panel.
 type Attrs = Record<string, unknown>;
+/** the parts of the artifact runtime's comments capability the pages use: a comment sent to Claude wakes a thread */
+export type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
+/** the comments capability when this viewer can send to Claude from here, else null (outside claude.ai, or not allowed) */
+export async function claudeComments(): Promise<CommentsApi | null> {
+  const rt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
+  const c = await rt?.use('comments').catch(() => null);
+  return c && (await c.canSendToClaude().catch(() => 'off')) === 'available' ? c : null;
+}
+/** a line icon on the 24 grid: one or more stroke paths, hidden from screen readers */
+export function lineIcon(cls: string, paths: string | readonly string[]): SVGSVGElement {
+  const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg');
+  s.setAttribute('class', cls); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+  for (const d of typeof paths === 'string' ? [paths] : paths) { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); s.append(p); }
+  return s;
+}
 type Child = Node | string | number | null | undefined | false;
 
 /** BG-219: on 2400px+ screens the page is zoomed 1.3x (styles.css), so the window's size, element boxes and pointer

@@ -31,9 +31,9 @@ export type StageInfo = {
   ending?: { as: import('./hidden').ScenarioEnding; text: string; outer?: true; turn: number; roam?: true };
   /** SC10: how the scenario that just ended ended, set with breakCause and recorded when the next one begins */
   ended?: { as: import('./hidden').ScenarioEnding; text: string; outer?: true; roam?: true };
-  /** SD1: how the last scenario ended and the turn it was closed (the play page's ending moment reads it that turn) */
   /** D-226: the gains of the scenario that ended on `turn` (the ending moment's summary; GameApi scenarioEnding().gains) */
   gains?: import('./game').ScenarioGains & { number: number; turn: number };
+  /** SD1: how the last scenario ended and the turn it was closed (the play page's ending moment reads it that turn) */
   closed?: { as: import('./hidden').ScenarioEnding; turn: number };
   /** SD2 a: free roam, since this turn: no scenario runs until danger starts one or a window opens (WB5, WB6) */
   roam?: { since: number;

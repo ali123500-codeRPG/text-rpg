@@ -415,7 +415,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "door" tries and opens doors, to show the play screen's Way rows
       const ways = /^door\b/i.test(text) ? { ways: ['Door to kitchen: locked', 'Door to back yard: barred from the other side', 'Door to village square: unlocked with your key on the way through'] } : null;
       state.turn = t + 1;
-      if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
+      if (/^(sneak|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained

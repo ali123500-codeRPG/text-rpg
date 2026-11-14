@@ -47,7 +47,7 @@ export const DECK_KINDS = ['attack', 'restrain', 'steady', 'yield', 'stand_down'
 export type DeckKind = (typeof DECK_KINDS)[number];
 /** Parser actions with no entry, and why */
 export const DECK_LEFT_OUT: Record<string, string> = {
-  hide: 'merged into Sneak', other: 'anything not listed is typed in the Say box', interact: 'typed in the Say box',
+  other: 'anything not listed is typed in the Say box', interact: 'typed in the Say box',
 };
 
 /** how each deck kind leans with the character's personality (ideaLeans) */

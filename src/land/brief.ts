@@ -2,18 +2,16 @@
 // holds the brief call's view, the check of its answer, the fallback when no brief comes back, and the land as the
 // Weaver is shown it in its plans (sites to build settlements on, roads to build road zones along).
 import type { GameState, Pt, Region, Side } from '../types';
+import { OPP_SIDE, SIDE_STEP, SIDE_WORD, SIDES } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { ROAD_DANGERS } from '../scales';
 import { textSeed } from '../rng';
 import { RK } from '../library/tableIds';
-import { drawRegion, WHERE, type RegionBrief, type SiteSize, type Where } from './generate';
+import { drawRegion, SITE_SIZES, WHERE, type RegionBrief, type SiteSize, type Where } from './generate';
 import { regionAt } from './sight';
 import { joinsFor } from './edge';
 
-const SIDES: Side[] = ['n', 'e', 's', 'w'];
-const SIZES: SiteSize[] = ['town', 'village', 'hamlet'];
-const SIDE_WORD: Record<Side, string> = { n: 'north', e: 'east', s: 'south', w: 'west' };
 
 /** WZ2 what the region call is given: the story's premise, the square to fill, what lies beside it, and the catalogs */
 export type RegionCallView = {
@@ -33,15 +31,13 @@ export type RegionCallView = {
 export function regionCallView(state: GameState, gx: number, gy: number): RegionCallView {
   const lib = getLibrary();
   const at = (dx: number, dy: number) => state.regions?.find((r) => r.gx === gx + dx && r.gy === gy + dy);
-  const STEP: Record<Side, [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] };
-  const OPP: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
-  const beside = SIDES.flatMap((side) => { const r = at(...STEP[side]); return r ? [{ side, name: r.name, look: r.look, ...(r.beyond[OPP[side]] ? { calledHere: r.beyond[OPP[side]]!.name } : {}) }] : []; });
+  const beside = SIDES.flatMap((side) => { const r = at(...SIDE_STEP[side]); return r ? [{ side, name: r.name, look: r.look, ...(r.beyond[OPP_SIDE[side]] ? { calledHere: r.beyond[OPP_SIDE[side]]!.name } : {}) }] : []; });
   return {
     premise: CONFIG.STORY_PREMISE, first: !state.regions?.length, square: { gx, gy, sizeKm: CONFIG.REGION_SIZE_M / 1000 }, beside,
     catalogs: {
       regionKinds: Object.values(lib.regionKinds ?? {}).map((k) => ({ id: k.id, name: k.name, text: k.text, settlements: `${k.settlements.town} town, ${k.settlements.village.join(' to ')} villages, ${k.settlements.hamlet.join(' to ')} hamlets` })),
       landmarkKinds: Object.values(lib.landmarkKinds ?? {}).map((k) => ({ id: k.id, name: k.name })),
-      where: WHERE, sides: SIDES, dangers: ROAD_DANGERS.keys, sizes: SIZES,
+      where: WHERE, sides: [...SIDES], dangers: ROAD_DANGERS.keys, sizes: [...SITE_SIZES],
     },
   };
 }
@@ -57,7 +53,7 @@ export function tidyBrief(raw: unknown, view: RegionCallView): { brief: RegionBr
   if (!lib.regionKinds?.[kind]) { if (kind) notes.push(`kind ${kind} unknown: ${RK.river_valley}`); kind = RK.river_valley; }
   const list = (v: unknown) => (Array.isArray(v) ? v : []) as Record<string, unknown>[];
   const settlements = list(o.settlements).flatMap((x) => {
-    if (!SIZES.includes(x?.size as SiteSize)) { notes.push(`settlement ${str(x?.name)} has no size`); return []; }
+    if (!SITE_SIZES.includes(x?.size as SiteSize)) { notes.push(`settlement ${str(x?.name)} has no size`); return []; }
     return [{ size: x.size as SiteSize, name: str(x.name), look: str(x.look), ...(where(x.where) ? { where: x.where as Where } : {}), ...(x.start === true && view.first ? { start: true as const } : {}) }];
   });
   const features = list(o.features).flatMap((x) => {
@@ -90,8 +86,7 @@ export function addRegion(state: GameState, gx: number, gy: number, brief: Regio
   const start = (want && r.sites.find((s) => s.name === want.name && s.size === want.size)) ?? r.sites.find((s) => s.size === 'town') ?? r.sites[0];
   if (start && (want || !state.regions?.length)) r.start = start.id; // WZ13: only the first region, or one a brief marks
   // WZ18: each drawn neighbour now knows this region by its name, on the side it lies
-  const STEP: Record<Side, [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] }, OPP: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
-  for (const sd of SIDES) { const nb = state.regions?.find((x) => x.gx === gx + STEP[sd][0] && x.gy === gy + STEP[sd][1]); if (nb && r.name) nb.beyond[OPP[sd]] = { name: r.name, kind: r.kind }; }
+  for (const sd of SIDES) { const nb = state.regions?.find((x) => x.gx === gx + SIDE_STEP[sd][0] && x.gy === gy + SIDE_STEP[sd][1]); if (nb && r.name) nb.beyond[OPP_SIDE[sd]] = { name: r.name, kind: r.kind }; }
   (state.regions ??= []).push(r);
   return r;
 }

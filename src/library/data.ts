@@ -136,7 +136,7 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   [SK.ranged_light]: ['sight', 'ranged'], [SK.ranged_medium]: ['sight', 'ranged'], [SK.ranged_heavy]: ['sight', 'ranged'],
   [SK.unarmed_strike]: ['sight'], [SK.unarmed_grapple]: ['sight'], [SK.unarmed_improvised]: ['sight'], [SK.unarmed_natural]: ['sight'],
   [SK.dodge]: ['sight'], [SK.block]: ['sight'], [SK.parry]: ['sight'], [SK.eyesight]: ['sight'], [SK.earshot]: ['hearing'], [SK.tremor]: ['hearing'], // hearing: no table reads it yet
-  [SK.sneaking]: ['stealth'], [SK.combat_stealth]: ['stealth'], [SK.vanishing]: ['stealth', 'hide'],
+  [SK.sneaking]: ['stealth', 'hide'], [SK.combat_stealth]: ['stealth', 'hide'], [SK.vanishing]: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
@@ -203,7 +203,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   // DX1-DX5: essence extraction, a blessing of Imbra, minor goddess of essence manipulation (D-311; the blessed Start grants it), and the quirk it leaves.
   // NM2: the blessing works on the essence, a small foreign addition to someone's Thread; no god touches the Thread itself.
   [PK.extract_essence]: {
-    id: PK.extract_essence, name: 'Extract Essence', built: true, blessing: { god: GD.essences, tier: 'tier_5' },
+    id: PK.extract_essence, name: 'Extract Essence', built: true, blessing: { god: GD.imbra, tier: 'tier_5' },
     story: 'Imbra has shown you where an essence sits on someone, apart from what they are. With them beaten and helpless before you, you can pry it off and keep it.',
     rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down and have broken or surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
@@ -689,7 +689,7 @@ export function prototypeLibrary(): Library {
       [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, levelPerks: { 1: [PK.always_yours] } },
       // DX1: Blessed by X, a variant per god; unlocks on being blessed by that god, and the blessed start (ST5) begins in it.
       // Class perk and capstone to come (about earning a higher blessing from the god); name and story placeholders
-      [CL.blessed_essences]: { id: CL.blessed_essences, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.essences },
+      [CL.blessed_by_imbra]: { id: CL.blessed_by_imbra, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.imbra },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
@@ -719,7 +719,7 @@ export function prototypeLibrary(): Library {
     // DX1: the gods, each with a narrow field. Varo and Imbra are minor gods (GOD_RANKS): grand to the average person, the minimum for the divine; lore belongs to the lore thread
     gods: {
       [GD.varo]: { id: GD.varo, name: 'Varo', rank: 'minor', field: 'extreme fortunes' },
-      [GD.essences]: { id: GD.essences, name: 'Imbra', rank: 'minor', field: 'essence manipulation' },
+      [GD.imbra]: { id: GD.imbra, name: 'Imbra', rank: 'minor', field: 'essence manipulation' },
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)
@@ -885,7 +885,7 @@ export function prototypeLibrary(): Library {
       [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 20, locksMove: true, focus: 'careful' },
       [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },
       // senses (AT11o)
-      [DU.hide]: { id: DU.hide, name: 'Hide', effort: 'moderate', seconds: 2, locksMove: true },
+      [DU.vanish_in_place]: { id: DU.vanish_in_place, name: 'Vanish in place', effort: 'moderate', seconds: 2, locksMove: true },
       [DU.look]: { id: DU.look, name: 'Look around', effort: 'light', seconds: 3, focus: 'steady' },
       // armour on and off (AT12): instant and no strain, like all gear (heavy alone keeps ARMOR_ALONE_MULT, × 0 today)
       [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
@@ -905,9 +905,9 @@ export function prototypeLibrary(): Library {
       [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, speed: { walk: 1.4, run: 5 }, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.elf, playable: true },
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
       [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, speed: { walk: 0.5, run: 1 }, // a creeping mass: a placeholder
-        innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent', playable: true },
+        innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent' }, // Slime and Dragon are not playable (reverses CC8 b)
       // on the ground as a horse: walk about 1.8 m/s, gallop about 12 (flight not modelled, D-323)
-      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon, playable: true },
+      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon },
       // Animals (NR14, NR15). hpMultiplier (AB6 a): (mass ÷ a 70 kg person)^(2/3), rounded: dog 30 kg, wolf 40, tiger 220,
       // bear 300, boar 90, horse 500, Komodo 70, python 75. Run = the cited burst; walk = an everyday gait (estimates unless cited).
       // Attack class by bite or blow force [Proposed]: a weak bite light, a tiger's or bear's (about 1,000 psi, National

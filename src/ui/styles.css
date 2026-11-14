@@ -723,7 +723,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .inbar button.itm[hidden] { display: none; }
 .hico svg { width: 20px; height: 20px; display: block; }
 .itm b { font-weight: 600; color: var(--text); }
-/* Stealth (src/ui/stealth.ts): Sneak and Hide in the action bar; a filled badge and an outlined bar while stealthy, in the Stealth tree's colour */
+/* Stealth (src/ui/stealth.ts): Sneak and Vanish in the action bar; a filled badge and an outlined bar while stealthy, in the Stealth tree's colour */
 .st-i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .inbar button.st-act { color: var(--text); }
 .inbar button.st-act .st-i { color: var(--c3); }
@@ -1632,3 +1632,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .mm-svg .map-who { cursor: pointer; }
 .mm-svg .map-who circle { transition: stroke var(--m-feedback) var(--m-ease); }
 .mm-svg .map-who:hover circle, .mm-svg .map-who:focus-visible circle { stroke: var(--scenario-mark); }
+
+/* AU7: the Sound switch and its volume slider on the play header */
+.sound-sw { display: inline-flex; align-items: center; gap: var(--space-1); }
+.sound-sw input[type="range"] { width: 88px; accent-color: var(--accent); }

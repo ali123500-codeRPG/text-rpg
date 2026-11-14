@@ -1,6 +1,6 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
 import type { Actor, Barrier, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
-import { AWARENESS, STANCES } from '../scales';
+import { AWARENESS, STANCES, type StanceKey } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
 import { healthLevel, isDownLevel } from '../ruleset/body';
 import { barrierOn, linkPassage } from './barriers';
@@ -52,8 +52,10 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
 }
 /** opposed or colder (opposed, hostile) */
 const cold = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) <= STANCES.pos('opposed');
+/** `s` is `k` or warmer (yielded is off the scale, so never) */
+export const atLeastStance = (s: Stance, k: StanceKey): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos(k);
 /** friendly or warmer (friendly, friend, loyal) */
-export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friendly');
+export const warm = (s: Stance): boolean => atLeastStance(s, 'friendly');
 /** hostile: a attacks b on sight. RS3 loyal: a takes the side of anyone it is loyal to, so whoever is hostile to them
  * is hostile to a too, unless a is friendly or warmer toward that one. A friend does the same only against someone a is
  * already opposed (or colder) to. */

@@ -3,7 +3,8 @@
 // world grows through the frontiers it adds, which the normal stage extension builds when the player crosses one.
 import type { CheckinAnswer, GameState, Rng, StagePlan, ZoneLink } from '../types';
 import { stageFrontiers, validateStagePlan } from './validate';
-import { applyStagePlan, freshId } from './apply';
+import { applyStagePlan } from './apply';
+import { freshId } from '../ids';
 import { perceivedZoneIds, zoneById } from '../engine/relations';
 
 /** the stage plan a check-in's change and arrivals amount to (no places, zones or rewards), or null when it has neither */

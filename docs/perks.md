@@ -188,7 +188,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** The owner Vanishes without a zone to go to.
 - **Conditions:** The owner's zone has some or heavy cover, or its light is dim or dark.
-- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action, as a Hide does.
+- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action.
 - **Lasts:** That Vanish.
 
 ### Slip the Blow (Light Armor) · A20
@@ -759,10 +759,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Go to Ground (Sneaking) · D9
 
-*Story:* Lie still long enough and they decide they imagined you. When you hide, someone who was only suspicious of you can lose you entirely.
+*Story:* Lie still long enough and they decide they imagined you. When you sneak, someone who was only suspicious of you can lose you entirely.
 
 - **Kind:** Always on
-- **Trigger:** The owner Hides outside an engagement.
+- **Trigger:** The owner is Stealthy (Sneak) outside an engagement and an observer makes a stealth contest against it.
 - **Conditions:** The observer is suspicious of the owner, not aware.
 - **Effect:** An observer who loses the contest drops to unaware, instead of staying suspicious.
 - **Lasts:** That contest.

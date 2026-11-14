@@ -37,9 +37,6 @@ describe('the action deck covers everything (AD10: "make sure you covered EVERYT
     for (const op of GEAR_OPS) expect(src.includes(`op: '${op}'`), op).toBe(true);
     // way ops are offered by name from wayOps(); each must be one of them
     for (const op of WAY_OPS) expect(src.includes(`'${op}'`), op).toBe(true);
-    // Hide is merged into Sneak; nothing in the deck plays it
-    expect(DECK_LEFT_OUT.hide).toBeDefined();
-    expect(src).not.toMatch(/act\('hide'/);
   });
 
   it('every entry is one of the deck kinds; one entry per kind, perks aside (AD10: one entry each)', () => {

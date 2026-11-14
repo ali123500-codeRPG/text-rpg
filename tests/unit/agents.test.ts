@@ -196,12 +196,12 @@ describe('Parser legality', () => {
     expect(r.intent!.move).toBeNull();
     expect(r.run.log.errors).toEqual([]);
   });
-  it('hide and sneak pass the Parser; code picks the stealth skill (ST2)', async () => {
+  it('a sneak passes the Parser; code picks the stealth skill (ST2)', async () => {
     const { claude, ctx } = setup();
-    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'hide', skill: 'sneak', target: null } }));
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }));
     const r = await callParser('I duck behind the barrels', playerView(), ctx);
     expect(r.clarify).toBeNull();
-    expect(r.intent!.action).toMatchObject({ type: 'hide', skill: '' });
+    expect(r.intent!.action).toMatchObject({ type: 'sneak', skill: '' });
   });
   it('a wait names a time of day, not a person (run 18); an unknown time asks until when', async () => {
     const { claude, ctx } = setup();

@@ -37,12 +37,12 @@ const add = (a: Actor, m: NonNullable<Actor['perkMarks']>[number]) => {
   (a.perkMarks ??= []).push(m);
 };
 
-/** attack shifts from marks (read only): the attacker's opening on the target, the defender's stumble */
 /** B15 Set Them Up: the mark a Strike or improvised attack leaves, and the one it uses (the other skill's) */
 const SET_UP: Record<string, { leaves: string; uses: string }> = {
   [SK.unarmed_strike]: { leaves: 'set_up:unarmed_improvised', uses: 'set_up:unarmed_strike' },
   [SK.unarmed_improvised]: { leaves: 'set_up:unarmed_strike', uses: 'set_up:unarmed_improvised' },
 };
+/** attack shifts from marks (read only): the attacker's opening on the target, the defender's stumble */
 export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean, skill?: string) {
   const mark = (a: Actor, perk: string, target?: string) => a.perkMarks?.find((m) => m.perk === perk && m.target === target && live(state, m));
   const has = (a: Actor, perk: string, target?: string) => !!mark(a, perk, target);
@@ -55,7 +55,6 @@ export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean
   };
 }
 
-/** A6 Leg Bolt: slowed actors can't dash */
 /** LI1c Bluff: the actor believed a bluff and hesitates (AT60) */
 export const bluffed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.bluff && m.made !== undefined && live(state, m));
 /** AT60: the hesitation is spent once waited out */
@@ -65,10 +64,11 @@ const blinded = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.per
 /** LR3 Blind Spot: the owner may Melt Away with no cover or shade while a foe's sight is spoiled by Dirt in the Eyes */
 export const blindSpotNow = (state: GameState, a: Actor): boolean =>
   hasPerk(a, PK.blind_spot) && allActors(state).some((x) => x !== a && isActive(x) && foe(state, x, a) && blinded(state, x));
+/** A6 Leg Bolt: slowed actors can't dash */
 export const slowed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.leg_bolt && live(state, m));
 
 /** a mark that runs out PERK_MARK_ROUNDS rounds from now (AT74) */
-export function markUntilNextTurn(state: GameState, a: Actor, perk: string): void {
+export function markForRounds(state: GameState, a: Actor, perk: string): void {
   add(a, { perk, made: state.turn });
 }
 
@@ -83,7 +83,7 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   if (setUp && used(MARK_SOURCE[PK.set_them_up], r.attack.tierShifts)) drop(A, (m) => m.perk === setUp.uses && m.target === D.id);
   // on the attempt, hit or miss; LR2 Combination: One-Two's free Strike leaves a +2 mark
   if (setUp && hasPerk(A, PK.set_them_up)) add(A, { perk: setUp.leaves, target: D.id, ...(oneTwo && hasPerk(A, PK.combination) ? { value: 2 } : {}) });
-  if (r.legBolt && hasPerk(A, PK.leg_bolt)) markUntilNextTurn(state, D, PK.leg_bolt);
+  if (r.legBolt && hasPerk(A, PK.leg_bolt)) markForRounds(state, D, PK.leg_bolt);
   const clean = r.gap !== null && r.gap >= 2;
   // A2 Turn the Blade: a clean parry made with a weapon (not barehanded)
   if (!ranged && clean && r.defenseType === 'parry' && hasPerk(D, PK.turn_the_blade) && parryItem(state, D)) add(D, { perk: PK.turn_the_blade, target: A.id });

@@ -3,7 +3,7 @@
 // of the exits that join it to zones already placed ("the north door" puts it north of the zone it leads from), touching
 // that zone's side. Zones up or down stairs sit straight above or below (height never moves a zone across the map).
 // Shape is a plain rectangle while CO2 (zone shape) is parked.
-import type { GameState, Rect, Side, Zone } from '../types';
+import { SIDE_STEP, type GameState, type Rect, type Side, type Zone } from '../types';
 import { CONFIG } from '../config';
 import { heightOf, verticalOf } from './heights';
 import { getLibrary } from '../library';
@@ -26,7 +26,6 @@ export function edgeToward(r: Rect, d: [number, number]): { x: number; y: number
   return k === Infinity ? { x: r.x, y: r.y } : { x: r.x + d[0] * k, y: r.y + d[1] * k };
 }
 
-const STEP: Record<Side, [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] };
 const sideOf = (d: [number, number]): Side => (Math.abs(d[0]) >= Math.abs(d[1]) ? (d[0] >= 0 ? 'e' : 'w') : d[1] >= 0 ? 'n' : 's');
 export const sameFloor = (a: Zone, b: Zone) => Math.abs(heightOf(a) - heightOf(b)) < CONFIG.STOREY_HEIGHT / 2;
 const overlaps = (a: Rect, b: Rect) => Math.abs(a.x - b.x) * 2 < a.w + b.w - 0.01 && Math.abs(a.y - b.y) * 2 < a.d + b.d - 0.01;
@@ -121,7 +120,7 @@ export function placeZones(state: GameState, zones: Zone[]): void {
   };
   /** spots touching `p` on `side`: centred, lined up with either end, then every whole-metre step along it */
   const along = (z: Zone, p: Rect, side: Side): Rect[] => {
-    const [sx, sy] = STEP[side];
+    const [sx, sy] = SIDE_STEP[side];
     const [w, d] = dims(z, sx ? 'ew' : 'ns');
     const base: Rect = { x: p.x + sx * (p.w + w) / 2, y: p.y + sy * (p.d + d) / 2, w, d };
     const room = sx ? (p.d + d) / 2 - 1 : (p.w + w) / 2 - 1; // still sharing at least 1 m of wall
@@ -170,7 +169,7 @@ export function placeZones(state: GameState, zones: Zone[]): void {
         if (!best) {
           // every touching spot is in the way: slide outward from the first side's centred spot until nothing on this
           // floor is
-          const side = dir ? sideOf(dir) : 'e', [sx, sy] = STEP[side];
+          const side = dir ? sideOf(dir) : 'e', [sx, sy] = SIDE_STEP[side];
           const r = along(z, p, side)[0];
           for (let k = 0; k < 100 && !free(z, r); k++) { r.x += sx * Math.ceil(r.w / 2); r.y += sy * Math.ceil(r.d / 2); }
           best = snap(r);

@@ -23,6 +23,7 @@ import { moveSpeed } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
+import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
@@ -58,6 +59,7 @@ import { shortShifts } from '../ruleset/requirements';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUsed } from '../ruleset/fatigue';
 import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
+import { inArmorSlot } from '../ruleset/slots';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 /** AS3: the word others see for someone's morale: a foe who surrendered shows Surrendered, a visible state like Broken */
@@ -244,9 +246,11 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
     // P3: in a dark zone someone is half seen, unless within clear sight and the viewer perceived them fully this scenario
     // (spoke face to face, say): then they stay seen
-    const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
-    const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
-    const level = sight === 'partial' || dark ? 'partial' : 'full';
+    // Q17/BG-252 (PG11 a): someone the player saw clearly (by distance, a look or a make-out roll) stays seen while they
+    // stay put and can still be glimpsed (sight is not null here); anyone made out by sight this turn is seen clearly
+    const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone || madeOutBySight(state, viewer.id, a.id);
+    const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
+    const level = keptSight ? 'full' : sight === 'partial' || dark ? 'partial' : 'full';
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
     const name = nameFor(state, viewer, a);
@@ -1045,7 +1049,7 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
   const { mode, weapon } = modeOf(state, attacker, r.weaponId, r.modeId);
   const nat = (n: number) => (n > 0 ? 'lucky' : n < 0 ? 'fumble' : null);
   const armor = r.location && r.location !== 'shield'
-    ? target.core.inventory.find((i) => i.equippedIn?.includes('armor') && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
+    ? target.core.inventory.find((i) => inArmorSlot(i) && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
     : undefined;
   const shield = r.location === 'shield' && r.shieldItemId ? target.core.inventory.find((i) => i.id === r.shieldItemId) : undefined;
   const partName = r.location === 'general' ? actorBody(state, target).general.name : r.location;

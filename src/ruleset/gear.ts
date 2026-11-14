@@ -130,7 +130,7 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
   return out;
 }
 
-/** ST21/ST22: a roll's situation tags: its skill's tags plus any an action adds (a Hide adds hide) */
+/** ST21/ST22: a roll's situation tags: its skill's tags plus any an action adds (a stash adds hide) */
 export const rollTags = (skill: string, add: SituationTag[] = []): SituationTag[] => [...new Set([...(getLibrary().skills[skill]?.tags ?? []), ...add])];
 /** the summed sign a situational table gives a roll's tags (+ helps the roll's owner) */
 export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number => tags.reduce((n, t) => n + (CONFIG.SITUATION_TAGS[table][t] ?? 0), 0);

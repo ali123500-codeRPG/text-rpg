@@ -1,5 +1,5 @@
-// 313 Race choice at creation (CC7 a, CC8 b): the player picks any playable race (RaceDef.playable: Human, Elf, Slime and
-// Dragon). The race sets the body type, the innate perks and the age range. A start whose class needs a skill the race's
+// 313 Race choice at creation (CC7 a): the player picks a playable race (RaceDef.playable: Human and Elf; Slime and Dragon
+// were playable under CC8 b, then taken off again). The race sets the body type, the innate perks and the age range. A start whose class needs a skill the race's
 // body can't learn can't begin; the recommended build moves points off closed skills; starter gear goes in the body's
 // own grips, and only a humanoid wears the starter armor.
 import { describe, expect, it } from 'vitest';
@@ -14,22 +14,21 @@ import { CL } from '../../src/library/classIds';
 const SWORD = 'ST_test_sword';
 
 describe('313 race choice at creation', () => {
-  it('every race is playable (CC8 b)', () => {
-    expect(playableRaces()).toEqual([RC.human, RC.elf, RC.slime, RC.dragon]);
+  it('Human and Elf are playable; Slime and Dragon are not (CC8 b reversed)', () => {
+    expect(playableRaces()).toEqual([RC.human, RC.elf]);
   });
 
   it('a build names its race; left out it is Human', () => {
     expect(createPlayer(recommendedBuild(), 's1').core.raceId).toBe(RC.human);
     const elf = createPlayer({ ...recommendedBuild(), raceId: RC.elf }, 's1');
     expect([elf.core.raceId, elf.core.bodyTypeId]).toEqual([RC.elf, BT.humanoid]);
-    const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1');
+    const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1', { preview: true }); // the body still follows the race
     expect([dragon.core.raceId, dragon.core.bodyTypeId]).toEqual([RC.dragon, BT.winged_quadruped]);
   });
 
   it('a race that is not playable is refused', () => {
-    getLibrary().races![RC.slime].playable = undefined;
-    try { expect(validateBuild(recommendedBuild(ST.late_bloomer, RC.slime))).toContain('Slime is not a race you can play'); }
-    finally { getLibrary().races![RC.slime].playable = true; }
+    expect(validateBuild(recommendedBuild(ST.late_bloomer, RC.slime))).toContain('Slime is not a race you can play');
+    expect(validateBuild(recommendedBuild(ST.late_bloomer, RC.dragon))).toContain('Dragon is not a race you can play');
   });
 
   it('every playable race has a valid recommended build for some start, and one for every start it can begin', () => {
@@ -45,13 +44,14 @@ describe('313 race choice at creation', () => {
     }
   });
 
-  it('a Slime can\'t begin in a class whose floors need hands (a stand-in Swordsman start)', () => {
+  it('a Slime can\'t begin in a class whose floors need hands (a stand-in Swordsman start, Slime made playable)', () => {
     getLibrary().starts[SWORD] = { id: SWORD, name: 'Test Swordsman', classId: CL.swordsman, level: 1 };
+    getLibrary().races![RC.slime].playable = true;
     try {
       expect(raceStartBlock(SWORD, RC.slime)).toMatch(/^a Slime can't learn .*Medium weapons.*, which Swordsman needs\.$/i);
       expect(raceStartBlock(SWORD, RC.human)).toBe('');
       expect(validateBuild(recommendedBuild(SWORD, RC.slime)).some((e) => e.startsWith("This start can't begin"))).toBe(true);
-    } finally { delete getLibrary().starts[SWORD]; }
+    } finally { delete getLibrary().starts[SWORD]; delete getLibrary().races![RC.slime].playable; }
   });
 
   it('starter gear goes in the body\'s own grips; only a humanoid wears the starter armor', () => {
@@ -59,9 +59,9 @@ describe('313 race choice at creation', () => {
     expect(human.flatMap((i) => i.equippedIn!).sort()).toEqual(['armor', 'grip:right_arm', 'pack']);
     const b = recommendedBuild(); b.skills[SK.block] = 25; b.skills[SK.earshot] -= 5; b.skills[SK.eyesight] -= 5; b.skills[SK.dodge] -= 10; b.skills[SK.endurance] -= 5; // a shield is met
     expect(createPlayer(b, 's1').core.inventory.flatMap((i) => i.equippedIn ?? []).sort()).toEqual(['armor', 'grip:left_arm', 'grip:right_arm', 'pack']);
-    const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1').core.inventory.filter((i) => i.equippedIn);
+    const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1', { preview: true }).core.inventory.filter((i) => i.equippedIn);
     expect(dragon.flatMap((i) => i.equippedIn!).sort()).toEqual(['grip:head', 'pack']); // jaws hold the weapon; no shield, no armor
-    const slime = createPlayer(recommendedBuild(ST.late_bloomer, RC.slime), 's1').core.inventory.filter((i) => i.equippedIn);
+    const slime = createPlayer(recommendedBuild(ST.late_bloomer, RC.slime), 's1', { preview: true }).core.inventory.filter((i) => i.equippedIn);
     expect(slime.flatMap((i) => i.equippedIn!)).toEqual(['pack']);
   });
 

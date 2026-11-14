@@ -30,6 +30,7 @@ import { augmentK, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
+import { wornArmor } from './slots';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, burdenParts, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
@@ -325,8 +326,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze
-  const wornArmor = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
-  const armor = wornArmor ? itemDef(state, wornArmor.itemId).armor : undefined;
+  const worn = wornArmor(D.core.inventory);
+  const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
   if (type === 'dodge' && armor?.weight === 'light' && hasPerk(D, PK.slip_the_blow) && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
@@ -439,7 +440,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   const hp = totalHp(state, T);
   const levelBefore = healthLevel(T);
   // armor pool on the struck part drains first; it never counts on the health track
-  const worn = T.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(T.core.inventory);
   const poolPts = worn ? itemDef(state, worn.itemId).armor?.pools?.[result.location] : undefined;
   if (worn && poolPts) {
     const left = ((worn.pools?.[result.location] ?? 100) / 100) * poolPts;

@@ -14,7 +14,6 @@ type Row = {
 
 const ROWS: Record<string, Row> = {
   attack: { need: 'weapon', who: 'both' },
-  hide: { need: 'none', who: 'both' },
   sneak: { need: 'none', who: 'both' },
   vanish: { need: 'none', who: 'both' },
   search: { need: 'none', who: 'both' },

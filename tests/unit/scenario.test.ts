@@ -154,7 +154,7 @@ describe('validateStagePlan', () => {
     const p = villageStagePlan();
     p.places[0].parent = null as unknown as string;
     p.seeds.plans.push({ ownerId: 'barkeep', goal: 'hide the kegs', steps: undefined as unknown as string[], createdTurn: 0,
-      triggers: [{ id: 't1', when: { type: 'turn_reached', turn: 3 }, then: { type: 'hide', target: null, skill: null, intent: 'hide' } } as never] });
+      triggers: [{ id: 't1', when: { type: 'turn_reached', turn: 3 }, then: { type: 'sneak', target: null, skill: null, intent: 'hide' } } as never] });
     expect(validateStagePlan(fresh(), p, ctx)).toEqual([]);
     const pl = p.seeds.plans.at(-1)!;
     expect(pl.steps).toEqual([]);

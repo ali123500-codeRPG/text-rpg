@@ -1,4 +1,4 @@
-// 117 Stealth tree (ST1–ST10; spec tests 3, 18 and 42): hide and sneak are stealth contests per observer.
+// 117 Stealth tree (ST1–ST10; spec tests 3, 18 and 42): a sneak is a stealth contest per observer.
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
 import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -14,7 +14,7 @@ import { IT } from '../../src/library/itemIds';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
-  action: action ? { type: 'hide', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
+  action: action ? { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
 });
 const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const status = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!.mind!.knowledge.player?.status ?? 'unaware';
@@ -55,12 +55,12 @@ describe('117 stealth', () => {
     expect(b1.lastKnownZone).toBe('gate_inner');
     expect(['aware', 'tracking']).toContain(status(s, 'guard_2'));
   });
-  it('a hide never rolls against someone who already sees you (ST12)', () => {
+  it('a sneak never rolls against someone who already sees you (ST12)', () => {
     const s = makeVillage();
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
     const calls = rig({ guard_1: -1 });
-    turn(s, intent(null, { type: 'hide' }));
+    turn(s, intent(null, { type: 'sneak' }));
     expect(calls.some(([, b]) => b.actorId === 'guard_1')).toBe(false);
     expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
   });
@@ -126,30 +126,30 @@ describe('117 stealth', () => {
     expect(s.player.posture).toBe('stealthy');
     expect(calls.some(([a, b]) => a.skill === SK.combat_stealth && b.actorId === 'slime_1')).toBe(true);
   });
-  it('darkness helps both rolls and cover helps a hide; a hide ignores leg wounds (ST6, ST10)', () => {
+  it('darkness and cover help a sneak; it feels leg wounds (ST6, ST10, HA1)', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_cellar');
     place(s, 'trader', 'tav_cellar');
     s.player.core.condition.parts.left_leg = -30;
     const calls = rig();
-    turn(s, intent(null, { type: 'hide' }));
+    turn(s, intent(null, { type: 'sneak' }));
     const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe(SK.sneaking);
     // P14: darkness gives no help against a listener
     expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 10 }] : []);
     expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
-    expect(a.roles).toEqual([]);
+    expect(a.roles).toBeUndefined();
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
     expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
   });
-  it('tags decide the tables (ST21): a sneak gets no cover, a vanish does (Vanishing has the hide tag)', () => {
+  it('tags decide the tables (ST21, HA1): a sneak and a vanish both get cover (both have the hide tag)', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_counter');
     place(s, 'trader', 'tav_cellar');
     s.player.posture = 'stealthy';
     const calls = rig();
     turn(s, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
-    expect(calls.find(([, b]) => b.actorId === 'trader')![0].tierShifts).toEqual([]);
+    expect(calls.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.sneaking, tierShifts: [{ source: 'cover', value: 1 }] });
     const v = makeVillage();
     place(v, 'player', 'tav_counter');
     place(v, 'trader', 'tav_cellar');

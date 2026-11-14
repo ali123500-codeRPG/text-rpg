@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-252
+
+**What was wrong:** After the make-out roll (PR #840) succeeded, the story named the person, but Who's here, the Narrator's list of people present and name learning still showed them as "someone": all three come from one function (seenActors) that went by distance alone. The Narrator was told both that the event's actor was "a village guard" and that the same person was an unknown "someone". The "stays put" rule (Q17) only reached 25 m and, in Who's here, only dark rooms.
+
+**What was done:** Ali approved the fix (PG11 a). The turn's make-out results live in src/perception/madeOut.ts; seenActors counts anyone the viewer made out by sight this turn as seen clearly, for the player and NPCs alike. The player keeps anyone seen clearly named while they stay put and can still be glimpsed (stillGlimpsed in src/perception/sight.ts), the same rule in event perception and in Who's here, in light and dark.
+
+**Fixed by:** [PR #854](https://github.com/ali123500-codeRPG/text-rpg/pull/854)
+
 ## BG-251
 
 **What was wrong:** Ali asked whether shots make noise where they land: they didn't. A shot or throw was heard and seen only where the shooter stood, at conversation loudness, so people where it landed never learned they were under attack, and a missed target still "felt" the miss.
