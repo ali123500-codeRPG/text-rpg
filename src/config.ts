@@ -247,10 +247,16 @@ const DEFAULTS = {
   NERVE_BEYOND_STEP: 50,
   /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
   PERSONALITY_LEAN: 20,
-  /** the Ideas panel: a held value pulls toward its ideas by this many points, as a trait would */
+  /** the action deck: a held value pulls toward its actions by this many points, as a trait would */
   IDEA_VALUE_PULL: 50,
-  /** the Ideas panel: an idea the character is pulled away from by this many points or more says "against your nature" */
+  /** the action deck: an action the character is pulled away from by this many points or more says "against your nature" */
   IDEA_AGAINST_NATURE: 50,
+  /** AD9 the suggested action: base score of each kind of suggestion (higher wins); leanShare: points per point of the
+   * character's pull toward it; healInFight: taken off treating wounds while a fight runs. [placeholder] */
+  SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
+  /** AD9: the morale level from which steadying is suggested in a fight, and the health level from which treating wounds is */
+  SUGGEST_STEADY_FROM: 'rattled' as import('./scales').MoraleLevel,
+  SUGGEST_HEAL_FROM: 'hurt' as import('./scales').HealthLevelKey,
   /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
   TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
   /** archetype gap: the six axes and Nerve count 1 each, the drive fit counts this many times */
@@ -630,6 +636,12 @@ const DEFAULTS = {
   ARMOR_SPEED: { light: { flat: 0, pct: 0 }, medium: { flat: 0.1, pct: 0.05 }, heavy: { flat: 0.2, pct: 0.15 } } as Record<string, { flat: number; pct: number }>,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
+  /** AD8/AD9 the play screen's minimap: how many metres across it shows at first, the widths its zoom steps through
+   * (closest first; the widest also bounds the reach ring, past it the ring is a note), and the nearest point a click
+   * plans a move to (closer is where you stand) */
+  MINIMAP_VIEW_M: 25,
+  MINIMAP_ZOOM_M: [10, 15, 25, 40, 60, 100],
+  MINIMAP_MIN_M: 0.5,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   // ---- land first (WZ1-WZ12): a region's land, drawn once by code (src/land); placeholders unless a source is given ----

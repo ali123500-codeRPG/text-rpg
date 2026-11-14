@@ -1,9 +1,9 @@
 // Playtest runs 101, 77h and 79b: nothing warned the player as morale fell, nothing said Broken stops attacks or for how
-// long, and nothing said what still works. The sheet's stakes line, the Ideas panel and the turn log say it now.
+// long, and nothing said what still works. The sheet's stakes line, the action deck and the turn log say it now.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { buildPlayerView } from '../../src/views';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 import { moraleHint } from '../../src/ui/charsheet';
 import { CONFIG } from '../../src/config';
 import { MORALE_LEVELS } from '../../src/scales';
@@ -19,14 +19,14 @@ describe('morale stakes and a broken nerve on the play screen', () => {
     expect(moraleHint('broken')).toContain('You can still talk, beg, yield, give, hide'); // BF37
   });
 
-  it('with a broken nerve, Ideas trades Fight for a yield; no Flee (BF37)', () => {
+  it('with a broken nerve, the deck trades Fight and Move for a yield and a sneak; no Flee (BF37)', () => {
     const s = makeVillage();
     const pv = buildPlayerView(s);
-    expect(ideas(pv).some((g) => g.group === 'Fight')).toBe(true);
-    const out = ideas(pv, true);
-    expect(out.some((g) => g.group === 'Fight')).toBe(false);
-    const away = out.find((g) => g.group.startsWith('Your nerve is broken'))!;
-    expect(away.items.map((i) => i.text)).toEqual(['Yield', 'Sneak']);
-    expect(away.items.some((i) => /^Attack /.test(i.text))).toBe(false);
+    expect(deck({ pv, s }).some((g) => g.group === 'fight')).toBe(true);
+    const out = deck({ pv, s, broken: true });
+    expect(out.some((g) => g.group === 'fight' || g.group === 'move')).toBe(false);
+    expect(out[0].name).toMatch(/^Your nerve is broken/);
+    expect(out[0].actions.map((a) => a.kind)).toEqual(['yield', 'sneak']);
+    expect(out.flatMap((g) => g.actions).some((a) => a.kind === 'attack')).toBe(false);
   });
 });

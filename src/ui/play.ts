@@ -1,11 +1,10 @@
-// Play screen, layout A "Book with a status strip" (play screen review, UI1–UI8): one reading column with each turn's
-// results under its prose, a fixed who's-here row, the input and its tool row at the foot of the column, and a narrow
-// status strip that opens the full sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
+// Play screen (UI1–UI8, then the action deck AD1–AD16): one reading column with each turn's results under its prose and the
+// action deck at its foot (the suggested action, the Say box, Aim and Stance, every action the code allows); a right column
+// with the health strip (a click opens the full condition), the minimap, Who's here and the short sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
 import { outcomeText, struck } from '../ruleset/hits';
 import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, Personality, PlayerView, ScenarioEndNote } from '../types';
-import { leanIdeas, type IdeaGroup, type IdeaKind } from './ideaLeans';
 import { personalityOf } from '../ruleset/personality';
 import { CONFIG } from '../config';
 import { buildPlayerView, distText, questGoalText } from '../views';
@@ -22,10 +21,10 @@ import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
 import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize } from './kit';
 import { perkSeries } from './perks';
-import { stealthBadge, stealthButtons } from './stealth';
+import { stealthBadge } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
@@ -35,7 +34,8 @@ import { arrive, bar as barMove, count, delta, finishAll, flare, impact, moving,
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
-import { lootCount, lootSources, openLoot } from './loot';
+import { deckView, walkOrder, type SayMode } from './deckView';
+import { minimapPanel } from './minimap';
 import { instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
@@ -159,72 +159,6 @@ export function answerWith(order: string, phrase: string, pv: PlayerView): strin
 }
 const NAME_FILLER = new Set(['the', 'and', 'with', 'from', 'one', 'who', 'his', 'her', 'its', 'room', 'side']);
 
-// AE8: how Ideas offers each perk move against someone in view
-const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
-  [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
-  [PK.bluff]: { text: (who) => `Bluff ${who}: "Behind you!"`, note: 'Bluff · free, once per foe a fight' },
-};
-/** perk moves aimed at no one: one idea each */
-const PERK_SOLO_IDEA: Record<string, { text: string; note: string }> = {
-  [PK.battle_cry]: { text: 'Let out a battle cry', note: 'Battle Cry · your action, once a fight' },
-};
-
-/** an idea's short label as the player would type it: "Talk to Tam" fills the box as "I talk to Tam" (ideas start with a verb) */
-export const asI = (label: string) => `I ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
-
-/** the same name twice in one list reads as "the other …" from its second time on */
-function apart(names: string[]): string[] {
-  const seen = new Set<string>();
-  return names.map((n) => { const k = n.toLowerCase(); if (!seen.has(k)) { seen.add(k); return n; } return `the other ${n.replace(/^(a|an|the)\s+/i, '')}`; });
-}
-
-/** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Fight and Talk list
- * everyone in view; the other groups show three. */
-export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: Personality): { group: string; items: { text: string; note?: string }[] }[] {
-  const people = pv.actors.filter((a) => a.level === 'full' && !(a.health && isDownLevel(a.health)));
-  const names = apart(people.map((a) => a.name ?? a.label));
-  const held = pv.player.inventory.filter((i) => isHeld(i) && i.kind === 'weapon');
-  const stowed = pv.player.inventory.filter((i) => !i.equippedIn.length && i.kind === 'weapon');
-  const [heldN, stowedN, groundN] = [apart(held.map((i) => i.name)), apart(stowed.map((i) => i.name)), apart(pv.zone.groundItems.map((i) => i.name))];
-  const the = (n: string) => (n.startsWith('the other ') ? n : `the ${n}`);
-  const groups: { group: string; key: IdeaGroup; items: { text: string; note?: string; kind?: IdeaKind }[]; all?: true }[] = [
-    // MB12/BF37: with a broken nerve no walk and no attack can come (fleeing too, for now): you cower, and words still work
-    broken ? { group: 'Your nerve is broken · you cower', key: 'getaway', items: [{ text: 'Yield', note: 'ends the fight if they take it', kind: 'yield' },
-      { text: 'Sneak', note: 'free', kind: 'sneak' }], all: true }
-      : { group: 'Fight', key: 'fight', items: [...people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health), kind: 'attack' as const })),
-        // SY1: in a fight, above Broken and not within its cooldown: one morale roll as your action
-        ...(canSteady ? [{ text: 'Steady yourself', note: 'your action · a morale roll', kind: 'steady' as const }] : [])], all: true },
-    // TF13/TF17/TF10/TF11: in a fight, ways to talk a foe out of it (a hurt or frightened foe gives in more easily)
-    { group: 'Talk', key: 'talk', items: [
-      ...(pv.player.standDownOffers ?? []).map((o) => ({ text: `Take ${o.name}'s offer to stop`, note: 'ends your fight with them', kind: 'talk' as const })),
-      ...people.flatMap((a, i) => [...(a.talkDown ? [
-        { text: `Talk ${names[i]} down`, note: 'your action · Persuasion; easier once they are hurt or scared', kind: 'talk' as const },
-        { text: `Lie to ${names[i]} to end it`, note: 'your action · Lying against their Insight', kind: 'talk' as const },
-        { text: `Pay ${names[i]} to stop`, note: 'your action · Barter; name the coin, paid if they agree', kind: 'talk' as const },
-      ] : [{ text: `Talk to ${names[i]}`, kind: 'talk' as const }]),
-        // TF19: a surrender asks more than a stand-down, and counts as beating them
-        ...(a.demandYield ? [{ text: `Demand ${names[i]} surrender`, note: 'your action · Persuasion; needs a bigger win; easier once they are hurt, scared, broken or crippled', kind: 'talk' as const }] : [])])], all: true },
-    { group: 'Move', key: 'move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined, kind: l.frontier ? 'go_new' as const : 'go' as const })) },
-    // ST3: sneaking is free; ST13: a Vanish slips away by a link, out of sight of those who see you
-    { group: 'Stealth', key: 'stealth', items: [
-      ...(pv.player.posture === 'stealthy'
-        ? pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Sneak ${l.label}`, kind: 'sneak' as const }))
-        : [{ text: 'Sneak', note: 'free', kind: 'sneak' as const }]),
-      ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Vanish ${l.label}`, note: 'breaks sight', kind: 'vanish' as const }))] },
-    { group: 'Use', key: 'use', items: [
-      // BF34: something held out to you is yours once you take it
-      ...people.flatMap((a, i) => (a.holdsOut ? [{ text: `Take ${the(a.holdsOut.name)} from ${names[i]}`, note: 'held out to you', kind: 'pick_up' as const }] : [])),
-      ...heldN.map((n) => ({ text: `Stow ${the(n)}`, note: 'free', kind: 'stow' as const })), ...stowedN.map((n) => ({ text: `Draw ${the(n)}`, note: 'free', kind: 'draw' as const })),
-      ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free', kind: 'pick_up' as const })), ...(pv.player.summonable ?? []).map((x) => ({ text: `Summon ${x.name}`, note: 'free', kind: 'summon' as const })),
-      { text: 'Look around', kind: 'look' }, { text: 'Search', note: 'your action', kind: 'search' }] },
-    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', key: 'perks' as const, items: pv.player.perkMoves.flatMap(({ id: p, inRange }) => PERK_SOLO_IDEA[p] ? [PERK_SOLO_IDEA[p]] : PERK_IDEA[p]
-      ? people.filter((a) => inRange?.includes(a.id)).map((a) => ({ text: PERK_IDEA[p].text(names[people.indexOf(a)]), note: PERK_IDEA[p].note })) : []) }] : []),
-  ];
-  // the plain cut first (three ideas a group unless all are listed), then the character's leanings order what is shown
-  return leanIdeas(groups.map((g) => ({ ...g, items: g.all ? g.items : g.items.slice(0, 3) })), self)
-    .map((g) => ({ group: g.group, items: g.items.map(({ text, note }) => (note ? { text, note } : { text })) }));
-}
-
 /** where you are for the Play heading: here is the zone ("Common room"), where the place it sits in ("the Crooked Kettle"); the place is left out when it only repeats the zone's name */
 function placeHead(s: GameState, pv: PlayerView | null): { here: string; where: string } {
   const place = s.places.find((x) => x.id === s.player.placeId);
@@ -276,7 +210,6 @@ export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
 export const NAV_COMMANDS: Record<string, string> = { '/stats': 'stats', '/inv': 'inv', '/quests': 'quests', '/achievements': 'achievements' };
 
 export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
-  let aimed = false;
   let confirmReset = false;
   // the fall: the story shakes and drains for a moment before "You fell" slams in (only when it happens in play, not on load)
   let wasFallen: boolean | null = null, dyingUntil = 0, fellKey = '';
@@ -287,29 +220,39 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // SD1: while a turn that ended a scenario is still running, the ending's rule is drawn here, under the player's line
   const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, waiting));
   const notices = h('div', { class: 'notices' });
-  const aimBtn = h('button', { type: 'button', class: 'aim' });
-  const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'What do you do', 'aria-describedby': 'cmd-hint' });
-  const PLACEHOLDER = 'What do you do? A line starting with / is a command (/help)';
+  const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'Say or type what you do', 'aria-describedby': 'cmd-hint' });
+  const PLACEHOLDER = 'What do you do or say? A line starting with / is a command (/help)';
   const hint = h('p', { class: 'hs-note in-hint', id: 'cmd-hint' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
-  const healBtn = h('button', { type: 'button', class: 'itm' });
-  // what can be taken here (a body that is down, an open chest, the ground): opens the loot pop-up, which types the order
-  const lootBtn = h('button', { type: 'button', class: 'itm loot-btn', 'data-chip': 'loot', title: 'See what you can take here and pick what to pocket' });
-  let open: 'commands' | 'ideas' | null = null;
+  // AD5: the quick heal slot sits on the health strip; a click treats your wounds with it at once (AD7)
+  const healBtn = h('button', { type: 'button', class: 'itm heal-slot' });
+  let open: 'commands' | null = null;
   let suggestion = ''; // Q16: what the player put off last turn, offered in the box until used or cleared
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
-  const st = stealthButtons(pick);
-  const helpBtn = (id: 'commands' | 'ideas', label: string) => h('button', { type: 'button', onclick: () => { open = open === id ? null : id; update(); } }, label);
-  const cmdBtn = helpBtn('commands', 'Commands'), ideaBtn = helpBtn('ideas', 'Ideas');
+  const cmdBtn = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { open = open ? null : 'commands'; update(); } }, 'Commands');
   // BG-190: the last order that played out (a clarify or a command doesn't count), offered back to carry on with it
-  const againBtn = h('button', { type: 'button', class: 'itm', 'data-chip': 'again', onclick: () => { const o = lastOrder(api.lines()); if (o) pick(o); } }, 'Same again');
+  const againBtn = h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'again', onclick: () => { const o = lastOrder(api.lines()); if (o) pick(o); } }, 'Same again');
   const helpPanel = h('div', { class: 'helps', hidden: true });
-  // MB12/BF37: while the player's nerve is broken, Yield comes forward and Aim steps back (no attack can come); no Flee, for now
-  const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
-  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.vanish, lootBtn, healBtn));
-  const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the chips
+  // AD1/AD5/AD7: the action deck; an action that needs your words (persuade, lie, threaten…) waits for the Say box
+  let sayFor: SayMode | null = null;
+  const sayChip = h('button', { type: 'button', class: 'say-for', hidden: true, title: 'Stop and type freely again', onclick: () => dk.cancelSay() });
+  const dk = deckView(api, {
+    planned: () => mm.planned(), clearPlan: () => mm.clear(),
+    before: () => { closeGains(true); finishAll(); open = null; input.value = ''; suggestion = ''; },
+    sayMode: (m) => { sayFor = m; update(); if (m) input.focus(); },
+  });
+  dk.mods.append(h('span', { class: 'dk-links' }, againBtn, cmdBtn));
+  // AD12/AD15: the minimap; a click plans a move that the next action takes along, Enter, Just go or a double-click walks there
+  const mm = minimapPanel(api, {
+    onPlan: () => update(),
+    onWalk: (p) => { if (api.busy() || inputOff()) return; closeGains(true); finishAll(); mm.clear(); void api.act(walkOrder(p), { aimed: false }); },
+    onPerson: (id, r) => dk.personMenu(id, r),
+    onOpenMap: () => nav('map'),
+  });
+  const inputOff = () => input.disabled;
+  const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the deck
   let doingHtml = '';
-  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, doingSlot, tools);
+  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, doingSlot, dk.sugEl, h('div', { class: 'inrow' }, sayChip, input, send), hint, dk.el);
   const fell = h('div', { class: 'fell', hidden: true });
   const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
   const nerveEdge = h('div', { class: 'm-edge nerve', 'aria-hidden': 'true' }); // MW1: the violet edge as the nerve gives
@@ -317,59 +260,50 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // D-226 (M-39): the scenario-end gains panel, over the story while it is open; the action box below stays usable (M-13)
   let gainsVeil: HTMLElement | null = null, afterGains: (() => void) | null = null;
   const title = h('div', { class: 'head' });
-  const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
-  // pointing at (or tabbing to) someone shows how far they are at once; one floating tip, outside the row that clips
-  const whoTip = h('div', { class: 'who-tip', role: 'tooltip', hidden: true });
-  document.body.append(whoTip);
-  const showWhoTip = (e: Event) => {
-    const t = (e.target as Element).closest?.('.pp[data-dist]') as HTMLElement | null;
-    if (!t || !t.dataset.dist) { whoTip.hidden = true; return; }
-    const r = boxOf(t);
-    whoTip.textContent = cap(t.dataset.dist);
-    whoTip.hidden = false;
-    whoTip.style.top = `${r.bottom + 6}px`;
-    whoTip.style.left = `${Math.max(8, Math.min(viewSize().w - whoTip.offsetWidth - 8, r.left + r.width / 2 - whoTip.offsetWidth / 2))}px`;
-  };
-  const hideWhoTip = () => { whoTip.hidden = true; };
-  who.addEventListener('pointerover', showWhoTip); who.addEventListener('focusin', showWhoTip);
-  who.addEventListener('pointerleave', hideWhoTip); who.addEventListener('focusout', hideWhoTip);
-  // layout A with the full sheet open by default at every width, so the screen is always filled (the player can still fold
-  // it). Wide and narrow screens each keep their own choice.
-  const WIDE = '(min-width: 1280px)';
-  const wide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
-  const foldKey = () => (wide() ? 'sheetFoldedWide' : 'sheetFoldedNarrow');
-  const readFolded = () => { try { return localStorage.getItem(foldKey()) === '1'; } catch { return false; } };
-  let folded = readFolded();
-  if (typeof matchMedia === 'function') matchMedia(WIDE).addEventListener?.('change', () => { folded = readFolded(); if (el.isConnected) update(); });
+  // AD4/AD14: Who's here in the right column, one row each, hostile first; pinned ones stay on top; a click lists what you
+  // can do to or with them. Pins are this browser's convenience only.
+  const who = h('div', { class: 'who', role: 'list', 'aria-label': 'Who’s here' });
+  const PINS = 'whoPins';
+  const pins = new Set<string>(((): string[] => { try { return JSON.parse(localStorage.getItem(PINS) ?? '[]'); } catch { return []; } })());
+  who.addEventListener('click', (e) => {
+    const t = e.target as Element, row = t.closest<HTMLElement>('.pp[data-id]');
+    if (!row) return;
+    if (t.closest('.pin')) {
+      const id = row.dataset.id!;
+      if (pins.has(id)) pins.delete(id); else pins.add(id);
+      try { localStorage.setItem(PINS, JSON.stringify([...pins])); } catch { /* not kept */ }
+      update();
+      return;
+    }
+    dk.personMenu(row.dataset.id!, row);
+  });
+  who.addEventListener('keydown', (e) => { const row = (e.target as Element).closest<HTMLElement>('.pp[data-id]'); if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); dk.personMenu(row.dataset.id!, row); } });
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
-  const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
-  dragScroll(sheet); // no scrollbar: the wheel or a mouse drag scrolls the sheet
-  const wrap = h('div', { class: 'play-wrap' }, body, sheet);
+  // AD2: the health strip, folded; a click opens the whole condition (bars, body figure) in a pop-up
+  const strip = h('button', { type: 'button', class: 'cs-strip', 'aria-haspopup': 'dialog', title: 'Open your health, nerve and body' });
+  strip.addEventListener('click', () => {
+    const st = api.state();
+    if (!st || moving()) return;
+    const last = [...api.lines()].reverse().find((l) => l.kind === 'narration');
+    openPop({ title: 'Your condition', opener: strip, cls: 'vitals-pop', body: [...condition(st, last), quickHeal(st, st.player) ? h('button', { type: 'button', class: 'hs-btn-main', disabled: inputOff(), onclick: () => { closePop(); healNow(strip); } }, 'Treat your wounds') : ''] });
+  });
+  const condition = (st: GameState, last?: LogLine) => sideSheet(st, st.player, last, changedParts).filter((x) => !x.classList.contains('cs-mini') && !x.classList.contains('cs-xp') && !x.querySelector('[data-m="coin"]') && !x.querySelector('.cs-hw'));
+  const healNow = (opener: HTMLElement) => { const st = api.state(), qh = st && quickHeal(st, st.player); const inst = qh && st.player.core.inventory.find((i) => i.itemId === qh.itemId); if (inst) dk.runKind('use_item', { item: inst.id, target: '' }, opener); };
+  healBtn.onclick = () => healNow(healBtn);
+  const vitals = h('div', { class: 'vitals' }, strip, healBtn);
+  const shortEl = h('div', { class: 'short' });
+  const sheetLink = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => nav('stats') }, 'Skills and full sheet ›');
+  const whoBox = h('section', { class: 'here', 'aria-label': 'Who’s here' }, h('p', { class: 'hs-label' }, 'Who’s here'), who);
+  const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Your character and surroundings' }, vitals, mm.el, whoBox, h('div', { class: 'short-wrap' }, shortEl, sheetLink));
+  const wrap = h('div', { class: 'play-wrap sheet-open' }, body, sheet);
   // Watch an agent play: it types each command into the box, then sends it like Send
   const auto = autopilotBar(api, async (text) => {
     input.value = '';
     for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
     await submit(true);
   }, () => update());
-  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell, edge, nerveEdge);
-  /** Who's here sits in the header line, between the place and the switches, while everyone fits there; a crowd drops it
-   *  to its own row under the header. It moves only when that changes, so its beats are never restarted. */
-  function placeWho() {
-    if (!el.isConnected) return;
-    const text = title.firstElementChild, tools = title.querySelector('.title-tools');
-    const kids = Array.from(who.children);
-    if (!text || !tools || !kids.length) return;
-    const need = kids.at(-1)!.getBoundingClientRect().right - kids[0].getBoundingClientRect().left;
-    const t = text.getBoundingClientRect(), tl = tools.getBoundingClientRect();
-    const gap = parseFloat(getComputedStyle(title).columnGap) || 0;
-    const oneLine = Math.abs(tl.top - t.top) < 2; // the switches haven't wrapped under the title
-    const room = tl.left - t.right - 2 * gap;
-    const fits = oneLine && need <= room;
-    if (fits && (who.parentElement !== title || who.nextElementSibling !== tools)) { who.classList.add('inline'); title.insertBefore(who, tools); }
-    else if (!fits && who.parentElement !== el) { who.classList.remove('inline'); el.insertBefore(who, auto.el); }
-  }
-  if (typeof ResizeObserver === 'function') new ResizeObserver(() => placeWho()).observe(el);
+  const el = h('main', { class: 'playmain' }, title, auto.el, wrap, fell, edge, nerveEdge);
   // M-12: a click on the story finishes everything still moving
   story.addEventListener('click', () => { if (moving()) finishAll(); });
 
@@ -380,6 +314,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (e.key === 'Escape' && gainsVeil) { closeGains(); return; }
     if (e.key === 'Escape') {
       if (dealsOpen || open) { dealsOpen = false; open = null; update(); }
+      else if (sayFor) dk.cancelSay();
+      else if (mm.planned()) { mm.clear(); update(); } // AD12: Esc drops the planned move
       else if (suggestion && document.activeElement === input && !input.value) { suggestion = ''; update(); }
     }
     if ((e.key === 'PageUp' || e.key === 'PageDown') && document.activeElement === input) {
@@ -405,6 +341,11 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const text = input.value.trim();
     // the gains panel: Enter in an empty box first lands every gain, then closes it (M-12)
     if (!text && gainsVeil && !byAgent) { if (moving()) finishAll(); else closeGains(); return; }
+    // AD12: Enter in an empty box walks to the move planned on the minimap
+    const planned = mm.planned();
+    if (!text && planned && !byAgent) { mm.clear(); if (!api.busy() && !inputOff()) { finishAll(); await api.act(walkOrder(planned), { aimed: false }); } return; }
+    // an action waiting for words (persuade, lie, threaten…) takes the Say box's line and plays at once (AD7)
+    if (text && sayFor && !text.startsWith('/') && !byAgent && !api.busy() && !inputOff()) { if (dk.sendWords(text)) return; }
     if (!text || api.busy() || (auto.playing() && !byAgent && !auto.asking())) return;
     if (!byAgent && auto.asking() && !text.startsWith('/')) auto.playedTurn(); // GA15: a turn you play yourself answers the agent's question
     closeGains(true); // sending closes the gains panel at once,
@@ -413,12 +354,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     open = null;
     // the agent's /inv, /stats or /quests is answered in the story, never by taking the watcher to another page
     if (NAV_COMMANDS[cmd] && text === cmd && !byAgent) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
-    if (cmd === '/aim' && text === cmd) { aimed = !aimed; input.value = ''; update(); return; }
+    if (cmd === '/aim' && text === cmd) { dk.toggleAim(); input.value = ''; update(); return; }
     input.value = '';
     suggestion = '';
-    const wasAimed = aimed || cmd === '/aim';
-    aimed = false; // resets after the turn resolves
-    await api.submit(text, { aimed: wasAimed });
+    await api.submit(text, { aimed: dk.aimOn() || cmd === '/aim' }); // AD5: Aim stays on until you turn it off
   }
 
   /** opens the Character page with its Perks board up */
@@ -682,30 +621,39 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
 
-    // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
-    const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
-    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label), tabindex: '0', 'data-dist': [whoDistance(a, pv!), a.age ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ') }, // pointing shows how far they are and if your weapon reaches; AG16: the life stage they look
+    // who's here: one row each; only actors the character fully perceives (PlayerView); others' health from Wounded down.
+    // AD4: pinned first, then those fighting you, then the rest; the list scrolls when it is long
+    const foe = (a: PlayerView['actors'][number]) => !!(a.talkDown || a.demandYield || pv?.player.spar?.opponents.includes(a.name ?? a.label));
+    const rank = (a: PlayerView['actors'][number]) => (pins.has(a.id) ? 0 : foe(a) ? 1 : a.health && isDownLevel(a.health) ? 3 : 2);
+    const seen = (pv?.actors.filter((a) => a.level === 'full') ?? []).map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
+    const whoKids = seen.length ? seen.map((a) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: 'What you can do to or with them' },
+      h('span', { class: 'dot', 'aria-hidden': 'true' }),
       h('b', {}, cap(a.name ?? a.label)), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
-      a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
-        : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
-      // AT11a: a long action they are at, and how long is left
-      a.doing ? doingChip(a.doing) : null,
-      // MB16: others' morale, only from Afraid down
-      a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
-      // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
-      a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
-      // A13 Read Wounds: a foe's Damaged parts
-      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')])];
+      h('span', { class: 'ds' }, [whoDistance(a, pv!), a.age ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ')), // how far, if your weapon reaches; AG16: the life stage they look
+      h('button', { type: 'button', class: 'pin', 'aria-pressed': String(pins.has(a.id)), title: pins.has(a.id) ? 'Unpin' : 'Pin to the top', 'aria-label': `${pins.has(a.id) ? 'Unpin' : 'Pin'} ${cap(a.name ?? a.label)}` }, pins.has(a.id) ? '★' : '☆'),
+      h('span', { class: 'sts' },
+        a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
+          : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
+        // AT11a: a long action they are at, and how long is left
+        a.doing ? doingChip(a.doing) : null,
+        // MB16: others' morale, only from Afraid down
+        a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
+        // FT17: others' fatigue, only from Exhausted down, as the level word (never points or the breath line)
+        a.fatigue ? h('span', { class: 'st tired', 'data-st': 'fatigue', title: 'How worn out they look' }, a.fatigue) : null,
+        // A13 Read Wounds: a foe's Damaged parts
+        ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`))))) : [h('p', { class: 'hs-note' }, 'Nobody in view')];
     // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
     const whoNow = whoKids.map((k) => k.outerHTML).join('');
     if (!frozen && whoNow !== whoHtml) { who.replaceChildren(...whoKids); whoHtml = whoNow; }
-    placeWho();
 
     // Q16: what the player put off last turn is offered as a dimmed suggestion; nothing is typed or sent until they take it
     const nextLine = lines.at(-1);
     if (nextLine?.next && nextLine !== offered && !api.busy()) { suggestion = nextLine.next; offered = nextLine; }
-    const offering = !!suggestion && !input.value;
-    input.placeholder = offering ? suggestion : PLACEHOLDER;
+    const offering = !!suggestion && !input.value && !sayFor;
+    // an action waiting for words names who they are for, in a chip before the box (✕ or Esc lets it go)
+    sayChip.hidden = !sayFor;
+    if (sayFor) sayChip.textContent = `${sayFor.action.label}${sayFor.to && !sayFor.action.label.includes(sayFor.to) ? ` ${sayFor.to}` : ''} ✕`;
+    input.placeholder = sayFor ? `What do you say${sayFor.to ? ` to ${sayFor.to}` : ''}? Enter plays it` : offering ? suggestion : PLACEHOLDER;
     input.classList.toggle('suggest', offering);
     const hintNow = offering ? 'offer' : '';
     if (hint.dataset.now !== hintNow) {
@@ -731,17 +679,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     helpPanel.hidden = !open;
     cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
-    ideaBtn.setAttribute('aria-pressed', String(open === 'ideas'));
-    const head = (t: string) => h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, t),
-      h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { open = null; update(); } }, 'Close ×'));
-    if (open === 'commands') helpPanel.replaceChildren(head('Commands · no time passes'),
+    if (open === 'commands') helpPanel.replaceChildren(h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, 'Commands · no time passes'),
+      h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { open = null; update(); } }, 'Close ×')),
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
       h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
-    else if (open === 'ideas') helpPanel.replaceChildren(head('Ideas · from what you can see now'),
-      h('div', { class: 'idea-groups' }, (pv ? ideas(pv, !!s && moraleLevel(s.player) === 'broken', !!s && cantSteady(s, s.player) === null, s ? personalityOf(s.player) : undefined) : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
-        g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(asI(it.text)) }, it.text, it.note ? h('span', {}, it.note) : null))))
-          : h('p', { class: 'hs-note' }, 'Nothing right now')))),
-      h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, ordered by their personality, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
     if (stick || busy) story.scrollTop = story.scrollHeight;
     // 2.5: a new essence offer opens its pop-up once, when no turn is running (Take it / Let it go / Decide later)
     if (!busy && !auto.playing()) maybeOfferPop(api, s, update);
@@ -751,55 +692,34 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('span', { class: 'hs-hl-b', 'data-kind': NOTICE_KIND[n.kind] }, n.text))));
     const stopped = ns.some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
     input.disabled = stopped || busy || (auto.playing() && !auto.asking()); // the autopilot has the box while it plays, unless it asks you
-    send.disabled = stopped || busy || (auto.playing() && !auto.asking());
+    send.disabled = input.disabled;
     auto.update();
-    aimBtn.disabled = stopped;
-    const broken = !!s && moraleLevel(s.player) === 'broken';
-    yieldBtn.hidden = !broken; aimBtn.hidden = broken;
-    yieldBtn.disabled = stopped;
+    // M-06: the deck and the minimap keep what they showed while a turn runs; every action is off until it lands
+    if (!frozen) { dk.update(); mm.update(); }
+    dk.setDisabled(input.disabled);
     // AT11a: the player's own long action, and AT49 its walk on the way; a redraw that changes nothing keeps the element (M-74)
     if (!frozen) { const dn = [doingNow(pv?.player.doing, pick, stopped), pv?.player.following ? followingNow(pv.player.following, pv.player.walking, pick, stopped) : walkingNow(pv?.player.walking, pick, stopped)].filter((x): x is HTMLElement => !!x); const html = dn.map((x) => x.outerHTML).join(''); if (html !== doingHtml) { doingSlot.replaceChildren(...dn); doingHtml = html; } }
-    st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
     if (!input.disabled && !el.hidden && el.isConnected && (document.activeElement === document.body || document.activeElement === send)) input.focus();
-    aimBtn.setAttribute('aria-pressed', String(aimed));
-    aimBtn.title = aimed ? 'This turn’s attack is aimed. Click to stop aiming' : 'Click to aim this turn’s attack (same as /aim)';
-    aimBtn.textContent = aimed ? 'Aimed' : 'Aim';
-    // H3 b: one quick slot for a healing item; it fills the box, nothing is sent until Send
+    // H3 b: one quick slot for a healing item, on the health strip; a click treats your wounds with it at once (AD5, AD7)
     const qh = s ? quickHeal(s, s.player) : null;
     healBtn.hidden = !qh;
-    const loot = pv ? lootCount(lootSources(pv)) : 0;
-    lootBtn.hidden = !loot;
-    lootBtn.disabled = stopped;
-    if (loot) {
-      lootBtn.setAttribute('aria-label', `Loot, ${loot} thing${loot === 1 ? '' : 's'} to take`);
-      lootBtn.replaceChildren('Loot', h('b', {}, `×${loot}`));
-      lootBtn.onclick = () => { const v = api.state() ? safe(() => buildPlayerView(api.state()!)) : null; if (v) openLoot(v, lootBtn, pick, (id) => instanceIcon(api.state()!, id, 'iico lico')); };
-    }
     const again = lastOrder(api.lines());
     againBtn.disabled = stopped || !again;
     againBtn.title = again ? `Fills the box with your last order: “${again}”. Nothing is sent until Send` : 'No order yet to repeat';
-    healBtn.disabled = stopped;
+    healBtn.disabled = input.disabled;
     if (qh) {
-      const use = `use a ${qh.name}`;
-      healBtn.title = `${cap(qh.name)} ×${qh.count}: fills the box with “${use}”. Pick which healing item shows here in the Inventory.`;
+      healBtn.title = `${cap(qh.name)} ×${qh.count}: treat your wounds with it now. Pick which healing item shows here in the Inventory.`;
       healBtn.setAttribute('aria-label', `Use a ${qh.name}, ${qh.count} left`);
       healBtn.replaceChildren(healIcon(qh), h('b', {}, `×${qh.count}`));
-      healBtn.onclick = () => pick(use);
     }
 
-    // layout A: the status strip, or the full sheet as a 420px side panel that pushes the story narrower
-    const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem(foldKey(), f ? '1' : '0'); } catch { /* not saved */ } update(); };
-    sheet.classList.toggle('folded', folded);
-    wrap.classList.toggle('sheet-open', !folded);
-    const sheetKids: HTMLElement[] = [];
-    if (s && folded) sheetKids.push(h('button', { type: 'button', class: 'cs-strip', 'aria-expanded': 'false', title: 'Open your full sheet', onclick: () => setFolded(false) },
-      h('span', { class: 'hs-label' }, 'Your sheet ›'), ...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl' }, 'Stealthy') : null));
-    else sheetKids.push(h('div', { class: 'cs-side-h' }, h('p', { class: 'hs-section' }, 'Your sheet'),
-      h('button', { class: 'hs-btn-text', type: 'button', 'aria-expanded': 'true', onclick: () => setFolded(true) }, 'Close ×')),
-      ...(s ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration'), changedParts) : []));
-    const sheetNow = sheetKids.map((k) => k.outerHTML).join('');
-    if (!frozen && sheetNow !== sheetHtml) { sheet.replaceChildren(...sheetKids); sheetHtml = sheetNow; }
+    // AD2/AD3: the folded health strip and the short sheet; the minimap and Who's here keep their own elements
+    const stripKids = s ? [...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl' }, 'Stealthy') : null].filter((x): x is HTMLElement => !!x) : [];
+    const shortKids = s ? shortSheet(s, s.player) : [];
+    const sheetNow = [...stripKids, ...shortKids].map((k) => k.outerHTML).join('');
+    if (!frozen && sheetNow !== sheetHtml) { strip.replaceChildren(...stripKids); shortEl.replaceChildren(...shortKids); sheetHtml = sheetNow; }
+    sheet.hidden = !s;
 
     const fallen = api.fell();
     if (wasFallen === false && fallen) { deathSound(); finishAll(); dyingUntil = Date.now() + FALL_MS(); setTimeout(update, FALL_MS() + 20); }
@@ -807,7 +727,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const dying = fallen && Date.now() < dyingUntil;
     el.classList.toggle('dying', dying);
     wrap.hidden = fallen && !dying;
-    who.hidden = fallen && !dying;
     fell.hidden = !fallen || dying;
     if (!fallen) fellKey = '';
     else if (!dying) {
@@ -1166,7 +1085,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (a.heal && b.heal && a.heal !== b.heal) stamp(healBtn.querySelector('b'), d, b.heal.replace(/^.*?(×\d+)$/, '$1'));
   }
-  aimBtn.onclick = () => { aimed = !aimed; update(); };
   // tick the seconds on the waiting line without rebuilding the page
   setInterval(() => {
     const since = +(waiting.dataset.since ?? 0);

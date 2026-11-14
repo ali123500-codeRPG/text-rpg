@@ -44,8 +44,16 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
   const run = await runAgent<Intent>(ctx, { agent: 'parser', fixed: FIXED.parser, data: formatPlayerView(text, view, opts.answering), schema: checkIntent });
   if (!run.value) return { intent: null, clarify: GENERIC_CLARIFY, run };
   if (run.value.clarify) return { intent: null, clarify: run.value.clarify, ...(run.value.answers?.length ? { answers: run.value.answers.slice(0, 3) } : {}), run }; // BG-228
-  const leg = checkParserLegality(run.value, view, opts.bandIds);
-  if (leg.gearErrors.length) run.log.errors.push('invalid_gear');
+  const r = acceptIntent(run.value, view, opts.bandIds, run.log.errors);
+  run.log.output = r.output;
+  return { intent: r.intent, clarify: r.clarify, run };
+}
+
+/** the checks every order passes before its turn, whether the Parser wrote it or code built it from a clicked action
+ * (AD7): legality, deferring what waits on arrival, and the hands-full blow. errors gathers the log's error codes. */
+export function acceptIntent(value: Intent, view: PlayerView, bandIds: string[] | undefined, errors: string[]): { intent: Intent | null; clarify: string | null; output: Intent } {
+  const leg = checkParserLegality(value, view, bandIds);
+  if (leg.gearErrors.length) errors.push('invalid_gear');
   // Q16: walking over to someone out of sight moves now; what was meant for them waits for arrival
   const outOfSight = (x: string) => x.startsWith('addressee') || x.startsWith('action.target');
   if (leg.illegal.length && leg.intent.move && leg.illegal.every(outOfSight)) {
@@ -53,23 +61,21 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
     // BG-213: words wait as said; an action with no words waits as the line the player would type for it
     const later = i.spoken ?? (i.action ? actionWords(i.action, view) : '');
     leg.intent = { ...i, action: null, spoken: null, addressees: null, deferred: [...(later ? [later] : []), ...(i.deferred ?? [])] };
-    run.log.errors.push('deferred_to_arrival', ...leg.illegal);
+    errors.push('deferred_to_arrival', ...leg.illegal);
     leg.illegal = [];
   }
-  if (leg.intent.deferred?.some(placeholderLine)) { run.log.errors.push('deferred_placeholder'); leg.intent = { ...leg.intent, deferred: leg.intent.deferred.filter((d) => !placeholderLine(d)) }; }
+  if (leg.intent.deferred?.some(placeholderLine)) { errors.push('deferred_placeholder'); leg.intent = { ...leg.intent, deferred: leg.intent.deferred.filter((d) => !placeholderLine(d)) }; }
   if (leg.illegal.length) {
-    run.log.errors.push('illegal_intent', ...leg.illegal);
-    run.log.output = leg.intent; // kept so the GM view shows what was asked for
-    return { intent: null, clarify: illegalClarify(leg.illegal, view) ?? GENERIC_CLARIFY, run };
+    errors.push('illegal_intent', ...leg.illegal);
+    return { intent: null, clarify: illegalClarify(leg.illegal, view) ?? GENERIC_CLARIFY, output: leg.intent }; // output kept so the GM view shows what was asked for
   }
-  run.log.output = leg.intent;
   // BF32: a blow with the hand while both hands are full is not made with what they hold: the player is told to put it away
   const a = leg.intent.action, blow = a?.type === 'attack' && !a.item ? view.player.bodyAttacks?.find((b) => b.mode === a.mode && b.handsFull) : undefined;
   if (blow) {
-    run.log.errors.push('hands_full', blow.mode);
-    return { intent: null, clarify: `Your hands are full with the ${blow.handsFull}. Put it away or drop it first, then make the ${blow.name === 'fists' ? 'punch' : blow.name}.`, run };
+    errors.push('hands_full', blow.mode);
+    return { intent: null, clarify: `Your hands are full with the ${blow.handsFull}. Put it away or drop it first, then make the ${blow.name === 'fists' ? 'punch' : blow.name}.`, output: leg.intent };
   }
-  return { intent: leg.intent, clarify: null, run };
+  return { intent: leg.intent, clarify: null, output: leg.intent };
 }
 
 // ---------------- Planner ----------------

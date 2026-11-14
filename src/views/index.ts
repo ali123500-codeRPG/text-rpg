@@ -842,7 +842,7 @@ function notThere(state: GameState, intent: Intent | null | undefined, seenIds: 
 function stayedPut(state: GameState, events: GameEvent[], intent: Intent | null | undefined): string | undefined {
   const m = intent?.move, p = state.player;
   if (!m || m.toZone !== p.zone || events.some((e) => e.actorId === p.id && ['move', 'wasted', 'way', 'travel'].includes(e.kind))) return undefined;
-  const at = m.spot ? spotPoint(state, m.toZone, m.spot, p)?.words : undefined;
+  const at = m.spot && !m.spot.at ? spotPoint(state, m.toZone, m.spot, p)?.words : undefined; // AD16: a point picked is "in" the zone
   return `${at ?? 'in'} ${zoneById(state, p.zone)?.name ?? p.zone}`.trim();
 }
 

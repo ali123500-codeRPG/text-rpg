@@ -147,6 +147,8 @@ export interface GameApi {
   agentMove(persona?: string, style?: string, guided?: import('../agents/crossroads').GuidedCtx): Promise<import('../agents/autopilot').Move | null>;
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
+  /** AD7: a turn from an order code built from a clicked action (no Parser call); line is the player's line in the story */
+  act(order: { intent: import('./agents').Intent; line: string }, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first
   /** SC15: the GM view's End scenario button: the running scenario ends after the next turn */
   endScenario(): void;

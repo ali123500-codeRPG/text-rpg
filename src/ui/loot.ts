@@ -1,8 +1,8 @@
 // Loot: what the character can see to take where they stand, in one pop-up. Bodies that are down (what a search turned up
 // and what they wear), open containers and the ground each list their things; the player picks the ones to take and
-// "Take" types one order for them in the action box, unsent, like the map's Move to here. Built from PlayerView only, so it
+// "Take" plays one turn taking them, built by code with no Parser call (AD7). Built from PlayerView only, so it
 // never lists anything the character doesn't know of; whether each take works is still the turn's to decide.
-import type { PlayerView } from '../types';
+import type { GearOp, PlayerView } from '../types';
 import { isDownLevel } from '../ruleset';
 import { cap, listWords, theOf } from '../words';
 import { h } from './kit';
@@ -48,8 +48,13 @@ export function lootOrder(src: LootSource[], picked: ReadonlySet<string>): strin
   return listWords(phrase);
 }
 
-/** opens the loot pop-up; `onOrder` gets the order to type in the action box; `iconOf` gives each thing its icon. Back closes it */
-export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string) => void, iconOf?: (id: string) => HTMLElement | null): HTMLElement | null {
+/** AD7: the same pick as gear orders the code plays with no Parser call (a body's things come `from` it) */
+export function lootGear(src: LootSource[], picked: ReadonlySet<string>): GearOp[] {
+  return src.flatMap((s) => s.items.filter((i) => picked.has(i.id)).map((i) => ({ op: 'pick_up' as const, item: i.id, ...(s.kind === 'body' ? { from: s.key } : {}) })));
+}
+
+/** opens the loot pop-up; `onOrder` gets the order's words and its gear orders, and plays it; `iconOf` gives each thing its icon. Back closes it */
+export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string, gear: GearOp[]) => void, iconOf?: (id: string) => HTMLElement | null): HTMLElement | null {
   const src = lootSources(pv);
   if (!src.length) return null;
   const picked = new Set<string>();
@@ -73,7 +78,7 @@ export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (o
     return b;
   };
   allBtn.onclick = () => { if (picked.size === all.length) picked.clear(); else for (const id of all) picked.add(id); sync(); };
-  take.onclick = () => { const o = lootOrder(src, picked); if (!o) return; closePop(); onOrder(o); };
+  take.onclick = () => { const o = lootOrder(src, picked); if (!o) return; closePop(); onOrder(o, lootGear(src, picked)); };
   const body = [
     ...src.map((s) => h('section', { class: 'loot-src', 'data-src': s.kind }, h('h3', { class: 'loot-h' }, s.title), h('div', { class: 'loot-items' }, ...s.items.map(chip)))),
     h('div', { class: 'loot-foot' }, order, h('div', { class: 'loot-btns' }, allBtn, take)),

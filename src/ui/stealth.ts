@@ -19,18 +19,3 @@ export const stealthIcon = (kind: Kind): SVGSVGElement => lineIcon('st-i', PATHS
 export const stealthBadge = () =>
   h('span', { class: 'stealthy-b', role: 'status', title: 'You are moving unseen. Speaking above a whisper or a melee attack ends it.' },
     stealthIcon('unseen'), POSTURES.name('stealthy'));
-
-/** Sneak and Vanish buttons for the action bar; `set` refreshes them for the player's posture */
-export function stealthButtons(pick: (text: string) => void) {
-  const sneak = h('button', { type: 'button', class: 'itm st-act' });
-  // ST13: a Vanish needs the link it slips away by, so like a stealthy Sneak it leaves the box open for where to
-  const vanish = h('button', { type: 'button', class: 'itm st-act', title: 'Slip out of sight of someone who sees you. Add where to', onclick: () => pick('Vanish ') },
-    stealthIcon('vanish'), h('span', { class: 'lbl' }, 'Vanish'));
-  const set = (stealthy: boolean, disabled: boolean) => {
-    sneak.replaceChildren(stealthIcon('sneak'), h('span', { class: 'lbl' }, 'Sneak'));
-    sneak.title = stealthy ? 'You are stealthy. Add where to sneak to; sneaking is free' : 'Start sneaking: free, keeps your action';
-    sneak.onclick = () => pick(stealthy ? 'Sneak ' : 'Sneak');
-    sneak.disabled = vanish.disabled = disabled;
-  };
-  return { sneak, vanish, set };
-}

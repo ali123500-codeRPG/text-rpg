@@ -73,7 +73,9 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     const sp = out.move.spot!;
     if (sp.near && lastSeen(sp.near)) out.move.spot = { ...sp, lastSeen: true };
     const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => sp[k]);
-    const ok = keys.length === 1 && (sp.side ? !!compassOf(sp.side) : ref((sp.near ?? sp.awayFrom)!));
+    // AD16: an exact point (code sets it, from the minimap) in a zone the player knows, alone
+    const atOk = (at: { x: unknown; y: unknown }) => !keys.length && Number.isFinite(at.x) && Number.isFinite(at.y) && (out.move!.toZone === view.zone.id || reachable(out.move!.toZone));
+    const ok = sp.at ? atOk(sp.at) : keys.length === 1 && (sp.side ? !!compassOf(sp.side) : ref((sp.near ?? sp.awayFrom)!));
     // BG-31 (run 40): on a move to another zone the spot is only where to stop there; one that can't be checked (a zone
     // out of view) or doesn't fit is dropped and the move goes on, instead of asking where in the current zone to go
     if (!ok && out.move.toZone !== view.zone.id) delete out.move.spot;

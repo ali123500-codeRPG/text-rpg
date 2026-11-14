@@ -54,14 +54,14 @@ export function wayWords(w: MapWay): string {
   return w.shut === 'locked' && w.key ? `${w.kind}, locked: you hold its key` : w.shut ? `${w.kind}, ${w.shut}` : w.open ? `${w.kind}, standing open` : w.kind;
 }
 /** the marks drawn inside a barrier badge centred on x, y */
-function wayGlyph(x: number, y: number, shut: NonNullable<MapWay['shut']>): SVGElement[] {
+export function wayGlyph(x: number, y: number, shut: NonNullable<MapWay['shut']>): SVGElement[] {
   return shut === 'locked' ? [s('rect', { x: x - 4.5, y: y - 1, width: 9, height: 7, rx: 1.5 }), s('path', { d: `M${x - 2.75} ${y - 1}v-2.5a2.75 2.75 0 0 1 5.5 0v2.5`, fill: 'none' })]
     : shut === 'barred' ? [s('rect', { x: x - 4, y: y - 5.5, width: 8, height: 11, rx: 1, fill: 'none' }), s('line', { x1: x - 6.5, y1: y, x2: x + 6.5, y2: y })]
     : [s('line', { x1: x - 4, y1: y - 4, x2: x + 4, y2: y + 4 }), s('line', { x1: x + 4, y1: y - 4, x2: x - 4, y2: y + 4 })];
 }
 /** a door as a floor plan draws one: a 12 px gap across its wall, filled with a leaf (a door) or left open between two
  *  posts (a way through with no door); `dir` is the wall's run, h (east-west) or v */
-function doorGlyph(x: number, y: number, kind: 'door' | 'opening', dir: 'h' | 'v' = 'h'): SVGElement[] {
+export function doorGlyph(x: number, y: number, kind: 'door' | 'opening', dir: 'h' | 'v' = 'h'): SVGElement[] {
   const [w, hh] = dir === 'h' ? [12, 6] : [6, 12];
   const gap = s('rect', { x: x - w / 2, y: y - hh / 2, width: w, height: hh, class: 'gap' });
   if (kind === 'door') return [gap, s('rect', { x: x - w / 2 + (dir === 'h' ? 1.5 : 1.5), y: y - hh / 2 + 1.5, width: w - 3, height: hh - 3, rx: 0.5, class: 'leaf' })];
