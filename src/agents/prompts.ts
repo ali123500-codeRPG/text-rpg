@@ -11,6 +11,7 @@ import { gradesFitText } from '../scenario/validate';
 import { tierName } from '../ruleset';
 import { GRADES, NPC_ACTIONS, ORDER_TYPES } from '../types';
 import { CHASE_RANGES, COVER, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, TALENTS, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
+import { WORLD_LORE } from './worldLore';
 /** a scale's levels as the JSON choices Claude may write (G4) */
 const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
@@ -293,16 +294,18 @@ orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
 /** no children: every agent's world holds no one younger than a Youth */
 const NO_CHILDREN = 'There are no children in this world: everyone is a teenager or older. Never cast, describe or mention a child.';
 const fixed = (instr: string, shape: string) => `${instr}\n\n${NO_CHILDREN}\n\nSCHEMA:\n${shape}`;
+/** WB9 a: World builder, Weaver and Narrator calls read the world lore first */
+const withLore = (text: string) => `${WORLD_LORE}\n\n${text}`;
 /** the whole fixed (leading) user turn per agent */
 export const FIXED = {
   parser: fixed(PARSER_INSTRUCTIONS, PARSER_SHAPE),
   planner: fixed(PLANNER_INSTRUCTIONS, PLANNER_SHAPE),
   responder: fixed(RESPONDER_INSTRUCTIONS, RESPONDER_SHAPE),
   voice: fixed(VOICE_INSTRUCTIONS, VOICE_SHAPE),
-  narrator: fixed(NARRATOR_INSTRUCTIONS, NARRATOR_SHAPE),
-  weaver: fixed(WEAVER_INSTRUCTIONS, WEAVER_SHAPE),
-  checkin: fixed(WEAVER_CHECKIN_INSTRUCTIONS, CHECKIN_SHAPE),
-  region: fixed(WORLD_BUILDER_REGION_INSTRUCTIONS, REGION_SHAPE),
-  world: fixed(WORLD_BUILDER_INSTRUCTIONS, WEAVER_SHAPE),
-  window: fixed(WEAVER_WINDOW_INSTRUCTIONS, '{"start":boolean,"note"?:string}'),
+  narrator: withLore(fixed(NARRATOR_INSTRUCTIONS, NARRATOR_SHAPE)),
+  weaver: withLore(fixed(WEAVER_INSTRUCTIONS, WEAVER_SHAPE)),
+  checkin: withLore(fixed(WEAVER_CHECKIN_INSTRUCTIONS, CHECKIN_SHAPE)),
+  region: withLore(fixed(WORLD_BUILDER_REGION_INSTRUCTIONS, REGION_SHAPE)),
+  world: withLore(fixed(WORLD_BUILDER_INSTRUCTIONS, WEAVER_SHAPE)),
+  window: withLore(fixed(WEAVER_WINDOW_INSTRUCTIONS, '{"start":boolean,"note"?:string}')),
 } as const;
