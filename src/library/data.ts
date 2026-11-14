@@ -785,6 +785,7 @@ export function prototypeLibrary(): Library {
       [PA.discipline]: { id: PA.discipline, name: 'Discipline', low: 'impulsive', high: 'disciplined', lowHint: 'acts first, thinks later', highHint: 'keeps to plans and habits, finishes what they start' },
       [PA.curiosity]: { id: PA.curiosity, name: 'Curiosity', low: 'set in their ways', high: 'curious', lowHint: 'sticks to what they know, distrusts the new', highHint: 'wants to know how things work, asks and pokes' },
       [PA.levity]: { id: PA.levity, name: 'Levity', low: 'earnest', high: 'playful', lowHint: 'takes things seriously, rarely jokes', highHint: 'jokes and teases, and talks lightly even about serious things' },
+      [PA.assertiveness]: { id: PA.assertiveness, name: 'Assertiveness', low: 'meek', high: 'assertive', lowHint: 'gives way to those above them, asks rather than pushes', highHint: 'takes charge and pushes for what they want, even with those above them' },
     },
     values: Object.fromEntries(Object.entries(VL).map(([k, id]) => [id, { id, name: k, hint: VALUE_HINTS[k as keyof typeof VL] }])),
     // archetypes: the nearest target (six axes, Nerve, and the drives counted ARCHETYPE_VALUE_WEIGHT times) is the
