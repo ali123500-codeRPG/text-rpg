@@ -22,7 +22,7 @@ import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
-import { SK, OLD_SKILL_IDS } from './skillIds';
+import { SK, OLD_SKILL_IDS, ROLLED_SKILL } from './skillIds';
 import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
@@ -341,6 +341,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
       { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
     ] } },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
+  // accessories (placeholders): spectacles sharpen sight; a charmed ring boosts one skill, rolled for each ring (ROLLED_SKILL)
+  { id: IT.spectacles, kind: 'accessory', fragility: 'fragile', name: 'spectacles', look: 'a pair of round glass lenses in a thin wire frame', bulk: 0, value: 10, slot: 'accessory', visible: true,
+    effects: [{ kind: 'skill', skill: SK.eyesight, value: 10, active: 'worn', scope: 'any' }] },
+  { id: IT.charmed_ring, kind: 'accessory', name: 'charmed ring', look: 'a thin band of worn brass, faintly warm to the touch', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [{ kind: 'skill', skill: ROLLED_SKILL, value: 5, active: 'worn', scope: 'any' }] },
   { id: IT.lucky_charm, kind: 'misc', fragility: 'delicate', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, grips: 1,

@@ -480,7 +480,7 @@ const DEFAULTS = {
   LOCK_LEASE_MS: 60_000, // Q2
   SCHEMA_VERSION: 9, // v9: land (regions, WZ12): older saves end; v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
   // ---- Part 5 ----
-  ACCESSORY_SLOTS: 3,
+  ACCESSORY_SLOTS: 5,
   /** GD3: a code-run guard asks someone it suspects to open their locked container once every this many turns (placeholder) */
   SUSPECT_ASK_TURNS: 3,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
