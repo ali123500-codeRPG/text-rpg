@@ -26,9 +26,10 @@ export const reactSeconds = (total: number, factor = timeFactor()): number =>
   actionSeconds({ id: 'react', name: 'Reaction', effort: 'base', seconds: CONFIG.REACT_BASE_S, speed: { fn: FN.initiative, halving: CONFIG.REACT_HALVING } }, total, factor);
 
 /** AT72: an engagement ends after the slowest attack cycle in the table (a reload and the shot it readies, or one attack)
- * plus one round to react, so a crossbowman spanning between shots never drops out of the fight */
+ * plus one round to react, so a crossbowman spanning between shots never drops out of the fight; never under
+ * ENGAGEMENT_END_MIN_TURNS fight turns (TP10) */
 export function engagementEndS(): number {
   const rows = getLibrary().durations ?? {};
   const cycle = (r: DurationDef) => r.seconds + (r.readies ? rows[r.readies]?.seconds ?? 0 : 0);
-  return Math.max(0, ...Object.values(rows).filter((r) => r.attack || r.readies).map(cycle)) + CONFIG.ROUND_S;
+  return Math.max(Math.max(0, ...Object.values(rows).filter((r) => r.attack || r.readies).map(cycle)) + CONFIG.ROUND_S, CONFIG.ENGAGEMENT_END_MIN_TURNS * CONFIG.FIGHT_TURN_S);
 }

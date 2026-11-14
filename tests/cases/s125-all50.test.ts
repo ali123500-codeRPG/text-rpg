@@ -344,9 +344,9 @@ describe('125 All-50 moves', () => {
       const hit = (r: AttackResult) => ({ ...r, outcome: 'full_hit' as const, location: 'general', damage: 0.01 });
       return { s, calls: fight(s, 'slime_1', 'w_player', hit).filter((c) => c.by === 'player') };
     };
-    expect(run(false).calls.length).toBe(1);
+    const plain = run(false).calls.length; // TP9: a 3 s light bow shot repeats in a 6 s turn (AT78)
     const { s, calls } = run(true);
-    expect(calls.length).toBe(2);
+    expect(calls.length).toBe(plain + 1);
     expect(['slime_1', 'slime_2']).toContain(calls[1].at);
     expect(s.player.engagement?.uses?.[PK.volley]).toBe(1);
   });

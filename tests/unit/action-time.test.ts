@@ -20,9 +20,13 @@ describe('the Action times table', () => {
       for (const b of r.onBreak ?? []) expect(b.upTo).toBeLessThanOrEqual(1);
     }
   });
-  it('AT72: an engagement ends after the slowest attack cycle (a medium bow shot, now that crossbows span at once) plus one round', () => {
-    expect(engagementEndS()).toBe(actionRow(DU.bow_medium)!.seconds + CONFIG.ROUND_S);
-    expect(engagementEndS()).toBe(9); // 33 s until the crossbow spans went (TP6 f, TP8 a)
+  it('AT72/TP10: an engagement ends after the slowest attack cycle plus one round, never under three fight turns', () => {
+    expect(Math.max(...Object.values(getLibrary().durations!).filter((r) => r.attack).map((r) => r.seconds)) + CONFIG.ROUND_S).toBe(8); // a crossbow shot, 5 s
+    expect(engagementEndS()).toBe(CONFIG.ENGAGEMENT_END_MIN_TURNS * CONFIG.FIGHT_TURN_S);
+    expect(engagementEndS()).toBe(18); // 33 s until the crossbow spans went (TP6 f, TP8 a)
+  });
+  it('TP9: one shot time per weapon class, all Hard: light 3 s, medium 4 s, heavy 5 s', () => {
+    expect([DU.bow_light, DU.bow_medium, DU.crossbow_shot].map((id) => [actionRow(id)!.seconds, actionRow(id)!.effort])).toEqual([[3, 'hard'], [4, 'hard'], [5, 'hard']]);
   });
   it('D-248: a row naming a speed function halves every N points above 50; one naming none ignores skill', () => {
     const pick = actionRow(DU.pick_lock)!;

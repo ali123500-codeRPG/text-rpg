@@ -63,7 +63,7 @@ describe('270 long actions', () => {
     const s = fightReady();
     // every crossbow spans at once since TP8 a: a test row stands in for a long spanning, so the long-action rules stay covered
     const rows = getLibrary().durations!, was = rows[DU.span_stirrup];
-    rows[DU.span_stirrup] = { ...was, effort: 'hard', seconds: 8, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] };
+    rows[DU.span_stirrup] = { ...was, effort: 'hard', seconds: 4, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] };
     span(s, 'guard_1');
     beside(s, 'guard_1', 'player', 4);
     const g = actor(s, 'guard_1');
