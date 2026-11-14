@@ -1103,7 +1103,8 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 // the rail in groups; a table not named here (a new one) lands in More
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
+  ['Items', ['gear', 'threadbound', 'gearClasses']],
+  ['Library', ['perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
   ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'npcRoles', 'themes', 'roles', 'activities', 'routines', 'routineSets', 'services']],

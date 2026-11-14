@@ -265,6 +265,7 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .hs-rail [data-group="people"] { --grp: var(--c4); }
 .hs-rail [data-group="more"] { --grp: var(--c3); }
 .hs-rail [data-group="personality"] { --grp: var(--c5); }
+.hs-rail [data-group="items"] { --grp: var(--c7); }
 /* group labels fold their tables on click; the open table stays in view */
 .hs-rail button.lv-railgroup { display: block; width: 100%; height: auto; border-radius: 0; border-width: 2px 0 0; border-style: solid; border-color: var(--grp); cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .hs-rail button.lv-railgroup::after { content: ' \25BE'; }
