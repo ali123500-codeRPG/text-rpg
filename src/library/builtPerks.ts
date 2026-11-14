@@ -75,5 +75,5 @@ export const BUILT_PERKS = new Set<string>([
   PK.quick_mend, PK.marksmans_eye, PK.soft_step,
   PK.iron_lungs, PK.deep_lungs, PK.bottomless, // SS2/SS4/SS6: deep_lungs lineMax() in src/ruleset/fatigue.ts, bottomless payStrain() in src/engine/fatigue.ts
   // Stamina ladder and part (SS1, SS3, SS5, SS8): src/engine/fatigue.ts restRecover(), payStrain(); runEffort() and perkSleepMult() in src/ruleset/fatigue.ts
-  PK.catnap, PK.forced_march, PK.sleepless, PK.second_breath,
+  PK.catnap, PK.forced_march, PK.sleepless, PK.second_breath, PK.overdrive,
 ]);

@@ -68,6 +68,8 @@ export const MOD_SOURCES: ModSource[] = [
     value: sg(W() * CONFIG.STEADY_GUARD), feeds: (lib) => perk(lib, PK.steady_guard) },
   { type: 'roll_perk', roll: 'skill', source: 'Bare-Handed Guard', at: 'src/ruleset/index.ts', when: 'Dodge rolls while the owner holds no weapon.',
     value: sg(W() * CONFIG.BARE_HANDED_GUARD), feeds: (lib) => perk(lib, PK.bare_handed_guard) },
+  { type: 'roll_perk', roll: 'skill', source: 'Overdrive', at: 'src/ruleset/index.ts', when: 'Every roll while the owner\'s short-term line is more than half full; each costs OVERDRIVE_STRAIN strain.',
+    value: `Stamina × ${CONFIG.OVERDRIVE_SHARE} × its tier`, feeds: (lib) => perk(lib, PK.overdrive) },
   // foe_perk
   { type: 'foe_perk', roll: 'skill', source: 'Dodgy', at: 'src/ruleset/allSteps.ts', when: 'Attack rolls against a foe who has Dodgy.',
     value: sg(-W() * CONFIG.DODGY_SKILL), feeds: (lib) => perk(lib, PK.dodgy) },
