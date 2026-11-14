@@ -81,7 +81,7 @@ describe('152 Dread Presence', () => {
     const { s, t } = setup();
     run(s, [95, 5]);
     t.engagement = { start: 0, last: s.turn, kinds: ['fight'] };
-    tick(s, engagementEndS());
+    tick(s, engagementEndS() + 1);
     updateEngagements(s, []);
     expect(t.auraChecks).toBeUndefined();
     expect(run(s, [95, 5])).toHaveLength(1);

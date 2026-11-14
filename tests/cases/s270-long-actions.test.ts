@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { actor, beside, makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
+import { getLibrary } from '../../src/library';
 import { DU } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
 import { actionRow, actionSeconds } from '../../src/ruleset/actionTime';
@@ -58,8 +59,11 @@ describe('270 long actions', () => {
     expect(s.player.busy?.done ?? 0).toBeLessThanOrEqual(CONFIG.FIGHT_TURN_S); // what was done before is gone
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(true);
   });
-  it('AT11c/AT47: an NPC spanning a crossbow (a stirrup one: the heavy crossbow spans at once since TP6 f) carries on without being asked; broken off, its spanning is kept', () => {
+  it('AT11c/AT47: an NPC at a long spanning carries on without being asked; broken off, its spanning is kept', () => {
     const s = fightReady();
+    // every crossbow spans at once since TP8 a: a test row stands in for a long spanning, so the long-action rules stay covered
+    const rows = getLibrary().durations!, was = rows[DU.span_stirrup];
+    rows[DU.span_stirrup] = { ...was, effort: 'hard', seconds: 8, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] };
     span(s, 'guard_1');
     beside(s, 'guard_1', 'player', 4);
     const g = actor(s, 'guard_1');
@@ -81,5 +85,6 @@ describe('270 long actions', () => {
     // broken off, the spanning is kept; this guard takes it up again on its own turn, from where it was
     expect(s.log.find((l) => l.code === 'busy_broken')?.detail).toMatchObject({ actorId: 'guard_1', row: DU.span_stirrup, then: 'kept' });
     expect(g.busy).toMatchObject({ row: DU.span_stirrup });
+    rows[DU.span_stirrup] = was;
   });
 });
