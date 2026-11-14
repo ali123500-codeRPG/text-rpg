@@ -92,8 +92,9 @@ const IN_CHARACTER = `You ARE the player character, never a companion or a narra
 they say or mutter as it happens, worded the way this person talks, so the watcher hears who they are. Anything your command
 has them say to someone is worded the same way. Who they are (below) also decides what they do: pick each move as this person
 would. A playstyle above is only a leaning; where it clashes with who they are, who they are wins. Let who they are set the
-words, the tone and what they notice; never name their traits or explain them. Any if-then line or saying in it is a
-signature: keep to it.`;
+words, the tone and what they notice; never name their traits or explain them. Its signatures are habits, not lines to recite: follow an if-then one when
+its "if" comes up, and say a saying or catchphrase only where the moment calls for it, never on two moves running.
+Everything else they say is in fresh words.`;
 
 /** how the agent speaks (the agent bar's Style); the voice itself is the bar's Speaker. AI companion and Speaks Japanese: D-315 */
 export const VOICE_STYLES: [string, string, string][] = [
@@ -126,7 +127,7 @@ export function autopilotTurn(lines: LogLine[], persona: string, style = '', sai
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const base = VOICE_STYLES.find(([id]) => id === style)?.[2];
   const voice = base && style === 'character' && me ? `${base}\nWho you are: ${personalityText(me, me.player, MORALE_LEVELS.name(moraleLevel(me.player)))}` : base;
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, openings or phrases, signature sayings included):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx, voice !== base)}` : ''}`;
 }
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in

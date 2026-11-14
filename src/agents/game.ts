@@ -817,7 +817,9 @@ export function createGame(deps: GameDeps): Game {
         mv = again.ok ? readMove(again.value, guided?.mustAsk?.kind) ?? mv : mv;
       }
       if (mv?.command) agentCmds = [...agentCmds, mv.command].slice(-CONFIG.AUTOPILOT_INFO_EVERY);
-      if (mv?.say) agentSaid = [...agentSaid, mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
+      // BG-232: what its command had the character say aloud counts too, so a signature saying isn't said every move
+      const aloud = [...(mv?.command ?? '').matchAll(/["“]([^"”]+)["”]/g)].map((x) => x[1].trim()).filter(Boolean);
+      if (mv?.say || aloud.length) agentSaid = [...agentSaid, ...(mv?.say ? [mv.say] : []), ...aloud].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
       return mv;
     },
     submit,

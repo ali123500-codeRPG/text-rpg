@@ -34,11 +34,12 @@ export type Crossroad = { kind: string; about: string; situation: string; key?: 
 export type Ask = { kind: string; about: string; choices: string[]; pick: number };
 
 /** the guided part of the agent's per-turn prompt */
-export function guidedPrompt(s: GameState | null, lines: LogLine[], g: GuidedCtx): string {
+export function guidedPrompt(s: GameState | null, lines: LogLine[], g: GuidedCtx, inCharacter = false): string {
   const out: string[] = [];
-  // the character's signatures stand in for standing orders (GA16 is gone): kept to, and never asked about
-  const signs = s?.player.core.signatures ?? [];
-  if (signs.length) out.push(`Your character's signatures (always keep to them; never ask about what they already settle): ${signs.join(' ')}`);
+  // the character's signatures stand in for standing orders (GA16 is gone): kept to, and never asked about. In character
+  // they are already in who the character is, so they are not given twice (BG-232)
+  const signs = inCharacter ? [] : s?.player.core.signatures ?? [];
+  if (signs.length) out.push(`Your character's signatures (habits to keep to when they come up, not lines to repeat; never ask about what they already settle): ${signs.join(' ')}`);
   if (g.guidance?.trim()) out.push(`The watcher's guidance for this scenario (follow it): ${g.guidance.trim()}`);
   if (g.answered) return [...out, `The watcher answered your question about ${g.answered.about}: "${g.answered.words}". Make your next move from that answer now; do not ask again.`].join('\n\n');
   const coin = s ? coins(s.player) : 0;
