@@ -22,7 +22,9 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-k { color: var(--faint); font-weight: 500; }
 .lv-v { min-width: 0; overflow-wrap: anywhere; }
 .lv-sub { display: grid; gap: var(--space-1); }
-.lv-sub .lv-row { grid-template-columns: 104px minmax(0, 1fr); }
+/* nested rows share one key column sized to their own keys, so a box inside a box keeps room for its values */
+.lv-sub:has(> .lv-row) { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); column-gap: var(--space-3); }
+.lv-sub > .lv-row { display: contents; }
 .lv-plist { display: grid; gap: var(--space-1); }
 .lv-part b { font-weight: 600; }
 .lv-bits { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); color: var(--muted); font-size: 12px; }
