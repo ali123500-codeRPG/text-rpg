@@ -35,6 +35,17 @@ export const PLAN_ENDINGS = SCENARIO_ENDINGS.filter((e) => !(CODE_ENDINGS as rea
 export const SCENARIO_ENDING_NAMES: Record<ScenarioEnding, string> = {
   resolved: 'resolved', lost: 'lost', left: 'left', escaped: 'escaped', interrupted: 'interrupted', worn_out: 'worn out', broken_off: 'broken off',
 };
+/** what each ending means for the player, said plainly under its name at the scenario's end and on the Gains page; it names
+ *  what happened, never what the scenario was about (its question stays hidden) */
+export const SCENARIO_ENDING_OUTCOMES: Record<ScenarioEnding, string> = {
+  resolved: 'You saw it through: what this scenario turned on is settled.',
+  lost: 'It went against you: what was at stake here is lost.',
+  left: 'You walked away before it was settled.',
+  escaped: 'You got clear of it: it is not settled, but you are out of it.',
+  interrupted: 'Something else cut in before it was settled.',
+  worn_out: 'It dragged on and wound down with nothing settled either way.',
+  broken_off: 'You went down, and it ended without you.',
+};
 /** SC7: what code checks to end a scenario, reusing the quest goal checks (src/engine/quests.ts): a band is all down, broken
  * or gone; the player reaches or leaves a place or zone; the player finds someone or holds an item; an item is given to
  * someone; a time of day comes. "judged" is for anything code cannot check: the Weaver check-in decides it. */
