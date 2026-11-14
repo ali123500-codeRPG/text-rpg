@@ -34,6 +34,7 @@ export const PK = {
   // linked perks LR1-LR4
   ghost_blade: 'PK142', combination: 'PK143', blind_spot: 'PK144', bulwark: 'PK145',
   overdrive: 'PK146', // SS15: Stamina's 140 perk
+  patient_knife: 'PK147', protagonist_mentality: 'PK148', // CN6, CN7: payoff perks (D-260)
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

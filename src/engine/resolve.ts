@@ -714,7 +714,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (flurry) opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Flurry', value: -1 }]; // AT79: one tier less sure
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
-      context: { defenderUnaware: surprised, ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
+      context: { defenderUnaware: surprised, ...(fromHiding ? { fromHiding } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
     state, rng,
   );
   if (res.defense && !helpless) { ctx.defenses.set(roundKey(ctx, t.id), (ctx.defenses.get(roundKey(ctx, t.id)) ?? 0) + 1); payStrain(state, t, CONFIG.DEFENSE_EFFORT); } // FT5: a dodge, block or parry

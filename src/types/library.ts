@@ -23,6 +23,8 @@ export type ImpactId = 'non_essential' | 'normal' | 'essential';
  * lose what it gives (points moved, never made; always on). percent: the giving skill's true skill ÷ 100 × share (the rate,
  * default CONFIG.AUGMENT_PERCENT_RATE) × the receiving skill's own true skill; two on one skill stack at STACK_RATIO. */
 export type AugmentKind = 'plain' | 'trade' | 'percent';
+/** a situation an augment needs on the roll (RollRequest.when): from_hiding, an attack made while stealthy (CN6 Patient Knife) */
+export type AugmentWhen = 'from_hiding';
 
 export type SkillDef = {
   id: string;
@@ -279,8 +281,10 @@ export type PerkDef = {
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
   searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach), while owned and active
   searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
-  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open; kind as AugmentKind) */
-  augments?: { from: string; skill: string; share?: number; kind?: AugmentKind; rollKinds?: import('./items').RollKind[] }[];
+  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open; kind as AugmentKind).
+   * No skill: every skill's rolls of the listed kinds. when: only on rolls made in that situation (AugmentWhen). payoff (CN4, D-260):
+   * the share is payoffShare of the owned pieces it counts instead of a fixed number. */
+  augments?: { from: string; skill?: string; share?: number; kind?: AugmentKind; rollKinds?: import('./items').RollKind[]; when?: AugmentWhen; payoff?: import('../library/perkThemes').PayoffCount }[];
   /** true skill added to every aura skill (the skills the game's auras roll, src/library/auras.ts) */
   auraSkill?: number;
   /** a linked perk (src/library/perkLinks.ts): granted by owning a set of perks, never taken */

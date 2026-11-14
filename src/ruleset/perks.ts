@@ -11,6 +11,7 @@ import { PK } from '../library/perkIds';
 import { AURA_SKILLS } from '../library/auras';
 import { syncPerkLinks } from './perkLinks';
 import { CONFIG } from '../config';
+import { PERK_THEMES, type PayoffCount } from '../library/perkThemes';
 
 /** CS11: every `every` points up to `top`, with no top of its own */
 const series = (every: number, top: number): number[] => Array.from({ length: Math.max(0, Math.floor(top / every)) }, (_, i) => (i + 1) * every);
@@ -158,3 +159,13 @@ export function undoPerk(s: GameState, a: Actor, perkId: string): void {
 /** A19 Melt Away: a zone with some cover or more, or light dim or darker, lets the owner vanish in place */
 export const meltAwayHere = (cover: string | undefined, light: string | undefined): boolean =>
   COVER.pos(COVER.keyOf(cover) ?? 'none') >= COVER.pos('some') || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= LIGHT.pos('dim');
+
+/** CN3 a: the pieces a payoff perk counts: owned perks with the theme tag (or quirks), whatever their source, each counted
+ * once. Dormant perks count for now (D-307). */
+export function themeCount(a: Actor, what: PayoffCount): number {
+  const perks = getLibrary().perks;
+  return new Set(a.core.perks.map((p) => p.perkId).filter((id) => what === 'quirk' ? perks[id]?.quirk : PERK_THEMES[what].includes(id))).size;
+}
+/** CN4 a: a payoff perk's share for this many pieces: PAYOFF_SHARE for the first, each further one STACK_RATIO of the one
+ * before (5%, 2.5%, 1.25% …, never past twice PAYOFF_SHARE) */
+export const payoffShare = (pieces: number): number => Array.from({ length: pieces }, (_, i) => CONFIG.PAYOFF_SHARE * CONFIG.STACK_RATIO ** i).reduce((n, x) => n + x, 0);

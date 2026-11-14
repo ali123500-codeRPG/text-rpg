@@ -323,6 +323,7 @@ const DEFAULTS = {
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
   SECOND_BREATH_PCT: 50, // SS8 Second Breath: once per engagement an emptied line refills to this % of its size
   OVERDRIVE_SHARE: 0.1, // SS15 Overdrive (Stamina 140): while the line is above half, every roll adds this share of Stamina (the augment equation)
+  PAYOFF_SHARE: 0.05, // CN4 payoff perks: the first counted piece adds this share of the skill, each further one STACK_RATIO of the one before (placeholder)
   OVERDRIVE_STRAIN: 1, // SS15 Overdrive: strain points each of those rolls costs (with worn armour and Bottomless)
   HEAVY_SLEEPER_STEPS: 1, // SS10 Heavy Sleeper: noise levels louder than WAKE_NOISE it takes to wake the owner
   INSOMNIAC_CLEAR: 0.75, // SS11 Insomniac: sleepClear multiplier
