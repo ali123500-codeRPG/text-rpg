@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { NpcTemplate, ThemeDef, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
@@ -20,7 +20,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { RANKS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -35,7 +35,7 @@ import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
 import { ALL_BUNDLES } from '../library/allPerks';
-import { classFloors, presetPersonality, rankName, templateLevel, templateSkills } from '../library/spawn';
+import { classFloors, presetPersonality, rankName, templateLevel, templateLoadout, templatePerks, templateRank, templateSkills } from '../library/spawn';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -135,26 +135,52 @@ function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
     if (sec === 'npcRoles' || sec === 'themes') return layerCard(sec, id, e, title);
     if (sec !== 'templates') return card(sec, id, e, title, [], ...fields(e, ['id', 'name']));
     const t = e as unknown as NpcTemplate;
-    return card(sec, id, e, title, [], ...templateHead(t), ...fields(e, ['id', 'name', 'essences', 'rank', 'roleId', 'themeId', 'level']),
-      row('Skills', skillList(t)), row('Essences', essenceList(t)));
+    const skills = templateSkills(t);
+    return card(sec, id, e, title, [], ...templateHead(t), ...fields(e, ['id', 'name', 'essences', 'rank', 'roleId', 'themeId', 'level', 'personality', 'perks', 'loadout']),
+      row('Skills', skillList(skills)), row('Personality', val(named('personality', presetPersonality(t)))),
+      row('Perks', ((ids) => (ids.length ? links('perks', ids.map((x) => [x, lib.perks[x]?.name ?? x])) : none('none')))(templatePerks(t))),
+      row('Gear', ((ids) => (ids.length ? itemLinks(ids, t.loadout ?? []) : none('none')))(templateLoadout(t, skills))),
+      row('Essences', essenceList(t)));
   });
 }
-/** NG1, NG7: a template's rank (its theme's own title first), its level, role and theme, as the game reads them */
+/** NG1, NG7, NG13: a template's rank after its role's floor (its theme's own title first), its level, role and theme, as the game reads them */
 const templateHead = (t: NpcTemplate): HTMLElement[] => [
-  row('Rank', t.rank ? `${rankName(t.rank, t.themeId)}, level ${templateLevel(t)}` : `none (a unique), level ${templateLevel(t)}`),
+  row('Rank', ((r) => (r ? `${rankName(r, t.themeId)}, level ${templateLevel(t)}${t.rank && r !== t.rank ? ` (set ${rankName(t.rank, t.themeId)}, raised to its role's floor)` : ''}` : `none (a unique), level ${templateLevel(t)}`))(templateRank(t))),
   row('Role', t.roleId ? link('npcRoles', t.roleId, lib.npcRoles?.[t.roleId]?.name ?? t.roleId) : none('none')),
   row('Theme', t.themeId ? link('themes', t.themeId, lib.themes?.[t.themeId]?.name ?? t.themeId) : none('none')),
 ];
+/** NG14: a role's or theme's personality lean: only the parts it sets (a later layer wins per axis) */
+const leanText = (l?: PersonalityLean) => {
+  const sg = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+  const parts: (Node | string)[] = [
+    ...(l?.nerve !== undefined ? [h('span', {}, `Nerve ${sg(l.nerve)} (`, link('nerve', nerveLine({ nerve: l.nerve, traits: {}, values: [] }), `${label(nerveLine({ nerve: l.nerve, traits: {}, values: [] }))} line`), ')')] : []),
+    ...Object.entries(l?.traits ?? {}).map(([a, n]) => `${lib.personalityAxes?.[a]?.name ?? a} ${sg(n)}`),
+    ...(l?.values?.length ? [h('span', {}, 'values ', links('values', l.values.map((v): [string, string] => [v, lib.values?.[v]?.name ?? label(v)])))] : []),
+  ];
+  return parts.length ? h('span', {}, ...parts.flatMap((p, i) => [i ? ', ' : '', p])) : none('none');
+};
+/** NG10: gear as item links with their level; picked items (not pinned on the template) say so */
+const itemLinks = (ids: string[], pins: readonly string[]) => h('span', {}, ...ids.flatMap((id, i) => [i ? ', ' : '',
+  link('gear', id, lib.items[id] ? label(lib.items[id].name) : id), lib.items[id] ? ` (${EQUIP_LEVELS.name(itemLevel(lib.items[id]) ?? 'crude')}${pins.includes(id) ? '' : ', picked'})` : '']));
 /** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged */
-const skillList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : ''}`])) : none('none')))(
-  Object.entries(templateSkills(t)).sort(([, a], [, b]) => b.raw - a.raw));
+const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : ''}`])) : none('none')))(
+  Object.entries(skills).sort(([, a], [, b]) => b.raw - a.raw));
 /** NG2, NG21: an NPC role or theme: its skill bands (share of the rank's anchor), a theme's rank titles, and the templates using it */
 function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: string): HTMLElement {
   const d = e as unknown as ThemeDef, key = sec === 'npcRoles' ? 'roleId' : 'themeId';
   const bands = (Object.keys(CONFIG.ROLE_BAND_SHARE) as (keyof typeof CONFIG.ROLE_BAND_SHARE)[]).filter((b) => d.bands?.[b]?.length)
     .map((b) => row(`${label(b)} (×${CONFIG.ROLE_BAND_SHARE[b]})`, links('skills', d.bands![b]!.map((s) => [s, skillName(s)]))));
   const titles = Object.entries(d.rankNames ?? {}).map(([k, n]) => `${RANKS.name(k as (typeof RANKS.keys)[number])} → ${n}`);
-  return card(sec, id, e, title, [], ...(bands.length ? bands : [row('Skills', none('adds none'))]),
+  const role = sec === 'npcRoles' ? (e as unknown as NpcRoleDef) : undefined;
+  const floor = role && role.kind !== 'beast' ? CONFIG.RANK_FLOOR[role.kind] : undefined;
+  return card(sec, id, e, title, role ? [chip(role.kind, toneFor('Kind', role.kind))] : [],
+    role ? row('Kind', `${label(role.kind)}: ${floor ? `never below ${RANKS.name(floor as (typeof RANKS.keys)[number])}` : 'no rank floor, no personality spread'}`) : null,
+    ...(bands.length ? bands : [row('Skills', none('adds none'))]),
+    row('Leans', leanText(d.leans)),
+    row('Rank traits', d.traits?.length ? links('perks', d.traits.map((x) => [x, lib.perks[x]?.name ?? x])) : none('none')),
+    role ? row('Gear classes', role.gear?.length ? links('gearClasses', role.gear.map((g) => [g, lib.gearClasses?.[g]?.name ?? g])) : none('none')) : null,
+    sec === 'themes' ? row('Wealth', d.wealth ? `gear up to ${EQUIP_LEVELS.name(d.wealth)}` : none('no picked gear')) : null,
+    sec === 'themes' && d.talent ? row('Talent', TALENTS.name(d.talent as (typeof TALENTS.keys)[number])) : null,
     sec === 'themes' ? row('Rank titles', titles.length ? titles.join(', ') : none('the usual names')) : null,
     row('NPC templates', usedBy((t) => t[key] === id)));
 }
