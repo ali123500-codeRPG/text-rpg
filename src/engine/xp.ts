@@ -27,6 +27,11 @@ export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0) + (a.progression?.bonusLevelsTaken ?? 0);
 /** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
 export const xpToNext = (a: Actor) => levelCost(charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
+/** the XP bar as every screen shows it: level, XP, XP for the next level, and the bar's fill (XP debt, EG15, shows empty) */
+export function xpFill(a: Actor): { level: number; xp: number; need: number; pct: number } {
+  const need = xpToNext(a), xp = a.progression?.xp ?? 0;
+  return { level: charLevel(a), xp, need, pct: need > 0 ? Math.max(0, Math.min(100, (xp / need) * 100)) : 100 };
+}
 export { levelCost, perkPointAt, perkPointsUpTo, xpToReach } from '../ruleset/levels';
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);

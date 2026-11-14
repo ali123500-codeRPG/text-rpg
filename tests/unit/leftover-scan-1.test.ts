@@ -21,6 +21,9 @@ import { cap, listWords, r1 } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
 import type { Actor, Quest, RollResult } from '../../src/types';
 import { rewardXp, rewardXpAt } from '../../src/ruleset/achRewards';
+import { poolState } from '../../src/ruleset/body';
+import { accSlot, gripSlot, gripsOf, isHeld, isWorn } from '../../src/ruleset/slots';
+import { xpFill } from '../../src/engine/xp';
 import { questXp } from '../../src/engine/quests';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../../src/scales';
 import { perkPointAt, perkPointsUpTo } from '../../src/ruleset/levels';
@@ -42,11 +45,13 @@ const ROUND_7 = ['src/ui/map.ts', 'src/library/perks.ts', 'src/perception/index.
   'src/engine/relations.ts', 'src/library/allPerks.ts'];
 const ROUND_8 = ['src/save/index.ts', 'src/ruleset/gear.ts', 'src/ui/autopilot.ts', 'src/engine/scenarioEnd.ts', 'src/engine/quests.ts',
   'src/ruleset/improve.ts', 'src/engine/feats.ts', 'src/minds/routines.ts', 'src/engine/sleep.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7, ...ROUND_8];
+const ROUND_9 = ['src/ui/mapPlan.ts', 'src/save/checks.ts', 'src/scenario/director.ts', 'src/ui/creation.ts', 'src/engine/offer.ts',
+  'src/ruleset/body.ts', 'src/engine/chase.ts', 'src/ruleset/perks.ts', 'src/engine/growth.ts', 'src/engine/filch.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7, ...ROUND_8, ...ROUND_9];
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts'];
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -316,5 +321,36 @@ describe('answers CS20 to CS22', () => {
   });
   it('CS22: routine_unreachable is logged, not promised', () => {
     expect(readFileSync('src/minds/routines.ts', 'utf8') as string).not.toMatch(/routine_unreachable \[Proposed\]/);
+  });
+});
+
+describe('leftover scan round 9', () => {
+  it('slot names are spelled in one place: no other code builds or tests a grip or accessory slot by hand', () => {
+    const own = ['src/ruleset/slots.ts', 'src/save/checks.ts', 'src/library/data.ts']; // checks.ts: the v7 -> v8 migration keeps its fixed spelling
+    const offenders = files('src').filter((f) => !own.includes(f) && /startsWith\('(grip|acc):'\)|`(grip|acc):\$\{|replace\(\/\^grip:/.test(readFileSync(f, 'utf8') as string));
+    expect(offenders).toEqual([]);
+    const sword = { equippedIn: [gripSlot('right_arm'), gripSlot('left_arm')] }, ring = { equippedIn: [accSlot(0)] };
+    expect([isHeld(sword), isWorn(sword), isHeld(ring), isWorn(ring)]).toEqual([true, false, false, true]);
+    expect(gripsOf(sword)).toEqual(['right_arm', 'left_arm']);
+  });
+  it('a part\'s state reads its floors from config', () => {
+    expect([51, 50, 1, 0, -99, -100].map(poolState)).toEqual(['healthy', 'damaged', 'damaged', 'crippled', 'crippled', 'destroyed']);
+    expect(readFileSync('src/ruleset/body.ts', 'utf8') as string).not.toMatch(/pct > 50|pct > -100/);
+  });
+  it('one XP bar: every screen reads xpFill, and XP debt shows an empty bar', () => {
+    const offenders = files('src').filter((f) => f !== 'src/engine/xp.ts' && /\((pr\.)?xp \/ need\)/.test(readFileSync(f, 'utf8') as string));
+    expect(offenders).toEqual([]);
+    const s = makeVillage();
+    s.player.progression!.xp = -5;
+    expect(xpFill(s.player).pct).toBe(0);
+  });
+  it('one rule for what is seen at a point (dark: at most partial)', () => {
+    const offenders = files('src').filter((f) => f !== 'src/perception/index.ts' && /=== 'dark' \? 'partial'/.test(readFileSync(f, 'utf8') as string));
+    expect(offenders).toEqual([]);
+  });
+  it('stale creation notes and placeholders are gone; scale positions are read by key', () => {
+    const t = readFileSync('src/ui/creation.ts', 'utf8') as string;
+    expect(t).not.toMatch(/Swordsman skills have no effects yet|Not chosen yet|'Stealth'/);
+    expect(readFileSync('src/ruleset/perks.ts', 'utf8') as string).not.toMatch(/\.pos\([^)]*\)\) >= 1/);
   });
 });

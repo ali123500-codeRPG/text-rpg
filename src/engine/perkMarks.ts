@@ -12,7 +12,6 @@
 // The two openings last until used or the owner's engagement ends; the stumble, slow and dirt PERK_MARK_ROUNDS rounds of
 // game time from the turn they were made (AT74).
 import type { Actor, AttackResult, GameState, PerkMark } from '../types';
-import { itemDef } from '../library';
 import { hasPerk } from '../ruleset/perks';
 import { canBlock, defenseItem, effectiveSkill, parryItem, usableDefense } from '../ruleset/gear';
 import { allActors, foe, isActive, stance, warm } from './relations';

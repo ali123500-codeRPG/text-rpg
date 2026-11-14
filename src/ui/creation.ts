@@ -19,17 +19,18 @@ import { CLASS_TIERS } from '../scales';
 export { SKILL_NAMES, skillName };
 export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.stamina]: 'sets stamina', [SK.riposte]: 'adds to Parry', [SK.blade_dance]: 'adds to Dodge' };
 
-// Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
-
-export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
+/** layout B's tree order and colours */
+export const TREE_VIEW: { id: string; c: string }[] = [
   { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.fortitude, c: 'c6' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
-  { id: TR.perception, c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: TR.ranged, c: 'c7' }, { id: TR.unarmed, c: 'c14' },
+  { id: TR.perception, c: 'c12' }, { id: TR.ranged, c: 'c7' }, { id: TR.unarmed, c: 'c14' },
   { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' }, { id: TR.trickery, c: 'c9' },
 ];
 
 const STEP = 5;
+/** the practice swings behind the "Vs one slime" estimate: the start, and the most and fewest the panel takes */
+const SWINGS = { start: 400, min: 50, max: 5000 };
 
-/** the starting options: the swordsman, and the late bloomer's unique class */
+/** the starting options: the swordsman, the late bloomer, a nobody and the Threadbound (each a class's creation start) */
 const STARTS: string[] = [CL.swordsman, CL.late_bloomer, CL.a_nobody, CL.threadbounded];
 
 /** The creation screen. Switching the starting class swaps the screen inside one wrapper, so the app's
@@ -54,7 +55,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
   const who = { core: newPlayer(classId) } as Actor;
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
-  const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: 400 };
+  const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: SWINGS.start };
   const total = () => creationPoints(classId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
   const recommended = () => { const r = recommendedBuild(classId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
@@ -74,7 +75,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     const def = lib.trees[t.id];
     const sum = h('span', { class: 'tot hs-num' });
     sums.set(t.id, sum);
-    const name = def?.name ?? 'Stealth';
+    const name = def?.name ?? t.id;
     const sec = h('section', {}, h('div', { class: 'grp-h' }, h('i', { class: 'hs-sq', style: `background:var(--${t.c})` }), h('h2', { class: 'hs-section' }, name),
       classTree(def?.access) ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
     for (const k of (def?.skills ?? []).filter((k) => open.includes(k))) {
@@ -95,13 +96,12 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       rows.set(k, row);
       sec.append(row);
     }
-    if (t.locked) sec.append(h('div', { class: 'row locked' }, h('div', { class: 'nm' }, h('b', {}, t.locked[0])), h('span', { class: 'lockw' }, t.locked[1])));
     return sec;
   }));
 
   function editSwings() {
-    const inp = h('input', { class: 'hs-input', type: 'number', min: '50', max: '5000', step: '50', value: String(st.swings), id: 'swings',
-      onchange: (e: Event) => { st.swings = Math.max(50, Math.min(5000, +(e.target as HTMLInputElement).value || 400)); render(); } });
+    const inp = h('input', { class: 'hs-input', type: 'number', min: String(SWINGS.min), max: String(SWINGS.max), step: String(SWINGS.min), value: String(st.swings), id: 'swings',
+      onchange: (e: Event) => { st.swings = Math.max(SWINGS.min, Math.min(SWINGS.max, +(e.target as HTMLInputElement).value || SWINGS.start)); render(); } });
     openPanel('Estimate', [
       { k: 'Figure', v: 'Vs one slime' },
       { k: 'Source', v: 'The game’s attack rules, run as seeded practice swings: you with your starting weapon (or bare hands) against one slime, and its slam against you with your standing defense.' },
@@ -218,7 +218,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,
         onclick: (e: Event) => { identity.pronouns = p; (e.currentTarget as HTMLElement).parentElement!.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, label)));
     return h('div', { class: 'who-row' },
-      h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: 40, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
+      h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: CONFIG.NAME_CAP, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
         oninput: (e: Event) => { identity.name = (e.target as HTMLInputElement).value; } })),
       h('span', { class: 'hs-label' }, 'Gender'), gender, ageField());
   }
@@ -254,6 +254,6 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     picker.el,
     h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
       `${total()} points, cap ${cap()}, floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
-      + `Figures use the starting kit this build gets. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)));
+      + `Figures use the starting kit this build gets. Odds use the game’s attack rules against the library’s slime.`)));
   return root;
 }

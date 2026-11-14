@@ -1,7 +1,7 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
-import { gripWord } from '../ruleset/gear';
+import { gripWord, gripsOf } from '../ruleset/gear';
 import { coinWords, coins, countWords } from '../engine/trade';
 import { moraleLevel } from '../ruleset/morale';
 import { IT } from '../library/itemIds';
@@ -1102,15 +1102,14 @@ export function partsWorse(before: { id: string; state: PartState }[], after: { 
 
 /** the player's gear (coin aside) as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */
 export type GearSnap = Map<string, { name: string; where: string; qty: number }>;
-const gripName = (slot: string) => gripWord(slot.replace(/^grip:/, ''));
 export function gearSnap(s: GameState, p: Actor): GearSnap {
   const gear: GearSnap = new Map();
   for (const i of p.core.inventory) {
     if (i.itemId === IT.coin) continue; // coin has its own row: LogLine.coin
-    const grips = (i.equippedIn ?? []).filter((x) => x.startsWith('grip:'));
+    const grips = gripsOf(i);
     let name = i.itemId;
     try { name = itemDef(s, i.itemId).name; } catch { /* an unknown item keeps its id */ }
-    gear.set(i.id, { name, qty: i.qty ?? 1, where: grips.length ? `held:${grips.map(gripName).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });
+    gear.set(i.id, { name, qty: i.qty ?? 1, where: grips.length ? `held:${grips.map(gripWord).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });
   }
   return gear;
 }

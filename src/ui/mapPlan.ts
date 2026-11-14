@@ -75,6 +75,8 @@ const union = (bs: Box[]): Box => bs.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0
 type Side = 'n' | 'e' | 's' | 'w';
 /** a compass word's side on screen (y down): [east, south] */
 const sideOf = (d: [number, number]): Side => (Math.abs(d[0]) >= Math.abs(d[1]) ? (d[0] >= 0 ? 'e' : 'w') : d[1] >= 0 ? 's' : 'n');
+/** a shut way's entry in the map key */
+const wayKey = (w: MapWay) => `way:${w.shut}${w.key ? '-key' : ''}`;
 /** a barrier in a few words, for exit notes */
 const shutWord = (w?: MapWay) => (w?.shut === 'locked' && w.key ? 'locked, your key' : w?.shut ?? '');
 
@@ -167,7 +169,7 @@ export function planScene(inp: PlanInput): Scene {
   const walls: Wall[] = [];
   for (const [key, { a, b, links }] of pairs) {
     const way = links.find((l) => l.way?.shut)?.way ?? links.find((l) => l.way)?.way;
-    if (way?.shut) used.add(`way:${way.shut}${way.key ? '-key' : ''}`);
+    if (way?.shut) used.add(wayKey(way));
     const A = a.box, B = b.box;
     const x0 = Math.max(A.x0, B.x0), x1 = Math.min(A.x1, B.x1), y0 = Math.max(A.y0, B.y0), y1 = Math.min(A.y1, B.y1);
     const vWall = Math.abs(x1 - x0) < 0.5 && y1 - y0 >= 1, hWall = Math.abs(y1 - y0) < 0.5 && x1 - x0 >= 1;
@@ -357,7 +359,7 @@ export function planScene(inp: PlanInput): Scene {
       tokens.push({ id: `who:${who.id}`, zoneId: x.z.id, ...p, r: WHO_R, ...disc(p.cx, p.cy, WHO_R), who, title: who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)` });
       take(disc(p.cx, p.cy, WHO_R), 'token');
     });
-    if (x.z.people.length) used.add(x.z.people.some((p) => !p.now) ? 'who-last' : 'who');
+    if (x.z.people.some((p) => !p.now)) used.add('who-last');
     if (x.z.people.some((p) => p.now)) used.add('who');
   }
   /** a free spot for a disc near (cx, cy), searching outward without a zone to stay in */
@@ -416,7 +418,7 @@ export function planScene(inp: PlanInput): Scene {
       doors.push(d); take(d, 'icon'); used.add('door');
     }
     used.add(st.away ? 'exit-away' : 'exit');
-    if (l.way?.shut) used.add(`way:${l.way.shut}${l.way.key ? '-key' : ''}`);
+    if (l.way?.shut) used.add(wayKey(l.way));
   });
 
   // ---- stairs (icons): inside their zone, clear of its corners; just outside when the zone has no room

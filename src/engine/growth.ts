@@ -8,7 +8,7 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { grantAllSteps } from '../ruleset/allSteps';
 import { owedBySkill, payRolls } from '../ruleset/improve';
-import { achievementInfo, atScenarioEnd, charLevel, grantAchievement, spendXp, unlockClasses, xpToNext } from './xp';
+import { achievementInfo, atScenarioEnd, charLevel, grantAchievement, spendXp, unlockClasses, xpFill } from './xp';
 import { logCode } from './effects';
 import { offerAtEnding } from './essence';
 import { ESSENCE_GRADES } from '../scales';
@@ -19,8 +19,8 @@ const empty = (): Part => ({ skills: [], perks: [], allPerks: [] });
 
 /** the sheet's XP bar: level and fill (as the character sheet shows it) */
 export function xpBar(state: GameState): { level: number; pct: number } {
-  const p = state.player, need = xpToNext(p), xp = p.progression?.xp ?? 0;
-  return { level: charLevel(p), pct: need > 0 ? Math.max(0, Math.min(100, (xp / need) * 100)) : 100 }; // XP debt (EG15) shows as an empty bar
+  const { level, pct } = xpFill(state.player);
+  return { level, pct };
 }
 
 /** reads this turn's log (from index `from`) into the gains: skill raises, milestone unlocks and the player's All-XXX */

@@ -15,8 +15,8 @@ import { stageFrontiers, validateStagePlan } from './validate';
 import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, stealthyArrival } from './apply';
 import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
 
-/** one Agent Weaver call. `errors` set = the repair retry. null = the call failed. */
-/** `errors` and `rejected` set = the repair retry: the validator's errors and the plan they belong to (V11). */
+/** one Agent Weaver call; null = the call failed. `errors` and `rejected` set = the repair retry: the validator's errors and
+ * the plan they belong to (V11). */
 export type Weave = (view: WeaverView, errors?: PlanError[], rejected?: StagePlan) => Promise<StagePlan | null>;
 
 /** SC8: one Weaver check-in call about the running scenario. null = the call failed. */
@@ -90,11 +90,11 @@ export class ScenarioDirector {
     const label = frontierKey ? zoneById(state, state.player.zone)?.links.find((l) => l.to === frontierKey)?.label : undefined;
     beginScenario(state, eventRoll.tier, eventRoll.beyond);
     const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
-    // GAP: WEAVER_TIMEOUT bounds the whole scenario-start wait (first call and repair together).
+    // WEAVER_TIMEOUT bounds the whole scenario-start wait (first call and repair together)
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
     const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
     const planned = await this.plan(state, ctx, target, deadline);
-    const res = { ...this.finish(state, ctx, planned, rng, entry), eventRoll };
+    const res = { ...finish(state, ctx, planned, rng, entry), eventRoll };
     if (frontierKey && entry === 'stealthy') stealthyArrival(state, rng);
     return res;
   }
@@ -203,7 +203,7 @@ export class ScenarioDirector {
     if (h.ahead) this.held.set(key, { ctx, result: h.result });
     // the stage may have changed since the plan came back: check it again (no retry for a background extension)
     const planned = r.plan ? { plan: r.plan, errors: validateStagePlan(state, r.plan, ctx) } : r;
-    const res = this.finish(state, ctx, planned, rng, entry);
+    const res = finish(state, ctx, planned, rng, entry);
     if (entry === 'stealthy') stealthyArrival(state, rng);
     return res;
   }
@@ -234,10 +234,6 @@ export class ScenarioDirector {
       return { plan: first, errors, reason: second === TIMEOUT ? 'weaver_timeout' : 'call_failed' };
     }
     return { plan: second, errors: validateStagePlan(state, second, ctx), reason: 'invalid_plan' };
-  }
-
-  private finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'stealthy'): ScenarioResult {
-    return finish(state, ctx, p, rng, entry);
   }
 
   private call(view: WeaverView, errors?: PlanError[], rejected?: StagePlan): Promise<StagePlan | null> {

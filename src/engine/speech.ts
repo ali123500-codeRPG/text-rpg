@@ -198,9 +198,9 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   const fight = isEngaged(state, p); // TF9 b: no repeat-try penalty in a fight
   const tries = fight ? [] : repeatTryMods(p, spokespeople, type); // NT3
   // TF10: a bribe to one listener: the coin offered weighs on the Barter roll
-  const briber = spokespeople.length === 1 ? state.actors.find((x) => x.id === spokespeople[0]) : undefined;
-  const bribe = briber ? playerOffer(state, intent, briber) : undefined;
-  if (bribe?.coin) tries.push({ source: 'Coin offered', type: 'situational', value: bribeMod(bribe.coin, briber!) });
+  const listener = spokespeople.length === 1 ? state.actors.find((x) => x.id === spokespeople[0]) : undefined;
+  const bribe = listener ? playerOffer(state, intent, listener) : undefined;
+  if (bribe?.coin) tries.push({ source: 'Coin offered', type: 'situational', value: bribeMod(bribe.coin, listener!) });
   const req = (actorId: string) => ({ actorId, skill: named, modifiers: tries, tierShifts: [], contest: true as const, ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
   // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
   const threat = (sp: string) => {
