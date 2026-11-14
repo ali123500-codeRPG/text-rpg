@@ -73,6 +73,18 @@ export function inContainer(state: GameState, a: Actor, itemId: string): { list:
   return null;
 }
 
+/** BG-206 (BF29): what lies inside the unlocked containers a person carries, containers in containers too, each with the
+ * list that holds it; a locked one keeps its contents shut */
+export function carriedContents(state: GameState, inv: ItemInstance[]): { inst: ItemInstance; list: ItemInstance[] }[] {
+  const out: { inst: ItemInstance; list: ItemInstance[] }[] = [];
+  for (const c of inv) {
+    if (!isContainer(state, c) || c.lock?.locked || !c.contents?.length) continue;
+    for (const inst of c.contents) out.push({ inst, list: c.contents });
+    out.push(...carriedContents(state, c.contents));
+  }
+  return out;
+}
+
 /** CT7: a worn pack taken off its wearer (picked up from a downed or yielded one) takes their stowed items with it */
 export function packUp(holder: Actor, pack: ItemInstance): void {
   const stowed = holder.core.inventory.filter((i) => i !== pack && !i.equippedIn?.length && !i.soulbound); // HF18: soulbound gear stays with its owner
