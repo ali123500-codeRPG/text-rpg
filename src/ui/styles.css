@@ -52,9 +52,6 @@ body { margin: 0; font: 14px/1.4 var(--font-round); font-variant-numeric: tabula
 .hs-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 svg.hs-i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -4px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
-/* M-72: reduced motion, or the play screen's Motion switch off (root .calm): nothing moves; colours still mark changes */
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-:root.calm * { transition: none !important; animation: none !important; }
 
 /* Rail: 64px items, no gap, active = pill filling the whole item; scrolls on its own, nothing shrinks */
 /* The rail comes last in the page (tab order: input, tools, sheet, rail) but sits in the first column */
@@ -472,7 +469,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
   padding: 2px var(--space-2); border-radius: var(--r-md); border: 1px solid var(--rule); background: var(--surface); box-shadow: var(--shadow-toast);
   font-size: 12px; font-weight: 600; color: var(--muted); opacity: 0; transition: opacity 120ms ease-out; }
 .cs-sk:hover .raw-tip, .cs-sk .num:focus-visible .raw-tip { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .cs-sk .raw-tip { transition: none; } }
 .cs-sk.zero .n, .cs-sk.zero .num { color: var(--faint); }
 .cs-bar { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); }
 .cs-bar > b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--t); }
@@ -1504,7 +1500,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .th-all { min-height: 0; }
 @media (max-width: 560px) { .th-knot { min-width: 36px; } .th-seg, .th-branch .th-seg { flex: 0 1 28px; min-width: 12px; }
   .th-head { grid-template-columns: minmax(0, 1fr); } .th-title, .th-fold { grid-column: 1; justify-self: center; } }
-@media (prefers-reduced-motion: reduce) { .th-chev, .th-chain { transition: none; } }
 /* Loot (src/ui/loot.ts): a large partial pop-up; each place things lie is a group of tick chips, the order shows as it will be typed */
 .dpop.loot-pop { width: min(560px, calc(100vw - 32px)); }
 .loot-pop .dpop-body { justify-items: stretch; gap: var(--space-4); }

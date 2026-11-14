@@ -8,7 +8,6 @@ import { createFakeGame } from './fakeGame';
 import { browserClaudeClient, createGame, realClock } from '../agents';
 import { createDirector } from '../agents/director';
 import { artifactDbStore } from '../save/store';
-import { motionSettings } from './motion';
 
 async function realGame(): Promise<GameApi | null> {
   const w = globalThis as unknown as { claude?: { use(name: string): Promise<unknown> } };
@@ -16,9 +15,6 @@ async function realGame(): Promise<GameApi | null> {
   const [client, db] = await Promise.all([browserClaudeClient(), w.claude.use('db')]);
   if (!client || !db) return null;
   const store = artifactDbStore(db as Parameters<typeof artifactDbStore>[0]);
-  // BF66: what this browser says about motion, kept in the save database, so a missing hit pop-up can be checked against
-  // the Motion switch and the system's reduce-motion setting
-  void store.set('diag/motion', { ...motionSettings(), at: new Date().toISOString() }).catch(() => undefined);
   return createGame({ client, clock: realClock, store, director: createDirector(realClock) });
 }
 

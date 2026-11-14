@@ -147,39 +147,41 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  // BF66: the strike card shows as the turn lands and lives its full time: a click on the story doesn't take it away, and with
-  // motion off it still shows. BF64: no "draws to a close" line ever shows while a turn runs.
-  for (const motion of ['on', 'off'] as const) {
-    it(`BF66: a landed blow shows the strike card at once, with motion ${motion}, and a click on the story keeps it`, async () => {
-      if (motion === 'off') await page.evaluate(() => localStorage.setItem('motion', 'off')); // read on every turn
-      // someone to hit, half a metre away: the smoke world's opening has no one beside the player
-      const id = await page.evaluate(() => {
-        type A = { id: string; kind: string; name?: string; zone: string; pos: { x: number; y: number }; core: { skills: Record<string, unknown> } };
-        const s = (globalThis as unknown as { __GAME_API__: { state(): { player: A; actors: A[] } } }).__GAME_API__.state();
-        s.player.core.skills.SK2 ??= { raw: 30, state: 'normal' }; // a made character may lack Medium weapons: the order names it
-        const d = { ...structuredClone(s.player), id: 'dummy', kind: 'npc', name: 'Straw Dummy', pos: { x: s.player.pos.x + 0.5, y: s.player.pos.y }, mind: { control: 'code', knowledge: {}, knows: [] } };
-        s.actors.push(d);
-        return d.id;
-      });
-      await page.evaluate(() => { (window as unknown as { endWait: number }).endWait = 0; new MutationObserver(() => { if (document.querySelector('.end-wait')) (window as unknown as { endWait: number }).endWait++; }).observe(document.body, { childList: true, subtree: true }); });
-      let seen = false;
-      type Api = { __GAME_API__: { state(): { turn: number }; busy(): boolean } };
-      for (let n = 1; n <= 8 && !seen; n++) {
-        const was = await page.evaluate(() => (globalThis as unknown as Api).__GAME_API__.state().turn);
-        await page.getByPlaceholder(/What do you do/).fill(`hit ${id} SK2`);
-        await page.getByRole('button', { name: 'Send' }).click();
-        // the turn has landed: the game moved on and is no longer busy (not a "Turn n" label, which earlier tests may have used)
-        await page.waitForFunction((t) => { const a = (globalThis as unknown as Api).__GAME_API__; return a.state().turn > t && !a.busy(); }, was);
-        for (let i = 0; i < 10 && !seen; i++) { seen = await page.locator('.strike').count() > 0; if (!seen) await page.waitForTimeout(100); }
-      }
-      expect(seen).toBe(true);
-      await page.locator('.story').click({ position: { x: 20, y: 20 } }); // a skip (M-12)
-      await page.waitForTimeout(200);
-      expect(await page.locator('.strike').count()).toBe(1);
-      expect(await page.evaluate(() => (window as unknown as { endWait: number }).endWait)).toBe(0);
-      expect(errors).toEqual([]);
-    }, 60_000);
-  }
+  // BF66: the strike card shows as the turn lands and lives its full time: a click on the story doesn't take it away.
+  // BF64: no "draws to a close" line ever shows while a turn runs. M-72: motion always plays: there is no Motion switch, and
+  // an old stored switch or the system's reduced-motion setting changes nothing.
+  it('BF66: a landed blow shows the strike card at once, animated even with reduced motion set, and a click on the story keeps it', async () => {
+    expect(await page.getByRole('button', { name: /Motion/ }).count()).toBe(0);
+    await page.evaluate(() => localStorage.setItem('motion', 'off')); // what the old switch stored
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    // someone to hit, half a metre away: the smoke world's opening has no one beside the player
+    const id = await page.evaluate(() => {
+      type A = { id: string; kind: string; name?: string; zone: string; pos: { x: number; y: number }; core: { skills: Record<string, unknown> } };
+      const s = (globalThis as unknown as { __GAME_API__: { state(): { player: A; actors: A[] } } }).__GAME_API__.state();
+      s.player.core.skills.SK2 ??= { raw: 30, state: 'normal' }; // a made character may lack Medium weapons: the order names it
+      const d = { ...structuredClone(s.player), id: 'dummy', kind: 'npc', name: 'Straw Dummy', pos: { x: s.player.pos.x + 0.5, y: s.player.pos.y }, mind: { control: 'code', knowledge: {}, knows: [] } };
+      s.actors.push(d);
+      return d.id;
+    });
+    await page.evaluate(() => { (window as unknown as { endWait: number }).endWait = 0; new MutationObserver(() => { if (document.querySelector('.end-wait')) (window as unknown as { endWait: number }).endWait++; }).observe(document.body, { childList: true, subtree: true }); });
+    let seen = false;
+    type Api = { __GAME_API__: { state(): { turn: number }; busy(): boolean } };
+    for (let n = 1; n <= 8 && !seen; n++) {
+      const was = await page.evaluate(() => (globalThis as unknown as Api).__GAME_API__.state().turn);
+      await page.getByPlaceholder(/What do you do/).fill(`hit ${id} SK2`);
+      await page.getByRole('button', { name: 'Send' }).click();
+      // the turn has landed: the game moved on and is no longer busy (not a "Turn n" label, which earlier tests may have used)
+      await page.waitForFunction((t) => { const a = (globalThis as unknown as Api).__GAME_API__; return a.state().turn > t && !a.busy(); }, was);
+      for (let i = 0; i < 10 && !seen; i++) { seen = await page.locator('.strike').count() > 0; if (!seen) await page.waitForTimeout(100); }
+    }
+    expect(seen).toBe(true);
+    expect(await page.evaluate(() => document.querySelector('.strike')!.getAnimations().length)).toBeGreaterThan(0);
+    await page.locator('.story').click({ position: { x: 20, y: 20 } }); // a skip (M-12)
+    await page.waitForTimeout(200);
+    expect(await page.locator('.strike').count()).toBe(1);
+    expect(await page.evaluate(() => (window as unknown as { endWait: number }).endWait)).toBe(0);
+    expect(errors).toEqual([]);
+  }, 60_000);
 
   it('BG-220: Back closes the full-screen Perks pop-up and stays on the Character page; closing it with ✕ leaves Back as it was', async () => {
     await nav('Character');
