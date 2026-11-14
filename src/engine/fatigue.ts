@@ -15,7 +15,7 @@ import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markStamina } from '../ruleset';
 import { allActors, isActive, isAsleep, zoneById } from './relations';
 import { logCode } from './effects';
-import { fallAsleep, planNight } from './sleep';
+import { fallAsleep, mayDropOff, planNight } from './sleep';
 
 const fat = (a: Actor) => (a.core.condition.fatigue ??= { debt: 0, line: 0 });
 const row = (id: string) => getLibrary().recovery?.[id];
@@ -121,8 +121,9 @@ export function passiveFatigue(state: GameState, minutes: number): void {
       const was = f.debt;
       f.debt = Math.min(max, f.debt + add);
       f.awake = (f.awake ?? 0) + add;
-      // FB4 b: a Spent actor still collapses once its hours awake alone would have filled the bar
-      if ((was < max && f.debt >= max) || f.awake >= max) collapse(state, a);
+      // FB4 b: a Spent actor still collapses once its hours awake alone would have filled the bar. BF69: not while the guards
+      // on falling asleep hold (just woken, alarmed, engaged, held): once they lift, the next minute takes it
+      if (((was < max && f.debt >= max) || f.awake >= max) && mayDropOff(state, a)) collapse(state, a);
     }
     const calm = t1 - Math.max(t1 - minutes, (f.hardAt ?? -Infinity) + CONFIG.BREATH_CALM_S / 60);
     const b = row(RV.breath)?.perMinute;

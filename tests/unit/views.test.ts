@@ -46,15 +46,15 @@ describe('NPC views', () => {
     run(s, ev({ actorId: 'patron_1', kind: 'speak', zone: 'tav_counter', line: { text: 'not mine', volume: 'normal' } }));
     for (const v of npcViews(s, 'trader')) expect(v.said).toEqual(['line 3', 'line 4', 'line 5', 'line 6', 'line 7', 'line 8']);
   });
-  it('never copy bark events (Leak prevention)', () => {
+  it('BF67: a bark is real speech: one who hears it gets its words, and the one who said it has it in its said list', () => {
     const s = makeVillage();
     run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', bark: true, line: { text: 'Get out, you oaf!', volume: 'shout' }, noise: 'loud' }));
     run(s, ev({ actorId: 'trader', kind: 'idle', zone: 'tav_counter', activity: 'tend_counter' }));
     for (const v of npcViews(s, 'patron_1')) {
-      expect(JSON.stringify(v)).not.toContain('oaf');
-      expect(v.perceived.some((e) => e.kind === 'speak')).toBe(false);
+      expect(v.perceived.some((e) => e.kind === 'speak' && e.line?.text === 'Get out, you oaf!')).toBe(true);
       expect(v.perceived.some((e) => e.kind === 'idle')).toBe(true);
     }
+    for (const v of npcViews(s, 'trader')) expect(v.said).toContain('Get out, you oaf!');
   });
   it('are deny-by-default: unknown fields on state, actor, mind, band and zone reach no view', () => {
     const s = makeVillage();

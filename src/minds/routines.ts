@@ -22,18 +22,22 @@ function headGoal(view: ActorView, dest: string): { zone: string; frontier?: str
   return { zone: edges.reduce((best, z) => (dist(z) < dist(best) ? z : best)), frontier: dest };
 }
 
-export type Stop = { slot: string; zone: string; minutes: number; activity: string };
+export type Stop = { slot: string; zone: string; minutes: number; activity: string; unbound?: true };
 
 /** NW10: a routine's steps at a time of day: its own for that time, else its steps for any time */
 export const stepsAt = (r: Routine, dayPart?: TimeOfDay) => (dayPart && r.times?.find((t) => t.at.includes(dayPart))?.steps) || r.steps;
 
-/** a route slot expands to one stop per bound zone; an unbound slot gives no stop. NW10: each stop lasts game minutes. */
-export function expandSteps(r: Routine, slots: Record<string, string | string[]>, dayPart?: TimeOfDay): Stop[] {
+/** a route slot expands to one stop per bound zone; an unbound slot gives no stop, except a sleep step: BF68, with nowhere
+ * given to sleep it sleeps `here` (where it stands; the stop says unbound, so code files the gap). NW10: each stop lasts
+ * game minutes. */
+export function expandSteps(r: Routine, slots: Record<string, string | string[]>, dayPart?: TimeOfDay, here?: string): Stop[] {
   const out: Stop[] = [];
   for (const st of stepsAt(r, dayPart)) {
     const b = slots[st.slot];
     const zones = b === undefined ? [] : Array.isArray(b) ? b : [b];
-    for (const zone of zones) out.push({ slot: st.slot, zone, minutes: CONFIG.DURATIONS[st.duration], activity: st.activity });
+    const minutes = CONFIG.DURATIONS[st.duration];
+    if (!zones.length && st.activity === 'sleep' && here) out.push({ slot: st.slot, zone: here, minutes, activity: st.activity, unbound: true });
+    for (const zone of zones) out.push({ slot: st.slot, zone, minutes, activity: st.activity });
   }
   return out;
 }
@@ -47,7 +51,7 @@ export function slotsRead(r: Routine): string[] {
   return [...s];
 }
 
-export function desiredState(view: ActorView): { zone: string; activity: string } | null {
+export function desiredState(view: ActorView): { zone: string; activity: string; unbound?: true } | null {
   const cur = view.self.routine;
   if (!cur) return null;
   const r = getRoutine(cur.id);
@@ -68,7 +72,7 @@ export function desiredState(view: ActorView): { zone: string; activity: string 
     return { zone: (Array.isArray(here) ? here[0] : here) ?? view.self.zone, activity: r.activity ?? 'rest' };
   }
   // NW10: the steps for the time of day now, run on the clock: minutes since the routine started
-  const stops = expandSteps(r, view.self.slots, cur.dayPart);
+  const stops = expandSteps(r, view.self.slots, cur.dayPart, view.self.zone);
   if (!stops.length) return null;
   const total = stops.reduce((n, s) => n + s.minutes, 0);
   let t = cur.elapsed ?? 0;
@@ -76,7 +80,7 @@ export function desiredState(view: ActorView): { zone: string; activity: string 
   else if (t >= total) return { zone: stops[stops.length - 1].zone, activity: stops[stops.length - 1].activity };
   t = Math.max(0, t);
   for (const s of stops) {
-    if (t < s.minutes) return { zone: s.zone, activity: s.activity };
+    if (t < s.minutes) return { zone: s.zone, activity: s.activity, ...(s.unbound ? { unbound: true as const } : {}) };
     t -= s.minutes;
   }
   return null; // unreachable: t < total

@@ -106,7 +106,7 @@ function flush(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng?: Rng
     const q = pr.pendingAchievements ?? [];
     delete pr.pendingAchievements;
     const had = new Set((pr.achievements ?? []).map((x) => x.id));
-    for (const x of q) grantAchievement(state, x.key, x.of, x.reached, true);
+    for (const x of q) grantAchievement(state, x.key, x.of, x.reached, true, x.turn);
     grantAllSteps(state, state.player, true);
     for (const x of pr.achievements ?? []) if (!had.has(x.id)) ids.push(x.id);
     readLog(state, g, mark);

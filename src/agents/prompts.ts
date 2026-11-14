@@ -24,6 +24,8 @@ const LINE_RULE = (n: number) => `\n${n}. Your line holds only the words you say
    follow routine. If you will only do it later, say it as a promise ("I'll pour you one").
    Say you have an item, or promise to hand one over, only if self.gear lists it: one you don't carry, you say you don't have it
    or where it might be, never that it is with you.
+   "said" in your view lists your own last lines, the ones you shouted beside a move or a blow too: never say one of them
+   again, or the same thing in other words. Say something new, or nothing (line null).
    A whisper carries only to someone within arm's reach (${CONFIG.WHISPER_REACH_M} m, distanceM in your view): to anyone further off, speak normally or step up to them first.`;
 const PUSH_RULE = (n: number) => `\n${n}. To press the player to do or believe something, speak with type persuade (win them round), deceive (a lie
    you need them to believe), intimidate (a threat) or barter (haggle over a price) instead of talk, with target the

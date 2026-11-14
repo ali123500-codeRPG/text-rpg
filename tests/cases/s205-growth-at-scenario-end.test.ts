@@ -8,7 +8,7 @@ import { makeVillage } from '../harness';
 import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
 import { TR } from '../../src/library/treeIds';
-import { awardXp, charLevel, grantAchievement, xpToNext } from '../../src/engine/xp';
+import { achievementInfo, awardXp, charLevel, grantAchievement, xpToNext } from '../../src/engine/xp';
 import { closeScenario, endScenario, frameOf } from '../../src/engine/scenarioEnd';
 import { noteGains, scenarioGainsNow } from '../../src/engine/growth';
 import { play } from './w4-kit';
@@ -48,6 +48,10 @@ describe('205 growth lands at the scenario end', () => {
     expect(has(s, ACH.first_defeat_body_type)).toBe(true);
     expect(s.player.progression!.pendingAchievements).toBeUndefined();
     expect(s.log.some((l) => l.code === 'achievement_outside_end')).toBe(false); // granted at the end: no flag
+    // BF60 (BG-233): handed over 4 turns later, it keeps the turn it was reached on, and its line names that turn
+    const got = s.player.progression!.achievements!.find((a) => a.key === ACH.first_defeat_body_type)!;
+    expect(got.turn).toBe(s.turn - 4);
+    expect(achievementInfo(s, got).why).toMatch(new RegExp(`^Turn ${s.turn - 4}:`));
     const g = scenarioGainsNow(s)!;
     expect(g.achievements.map((a) => a.id)).toEqual([`${getLibrary().achievements![ACH.first_defeat_body_type].id}:slime`]);
     expect(g.skills).toEqual([{ skill: SK.dodge, from: 25, to: 30 }]);

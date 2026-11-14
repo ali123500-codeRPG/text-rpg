@@ -9,10 +9,10 @@ import { LIFE_STAGES, TALENTS, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '.
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
-import { ZK } from '../library/tableIds';
+import { FU, ZK } from '../library/tableIds';
 import { entryPoint, placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
-import { activity, getLibrary, itemDef, npcTemplate, routine } from '../library';
+import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from '../library';
 import { composeTemplate, presetPersonality, spawnNpc } from '../library/spawn';
 import { personalityFrom } from '../ruleset/personality';
 import { installRoutines, desiredState, detectPlayer, headTo, knownFromTheStart } from '../minds';
@@ -356,7 +356,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       idleHere(a, here ? zoneRef(here) : (firstZone ?? a.zone), turn, now(state));
     } else {
       const slots = Object.fromEntries(Object.entries(c.slots ?? {}).map(([k, v]) => [k, Array.isArray(v) ? v.map(zoneRef) : zoneRef(v)]));
-      installRoutines(a, c.routineSetId, slots, c.startAt, turn, rng, now(state));
+      installRoutines(a, c.routineSetId, withBed(state, c.routineSetId, slots, a.zone), c.startAt, turn, rng, now(state));
     }
     // NW7: a reused actor stays where it is. One the player can't perceive walks to its start (head_to), then takes up
     // its new routine; one the player perceives is not sent anywhere, and its new routine walks it on from where it stands.
@@ -640,4 +640,25 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
   if (!a.wares) a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse, once
   a.wares = { items, services };
   if (dropped.length) state.log.push({ turn, code: 'wares_dropped', detail: { actorId: a.id, dropped } });
+}
+
+/** BF68: everyone whose set has a bed slot gets somewhere to sleep when the plan left it out: a real bed within
+ * BED_NEAR_HOPS links of its own spots (nearest first), else its refuge (home or a doorway), else its work spot */
+export function withBed(state: GameState, setId: string, slots: Record<string, string | string[]>, start: string): Record<string, string | string[]> {
+  const set = routineSet(setId);
+  if (!set?.slots.bed || (slots.bed !== undefined && [slots.bed].flat().length)) return slots;
+  const own = Object.entries(slots).filter(([k]) => k !== 'bed').flatMap(([, v]) => [v].flat());
+  const beds = new Set(state.zones.filter((z) => state.stage.zoneIds.includes(z.id) && z.furniture?.some((f) => f.kind === FU.bed)).map((z) => z.id));
+  // breadth first from its own spots (and where it starts) out to BED_NEAR_HOPS links
+  let ring = [...new Set([...own, start])];
+  const seen = new Set(ring);
+  for (let hop = 0; hop <= CONFIG.BED_NEAR_HOPS && ring.length; hop++) {
+    const found = ring.find((z) => beds.has(z));
+    if (found) return { ...slots, bed: found };
+    ring = ring.flatMap((z) => zoneById(state, z)?.links.map((l) => l.to) ?? []).filter((z) => !seen.has(z) && state.stage.zoneIds.includes(z) && (seen.add(z), true));
+  }
+  const refuge = [slots.refuge ?? []].flat()[0];
+  const work = ['work', 'post', 'counter', 'seat', 'route'].map((k) => [slots[k] ?? []].flat()[0]).find(Boolean);
+  const bed = refuge ?? work ?? start;
+  return { ...slots, bed };
 }

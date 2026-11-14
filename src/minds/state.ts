@@ -33,7 +33,7 @@ export function installRoutines(actor: Actor, setId: string, slots: Record<strin
   mind.routines = [...set.routines];
   mind.slots = { ...slots };
   const r = getRoutine(set.routines[0]);
-  const stops = r.kind === 'schedule' ? expandSteps(r, mind.slots, timeOfDay(at)) : [];
+  const stops = r.kind === 'schedule' ? expandSteps(r, mind.slots, timeOfDay(at), actor.zone) : [];
   const total = stops.reduce((n, s) => n + s.minutes, 0);
   // NW10: started back in time so it stands at its startAt step, or (a loop) somewhere along it at random
   let back = 0;

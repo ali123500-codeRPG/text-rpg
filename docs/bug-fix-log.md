@@ -6,6 +6,46 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-246
+
+**What was wrong:** A roll line read "d100 49 → Critical Failure−−−−−− [weapon +9, light −5, Shaken −5]" with nothing to say how a 49 got there: the eight outcome steps lost for an old sword far beyond Corwin's skill were never shown, and his own view never told him the sword was beyond him, so he kept swinging it.
+
+**What was done:** Ali approved the fix (BF70). Every roll line shows the outcome before its whole steps, the steps with their sources, and the outcome after (src/agents/game.ts tiered), for attacks, defenses, contests and checks. An NPC's own gear in its view says when it is beyond its skill and by how many steps (OwnGearView.beyondYou, src/views/index.ts beyond).
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
+## BG-245
+
+**What was wrong:** Woken by every shout in a fight, an exhausted Bettany fell straight back asleep the same moment, six turns running, and never fled: collapsing from exhaustion checked none of the guards that falling asleep by routine checks.
+
+**What was done:** Ali approved the fix (BF69). Collapse uses the same guards as routine sleep (src/engine/sleep.ts mayDropOff): not within FALL_ASLEEP_MIN of waking, nor while alarmed, broken, engaged or held. Once those lift, exhaustion takes the actor again.
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
+## BG-244
+
+**What was wrong:** Bettany, Osric and Tam were never given a bed, and a routine step whose place is missing was skipped, so they never slept; Bettany keeled over in the square after three days.
+
+**What was done:** Ali approved the fix (BF68). When the cast is placed, anyone whose set has a bed slot and none given gets a real bed within BED_NEAR_HOPS links of its own spots, else its refuge, else its work spot (src/scenario/apply.ts withBed). A sleep step with no bed in play runs where the NPC stands, and the gap is filed once as a bug (bed_missing).
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
+## BG-243
+
+**What was wrong:** Osric opened almost every turn with the same shout: words said beside a deed (a bark) were left out of every NPC view, so his mind never saw what he had said and the people around him never got his words.
+
+**What was done:** Ali approved the fix (BF67). A bark is real speech: those who hear it get its words, the speaker's said list includes it (src/views/index.ts), and the shared line rule tells every speaker never to say a line from its said list again, or the same thing in other words (src/agents/prompts.ts LINE_RULE). Barks still copy no beliefs.
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
+## BG-233
+
+**What was wrong:** An achievement held for a scenario's end was stamped with the turn it was handed over, so its line named the wrong turn.
+
+**What was done:** Ali approved the fix (BF60). A queued achievement keeps the turn it was reached on (pendingAchievements[].turn), and the grant uses it (src/engine/xp.ts grantAchievement, src/engine/growth.ts flushGrowth).
+
+**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+
 ## BG-248
 
 **What was wrong:** Tapping a name inside a clarifying question filled the box with the last order plus the name in brackets ("I attack hob (Osric Fell)"); the Parser never saw its own question, so it asked again, and each tap added another bracket.

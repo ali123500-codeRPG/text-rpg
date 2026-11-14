@@ -174,7 +174,7 @@ export type Progression = {
    * the name and XP level live only in that table. name is only on entries from older saves. */
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string; reached?: number }[]; // reached: the tally that earned it
   /** D-226: achievements earned while a scenario runs, granted at its end (grantAchievement queues them) */
-  pendingAchievements?: { key: string; of?: string; reached?: number }[];
+  pendingAchievements?: { key: string; of?: string; reached?: number; turn?: number }[]; // turn: when it was reached (BF60)
   title?: string; // T18: the id of the earned achievement worn as a title (wornTitle in src/engine/xp.ts)
   /** achievement tallies: '<rule>' or '<rule>:<by>:<of>' (a count, or the best reached for days, zones and beyond_crit) */
   tally?: Record<string, number>;

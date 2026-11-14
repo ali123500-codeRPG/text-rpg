@@ -30,12 +30,12 @@ describe('213 routines through the day (RT1–RT9)', () => {
     at(s, 'night');
     expect(want(s, b.id)).toEqual({ zone: 'tav_cellar', activity: 'sleep' });
   });
-  it('an optional slot left unbound: the actor stays where it is at those times', () => {
+  it('an optional slot left unbound: the actor stays where it is at those times; BF68: a sleep step sleeps there', () => {
     const s = makeVillage();
     const b = s.actors.find((a) => a.id === 'trader')!;
     delete b.mind!.slots!.bed;
     at(s, 'night');
-    expect(want(s, b.id)).toBeNull();
+    expect(want(s, b.id)).toEqual({ zone: b.zone, activity: 'sleep', unbound: true });
     at(s, 'morning');
     expect(want(s, b.id)!.zone).toBe('tav_counter');
   });

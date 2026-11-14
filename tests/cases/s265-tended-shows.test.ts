@@ -3,6 +3,7 @@
 // healing item used on someone marks them tended (with it) until their next wound, in every view; an NPC keeps its last
 // wasted try and why (self.lastWasted) until it next does that kind of thing.
 import { expect, it } from 'vitest';
+import { CONFIG } from '../../src/config';
 import { actor, beside, makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { buildActorView, buildNarrationView, buildPlayerView } from '../../src/views';
@@ -10,6 +11,7 @@ import { IT } from '../../src/library/itemIds';
 
 it('a binding shows as tended, and a failed try stays in mind', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
+  s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening; // BF68: the patron sleeps through the morning; in the evening it drinks at its seat
   const ness = actor(s, 'patron_1');
   ness.mind!.control = 'agent';
   beside(s, 'patron_1', 'player', 0.8);

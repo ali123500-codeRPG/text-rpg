@@ -372,6 +372,7 @@ const DEFAULTS = {
   WAKE_CONTACT: ['attack'] as string[], // NW14: a blow wakes the one it is aimed at, hit or miss
   /** NW19: the difficulty of a light sleeper's hearing check against someone moving openly, by their noise (louder is easier) */
   WAKE_GRADE: { faint: 'extreme', hushed: 'major', quiet: 'moderate', murmur: 'minor', normal: 'none', raised: 'none', loud: 'none', blaring: 'none', deafening: 'none' } as Record<string, import('./scales').GradeLevel>,
+  BED_NEAR_HOPS: 2, // BF68: a real bed this many zone links or fewer from one's own spots is one's bed when none was given (placeholder)
   FALL_ASLEEP_MIN: 30, // NW20: an NPC woken falls asleep again by its routine no sooner than this
   NIGHT_MAX_MIN: 12 * 60, // NW22 b: a night shared out in watches lasts at most 12 hours
   SLEEP_STEP_MIN: 10, // NW12: a sleep is stepped this many minutes at a time, to stop when someone hostile arrives
