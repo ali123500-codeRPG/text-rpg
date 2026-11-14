@@ -41,7 +41,7 @@ describe('player creation', () => {
       [IT.arming_sword, 'grip:right_arm', undefined], [IT.gambeson, 'armor', undefined], [IT.pack, 'pack', undefined], // CT7: a worn pack
       [IT.coin, undefined, CONFIG.STARTING_COIN], [IT.bandage, undefined, CONFIG.STARTING_BANDAGES],
     ]);
-    expect(p.core.classes).toEqual([{ classId: CL.swordsman, state: 'current', level: 4 }]); // EQ13: the player starts at level 4
+    expect(p.core.classes).toEqual([{ classId: CL.swordsman, state: 'current', level: 4 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]); // Commoner open from the start; EQ13: the player starts at level 4
     expect(p.progression!.unspentPerkPoints).toBe(2); // the perk points of levels 2 and 4
     for (const i of p.core.inventory) expect(shortBy(p, itemDef(null, i.itemId))).toBe(0); // EQ13: the build meets its starting gear
     expect(() => createPlayer({ ...recommendedBuild(), tagged: [] }, 's1')).toThrow(/invalid build/);

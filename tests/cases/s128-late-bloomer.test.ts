@@ -20,7 +20,7 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.dodge]: 10 } })).toEqual(['Spend exactly 50 points (55 spent)']);
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.riposte]: 5, [SK.dodge]: 0 } })).toEqual(['Riposte is not open to the point-buy']);
     const p = createPlayer(b, 's1');
-    expect(p.core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }]);
+    expect(p.core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]); // Commoner is open from the start
     expect(getLibrary().classes[CL.late_bloomer].name).toBe('Unwritten Legend');
     expect(p.core.perks).toContainEqual({ perkId: PK.quick_study, source: 'class', gainedTurn: 0 });
     expect(p.progression!.unspentPerkPoints).toBe(0);
@@ -60,7 +60,7 @@ describe('128 Late bloomer and class-level perks', () => {
     const s = makeVillage();
     s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     unlockClasses(s);
-    expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer]);
+    expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer, CL.commoner]);
     s.player.core.skills[SK.melee_medium].raw = 40;
     s.player.core.skills[SK.parry].raw = 40;
     unlockClasses(s);
@@ -73,7 +73,7 @@ describe('128 Late bloomer and class-level perks', () => {
     s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     s.player.core.skills[SK.dodge].raw = 40;
     unlockClasses(s);
-    expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer]); // Dodge alone is not enough
+    expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer, CL.commoner]); // Dodge alone is not enough
     s.player.core.skills[SK.melee_light] = { ...s.player.core.skills[SK.melee_light], raw: 40 };
     unlockClasses(s);
     expect(s.player.core.classes).toContainEqual({ classId: CL.sword_dancer, state: 'unlocked', level: 0 });
