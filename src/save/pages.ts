@@ -1,5 +1,5 @@
 // GameState <-> saved pages (Part 4 §6, §9), stable hashing and size budgets.
-import type { Actor, BlueprintPage, EnginePage, FactsPage, GameState, Head, HiddenPage, Place, StoryFact, StoryMeta } from '../types';
+import type { Actor, BlueprintPage, EnginePage, FactsPage, GameState, Head, HiddenPage, Place, Region, StoryFact, StoryMeta } from '../types';
 
 export const PAGE_LIMIT = 256 * 1024; // platform: 256 KiB per document
 const FACTS_ENVELOPE = 512; // room for storyId/placeId around the facts array
@@ -61,12 +61,13 @@ export function toPages(state: GameState): Pages {
     ...(s.mercy ? { mercy: s.mercy } : {}),
     ...(s.barriers && Object.keys(s.barriers).length ? { barriers: s.barriers } : {}),
     ...(s.turnEnds ? { turnEnds: s.turnEnds } : {}),
-    order: { actors: [s.player, ...s.actors].map((a) => a.id), places: s.places.map((p) => p.id) },
+    order: { actors: [s.player, ...s.actors].map((a) => a.id), places: s.places.map((p) => p.id), ...(s.regions?.length ? { regions: s.regions.map((r) => r.id) } : {}) },
   };
   const hidden: HiddenPage = { storyId: s.storyId, ...s.hidden };
   const pages: Pages = { engine, hidden };
   for (const a of [s.player, ...s.actors]) pages[`actor.${a.id}`] = a;
   for (const p of s.places) pages[`place.${p.id}`] = p;
+  for (const r of s.regions ?? []) pages[`region.${r.id}`] = r;
   const byPlace = new Map<string, StoryFact[]>();
   for (const f of s.facts) byPlace.set(f.placeId, [...(byPlace.get(f.placeId) ?? []), f]);
   for (const [placeId, facts] of byPlace) factsPages(s.storyId, placeId, facts).forEach((fp, n) => (pages[`facts.${placeId}.${n}`] = fp));
@@ -85,6 +86,7 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
   const of = <T>(prefix: string) => Object.keys(p).filter((k) => k.startsWith(prefix)).map((k) => p[k] as T);
   const actors = orderBy(of<Actor>('actor.'), engine.order?.actors);
   const places = orderBy(of<Place>('place.'), engine.order?.places);
+  const regions = orderBy(of<Region>('region.'), engine.order?.regions);
   const factKeys = Object.keys(p).filter((k) => k.startsWith('facts.'))
     .sort((a, b) => { const na = +a.slice(a.lastIndexOf('.') + 1), nb = +b.slice(b.lastIndexOf('.') + 1); return a.slice(0, a.lastIndexOf('.')).localeCompare(b.slice(0, b.lastIndexOf('.'))) || na - nb; });
   // shortcut: facts come back grouped by place then sorted by turn (stable), which is chronological per place
@@ -98,7 +100,7 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
     zones: stage.zoneIds.map((id) => zoneById.get(id)!).filter(Boolean),
     player, actors: actors.filter((a) => a !== player), bands,
     hidden, events: [], agentLog: [], log: [], ...(recentEvents ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(offers ? { offers } : {}), ...(mercy ? { mercy } : {}), ...(barriers ? { barriers } : {}), ...(turnEnds ? { turnEnds } : {}),
-    rngSeed, rngState, pending, places, facts, stage, scenarioCaps, clocks, flags, quests,
+    rngSeed, rngState, pending, places, ...(regions.length ? { regions } : {}), facts, stage, scenarioCaps, clocks, flags, quests,
     settings: structuredClone(meta.settings), libraryVersion: head.libraryVersion,
     blueprints: of<BlueprintPage>('blueprint.'), meta: structuredClone(meta),
   };

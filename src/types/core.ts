@@ -78,6 +78,50 @@ export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
 /** a zone's rectangle in metres: centre x east, y north of the story's first zone; w east-west, d north-south */
 export type Rect = { x: number; y: number; w: number; d: number };
 
+/** a point in metres in the world's frame: x east, y north */
+export type Pt = { x: number; y: number };
+/** WZ1 land first: one region of land, about REGION_SIZE_M across, that code drew once from a seed and the Weaver's brief
+ * (src/land). Stored as drawn, so nothing on it ever moves. Its grid runs row by row from the south-west corner. */
+export type Region = {
+  id: string;
+  /** a region kind id (RK) */
+  kind: string;
+  name: string;
+  look: string; // the brief's words for the region (Weaver, hidden side until seen)
+  /** its square on the world's grid of REGION_SIZE_M squares: x east, y north; the first region is 0,0 */
+  gx: number; gy: number;
+  seed: number;
+  /** metres across, and metres per grid cell */
+  size: number; cell: number;
+  /** each cell's ground height in whole metres above the sea */
+  heights: number[];
+  /** each cell's land cover: one character per cell, the base-36 number of its land cover id (LC1 is "1") */
+  cover: string;
+  waters: Water[];
+  roads: RoadLine[];
+  /** where roads meet: a site, a junction, or the region's edge (a way on to the next region) */
+  nodes: RoadNode[];
+  sites: Site[];
+  features: LandFeature[];
+  /** the regions beyond each edge, by the brief's names, until they are drawn */
+  beyond: Partial<Record<Side, { name: string; kind?: string }>>;
+};
+/** a river or stream: its line downstream, in metres */
+export type Water = { id: string; kind: 'river' | 'stream'; name: string; width: number; pts: Pt[] };
+export type RoadNode = { id: string; kind: 'site' | 'junction' | 'edge'; at: Pt; site?: string; side?: Side };
+/** WZ8 a stretch of road or path between two nodes; roads branch at junctions */
+export type RoadLine = {
+  id: string; kind: 'road' | 'path'; name?: string; danger: import('../scales').RoadDangerKey;
+  ends: [string, string]; pts: Pt[]; length: number;
+  crossings: { at: Pt; kind: 'bridge' | 'ford'; water: string }[];
+  /** the road zone built for it, once someone needs it */
+  zone?: string;
+};
+/** a settlement site: the brief names it; a place the Weaver builds there names the site (Place.site) */
+export type Site = { id: string; size: 'town' | 'village' | 'hamlet'; name: string; look: string; at: Pt; why: string; placeId?: string };
+/** a landmark the brief asked for (a quarry, a ruin, a mill), where code found it room */
+export type LandFeature = { id: string; kind: string; name: string; look: string; at: Pt };
+
 /** FR1: a named piece of furniture in a zone and where it stands: a compass side or corner ('n', 'ne', …), or the middle
  * when left out. Mostly colour: a move can end beside it, and search and stash work where one stands. FR4: one on an edge
  * (a counter, a rail) shows on both sides of it from this one record. */
@@ -106,6 +150,8 @@ export type Zone = {
   kind?: string;
   /** TV4 a road's danger (ROAD_DANGERS); only roads have one */
   danger?: import('../scales').RoadDangerKey;
+  /** WZ1 the region road line this road zone runs along (RoadLine id): its length and line come from the land */
+  road?: string;
   /** set by code (src/scenario/geometry.ts placeZones), never by Claude */
   rect?: Rect;
   groundItems: import('./items').ItemInstance[];

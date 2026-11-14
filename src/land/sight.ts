@@ -1,0 +1,79 @@
+// WZ4 what land the player has made out: from outdoors, each look reveals the cells in sight, as far as the light allows
+// (CONFIG.LAND_SIGHT_M), with hills and whatever stands on the land (trees, houses: LandCover.standsM) in the way. The
+// cells seen are kept per region on the journal as a bitset, so the map draws only land the character has seen.
+import type { GameState, Pt, Region } from '../types';
+import { CONFIG } from '../config';
+import { getLibrary } from '../library';
+import { zoneById } from '../engine/relations';
+import { zoneLight } from '../time';
+import { heightOf } from '../scenario/heights';
+import { coverOf } from './generate';
+
+const cellsOf = (r: Region) => Math.round(r.size / r.cell);
+/** the region whose square holds a point in the world's frame */
+export function regionAt(state: GameState, p: Pt): Region | undefined {
+  const S = CONFIG.REGION_SIZE_M, gx = Math.floor(p.x / S), gy = Math.floor(p.y / S);
+  return state.regions?.find((r) => r.gx === gx && r.gy === gy);
+}
+/** the grid cell of a point in a region, or -1 outside it */
+export function cellAt(r: Region, p: Pt): number {
+  const N = cellsOf(r), c = Math.floor((p.x - r.gx * r.size) / r.cell), row = Math.floor((p.y - r.gy * r.size) / r.cell);
+  return c >= 0 && c < N && row >= 0 && row < N ? row * N + c : -1;
+}
+
+const decode = (s: string | undefined, n: number): Uint8Array => {
+  const out = new Uint8Array(Math.ceil(n / 8));
+  if (s) { const b = atob(s); for (let i = 0; i < b.length && i < out.length; i++) out[i] = b.charCodeAt(i); }
+  return out;
+};
+const encode = (bits: Uint8Array) => btoa(String.fromCharCode(...bits));
+
+/** whether the player has made out each cell of a region (WZ4) */
+export function landSeen(state: GameState, regionId: string): (i: number) => boolean {
+  const r = state.regions?.find((x) => x.id === regionId);
+  if (!r) return () => false;
+  const bits = decode(state.player.journal?.landSeen?.[regionId], cellsOf(r) ** 2);
+  return (i) => !!(bits[i >> 3] & (1 << (i & 7)));
+}
+
+/** the cells of `r` seen from point `p`, an eye `eye` metres above the ground there, out to `range` metres */
+export function cellsInSight(r: Region, p: Pt, eye: number, range: number): number[] {
+  const N = cellsOf(r), C = r.cell, ox = r.gx * r.size, oy = r.gy * r.size;
+  const from = cellAt(r, p);
+  if (from < 0) return [];
+  const stands = (i: number) => getLibrary().landCovers?.[coverOf(r, i)]?.standsM ?? 0;
+  const top = (i: number) => r.heights[i] + stands(i);
+  const h0 = r.heights[from] + eye;
+  const out: number[] = [from];
+  const cx = Math.floor((p.x - ox) / C), cy = Math.floor((p.y - oy) / C), reach = Math.ceil(range / C);
+  for (let row = Math.max(0, cy - reach); row <= Math.min(N - 1, cy + reach); row++) for (let c = Math.max(0, cx - reach); c <= Math.min(N - 1, cx + reach); c++) {
+    const i = row * N + c;
+    if (i === from) continue;
+    const tx = ox + (c + 0.5) * C, ty = oy + (row + 0.5) * C, d = Math.hypot(tx - p.x, ty - p.y);
+    if (d > range) continue;
+    // the ground at the target shows over everything between when its slope from the eye is at least the steepest in the way
+    const need = (r.heights[i] - h0) / d;
+    let clear = true;
+    for (let k = 1, steps = Math.floor(d / (C / 2)); k < steps && clear; k++) {
+      const t = k / steps, j = cellAt(r, { x: p.x + (tx - p.x) * t, y: p.y + (ty - p.y) * t });
+      if (j === from || j === i || j < 0) continue;
+      if ((top(j) - h0) / (d * t) > need) clear = false;
+    }
+    if (clear) out.push(i);
+  }
+  return out;
+}
+
+/** WZ4: from outdoors, the player makes out the land around them; the cells join what their journal keeps */
+export function seeLand(state: GameState): void {
+  const p = state.player, z = zoneById(state, p.zone);
+  if (!z?.outdoor || !state.regions?.length) return;
+  const at = p.pos ?? (z.rect ? { x: z.rect.x, y: z.rect.y } : undefined);
+  const r = at && regionAt(state, at);
+  if (!r) return;
+  const range = CONFIG.LAND_SIGHT_M[zoneLight(state, z)] ?? 0;
+  const j = (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), N = cellsOf(r) ** 2;
+  const bits = decode(j.landSeen?.[r.id], N);
+  for (const i of cellsInSight(r, at, CONFIG.LAND_EYE_M + heightOf(z), range)) bits[i >> 3] |= 1 << (i & 7);
+  (j.landSeen ??= {})[r.id] = encode(bits);
+}

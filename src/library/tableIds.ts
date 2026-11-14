@@ -40,6 +40,12 @@ export const FU = {
   anvil: 'FU10', forge: 'FU11', rack: 'FU12', brazier: 'FU13', woodpile: 'FU14', water_barrel: 'FU15', stool: 'FU16', chair: 'FU17',
   cupboard: 'FU18', well: 'FU19', cart: 'FU20', fence: 'FU21', rail: 'FU22', altar: 'FU23', other: 'FU24',
 } as const;
+/** WZ11 region kinds: one look per region (its land, cover and settlements); a new kind is a new row */
+export const RK = { river_valley: 'RK1', forest: 'RK2', upland_moor: 'RK3' } as const;
+/** WZ1 land covers: what a cell of a region's land is under; a new cover is a new row */
+export const LC = { farmland: 'LC1', pasture: 'LC2', woods: 'LC3', heath: 'LC4', moor: 'LC5', marsh: 'LC6', rock: 'LC7', settlement: 'LC8', water_meadow: 'LC9' } as const;
+/** WZ2 landmark kinds a region brief may ask for (a quarry in the hills, a ruin); seek is where code looks for room */
+export const LM = { quarry: 'LM1', mill: 'LM2', ruin: 'LM3', shrine: 'LM4', tower: 'LM5', mine: 'LM6', standing_stones: 'LM7', camp: 'LM8' } as const;
 export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10', road: 'ZK11' } as const;
 export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',

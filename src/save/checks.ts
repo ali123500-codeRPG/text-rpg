@@ -100,6 +100,9 @@ export function handToGrip(v: unknown): void {
   Object.values(o).forEach(handToGrip);
 }
 
+/** WZ12 the first schema with land (regions): older saves end */
+export const LAND_SCHEMA = 9;
+
 /** step from version v to v + 1, keyed by v. v1 is the baseline: no steps yet. Defaults for missing fields go only here. */
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
@@ -109,12 +112,18 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   5: notesToLists,
   6: (pages) => Object.values(pages).forEach(senseToKeys),
   7: (pages) => Object.values(pages).forEach(handToGrip),
+  8: () => {}, // never run: LAND_SCHEMA ends older saves
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */
 export function migrate(pages: Pages, from: number, to: number, r: CheckReport): boolean {
   if (from > to) {
     r.errors.push(`schema: save is version ${from}, newer than this code (${to})`);
+    return false;
+  }
+  // WZ12: a save from before the land has no ground under its places; it ends (the prototype keeps no old saves)
+  if (from < LAND_SCHEMA && to >= LAND_SCHEMA) {
+    r.errors.push('schema: this save was made before the land (the new zone system); start a new character');
     return false;
   }
   for (let v = from; v < to; v++) {
@@ -141,6 +150,7 @@ const SHAPES: Record<string, Record<string, Kind>> = {
   place: { id: 'string', storyId: 'string', kind: 'string', names: 'object', zones: 'array', state: 'object', headlines: 'array' },
   facts: { storyId: 'string', placeId: 'string', facts: 'array' },
   blueprint: { storyId: 'string', id: 'string', kind: 'string', data: 'object' },
+  region: { id: 'string', kind: 'string', heights: 'array', cover: 'string', waters: 'array', roads: 'array', nodes: 'array', sites: 'array', features: 'array' },
 };
 const kindOf = (key: string) => key.split('.')[0];
 
