@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix and the new look. The ↻N is gone; the level line reads "II of II · 1 branch" and Next follows the branch closest to its next count. The page now draws each chain as a gold thread (src/ui/achievementThreads.ts): a knot for each level held and one for the next, filled as far as the tally has come, with a short fading tail when more levels follow. The place reads "I of ?" until the last level is in sight. Branches (By race · Human and so on) sit under the trunk, a size smaller, folded by default; tag headings fold their whole section. Tests in tests/cases/s284-achievement-chains-page.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #774](https://github.com/ali123500-codeRPG/text-rpg/pull/774)
 
 ## BG-216
 
