@@ -262,7 +262,7 @@ export type NpcTemplate = {
   /** a unique's level, from its saved sheet; presets never set one (NG7) */
   level?: number;
   resolve: number; // starting Resolve (MB30)
-  personality: Personality; // PL11: Nerve, trait and value points
+  personality?: import('./library').PersonalityLean; // PL11, NG14: the preset's own pins, over its theme's and role's leans (presetPersonality)
   /** a rolled NPC's title ("the Butler"), given with its name in CHARACTER */
   title?: string;
   /** a rolled NPC's hand-written if-then lines, given right after Nerve in its personality line */
