@@ -162,10 +162,13 @@ describe('play page smoke (TQ7)', () => {
       });
       await page.evaluate(() => { (window as unknown as { endWait: number }).endWait = 0; new MutationObserver(() => { if (document.querySelector('.end-wait')) (window as unknown as { endWait: number }).endWait++; }).observe(document.body, { childList: true, subtree: true }); });
       let seen = false;
+      type Api = { __GAME_API__: { state(): { turn: number }; busy(): boolean } };
       for (let n = 1; n <= 8 && !seen; n++) {
+        const was = await page.evaluate(() => (globalThis as unknown as Api).__GAME_API__.state().turn);
         await page.getByPlaceholder(/What do you do/).fill(`hit ${id} SK2`);
         await page.getByRole('button', { name: 'Send' }).click();
-        await page.getByText(new RegExp(`^Turn ${n}\\b`)).first().waitFor(); // a fight adds its own "Turn n" label
+        // the turn has landed: the game moved on and is no longer busy (not a "Turn n" label, which earlier tests may have used)
+        await page.waitForFunction((t) => { const a = (globalThis as unknown as Api).__GAME_API__; return a.state().turn > t && !a.busy(); }, was);
         for (let i = 0; i < 10 && !seen; i++) { seen = await page.locator('.strike').count() > 0; if (!seen) await page.waitForTimeout(100); }
       }
       expect(seen).toBe(true);
