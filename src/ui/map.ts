@@ -30,6 +30,8 @@ const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
 /** a height as the floor buttons and stair tips name it */
 /** TV7: how far along a road you are, e.g. "1.8 km from the west end of 4.5 km" */
+/** the letter a person's dot shows: the first letter of what you know them by, a name or a description ("a lean man" → L) */
+export const whoInitial = (name: string) => (name.replace(/^(a|an|the)\s+/i, '').trim()[0] ?? '?').toUpperCase();
 export const alongText = (a: NonNullable<MapZone['along']>) => `${distText(a.m)} from the ${a.from} end of ${distText(a.len)}`;
 export const floorName = (m: number) => (m === 0 ? 'Ground level' : `${Math.abs(m)} m ${m > 0 ? 'up' : 'down'}`);
 /** the heights a map has, lowest first: the height slider's stops */
@@ -409,6 +411,8 @@ export function mapPage(api: GameApi) {
       });
     }
     for (const z of zones) tiles.append(tile(z, sp.get(z.id)!, world === WORLD ? (z.here ? 'You are here' : z.look) : undefined));
+    // to scale, people's discs go over every tile, so a neighbouring zone drawn later never hides one near its wall
+    tiles.append(...Array.from(tiles.querySelectorAll('.plan-who')));
     // stair badges at the tile's left edge: up at the top corner, down at the bottom, side by side when there are several
     const nth = new Map<string, number>();
     for (const st of stairs) {
@@ -448,10 +452,10 @@ export function mapPage(api: GameApi) {
     const placed = z.people.filter((who) => who.at), row = z.people.filter((who) => !who.at);
     g.append(s('text', { x: p.x, y: p.y - (row.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
       s('title', {}, `${z.name}: about ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²)`));
-    row.slice(0, 6).forEach((who, i, all) => g.append(s('circle', { cx: p.x + (i - (all.length - 1) / 2) * 12, cy: p.y + 12, r: 4.5, class: `map-dot-who${who.now ? '' : ' last'}` }, s('title', {}, who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`))));
+    row.slice(0, 6).forEach((who, i, all) => g.append(whoDot(who, z.id, p.x + (i - (all.length - 1) / 2) * 16, p.y + 14, who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`)));
     for (const who of placed) {
-      const pad = 5, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
-      g.append(s('circle', { cx: clamp(who.at!.x * PX_PER_M, x + pad, x + w - pad), cy: clamp(-who.at!.y * PX_PER_M, y + pad, y + hh - pad), r: 5.5, class: 'map-dot-who at', 'data-who': who.id }, s('title', {}, who.name)));
+      const pad = 7, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
+      g.append(whoDot(who, z.id, clamp(who.at!.x * PX_PER_M, x + pad, x + w - pad), clamp(-who.at!.y * PX_PER_M, y + pad, y + hh - pad), who.name, who.id));
     }
     // to scale you stand at your own point (Actor.pos), on a road too (TV7); with no position yet, at the corner
     if (z.here && z.you) youAt = { x: z.you.x * PX_PER_M, y: -z.you.y * PX_PER_M, title: z.along ? alongText(z.along) : 'You are here' };
@@ -496,7 +500,7 @@ export function mapPage(api: GameApi) {
       let cx = p.x - total / 2 + r;
       for (const who of shown) {
         g.append(s('g', { class: `map-who${who.now ? '' : ' last'}` }, s('circle', { cx, cy: y + 64, r }),
-          s('text', { x: cx, y: y + 68, 'text-anchor': 'middle' }, (who.name.replace(/^(a|an|the)\s+/i, '')[0] ?? '?').toUpperCase()),
+          s('text', { x: cx, y: y + 68, 'text-anchor': 'middle' }, whoInitial(who.name)),
           s('title', {}, who.now ? `${who.name} · here now` : `${who.name} · last seen here`)));
         cx += 2 * r + gap;
       }
@@ -504,6 +508,13 @@ export function mapPage(api: GameApi) {
     }
     if (z.here && !z.along) g.append(pin(x + w - 2, y + 2));
     return g;
+  }
+  /** to scale, a person as a small disc with the initial of what you know them by; pointing at it shows the full name or
+   *  description beside it */
+  function whoDot(who: MapZone['people'][number], zoneId: string, cx: number, cy: number, title: string, id?: string) {
+    return s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': zoneId, ...(id ? { 'data-who': id } : {}) },
+      s('circle', { cx, cy, r: 7 }), s('text', { x: cx, y: cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name)),
+      s('text', { x: cx + 11, y: cy + 4, class: 'map-who-label' }, who.name), s('title', {}, title));
   }
   /** CO9, World to scale: a place as its real extent; its name goes on the fixed-size name layer */
   function worldPlanTile(z: MapZone, p: Pt, sub: string) {
