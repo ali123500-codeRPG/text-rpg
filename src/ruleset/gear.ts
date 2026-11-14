@@ -135,14 +135,14 @@ export function standInShare(skill: string, id: string, table = standInTable(ski
 
 /** the skills that have function `fn` (a function roll counts them all at full value) */
 export const fnSkills = (fn: string): string[] => Object.values(getLibrary().skills).filter((s) => ((s.functions ?? []) as string[]).includes(fn)).map((s) => s.id);
-/** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
- * so light and Night Eyes follow the skill that rolls (Q3): a hearing roll ignores light (Tremor augments Earshot). */
 /** the skills a function roll counts at full value: the function's skills; for an owner of the Perception All-150 Every
  * Sense One, a sight or hearing roll counts both senses' skills */
 export const rollFnSkills = (actor: Actor, fn: string): string[] => {
   const senses: string[] = [FN.sight, FN.hearing];
   return senses.includes(fn) && hasPerk(actor, PK.one_sense) ? senses.flatMap(fnSkills) : fnSkills(fn);
 };
+/** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
+ * so light and Night Eyes follow the skill that rolls (Q3): a hearing roll ignores light (Tremor augments Earshot). */
 export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: rollFnSkills(actor, fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
@@ -271,16 +271,15 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
   if (!best) return { itemId: null, stowed: null };
   if (isHeld(best)) return { itemId: best.id, stowed: null };
   const grips = usableGrips(state, actor);
-  if (!grips.length) return { itemId: null, stowed: null }; // GAP: no usable grip, so no tool
+  if (!grips.length) return { itemId: null, stowed: null }; // no usable grip, so no tool
   const holder = (h: string) => actor.core.inventory.find((i) => i.equippedIn?.includes(`grip:${h}`));
   if (grips.some((h) => !holder(h))) return { itemId: best.id, stowed: null };
   const items = grips.map(holder) as ItemInstance[];
-  // off-hand: a held non-weapon (shield, torch), else the last hand's item
+  // off-grip: a held non-weapon (shield, torch), else the last grip's item
   const off = items.find((i) => itemDef(state, i.itemId).kind !== 'weapon') ?? items[items.length - 1];
   return { itemId: best.id, stowed: off.id };
 }
 
-/** fallback unarmed mode for a body type with no natural attacks (UNARMED_PROFILE = class punch) */
 /** an attack mode's display name: its own (natural attacks) or its attackModes row's */
 export const modeName = (m: AttackMode) => m.name ?? getLibrary().attackModes?.[m.id]?.name ?? m.id;
 
@@ -290,6 +289,7 @@ export function modeIdOf(word: string): string {
   return Object.values(getLibrary().attackModes ?? {}).find((m) => m.id.toLowerCase() === w || m.name.toLowerCase() === w)?.id ?? word;
 }
 
+/** fallback unarmed mode for a body type with no natural attacks (class punch) */
 export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
@@ -338,12 +338,12 @@ const heldInGrips = (state: GameState, actor: Actor): ItemInstance[] => {
   return actor.core.inventory.filter((i) => isHeld(i) && gripsOf(i).every((h) => grips.includes(h)));
 };
 
-/** the item a block uses: a held shield (not Crippled) in working Grip hands. Block is shields only (PA1). */
+/** the item a block uses: a held shield (not Crippled) in working Grip parts. Block is shields only (PA1). */
 export function blockItem(state: GameState, actor: Actor): ItemInstance | null {
   return heldInGrips(state, actor).find((i) => itemDef(state, i.itemId).shield && working(poolState(i.pools?.shield ?? 100))) ?? null;
 }
 
-/** the weapon a parry uses: a held melee weapon in working Grip hands (PA1, PA2) */
+/** the weapon a parry uses: a held melee weapon in working Grip parts (PA1, PA2) */
 export function parryItem(state: GameState, actor: Actor): ItemInstance | null {
   return heldInGrips(state, actor).find((i) => itemDef(state, i.itemId).weapon?.modes.some((m) => m.tree === 'melee' && !m.thrown)) ?? null;
 }
@@ -370,9 +370,15 @@ export function defenseItem(state: GameState, actor: Actor, type: DefenseKind): 
 /** the defense an actor can use against this attack: its standing defense if it works, else the best one that does
  * (no shield, no block; no weapon or open hand, no parry; parry can't stop missiles, PA11) */
 export function usableDefense(state: GameState, actor: Actor, ranged: boolean): DefenseKind {
-  const can = (t: DefenseKind) => t === 'dodge' || (t === 'block' ? canBlock(state, actor) : !ranged && canParry(state, actor));
-  return can(actor.core.standingDefense) ? actor.core.standingDefense : bestDefense(state, actor, (['block', 'parry', 'dodge'] as DefenseKind[]).filter(can));
+  const can = (t: DefenseKind) => canDefend(state, actor, t, ranged);
+  return can(actor.core.standingDefense) ? actor.core.standingDefense : bestDefense(state, actor, DEFENSE_ORDER.filter(can));
 }
+
+/** the defenses in tie order: block, parry, dodge */
+const DEFENSE_ORDER: DefenseKind[] = ['block', 'parry', 'dodge'];
+/** dodge always works; block needs a held shield; parry a held melee weapon or an open hand, never against a missile */
+const canDefend = (state: GameState, actor: Actor, t: DefenseKind, ranged = false): boolean =>
+  t === 'dodge' || (t === 'block' ? canBlock(state, actor) : !ranged && canParry(state, actor));
 
 const bestDefense = (state: GameState, actor: Actor, kinds: DefenseKind[]): DefenseKind => {
   const value = (t: DefenseKind) => effectiveSkill(state, actor, DEFENSE_SKILL[t], { itemId: defenseItem(state, actor, t)?.id }).value;
@@ -381,6 +387,5 @@ const bestDefense = (state: GameState, actor: Actor, kinds: DefenseKind[]): Defe
 
 /** Default standing defense (Part 2, Agent Planner): whichever usable defense has the highest effective skill; ties go block, parry, dodge. */
 export function defaultStandingDefense(state: GameState, actor: Actor): DefenseKind {
-  const kinds: DefenseKind[] = ['block', 'parry', 'dodge'];
-  return bestDefense(state, actor, kinds.filter((t) => t === 'dodge' || (t === 'block' ? canBlock(state, actor) : canParry(state, actor))));
+  return bestDefense(state, actor, DEFENSE_ORDER.filter((t) => canDefend(state, actor, t)));
 }

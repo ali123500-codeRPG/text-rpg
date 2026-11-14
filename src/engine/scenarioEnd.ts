@@ -3,6 +3,7 @@
 // Venture holds smaller scenarios one level deep (SC4): a road encounter inside one starts an inner scenario, and when that ends
 // the bigger scenario carries on with no new event roll and no Weaver call.
 import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, Grade, PlanEnding, Rng, ScenarioEnding, ScenarioFrame, ScenarioRecord, StagePlan, Tier } from '../types';
+import { PLAN_ENDINGS } from '../types';
 import { createRng } from '../rng';
 import { CONFIG } from '../config';
 import { SCENARIO_SCALES, TIME_OF_DAY, type ScenarioScale } from '../scales';
@@ -36,7 +37,7 @@ export function frameOf(state: GameState, scenario: StagePlan['scenario'], tier:
     ...(tier === 'critical_success' && state.stage.tierBeyond ? { beyond: state.stage.tierBeyond } : {}),
   };
 }
-const PLAN_AS = new Set<string>(['resolved', 'lost', 'left', 'escaped', 'interrupted']);
+const PLAN_AS = new Set<string>(PLAN_ENDINGS);
 /** does everything this check names exist */
 function checkable(state: GameState, w: EndCheck): boolean {
   const place = (r: string) => state.places.some((p) => p.id === r) || state.zones.some((z) => z.id === r);
@@ -155,11 +156,12 @@ export function checkinErrors(state: GameState, a: CheckinAnswer | null): string
   return (a.beats ?? []).flatMap((t) => triggerErrors(state, t, { isZone: (r) => state.stage.zoneIds.includes(r), isActor: (r) => !!actorById(state, r) }));
 }
 
+/** a check-in's continue checked and applied by the caller: a scenario change, arrivals and frontiers (SC12) */
+export type CheckinExtras = { errors: (a: CheckinAnswer) => string[]; apply: (a: CheckinAnswer) => Record<string, unknown> };
 /**
  * SC8/SC14: apply a check-in's answer to the scenario it was asked about (dropped if that scenario is over). A failed or invalid
  * answer changes nothing and files a bug; the next set moment asks again. An end waits for a clear turn (SC13) like any ending.
  */
-export type CheckinExtras = { errors: (a: CheckinAnswer) => string[]; apply: (a: CheckinAnswer) => Record<string, unknown> };
 export function applyCheckin(state: GameState, number: number, a: CheckinAnswer | null, events: GameEvent[], extras?: CheckinExtras): void {
   const st = state.stage;
   if (st.scenario?.number !== number || st.breakCause) return;
@@ -226,13 +228,14 @@ function keep(state: GameState, r: ScenarioRecord): void {
   if (log.length > CONFIG.SCENARIO_RECORDS_SAVED) log.splice(0, log.length - CONFIG.SCENARIO_RECORDS_SAVED);
 }
 
-/**
- * At a break, before the next scenario starts: record how the scenario went, and say what comes next. 'resume' = an inner scenario
- * ended inside a bigger one, which carries on (no event roll, no Weaver call); 'new' = a new scenario starts (an encounter
- * inside an Episode or Venture starts an inner one, keeping the bigger scenario as `outer`); 'roam' = free roam starts, and no
- * scenario runs until something starts one (SD2 a): after leaving the ground (SC16), escaping off it (CH7), or any ending
- * CONFIG.ROAM_AFTER lists (every ending for now, so players can explore the world).
- */
+/** the bigger scenario's owed rolls and waiting achievements, kept apart while an inner one ran, join the player's again */
+function restoreHeld(outer: ScenarioFrame, pr: NonNullable<GameState['player']['progression']>): void {
+  if (!outer.held) return;
+  pr.marks = [...outer.held.marks, ...pr.marks];
+  if (outer.held.pending) pr.pendingAchievements = [...outer.held.pending, ...(pr.pendingAchievements ?? [])];
+  delete outer.held;
+}
+
 /** D-226: two scenarios' raises and All-XXX as one (the bigger scenario's first) */
 type Part = NonNullable<ScenarioFrame['gains']>;
 function mergeGains(a?: Part, b?: Part): Part | undefined {
@@ -242,6 +245,13 @@ function mergeGains(a?: Part, b?: Part): Part | undefined {
   return { skills, perks: [...a.perks, ...b.perks], allPerks: [...a.allPerks, ...b.allPerks] };
 }
 
+/**
+ * At a break, before the next scenario starts: record how the scenario went, and say what comes next. 'resume' = an inner scenario
+ * ended inside a bigger one, which carries on (no event roll, no Weaver call); 'new' = a new scenario starts (an encounter
+ * inside an Episode or Venture starts an inner one, keeping the bigger scenario as `outer`); 'roam' = free roam starts, and no
+ * scenario runs until something starts one (SD2 a): after leaving the ground (SC16), escaping off it (CH7), or any ending
+ * CONFIG.ROAM_AFTER lists (every ending for now, so players can explore the world).
+ */
 export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | 'roam' {
   const st = state.stage;
   const cause = st.breakCause;
@@ -256,11 +266,7 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
   const becomesOuter = !!cur && !outer && !endsOuter && cause === 'encounter' && holdsInner(cur.scale);
   const pr = state.player.progression;
   if (becomesOuter && pr) { cur!.held = { marks: pr.marks, ...(pr.pendingAchievements ? { pending: pr.pendingAchievements } : {}) }; pr.marks = []; delete pr.pendingAchievements; }
-  if (endsOuter && outer?.held && pr) { // both end: the bigger scenario's waiting growth joins the inner's, paid at its ending
-    pr.marks = [...outer.held.marks, ...pr.marks];
-    if (outer.held.pending) pr.pendingAchievements = [...outer.held.pending, ...(pr.pendingAchievements ?? [])];
-    delete outer.held;
-  }
+  if (endsOuter && outer && pr) restoreHeld(outer, pr); // both end: the bigger scenario's waiting growth joins the inner's, paid at its ending
   // D-226/EG7: what waited for the end is paid and granted now, with one gains summary (both scenarios' when the bigger one ends too)
   if (cur && !becomesOuter) {
     const f = endsOuter && outer ? { ...cur, tier: outer.tier, beyond: outer.beyond, gains: mergeGains(outer.gains, cur.gains), xpFrom: outer.xpFrom, xpStart: outer.xpStart, startTurn: outer.startTurn } : cur;
@@ -276,11 +282,7 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
   if (outer && !endsOuter) {
     if (cause === 'encounter') { delete st.scenario; return 'new'; } // a new inner scenario in the same bigger one
     st.scenario = outer; delete st.outer; // SC4: the bigger scenario carries on
-    if (outer.held && pr) { // its owed rolls and waiting achievements come back
-      pr.marks = [...outer.held.marks, ...pr.marks];
-      if (outer.held.pending) pr.pendingAchievements = [...outer.held.pending, ...(pr.pendingAchievements ?? [])];
-      delete outer.held;
-    }
+    if (pr) restoreHeld(outer, pr); // its owed rolls and waiting achievements come back
     outer.xpFrom = state.player.progression?.xpLog?.length ?? 0; outer.xpStart = xpBar(state); // D-226: the inner scenario's XP was in its own summary
     delete st.breakCause;
     logCode(state, 'scenario_resumed', { number: outer.number });

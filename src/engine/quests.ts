@@ -1,6 +1,6 @@
 // Quests (OQ-28, D-105, QT1–QT28). A quest is a deal (hidden.agreements) with a job in it, given to the player by an
 // NPC. The giver's agent offers the job in talk and writes it down when the player accepts; code checks the goal from
-// events, ends the quest (the deal is locked until then), pays XP from the quests' own reward table, tracks the promised
+// events, ends the quest (the deal is locked until then), pays XP at its reward level (rewardXp, as achievements), tracks the promised
 // payment and the deadline, and steps the giver's stance.
 import type { Actor, GameEvent, GameState, JobOffer, Quest, QuestEnd, QuestGoal, QuestState } from '../types';
 import { CONFIG } from '../config';
@@ -100,7 +100,6 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
   logCode(state, 'quest_made', { id, giver: giver.id, goal: goal.kind, level: q.level });
 }
 
-/** code ends a quest and the deal that holds it; done pays XP and warms the giver, the player's failures cool it (QT13) */
 /** a done quest's XP: its reward level's amount; a defeat job is cut by the defeat-XP taper of its foes' average power
  * (as each fell) against the player's power at hand-in (QX2, QX4) */
 export function questXp(state: GameState, q: Quest): number {
@@ -109,6 +108,7 @@ export function questXp(state: GameState, q: Quest): number {
   return Math.round(xp * weakFoeTaper(q.foePower / q.progress, power(state, state.player)));
 }
 
+/** code ends a quest and the deal that holds it; done pays XP and warms the giver, the player's failures cool it (QT13) */
 function endQuest(state: GameState, q: Quest, to: QuestState, why: string, colder = false): void {
   q.state = to;
   q.endTurn = state.turn;
@@ -128,17 +128,23 @@ function questFeats(state: GameState, q: Quest): void {
   tally(state, 'quest_givers', { to: new Set(done.map((x) => x.giver)).size });
   // a run: a done follow-up whose every earlier quest is done too; it counts once, by the run's first quest
   const runFirst = (x: Quest): string | null => {
-    let cur = x;
-    for (let i = 0; cur.after && i < 100; i++) {
-      const prev = state.quests.find((y) => y.id === cur.after);
-      if (!prev || prev.state !== 'done') return null;
-      cur = prev;
-    }
-    return cur === x ? null : cur.id;
+    const back = chainBack(state, x), first = back.at(-1)!;
+    return back.length > 1 && !first.after && back.every((y) => y.state === 'done') ? first.id : null;
   };
   tally(state, 'quest_chains', { to: new Set(done.map(runFirst).filter((x) => x !== null)).size });
   if (q.due !== undefined && q.startAt !== undefined && now(state) - q.startAt <= (q.due - q.startAt) / 2) tally(state, 'quests_early');
   if (!q.pay?.coin && !q.pay?.item) tally(state, 'quests_unpaid');
+}
+
+/** QT24: a quest and the quests it follows, newest first, back to the first of its run (or the last one still on the list) */
+function chainBack(state: GameState, q: Quest): Quest[] {
+  const out = [q];
+  for (let cur = q; cur.after && out.length <= state.quests.length; ) {
+    const prev = state.quests.find((y) => y.id === cur.after);
+    if (!prev || out.includes(prev)) break;
+    out.push(cur = prev);
+  }
+  return out;
 }
 
 /** QT12: the player gives up a job (the Quests page, or telling the giver) */
@@ -289,9 +295,7 @@ export function dueText(q: Quest): string {
 }
 /** QT24: the linked quests a quest belongs to, by start, and its step number in them */
 export function questChain(state: GameState, q: Quest): Quest[] {
-  let root = q;
-  for (let i = 0; root.after && i < 50; i++) root = state.quests.find((x) => x.id === root.after) ?? root;
-  const out = [root];
+  const out = [chainBack(state, q).at(-1)!];
   for (let i = 0; i < out.length; i++) out.push(...state.quests.filter((x) => x.after === out[i].id && !out.includes(x)));
   return out.sort((a, b) => a.startTurn - b.startTurn);
 }

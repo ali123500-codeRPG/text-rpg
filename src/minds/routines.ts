@@ -52,18 +52,18 @@ export function desiredState(view: ActorView): { zone: string; activity: string 
   const r = getRoutine(cur.id);
   if (r.kind === 'follow') {
     const b = view.beliefs.find((x) => x.about === 'player');
-    // GAP: follow with no belief about the player: the smallest reading is to stay where it is.
+    // follow with no belief about the player: it stays where it is
     return { zone: b?.lastKnownZone ?? view.self.zone, activity: r.activity ?? 'rest' };
   }
   if (r.kind === 'head') {
     const dest = view.self.slots.dest;
     const g = headGoal(view, (Array.isArray(dest) ? dest[0] : dest) ?? view.self.zone);
-    // GAP: a destination gone from its map (or never bound): it stays where it is until code sends it back
+    // a destination gone from its map (or never bound): it stays where it is until code sends it back
     return { zone: g?.zone ?? view.self.zone, activity: r.activity ?? 'walk' };
   }
   if (r.kind === 'wait') {
     const here = view.self.slots.here;
-    // GAP: a wait routine with 'here' unbound (never switched to): stay in the current zone.
+    // a wait routine with 'here' unbound (never switched to): it stays in the current zone
     return { zone: (Array.isArray(here) ? here[0] : here) ?? view.self.zone, activity: r.activity ?? 'rest' };
   }
   // NW10: the steps for the time of day now, run on the clock: minutes since the routine started

@@ -1,6 +1,6 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
 import type { EndCheck, GameState, Grade, StagePlan, Tier } from '../types';
-import { GRADES, SCENARIO_ENDINGS } from '../types';
+import { GRADES, PLAN_ENDINGS } from '../types';
 import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
@@ -461,8 +461,6 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   return errs;
 }
 
-/** SC10: the endings a plan may name; worn out and broken off are code's own */
-const PLAN_ENDINGS = SCENARIO_ENDINGS.filter((e) => e !== 'worn_out' && e !== 'broken_off');
 
 type Reward = StagePlan['rewards'][number];
 type PlanContainer = NonNullable<StagePlan['containers']>[number];

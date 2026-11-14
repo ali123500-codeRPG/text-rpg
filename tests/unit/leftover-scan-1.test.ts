@@ -15,6 +15,7 @@ import * as prompts from '../../src/agents/prompts';
 import { roleOff } from '../../src/ruleset';
 import { RL } from '../../src/library/tableIds';
 import { PK } from '../../src/library/perkIds';
+import { CODE_ENDINGS, PLAN_ENDINGS, SCENARIO_ENDINGS } from '../../src/types';
 import { perkSeries } from '../../src/ui/perks';
 import { cap, listWords, r1 } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
@@ -39,11 +40,13 @@ const ROUND_6 = ['src/ui/pages.ts', 'src/engine/xp.ts', 'src/scenario/validate.t
   'src/agents/wrappers.ts'];
 const ROUND_7 = ['src/ui/map.ts', 'src/library/perks.ts', 'src/perception/index.ts', 'src/engine/essence.ts', 'src/engine/gear.ts', 'src/engine/trade.ts',
   'src/engine/relations.ts', 'src/library/allPerks.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7];
+const ROUND_8 = ['src/save/index.ts', 'src/ruleset/gear.ts', 'src/ui/autopilot.ts', 'src/engine/scenarioEnd.ts', 'src/engine/quests.ts',
+  'src/ruleset/improve.ts', 'src/engine/feats.ts', 'src/minds/routines.ts', 'src/engine/sleep.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7, ...ROUND_8];
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts'];
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -274,5 +277,27 @@ describe('leftover scan round 7', () => {
   });
   it('grip, not hands, in code names', () => {
     expect(files('src').filter((f) => /\b(handsOf|usableFreeHands)\b/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
+  });
+});
+
+describe('leftover scan round 8', () => {
+  it('the endings a plan may name come from one list: every scenario ending but the two code sets', () => {
+    expect([...PLAN_ENDINGS].sort()).toEqual(SCENARIO_ENDINGS.filter((e) => !(CODE_ENDINGS as readonly string[]).includes(e)).sort());
+    expect(PLAN_ENDINGS).not.toContain('worn_out');
+    for (const f of ['src/engine/scenarioEnd.ts', 'src/scenario/validate.ts']) expect(readFileSync(f, 'utf8') as string).not.toMatch(/'worn_out' && e !== 'broken_off'|\['resolved', 'lost'/);
+  });
+  it('the save names its page limit from PAGE_LIMIT, and the world title cap is a config lever', () => {
+    const t = readFileSync('src/save/index.ts', 'utf8') as string;
+    expect(t).not.toMatch(/256 KiB|slice\(0, 60\)/);
+    expect(CONFIG.WORLD_TITLE_CAP).toBeGreaterThan(0);
+  });
+  it('a quest run is walked back by one helper', () => {
+    const t = readFileSync('src/engine/quests.ts', 'utf8') as string;
+    expect(t.match(/for \(let [^;]*;\s*\w+\.after/g)?.length).toBe(1);
+    expect(t).not.toMatch(/quests' own reward table/);
+  });
+  it('the defense choice reads one usable-defense test and one tie order', () => {
+    const t = readFileSync('src/ruleset/gear.ts', 'utf8') as string;
+    expect(t.match(/\['block', 'parry', 'dodge'\]/g)?.length).toBe(1);
   });
 });
