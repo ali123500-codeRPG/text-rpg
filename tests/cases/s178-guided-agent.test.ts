@@ -32,7 +32,7 @@ describe('178 guided agent', () => {
     s.player.core.signatures = ['Never kills.'];
     const p = guidedPrompt(s, [], { settled: ['deal: the barkeep → yes'] });
     for (const c of CROSSROADS.filter((x) => x.by === 'agent')) expect(p).toContain(`- ${c.kind}:`);
-    expect(p).toContain("Your character's signatures (always keep to them; never ask about what they already settle): Never kills."); // they replaced standing orders
+    expect(p).toContain("Your character's signatures (habits to keep to when they come up, not lines to repeat; never ask about what they already settle): Never kills."); // they replaced standing orders
     expect(p).toContain('Coin limit:');
     expect(p).toContain('deal: the barkeep → yes');
     const must = guidedPrompt(s, [], { mustAsk: { kind: 'badly_hurt', about: 'Wounded', situation: 'your health is now Wounded' } });
