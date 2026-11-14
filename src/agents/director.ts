@@ -92,7 +92,12 @@ export function createDirector(clock: Clock): ScenarioDirector {
         const w = d.takeWindow(); // WB6: the Weaver's answer to the last window: start now, or not now
         if (w !== undefined) applyWindow(state, w);
         // scenarioBreak (P7, D-30): rest, a beat that ends the scenario, or a stall. A frontier crossing goes first; the break waits a turn.
-        if (!state.stage.breakCause) return [];
+        // BG-238: danger in free roam does not hold the turn for the Weaver: the plan is made in the background after the save,
+        // and the scenario starts after the next turn. Anything else that starts one first (a knock-out, a road encounter) wins.
+        const st = state.stage;
+        if (st.breakCause === 'roam' && !st.starting) { d.holdStart(state, rng); return []; }
+        if (st.breakCause && st.starting) d.dropHeld(state);
+        if (!st.breakCause && !st.starting) return [];
         ctx = c;
         const r = await d.startScenario(state, rng, 'open');
         (state.scratch ??= {}).eventRoll = r.eventRoll;

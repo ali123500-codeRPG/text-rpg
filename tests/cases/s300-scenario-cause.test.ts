@@ -99,7 +99,7 @@ describe('300 why a scenario started', () => {
     expect(buildWeaverView(s, { kind: 'checkin', placeId: s.player.placeId }).target.cause).toBeUndefined();
   });
 
-  it('SW3 a (whole turn): an attack in free roam starts a scenario whose Weaver view says why; the plan clears it', async () => {
+  it('SW3 a (whole turn): an attack in free roam starts a scenario whose Weaver view says why; the plan clears it once applied', async () => {
     const clock = new VirtualClock(), claude = new ScriptedClaude(clock);
     const game = createGame({ client: claude, clock, store: memoryStore(), director: createDirector(clock) });
     const state = makeVillage();
@@ -118,6 +118,10 @@ describe('300 why a scenario started', () => {
     expect(view.target.cause.why).toBe('attack');
     expect(view.target.cause.happened.map((h: { text: string }) => h.text)).toContain('the player attacked ' + g.game.state()!.actors.find((a) => a.id === 'patron_1')!.names.current);
     expect(call.input[0].content).toMatch(/target\.cause is set/);
+    expect(g.game.state()!.stage.cause).toBeDefined(); // BG-238: planned in the background, applied after the next turn
+    g.claude.push('parser', intent());
+    await g.game.submit('look around', { aimed: false });
+    await g.game.settle();
     expect(g.game.state()!.stage.cause).toBeUndefined();
   });
 

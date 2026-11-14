@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-238
+
+**What was wrong:** Turn 75 ("I shoot at the small girl with the stick") took about 53 seconds. The player was in free roam; an attack there starts a new scenario at once, and the turn waited for the Weaver to plan it (50.5 seconds) before showing anything.
+
+**What was done:** Ali approved the fix (BF63). Danger in free roam no longer holds the turn: the event roll is made and saved (stage.starting), the turn is shown at once, and the Weaver plans the scenario in the background after the save (src/scenario/director.ts holdStart, startPlanning). Free roam goes on for one more turn and the scenario opens after it from that plan, checked again against the stage; a reload plans it then with the saved roll, and a knock-out or road encounter first drops it. A frontier crossing still waits.
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
 ## BG-241
 
 **What was wrong:** The player shot the girl from hiding, then killed the keeper a step from her, and she never reacted; hours later she walked past his body as if nothing had happened, and the story kept calling her asleep. A hidden striker's attack reached no one, not even what it did; nobody ever noticed a body; only those already fighting got to think; and someone woken on a sleep step still showed as sleeping.

@@ -48,6 +48,9 @@ export type StageInfo = {
   /** WB6: a scenario window is open (cause holds why): due, the Weaver is asked after the save; asked, its answer is awaited (a
    * reload asks again). No other window opens meanwhile; the Weaver may decline */
   window?: 'due' | 'asked';
+  /** BG-238: danger started a scenario in free roam on `turn`: the turn ended without waiting, with this event roll; the Weaver
+   * plans it in the background and it starts after the next turn (free roam goes on meanwhile; nothing else starts one) */
+  starting?: { turn: number; eventRoll: EventRollResult };
   /** BG-217: growth earned in free roam waits for the next scenario's end: where the XP stood when the roam began, taken by
    * the next scenario's frame so its gains moment counts the roam's XP too */
   roamGrowth?: { xpFrom: number; xpStart: { level: number; pct: number } };
