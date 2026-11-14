@@ -17,5 +17,5 @@ export const IT = {
   // CT1: containers
   pack: 'IT42', sack: 'IT43', chest: 'IT44', crate: 'IT45', // IT46 (belt with pouches), IT47 (bandolier) retired with pockets (PO4)
   // accessories
-  spectacles: 'IT48', charmed_ring: 'IT49',
+  spectacles: 'IT48', charmed_ring: 'IT49', ear_cup: 'IT50', amulet: 'IT51', hooded_cloak: 'IT52',
 } as const;

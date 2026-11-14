@@ -59,6 +59,10 @@ export type ItemEffect = {
   active: 'worn' | 'held' | 'inUse' | 'carried';
   scope: 'withItem' | 'any';
   kit?: true; // standard kit: worth EQUIP_FACTOR × the item's need; kit effects share one bonus per roll
+  /** AX1/AX2: an accessory's bonus comes from its equipment level: ACCESSORY_FACTOR × EQUIP_NEED (Common 5, Fine 10, Superior 15, ...) */
+  byLevel?: true;
+  /** AX4: a rolled skill's weight by its skill tree (TR id); a tree not listed weighs 1 */
+  weights?: Record<string, number>;
 };
 
 export type AttackMode = {
