@@ -175,7 +175,7 @@ function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: stri
     .map((b) => row(`${label(b)} (×${CONFIG.ROLE_BAND_SHARE[b]})`, links('skills', d.bands![b]!.map((s) => [s, skillName(s)]))));
   const titles = Object.entries(d.rankNames ?? {}).map(([k, n]) => `${RANKS.name(k as (typeof RANKS.keys)[number])} → ${n}`);
   const role = sec === 'npcRoles' ? (e as unknown as NpcRoleDef) : undefined;
-  const floor = role ? CONFIG.RANK_FLOOR[role.kind] : undefined;
+  const floor = role && role.kind !== 'beast' ? CONFIG.RANK_FLOOR[role.kind] : undefined;
   return card(sec, id, e, title, role ? [chip(role.kind, toneFor('Kind', role.kind))] : [],
     role ? row('Kind', `${label(role.kind)}: ${floor ? `never below ${RANKS.name(floor as (typeof RANKS.keys)[number])}` : 'no rank floor, no personality spread'}`) : null,
     ...(bands.length ? bands : [row('Skills', none('adds none'))]),

@@ -105,7 +105,7 @@ const rankNo = (r: string) => Number(r.slice(5));
 export function templateRank(t: NpcTemplate): RankKey | undefined {
   if (!t.rank) return undefined;
   const kind = t.roleId ? getLibrary().npcRoles?.[t.roleId]?.kind : undefined;
-  const floor = kind ? CONFIG.RANK_FLOOR[kind] : undefined;
+  const floor = kind && kind !== 'beast' ? CONFIG.RANK_FLOOR[kind] : undefined;
   return floor && rankNo(floor) > rankNo(t.rank) ? floor : t.rank;
 }
 /** NG7: a template's level: its rank's (a preset), or its saved sheet's (a unique) */
@@ -294,12 +294,11 @@ export const presetAgeFloor = (t: NpcTemplate, talent: TalentKey): number | unde
   return rank ? ageFloor(t.raceId, rankRow(rank).training, talent) : undefined;
 };
 
-/** AG13, AG14: drawn once from the Weaver's stage, else the template's stages, else its role's (a Child role: Child), seeded
- * by the actor's ID, never under its rank's youngest age (AG12), and saved with the talent that set that age (AG25) */
+/** AG13, AG14: drawn once from the Weaver's stage or the template's stages, seeded by the actor's ID, never under its rank's
+ * youngest age (AG12), and saved with the talent that set that age (AG25) */
 function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?: LifeStageKey, own?: TalentKey): { bornDay?: number; talent?: TalentKey } {
   const talent = presetTalent(t, own);
-  const stages = stage ? [stage] : t.ageStages ?? (t.roleId ? getLibrary().npcRoles?.[t.roleId]?.ageStages?.slice() : undefined);
-  const d = rollBornDay(state, t.raceId, stages, createRng(templateSeed(id)), presetAgeFloor(t, talent));
+  const d = rollBornDay(state, t.raceId, stage ? [stage] : t.ageStages, createRng(templateSeed(id)), presetAgeFloor(t, talent));
   return d === undefined ? {} : { bornDay: d, ...(templateRank(t) ? { talent } : {}) };
 }
 
@@ -401,11 +400,11 @@ export const playableRaces = (): string[] => Object.values(getLibrary().races ??
 const startDef = (startId: string): StartDef | undefined => getLibrary().starts[startId];
 /** a Start's creation points and starting level (StartDef, else CONFIG) */
 export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.points ?? CONFIG.CREATION_POINTS;
-/** AG15: the age picker: from the race's Youth start to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
+/** AG15: the age picker: from the race's youngest age (no children) to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
 export const creationAge = (startId = PLAYER_START) => startDef(startId)?.age ?? CONFIG.CREATION_AGE_DEFAULT;
 export function creationAgeRange(raceId: string = RC.human): { min: number; max: number } | undefined {
   const st = getLibrary().races?.[raceId]?.ageStages;
-  return st ? { min: st[LIFE_STAGES.at(1)] ?? 0, max: st[LIFE_STAGES.at(5)] ?? 0 } : undefined;
+  return st ? { min: st[CONFIG.YOUNGEST_STAGE] ?? 0, max: st[LIFE_STAGES.at(5)] ?? 0 } : undefined;
 }
 /** CC6 b: a Start with neither a class nor a blessing begins with no class, at level 0 */
 export const classlessStart = (startId = PLAYER_START): boolean => { const s = startDef(startId); return !!s && !s.classId && !s.blessing; };
@@ -488,14 +487,14 @@ function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKin
 }
 
 /** A new character's race, name, gender, age and personality, picked at random; the creation screen opens on them and every one
- * stays editable. Age: whole years from the race's Youth start to just before its Old start, so no one starts in old-age
+ * stays editable. Age: whole years from the race's youngest age (no children) to just before its Old start, so no one starts in old-age
  * decline [Proposed]. Personality: a random archetype's targets and values on a random Nerve line */
 export function randomIdentity(rng: Rng, raceId?: string): { name: string; pronouns: 'he' | 'she' | 'they'; raceId: string; age?: number; personality: Personality } {
   const pick = <T>(xs: readonly T[]): T => xs[rng.int(0, xs.length - 1)];
   const pronouns = pick(['he', 'she', 'they'] as const);
   const race = raceId ?? (playableRaces().length ? pick(playableRaces()) : PLAYER_RACE); // CC7 a: a random playable race unless one is kept
   const st = getLibrary().races?.[race]?.ageStages;
-  const lo = st?.[LIFE_STAGES.at(1)], hi = st?.[LIFE_STAGES.at(4)];
+  const lo = st?.[CONFIG.YOUNGEST_STAGE], hi = st?.[LIFE_STAGES.at(4)];
   const type = pick(Object.values(getLibrary().personalityTypes ?? {}));
   return {
     name: pick(pronouns === 'they' ? [...PLAYER_NAMES.he, ...PLAYER_NAMES.she] : PLAYER_NAMES[pronouns]),

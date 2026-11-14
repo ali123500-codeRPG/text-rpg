@@ -80,13 +80,16 @@ export function talentName(k: TalentKey): string {
   const n = Number(k.slice(7)), last = TALENTS.keys.length - 1;
   return n <= last ? TALENTS.name(k as (typeof TALENTS.keys)[number]) : TALENTS.name(TALENTS.keys[last]) + '+'.repeat(n - last);
 }
+/** No children: the youngest anyone of a race may be, the start of CONFIG.YOUNGEST_STAGE; undefined for an ageless race */
+export function youngestAge(raceId: string | undefined): number | undefined {
+  const st = stagesOf(raceId);
+  return st ? startOf(st, CONFIG.YOUNGEST_STAGE) : undefined;
+}
 /** AG12, AG21: the youngest age someone of a race can be after `training` years at a talent: the race's Youth start +
- * years × the talent's multiplier. No training (Untrained) needs no age, so children can be Untrained. Undefined for an
- * ageless race. */
+ * years × the talent's multiplier, never under its youngest age. Undefined for an ageless race. */
 export function ageFloor(raceId: string | undefined, training: number, talent: TalentKey): number | undefined {
   const st = stagesOf(raceId);
-  if (!st) return undefined;
-  return training > 0 ? startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent) : startOf(st, LIFE_STAGES.at(0));
+  return st ? Math.max(youngestAge(raceId)!, startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent)) : undefined;
 }
 /** AG14: whether a life stage has any year at or past the floor (the last stage always does) */
 export function stageReaches(raceId: string | undefined, k: LifeStageKey, floor: number): boolean {
@@ -95,10 +98,11 @@ export function stageReaches(raceId: string | undefined, k: LifeStageKey, floor:
 }
 
 /** AG13: a birth day drawn from the stages listed (or CONFIG.NPC_AGE_STAGES): a stage, then a year inside it. AG12: never
- * younger than `floor` years; a stage wholly under it rolls inside the stage that holds the floor instead. */
-export function rollBornDay(state: GameState | null, raceId: string | undefined, stages: LifeStageKey[] | undefined, rng: Rng, floor = 0): number | undefined {
+ * younger than `minAge` years nor the race's youngest age; a stage wholly under it rolls inside the stage that holds it instead. */
+export function rollBornDay(state: GameState | null, raceId: string | undefined, stages: LifeStageKey[] | undefined, rng: Rng, minAge = 0): number | undefined {
   const st = stagesOf(raceId);
   if (!st) return undefined;
+  const floor = Math.max(minAge, youngestAge(raceId)!);
   const from = stages?.length ? stages : CONFIG.NPC_AGE_STAGES;
   const pick = from[rng.int(1, from.length) - 1];
   let [lo, hi] = span(st, pick);

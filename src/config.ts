@@ -393,7 +393,7 @@ const DEFAULTS = {
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
   NPC_BAND_MULT: 1,
   /** NG13: the lowest rank of a combat role (fighting experience) and of a civilian role; beasts have none */
-  RANK_FLOOR: { combat: 'rank_2', civilian: 'rank_1' } as Partial<Record<'combat' | 'civilian' | 'beast' | 'child', `rank_${number}`>>, // beasts and children have none
+  RANK_FLOOR: { combat: 'rank_2', civilian: 'rank_1' } as Record<'combat' | 'civilian', `rank_${number}`>,
   /** NG12: traits drawn from the theme's and role's pools, by rank (rank_0 first); past the last row, +RANK_TRAITS_BEYOND per step */
   RANK_TRAITS: [0, 0, 0, 1, 1, 2, 2, 3, 3],
   RANK_TRAITS_BEYOND: 1,
@@ -407,8 +407,7 @@ const DEFAULTS = {
     combat: { resolve: 50, control: 'agent', chase: 'ground' },
     civilian: { resolve: 30, control: 'code', chase: 'post' },
     beast: { resolve: 50, control: 'code', chase: 'far' },
-    child: { resolve: 20, control: 'code', chase: 'post' },
-  } as Record<'combat' | 'civilian' | 'beast' | 'child', { resolve: number; control: 'agent' | 'code'; chase: import('./scales').ChaseRange }>,
+  } as Record<'combat' | 'civilian' | 'beast', { resolve: number; control: 'agent' | 'code'; chase: import('./scales').ChaseRange }>,
   /** NG9: each skill moves by up to this share of its band value, seeded by the actor's ID */
   COPY_SPREAD: 0.1,
   /** NG8: skills every NPC has at least at this band when its body can use them: the senses. Dodge is left to roles: at Low it
@@ -423,6 +422,7 @@ const DEFAULTS = {
   AGE_DECLINE_FROM: 'stage_4' as import('./scales').LifeStageKey, // AG17: decline starts at the start of Old
   AGE_DECLINE_GROUPS: [GR.melee, GR.ranged, GR.defense, GR.health, GR.stealth, GR.sleight, GR.notice] as string[], // AG19: body skills and the senses (Sleight: FL1, fingers)
   CREATION_AGE_DEFAULT: 20, // AG15: the creation picker's default (a start may set its own, ClassDef.creation.age)
+  YOUNGEST_STAGE: 'stage_1' as import('./scales').LifeStageKey, // no children: no one in the game, player or NPC, is younger than this stage's start (Youth)
   NPC_AGE_STAGES: ['stage_2', 'stage_3'] as import('./scales').LifeStageKey[], // AG13: the stages an NPC is drawn from when its template names none
   /** AG23: each talent row's multiplier on a rank's training years; past the last row each step multiplies by TALENT_BEYOND_MULT */
   TALENT_MULT: { talent_0: 3, talent_1: 2, talent_2: 1, talent_3: 0.75, talent_4: 0.5 } as Record<string, number>,

@@ -146,7 +146,7 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
    "slots":{slot:zone|[zone]} (a route slot lists 1 to ${CONFIG.MAX_ROUTE_ZONES} zones; one zone means stay there),"startAt"?:slot,"routineGap"?:string,
    "awarenessOfPlayer":awareness,"awarenessOfBands"?:[{"band":bandKey|bandId,"awareness":awareness}],"overrides"?:[{"actor","stance"}],"motive":string,"goals"?:[{"text","about"?:[actor, place, zone or item id or key]}] (a unique from catalogs.uniques only),
    "wares"?:{"items":[{"item":itemId,"qty"?:number}],"services":[serviceId]},
-   "personality"?:{"nerve"?:${Object.keys(NERVE_LINES).map((k) => JSON.stringify(k)).join('|')},"types"?:[up to 2 type ids from catalogs.personality.types],"values"?:[up to 3 value ids from catalogs.personality.values, strongest first]},"age"?:${words(LIFE_STAGES)} (a new actor's life stage; code picks the years; not younger than its template's youngestStage),"talent"?:${words(TALENTS)} (how fast a new actor trained, slowest first; a faster talent allows a younger age for its rank; left out = its template's)}],
+   "personality"?:{"nerve"?:${Object.keys(NERVE_LINES).map((k) => JSON.stringify(k)).join('|')},"types"?:[up to 2 type ids from catalogs.personality.types],"values"?:[up to 3 value ids from catalogs.personality.values, strongest first]},"age"?:${LIFE_STAGES.keys.slice(LIFE_STAGES.pos(CONFIG.YOUNGEST_STAGE)).map((k) => JSON.stringify(LIFE_STAGES.name(k))).join('|')} (a new actor's life stage; code picks the years; not younger than its template's youngestStage),"talent"?:${words(TALENTS)} (how fast a new actor trained, slowest first; a faster talent allows a younger age for its rank; left out = its template's)}],
  "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tier,"againstActorId"}}]},
  "rewards":[{"item":itemId|{"base","quality":${QUALITY_LEVELS.keys.map((k) => JSON.stringify(k)).join('|')},"boosts","name","look","fragility"?:${FRAGILITY.keys.map((k) => JSON.stringify(k)).join('|')}},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone,"hiddenAt"?:${words(TIERS)}}|{"in":containerKey},"owner"?:key}],
  "containers"?:[{"key","item":container itemId from catalogs.items,"place":{"carriedBy":key}|{"groundIn":zone},"owner"?:castKey|actorId,"locked"?:{"grade"?:grade,"keys"?:[castKey|actorId]}}],
@@ -238,7 +238,9 @@ Public text (names, labels, appearances, knows) is at most ${CONFIG.TEXT_CAP} ch
 trigger = {"id","ownerId":actor id,"when":{"type":"quiet_turns","turns":number}|{"type":"player_seen_in_zone","zone"}|{"type":"turn_reached","turn":number}|{"type":"actor_down","actorId"}|{"type":"alarm_heard"},"then":{"type":orderType,"target":id|"$player"|null,"skill":string|null,"intent"},"once"?:boolean (default true)}
 orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
 
-const fixed = (instr: string, shape: string) => `${instr}\n\nSCHEMA:\n${shape}`;
+/** no children: every agent's world holds no one younger than a Youth */
+const NO_CHILDREN = 'There are no children in this world: everyone is a teenager or older. Never cast, describe or mention a child.';
+const fixed = (instr: string, shape: string) => `${instr}\n\n${NO_CHILDREN}\n\nSCHEMA:\n${shape}`;
 /** the whole fixed (leading) user turn per agent */
 export const FIXED = {
   parser: fixed(PARSER_INSTRUCTIONS, PARSER_SHAPE),

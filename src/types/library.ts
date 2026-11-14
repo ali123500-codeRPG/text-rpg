@@ -58,9 +58,7 @@ export type SkillBands = { high?: readonly LibraryRef[]; moderate?: readonly Lib
 export type PersonalityLean = { nerve?: number; traits?: Record<LibraryRef, number>; values?: readonly LibraryRef[] };
 /** NG1: an NPC role (RO): the skills its work trains; nothing else rises (NG8). kind sets its rank floor (NG13: combat
  * CONFIG.RANK_FLOOR.combat, civilian .civilian; a beast has none and no personality spread). traits: its rank-trait pool (NG12) */
-export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civilian' | 'beast' | 'child'; bands: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
-  /** the life stages its people are drawn from when the preset names none (a Child role: stage_0); left out = CONFIG.NPC_AGE_STAGES */
-  ageStages?: readonly import('../scales').LifeStageKey[];
+export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civilian' | 'beast'; bands: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
   /** NG10: the gear classes (GC…) its work uses; spawn picks the best item of each its skill meets, up to its theme's wealth */
   gear?: readonly LibraryRef[] };
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank

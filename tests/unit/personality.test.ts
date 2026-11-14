@@ -51,17 +51,15 @@ describe('personality', () => {
     // no lean at all is Ordinary, the first row (ties go to the earlier row)
     expect(archetypeOf({ nerve: 0, traits: {}, values: [] }).id).toBe(PY.ordinary);
   });
-  it('tensions read Nerve, Resolve, the best skills, age and drives, in table order', () => {
+  it('tensions read Nerve, Resolve, the best skills and drives, in table order', () => {
     const s = makeVillage(), a = s.player;
     a.core.classes = []; a.core.perks = [];
     a.core.personality = { nerve: -40, traits: { [PA.discipline]: 60 }, values: [] };
     a.core.skills = { [SK.melee_medium]: { raw: 50, state: 'normal' } };
     a.core.bornDay = bornDayFor(s, 30);
     expect(tensionsOf(s, a).map((t) => t.id)).toEqual([TN.wary_dangerous]);
-    a.core.bornDay = bornDayFor(s, 8); // a disciplined child
-    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([TN.old_head, TN.wary_dangerous]);
     a.core.skills = { [SK.resolve]: { raw: 90, state: 'normal' } }; // Resolve is never the craft
-    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([TN.old_head]);
+    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([]);
   });
   it('perks, the current class and achievements add points while held (PL15, PL16)', () => {
     const a = npc(TP.guard);
@@ -91,8 +89,8 @@ describe('personality', () => {
     a.core.classes = []; a.core.perks = [];
     a.core.personality = { nerve: -40, traits: { [PA.honesty]: -30, [PA.pride]: -20, [PA.temper]: -40, [PA.sociability]: -20, [PA.discipline]: 60, [PA.curiosity]: 70, [PA.levity]: -20 }, values: [VL.knowledge, VL.loyalty] };
     a.core.skills = { [SK.resolve]: { raw: 20, state: 'normal' }, [SK.melee_medium]: { raw: 50, state: 'normal' } };
-    a.core.bornDay = bornDayFor(s, 7);
-    expect(personalityText(s, a, 'Calm')).toBe('Nerve: Timid (keeps out of danger when they can; Calm right now). Mature at heart (thinks before acting, keeps a cool head, owns their mistakes), but very curious (wants to know how things work, asks and pokes) and a bit deceitful (bends the truth when it suits them). Drives: knowledge first (studies, practises and seeks out learning), then loyalty (stands by their friends and their own). Tensions: old head on young shoulders (talks and plans like a grown-up, though still a child); wary but dangerous (avoids danger, yet hits hard when pushed).');
+    a.core.bornDay = bornDayFor(s, 20); // no children: Aldo is grown
+    expect(personalityText(s, a, 'Calm')).toBe('Nerve: Timid (keeps out of danger when they can; Calm right now). Mature at heart (thinks before acting, keeps a cool head, owns their mistakes), but very curious (wants to know how things work, asks and pokes) and a bit deceitful (bends the truth when it suits them). Drives: knowledge first (studies, practises and seeks out learning), then loyalty (stands by their friends and their own). Tensions: wary but dangerous (avoids danger, yet hits hard when pushed); good ends, crooked means (bends the truth to help the people they care about).');
   });
   it('a rolled NPC gets its template\'s signatures after Nerve and its title with its name; a copy gets neither', () => {
     const s = makeVillage(), t = getLibrary().templates[TP.guard], g = s.actors.find((x) => x.id === 'guard_1')!;
