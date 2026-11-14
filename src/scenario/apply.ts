@@ -13,7 +13,7 @@ import { ZK } from '../library/tableIds';
 import { placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { spawnNpc } from '../library/spawn';
+import { presetPersonality, spawnNpc } from '../library/spawn';
 import { personalityFrom } from '../ruleset/personality';
 import { installRoutines, desiredState, detectPlayer, headTo, knownFromTheStart } from '../minds';
 import { perceivesNow } from '../engine/yield';
@@ -292,7 +292,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       // someone brought back keeps their names; the plan's name is ignored (CS2)
     } else {
       const t = npcTemplate(state, c.template!);
-      const personality = c.personality ? personalityFrom(t.personality, c.personality) : undefined; // PL12
+      const personality = c.personality ? personalityFrom(presetPersonality(t, id), c.personality) : undefined; // PL12 on the NG14 layers
       a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}), ...(TALENTS.keyOf(c.talent) ? { talent: TALENTS.keyOf(c.talent) } : {}) }, rng);
       state.actors.push(a);
     }

@@ -11,7 +11,7 @@ import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
-import { presetAgeFloor, presetTalent, rankName } from '../library/spawn';
+import { presetAgeFloor, presetTalent, rankName, templateRank } from '../library/spawn';
 import { stageReaches, talentName } from '../ruleset/age';
 import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
@@ -340,7 +340,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         if (c.talent !== undefined && !talent) err('bad_talent', `cast ${k}: talent is ${TALENTS.list()}`, k);
         const stage = LIFE_STAGES.keyOf(c.age), floor = presetAgeFloor(tpl, presetTalent(tpl, talent));
         if (stage && floor !== undefined && !stageReaches(tpl.raceId, stage, floor))
-          err('bad_age', `cast ${k}: a ${rankName(tpl.rank!, tpl.themeId)} ${talentName(presetTalent(tpl, talent))} ${race(tpl.raceId).name} is at least ${Math.ceil(floor)} years old, past ${LIFE_STAGES.name(stage)}; name an older stage or a faster talent`, k);
+          err('bad_age', `cast ${k}: a ${rankName(templateRank(tpl)!, tpl.themeId)} ${talentName(presetTalent(tpl, talent))} ${race(tpl.raceId).name} is at least ${Math.ceil(floor)} years old, past ${LIFE_STAGES.name(stage)}; name an older stage or a faster talent`, k);
       }
     }
     if (!c.band) err('missing_band', `cast ${k}: names no band`, k);

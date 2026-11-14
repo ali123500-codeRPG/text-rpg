@@ -35,7 +35,7 @@ import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
 import { ALL_BUNDLES } from '../library/allPerks';
-import { classFloors, rankName, templateLevel, templateSkills } from '../library/spawn';
+import { classFloors, presetPersonality, rankName, templateLevel, templateSkills } from '../library/spawn';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -914,7 +914,7 @@ function personalityAxesView(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, `Each axis runs −100 to +100. A trait counts from ${CONFIG.PERSONALITY_LEAN} away from 0; the word before it comes from the distance: ${words}.`),
     h('div', { class: 'lv-grid' }, Object.values(lib.personalityAxes ?? {}).map((a) => card('personalityAxes', a.id, a, a.name, [],
       row('Low end', `${a.low} (${a.lowHint})`), row('High end', `${a.high} (${a.highHint})`),
-      row('NPCs', ((ts) => ts.length ? links('templates', ts) : none('none lean here'))(Object.values(lib.templates).filter((t) => Math.abs(t.personality?.traits?.[a.id] ?? 0) >= CONFIG.PERSONALITY_LEAN).map((t): [string, string] => [t.id, t.label ?? t.id]))))))];
+      row('NPCs', ((ts) => ts.length ? links('templates', ts) : none('none lean here'))(Object.values(lib.templates).filter((t) => Math.abs(presetPersonality(t).traits[a.id] ?? 0) >= CONFIG.PERSONALITY_LEAN).map((t): [string, string] => [t.id, t.label ?? t.id]))))))];
 }
 
 /** Threadbound items (D-218): one card per item. Its grants are drawn as unlock paths, one per achievement chain, in

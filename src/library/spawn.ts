@@ -16,6 +16,10 @@ import { skillName } from './skillNames';
 import { CL } from './classIds';
 import { IT } from './itemIds';
 import { perkPointsUpTo } from '../ruleset/levels';
+import { milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
+import { syncPerkLinks } from '../ruleset/perkLinks';
+import { PK } from './perkIds';
+import { TP } from './templateIds';
 
 /** a fixed seed from a string (a template's ID, or a template and an actor's ID) */
 const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
@@ -89,8 +93,17 @@ export function rankName(rank: RankKey, themeId?: string): string {
   const n = Number(rank.slice(5)), last = RANKS.keys.length - 1;
   return n <= last ? RANKS.name(rank as (typeof RANKS.keys)[number]) : RANKS.name(RANKS.keys[last]) + '+'.repeat(n - last);
 }
+const rankNo = (r: string) => Number(r.slice(5));
+/** NG13: a preset's rank, raised to its role's floor (CONFIG.RANK_FLOOR: a combat role is never under Trained, a civilian
+ * under Novice; a beast has none) */
+export function templateRank(t: NpcTemplate): RankKey | undefined {
+  if (!t.rank) return undefined;
+  const kind = t.roleId ? getLibrary().npcRoles?.[t.roleId]?.kind : undefined;
+  const floor = kind && kind !== 'beast' ? CONFIG.RANK_FLOOR[kind] : undefined;
+  return floor && rankNo(floor) > rankNo(t.rank) ? floor : t.rank;
+}
 /** NG7: a template's level: its rank's (a preset), or its saved sheet's (a unique) */
-export const templateLevel = (t: NpcTemplate): number => (t.rank ? rankRow(t.rank).level : t.level ?? 0);
+export const templateLevel = (t: NpcTemplate): number => { const r = templateRank(t); return r ? rankRow(r).level : t.level ?? 0; };
 
 type Band = keyof typeof CONFIG.ROLE_BAND_SHARE;
 /** NG2, NG8: the band each skill sits in for this preset: its role's and theme's, the higher wins; then the skills every
@@ -111,7 +124,7 @@ function presetBands(t: NpcTemplate): Record<string, Band> {
  * then the preset's minimums and class floors. High-band skills are tagged. Resolve comes from the preset (MB30). */
 export function presetSkills(t: NpcTemplate, rng?: Rng): Record<string, SkillEntry> {
   const raw: Record<string, number> = {}, state: Record<string, 'tagged' | 'normal'> = {};
-  const anchor = t.rank ? rankRow(t.rank).anchor * CONFIG.NPC_BAND_MULT : 0;
+  const rank = templateRank(t), anchor = rank ? rankRow(rank).anchor * CONFIG.NPC_BAND_MULT : 0;
   for (const [id, b] of Object.entries(presetBands(t)).sort(([x], [y]) => (x < y ? -1 : 1))) {
     state[id] = b === 'high' ? 'tagged' : 'normal';
     const spread = rng ? 1 + (rng.next() * 2 - 1) * CONFIG.COPY_SPREAD : 1;
@@ -126,6 +139,71 @@ export function presetSkills(t: NpcTemplate, rng?: Rng): Record<string, SkillEnt
  * preset's centre values, which its essence list reads. A unique's are its saved sheet. */
 export const templateSkills = (t: NpcTemplate, actorId?: string): Record<string, SkillEntry> =>
   t.unique ? t.unique.skills : presetSkills(t, actorId ? createRng(templateSeed(`${t.id}:${actorId}`)) : undefined);
+
+/** NG13: a template patrols when a routine set for it has the patrol routine. A set's role tags name templates by their
+ * TP key ('guard'), or by ID. */
+export function patrols(t: NpcTemplate): boolean {
+  const lib = getLibrary(), key = Object.entries(TP).find(([, id]) => id === t.id)?.[0];
+  return Object.values(lib.routineSets ?? {}).some((r) => r.tags.role.some((x) => x === t.id || x === key) && r.routines.some((id) => id === 'patrol' || lib.routines?.[id]?.id === 'patrol'));
+}
+
+/** NG12: how many traits a rank draws (CONFIG.RANK_TRAITS; past the last row, + RANK_TRAITS_BEYOND per step) */
+export function rankTraitCount(rank: RankKey | undefined): number {
+  if (!rank) return 0;
+  const n = rankNo(rank), last = CONFIG.RANK_TRAITS.length - 1;
+  return n <= last ? CONFIG.RANK_TRAITS[n] : CONFIG.RANK_TRAITS[last] + (n - last) * CONFIG.RANK_TRAITS_BEYOND;
+}
+
+/** A preset's own perks: those it lists, the generator's rules (NG13: a patrolling preset has Keen Ear) and its rank traits
+ * (NG12: drawn from its theme's and role's pools, perks and quirks alike, seeded by the actor's ID; none without an ID) */
+export function templatePerks(t: NpcTemplate, actorId?: string): string[] {
+  const lib = getLibrary(), own = [...(t.perks ?? []), ...(patrols(t) ? [PK.keen_ear] : [])];
+  const n = actorId ? rankTraitCount(templateRank(t)) : 0;
+  const pool = [...new Set([...(t.roleId ? lib.npcRoles?.[t.roleId]?.traits ?? [] : []), ...(t.themeId ? lib.themes?.[t.themeId]?.traits ?? [] : [])])]
+    .filter((id) => lib.perks[id] && lib.perks[id].built !== false && !own.includes(id)).sort();
+  const rng = createRng(templateSeed(`${t.id}:${actorId}:traits`));
+  for (let i = 0; i < n && pool.length; i++) own.push(pool.splice(rng.int(0, pool.length - 1), 1)[0]);
+  return [...new Set(own)];
+}
+
+/** NG11: an NPC spends its level's perk points on milestone perks by the player's rules (reached by true skill, a perk
+ * written there and in the game, enough perks below it in that skill), its role's High skills first, then Moderate, Low and
+ * the rest, highest first; each skill from its lowest milestone up. Taken as 'level' perks. Returns the perks taken. */
+export function npcMilestonePerks(a: Actor, t: NpcTemplate, points: number, turn: number): string[] {
+  const bands = presetBands(t), at = { high: 0, moderate: 1, low: 2 } as Record<string, number>, took: string[] = [];
+  const order = Object.keys(a.core.skills).sort((x, y) => (at[bands[x]] ?? 3) - (at[bands[y]] ?? 3) || a.core.skills[y].raw - a.core.skills[x].raw || (x < y ? -1 : 1));
+  for (const skill of order) {
+    for (let m = CONFIG.PERK_MILESTONE_EVERY; m <= trueSkill(a, skill) && took.length < points; m += CONFIG.PERK_MILESTONE_EVERY) {
+      const d = milestonePerk(skill, m);
+      if (!d || d.built === false || milestoneState(a, skill, m) !== 'open') continue;
+      a.core.perks.push({ perkId: d.id, source: 'level', gainedTurn: turn });
+      took.push(d.id);
+    }
+  }
+  if (took.length) syncPerkLinks(a, turn);
+  return took;
+}
+
+/** NG14: a preset's personality: its theme's lean, then its role's, then its own pins (a later layer wins per axis; values
+ * strongest first: its own, the role's, the theme's, up to DRIVES_SHOWN). An actor's ID adds a seeded spread of up to
+ * ± PERSONALITY_SPREAD on every trait (not Nerve), except for a beast. The Weaver's pick goes on top (personalityFrom). */
+export function presetPersonality(t: NpcTemplate, actorId?: string): Personality {
+  const lib = getLibrary(), role = t.roleId ? lib.npcRoles?.[t.roleId] : undefined, theme = t.themeId ? lib.themes?.[t.themeId] : undefined;
+  const out: Personality = { nerve: 0, traits: {}, values: [] };
+  for (const l of [theme?.leans, role?.leans, t.personality]) {
+    if (l?.nerve !== undefined) out.nerve = l.nerve;
+    Object.assign(out.traits, l?.traits ?? {});
+  }
+  out.values = [...new Set([...(t.personality?.values ?? []), ...(role?.leans?.values ?? []), ...(theme?.leans?.values ?? [])])].slice(0, CONFIG.DRIVES_SHOWN);
+  if (actorId && role?.kind !== 'beast') {
+    const rng = createRng(templateSeed(`${t.id}:${actorId}:personality`));
+    for (const k of Object.keys(lib.personalityAxes ?? {}).sort()) {
+      const v = Math.max(-100, Math.min(100, (out.traits[k] ?? 0) + Math.round((rng.next() * 2 - 1) * CONFIG.PERSONALITY_SPREAD)));
+      if (v) out.traits[k] = v; else delete out.traits[k];
+    }
+  }
+  return out;
+}
 
 /** the perks a member of this race is born with: its innate perks and innate quirks */
 
@@ -147,15 +225,17 @@ function tagQuirks(t: NpcTemplate, id: string, turn: number): OwnedPerk[] {
 export const presetTalent = (t: NpcTemplate, own?: TalentKey): TalentKey =>
   own ?? t.talent ?? (t.themeId ? getLibrary().themes?.[t.themeId]?.talent : undefined) ?? CONFIG.NPC_TALENT_DEFAULT;
 /** AG12, AG21: the youngest age a preset's rank allows at a talent; undefined for an ageless race or a preset with no rank */
-export const presetAgeFloor = (t: NpcTemplate, talent: TalentKey): number | undefined =>
-  t.rank ? ageFloor(t.raceId, rankRow(t.rank).training, talent) : undefined;
+export const presetAgeFloor = (t: NpcTemplate, talent: TalentKey): number | undefined => {
+  const rank = templateRank(t); // NG13: the rank after its role's floor, as the level reads it
+  return rank ? ageFloor(t.raceId, rankRow(rank).training, talent) : undefined;
+};
 
 /** AG13, AG14: drawn once from the Weaver's stage or the template's stages, seeded by the actor's ID, never under its rank's
  * youngest age (AG12), and saved with the talent that set that age (AG25) */
 function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?: LifeStageKey, own?: TalentKey): { bornDay?: number; talent?: TalentKey } {
   const talent = presetTalent(t, own);
   const d = rollBornDay(state, t.raceId, stage ? [stage] : t.ageStages, createRng(templateSeed(id)), presetAgeFloor(t, talent));
-  return d === undefined ? {} : { bornDay: d, ...(t.rank ? { talent } : {}) };
+  return d === undefined ? {} : { bornDay: d, ...(templateRank(t) ? { talent } : {}) };
 }
 
 export function spawnNpc(state: GameState | null, templateId: string, opts: SpawnOpts, rng?: Rng): Actor {
@@ -164,7 +244,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   if (t.generation === 'rolled' && !rng) throw new Error(`rolled template ${t.id} needs the seeded rng`);
   const skills = t.generation === 'rolled' ? presetSkills(t, rng!) : templateSkills(t, opts.id); // NG9: a copy's spread is seeded by its ID
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
-  return {
+  const a: Actor = {
     id: opts.id,
     storyId: opts.storyId ?? state?.storyId ?? 'story',
     kind: 'npc',
@@ -180,14 +260,14 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       generation: t.generation,
       skills,
       classes: t.classId ? [{ classId: t.classId, state: 'current', level: Math.min(templateLevel(t), classMaxLevel(t.classId)) }] : [], // NG7: capped by the class's top level
-      perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 })), ...tagQuirks(t, opts.id, state?.turn ?? 0)],
+      perks: [...racePerks(t.raceId, state?.turn ?? 0), ...templatePerks(t, opts.id).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 })), ...tagQuirks(t, opts.id, state?.turn ?? 0)],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player
-      personality: opts.personality ?? structuredClone(t.personality), // PL11, PL12: the template's points, or the Weaver's pick on them
+      personality: opts.personality ?? presetPersonality(t, opts.id), // NG14: the layers and the copy's spread, or the Weaver's pick on them (PL12)
       ...npcBornDay(state, t, opts.id, opts.ageStage, opts.talent),
     },
-    // GAP: rolled NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
+    // a rolled NPC keeps its level's perk points (one per even level, Part 1 §5) in a Progression module; NG11 spends them below
     ...(t.generation === 'rolled' ? { progression: {
       startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
       potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(templateLevel(t)), marks: [],
@@ -198,6 +278,9 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       knows: [],
     },
   };
+  const took = npcMilestonePerks(a, t, perkPointsUpTo(templateLevel(t)), state?.turn ?? 0); // NG11
+  if (a.progression) a.progression.unspentPerkPoints -= took.length;
+  return a;
 }
 
 /** HF15, HF18–HF21: a unique NPC, exactly as its sheet was saved, at full health. Its own name, pronouns, personality and
@@ -411,7 +494,9 @@ export function refreshCopies(state: GameState): void {
     if (!hasTemplate(state, a.core.templateId)) continue;
     const t = npcTemplate(state, a.core.templateId);
     a.core.skills = templateSkills(t, a.id); // NG9: its own spread, the same every load
-    for (const perkId of t.perks ?? []) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
+    for (const perkId of templatePerks(t, a.id)) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
+    a.core.perks = a.core.perks.filter((p) => p.source !== 'level'); // NG11: a copy's milestone perks follow its rebuilt skills
+    npcMilestonePerks(a, t, perkPointsUpTo(templateLevel(t)), state.turn);
   }
   // AG2: a save from before ages gets them on load, as a new spawn would; a birth day once set is never re-rolled (AG13)
   for (const a of [state.player, ...state.actors]) {

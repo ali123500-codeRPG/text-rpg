@@ -380,6 +380,13 @@ const DEFAULTS = {
   ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
   NPC_BAND_MULT: 1,
+  /** NG13: the lowest rank of a combat role (fighting experience) and of a civilian role; beasts have none */
+  RANK_FLOOR: { combat: 'rank_2', civilian: 'rank_1' } as Record<'combat' | 'civilian', `rank_${number}`>,
+  /** NG12: traits drawn from the theme's and role's pools, by rank (rank_0 first); past the last row, +RANK_TRAITS_BEYOND per step */
+  RANK_TRAITS: [0, 0, 0, 1, 1, 2, 2, 3, 3],
+  RANK_TRAITS_BEYOND: 1,
+  /** NG14: each personality trait of a copy moves by up to this many points, seeded by its ID */
+  PERSONALITY_SPREAD: 20,
   /** NG9: each skill moves by up to this share of its band value, seeded by the actor's ID */
   COPY_SPREAD: 0.1,
   /** NG8: skills every NPC has at least at this band when its body can use them: the senses. Dodge is left to roles: at Low it
