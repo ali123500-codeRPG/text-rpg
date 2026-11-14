@@ -33,6 +33,7 @@ import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, im
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
+import { lootCount, lootSources, openLoot } from './loot';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -279,6 +280,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const hint = h('p', { class: 'hs-note in-hint', id: 'cmd-hint' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   const healBtn = h('button', { type: 'button', class: 'itm' });
+  // what can be taken here (a body that is down, an open chest, the ground): opens the loot pop-up, which types the order
+  const lootBtn = h('button', { type: 'button', class: 'itm loot-btn', 'data-chip': 'loot', title: 'See what you can take here and pick what to pocket' });
   let open: 'commands' | 'ideas' | null = null;
   let suggestion = ''; // Q16: what the player put off last turn, offered in the box until used or cleared
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
@@ -290,7 +293,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const helpPanel = h('div', { class: 'helps', hidden: true });
   // MB12/BF37: while the player's nerve is broken, Yield comes forward and Aim steps back (no attack can come); no Flee, for now
   const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
-  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
+  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.hide, st.vanish, lootBtn, healBtn));
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the chips
   let doingHtml = '';
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, doingSlot, tools);
@@ -763,6 +766,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // H3 b: one quick slot for a healing item; it fills the box, nothing is sent until Send
     const qh = s ? quickHeal(s, s.player) : null;
     healBtn.hidden = !qh;
+    const loot = pv ? lootCount(lootSources(pv)) : 0;
+    lootBtn.hidden = !loot;
+    lootBtn.disabled = stopped;
+    if (loot) {
+      lootBtn.setAttribute('aria-label', `Loot, ${loot} thing${loot === 1 ? '' : 's'} to take`);
+      lootBtn.replaceChildren('Loot', h('b', {}, `×${loot}`));
+      lootBtn.onclick = () => { const v = api.state() ? safe(() => buildPlayerView(api.state()!)) : null; if (v) openLoot(v, lootBtn, pick); };
+    }
     const again = lastOrder(api.lines());
     againBtn.disabled = stopped || !again;
     againBtn.title = again ? `Fills the box with your last order: “${again}”. Nothing is sent until Send` : 'No order yet to repeat';
