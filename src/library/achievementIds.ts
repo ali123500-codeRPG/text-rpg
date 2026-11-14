@@ -60,6 +60,11 @@ export const ACH = {
   matched_crit_1: 'AC198',
   won_broken_1: 'AC199', won_broken_5: 'AC200', won_broken_25: 'AC201',
 } as const;
+/** TB6: chain heads with no trunk of their own; their branches are the per-source chains (healing and calming by source) */
+export const ACH_HEADS = { healed: 'AH1', calmed: 'AH2' } as const;
+export const ACH_HEAD_NAMES: Record<string, { name: string; tag: AchievementTag }> = {
+  [ACH_HEADS.healed]: { name: 'Healed, by source', tag: 'survival' }, [ACH_HEADS.calmed]: { name: 'Calmed, by source', tag: 'survival' },
+};
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
   combat: 'Combat', stealth: 'Stealth', social: 'Social', exploration: 'Exploration', survival: 'Survival', skill: 'Skill', progression: 'Progression',
