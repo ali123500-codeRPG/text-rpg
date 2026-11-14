@@ -21,6 +21,7 @@ import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
+import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
 import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
@@ -464,7 +465,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   if (T === state.player && T.core.condition.hpLostPct > lostBefore) tally(state, 'hp_lost', { add: ((T.core.condition.hpLostPct - lostBefore) / 100) * hp });
   const levelAfter = healthLevel(T);
   // a kill is counted apart from a defeat: the player's blow took someone else to Dead
-  if (levelAfter === 'dead' && levelBefore !== 'dead' && T !== state.player && result.attackerId === state.player.id) tally(state, 'kills');
+  if (levelAfter === 'dead' && levelBefore !== 'dead' && T !== state.player && result.attackerId === state.player.id) { tally(state, 'kills'); killedSurrenderedFeat(state, T); }
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;
 }

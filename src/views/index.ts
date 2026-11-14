@@ -55,6 +55,9 @@ import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUs
 import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
+/** AS3: the word others see for someone's morale: a foe who surrendered shows Surrendered, a visible state like Broken */
+export const SURRENDERED_WORD = 'Surrendered';
+const seenMoraleWord = (a: Actor): string => (a.mind?.moraleState === 'surrendered' ? SURRENDERED_WORD : moraleWord(a));
 const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
 /** FT20: the player's stamina bar as points left, to a tenth */
 export const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
@@ -244,7 +247,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
-      ...(!isDownLevel(h) && moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
+      ...(!isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}),
       ...(!isDownLevel(h) && fatigueShows(fatigueLevel(a)) ? { fatigue: fatigueWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),

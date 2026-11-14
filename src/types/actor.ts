@@ -176,6 +176,8 @@ export type Progression = {
   used?: LibraryRef[];
   zonesSeen?: string[]; // zones the player has entered
   placesSeen?: string[]; // TM14: places the player has stood in, or that held where they stood (counted per kind)
+  /** AS1–AS11: foes the player struck while seeing them surrendered or broken, each counted once */
+  gaveUpStruck?: { surrendered: string[]; broken: string[] };
   crippled?: string[]; // parts Crippled or worse, waiting to heal back to Healthy (the 'mended' achievements)
   wasDown?: true; // went Down and is not yet back to Unhurt (the 'back_from_down' achievement)
   grudges?: string[]; // people who have been hostile to the player and are not yet friendly (the 'enemy_to_friend' achievements)

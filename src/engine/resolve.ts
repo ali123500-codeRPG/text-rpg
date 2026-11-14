@@ -55,7 +55,7 @@ import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
-import { fightEnded, turnFeats } from './feats';
+import { fightEnded, gaveUpFeats, turnFeats } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
 import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, truceBars, type StoodDown, type TalkedYield } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
@@ -687,6 +687,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (!surprised && hasPerk(a, PK.ghost_blade) && beliefStatus(state, t, a) === 'suspicious' && onceThisEngagement(state, a, `${PK.ghost_blade}:${t.id}`)) {
     opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Ghost Blade', value: 1 }];
   }
+  gaveUpFeats(state, a, t); // AS1–AS11: striking someone who already gave up, before this blow changes anything
   if (flurry) opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Flurry', value: -1 }]; // AT79: one tier less sure
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
