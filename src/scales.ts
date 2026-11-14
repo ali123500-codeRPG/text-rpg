@@ -201,9 +201,12 @@ export type ClassTierKey = (typeof CLASS_TIERS.keys)[number];
 /** TB11: a Threadbound item's Rank, weakest first. Adding a rank means adding a row here */
 export const THREADBOUND_RANKS = scale([['rank_1', 'Rank I'], ['rank_2', 'Rank II'], ['rank_3', 'Rank III'], ['rank_4', 'Rank IV'], ['rank_5', 'Rank V'], ['rank_6', 'Rank VI']]);
 export type ThreadboundRankKey = (typeof THREADBOUND_RANKS.keys)[number];
-/** a blessing's tier, weakest first [Proposed]: the blessed start gives Tier V; the class perk and capstone reach higher
- * tiers (DX1). Names are placeholders. Adding a tier means adding a row here */
-export const BLESSING_TIERS = scale([['tier_5', 'Tier V'], ['tier_4', 'Tier IV'], ['tier_3', 'Tier III'], ['tier_2', 'Tier II'], ['tier_1', 'Tier I']]);
+/** CC1 b: a blessing's tier counts up, weakest first: Tier I is the lowest, the blessed start's Tier V is mid-ladder, and
+ * higher gods' blessings go on to VI, VII and up with no end. Rows run to BLESSING_TIER_ROWS; more means a bigger number */
+const BLESSING_TIER_ROWS = 30;
+const roman = (n: number): string => [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+  .reduce((out, [v, r]) => { while (n >= (v as number)) { out += r; n -= v as number; } return out; }, '');
+export const BLESSING_TIERS = scale(Array.from({ length: BLESSING_TIER_ROWS }, (_, i) => [`tier_${i + 1}` as `tier_${number}`, `Tier ${roman(i + 1)}`] as const));
 export type BlessingTierKey = (typeof BLESSING_TIERS.keys)[number];
 /** a god's standing, weakest first. Minor gods are grand to the average person, but the minimum for the divine; the beings
  * above them, who govern wider concepts, are still to be built. Adding a standing means adding a row here */
