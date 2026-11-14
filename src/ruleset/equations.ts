@@ -64,7 +64,7 @@ export function equations(lib: Library): EquationGroup[] {
   const exLevel = rollLevel(ex.d, ex.eff);
   const quick = Object.values(lib.perks).filter((p) => p.improveRolls);
   return [
-    { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill event roll.', equations: [
+    { key: 'skills', title: 'Skills', about: 'What a skill counts for before any roll: true skill, then effective skill.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
         formula: 'true skill = raw + perk true skill + achievement true skill',
         terms: [['raw', 'the points in the skill'], ['perk true skill', `the ${BOOSTS} perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), perks that add to every skill of a function (fnSkill), and linked perks that add to every aura skill (auraSkill, Crushing Presence)`], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
@@ -77,6 +77,8 @@ export function equations(lib: Library): EquationGroup[] {
           ['tier multiplier', SKILL_TIERS.keys.map((k) => `${SKILL_TIERS.name(k)} ×${CONFIG.SKILL_TIER_MULT[k]}`).join(' · ')],
           ['age', `old-age decline (ageMult · src/ruleset/age.ts): skills in the ${CONFIG.AGE_DECLINE_GROUPS.map(groupName).join(', ')} groups halve for every (the race\'s Ancient start − its ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} start) years past the start of ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)}; full before then, for other skills and for ageless races`]],
         notes: [`Example: ${skillName(EFF_EX.standIn)} ${EFF_EX.trueSkill} with +${EFF_EX.gear} ${skillName(EFF_EX.standIn)} gear, standing in for ${skillName(EFF_EX.skill)} 0 → (${EFF_EX.trueSkill} + ${EFF_EX.gear}) × ${n(CONFIG.SUBSTITUTE_EFFICIENCY)} × ${n(tierMult(EFF_EX.standIn))} = ${n(effExample())}. Gear for the named skill (the held weapon's bonus) does not pass to a stand-in.`] },
+    ] },
+    { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill event roll.', equations: [
       { name: 'Skill roll', at: 'roll · src/ruleset/index.ts',
         formula: `margin = d100 + ${n(W())} × effective skill + modifiers − ${n(NEED())}`,
         terms: [['d100', '1 to 100'], [n(W()), `CONFIG.SKILL_WEIGHT = ${n(W())}`], ['modifiers', 'all roll modifiers, each type stacked on its own (see the Stacking tab)'], [n(NEED()), `CONFIG.ROLL_NEEDED = ${n(NEED())}`]],
