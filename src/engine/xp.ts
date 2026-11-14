@@ -12,7 +12,7 @@ import { itemValue } from '../ruleset/value';
 import { ruleMet } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { functionName, groupName, groupsOf } from '../library/functionNames';
-import { CLASS_TIERS, TIERS } from '../scales';
+import { CLASS_TIERS, HEALTH_LEVELS, TIERS } from '../scales';
 import { tierName } from '../ruleset';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
@@ -382,7 +382,7 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   const d = a.key ? lib.achievements?.[a.key] : undefined;
   if (!d) return a.name ?? a.id;
   if (a.of && d.names?.[a.of]) return d.names[a.of]; // a name of its own for this earning
-  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source)\}/g, title(kindName(state, d, a.of)));
+  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source|place_kind|health_level)\}/g, title(kindName(state, d, a.of)));
 }
 
 /** what a per-kind achievement was earned for, by name (a body type, race, tree, group, class, tier, skill, giver…) */
@@ -396,6 +396,7 @@ export function kindName(state: GameState, d: AchievementDef, of?: string): stri
   if (d.by === 'class' && a.of) what = lib.classes?.[a.of]?.name ?? a.of;
   if (d.by === 'class_tier' && a.of && CLASS_TIERS.has(a.of)) what = CLASS_TIERS.name(a.of);
   if (d.by === 'function' && a.of) what = functionName(a.of);
+  if (d.by === 'health_level' && a.of && HEALTH_LEVELS.has(a.of)) what = HEALTH_LEVELS.name(a.of);
   if (d.by === 'skill' && a.of) what = skillName(a.of);
   if ((d.by === 'heal_source' || d.by === 'morale_source') && a.of) what = sourceRowName(d, a.of);
   if (d.by === 'giver' && a.of) { // the giver's name once the player knows it, else how the player sees them

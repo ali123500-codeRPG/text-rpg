@@ -33,7 +33,7 @@ describe('137 achievement rewards, round 2', () => {
     const s = makeVillage();
     const before = standInTable(SK.melee_medium, s.player);
     const group = groupsOf(getLibrary().skills[SK.melee_medium])[0];
-    grantAchievement(s, ACH.crits_1000, group);
+    grantAchievement(s, ACH.crits_100, group);
     const after = standInTable(SK.melee_medium, s.player);
     after.forEach((t, i) => expect(t.k).toBeCloseTo(Math.min(1, before[i].k + 0.2)));
     expect(standInTable(SK.earshot, s.player)).toEqual(standInTable(SK.earshot)); // another group: unchanged

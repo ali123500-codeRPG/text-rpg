@@ -175,6 +175,7 @@ export type Progression = {
   /** skills the player has rolled, on the sheet or not, so the sheet and /stats can show an off-sheet skill in use (fists: Strike) */
   used?: LibraryRef[];
   zonesSeen?: string[]; // zones the player has entered
+  placesSeen?: string[]; // TM14: places the player has stood in, or that held where they stood (counted per kind)
   crippled?: string[]; // parts Crippled or worse, waiting to heal back to Healthy (the 'mended' achievements)
   wasDown?: true; // went Down and is not yet back to Unhurt (the 'back_from_down' achievement)
   grudges?: string[]; // people who have been hostile to the player and are not yet friendly (the 'enemy_to_friend' achievements)

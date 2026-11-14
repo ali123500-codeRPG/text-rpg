@@ -23,12 +23,28 @@ export function turnFeats(state: GameState, events: GameEvent[]): void {
   if (!pr) return;
   const seen = (pr.zonesSeen ??= []);
   if (!seen.includes(p.zone)) { seen.push(p.zone); tally(state, 'zones', { to: seen.length }); }
+  placeFeats(state);
   tally(state, 'days', { to: dayOf(now(state)) - 1 });
   logFight(state, events);
   eventFeats(state, events);
   stateFeats(state, events);
 }
 
+
+/** TM14: every place the player stands in, and the places holding it (a tavern, its settlement …), counted once per
+ * place, per kind of place */
+function placeFeats(state: GameState): void {
+  const pr = state.player.progression!, seen = (pr.placesSeen ??= []);
+  for (let id: string | null = state.player.placeId, i = 0; id && i < 10; i++) {
+    const place = state.places.find((x) => x.id === id);
+    if (!place) break;
+    if (!seen.includes(place.id)) {
+      seen.push(place.id);
+      tally(state, 'places', { by: 'place_kind', of: place.kind, to: seen.filter((x) => state.places.find((y) => y.id === x)?.kind === place.kind).length });
+    }
+    id = place.parentId;
+  }
+}
 
 /** the turn's events: clean defenses (N1), holds and aimed hits (N8), and contests won against better attackers or
  * defenders (N4c) */
@@ -64,6 +80,9 @@ function stateFeats(state: GameState, events: GameEvent[]): void {
     if (!working(x.state)) { if (!crippled.includes(x.id)) crippled.push(x.id); }
     else if (x.state === 'healthy' && crippled.includes(x.id)) { crippled.splice(crippled.indexOf(x.id), 1); tally(state, 'mended'); }
   }
+  // TM23: the first time the player's health reaches each wound level (and every milder one on the way)
+  const lv = HEALTH_LEVELS.pos(healthLevel(p));
+  for (let i = 1; i <= Math.min(lv, HEALTH_LEVELS.pos('incapacitated')); i++) tally(state, 'health_reached', { by: 'health_level', of: HEALTH_LEVELS.at(i), to: 1 });
   if (!isActive(p)) pr.wasDown = true;
   else if (pr.wasDown && p.core.condition.hpLostPct === 0) { delete pr.wasDown; tally(state, 'back_from_down'); }
   const grudges = (pr.grudges ??= []);
