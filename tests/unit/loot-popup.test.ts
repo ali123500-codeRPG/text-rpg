@@ -59,7 +59,7 @@ describe('loot pop-up', () => {
 
   it('the chip opens it; Take types the order and sends nothing; Back closes it', () => {
     const play = src('play.ts'), loot = src('loot.ts'), pop = src('pop.ts');
-    expect(play).toMatch(/lootBtn\.onclick = \(\) => \{[^}]*openLoot\(v, lootBtn, pick\)/);
+    expect(play).toMatch(/lootBtn\.onclick = \(\) => \{[^}]*openLoot\(v, lootBtn, pick, /);
     expect(loot).toMatch(/take\.onclick = \(\) => \{ const o = lootOrder\(src, picked\); if \(!o\) return; closePop\(\); onOrder\(o\); \}/);
     expect(loot).toMatch(/openPop\(\{ title: 'Loot', body, opener, cls: 'loot-pop', back: true \}\)/);
     expect(pop).toMatch(/if \(o\.back && !history\.state\?\.dpop\) history\.pushState\(\{ dpop: true \}, ''\)/);

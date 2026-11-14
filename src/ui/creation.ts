@@ -13,6 +13,7 @@ import { createRng } from '../rng';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
+import { startIcon } from './itemIcons';
 import { preview } from './sheet';
 import { SK } from '../library/skillIds';
 import { ST } from '../library/startIds';
@@ -189,7 +190,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Start' }, Object.values(lib.starts).map((s) =>
     h('button', { class: s.id === startId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(s.id === startId), 'data-start': s.id,
       title: [`${creationPoints(s.id)} points, level ${startLevel(s.id)}`, ...startFacts(s.id).perks].join(' · '),
-      onclick: () => { if (s.id !== startId) switchTo(s.id); } },
+      onclick: () => { if (s.id !== startId) switchTo(s.id); } }, startIcon(s),
     [s.name, startFacts(s.id).tier, `${creationPoints(s.id)} pts`, `level ${startLevel(s.id)}`].filter(Boolean).join(' · '))));
   /** why this start can't begin: no god gives its blessing (DX1), or no Threadbound item free in the picked world (WP2 b); '' if it can */
   function blockedWhy(id: string): string {
