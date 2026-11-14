@@ -31,6 +31,7 @@ async function main(): Promise<void> {
     fell: mode === 'fell',
     banner: mode === 'notices',
     stage,
+    achievements: mode === 'achievements',
     notices: mode === 'notices' ? [
       { kind: 'scenario_fallback', text: 'Scenario planning failed: placeholder area.' },
       { kind: 'rate_limited', text: 'Too many requests. The story waits a moment before the next turn.' },

@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-215
+
+**What was wrong:** On the Achievements page "No Match for You" showed "↻4" beside its name although the chain has only two levels. The ↻N counted every row in the chain, its branch rows included (Influence I, Sight I), and it sat glued to the name. Next also ignored the branches once the trunk was finished, so the chain said nothing was left while two branches were part-way.
+
+**What was done:** Ali approved the fix and the new look. The ↻N is gone; the level line reads "II of II · 1 branch" and Next follows the branch closest to its next count. The page now draws each chain as a gold thread (src/ui/achievementThreads.ts): a knot for each level held and one for the next, filled as far as the tally has come, with a short fading tail when more levels follow. The place reads "I of ?" until the last level is in sight. Branches (By race · Human and so on) sit under the trunk, a size smaller, folded by default; tag headings fold their whole section. Tests in tests/cases/s284-achievement-chains-page.test.ts.
+
+**Fixed by:** [PR #774](https://github.com/ali123500-codeRPG/text-rpg/pull/774)
+
 ## BG-216
 
 **What was wrong:** On the map, the furniture in "behind the counter" sat in different spots at each zoom (Ali's two screenshots), and on the Bent Nail some pieces vanished when zoomed out and came back when zoomed in. Every zoom placed the marks again in screen pixels and pushed them round the zone's name, which sat inside the zone at one zoom and outside on a leader line at another, so the free spots changed.
