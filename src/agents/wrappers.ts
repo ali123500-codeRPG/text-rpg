@@ -12,6 +12,23 @@ import { runAgent, type AgentCtx, type Attempt, type RunResult } from './call';
 
 export const GENERIC_CLARIFY = 'What do you do?';
 
+/** BG-213: an action held back for arrival, written as the player would type it next turn, with the names the player
+ * knows ("give Corwin the lucky charm", "search the lean man") */
+export function actionWords(a: NonNullable<Intent['action']>, view: PlayerView): string {
+  const people = [...view.actors, ...(view.lastSeen ?? []), ...(view.talkingWith ?? [])];
+  const who = (id: string | null) => (id && people.find((p) => p.id === id)?.name) || (id ? 'them' : '');
+  const wares = (view.lastSeen ?? []).flatMap((p) => p.wares ?? []);
+  const what = (id: string | null) => (id && (view.player.inventory.find((x) => x.id === id || x.itemId === id)?.name ?? wares.find((w) => w.id === id)?.name)) || '';
+  const t = who(a.target), it = what(a.item), the = it ? `the ${it}` : '';
+  const line: Partial<Record<string, string>> = {
+    give: `give ${t} ${the || 'it'}`, buy: `buy ${it || 'something'} from ${t}`, sell: `sell ${the || 'it'} to ${t}`,
+    use_item: `use ${the || 'it'} on ${t}`, filch: `filch ${the || 'something'} from ${t}`, restrain: `hold ${t} back`,
+    search: `search ${t}`, attack: `attack ${t}`, observe: `look at ${t}`,
+    talk: `talk to ${t}`, persuade: `persuade ${t}`, deceive: `lie to ${t}`, barter: `haggle with ${t}`, intimidate: `threaten ${t}`,
+  };
+  return (line[a.type] ?? `${a.type.replace('_', ' ')} ${t}`).replace(/\s+/g, ' ').trim();
+}
+
 // ---------------- Parser ----------------
 
 export type ParserResult = { intent: Intent | null; clarify: string | null; run: RunResult<Intent> };
@@ -27,7 +44,8 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
   const outOfSight = (x: string) => x.startsWith('addressee') || x.startsWith('action.target');
   if (leg.illegal.length && leg.intent.move && leg.illegal.every(outOfSight)) {
     const i = leg.intent;
-    const later = i.spoken ?? '';
+    // BG-213: words wait as said; an action with no words waits as the line the player would type for it
+    const later = i.spoken ?? (i.action ? actionWords(i.action, view) : '');
     leg.intent = { ...i, action: null, spoken: null, addressees: null, deferred: [...(later ? [later] : []), ...(i.deferred ?? [])] };
     run.log.errors.push('deferred_to_arrival', ...leg.illegal);
     leg.illegal = [];
