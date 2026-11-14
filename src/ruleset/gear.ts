@@ -166,7 +166,7 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
   }
   const old = ageMult(state, actor, skill); // AG20: augments to a declining skill decline with it
   for (const a of augmentsOf(actor, skill, ctx.rollKind)) { const g = { ...a, value: a.value * old }; best!.value += g.value; best!.gear.push(g); } // skills that augment this one
-  return best!; // GAP: hard cap (D-3) and condition effects not designed yet
+  return best!; // D-3: no hard cap (true and effective skill pass the training cap); conditions are roll modifiers
 }
 
 type AugmentEntry = { share?: number; kind?: AugmentKind; rollKinds?: RollKind[] };

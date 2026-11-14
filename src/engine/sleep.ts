@@ -1,9 +1,9 @@
 // NW12, NW14, NW18–NW21: sleeping. An actor asleep (Actor.asleep) perceives nothing, does nothing and is struck as an
 // unaware target. It wakes on a blow, on hearing a loud noise (a shout or louder), when its sleep runs out, or, with the
-// Light Sleeper rule, on a passed hearing check when someone hostile comes near. NPCs sleep by their routines (an
+// Light Sleeper rule, on a passed hearing check when someone hostile comes near (their steps reach it). NPCs sleep by their routines (an
 // activity of `sleep` where their routine puts them) and follow the same rules. A band member who is awake and notices
 // someone hostile shouts to wake its sleeping bandmates (code, no Claude call). The player's sleep and night watch are
-// run in src/engine/resolve.ts (runNight), which steps the clock and stops it when someone hostile arrives.
+// run in src/engine/resolve.ts (runNight), which steps the clock and stops it when someone hostile comes near.
 import type { Actor, GameEvent, GameState, Night, Order, Rng } from '../types';
 import { CONFIG } from '../config';
 import { NOISE, type NoiseKey } from '../scales';
@@ -60,10 +60,10 @@ export function wakeByEvent(state: GameState, ev: GameEvent): void {
 
 /** NW14/NW19: a light sleeper's hearing check against someone near. Someone sneaking: the sleeper's hearing against
  * their stealth, the contest an awake listener makes. Someone moving openly (making `noise`): a hearing check whose
- * difficulty comes from that noise (CONFIG.WAKE_GRADE: louder is easier); a sound that can't reach it gives no roll.
- * Passed, the sleeper wakes aware of them. */
+ * difficulty comes from that noise (CONFIG.WAKE_GRADE: louder is easier). Either way their steps (`noise`, a sneaker's
+ * own quieter steps) must reach the sleeper, or there is no roll. Passed, the sleeper wakes aware of them. */
 export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise: NoiseKey, rng: Rng): boolean {
-  if (!isAsleep(sleeper) || !lightSleeper(sleeper)) return false;
+  if (!isAsleep(sleeper) || !lightSleeper(sleeper) || !soundCarries(state, sleeper, other, noise)) return false;
   let pass = false;
   if (other.posture === 'stealthy') {
     const skill = stealthSkill(other);
@@ -74,7 +74,7 @@ export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise:
       state, rng);
     matchedCritFeat(state, r); // D-292
     pass = r.gap > 0;
-  } else if (soundCarries(state, sleeper, other, noise)) {
+  } else {
     const target = CONFIG.DIFFICULTY[CONFIG.WAKE_GRADE[noise] ?? 'moderate'];
     const r = ruleset.roll({ actorId: sleeper.id, skill: SK.earshot, modifiers: [{ source: 'how quietly they came', type: 'situational', value: gradeMod(target) }], tierShifts: [], fn: FN.hearing }, state, rng);
     pass = tierAtLeast(r.tier, 'success');
@@ -87,13 +87,15 @@ export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise:
   return pass;
 }
 
-/** someone awake and active, hostile to `a`, in its zone */
-export const hostilesNear = (state: GameState, a: Actor): Actor[] =>
-  allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && hostile(state, x, a));
+/** CS20: someone awake and active, hostile to `a`, whose steps reach it: their movement sound (noiseOf, a sneaker's at
+ * its sneaking noise) carries to `a` as it would to a listener awake (soundCarries: metres, walls and doors). A zone
+ * is never the distance. */
+export const hostilesNear = (state: GameState, a: Actor, noiseOf: (x: Actor) => NoiseKey): Actor[] =>
+  allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && hostile(state, x, a) && soundCarries(state, a, x, noiseOf(x)));
 
 /** NW18: at the start of a turn, every light sleeper rolls against each hostile near it, until one wakes it */
 export function wakeChecksNear(state: GameState, noiseOf: (x: Actor) => NoiseKey, rng: Rng): void {
-  for (const s of allActors(state).filter(isAsleep)) for (const x of hostilesNear(state, s)) if (wakeCheck(state, s, x, noiseOf(x), rng)) break;
+  for (const s of allActors(state).filter(isAsleep)) for (const x of hostilesNear(state, s, noiseOf)) if (wakeCheck(state, s, x, noiseOf(x), rng)) break;
 }
 
 /** NW21: a band member who is awake and aware of someone hostile (to it or to a sleeping bandmate) shouts to wake the
