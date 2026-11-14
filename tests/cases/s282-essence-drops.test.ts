@@ -15,6 +15,8 @@ import { now } from '../../src/time';
 
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
 const slime = (s: GameState) => s.actors.find((a) => a.id === 'slime_1')!;
+// BG-199: an essence comes only from a death, from a foe the player hurt
+const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { hitByPlayer?: boolean } }>(a: T): T => { a.core.condition.hpLostPct = 200; a.mind!.hitByPlayer = true; return a; };
 const codes = (s: GameState) => s.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code);
 
 it('D-274: a notable foe always leaves an essence; only its quality roll can make it fade', () => {
@@ -22,7 +24,7 @@ it('D-274: a notable foe always leaves an essence; only its quality roll can mak
   for (const q of [100, 1]) {
     const s = makeVillage(), foe = slime(s);
     foe.core.generation = 'rolled'; // notable
-    offersFromDefeats(s, [foe], dice(100, q)); // the worst appearance die still appears
+    offersFromDefeats(s, [slain(foe)], dice(100, q)); // the worst appearance die still appears
     expect(codes(s)).toEqual(q === 100 ? ['essence_appeared', 'essence_offered'] : ['essence_appeared', 'essence_faded']);
   }
 });
@@ -30,8 +32,8 @@ it('D-274: a notable foe always leaves an essence; only its quality roll can mak
 it('D-274: a mob leaves one at ESSENCE_APPEAR_CHANCE.mob', () => {
   const hit = makeVillage(), miss = makeVillage();
   expect(notable(hit, slime(hit))).toBe(false);
-  offersFromDefeats(hit, [slime(hit)], dice(CONFIG.ESSENCE_APPEAR_CHANCE.mob, 100));
-  offersFromDefeats(miss, [slime(miss)], dice(CONFIG.ESSENCE_APPEAR_CHANCE.mob + 1, 100));
+  offersFromDefeats(hit, [slain(slime(hit))], dice(CONFIG.ESSENCE_APPEAR_CHANCE.mob, 100));
+  offersFromDefeats(miss, [slain(slime(miss))], dice(CONFIG.ESSENCE_APPEAR_CHANCE.mob + 1, 100));
   expect(codes(hit)[0]).toBe('essence_appeared');
   expect(codes(miss)).toEqual([]);
 });

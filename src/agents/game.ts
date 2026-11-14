@@ -1249,7 +1249,6 @@ function shiftsPart(s: GameState, shifts: TierShift[] | undefined, attackerId: s
  * "achievement: First Blood"; the one wording for the mechanics panel and the turn's XP row */
 export function xpSourceWords(s: GameState, x: XpAward): string {
   const [kind, id] = x.source.split(/:(.*)/);
-  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
   if (kind === 'defeat') return `${cap(views.callName(s, s.player.id, id))} defeated${x.why ? ` (${({ down: 'down', broken: 'broke', surrendered: 'surrendered' } as const)[x.why]})` : ''}`;
   if (kind === 'achievement') return `achievement: ${engine.achievementName(s, s.player.progression?.achievements?.find((a) => a.id === id) ?? { id })}`;
   if (kind === 'quest') return `job done: ${s.quests.find((q) => q.id === id)?.text ?? 'a job'}`;

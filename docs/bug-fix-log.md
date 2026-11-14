@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-200
+
+**What was wrong:** On turn 29 Happi's shot read as one tier ahead of Wren's dodge, yet it only grazed him. The midden yard's cover had pushed the result one tier his way, but the roll line never said so, so the outcome looked wrong.
+
+**What was done:** Ali approved the fix (BF25, pushed with BF33). The roll line now names every shift of the gap and whose way it went, for example "cover: 1 tier his way", for the player's attacks and for attacks on the player. A case test checks the line names the cover shift.
+
+**Fixed by:** [PR #TBD](https://github.com/ali123500-codeRPG/text-rpg/pull/TBD)
+
+## BG-199
+
+**What was wrong:** On turns 23-24 Wren broke and yielded to Happi, but the story never said so. His chip still showed a morale bar level, the XP row gave one total with no source, and an essence was offered from him although he was not dead.
+
+**What was done:** Ali approved the fix (BF24, pushed with BF33), and added that an essence drops only on a death, never a defeat. The turn now says "Wren breaks and yields to you" or "surrenders to you", and his chip reads Broken or Surrendered. The XP row lists each award with its source ("Wren Tallow defeated (broke)", "job done: ...", an achievement). An essence now rolls only for a foe the player hurt, on the turn that foe lies dead. Case tests cover the yield line, the chip, the XP sources and the death-only rule.
+
+**Fixed by:** [PR #TBD](https://github.com/ali123500-codeRPG/text-rpg/pull/TBD)
+
 ## BG-212
 
 **What was wrong:** A reward the Weaver minted with a name of its own was placed as a plain item when a hidden term of the plan sat inside a longer word of its name or look ("rat" inside "a pirate's sword"). Nothing leaked, so the player lost the better item for no reason. The reward check matched parts of words; every other leak check in the plan matches whole words (V10).

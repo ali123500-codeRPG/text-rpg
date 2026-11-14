@@ -1,4 +1,4 @@
-// 282 BG-200 (BF26): saying you aim at a part aims the attack, as the Aim button does. "I aim at his other leg and
+// 285 BG-200 (BF26): saying you aim at a part aims the attack, as the Aim button does. "I aim at his other leg and
 // shoot" with the button off was rolled unaimed, so the leg the player named made no difference.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
