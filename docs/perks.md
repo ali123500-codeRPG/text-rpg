@@ -763,8 +763,8 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on (augment)
 - **Trigger:** An attack roll the owner makes while stealthy.
-- **Conditions:** The owner owns at least one perk tagged ambush (src/library/perkThemes.ts).
-- **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% for the first ambush perk, and each further one adds half what the one before added (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders): 3 pieces give 8.75%, and no count passes 10%.
+- **Conditions:** Patient Knife is an ambush perk itself, so it always counts at least one piece (perks tagged ambush: src/library/perkThemes.ts).
+- **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% for the first ambush perk, and each further one adds half what the one before added (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders): 3 pieces (Patient Knife and two more) give 8.75%, and no count passes 10%.
 - **Lasts:** Always.
 
 ### Protagonist Mentality (Resolve) · CN7
