@@ -11,6 +11,7 @@ import { BT, RC } from '../../src/library/raceIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
 import { moveSpeed } from '../../src/engine/speed';
 import { usableModes } from '../../src/ruleset/gear';
+import { effectiveSkill } from '../../src/ruleset';
 import { gripReachM, roleOff } from '../../src/ruleset/body';
 import { RL } from '../../src/library/tableIds';
 
@@ -40,6 +41,18 @@ describe('323 animal body types', () => {
     expect(ANIMALS.filter((r) => getLibrary().races![r].naturalArmor)).toEqual([RC.boar, RC.lizard, RC.crocodile]);
     expect(skillOpen(s.actors.find((x) => x.names.current === RC.python)!, SK.tremor)).toBe(true); // AB11: snakes and spiders feel vibration
     expect(skillOpen(dog, SK.tremor)).toBe(false);
+    // BG-250: an animal rolls its natural attacks at its real skill, not 0
+    const wolf = s.actors.find((x) => x.names.current === RC.wolf)!;
+    expect(effectiveSkill(s, wolf, SK.unarmed_natural).value).toBeGreaterThan(0);
+  });
+
+  it('BG-250: every race can use every skill its own natural attacks roll', () => {
+    const s = makeVillage(), a = s.player, lib = getLibrary();
+    for (const r of Object.values(lib.races!)) {
+      a.core.raceId = r.id;
+      a.core.bodyTypeId = r.bodyTypeId;
+      for (const m of actorBody(s, a).naturalAttacks) expect(skillOpen(a, m.skill!), `${r.name} ${m.name}`).toBe(true);
+    }
   });
 
   it('a giant spider stops running at 5 of 8 legs Crippled (CS24)', () => {
