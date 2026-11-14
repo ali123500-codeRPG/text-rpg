@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-232
+
+**What was wrong:** The agent playing the character said the player's signature saying on move after move: In character told it to "keep to" each signature, the guided part gave them a second time every move, and words its commands had the character say aloud never went in the list of lines it must not repeat.
+
+**What was done:** Ali approved the fix (BF59 a, plus an automatic flag). In character calls signatures habits, not lines to recite: a saying only where the moment calls for it, never on two moves running; in character the guided part no longer repeats them; quoted words in the agent's command join its said list; a line said word for word again within the last few is filed as bug code agent_repeat (src/save/bugs.ts). Test tests/cases/s311-speech-in-character.test.ts.
+
+**Fixed by:** [PR #820](https://github.com/ali123500-codeRPG/text-rpg/pull/820)
+
 ## BG-231
 
 **What was wrong:** "Wait for someone to appear" passed one minute: a wait could only run to a time of day, so the Parser made it a plain hold, and even a wait to a time of day ran on past a passer-by coming into sight.

@@ -3477,6 +3477,7 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-229 | Playtest turns 57-59: "shoot the first one who appears" asked about or dropped | 14/11/2026 | fixed (Ali OK'd the fix, BF57) | Becomes a wait until someone appears, with the shot deferred. PR #812 |
 | BG-230 | Playtest turns 53-56: watching from hiding passed 2 seconds a turn | 14/11/2026 | fixed (Ali OK'd the fix, BF58) | Staying hidden and watching is the wait until someone appears. PR #812 |
 | BG-231 | Playtest turns 57-60: no way to wait until someone appears | 14/11/2026 | fixed (Ali OK'd the fix, BF58) | New wait until someone appears, up to 8 hours. PR #812 |
+| BG-232 | Ali's note: the agent keeps repeating the personality's signature | 14/11/2026 | fixed (Ali OK'd the fix, BF59) | Signatures are habits, said only where they fit; command speech joins the said list; word-for-word repeats filed as agent_repeat. PR #820 |
 
 ## Check on release
 
