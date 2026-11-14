@@ -905,9 +905,9 @@ export function prototypeLibrary(): Library {
       [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, speed: { walk: 1.4, run: 5 }, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.elf, playable: true },
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
       [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, speed: { walk: 0.5, run: 1 }, // a creeping mass: a placeholder
-        innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent', playable: true },
+        innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent' }, // Slime and Dragon are not playable (reverses CC8 b)
       // on the ground as a horse: walk about 1.8 m/s, gallop about 12 (flight not modelled, D-323)
-      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon, playable: true },
+      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon },
       // Animals (NR14, NR15). hpMultiplier (AB6 a): (mass ÷ a 70 kg person)^(2/3), rounded: dog 30 kg, wolf 40, tiger 220,
       // bear 300, boar 90, horse 500, Komodo 70, python 75. Run = the cited burst; walk = an everyday gait (estimates unless cited).
       // Attack class by bite or blow force [Proposed]: a weak bite light, a tiger's or bear's (about 1,000 psi, National
