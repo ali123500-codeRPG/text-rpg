@@ -402,7 +402,11 @@ export function creationAgeRange(raceId: string = RC.human): { min: number; max:
   const st = getLibrary().races?.[raceId]?.ageStages;
   return st ? { min: st[LIFE_STAGES.at(1)] ?? 0, max: st[LIFE_STAGES.at(5)] ?? 0 } : undefined;
 }
-export const startLevel = (startId = PLAYER_START) => startDef(startId)?.level ?? CONFIG.START_LEVEL;
+/** CC6 b: a Start with neither a class nor a blessing begins with no class, at level 0 */
+export const classlessStart = (startId = PLAYER_START): boolean => { const s = startDef(startId); return !!s && !s.classId && !s.blessing; };
+/** the default class (ClassDef.fallback, Commoner): open to pick for a classless start, and opened at a class's top level */
+export const defaultClass = (): string | undefined => Object.values(getLibrary().classes).find((c) => c.fallback)?.id;
+export const startLevel = (startId = PLAYER_START) => (classlessStart(startId) ? 0 : startDef(startId)?.level ?? CONFIG.START_LEVEL);
 /** what a Start gives at creation: its class (a blessed start: its god's Blessed class, none before the roll) and the
  * blessing it rolls (DX1). The roll needs the story id, so the creation screen, which has none yet, sees no class */
 export function startGives(startId = PLAYER_START, storyId?: string): { classId?: string; blessing?: string } {
@@ -423,13 +427,15 @@ export function classPerks(classId: string, from: number, to: number, turn = 0):
   if (c?.capstone) lv[top] = [...(lv[top] ?? []), ...c.capstone];
   return Object.entries(lv).filter(([n]) => +n > from && +n <= to).flatMap(([, ids]) => ids.map((perkId) => ({ perkId, source: 'class' as const, gainedTurn: turn })));
 }
-/** who a new player is: body type, race, the Start's class and perks. Tree access (TA1) reads these before the sheet exists. */
+/** who a new player is: body type, race, the Start's class and perks. Tree access (TA1) reads these before the sheet exists.
+ * A classless start (CC6 b) has no current class: the default class is open (unlocked, level 0), and levels bank until the
+ * player picks a class (levelTarget finds none, so XP waits in spendXp). */
 export function newPlayer(startId = PLAYER_START, storyId?: string): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> {
   const { classId, blessing } = startGives(startId, storyId), level = startLevel(startId);
   return {
     bodyTypeId: BT.humanoid,
     raceId: RC.human, // GAP: no race choice at creation yet
-    classes: classId ? [{ classId, state: 'current', level }] : [],
+    classes: classId ? [{ classId, state: 'current', level }] : classlessStart(startId) && defaultClass() ? [{ classId: defaultClass()!, state: 'unlocked', level: 0 }] : [],
     perks: [...racePerks(RC.human), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
   };
 }

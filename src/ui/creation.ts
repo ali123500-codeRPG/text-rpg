@@ -5,7 +5,7 @@ import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, createPlayer, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { classFloors, classlessStart, defaultClass, createPlayer, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { personalityPicker } from './personality';
@@ -47,7 +47,7 @@ function startFacts(startId: string): { tier: string; classes: string[]; perks: 
   const classes = b && !s.classId ? blessingGods(b.tier).map(blessedClass).filter((c): c is string => !!c) : [startGives(startId).classId].filter((c): c is string => !!c);
   const perks = classes.length === 1 ? [...Object.values(lib.classes[classes[0]]?.levelPerks ?? {}).flat(), ...(lib.classes[classes[0]]?.capstone ?? [])].map((p) => lib.perks[p]?.name ?? p) : [];
   return {
-    tier: b ? `${BLESSING_TIERS.name(b.tier)} blessing` : classes[0] ? CLASS_TIERS.name(lib.classes[classes[0]].tier) : '',
+    tier: b ? `${BLESSING_TIERS.name(b.tier)} blessing` : classes[0] ? CLASS_TIERS.name(lib.classes[classes[0]].tier) : classlessStart(startId) ? 'no class' : '',
     classes, perks: b ? [`a random god’s ${BLESSING_TIERS.name(b.tier)} blessing`, ...perks] : perks,
     blocked: b && !blessingGods(b.tier).length ? `no god gives a ${BLESSING_TIERS.name(b.tier)} blessing yet.` : '',
   };
@@ -257,6 +257,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       h('div', {}, h('h1', {}, `Create your ${(!start?.blessing && cls?.name) || 'character'}`), whoRow(), starts, worldRow(), worldNote,
         start?.story ?? cls?.story ? h('p', { class: 'story-line' }, start?.story ?? cls?.story) : null,
         start?.blessing ? h('p', {}, `You begin with ${facts.perks[0]}, in that god’s Blessed class${facts.classes.length ? `: ${facts.classes.map((c) => `${lib.classes[c].name} (${CLASS_TIERS.name(lib.classes[c].tier)})`).join(' or ')}` : ''}.`)
+          : classlessStart(startId) ? h('p', {}, `You begin with no class, at level 0. ${lib.classes[defaultClass() ?? '']?.name ?? 'The default class'} is open to pick, and your levels wait until you pick a class.`)
           : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },

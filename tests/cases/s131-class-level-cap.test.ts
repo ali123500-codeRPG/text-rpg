@@ -7,10 +7,9 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { awardXp, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
-import { classMaxLevel, createPlayer, recommendedBuild } from '../../src/library/spawn';
+import { classMaxLevel } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
 import { CL } from '../../src/library/classIds';
-import { ST } from '../../src/library/startIds';
 import { CLASS_TIERS } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { markUse } from '../../src/ruleset/improve';
@@ -52,11 +51,10 @@ describe('131 Class level cap', () => {
     for (const c of Object.values(lib.classes)) for (const id of c.capstone ?? []) expect(lib.perks[id]?.classLevel, id).toEqual({ classId: c.id, level: classMaxLevel(c.id) });
   });
 
-  it('A Nobody: the class of a Start, with Quick Study at level 1', () => {
-    const p = createPlayer(recommendedBuild(ST.a_nobody), 's1');
+  it('A Nobody: Quick Study at level 1 (its Start is gone, CC3; Commoner\'s capstone opens it)', () => {
     expect(getLibrary().classes[CL.a_nobody].name).toBe('A Nobody');
-    expect(p.core.classes).toEqual([{ classId: CL.a_nobody, state: 'current', level: 1 }]);
-    expect(p.core.perks.map((x) => x.perkId)).toEqual([PK.quick_study]);
+    expect(getLibrary().classes[CL.a_nobody].levelPerks?.[1]).toEqual([PK.quick_study]);
+    expect(Object.values(getLibrary().starts).some((s) => s.classId === CL.a_nobody)).toBe(false);
     expect(getLibrary().classes[CL.a_nobody].capstone).toEqual([PK.every_fall_a_lesson]);
   });
 

@@ -60,11 +60,8 @@ describe('typed IDs', () => {
     for (const c of Object.values(getLibrary().classes)) if (c.blessedBy) expect(getLibrary().gods?.[c.blessedBy], c.id).toBeDefined();
   });
 
-  it('every Start names a library class, or takes one from its blessing (no classless start until one is decided)', () => {
-    for (const s of Object.values(getLibrary().starts)) {
-      if (s.classId) expect(getLibrary().classes[s.classId], s.id).toBeDefined();
-      else expect(s.blessing, `${s.id} has no class and no blessing`).toBeDefined();
-    }
+  it('every Start\'s class names a library class (a Start may have none, CC6 b)', () => {
+    for (const s of Object.values(getLibrary().starts)) if (s.classId) expect(getLibrary().classes[s.classId], s.id).toBeDefined();
   });
 
   it('every perk reference names a library perk', () => {

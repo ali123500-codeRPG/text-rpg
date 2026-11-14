@@ -20,7 +20,7 @@ describe('308 Starts and the blessed start', () => {
   it('every old starting class is a Start with its class, points and level', () => {
     const lib = getLibrary();
     expect(Object.values(lib.starts).map((s) => [s.name, s.classId, s.points, s.level])).toEqual([
-      ['Swordsman', CL.swordsman, undefined, undefined], ['Unwritten Legend', CL.late_bloomer, 50, 1], ['A Nobody', CL.a_nobody, 50, 1],
+      ['Swordsman', CL.swordsman, undefined, undefined], ['Unwritten Legend', CL.late_bloomer, 50, 1],
       ['The Threadbound', CL.threadbounded, 50, 1], ['The Blessed', undefined, 50, 1]]);
     expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }]);
   });
