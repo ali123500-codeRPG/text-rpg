@@ -43,7 +43,7 @@ it('TF14: a fresh foe needs a win by OFFER_WIN_TIERS; a hurt or uneasy one by OF
   expect(landed(won(-1), p)).toBe('unmoved');
 });
 
-it('TF13/TF16: a code-run foe convinced in the exchange stands down: a truce both ways, a talked-down tally, it counts as beaten', () => {
+it('TF13/TF16/TF18: a code-run foe convinced in the exchange stands down: a truce both ways, a talked-down tally, no defeat', () => {
   const s = fight(), p = patron(s);
   expect(isEngaged(s, s.player) && canOffer(s, s.player, p)).toBe(true);
   const i = intent({ action: { type: 'persuade', target: 'patron_1' }, spoken: 'Put it down. Nobody else needs to bleed.', addressees: ['patron_1'] });
@@ -54,7 +54,7 @@ it('TF13/TF16: a code-run foe convinced in the exchange stands down: a truce bot
   expect(truce(s, p, s.player) && truce(s, s.player, p)).toBe(true);
   expect(hostile(s, p, s.player)).toBe(false);
   expect(s.player.progression!.tally?.talked_down).toBe(1);
-  expect(p.mind!.stoodDown && p.mind!.xpPaid).toBe(true); // payDefeats counted it beaten this turn
+  expect(p.mind!.xpPaid).toBeUndefined(); // TF18: a stand-down is not a defeat
   // neither side may attack the other for the rest of the scenario
   const blow = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }) });
   expect(blow.find((e) => e.actorId === 'player' && e.kind === 'wasted')?.reason).toBe('truce');
@@ -120,7 +120,8 @@ it('TF11: a foe can offer the player a stand-down; the player takes it by saying
   expect(buildPlayerView(s).player.standDownOffers).toEqual([{ id: 'patron_1', name: expect.any(String), landed: 'tempts you' }]);
   play(s, { intent: intent({ standDown: 'patron_1', spoken: 'Fine. We stop.' }) });
   expect(truce(s, p, s.player)).toBe(true);
-  expect(p.mind!.stoodDown).toBeUndefined(); // taking the foe's own offer beats no one
+  expect(p.mind!.xpPaid).toBeUndefined(); // TF18: taking the foe's offer is no defeat for either side
+  expect(s.player.progression!.tally?.talked_down).toBeUndefined(); // nor a talk-down by the player
 });
 
 it('TF17 follow-up: in a fight the Talk ideas show the ways to talk a foe out of it', () => {
