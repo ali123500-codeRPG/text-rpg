@@ -47,16 +47,17 @@ export function partStates(state: GameState, actor: Actor): { id: string; state:
 }
 
 /** Part 3 shared roles: an on/off effect of a role (no running, can't fly) switches on when the role's Crippled and Destroyed
- * parts reach SHARED_ROLE_OFF_PCT of its parts, a Destroyed part counting twice (one Crippled leg of two still runs; one
- * Destroyed leg does not; a spider needs 5 of 8 legs Crippled). An actor with no part in the role is never switched off. */
+ * parts reach SHARED_ROLE_OFF_PCT of its parts, a Destroyed part counting DESTROYED_PART_WEIGHT Crippled ones, as its role
+ * penalty does (CS24: one Crippled leg of two still runs; one Destroyed leg does not; a spider needs 5 of 8 legs Crippled,
+ * or 4 Destroyed). An actor with no part in the role is never switched off. */
 export function roleOff(state: GameState, actor: Actor, role: RoleId): boolean {
   const parts = actorBody(state, actor).parts.filter((p) => p.roles.includes(role));
   if (!parts.length) return false;
   const hurt = parts.reduce((n, p) => {
     const at = PART_STATES.pos(poolState(partPct(actor, p.id)));
-    return n + (at >= PART_STATES.pos('destroyed') ? 2 : at >= PART_STATES.pos('crippled') ? 1 : 0);
+    return n + (at >= PART_STATES.pos('destroyed') ? CONFIG.DESTROYED_PART_WEIGHT : at >= PART_STATES.pos('crippled') ? 1 : 0);
   }, 0);
-  return hurt >= CONFIG.SHARED_ROLE_OFF_PCT * parts.length;
+  return hurt >= CONFIG.SHARED_ROLE_OFF_PCT * parts.length - 1e-9; // weights like 1.2 add up with float error
 }
 
 /** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres, from its body
@@ -81,8 +82,9 @@ export function usableGrips(state: GameState, actor: Actor): string[] {
 
 /** a part's state for its penalties: Tough It Out counts each one step milder (D6) */
 export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES.at(PART_STATES.pos(s) - (hasPerk(a, PK.tough_it_out) ? 1 : 0));
-const rolePenaltyOf = (s: PartState) =>
-  s === 'healthy' ? 0 : s === 'damaged' ? CONFIG.ROLE_PENALTY.damaged : CONFIG.ROLE_PENALTY.crippled; // GAP: Destroyed counts as Crippled
+/** a role's penalty for a part in state `s`: Destroyed is DESTROYED_PART_WEIGHT times the Crippled one (CS24) */
+export const rolePenaltyOf = (s: PartState): number =>
+  s === 'healthy' ? 0 : s === 'damaged' ? CONFIG.ROLE_PENALTY.damaged : CONFIG.ROLE_PENALTY.crippled * (s === 'destroyed' ? CONFIG.DESTROYED_PART_WEIGHT : 1);
 /** Iron Frame (A12): an effective state at the Damaged position or milder gives no role penalty */
 function rolePenalty(a: Actor, raw: PartState): number {
   const s = effectiveState(a, raw);

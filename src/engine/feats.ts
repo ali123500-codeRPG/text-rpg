@@ -92,18 +92,41 @@ function stateFeats(state: GameState, events: GameEvent[]): void {
   }
 }
 
+/** the player's roll in a contest they won against someone with higher true skill, and that someone's true skill; null
+ * otherwise (ties win nothing) */
+function beatStronger(state: GameState, c: ContestResult): { mine: RollResult; theirs: number } | null {
+  const p = state.player;
+  const side = c.a.actorId === p.id ? 'a' : c.b.actorId === p.id ? 'b' : null;
+  if (!side || c.winner !== side) return null;
+  const mine: RollResult = side === 'a' ? c.a : c.b, theirs: RollResult = side === 'a' ? c.b : c.a;
+  const them = actorById(state, theirs.actorId);
+  const t = them ? trueSkill(them, theirs.skill) : -Infinity;
+  return t > trueSkill(p, mine.skill) ? { mine, theirs: t } : null;
+}
+const outmatched = (state: GameState, mine: RollResult, fns?: SkillFunction[]): void => {
+  tally(state, 'outmatched');
+  for (const f of fns ?? getLibrary().skills[mine.skill]?.functions ?? []) tally(state, 'outmatched', { by: 'function', of: f });
+};
+
 /** N4c: the player won a contest against someone with higher true skill: counted in general and per function of the
  * player's skill (or the functions given, such as the sense a notice roll used). Ties win nothing. */
 export function contestFeat(state: GameState, c: ContestResult, fns?: SkillFunction[]): void {
   matchedCritFeat(state, c);
-  const p = state.player;
-  const side = c.a.actorId === p.id ? 'a' : c.b.actorId === p.id ? 'b' : null;
-  if (!side || c.winner !== side) return;
-  const mine: RollResult = side === 'a' ? c.a : c.b, theirs: RollResult = side === 'a' ? c.b : c.a;
-  const them = actorById(state, theirs.actorId);
-  if (!them || trueSkill(them, theirs.skill) <= trueSkill(p, mine.skill)) return;
-  tally(state, 'outmatched');
-  for (const f of fns ?? getLibrary().skills[mine.skill]?.functions ?? []) tally(state, 'outmatched', { by: 'function', of: f });
+  const b = beatStronger(state, c);
+  if (b) outmatched(state, b.mine, fns);
+}
+
+/** a contest of a stealth act, kept until the act ends, with the functions it counts for (see contestFeat) */
+export type ActContest = { c: ContestResult; fns?: SkillFunction[] };
+/** CS25: a stealth act against several watchers (a filch, an ambush from hiding, a sneak past sleepers) counts Against the
+ * Odds once: for the strongest one the player beat. Each contest's matchedCritFeat is the caller's, as it rolls. */
+export function outmatchedOnce(state: GameState, act: ActContest[]): void {
+  let best: { mine: RollResult; theirs: number; fns?: SkillFunction[] } | null = null;
+  for (const { c, fns } of act) {
+    const b = beatStronger(state, c);
+    if (b && (!best || b.theirs > best.theirs)) best = { ...b, fns };
+  }
+  if (best) outmatched(state, best.mine, best.fns);
 }
 
 /** AS1–AS11: the player attacks `t` (hit or miss) while seeing it surrendered or broken, both visible states; each foe

@@ -61,7 +61,7 @@ import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { cantExtract, extractEssence } from './extract';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
-import { fightEnded, gaveUpFeats, turnFeats } from './feats';
+import { fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
 import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, truceBars, type StoodDown, type TalkedYield } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
@@ -1127,7 +1127,9 @@ function runNight(ctx: Ctx): number {
     if (came.length) {
       logCode(state, 'sleep_stopped', { actorId: p.id, by: came.map((x) => x.id) });
       (state.scratch ??= {}).nightStopped = true; // the next turn starts with them there
-      for (const s of allActors(state).filter(isAsleep)) for (const x of hostilesNear(state, s, noiseOf).filter((h) => came.includes(h))) if (wakeCheck(state, s, x, noiseOf(x), rng)) break;
+      const act: ActContest[] = [];
+      for (const s of allActors(state).filter(isAsleep)) for (const x of hostilesNear(state, s, noiseOf).filter((h) => came.includes(h))) if (wakeCheck(state, s, x, noiseOf(x), rng, act)) break;
+      outmatchedOnce(state, act); // CS25
       break;
     }
     present = new Set(here.map((x) => x.id));

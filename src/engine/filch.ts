@@ -25,7 +25,7 @@ import { allActors, isActive, isAsleep, nameFor, zoneById } from './relations';
 import { talkingWith } from './speech';
 import { stepStance } from './effects';
 import { applyMemoryOps } from './memory';
-import { matchedCritFeat } from './feats';
+import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
 import { pocketIt } from './pockets';
 
 export type FilchOutcome = 'taken' | 'fumbled' | 'caught';
@@ -48,6 +48,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
   const noise = NOISE.at(NOISE.pos(CONFIG.FILCH_NOISE) + Math.max(0, tierLevel('near_miss') - tierLevel(F)));
   const perception: GameEvent['perception'] = { [a.id]: { level: 'full', cue: 'sight' } };
   const caught: Actor[] = [], suspicious: Actor[] = [];
+  const act: ActContest[] = [];
   const zone = zoneById(state, at.zone);
   const size = filchSize(bulk) ?? 0;
   for (const w of allActors(state)) {
@@ -60,6 +61,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
       const r = ruleset.roll({ actorId: w.id, skill: SENSE_SKILL[fn], fn, modifiers: [...sit.modifiers, ...mods], tierShifts: sit.tierShifts, rollKind: 'perception', contest: true }, state, rng);
       const res = toContest(F, r), gap = res.gap;
       matchedCritFeat(state, res); // D-292
+      act.push({ c: res, fns: w === state.player ? [fn] : a === state.player ? [FN.filching] : undefined }); // CS25
       markUse(state, a, F.skill, res);
       markUse(state, w, r.skill, res);
       if (gap < 0) return null;
@@ -76,6 +78,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
     if (got === 'caught') caught.push(w);
     else if (got === 'suspicious') suspicious.push(w);
   }
+  outmatchedOnce(state, act); // CS25: once per filch, for the strongest watcher beaten
   const outcome: FilchOutcome = caught.length ? 'caught' : suspicious.length ? 'fumbled' : 'taken';
   // FL4: a fumble is felt by its owner
   if (outcome === 'fumbled' && owner && owner !== a && isActive(owner) && !isAsleep(owner) && !suspicious.includes(owner)) {

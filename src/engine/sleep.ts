@@ -20,7 +20,7 @@ import { desiredState } from '../minds';
 import { stealthSkill } from '../minds/state';
 import { actorById, allActors, atLeast, hostile, isActive, isAsleep, isEngaged, zoneById } from './relations';
 import { logCode } from './effects';
-import { matchedCritFeat } from './feats';
+import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
 
 /** NW14: the perk that lets a sleeper wake to a hearing check (Earshot's 60 perk) */
 export const LIGHT_SLEEPER = PK.light_sleeper;
@@ -61,8 +61,9 @@ export function wakeByEvent(state: GameState, ev: GameEvent): void {
 /** NW14/NW19: a light sleeper's hearing check against someone near. Someone sneaking: the sleeper's hearing against
  * their stealth, the contest an awake listener makes. Someone moving openly (making `noise`): a hearing check whose
  * difficulty comes from that noise (CONFIG.WAKE_GRADE: louder is easier). Either way their steps (`noise`, a sneaker's
- * own quieter steps) must reach the sleeper, or there is no roll. Passed, the sleeper wakes aware of them. */
-export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise: NoiseKey, rng: Rng): boolean {
+ * own quieter steps) must reach the sleeper, or there is no roll. Passed, the sleeper wakes aware of them. A sneak's
+ * contest joins `act` when given (CS25: the caller counts Against the Odds once for the act), else counts on its own. */
+export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise: NoiseKey, rng: Rng, act?: ActContest[]): boolean {
   if (!isAsleep(sleeper) || !lightSleeper(sleeper) || !soundCarries(state, sleeper, other, noise)) return false;
   let pass = false;
   if (other.posture === 'stealthy') {
@@ -73,6 +74,8 @@ export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise:
       { actorId: sleeper.id, skill: SK.earshot, ...situational(state, fnRoller(state, sleeper, FN.hearing), { actor: sleeper }), rollKind: 'perception' as const, fn: FN.hearing },
       state, rng);
     matchedCritFeat(state, r); // D-292
+    const won: ActContest = { c: r, fns: sleeper === state.player ? [FN.hearing] : undefined };
+    if (act) act.push(won); else outmatchedOnce(state, [won]);
     pass = r.gap > 0;
   } else {
     const target = CONFIG.DIFFICULTY[CONFIG.WAKE_GRADE[noise] ?? 'moderate'];
@@ -95,7 +98,9 @@ export const hostilesNear = (state: GameState, a: Actor, noiseOf: (x: Actor) => 
 
 /** NW18: at the start of a turn, every light sleeper rolls against each hostile near it, until one wakes it */
 export function wakeChecksNear(state: GameState, noiseOf: (x: Actor) => NoiseKey, rng: Rng): void {
-  for (const s of allActors(state).filter(isAsleep)) for (const x of hostilesNear(state, s, noiseOf)) if (wakeCheck(state, s, x, noiseOf(x), rng)) break;
+  const act: ActContest[] = [];
+  for (const s of allActors(state).filter(isAsleep)) for (const x of hostilesNear(state, s, noiseOf)) if (wakeCheck(state, s, x, noiseOf(x), rng, act)) break;
+  outmatchedOnce(state, act); // CS25: once per turn's sneak, for the strongest sleeper beaten
 }
 
 /** NW21: a band member who is awake and aware of someone hostile (to it or to a sleeping bandmate) shouts to wake the

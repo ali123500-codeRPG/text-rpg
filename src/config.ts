@@ -119,6 +119,9 @@ const DEFAULTS = {
   PART_STATE_ABOVE: { healthy: 50, damaged: 0, crippled: -100 } as Record<string, number>,
   ESSENTIAL_CRIPPLED_PENALTY: -5, // wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
+  // CS24: a Destroyed part counts this many times a Crippled one, alike for its role penalty and for switching a shared
+  // role off (no running, can't fly)
+  DESTROYED_PART_WEIGHT: 1.2,
   WEAPON_CLASSES: {
     light: { damage: 20, hit: 10 }, medium: { damage: 25, hit: 0 }, heavy: { damage: 30, hit: -10 },
     punch: { damage: 15, hit: 10 }, slam: { damage: 20, hit: 10 },

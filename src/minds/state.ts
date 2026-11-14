@@ -17,7 +17,7 @@ import { hasPerk } from '../ruleset/perks';
 import { bindTemplate, expandSteps, HEAD_TO, offeredRoutines, slotsRead } from './routines';
 import { SK, SENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
-import { contestFeat, matchedCritFeat } from '../engine/feats';
+import { contestFeat, matchedCritFeat, outmatchedOnce, type ActContest } from '../engine/feats';
 import { tally } from '../engine/xp';
 import { journalOf } from '../engine/trail';
 import { carriedContents } from '../engine/containers';
@@ -472,11 +472,13 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   let surprised = false;
   const target = actorById(state, targetId);
   const spar = !!target && sparring(state, attacker, target); // SP11: a sparring blow from hiding raises no alarm
+  const act: ActContest[] = [];
   for (const o of observers) {
     const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
     const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill, contest: true }, state, rng); // function roll
     const contest = toContest(ambush, p), gap = contest.gap;
     matchedCritFeat(state, contest); // D-292
+    act.push({ c: contest, fns: o.kind === 'player' ? [skill] : undefined }); // CS25
     // the watcher's sense learns from the ambush contest (only the player keeps marks)
     markUse(state, o, p.skill, contest);
     if (o.id === targetId && gap < 0) surprised = true;
@@ -486,5 +488,6 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
       if (o.kind !== 'player' && !spar) raiseAlarm(state, o);
     }
   }
+  outmatchedOnce(state, act); // CS25: once per ambush, for the strongest watcher beaten
   return { surprised };
 }
