@@ -13,7 +13,7 @@ import { PK } from './perkIds';
 import { CONFIG } from '../config';
 
 /** a tree's All-50: its name and its passive (the skills' parts are in SKILL_PARTS) */
-export type AllBundle = { treeId: string; step: 50 | 100 | 150; name: string; passive?: string };
+export type AllBundle = { treeId: string; step: number; name: string; passive?: string };
 
 export const ALL_BUNDLES: AllBundle[] = [
   { treeId: TR.melee, step: 50, name: 'Warborn', passive: PK.fighters_frame }, // Weapon Drill dropped (Round 3)
@@ -42,7 +42,7 @@ export const SKILL_PARTS: Record<string, string> = {
 };
 
 /** each skill's part at each All-X step: All-50 parts above; none at 100 or 150 yet */
-export const STEP_PARTS: Record<AllBundle['step'], Record<string, string>> = {
+export const STEP_PARTS: Record<number, Record<string, string>> = {
   50: SKILL_PARTS, 100: {},
   150: { [SK.eyesight]: PK.one_sense, [SK.earshot]: PK.one_sense }, // one part shared by both senses: either at 150 brings it
 };

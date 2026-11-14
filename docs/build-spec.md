@@ -171,8 +171,8 @@ XP drives levels and perks only. Skills grow separately, through skill improveme
   - **Quests** pay XP when done, from their own reward table, separate from achievements (QT9/QT28): 0 50, I 100, II 250, III 1000, IV 2000 XP (QUEST_REWARD_LEVELS, CONFIG.QUEST_REWARD_XP). The level is picked by code from the scenario's gain grade when the quest is accepted: minor 0, moderate I, major II, extreme III (CONFIG.QUEST_GAIN_LEVEL); IV is kept for later story quests. A defeat quest's XP is cut by the defeat-XP taper (QX2): min(1, DEFEAT_XP_TAPER × the counted foes' average power ÷ the player's power), each foe's power taken when it fell and the player's at hand-in (QX4), so easy hunts pay little to a strong player. Other jobs are not cut: their reward level already comes from the scenario's grade (QX3). Sizing quest XP to the player's level is parked (D-180). See Quests below.
 - **Levels.** From level n to n+1 takes LEVEL\_XP × n XP (LEVEL\_XP 100). **Class level cap** (Ali, 09/11/2026): a class's top level is set by its tier: CLASS\_TIER0\_MAX\_LEVEL (5) + CLASS\_LEVELS\_PER\_TIER (5) × tier, at most CLASS\_MAX\_LEVEL (20) (`classMaxLevel`). So tier 0 tops out at 5, tier 1 at 10, tier 2 at 15, and tier 3 and up at 20. When the class the next level would go to is at its top level, no level happens and XP banks (Progression.xp keeps growing). Picking a class with room on the sheet takes every banked level at once (`spendXp`). The default class, **Commoner** (`fallback`), is unlocked for a player whose current class reaches its top level, so banked XP always has somewhere to go. Its capstone (at 5, its top level), **Nobody Special**, unlocks the class A Nobody (ClassDef.unlockPerk). **A Nobody** (Ali, 09/11/2026) is also a starting class (50 points and level 1, like the Unwritten Legend, for now). It gives Quick Study at its level 1 and the capstone **Every Fall a Lesson** at 15, its top level: losing a contest or a defended attack by exactly one tier step marks the owner's rolled skill (and the asked skill when a stand-in rolled), inside the learning window or not. A class perk the character already has is not granted twice. **Alternate capstones** (Ali, 09/11/2026): a class's capstone (ClassDef.capstone, the default) is granted when the class reaches its top level, not at a flat 20. A class can also list alternates (ClassDef.capstones), each with conditions in the tree-access form (Must / Either of / Blocked by), which can name a race, race tag, body type, class level, perk or a true skill (kind 'skill'). When the class reaches its top level, every alternate whose conditions hold at that moment is offered (Progression.capstoneOptions). While an offer stands, the default is granted dormant (inactive). On the character sheet the player either keeps the default, which makes it active (`keepCapstone`), or picks one of the offered alternates in its place (`swapCapstone`); either choice is final. With nothing on offer the default is active at once. The alternates themselves are designed in the capstone thread. There is one XP bar. A level goes to the class picked on the sheet ("Next level goes to", shown when more than one class is current or unlocked), or else to the current class (X9; settles OQ-8). While a scenario runs the level waits for its ending moment (EG8). With mechanics shown, the turn lists "+n XP (source)" and "Level n!".
 - **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills); these come later, on their own tab (S6).
-- **Skill ladders** (Ali, 07/11/2026, perk page S1–S9): every skill has a perk at each 20 points of true skill: milestones 20, 40, 60, 80, 100, 120 and 140. Reaching a milestone unlocks its perk; taking it costs one perk point (S2). Milestones 20, 60, 100 and 140 give a perk that adds a new ability; milestones 40, 80 and 120 give a perk that raises numbers, with the same +5 true skill in its skill and +1 in its group at each of them (Ali, 12/11/2026, LF13; the older +5/+10/+15 example was a mistake). A perk is kept if the skill later drops below its milestone (S4). **Milestone gating** (Ali, 07/11/2026): a milestone shows only once enough ladder perks have been taken in that same skill: 60 and 80 need one (from 20 or 40), 100 and 120 need two, 140 needs three. Until then it stays sealed like an unreached one. All-XXX perks do not count. **The 20/60/100/140 perks and the 40/80/120 perks** (Ali, 08/11/2026, F1–F5; docs call each by its milestone: "20 perk", "40 perk" and so on). The 20, 60, 100 and 140 perks add an ability; the 40, 80 and 120 perks raise numbers. A 40/80/120 perk has no conditions and gives +5 true skill in its skill, +1 true skill in its skill and in every other skill sharing a group with it (docs/skill-tags.md; Ali, 12/11/2026, LF1: the group, not the function), so +6 in its own skill, and one more number: one of the skill's own numbers, or +10 true skill on skills that work well with it (+10 to one, or +5 to two). Numbers stay on theme (light weapons get hit and aim, heavy weapons get damage), and a 40/80/120 perk never repeats what a 20/60/100/140 perk gives. The 40 perks are in src/library/boostPerks.ts. The 80 and 120 perks are not written yet (LF2, Ali, 12/11/2026): they keep the 40 perk's +5 own skill and +1 group true skill, but their one more number can differ from the 40 perk's. They stay empty until each skill's own perk round (LF14). Ladder perks are level perks (OwnedPerk source 'level'). Content is chosen milestone by milestone; the chosen perks and the bank of perks kept for later are in docs/perks.md. **Two views** (Ali, 07/11/2026): every perk has a Story write-up (what a player reads when choosing) and exact Rules (what code applies, the basis for building it), and the two must say the same thing. Both live in src/library/perks.ts, and docs/perks.md is generated from it. On the Perks screen the player switches the perk card between Story and Rules. A perk that is written but not coded yet (built: false) shows both views but can't be taken. Most perks are always on and apply when their condition is met; a few are moves chosen on a turn (G1). **Quirks** (Ali, 08/11/2026, name for now): a perk that is negative in nature is called a quirk (PerkDef quirk: true). None are designed yet. **Innate perks and quirks** (Ali, 08/11/2026): each race can list any number of innate perks and innate quirks (RaceDef innatePerks, innateQuirks). Every member of the race, player or NPC, has them from spawn as owned perks with source 'race'. They cost no perk point, can't be undone and don't count toward milestone gating. The Perks screen lists them under Innate. Human and Elf have none yet. When Human and Elf perks are picked, AGG's origin perks are the models (Ali, 08/11/2026, AGG comparison A4). Riposte (Swordsman) has ladder perks (its 60 perk is Answer the Blow) and blade\_dance mirrors it; lockpicking and the slime senses get none (G3).
-- **All-XXX perks** (All-50, All-100, All-150; formerly mastery perks, renamed by Ali on 07/11/2026; the save key stays `mastery`): granted instantly, at no point cost, when enough skills of a tree reach 50, 100 or 150 (by its rating, D-164). All three steps work alike (D-197): the tree's passive for that step plus each of those skills' part (src/library/allPerks.ts ALL_BUNDLES, STEP_PARTS). Once granted they are never removed. They replace the LLtQ category bonus.
+- **Skill ladders** (Ali, 07/11/2026, perk page S1–S9): every skill has a perk at each 20 points of true skill (PERK\_MILESTONE\_EVERY), with no top (CS11): perks are written for milestones 20, 40, 60, 80, 100, 120 and 140, and a milestone past the last written perk shows as reached with no perk yet (D-293 will make them rarer past 140). Reaching a milestone unlocks its perk; taking it costs one perk point (S2). Milestones 20, 60, 100 and 140 give a perk that adds a new ability; milestones 40, 80 and 120 give a perk that raises numbers, with the same +5 true skill in its skill and +1 in its group at each of them (Ali, 12/11/2026, LF13; the older +5/+10/+15 example was a mistake). A perk is kept if the skill later drops below its milestone (S4). **Milestone gating** (Ali, 07/11/2026): a milestone shows only once enough ladder perks have been taken in that same skill: 60 and 80 need one (from 20 or 40), 100 and 120 need two, 140 needs three, and the pattern goes on (160 three, 180 four …, ruleset perksNeeded). Until then it stays sealed like an unreached one. All-XXX perks do not count. **The 20/60/100/140 perks and the 40/80/120 perks** (Ali, 08/11/2026, F1–F5; docs call each by its milestone: "20 perk", "40 perk" and so on). The 20, 60, 100 and 140 perks add an ability; the 40, 80 and 120 perks raise numbers. A 40/80/120 perk has no conditions and gives +5 true skill in its skill, +1 true skill in its skill and in every other skill sharing a group with it (docs/skill-tags.md; Ali, 12/11/2026, LF1: the group, not the function), so +6 in its own skill, and one more number: one of the skill's own numbers, or +10 true skill on skills that work well with it (+10 to one, or +5 to two). Numbers stay on theme (light weapons get hit and aim, heavy weapons get damage), and a 40/80/120 perk never repeats what a 20/60/100/140 perk gives. The 40 perks are in src/library/boostPerks.ts. The 80 and 120 perks are not written yet (LF2, Ali, 12/11/2026): they keep the 40 perk's +5 own skill and +1 group true skill, but their one more number can differ from the 40 perk's. They stay empty until each skill's own perk round (LF14). Ladder perks are level perks (OwnedPerk source 'level'). Content is chosen milestone by milestone; the chosen perks and the bank of perks kept for later are in docs/perks.md. **Two views** (Ali, 07/11/2026): every perk has a Story write-up (what a player reads when choosing) and exact Rules (what code applies, the basis for building it), and the two must say the same thing. Both live in src/library/perks.ts, and docs/perks.md is generated from it. On the Perks screen the player switches the perk card between Story and Rules. A perk that is written but not coded yet (built: false) shows both views but can't be taken. Most perks are always on and apply when their condition is met; a few are moves chosen on a turn (G1). **Quirks** (Ali, 08/11/2026, name for now): a perk that is negative in nature is called a quirk (PerkDef quirk: true). None are designed yet. **Innate perks and quirks** (Ali, 08/11/2026): each race can list any number of innate perks and innate quirks (RaceDef innatePerks, innateQuirks). Every member of the race, player or NPC, has them from spawn as owned perks with source 'race'. They cost no perk point, can't be undone and don't count toward milestone gating. The Perks screen lists them under Innate. Human and Elf have none yet. When Human and Elf perks are picked, AGG's origin perks are the models (Ali, 08/11/2026, AGG comparison A4). Riposte (Swordsman) has ladder perks (its 60 perk is Answer the Blow) and blade\_dance mirrors it; lockpicking and the slime senses get none (G3).
+- **All-XXX perks** (All-50, All-100, All-150; formerly mastery perks, renamed by Ali on 07/11/2026; the save key stays `mastery`): granted instantly, at no point cost, when enough skills of a tree reach 50, 100 or 150 (by its rating, D-164); the steps go on every ALL\_STEP\_EVERY (50) points with no top (CS11), a step past All-150 having no perks written yet. All three steps work alike (D-197): the tree's passive for that step plus each of those skills' part (src/library/allPerks.ts ALL_BUNDLES, STEP_PARTS). Once granted they are never removed. They replace the LLtQ category bonus.
 - **All-XXX check** (Ali, 12/11/2026, LF3): runs at scenario end, when achievements are also granted, and both show in one scenario-end gains moment (its animation is with the motion work). Uses true skill (S9); the number of skills needed comes from the tree's rating (D-164). Built (D-226, CONFIG.GROWTH\_AT\_SCENARIO\_END): while a scenario runs, the player's All-XXX check is skipped at turn end and grantAchievement queues the player's achievements on Progression.pendingAchievements; when the scenario ends, closeScenario grants the queue and runs the check (src/engine/growth.ts flushGrowth). In free roam, with no scenario running, both still come at once. NPCs are checked every turn. The ending turn's narration line carries one gains summary, LogLine.scenarioGains (ScenarioGains: skill raises with from and to, milestone unlocks, All-XXX perks, achievements, the XP bar from and to, level-ups), gathered across the scenario on ScenarioFrame.gains each turn; an outer scenario that ends with its inner one sums both. That line leaves out its own achievement, unlock and level-up notes, since the summary shows them.
 
 With 100 as the mortal limit, the All-150 tier is unreachable through training alone until workaround mechanics are designed.
@@ -209,7 +209,7 @@ Repeat rounds until no skill has rolls left. Clear all marks.
 - **Marks** (Ali, 07/11/2026, "Skill progression: options" SP1–SP11): a use marks the skill actually rolled (SP4) and, when a stand-in made the roll, also the skill the action asked for (Ali, 09/11/2026: both learn, each against its own window, so a skill far below its stand-in can still rise), success or failure, when the opposition is from MARK\_WINDOW (10, placeholder) below the skill's raw value up to MARK\_WINDOW above its true value (SP2; Ali, 09/11/2026, replacing ±10 of raw or true), so true-skill perks widen what teaches you. A skill not on the sheet learns from use too (Ali, 09/11/2026): it counts as raw 0 and joins the sheet with its first gain. Close calls teach too (Ali, 09/11/2026, an "or" with the window): a contest or defended attack whose final tier gap is exactly 0 marks both sides' skills whatever their values. Wins against stronger sides teach too (Ali, 13/11/2026): a contest or defended attack the player wins has no top to its window, so only the floor (MARK\_WINDOW below raw) applies; a loss still needs the full window, and so does the skill a stand-in rolled for. The opposition is a check's target, or the other side's true skill in a contest, attack or defense; notice rolls follow the same rule (SP6). Endurance is marked by a single hit costing ENDURANCE\_MARK\_PCT (10%, placeholder) health or more (SP5). One mark per skill. Only the player keeps marks; NPC progression comes later (SP7).
 - **Stacking marks** (Ali, 11/11/2026, SM1): a skill's marks are counted per engagement (or per scenario, outside one). The first mark owes an improvement roll, and so does every MARK\_STACK\_EVERY-th mark after it (config, 2: marks 1, 3, 5...; Ali, 13/11/2026, was 3). Counts clear when the engagement ends or the scenario breaks (SM3).
 - **Scenario-end growth** (Ali, 12/11/2026, growth proposal EG7, EG8, EG10, EG13, EG17 and the rounds rule; replaces instant skill-ups, SM2, and the per-engagement roll, SP3). While a scenario runs, marks only count: each owed roll waits (Progression.marks). When the scenario ends, it pays rolls = round(owed rolls × tier share × ending factor), plus GROWTH\_ROLLS\_PAST\_CRIT (1) per step past Critical Success on its event roll, plus GROWTH\_LOW\_LEVEL\_BONUS (1) while the character level is below GROWTH\_LOW\_LEVEL\_BELOW (5) (src/engine/growth.ts scenarioRolls, payScenario). A scenario that marked nothing pays nothing. Tier share (GROWTH\_TIER\_SHARE, by the scenario's event-roll tier): Critical Failure 0.5, Failure 0.6, Near Miss 0.7, Success 0.8, Great Success 0.9, Critical Success 1. Ending factor (ENDING\_FACTOR, judged endings by which ending it was, EG5 b): resolved 1; lost and broken off 0.75; left, escaped, interrupted and worn out 0.5; every factor is kept between ENDING\_FACTOR\_MIN (0.5) and ENDING\_FACTOR\_MAX (1.25), so no ending the Weaver writes or picks pays outside them (EG17 a). There is no scale factor (EG13 a): every mark is worth the same in a moment, a situation or an episode. The rolls are dealt to the marked skills by their owed rolls (largest remainder; EG6 a) and made in rounds (section 6). Marks made in free roam wait for the next scenario. An inner scenario pays only for its own marks; the bigger scenario's waiting rolls and achievements are kept apart (ScenarioFrame.held) and come back when it resumes, or join the inner's when both end. Level-ups wait for the same moment (EG8): spendXp does nothing while a scenario runs, and the ending takes every level the XP allows. Gains show in the scenario-end gains summary (LogLine.scenarioGains); failed rolls show nothing and nothing goes to Claude (SP11). CONFIG.GROWTH\_AT\_SCENARIO\_END false brings back rolls at the end of the turn of the mark. Scaling: the payout counts rolls, not points, so it works the same at 50, 75, 100, 150 and 200; what a roll does at each skill is the improvement roll's (section 6), which stops at the mortal limit (LF4).
-- **Essences** (Ali, 12/11/2026, growth proposal section 2: EG1 a, EG2, EG3 b, EG4 a, EG9 a, EG11 b, EG12 a, EG15 b; src/engine/essence.ts). An essence is a package of true skill (and later a trait, D-229) the player may take into a limited number of slots. It is thread, not body: its points are true skill, count toward perk milestones and All-XXX (EG4 a), and ignore the mortal limit. **Rows:** the library `essences` table (ES ids, src/library/essenceIds.ts): a name, where it comes from (a race, a body type, or deed), a weight, the skills its points go to with weights, an optional trait and quirk (perk rows), and a story. Today's rows (Gel Patience from slimes: Natural Weapons 2 + Tremor 1; Gate-Warden's Habit: Block 2 + Earshot 1, Street Instinct: Dodge 2 + Insight 1, Haggler's Ear: Barter 2 + Earshot 1, Tavern Brawler: Strike 2 + Persuasion 1, all from humans; Hard-Won Habit from deeds) are placeholders; the content round is D-229. **Template lists** (Ali, 13/11/2026, Template Essences EN1–EN7): every NPC template carries its own essence list, worked out in code (`templateEssences`, src/engine/essence.ts) from its race and the sheet its copies spawn with (`templateSkills`). A row is on the list when its race or body type matches, or it names neither (EN2 a), and the template's weighted average in the row's skills (raw × tier) is at least ESSENCE\_FIT\_SHARE (0.4, placeholder) of its best skill (EN1 a). Because the fit is a share, a template keeps its list at every scale. A template may carry several rows and rows may be shared. Deed rows never go on a list. NpcTemplate.essences is a hand-set list that replaces the worked-out one (EN3 b); an echo (unique template) carries only its own essence, a row with from.echo, which is never worked out onto any other list, and a test checks every echo has exactly one. Today: slime Gel Patience, guard Gate-Warden's Habit, barkeep Haggler's Ear, thief Street Instinct, patron Tavern Brawler. **Sources:** a beaten foe that is notable (its power at least ESSENCE\_NOTABLE\_SHARE (0.75) of the player's, or its template is notable or unique) rolls once, ever, when payDefeats counts it beaten (Mind.essenceRolled), on its template's list, or with no template the same rule on its own sheet (EN4; EG9 a: the source fixes the kind). A scenario that ends resolved at Great Success or better rolls once at its ending moment: on the rows of the foes beaten in it (ScenarioFrame.beaten), or with none a deed row whose points go to the skill marked most. **Two rolls** (Ali, 13/11/2026): first the **appearance roll**: an essence appears when d100 ≤ ESSENCE\_APPEAR\_CHANCE for the source (a notable foe 100, any other foe 5, an ending at Great Success 60, at Critical Success 70; placeholders). D-274 (Ali, 13/11/2026, FS18): every beaten foe rolls once, ever; a notable foe's essence always appears, so its quality roll alone decides whether it fades. A held essence's trait or quirk is a perk its holder owns (source essence) once, however many held essences carry it, and it goes with the last of them (FP8); their points still add. Then the appeared essence makes its **quality roll**: margin = d100 + base − ESSENCE\_ROLL\_NEEDED (130) on the normal tier table, natural edges included; base ESSENCE\_ROLL\_BASE: a foe 80 (holds 51%), an ending at Great Success 80, at Critical Success 100 (71%). Together that is about the old odds: an essence is offered about 31% of the time from a notable foe or a Great Success ending, 50% from a Critical Success one. Threadbound item actives (Call the Toss, All or Nothing) work on the quality roll only. Near Miss or worse on the quality roll: the essence fades (logged essence\_faded; the Narrator tells it as a strand that slipped away, NarrationView.essencesFaded); Success common, Great Success fine, Critical Success rare, each step past it one grade higher (ESSENCE\_GRADES: common, fine, rare, epic, legendary; past the last, ×ESSENCE\_GRADE\_PAST\_MULT each). **Points** = max(1, round(ESSENCE\_SHARE (0.07) × source skill × grade multiplier (ESSENCE\_GRADE\_MULT 1, 1.5, 2.5, 4, 6))), split over the row's skills by weight (largest remainder). The source skill is the foe's raw × tier in those skills (weighted), or for an ending the player's own true skill. **Room** (EG2): ESSENCE\_SLOTS\_BASE (1) + one per ESSENCE\_SLOT\_EVERY (7) character levels: 2 at 7, 3 at 14, 4 at 21, no top. **Choosing:** an offer waits ESSENCE\_OFFER\_TURNS (10) turns, or until a new scenario starts; /essence lists offers and held essences; /essence take N fills an empty slot; with every slot full, /essence take N give M gives up a held one first; /essence pass N lets it go for good. **Removal** (EG3 b, EG15 b): only at rest (out of any fight, no hostile in the zone); the essence is lost, and it costs ESSENCE\_REMOVE\_LEVELS (1) × the current level's XP; the XP bar may go into debt, which new XP pays off first. **Shown:** when an offer is waiting that the player hasn't seen yet, a pop-up opens on Play once the turn lands (src/ui/essences.ts maybeOfferPop, once per offer): the essence's name, grade, story, its points as chips ("+1 Dodge", "+1 Insight"), slots used and how long it waits, with Take it (with every slot full, one "Take it, give up X" button per held essence), Let it go and Decide later; the buttons run the same /essence commands. The Character page has an Essences section under the character card (slots as tiles, held essences with their chips, empty slots dashed, and On offer with the same buttons), and the play sheet has an Essences row naming the held ones and a violet "◆ N on offer" link to that section. The character card itself has no Essences lines, so essences show once on the Character page, in that section; the ending line's gains summary lists essences offered (ScenarioGains.essences); the Narrator gets essences offered this turn as name and story only (NarrationView.essences, rule 22; the thread may be named, EG11 b, never numbers). **Achievements** (EG12 a): First Knot (I, take your first essence) and Room for No More (II, every slot full at character level 8 or higher). Scaling: points follow the source's skill, so at a source of 50 / 75 / 100 / 150 / 200 a common essence gives 4 / 5 / 7 / 11 / 14 points and a rare one 9 / 13 / 18 / 26 / 35; the grade table and the slots have no top. Past 100 essences and perks are how skills keep rising.
+- **Essences** (Ali, 12/11/2026, growth proposal section 2: EG1 a, EG2, EG3 b, EG4 a, EG9 a, EG11 b, EG12 a, EG15 b; src/engine/essence.ts). An essence is a package of true skill (and later a trait, D-229) the player may take into a limited number of slots. It is thread, not body: its points are true skill, count toward perk milestones and All-XXX (EG4 a), and ignore the mortal limit. **Rows:** the library `essences` table (ES ids, src/library/essenceIds.ts): a name, where it comes from (a race, a body type, or deed), a weight, the skills its points go to with weights, an optional trait and quirk (perk rows), and a story. Today's rows (Gel Patience from slimes: Natural Weapons 2 + Tremor 1; Gate-Warden's Habit: Block 2 + Earshot 1, Street Instinct: Dodge 2 + Insight 1, Haggler's Ear: Barter 2 + Earshot 1, Tavern Brawler: Strike 2 + Persuasion 1, all from humans; Hard-Won Habit from deeds) are placeholders; the content round is D-229. **Template lists** (Ali, 13/11/2026, Template Essences EN1–EN7): every NPC template carries its own essence list, worked out in code (`templateEssences`, src/engine/essence.ts) from its race and the sheet its copies spawn with (`templateSkills`). A row is on the list when its race or body type matches, or it names neither (EN2 a), and the template's weighted average in the row's skills (raw × tier) is at least ESSENCE\_FIT\_SHARE (0.4, placeholder) of its best skill (EN1 a). Because the fit is a share, a template keeps its list at every scale. A template may carry several rows and rows may be shared. Deed rows never go on a list. NpcTemplate.essences is a hand-set list that replaces the worked-out one (EN3 b); an echo (unique template) carries only its own essence, a row with from.echo, which is never worked out onto any other list, and a test checks every echo has exactly one. Today: slime Gel Patience, guard Gate-Warden's Habit, barkeep Haggler's Ear, thief Street Instinct, patron Tavern Brawler. **Sources:** a beaten foe that is notable (its power at least ESSENCE\_NOTABLE\_SHARE (0.75) of the player's, or its template is notable or unique) rolls once, ever, when payDefeats counts it beaten (Mind.essenceRolled), on its template's list, or with no template the same rule on its own sheet (EN4; EG9 a: the source fixes the kind). A scenario that ends resolved at Great Success or better rolls once at its ending moment: on the rows of the foes beaten in it (ScenarioFrame.beaten), or with none a deed row whose points go to the skill marked most. **Two rolls** (Ali, 13/11/2026): first the **appearance roll**: an essence appears when d100 ≤ ESSENCE\_APPEAR\_CHANCE for the source (a notable foe 100, any other foe 5, an ending at Great Success 60, at Critical Success 70; placeholders). D-274 (Ali, 13/11/2026, FS18): every beaten foe rolls once, ever; a notable foe's essence always appears, so its quality roll alone decides whether it fades. A held essence's trait or quirk is a perk its holder owns (source essence) once, however many held essences carry it, and it goes with the last of them (FP8); their points still add. Then the appeared essence makes its **quality roll**: margin = d100 + base − ESSENCE\_ROLL\_NEEDED (130) on the normal tier table, natural edges included; base ESSENCE\_ROLL\_BASE: a foe 80 (holds 51%), an ending at Great Success 80, at Critical Success 100 (71%). Together that is about the old odds: an essence is offered about 31% of the time from a notable foe or a Great Success ending, 50% from a Critical Success one. Threadbound item actives (Call the Toss, All or Nothing) work on the quality roll only. Near Miss or worse on the quality roll: the essence fades (logged essence\_faded; the Narrator tells it as a strand that slipped away, NarrationView.essencesFaded); Success common, Great Success fine, Critical Success rare, each step past it one grade higher (a natural high on a Critical Success is one such step; the code had stopped at rare until CS13) (ESSENCE\_GRADES: common, fine, rare, epic, legendary; past the last, ×ESSENCE\_GRADE\_PAST\_MULT each). **Points** = max(1, round(ESSENCE\_SHARE (0.07) × source skill × grade multiplier (ESSENCE\_GRADE\_MULT 1, 1.5, 2.5, 4, 6))), split over the row's skills by weight (largest remainder). The source skill is the foe's raw × tier in those skills (weighted), or for an ending the player's own true skill. **Room** (EG2): ESSENCE\_SLOTS\_BASE (1) + one per ESSENCE\_SLOT\_EVERY (7) character levels: 2 at 7, 3 at 14, 4 at 21, no top. **Choosing:** an offer waits ESSENCE\_OFFER\_TURNS (10) turns, or until a new scenario starts; /essence lists offers and held essences; /essence take N fills an empty slot; with every slot full, /essence take N give M gives up a held one first; /essence pass N lets it go for good. **Removal** (EG3 b, EG15 b): only at rest (out of any fight, no hostile in the zone); the essence is lost, and it costs ESSENCE\_REMOVE\_LEVELS (1) × the current level's XP; the XP bar may go into debt, which new XP pays off first. **Shown:** when an offer is waiting that the player hasn't seen yet, a pop-up opens on Play once the turn lands (src/ui/essences.ts maybeOfferPop, once per offer): the essence's name, grade, story, its points as chips ("+1 Dodge", "+1 Insight"), slots used and how long it waits, with Take it (with every slot full, one "Take it, give up X" button per held essence), Let it go and Decide later; the buttons run the same /essence commands. The Character page has an Essences section under the character card (slots as tiles, held essences with their chips, empty slots dashed, and On offer with the same buttons), and the play sheet has an Essences row naming the held ones and a violet "◆ N on offer" link to that section. The character card itself has no Essences lines, so essences show once on the Character page, in that section; the ending line's gains summary lists essences offered (ScenarioGains.essences); the Narrator gets essences offered this turn as name and story only (NarrationView.essences, rule 22; the thread may be named, EG11 b, never numbers). **Achievements** (EG12 a): First Knot (I, take your first essence) and Room for No More (II, every slot full at character level 8 or higher). Scaling: points follow the source's skill, so at a source of 50 / 75 / 100 / 150 / 200 a common essence gives 4 / 5 / 7 / 11 / 14 points and a rare one 9 / 13 / 18 / 26 / 35; the grade table and the slots have no top. Past 100 essences and perks are how skills keep rising.
 - **Passing on essences** (Ali AT75, 13/11/2026: ES1 a, ES2 a, ES3 a, ES4 a, ES5 a, ES6 a + permanent, ES7 a; src/engine/essence.ts). Only an offer the player hasn't taken can be passed on (ES1); it stays thread and goes straight to someone (ES2; an essence as a carried knot is parked as D-249). **Give:** /essence give N to a name in view; the receiver must be within grip reach and have room, and takes it in with no yes needed (ES4, a gift). **Room** (ES3): an actor with a progression record (the player, unique NPCs today; permanent vs unique is D-148), into slots by the player's rule (ESSENCE\_SLOTS\_BASE + one per ESSENCE\_SLOT\_EVERY levels); its points are their true skill (essenceSkill). **Sell:** /essence sell N to a name; the buyer must hear the order (as an item sale), not be wary, and pay the buying price for its value (trade.ts buyingPrice, one equation with items: SELL\_SHARE, haggling and Hard Bargain). **Value** (ES5): points × ITEM\_VALUE.skillPoint × ESSENCE\_VALUE\_MULT (10, placeholder): a common essence from a source of 50 / 75 / 100 / 150 / 200 is 40 / 50 / 70 / 110 / 140 coin, a rare one 90 / 130 / 180 / 260 / 350, no cap. **Buyers** (ES6): a seller (Trader class) takes it into a free slot if it has a record, else holds it (Actor.essenceStock) to sell on; a unique NPC who is no seller buys only into a free slot (Ali: "I should also be able to sell to permanent"). A sale can be refused (wary, no coin, no room); a gift only by having no room. The receiver remembers it (a memory line). NPCs selling or giving essences to the player are parked as D-250 (ES7).
 - **Training actions** happen only under a tutor; designed later (SP1, SP8). Beyond the mortal limit stays later (SP9).
 - **StartingTotal:** sum of untagged raw skills at creation. A record only; it never changes.
@@ -323,7 +323,7 @@ Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, 
 - **Slots (AE1).** A turn is one move (a walk: 8.4 m for an unarmored human), one main action, and free things: gear ops, defenses (each after the first in a turn takes the outnumbered modifier) and barks. Perks and class skills change a slot: add one, swap one, or make one free. A fight turn stays 6 seconds whatever it holds (AE12).
 - **Ranged (AE1, ZP3).** A ranged attack (a shot or a throw) costs the main action and CONFIG.RANGED\_MOVE\_SLOTS move slots (1) by default. If the attack reaches from where the actor stands, it takes its move slot first and a move goes only on the move slots left (with one move slot the move is dropped: move\_dropped, ranged\_attack); otherwise the move stands and the attack is dropped. Shoot and Move (B4, banked) would lower the cost.
 - **Action slots (CO13).** Each actor gets one move and one main action a turn (now seconds of each: see Action time). A movement spends a move slot first and, when no move slot is left, a main slot, but only when no main action is planned. How far a slot goes comes from real speeds over the Fight turn duration (6 s, engine/speed `slotMetres`): a move slot walks and a main slot spent moving (a dash: the move costs both actions) runs the rest of the turn. Speeds (RD7, `moveSpeed`) come from the body type (`BodyType.speed`, m/s): humanoid walk 1.4, run 5 (a run in kit); winged quadruped 1.8 and 12 (a horse on the ground); amorphous 0.5 and 1 (placeholder). Worn armor slows both: a flat m/s off, then a share off what is left (`armor.speed`, default CONFIG.ARMOR\_SPEED by weight: light 0 and 0%, medium 0.1 and 5%, heavy 0.2 and 15%, placeholders), and a movement speed factor (`speedFactor`, 1 today) multiplies the result for later perks, statuses and mounts. An unarmored humanoid walks 8.4 m and a dash adds 21.6 m: 30 m in all. Without zone rectangles a fresh slot always crosses at least one link. An actor with more move slots walks farther.
-- **Dash (AE2).** Anyone (player or NPC) with no main action whose move hasn't reached its zone when the move slot runs out spends the main slot to run on. A Crippled or Destroyed part with the move role stops a dash (dash\_blocked), and so does Leg Bolt's slow.
+- **Dash (AE2).** Anyone (player or NPC) with no main action whose move hasn't reached its zone when the move slot runs out spends the main slot to run on. No running stops a dash (dash\_blocked): the move role is off once its Crippled and Destroyed parts reach SHARED\_ROLE\_OFF\_PCT (60%) of its parts, a Destroyed part counting twice (the shared-role rule, Part 3; CS8). One Crippled leg of two still dashes, one Destroyed leg does not. Leg Bolt's slow stops a dash too.
 - **Order (AE3).** The move comes first unless the Parser marks it `after` ("strike, then step back"). NPCs keep move first for now (parked as D-185: the Planner would need the same field).
 - **Extra attacks (AE4)** come only from perks and class skills (Flurry: a second attack at tier shift −1), never from a high skill alone.
 - **Free actions (AE5)** stay as above; a perk can make one action free a limited number of times per engagement (Dirt in the Eyes).
@@ -388,7 +388,7 @@ Settled by Ali 13/11/2026 on the Action Time pages (part one https://claude.ai/a
 - **Focus (AT25, AT57):** what breaks it from outside, an ordered scale FOCUS: reflex (nothing; too quick), steady (a hit that wounds), careful (any attack aimed at the actor, hit or miss), deep (also the coming-near check, AT67). Sleep is careful; readying a shot or a grand spell is steady.
 - **Stop (AT26, AT57):** whether the actor may choose to stop: any (default), never (sleep), or until a share of progress (a grand spell: free to stop before 60%, committed after). Only the actor loses the choice; its focus's breaks still break it.
 - **Output (AT27):** end (the whole effect when done), share (in proportion), steps (points along the way).
-- **When broken off (AT6, AT28):** bands by progress, each lost (nothing happens, nothing used up), kept (the work counts later), share, misfire (names a row of a Misfires table, empty until spells exist) or fires (takes effect as if finished). Example: a fire spell 0 to 60% lost, 60 to 90% misfire (explodes in the hand), 90 to 100% fires.
+- **When broken off (AT6, AT28):** bands by progress, each lost (nothing happens, nothing used up), kept (the work counts later), share, misfire (names a row of a Misfires table, empty until spells exist) or fires (takes effect as if finished). Example: a fire spell 0 to 60% lost, 60 to 90% misfire (explodes in the hand), 90 to 100% fires. In a fight today only lost and kept occur: share, misfire and fires wait for rows that use them there (rest, talk and spells are never long in a fight; CS5).
 - **Defending while busy (AT7).** Defences as normal, unless the action carries a tag that blocks or penalises defence; every defence roll gets the same penalties.
 - **No gates (AT8, BG-107; built in stage 3b).** Rest, wait, sleep and heal items can always be started; their time and what breaks them are the cost. The healing rows' inFight flag is gone. Rest keeps its REST\_COOLDOWN\_MIN (the Part Two page kept it). In a fight the clock is already paused, so a wait or a sleep ordered there does nothing ("not while a fight is going on around you").
 
@@ -741,38 +741,7 @@ Output shape (notation, not literal JSON):
 - A clarify answer stops the turn: no resolution, turn unchanged. Planner outputs are kept and apply when the turn resolves.
 - Code adds aimed: true | false to the player's order from the Aim toggle or /aim (Part 1 §7). The Parser never sets it.
 
-Fixed instructions (sent as the leading user turn):
-
-```
-You are the Intent Parser for a text RPG. You turn the player's words into structured actions. You never narrate and never decide outcomes.
-
-You receive:
-- PLAYER_INPUT: what the player typed.
-- PLAYER_VIEW: what the character knows right now: skills, perks, inventory, current zone, and the zones and actors they can perceive.
-
-Rules:
-1. Use only targets, items and skills present in PLAYER_VIEW. If the player names something that isn't there, map it to the closest thing that is, or ask.
-2. A turn holds at most one move and one main action. Speaking counts as the main action; words said alongside another action are a passing remark, kept in "spoken" as a bark. Put anything extra in "deferred".
-3. Choose the skill a fair game master would call for. If two fit, pick the one the player's wording stresses.
-4. Keep the player's style in "approach", e.g. "quietly, from behind the crates".
-5. If the intent is truly unclear, return only "clarify" with one short question.
-6. Never assume success. "I kill the guard" is an attack, not a kill.
-7. When the player speaks to someone, list in "addressees" whom the words are for: named characters, a group ("the guards"), or everyone.
-8. If the player names a body part of the target, put it in "targetPart". Never decide whether the attack is aimed.
-9. Drawing, stowing, swapping, putting on or taking off accessories and picking things
-   up go in "gear"; they cost nothing. Putting armor on or taking it off is an "equip"
-   action. Name the item, and the attack mode, when the player names them.
-10. If the player fights with an object from the scenario that is not in PLAYER_VIEW (a chair, a
-   bottle), set "improvised": the base by its size (improvised_light, improvised_medium,
-   improvised_heavy) and a short name for the object. Leave "item" null.
-11. If the player goes to someone who is not in PLAYER_VIEW to talk to them or act on them, give only
-   the move toward where they are and put what they meant to say or do in "deferred". Do not ask who they mean.
-12. Passing time is "wait" (put the time of day to wait for in "target": "dawn", "morning", "afternoon", "dusk", "evening" or "night"; null waits until the next one) or "sleep". A short rest to recover is "rest".
-13. The move comes before the action unless the player acts first and then moves ("strike, then step back"): then set "after": true on the move. A move walks toward the zone named; with no action it runs on (a dash). An attack on someone in sight needs no move: the character closes in by itself. A ranged attack and a move cannot share a turn.
-14. If the player uses one of PLAYER_VIEW's perkMoves (by its name or by what it does, e.g. "throw dirt in his eyes"), put it in "perkMove" with its target, beside any move and action.
-
-Return only JSON matching the schema.
-```
+Fixed instructions: the exact text is PARSER_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it turns the player's words into structured actions from PLAYER_VIEW only; at most one move and one main action a turn, the player's words in spoken, gear ops free; asks one short clarify question only when the intent is truly unclear. Never narrates, never decides outcomes, never assumes success, never sets aimed.
 
 Rules 1 and 5 are provisional: how to handle a player naming something that doesn't exist is still open, because a clarify question can reveal what exists in the world (D-21).
 
@@ -812,32 +781,7 @@ Output shape:
 
 Standing defense is saved on the actor (Part 4 §4 Core gains standingDefense: dodge | block). Default: whichever of dodge and block has the higher effective skill **\[Proposed\]**.
 
-Fixed instructions (sent as the leading user turn):
-
-```
-You play the character described in CHARACTER, in a text RPG. You decide what this one character does this turn. You never narrate outcomes and never roll dice.
-
-You receive CHARACTER (who you are) and OPPOSITION_VIEW. OPPOSITION_VIEW holds only what your character knows: your condition and position, the zones, your plan, memory list and agreements, events you noticed (and earlier ones, briefly), what others told you, and what you believe about the player (status, last known zone, what you have learned). It may be wrong or out of date. Other characters, even allies, know things you don't.
-
-Rules:
-1. Act only on what OPPOSITION_VIEW contains. You may guess, search, set traps or wait, but you cannot target what you have not perceived or been told. If you lost track of the player, act on the last known zone.
-2. To share what you know with allies, you must communicate: speak, shout, call for help or raise the alarm. Allies who don't perceive it don't learn it.
-3. Play your band's goals and your temperament, as given in CHARACTER. Where CHARACTER's lines disagree, a line written for you alone wins, then a tension, then the "at heart" line. Your job is to be believable, not to beat the player or to help them. Guards guard, cowards flee, fanatics hold, friends stand by friends.
-4. Respect your condition and morale. If hurt or outnumbered you may retreat or call for help.
-5. Tactical skill: tactics in CHARACTER: simple (predictable), competent, or cunning.
-6. Give exactly one action; "hold" is allowed. Talking is an action. A line given with any other action is only a passing remark that no one acts on.
-7. Change the plan only when it should change. Use triggers for things that should happen later without you, such as an ambush that springs when you see the player on the bridge. When things calm down, you may pick which of your routines to follow.
-8. To strike a body part, name it in targetPart. Set aimed to true only when a sure hit on that part is worth a harder attack. Set defense to dodge or block to change how you defend from now on; null keeps it.
-9. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
-   your view lists as yours or lying where you can see them.
-10. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
-   for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
-   off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
-   opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
-   something you would truly come to blows for.
-
-Return only JSON matching the schema.
-```
+Fixed instructions: the exact text is PLANNER_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it plays one engaged character from CHARACTER and its OPPOSITION_VIEW: picks its action, move, gear and stance for the turn. Never narrates outcomes, never rolls dice, never targets what the character has no belief about.
 
 Shared plans between actors (a coordinated ambush across several guards) are an open design question tied to how actors are grouped. For now each actor holds its own plan and triggers.
 
@@ -879,30 +823,7 @@ Output shape:
 }
 ```
 
-Fixed instructions (sent as the leading user turn):
-
-```
-You play the character described in CHARACTER, speaking with the player in a text RPG. You decide what this one character does this turn: answer, or do something else instead. You never narrate outcomes and never roll dice.
-
-Rules:
-1. Answer what the player actually said, in character, or choose another action instead. Give exactly one action.
-2. Let the impression shape your reaction, but stay in character: you can be convinced and still refuse.
-3. Protect your secrets as your character would; you may lie. To tell a secret by choice, list it in "reveals".
-4. If SLIPS names a secret, your line or action must let it out: a confession, a blurt or a tell.
-5. If COMMITTED is set, that is your action, and your line becomes a passing remark.
-6. You speak for your own band only. Your view lists what you already said in "said"; do not say it again, move the talk on.
-7. Play your band's goals and temperament, as given in CHARACTER. Where CHARACTER's lines disagree, a line written for you alone wins, then a tension, then the "at heart" line.
-8. Change the plan only when it should change.
-9. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
-   your view lists as yours or lying where you can see them.
-10. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
-   for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
-   off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
-   opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
-   something you would truly come to blows for.
-
-Return only JSON matching the schema.
-```
+Fixed instructions: the exact text is RESPONDER_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it plays one character speaking with the player: answers, or does something else instead, and may tell its own secrets by choice. Never narrates outcomes, never rolls dice, never reveals a secret it doesn't hold.
 
 ### Agent Voice
 
@@ -926,27 +847,7 @@ Output shape:
 }
 ```
 
-Fixed instructions (sent as the leading user turn):
-
-```
-You voice the character described in CHARACTER, in a text RPG. You decide what this character says or does in reply to the player. You never narrate and never decide whether the player's attempts succeed.
-
-You receive CHARACTER (your name, role and band) and DIALOGUE_VIEW: your sheet, the facts you know (KNOWS), what you have noticed lately, what you believe about the player, the last few exchanges, what the player just said, and how it struck you (IMPRESSION, or none).
-
-Rules:
-1. Answer what the player actually said, in character, or do something else: leave, trade, fetch, flee, help. One action.
-2. State facts only from KNOWS, and list each one you reveal in "shares". Never invent a specific place, price, name or clue.
-3. Let IMPRESSION shape your reaction; stay in character.
-4. You speak for your own band only. You may switch to one of your routines (follow, wait, or another listed one).
-5. Keep it to one or two sentences unless asked for more. Your view lists what you already said in "said"; do not say it again, move the talk on.
-6. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
-   for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
-   off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
-   opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
-   something you would truly come to blows for.
-
-Return only JSON matching the schema.
-```
+Fixed instructions: the exact text is VOICE_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it voices a calm character's reply to the player (a line, an action, a stance step, a routine switch). Never narrates, never decides whether the player's attempts succeed, never states a fact outside its view.
 
 The engine checks every shares id against knows and scans line for names and facts that are not in the NPC's view.
 
@@ -1101,26 +1002,7 @@ Output shape:
 }
 ```
 
-Fixed instructions (sent as the leading user turn):
-
-```
-You are the Narrator of a text RPG. You turn resolved events into prose for the player. The events already happened; you describe them, you do not decide them.
-
-You receive STYLE (tone, length) and NARRATION_VIEW: the events the player character perceived this turn (each marked "full" or "partial", with a cue), the character's condition, their visible surroundings, and any lines they heard.
-
-Rules:
-1. Write in second person, present tense, in the tone given in STYLE.
-2. Describe only what the character perceives. Turn "partial" events into hints through their cue (a sound, a shadow, a smell) with no names, numbers or intentions.
-3. Never add facts that change the game: no new characters, items, wounds, exits or clues beyond the events.
-4. Never contradict an event's outcome or tier. Show success and failure through the fiction. Never print rolls or numbers.
-5. Do not quote spoken lines: the screen shows each line the player character heard, word for word, under your text. You may say who spoke and how, and only for lines the player character heard.
-6. List in "narrated" the id of every event your text describes.
-7. Keep to the length given in STYLE. End on a moment that invites the player's next move. Do not list options.
-8. Never write the player character's words or decisions beyond the resolved action.
-9. Refer to each person with the pronouns given for them in actors, or on an event (pronouns for its actor, targetPronouns for its target). Keep the same pronouns for a person the whole way through. If none are given, use "they" (BG-33).
-
-Return only JSON matching the schema.
-```
+Fixed instructions: the exact text is NARRATOR_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it turns the resolved, perceived events into prose in STYLE and lists every event it describes in narrated. Never decides outcomes, never names what the player has not perceived or learned.
 
 For attacks, Agent Narrator receives the combat packet (Part 3, The packet), which holds no numbers. When SHOW\_MECHANICS is on, code prints the dice and modifiers in a mechanics panel under the narration; the Narrator never sees them.
 
@@ -1447,63 +1329,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 
 **Model.** Agent Weaver runs on Claude Opus 5.5 for both scenario setup and stage extensions: model "claude-opus-5-5", with modelTier "complex" as the fallback, and effort always set explicitly (Opus 5.5 defaults to medium). The artifact runtime (contract 0.2.96) accepts only low, medium and high, so the build sets the Weaver's effort to "high" (config AGENT\_MODELS), never max (D-33 closed). The agent log records modelApplied for every Weaver call.
 
-Fixed instructions (sent as the leading user turn) **\[Proposed\]**:
-
-```
-You are the Weaver of a text RPG. You decide what is happening at a place and
-who is there, so the scenario fits the hand the dice dealt. You never narrate,
-never decide outcomes and never roll dice.
-
-You receive WEAVER_VIEW: the tier and what it means for this scenario's stakes,
-the place or frontier to plan (target, by id and name), where the player
-stands (player.standsIn), the stage so far sorted by place (places: each place
-with its areas and the people in them, and what they are up to), the story's quests and flags, the bands present with
-their goals and relations, a short
-summary of the player, your previous note, and the catalogs of ids you may use.
-
-Rules:
-1. Plan the event first, then the cast. The tier sets the stakes: bad tiers
-   bring a real challenge with little gain; Near Miss tilts slightly bad; Success
-   matches gain to challenge; high tiers are good fortune, high gain with little
-   challenge.
-   Declare the challenge and gain grades honestly.
-2. The tier decides who and what, not how alert anyone is. Threats may be
-   calm, busy or unaware.
-3. Use catalog ids for every mechanical thing: templates, body types,
-   routine sets, items. Give each new actor one routine set and bind every
-   slot it lists to zone keys from your plan or the stage; a slot marked optional
-   (a bed, a seat) may be left out, and the actor then stays put at those times. Never write
-   routines or numbers. If no set fits, use the closest one and say in
-   routineGap what you wanted. Free text is for names, labels, appearances,
-   how places look, and your hidden notes.
-4. Keep public and hidden text apart. Public text is only what anyone present
-   could see or hear. Never hint at plans, ambushes, motives or secrets in
-   public text. List in hiddenTerms the words that would give them away.
-5. Fit what already exists: actors, plans and facts in your view stay true.
-6. Put each actor in a band. Create a new band only when no existing band
-   fits. Set band relations, beliefs about other bands and personal stances
-   only where the scenario needs them; band names are public, goals hidden.
-   Stances: hostile attacks on sight, so use it only for a fight that starts
-   the moment they meet (monsters, a raid). Use opposed for rivals, standoffs,
-   tense guards and threats that talk first: they are wary but never strike
-   first, and turn hostile if attacked or talked into it.
-   Mark a band lethal: false only when nobody means the conflict to end in
-   death, such as a hostage-taking or a beating meant to teach a lesson. Monsters are always lethal.
-   A friendly bout (a training yard, a tournament, two guards sparring) goes in spars instead.
-   To make an actor differ from its template, give it a personality: a Nerve line, up to two types and up to two
-   values from catalogs.personality.
-7. Seed a plan only for a real agenda. Everyday behavior goes in routines;
-   an actor with a plan stops being an ordinary NPC.
-   A unique (one specific person from catalogs.uniques) acts from its own goals, not a routine: give it 1 to GOALS_HELD goals,
-   from its values, archetype and past (an echo's first goal is its unfinished business, from its past, fitted to this
-   world), each naming in about the ids or keys of the people, places and items it is after. Only uniques get goals.
-8. Keep your note short: what the story is building toward and what you set up.
-9. Seed at least one beat: a trigger with when {"type":"quiet_turns","turns":N} that moves
-   the story when play goes quiet (someone arrives, the watch comes, an NPC acts). Set
-   "endsScenario": true on a beat that should close the scenario.
-
-Return only JSON matching the schema.
-```
+Fixed instructions **\[Proposed\]**: the exact text is WEAVER_INSTRUCTIONS in src/agents/prompts.ts, the one copy (CS6; the spec no longer copies it, a test keeps it so). In short, it decides what is happening at a place and who is there so the scenario fits the dealt tier, as a stage plan within the plan caps. Never narrates, never decides outcomes, never rolls dice. The check-in has its own text, WEAVER_CHECKIN_INSTRUCTIONS.
 
 ### Opening narration
 
@@ -1627,7 +1453,7 @@ Every model output is checked before it touches state or the screen, and every f
 
 | Check | What it catches | On failure |
 | --- | --- | --- |
-| JSON schema on Parser, Planner, Responder, Voice, Narrator, Weaver | Malformed or missing fields | One repair retry with the error; then the fallback for that agent |
+| JSON schema on Parser, Planner, Responder, Voice, Narrator, Weaver | Malformed JSON or a missing required field (a missing optional field reads as empty and the answer stands, CS9) | One repair retry with the error; then the fallback for that agent |
 | Legality on the Parser | Targets, items or skills not in PlayerView (a speech action's skill is set by code from its type, so the Parser's is dropped) | Turn stops; ask the Parser's clarify question, else a question about the failed part ("Who do you mean? I can see …", "Which item do you mean?", "Where do you want to go?"), else a generic "What do you do?" (provisional, see D-21) Exception (Q16, Ali 07/11/2026): when the intent has a legal move and only its addressees or action target are out of sight, the move resolves this turn, the action and words are dropped into deferred (logged deferred\_to\_arrival), and the Play screen offers them in the empty action box after the turn |
 | Legality on Planner, Responder, Voice | An order targeting something the actor has no belief about | Drop the order: the Planner's actor uses its combat list; a Responder or Voice uses the fallback reply. Log view\_leak if the id is real but outside the view; log invalid\_target if it doesn't exist |
 | Gear legality on Parser, Planner, Responder, Voice | An item the actor doesn't hold or can't see, a mode the item lacks, a gear op on an item out of reach | Drop that op or field; the action stands if still legal; log invalid\_gear |
@@ -1963,6 +1789,30 @@ Ask before you:
 - send anything from state.hidden to Agent Parser, Agent Narrator or Agent Voice;
 - settle anything listed under Deferred items.
 
+### Engine details (CS5, CS7)
+
+Choices the engine made where the spec said nothing, settled by Ali (leftover scan CS5 and CS7, 14/11/2026):
+
+- **Event noise and sight.** Each event the engine makes outside an activity has a noise and a visibility (the SENSE table in src/engine/resolve.ts; placeholders to tune). A kind not listed is quiet and normal. Worn armor makes the body-moving kinds louder (AN2).
+
+| Event | Noise | Visibility |
+| --- | --- | --- |
+| travel, move, item dropped, set down, put in, pick up, way (a key, a bar, a door tried) | quiet | normal |
+| attack, wasted | normal | high |
+| speak | normal | normal |
+| hold, rest | silent | low |
+| call for help | loud | normal |
+| battle cry | loud | high |
+| alarm | deafening | high |
+| pick (a lock), stash | hushed | low |
+| filch (its own contest sets both) | hushed | close |
+
+- **Bandmates turn on an attacker** only when they perceive the attack fully; a half-seen attack names no attacker.
+- **Crossing a frontier.** The player who walks into a frontier stays in their zone until scenario setup or the stage extension places them.
+- **Heard speech.** An NPC's "speech heard since its last call" is the previous turn's speech and this turn's exchange.
+- **Agent output shapes.** Each agent's output is given here in the spec's own notation; the exact JSON shape the model is told to return is that agent's \*\_SHAPE text in src/agents/prompts.ts, written from that notation and sent with the fixed instructions.
+- **Half-seen people (CS7).** Someone the player only half perceives keeps their id, so the player can still target them, but shows only as "someone", with no name, label or gear.
+
 ## Part 3 — HP system with partial-damage penalties
 
 ### Chosen design: health track + body parts
@@ -2082,7 +1932,7 @@ Size is set per body type, not per part name: one body type can have big arms an
 - **Per-limb roles** (Grip, Strike) are not split: each limb acts on its own. Two-handed actions take the worse arm's penalty.
 - Code tags every skill with the roles it uses, so a Damaged left arm never touches a persuasion check.
 
-On/off effects of shared roles (no running, can't fly) switch on when Crippled and Destroyed parts reach 60% of the role's parts, with a Destroyed part counting twice. A dragon with one Crippled wing still flies (50%); one Destroyed wing grounds it (100%). A spider needs 5 of 8 legs Crippled, or 3 Destroyed.
+On/off effects of shared roles (no running, can't fly) switch on when Crippled and Destroyed parts reach SHARED\_ROLE\_OFF\_PCT (60%) of the role's parts (ruleset roleOff), with a Destroyed part counting twice. A dragon with one Crippled wing still flies (50%); one Destroyed wing grounds it (100%). A spider needs 5 of 8 legs Crippled, or 3 Destroyed.
 
 ### Building the hit table
 
@@ -2203,7 +2053,7 @@ Natural attacks have their own classes: punch (damage 15, hit +10), slam (damage
 - Unaware: the defense roll takes a situational penalty (*placeholder*).
 - Heavy weapons against block: gap shift −1.
 
-The gap ladder is binding (gap = defense tier − attack tier; a gap past ±5 uses the ±5 entry):
+The gap ladder is binding (gap = defense tier − attack tier). A gap past +5 uses the +5 entry. Below −5 the rows run on to −10 in CONFIG.GAP\_LADDER (placeholders, +0.5 a step), and past −10 each further step adds GAP\_PAST\_STEP (0.5) with no top (CS10):
 
 | Gap | Dodge | Block |
 | --- | --- | --- |
@@ -2238,7 +2088,7 @@ Code runs the whole exchange; Claude gets one packet afterwards and narrates fro
 1. **Setup** (once per body type): Agent Weaver names the body type in the stage plan; code loads it from the database and builds its hit table.
 2. Attack roll (Part 1 §4, Layer 2b) with the weapon's skill. Aimed: add the aim penalty for the part's size. Tier shifts. Failure or worse: miss, end here.
 3. Defense roll with the standing defense, then its tier shifts.
-4. Gap = defense tier − attack tier + gap shifts; read the gap ladder (past ±5: the ±5 entry). A 0× result ends here as dodged.
+4. Gap = defense tier − attack tier + gap shifts; read the gap ladder (past +5: the +5 entry; past −10: +GAP\_PAST\_STEP a step, CS10). A 0× result ends here as dodged.
 5. Location: aimed → the aimed part; else the location roll on the hit table. At gap −2 move to the named part if adjacent; at −3 or lower, to the named part anywhere. A part the defense forbids → the general area. Blocking with a shield → the shield.
 6. Damage: by the damage step in Part 5 §6 (class damage and bonuses, the tier-gap multiplier, worn then natural armor, floor 0 with no rounding, armor pools).
 7. **Body part:** apply the damage to that part's pool (the general area skips this) and update its state; a Destroyed part is removed and the hit table rebuilt. Fire `part_state_changed` if the state changed.
@@ -2368,7 +2218,7 @@ A template may carry a loadout: a list of library item ids given to every NPC ma
 1. Every skill starts at the template's minimum; a skill with no minimum is raw 0. Minimums give each NPC its basic function, so a lopsided NPC is fine.
 2. Points = level × POINTS\_PER\_LEVEL + bonusPoints (POINTS\_PER\_LEVEL 10, a balance lever in CONFIG; Ali, 08/11/2026). The level is fixed per template for now; level rules come later. bonusPoints lets a well-trained template (a guard) outskill a higher-level one (a bandit).
 3. The template names three focus picks, each a tree and a preferred skill in it (Iliad Quest rolls three focused skill groups and the GM picks the skill).
-4. Points go out in 5-point chunks, and a seeded d3 picks the focus pick for each chunk, so spending is uneven. No skill goes above 100.
+4. Points go out in 5-point chunks, and a seeded d3 picks the focus pick for each chunk, so spending is uneven. No skill goes above its own cap, as for the player: SKILL\_CAP (100), and SKILL\_CAP + TAG\_CAP\_BONUS (125) for a focus skill, which is tagged (CS14). A skill at its cap spills its points into the rest of its tree.
 5. The three preferred skills are Tagged. Perk points from the level are saved; NPC perks are deferred.
 
 A copy does not roll: its skills are the template's minimums, read live.
@@ -2432,7 +2282,7 @@ Whether every slot tracks player memory, or only narrated slots, is deferred.
 - Code rules promote the important events: first meeting with a named NPC, a named death, a quest step, a revealed secret.
 - Claude may propose promote\_fact; the validator accepts it within a per-scenario cap (placeholder).
 
-**What a view receives.** PlayerView, NarrationView and WeaverView receive all facts for the current place, the top few headlines of each ancestor, and any fact linked to an entity present. Leona's "met at the Gilded Cup" arrives with her in another country. NPC views (OppositionView, DialogueView, ActorView) never receive facts or headlines: facts record what the player witnessed or was told.
+**What a view receives.** PlayerView, NarrationView and WeaverView receive all facts for the current place, the top HEADLINES\_PER\_PLACE (3) headlines of each ancestor (CS7), and any fact linked to an entity present. Leona's "met at the Gilded Cup" arrives with her in another country. NPC views (OppositionView, DialogueView, ActorView) never receive facts or headlines: facts record what the player witnessed or was told.
 
 ### 6. Persistence
 
@@ -3273,7 +3123,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-258 | High perks that read a skill instead of adding a flat number | 1 | Agreed, not built | Ali (13/11/2026, FS1): "40 perk stays as is, to be considered for 80 perk, certain for 120 perk, an option for other perks." Today the 40/80/120 perks add +5 to their own skill, which is 10% of the skill at 50 and 3% at 150. **Suggested method.** The 120 perk's own-skill part becomes a share of true skill through the augment form that exists (PerkDef.augments), sized so it equals +5 near skill 100 and grows past it; the +1 to same-function skills and the pick stay. Ask the 80 perk on the same page. Belongs to the perk thread, on its own questions page. Scaling: a 0.05 share is +2.5 at 50, +3.75 at 75, +5 at 100, +7.5 at 150 [Proposed placeholder]. |
 | D-259 | Link rows for loops the perk list already holds | 1 | Agreed, not built | Ali (13/11/2026, FS3 "ok"): four candidate pairs for PERK_LINKS, beside the one row built (Dread Presence + Overwhelm): Hidden Strike + Strike and Fade; Set Them Up + One-Two; Dirt in the Eyes + Melt Away; Shield Wall + Cover Ally. **Suggested method.** One questions page from the perk thread with two or three options for what each link grants; a granted effect shifts an outcome or takes a share of true skill so it still counts past 150. |
 | D-260 | Payoff perks that count matching pieces | 1 | Agreed, not built | Ali (13/11/2026, KB4): "I love this idea". In the novel one skill fires every piercing skill the character owns, and another grows with every drawback taken; the player is rewarded for collecting a theme. Today the All-50 rule counts skills at 50 in a tree; no perk counts perks or quirks. **Suggested method.** A few perks at 100 or above read how many owned perks carry one tag (or how many quirks the character has) and add a share per piece, each further piece at STACK_RATIO so the count cannot run away. Needs perk tags (docs/skill-tags.md covers skills only). Belongs to the perk thread. |
-| D-261 | Tiered traits that read true skill past the last milestone | 1 | Parked | Ali (13/11/2026, FS9 "later"). Milestones stop at 140; past that only All-150 parts read true skill, and essence points are the only way up. **Suggested method.** An essence trait or a 140 perk with tiers on true skill at 150, 200, 250 and so on (one table, rows added freely), each tier a new effect, not a bigger number. Design it with D-229 (traits) and D-213 (the roll ceiling past 100). |
+| D-261 | Tiered traits that read true skill past the last milestone | 1 | Parked | Ali (13/11/2026, FS9 "later"). Milestones have perks written only to 140 (the series is open past it, CS11); past that only All-150 parts read true skill, and essence points are the only way up. **Suggested method.** An essence trait or a 140 perk with tiers on true skill at 150, 200, 250 and so on (one table, rows added freely), each tier a new effect, not a bigger number. Design it with D-229 (traits) and D-213 (the roll ceiling past 100). |
 | D-262 | Carrying a trait onto better points | 1 | Parked | Ali (13/11/2026, FS10 "later"). Replacing an essence loses it whole, so a 4-point early essence with a loved trait blocks an 18-point one. **Suggested method.** When an offer replaces a held essence of the same source table, the player may keep the old trait and take the new points, at the removal price; or a rare service does it (D-250). Matters from skill 100 on. |
 | D-263 | Swapping an essence for a random one of the same grade | 1 | Parked | Ali (13/11/2026, FS11 "later"). **Suggested method.** A rare service or item: the held essence is given up and a new row is picked by weight from the same source table at the same grade, its points measured again; it costs the removal price. It softens bad luck without removing commitment. |
 | D-264 | Party roles, and pieces that work through allies | 1, 2 | Parked | Ali (13/11/2026, FS12 "later"; KB5, KB11). Waits on companions who fight beside the player. **Suggested method.** A role tag on each class (tank, dealer, healer, scout, none); support perks multiply what an ally does as a share, never add damage of their own; healing past full may pass to a linked ally through healFromPerk; foes and scenarios may punish a missing role. How foes pick targets uses real cues (size, noise, who hurt them), not a threat number (SY10). |
@@ -3305,6 +3155,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-290 | Those who were there share the deed | 1, 2 | Parked | Ali (13/11/2026, BA19 "ok"). In the novel a first is recorded for the doer "and his companions", and party members receive the same blessing, each paid in their own resource. **Suggested method.** When NPC earning opens (D-148), a deed done as a group is granted to every ally who fought it. |
 | D-291 | The Thread notices | 5 | Parked | Ali (13/11/2026, BA20 "later"). In the novel some logs carry no reward, only a line that something is watching. **Suggested method.** A few narration lines where the Thread notices a deed and gives nothing; no rows, no numbers. For the lore thread. |
 | D-292 | Matched critical in a contest | 1, 2 | Built | Asked by Ali (14/11/2026): a one-time achievement for "both you and your enemy roll the same tier of critical success", which unlocks one additional layer of critical + for contest rolls. Perfect Meets Perfect (AC198, rule `matched_crits`, count 1): the player and the other side of a contest land on the same tier, Critical Success or past it (matchedCritFeat in src/engine/feats.ts, from every contest the player is in). Reward: tierUnlocks {roll 'contest', up 1}, so every roll the holder makes as one side of a contest (RollRequest.contest) can reach Critical Success+ by the skill-roll extra band (D-211). Name and reward level I are placeholders. |
+| D-293 | Rarer perk milestones past 140 | 1 | Parked | Ali (14/11/2026, leftover scan CS11 b): the milestone and All-step series are open past 140 and 150 in the code (a milestone every 20, an All step every 50, nothing written past them yet), and "we will reduce the frequency of perks past 140, but we will see how to handle it later". **Suggested method.** Change PERK\_MILESTONE\_EVERY into a spacing that widens past 140 (for example 20 to 140, then 30, then 40), one function in src/ruleset/perks.ts, when the first perks past 140 are written. |
 
 ## Bug log
 
@@ -3510,6 +3361,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-191 | Ali's play-page comment: the story opened at the top, not at the latest lines, on coming back to Play from the Bugs page. Leaving Play takes the story off the screen, and the browser forgets where it was scrolled. | Coming back to Play always opens the story at the latest lines (ui/play.ts focus, called when Play is shown again); a browser smoke test leaves for Bugs and comes back. | Fixed in PR #689 |
 | BG-209 | Found by the Threadbound end-to-end test (s281): an achievement earned during a scenario is granted when the scenario ends, but the Threadbound item ability (or linked perk) it opens only arrived at the end of the next turn. The end-of-turn perk sync ran before the scenario closed. | 13/11/2026 | fixed (Ali OK'd the fix) | PR #707 |
 | BG-210 | Code scan (leftover rules, round 1): a Trader the Weaver brings back in a later scenario with wares again gets a second 50-coin purse and a second lot of the same stock on top of what it still has (test village: Mags 55 → 105 coin, 4 → 8 bandages), so coin and goods pile up every scenario | 13/11/2026 | fixed | Ali chose purse once, goods top up: the purse comes the first time someone sells, listed goods top up to the listed count. PR #710 |
+| BG-211 | Code scan (leftover rules, round 2): a stash was quiet and plainly visible instead of hushed and low (SE9), because PR #660 put the filch entry and its note on the line before the stash entry in the SENSE table, so the stash entry sat inside the note | 14/11/2026 | fixed (Ali OK'd the fix) | Stash and filch each on their own line again (CS4). PR #PRNUM |
 
 ## Check on release
 

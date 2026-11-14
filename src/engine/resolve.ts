@@ -22,8 +22,8 @@ import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
 import { M_EPS, distM, distOrNull, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS, type BodyPoseKey } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
+import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
@@ -67,11 +67,14 @@ import { busyCheck, checkNear, contact, startWatch, stepS, type NearStop } from 
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 
-// GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
+/** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
+ * and normal. Placeholders to tune. */
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
-  way: ['quiet', 'normal'], pick: ['hushed', 'low'], filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts) stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  way: ['quiet', 'normal'], pick: ['hushed', 'low'], // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  stash: ['hushed', 'low'], // SE9: tucking something away
+  filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts)
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);
@@ -331,7 +334,7 @@ function setAttackOverrides(state: GameState, ev: GameEvent): void {
   for (const p of state.actors) {
     if (p.id === ev.actorId || !p.mind || !isActive(p)) continue;
     const self = p.id === target.id;
-    // GAP: a bandmate must perceive the attack fully (a partial event names no attacker).
+    // CS5: a bandmate must perceive the attack fully (a partial event names no attacker)
     const saw = ev.perception[p.id]?.level === 'full';
     if (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : p.bandId !== target.bandId || !saw) continue;
     p.mind.overrides = { ...(p.mind.overrides ?? {}), [ev.actorId]: 'hostile' };
@@ -410,7 +413,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
       logCode(state, 'frontier_wait', { actorId: a.id, frontier: goal.zone });
       return 'spent';
     }
-    // GAP: the player crossing a frontier stays in its zone; scenario setup / stage extension places it (pipeline reads scratch).
+    // CS5: the player crossing a frontier stays in its zone; scenario setup or the stage extension places them (pipeline reads scratch)
     state.scratch = { ...(state.scratch ?? {}), frontierCrossed: goal.zone };
     const ev = mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] });
     emit(ctx, withBark ? bark(ev, o) : ev);
@@ -1627,7 +1630,7 @@ function shareDone(state: GameState, a: Actor, b: NonNullable<Actor['busy']>): v
 }
 /** AT25/AT57: an attack aimed at someone at a long action breaks it by the row's focus: careful (and deep) on any attack,
  * hit or miss; steady on a hit that wounds; reflex never. What is left goes by its progress (AT6/AT28): kept or lost.
- * GAP: share, misfire and fires wait for rows that use them in a fight (rest, talk and spells are not long here). */
+ * Share, misfire and fires wait for rows that use them in a fight (rest, talk and spells are not long here; CS5). */
 function breakFocus(ctx: Ctx, t: Actor, ev: GameEvent, wounded: boolean): void {
   if (!busyNow(t)) return;
   const focus = actionRow(t.busy!.row)?.focus ?? 'reflex';
@@ -1808,12 +1811,8 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const m = here.m && withinM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
   return m?.mode.tree === 'ranged';
 };
-/** AE2: a Crippled or Destroyed part with the move role stops a dash, and so does Leg Bolt's slow (A6) */
-const lame = (state: GameState, a: Actor) => {
-  if (slowed(state, a)) return true;
-  const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
-  return actorBody(state, a).parts.some((p) => p.roles.includes(RL.move) && PART_STATES.pos(parts.get(p.id) ?? 'healthy') >= PART_STATES.pos('crippled'));
-};
+/** AE2: no running (the move role switched off by the shared-role rule, CS8) stops a dash, and so does Leg Bolt's slow (A6) */
+const lame = (state: GameState, a: Actor) => slowed(state, a) || roleOff(state, a, RL.move);
 
 /** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
  * Vanish is the turn's move, contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
@@ -2026,7 +2025,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // QT8: talking to a giver hands in its finished job, before its agent's output (so it may offer the next one)
   handInQuests(state, (id) => input.spokespeople.includes(id) && ctx.exchangeEvents.some((e) => e.actorId === state.player.id && !!e.perception[id]));
   applyAgentEffects(state, input, {
-    // GAP: "since its last call" read as the previous turn and this turn's exchange.
+    // CS5: "since its last call" is the previous turn and this turn's exchange
     heardSpeech: (id, toward) =>
       (views.get(id)?.perceived ?? []).some((e) => e.kind === 'speak' && e.actorId === toward && e.turn >= state.turn - 1) ||
       (input.spokespeople.includes(id) && toward === state.player.id && ctx.exchangeEvents.length > 0),

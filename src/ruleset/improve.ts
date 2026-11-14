@@ -8,7 +8,8 @@ import { band, extraBands, naturalEdge } from './index';
 import { tierReach } from './achRewards';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
-import { MILESTONES, hasPerk, trueSkill } from './perks';
+import { hasPerk, milestonesUpTo, trueSkill } from './perks';
+import { skillCap } from './skillCap';
 import { skillOpen } from './access';
 import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
@@ -149,10 +150,7 @@ export function markStamina(state: GameState, actor: Actor): void {
   if (actor.id === state.player.id) mark(actor, SK.stamina);
 }
 
-/** the most raw training can reach: SKILL_CAP, plus TAG_CAP_BONUS for a tagged skill (EG16), minus FLAW_CAP_PENALTY for a
- * flawed one. A skill already above its cap keeps its raw and gains nothing. */
-export const skillCap = (s: Pick<SkillEntry, 'state'>): number =>
-  CONFIG.SKILL_CAP + (s.state === 'tagged' ? CONFIG.TAG_CAP_BONUS : 0) - (s.state === 'flawed' ? CONFIG.FLAW_CAP_PENALTY : 0);
+export { skillCap } from './skillCap';
 
 /** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden) − GROWTH_ROLL_NEEDED, read on the tier table; the
  * gain is GROWTH_GAIN by tier, plus GROWTH_GAIN_PAST_CRIT per band past Critical Success. Every state rolls one d100: a
@@ -204,7 +202,7 @@ export function payRolls(state: GameState, rng: Rng, rolls: [string, number][]):
         const from = s.raw, trueBefore = trueSkill(a, id);
         s.raw += gain;
         a.core.skills[id] = s;
-        const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
+        const crossed = milestonesUpTo(trueSkill(a, id)).filter((m) => trueBefore < m).pop();
         gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
         state.log.push({ turn: state.turn, code: 'skill_improved', detail: { skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) } });
       }

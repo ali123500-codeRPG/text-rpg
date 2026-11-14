@@ -9,7 +9,10 @@ import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import { makeVillage, place, forcedRng } from '../harness';
 import { M_EPS } from '../../src/engine/position';
-import { MILESTONES } from '../../src/ruleset/perks';
+import { MILESTONES, allStepsUpTo, milestonesUpTo, perksNeeded } from '../../src/ruleset/perks';
+import * as prompts from '../../src/agents/prompts';
+import { roleOff } from '../../src/ruleset';
+import { RL } from '../../src/library/tableIds';
 import { perkSeries } from '../../src/ui/perks';
 import { cap, listWords, r1 } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
@@ -22,10 +25,10 @@ const ROUND_3 = ['src/views/index.ts', 'src/agents/game.ts', 'src/engine/effects
 const ROUND_4 = ['src/config.ts', 'src/types/views.ts', 'src/types/actor.ts', 'src/ui/fakeGame.ts', 'src/types/agents.ts', 'src/agents/schema.ts',
   'src/agents/legality.ts', 'src/engine/engagement.ts'];
 const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4];
-// config levers nothing reads yet, each waiting on a question (CS8: the shared-role 60% rule)
-const UNREAD_LEVERS = ['SHARED_ROLE_OFF_PCT'];
-// files whose GAP notes are settled into the spec (round 1: CS2)
-const GAPS_SETTLED = ROUND_1;
+// config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
+const UNREAD_LEVERS: string[] = [];
+// files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -126,5 +129,35 @@ describe('leftover scan round 1', () => {
     const names = [...new Set(prose.match(/\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b/g) ?? [])];
     const missing = names.filter((n) => !new RegExp(`\\b${n}\\b`).test(src) && !GONE_ON_PURPOSE.includes(n));
     expect(missing).toEqual([]);
+  });
+});
+
+describe('leftover scan answers (CS6, CS8, CS11)', () => {
+  it('CS6: the agents\' fixed instructions have one copy, in prompts.ts; the spec names each and copies none', () => {
+    const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+    const texts = Object.entries(prompts).filter(([k, v]) => k.endsWith('_INSTRUCTIONS') && typeof v === 'string') as [string, string][];
+    expect(texts.length).toBeGreaterThanOrEqual(6);
+    for (const [k, v] of texts) {
+      expect(spec.includes(v.split('\n')[0]), k).toBe(false); // the opening line would come back with a copy
+      if (k !== 'WEAVER_CHECKIN_INSTRUCTIONS') expect(spec, k).toContain(`${k} in src/agents/prompts.ts`);
+    }
+  });
+
+  it('CS8: running stops at SHARED_ROLE_OFF_PCT of the move parts hurt, a Destroyed part counting twice', () => {
+    const s = makeVillage(), p = s.player;
+    expect(roleOff(s, p, RL.move)).toBe(false);
+    p.core.condition.parts.left_leg = -30; // one Crippled leg of two: 50%
+    expect(roleOff(s, p, RL.move)).toBe(false);
+    p.core.condition.parts.right_leg = -30; // both: 100%
+    expect(roleOff(s, p, RL.move)).toBe(true);
+    p.core.condition.parts = { left_leg: -100 }; // one Destroyed: counts twice
+    expect(roleOff(s, p, RL.move)).toBe(true);
+  });
+
+  it('CS11: milestones every 20 and All steps every 50 with no top; the gating pattern goes on', () => {
+    expect(MILESTONES).toEqual([20, 40, 60, 80, 100, 120, 140]);
+    expect(milestonesUpTo(200).slice(-3)).toEqual([160, 180, 200]);
+    expect(allStepsUpTo(300)).toEqual([50, 100, 150, 200, 250, 300]);
+    expect([20, 40, 60, 80, 100, 120, 140, 160, 180].map(perksNeeded)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4]);
   });
 });
