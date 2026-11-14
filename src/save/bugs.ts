@@ -15,6 +15,7 @@ export const BUG_CODES = new Set([
   'weaver_off_catalog', 'weaver_fallback', 'weaver_timeout', 'routine_fallback', 'routine_skip', 'reward_repaired', 'quest_goal_gap',
   'scenario_overrun', 'scenario_stalled', 'checkin_failed', // SC12/SC14: code ended a scenario, or a Weaver check-in failed
   'turn_check', // TQ1: a world rule broke after a turn (src/save/turnCheck.ts)
+  'achievement_outside_end', // an achievement granted anywhere but a scenario's end (engine/xp.ts grantAchievement)
   'ending_item_remapped', // BF55: a scenario ending named the base of an item its own plan made
   'code_error', // a throw the game caught so play could go on (a background Planner, the story text save)
 ]);
