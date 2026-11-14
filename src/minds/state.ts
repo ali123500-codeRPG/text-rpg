@@ -138,9 +138,9 @@ export function isCalm(state: GameState, a: Actor): boolean {
   return !isEngaged(state, a) && !alarm?.armed && secondsSince(state, last) >= CONFIG.DECAY_AWARE_S;
 }
 
-const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body']);
-/** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body */
-const SELF_ALARM = new Set(['struck', 'found_body']);
+const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body', 'impact']);
+/** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body; BG-251: the one a missile lands by */
+const SELF_ALARM = new Set(['struck', 'found_body', 'impact']);
 
 /** onAlert once (queued as onAlertDue), switch to the alert variant anchored now, save returnTo. */
 export function raiseAlarm(state: GameState, a: Actor): void {

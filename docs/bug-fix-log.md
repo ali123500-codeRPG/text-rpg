@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-251
+
+**What was wrong:** Ali asked whether shots make noise where they land: they didn't. A shot or throw was heard and seen only where the shooter stood, at conversation loudness, so people where it landed never learned they were under attack, and a missed target still "felt" the miss.
+
+**What was done:** Ali approved the fix (BF73). Every shot or throw, hit or miss, makes an impact event at its target's spot (src/engine/resolve.ts landImpact): Loud on armour, a shield or a hard surface (a miss indoors), Raised on flesh or soft ground (a miss outdoors), from real impact measurements (CONFIG.IMPACT_NOISE). It raises the alarm and startles those it reaches, so they react; a missed target notices the miss by it instead of feeling it (perception), and the shooter stays as hidden as before.
+
+**Fixed by:** [PR #847](https://github.com/ali123500-codeRPG/text-rpg/pull/847)
+
 ## BG-250
 
 **What was wrong:** Every animal race (dog, wolf, tiger, bear and the rest) attacked at skill 0. Their bites, claws, kicks, tusks and tail lashes roll the Natural Weapons skill, but that skill's tree was open only to slimes and dragons, so for an animal the game counted the skill as locked: a wolf built with Natural Weapons 61 rolled as if it had none. Found in the animal body types work, right after PR #838.

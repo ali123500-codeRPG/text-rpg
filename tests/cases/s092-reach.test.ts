@@ -23,6 +23,8 @@ it('92 Reach', () => {
   const shoot = { type: 'attack' as const, skill: SK.ranged_light, item: 'bw', mode: AM.shoot };
   const ev = play(s, { intent: intent({ gear: [{ op: 'stow' as const, item: 'sp' }, { op: 'draw' as const, item: 'bw' }], action: { ...shoot, target: 'patron_1' } }) });
   expect(ev.find((e) => e.actorId === 'player' && e.target === 'patron_1')).toMatchObject({ kind: 'attack' });
+  const tr = place(s, 'trader', 'street_door'); // BG-251: the shot's impact alarmed it and it came to look: back out of sight, calm
+  delete tr.mind!.alarm; tr.mind!.routine = { id: tr.mind!.routines![0], anchorTurn: s.turn, at: tr.mind!.routine!.at };
   const ev2 = play(s, { intent: intent({ action: { ...shoot, target: 'trader' } }) });
   expect(ev2.find((e) => e.actorId === 'player' && e.target === 'trader')).toMatchObject({ kind: 'wasted' });
 });

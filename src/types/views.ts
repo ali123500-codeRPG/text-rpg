@@ -52,6 +52,7 @@ export type EventView = {
   line?: { text: string; volume: Volume };
   outcome?: string; // attacks: packet outcome label
   spar?: true; // SP11: a sparring blow (seen fully)
+  impact?: 'hard' | 'soft'; // BG-251: a missile landing: on armour, a shield or a hard surface, or on flesh or soft ground
   took?: string; // OQ-29 (NT10): the speaker's own speech roll at the player, as it saw the player take it
   tell?: string; // LI5a Overheard: a lie told to someone else that the viewer saw through
   reason?: string; // BG-175: why the viewer's own wasted action came to nothing
@@ -259,6 +260,7 @@ export type NarrationEvent = {
   activityLook?: string; // presence events
   packet?: CombatPacket; // attacks
   spar?: true; // SP11: a sparring blow, not a real attack
+  impact?: 'hard' | 'soft'; // BG-251: a missile landing: on armour, a shield or a hard surface, or on flesh or soft ground
   pressed?: { how?: string; took?: string; offer?: string }; // OQ-29: an NPC's speech roll at the player, in words; offer: TF11, it was an offer to stand down
   overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
