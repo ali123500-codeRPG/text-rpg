@@ -90,8 +90,8 @@ export type StartDef = {
   id: string; name: string; classId?: string; points?: number; level?: number; age?: number; story?: string;
   blessing?: { tier: import('../scales').BlessingTierKey };
 };
-/** DX1: a god. field: the narrow thing it governs */
-export type GodDef = { id: string; name: string; field: string };
+/** DX1: a god. rank: its standing (GOD_RANKS); field: the narrow thing it governs */
+export type GodDef = { id: string; name: string; rank: import('../scales').GodRankKey; field: string };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
   personality?: PersonalityAdd; // PL16: points added while it is the current class
