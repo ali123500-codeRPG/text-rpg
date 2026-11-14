@@ -67,6 +67,23 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('an essence offer pops up after the turn; Take it puts it in a slot on the Character page', async () => {
+    await page.evaluate(() => {
+      const s = (globalThis as unknown as { __GAME_API__: { state: () => { turn: number; player: { progression?: { essenceOffers?: unknown[] } } } } }).__GAME_API__.state();
+      s.player.progression!.essenceOffers = [{ essence: 'ES3', grade: 'common', points: { SK11: 1, SK32: 1 }, turn: s.turn, source: 'foe', untilMin: 1e9 }];
+    });
+    await turn('look around', 1);
+    const pop = page.locator('.ess-pop');
+    await pop.waitFor();
+    expect(await pop.innerText()).toMatch(/Street Instinct[\s\S]*\+1 Dodge[\s\S]*\+1 Insight/);
+    await pop.getByRole('button', { name: 'Take it' }).click();
+    await nav('Character');
+    const sec = page.locator('#essences');
+    await expect.poll(() => sec.innerText()).toMatch(/1 of \d+ slots? used[\s\S]*Street Instinct/);
+    expect(await sec.getByText('On offer').count()).toBe(0);
+    expect(errors).toEqual([]);
+  });
+
   it('reports a bug: it is filed with a BG number and listed', async () => {
     await nav('Bugs');
     await page.getByPlaceholder(/What went wrong/).fill('smoke test report');

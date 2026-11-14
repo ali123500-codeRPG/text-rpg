@@ -46,7 +46,14 @@ export const moving = (): boolean => running.size > 0;
 /** finishes every running animation and pending step at once, in the state a skip produces */
 export function finishAll(): void { for (const r of [...running]) r.finish(); running.clear(); }
 
-const canAnimate = (el: Element | null | undefined): el is HTMLElement => !!el && typeof (el as HTMLElement).animate === 'function' && motionOn();
+/** inside measured(), nothing animates or waits: a timeline only adds up how long it would run */
+let dry = false;
+export function measured<T>(fn: () => T): T {
+  const was = dry;
+  dry = true;
+  try { return fn(); } finally { dry = was; }
+}
+const canAnimate = (el: Element | null | undefined): el is HTMLElement => !dry && !!el && typeof (el as HTMLElement).animate === 'function' && motionOn();
 
 /** one animation on top of an element's final state; before its delay the first frame holds (fill backwards) */
 export function play(el: Element | null | undefined, frames: Keyframe[], o: { dur: number; delay?: number; exit?: boolean; pseudo?: string; done?: () => void }): void {
@@ -239,7 +246,7 @@ export function shake(els: (HTMLElement | null | undefined)[], amount: number, d
 
 /** a step that only moves the view (a scroll) at its time; skipping drops it, since the final state never depends on it */
 export function later(fn: () => void, delay: number): void {
-  if (!motionOn()) return;
+  if (dry || !motionOn()) return;
   const r: Running = { finish: () => { clearTimeout(timer); running.delete(r); } };
   const timer = setTimeout(() => { running.delete(r); fn(); }, delay);
   running.add(r);

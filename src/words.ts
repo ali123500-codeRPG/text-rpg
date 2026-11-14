@@ -21,3 +21,11 @@ export function falseName(speaker: { names: { current: string } }, text: string 
   }
   return undefined;
 }
+
+/** the text with its first letter in capitals */
+export const cap = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
+/** "a, b and c" (or "a, b or c"): a list as a sentence says it */
+export const listWords = (xs: string[], last: 'and' | 'or' = 'and'): string =>
+  xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} ${last} ${xs[xs.length - 1]}`;
+/** a number rounded to one decimal, the way metres, XP and stats are shown and kept */
+export const r1 = (x: number): number => Math.round(x * 10) / 10;

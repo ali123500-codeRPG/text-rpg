@@ -4,6 +4,7 @@ import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstanc
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
+import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
 import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, type LifeStageKey } from '../scales';
@@ -78,22 +79,24 @@ export function templateMinimums(t: NpcTemplate): Record<string, number> {
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
   const raw: Record<string, number> = { [SK.resolve]: t.resolve, ...templateMinimums(t) }; // class floors included // MB30: the template sets starting Resolve
   let points = t.level * CONFIG.POINTS_PER_LEVEL + t.bonusPoints;
+  const tagged = new Set(t.focus.map((f) => f.skill));
+  const stateOf = (k: string) => (tagged.has(k) ? 'tagged' as const : 'normal' as const);
   while (points > 0 && t.focus.length) {
     const chunk = Math.min(5, points); // GAP: a remainder under 5 goes out as the last, smaller chunk
     points -= chunk;
     const pick = t.focus[rng.int(1, t.focus.length) - 1]; // d3 over the three picks
-    // GAP: a preferred skill at 100 spills into the rest of its tree (tree order); points with nowhere to go are lost
+    // GAP: a preferred skill at its cap (SKILL_CAP; a focus skill is tagged, so +TAG_CAP_BONUS, CS14) spills into the rest of its
+    // tree (tree order); points with nowhere to go are lost
     const tree = getLibrary().trees[pick.treeId]?.skills ?? [];
     let left = chunk;
     for (const sk of [pick.skill, ...tree.filter((x) => x !== pick.skill)]) {
-      const add = Math.min(left, 100 - (raw[sk] ?? 0));
+      const add = Math.min(left, skillCap({ state: stateOf(sk) }) - (raw[sk] ?? 0));
       if (add > 0) { raw[sk] = (raw[sk] ?? 0) + add; left -= add; }
       if (!left) break;
     }
   }
-  if (raw[SK.endurance] && raw[SK.stamina] === undefined) raw[SK.stamina] = raw[SK.endurance]; // FT15: [Proposed] Stamina copies Endurance
-  const tagged = new Set(t.focus.map((f) => f.skill));
-  return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, { raw: v, state: tagged.has(k) ? 'tagged' as const : 'normal' as const }]));
+  if (raw[SK.endurance] && raw[SK.stamina] === undefined) raw[SK.stamina] = raw[SK.endurance]; // FB7: Stamina copies Endurance
+  return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, { raw: v, state: stateOf(k) }]));
 }
 
 /** Copy NPC: minimums plus level points spent with the template's fixed seed (alike for every copy). Unique: rolled once, frozen. */

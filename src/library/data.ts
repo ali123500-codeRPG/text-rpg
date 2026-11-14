@@ -188,6 +188,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Always on (quirk)', trigger: 'Anyone outside the owner\'s band sees the owner for the first time.', conditions: ['Once per person, for good.', 'The owner\'s bandmates are never affected.'],
       effect: 'They pay the fear "You set eyes on someone dreaded" (15 morale, scaled by their morale roll), in a fight or out of one. From then on their stance toward the owner reads one step colder than their band\'s (neutral becomes unfriendly, opposed becomes hostile), until play gives them a stance of their own toward the owner. The player holds no stances, so a player who sees the owner only pays the fear.', lasts: 'The colder stance lasts until that person\'s own stance toward the owner is set.' },
   },
+  // the first essence trait (Tavern Brawler), and the first trade augment (D-276); a placeholder until the D-229 content round
+  [PK.fists_do_the_talking]: {
+    id: PK.fists_do_the_talking, name: 'Fists Do the Talking', built: true, augments: [{ from: SK.unarmed_strike, skill: SK.intimidation, kind: 'trade' }],
+    story: 'Someone\'s brawls taught your fists to speak for you. Half your Strike now stands behind every threat you make, and your punches give that much up to do it.',
+    rules: { kind: 'Always on (trait of the Tavern Brawler essence)', trigger: 'The owner makes an Intimidation roll, or a Strike roll.', conditions: ['The owner holds a Tavern Brawler essence.', 'The Unarmed tree is open to the owner.'],
+      effect: 'Strike trades into Intimidation: every Intimidation roll adds the owner\'s true Strike × 0.5 (CONFIG.AUGMENT_TRADE_SHARE, placeholder) × its tier, and every Strike roll loses the same amount. Strike learns from the Intimidation rolls the way an augment does.', lasts: 'While a Tavern Brawler essence is held.' },
+  },
   [PK.quick_study]: {
     id: PK.quick_study, name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
@@ -592,16 +599,16 @@ export function prototypeLibrary(): Library {
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: the story may name the thread; never numbers.
     essences: {
       [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.unarmed_natural, weight: 2 }, { skill: SK.tremor, weight: 1 }], // EN5: slimes have no Endurance
-        story: 'Something slow and unhurried settles low in your gut, a strand of the slime\'s patience tied into your own. Pain arrives later than it used to.' },
+        story: 'A strand of the slime\'s slow patience knots into yours. Footsteps reach you through the floor before your ears catch them, and your body starts to feel like the weapon.' },
       [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if someone else\'s long watches were knotted into yours.' },
       [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
-      // EN6: placeholder rows so the barkeep and the tavern patron each carry one; stories are placeholders for the lore thread
+      // EN6: placeholder rows so the barkeep and the tavern patron each carry one
       [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
-        story: 'Prices start to sound like opening moves. You hear the give in a seller\'s voice before they know it is there.' },
-      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
-        story: 'Your fists feel easier at your sides, and so do your words. Half a fight is talking your way into it, or out.' },
+        story: 'A haggler\'s ear has knotted into yours. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
+      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
+        story: 'Someone\'s long nights of tavern brawls have tied into your own. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
       [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
         story: 'What you did again and again here has pulled tight and held. Something in you will remember it.' },
     },
@@ -853,6 +860,11 @@ export function prototypeLibrary(): Library {
       [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_10 },
       [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iii', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
       [ACH.defeats_1000]: { id: ACH.defeats_1000, name: 'Thousand-Slayer, Herald of Ruin', level: 'iv', rule: 'defeats', tags: ['combat'], count: 1000, after: ACH.defeats_250 },
+      // kills are counted apart from defeats (a kill is the defeat where the foe died, so both tallies move); ordeal rows pay
+      // max morale, never the skill used
+      [ACH.kills_1]: { id: ACH.kills_1, name: 'A Life Taken', level: 'zero', rule: 'kills', tags: ['combat'], count: 1, maxMorale: 1 },
+      [ACH.kills_10]: { id: ACH.kills_10, name: 'Gravefiller', level: 'i', rule: 'kills', tags: ['combat'], count: 10, after: ACH.kills_1, maxMorale: 1 },
+      [ACH.kills_50]: { id: ACH.kills_50, name: 'Death Walks Beside You', level: 'ii', rule: 'kills', tags: ['combat'], count: 50, after: ACH.kills_10, maxMorale: 1 },
       // one per tree and mastery step, id <id>:<tree>; each tree rating has its own line (MASTERY_ACH), grander the higher the rating
       [ACH.mastery_50]: { id: ACH.mastery_50, name: 'Adept of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
       [ACH.mastery_100]: { id: ACH.mastery_100, name: 'Master of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_50 },
@@ -935,6 +947,10 @@ export function prototypeLibrary(): Library {
       [ACH.mended_10]: { id: ACH.mended_10, name: 'Patched and Stitched', level: 'i', rule: 'mended', tags: ['survival'], count: 10, after: ACH.mended_1 },
       [ACH.mended_50]: { id: ACH.mended_50, name: 'Hard to Keep Down', level: 'ii', rule: 'mended', tags: ['survival'], count: 50, after: ACH.mended_10 },
       [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1 },
+      // the deepest of the near-death depths (Critical, Down and back, the survival roll): depth pays more than count
+      [ACH.survival_roll_1]: { id: ACH.survival_roll_1, name: 'Woke Up Anyway', level: 'ii', rule: 'survival_rolls', tags: ['combat', 'survival'], count: 1, maxMorale: 10 },
+      // D-292: one time; your contest rolls can go one tier past Critical Success (name and reward level are placeholders)
+      [ACH.matched_crit_1]: { id: ACH.matched_crit_1, name: 'Perfect Meets Perfect', level: 'i', rule: 'matched_crits', tags: ['skill'], count: 1, tierUnlocks: [{ roll: 'contest', side: 'up', steps: 1 }] },
       [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10 },
       [ACH.holds_100]: { id: ACH.holds_100, name: 'No Getting Loose', level: 'ii', rule: 'holds', tags: ['combat', 'skill'], count: 100, after: ACH.holds_10 },
       [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10 },
@@ -967,6 +983,11 @@ export function prototypeLibrary(): Library {
       [ACH.morale_breaks_1]: { id: ACH.morale_breaks_1, name: 'First Crack', level: 'zero', rule: 'morale_breaks', tags: ['combat'], count: 1, scar: true, personality: ap({ nerve: -1 }) },
       [ACH.morale_breaks_5]: { id: ACH.morale_breaks_5, name: 'Glass Nerves', level: 'i', rule: 'morale_breaks', tags: ['combat'], count: 5, after: ACH.morale_breaks_1, scar: true, personality: ap({ nerve: -1 }) },
       [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true, personality: ap({ nerve: -1 }) },
+      // the mind's twin of the survival roll: the fight was won although your morale broke in it. Extraordinary by nature (Broken
+      // stops attacks), so the higher levels are something to chase, not something a build plans on
+      [ACH.won_broken_1]: { id: ACH.won_broken_1, name: 'Back from the Break', level: 'ii', rule: 'won_broken', tags: ['combat'], count: 1, maxMorale: 5, personality: ap({ nerve: 1 }) },
+      [ACH.won_broken_5]: { id: ACH.won_broken_5, name: 'Broken, Not Beaten', level: 'iii', rule: 'won_broken', tags: ['combat'], count: 5, after: ACH.won_broken_1, maxMorale: 5, personality: ap({ nerve: 1 }) },
+      [ACH.won_broken_25]: { id: ACH.won_broken_25, name: 'Nothing Left to Fear', level: 'iv', rule: 'won_broken', tags: ['combat'], count: 25, after: ACH.won_broken_5, maxMorale: 5, personality: ap({ nerve: 1 }) },
       // D-174: HP healed (a flat number) from one healing row each; counts are placeholders
       [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100 },
       [ACH.healed_rest_1000]: { id: ACH.healed_rest_1000, name: 'Sleeps Through Anything', level: 'i', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 1000, after: ACH.healed_rest_100 },

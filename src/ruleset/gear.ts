@@ -1,6 +1,6 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
 import { ageMult } from './age';
-import type { Actor, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
+import type { Actor, AugmentKind, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
 import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
@@ -158,44 +158,78 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const gear = (skillOpen(actor, id) ? gearFor(state, actor, id, ctx) : []).map((g) => ({ ...g, value: g.value * k }));
     // true skill (S3) and gear, × the skill's tier multiplier (final efficiency) and the old-age decline (AG20)
     const tier = tierMult(id) * ageMult(state, actor, id);
-    const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier;
+    // D-276: what this skill gives away by trade augments, at its share here and its age (its tier is in the amount)
+    const given = tradesOut(actor, id).map((g) => ({ ...g, value: g.value * k * ageMult(state, actor, id) }));
+    const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier + given.reduce((s, g) => s + g.value, 0);
     for (const g of gear) g.value *= tier;
-    if (!best || value > best.value) best = { skill: id, value, gear };
+    if (!best || value > best.value) best = { skill: id, value, gear: [...gear, ...given] };
   }
   const old = ageMult(state, actor, skill); // AG20: augments to a declining skill decline with it
   for (const a of augmentsOf(actor, skill, ctx.rollKind)) { const g = { ...a, value: a.value * old }; best!.value += g.value; best!.gear.push(g); } // skills that augment this one
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet
 }
 
-/** augments the actor's perks give (PerkDef.augments, All-50 Grit), for `skill` on a roll of this kind: the augmenting
- * skill's tree must be open and the skill not dormant, as for a skill's own augments */
-export function perkAugments(actor: Actor, skill: string, rollKind?: RollKind): { from: string; share?: number; perk: string }[] {
-  const perks = getLibrary().perks, out: { from: string; share?: number; perk: string }[] = [];
+type AugmentEntry = { share?: number; kind?: AugmentKind; rollKinds?: RollKind[] };
+const fits = (g: AugmentEntry, rollKind?: RollKind) => !g.rollKinds || (!!rollKind && g.rollKinds.includes(rollKind));
+const usable = (actor: Actor, from: string) => skillOpen(actor, from) && !actor.core.skills[from]?.dormant;
+
+/** D-276: the one augment equation. The factor on the giving skill's true skill that an augment entry adds to `to`:
+ * share × the giver's tier; a percentage augment also × the receiving skill's own true skill ÷ 100. The share defaults
+ * by kind: plain 1, trade CONFIG.AUGMENT_TRADE_SHARE, percent CONFIG.AUGMENT_PERCENT_RATE (all placeholders). */
+export function augmentK(actor: Actor, g: AugmentEntry, from: string, to: string): number {
+  const share = g.share ?? (g.kind === 'trade' ? CONFIG.AUGMENT_TRADE_SHARE : g.kind === 'percent' ? CONFIG.AUGMENT_PERCENT_RATE : 1);
+  return share * tierMult(from) * (g.kind === 'percent' ? trueSkill(actor, to) / 100 : 1);
+}
+
+/** every augment entry the actor has toward `skill` (SkillDef.augments of every open skill, PerkDef.augments of owned
+ * perks: All-50 Grit, essence traits), on a roll of this kind, each with its factor k on the giver's true skill.
+ * Percentage augments on one skill stack: the largest in full, the next at STACK_RATIO, and so on (SY4); plain and
+ * trade augments add in full, and different kinds never halve each other. Givers at 0 are listed (they can learn). */
+function augmentRows(actor: Actor, skill: string, rollKind?: RollKind): { from: string; k: number; kind: AugmentKind; perk?: string }[] {
+  const rows: { from: string; k: number; kind: AugmentKind; perk?: string }[] = [];
+  for (const d of Object.values(getLibrary().skills)) for (const g of d.augments ?? []) {
+    if (g.skill === skill && fits(g, rollKind) && usable(actor, d.id)) rows.push({ from: d.id, k: augmentK(actor, g, d.id, skill), kind: g.kind ?? 'plain' });
+  }
+  const perks = getLibrary().perks;
   for (const p of actor.core.perks) {
     const def = perks[p.perkId];
     if (p.dormant || !def?.augments) continue;
-    for (const g of def.augments) {
-      if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, g.from) || actor.core.skills[g.from]?.dormant) continue;
-      out.push({ from: g.from, share: g.share, perk: def.name });
-    }
+    for (const g of def.augments) if (g.skill === skill && fits(g, rollKind) && usable(actor, g.from)) rows.push({ from: g.from, k: augmentK(actor, g, g.from, skill), kind: g.kind ?? 'plain', perk: def.name });
+  }
+  const pct = rows.filter((r) => r.kind === 'percent').sort((a, b) => trueSkill(actor, b.from) * b.k - trueSkill(actor, a.from) * a.k);
+  pct.forEach((r, i) => { r.k *= CONFIG.STACK_RATIO ** i; });
+  return rows;
+}
+
+/** the augment factors toward `skill` on a roll of this kind (for augment learning: each giver's share of the window) */
+export const augmentFactors = (actor: Actor, skill: string, rollKind?: RollKind): { id: string; k: number }[] =>
+  augmentRows(actor, skill, rollKind).map((r) => ({ id: r.from, k: r.k }));
+
+/** skills augmenting `skill` on this roll: each adds its true skill × k (augmentK), when its tree is open and the roll
+ * kind fits (no kinds listed: every roll and check of the skill) */
+export function augmentsOf(actor: Actor, skill: string, rollKind?: RollKind): { source: string; value: number }[] {
+  const out: { source: string; value: number }[] = [];
+  for (const r of augmentRows(actor, skill, rollKind)) {
+    const value = trueSkill(actor, r.from) * r.k;
+    const how = r.kind === 'plain' ? 'augments' : r.kind === 'trade' ? 'trades in' : 'augments by share';
+    if (value) out.push({ source: `${skillName(r.from)} (${how}${r.perk ? `, ${r.perk}` : ''})`, value });
   }
   return out;
 }
 
-/** skills augmenting `skill` on this roll (SkillDef.augments): each adds true skill × share × its tier, when its tree is
- * open and the roll kind fits (no kinds listed: every roll and check of the skill) */
-export function augmentsOf(actor: Actor, skill: string, rollKind?: RollKind): { source: string; value: number }[] {
-  const skills = getLibrary().skills, out: { source: string; value: number }[] = [];
-  for (const id of Object.keys(actor.core.skills)) {
-    for (const g of skills[id]?.augments ?? []) {
-      if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, id) || actor.core.skills[id].dormant) continue;
-      const value = trueSkill(actor, id) * (g.share ?? 1) * tierMult(id);
-      if (value) out.push({ source: `${skillName(id)} (augments)`, value });
-    }
-  }
-  for (const g of perkAugments(actor, skill, rollKind)) {
-    const value = trueSkill(actor, g.from) * (g.share ?? 1) * tierMult(g.from);
-    if (value) out.push({ source: `${skillName(g.from)} (augments, ${g.perk})`, value });
+/** D-276: what skill `from` gives away by trade augments, on every roll of its own, always (points moved, never made):
+ * the same amount each receiving skill gains, as negative entries. Rolls of kinds a trade does not reach still lose it. */
+export function tradesOut(actor: Actor, from: string): { source: string; value: number }[] {
+  if (!usable(actor, from) || !trueSkill(actor, from)) return [];
+  const out: { source: string; value: number }[] = [];
+  const give = (g: AugmentEntry & { skill: string }, perk?: string) => {
+    if (g.kind === 'trade') out.push({ source: `traded to ${skillName(g.skill)}${perk ? ` (${perk})` : ''}`, value: -trueSkill(actor, from) * augmentK(actor, g, from, g.skill) });
+  };
+  for (const g of getLibrary().skills[from]?.augments ?? []) give(g);
+  const perks = getLibrary().perks;
+  for (const p of actor.core.perks) {
+    const def = perks[p.perkId];
+    if (!p.dormant) for (const g of def?.augments ?? []) if (g.from === from) give(g, def!.name);
   }
   return out;
 }

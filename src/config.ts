@@ -37,6 +37,9 @@ const DEFAULTS = {
   NATURAL_EDGE: 5,
   /** event rolls: naturals per tier opened past Critical (tierUnlocks); each opened tier widens the natural critical range by this many */
   EVENT_CRIT_NATURALS: 5,
+  /** Part 1 §4 margin bands: the lowest margin for each tier above Critical Failure (Failure −75, Near Miss −25, Success 0,
+   * Great Success 25, Critical Success 75) */
+  MARGIN_BANDS: [-75, -25, 0, 25, 75],
   /** D-211: width of each extra margin band a tier unlock opens past either end of the skill-roll table */
   TIER_EXTRA_BAND: 50,
   /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human
@@ -68,20 +71,20 @@ const DEFAULTS = {
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
-  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (3: marks 1, 4, 7...).
+  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (2: marks 1, 3, 5...).
    * Infinity: one roll per skill per engagement. */
-  MARK_STACK_EVERY: 3,
+  MARK_STACK_EVERY: 2,
   /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
   SKILL_CAP: 100,
   /** EG16: a tagged skill's cap is SKILL_CAP plus this */
   TAG_CAP_BONUS: 25,
   /** a flawed skill's cap is SKILL_CAP minus this */
   FLAW_CAP_PENALTY: 25,
-  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder: 90 keeps
-   * the old speed through the human range, about one point a roll at raw 50) */
+  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder; with GROWTH_GAIN
+   * below, about 1.6 points a roll at raw 50) */
   GROWTH_ROLL_NEEDED: 90,
   /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
-  GROWTH_GAIN: { success: 1, great_success: 2, critical_success: 3 } as Partial<Record<Tier, number>>,
+  GROWTH_GAIN: { success: 2, great_success: 3, critical_success: 4 } as Partial<Record<Tier, number>>,
   /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
   GROWTH_GAIN_PAST_CRIT: 1,
   /** SG2 a: natural edges (01–05, 96–100) do not move the improvement roll's tier: no skill grows from the die face
@@ -122,15 +125,30 @@ const DEFAULTS = {
   HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
   PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
-  // the ladder runs GAP_MIN..GAP_MAX; a gap past either end uses the end row. −6..−10 are placeholders (+0.5 a step)
+  // the ladder's rows run GAP_MIN..GAP_MAX; −6..−10 are placeholders (+0.5 a step). A gap past GAP_MAX uses that row; past
+  // GAP_MIN each further step adds GAP_PAST_STEP, with no top (CS10)
   GAP_MIN: -10,
   GAP_MAX: 5,
+  GAP_PAST_STEP: 0.5,
   GAP_LADDER: {
     dodge: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1.375, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
     block: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
     // PA3 (placeholders): cuts less than Block at small gaps, stops the blow fully from +3; a failed parry punishes harder
     parry: { [-10]: 5, [-9]: 4.5, [-8]: 4, [-7]: 3.5, [-6]: 3, [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0.65, 3: 0, 4: 0, 5: 0 },
   } as Record<DefenseKind, Record<number, number>>,
+  /** the gap ladder's outcome and location thresholds (Part 3, Defense), beside GAP_LADDER's multipliers */
+  HIT_GAPS: {
+    graze: 1, // a dodge that wins by this or more (and still takes a share of the blow) is grazed
+    blockFrom: 1, // a block or parry at this gap or better is blocked ...
+    shieldFrom: 0, // ... and a block with a shield from this gap, which then takes the hit
+    heavy: -4, // a hit at this gap or worse is a heavy hit
+    crushing: -5, // ... and at this gap or worse a crushing hit
+    movesAdjacent: -2, // at this gap or worse a hit moves to the named part if it is adjacent ...
+    movesAnywhere: -3, // ... and at this gap or worse to the named part anywhere
+    noEssentialFrom: { dodge: 0, block: -1, parry: -1 }, // from this gap up a hit never lands on an essential part
+    nonEssentialOnlyFrom: { block: 0, parry: 0 }, // from this gap up a block or parry lets it land on non-essential parts only
+  } as { graze: number; blockFrom: number; shieldFrom: number; heavy: number; crushing: number; movesAdjacent: number; movesAnywhere: number;
+    noEssentialFrom: Record<DefenseKind, number>; nonEssentialOnlyFrom: Record<'block' | 'parry', number> },
   DODGE_VS_MISSILE: 10,
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
@@ -203,7 +221,7 @@ const DEFAULTS = {
   MORALE_PER_RESOLVE: 1,
   /** PL3, PL20: raw Resolve where each Nerve tier starts (one per NERVE_LINES row); 100 and up is superhuman */
   NERVE_TIER_FROM: [0, 20, 40, 60, 80, 100],
-  /** PL20 [Proposed]: past the last tier, every this much more Resolve adds a + to its name */
+  /** PL20: past the last tier, every this much more Resolve adds a + to its name */
   NERVE_BEYOND_STEP: 50,
   /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
   PERSONALITY_LEAN: 20,
@@ -356,6 +374,14 @@ const DEFAULTS = {
   // its engagement ends: a roll modifier of −(this × the tier gap) (placeholders)
   SHAKEN_PER_TIER: 5,
   SWAYED_PER_TIER: 5,
+  // TF13–TF16: an offer to stand down in a fight (engine/offer.ts); all placeholders
+  OFFER_WIN_TIERS: 3, // TF14: the win in tiers that convinces a code-run foe
+  OFFER_WIN_TIERS_SHAKEN: 2, // TF14: the win that convinces it once it is hurt (OFFER_EASIER_HEALTH) or uneasy (OFFER_EASIER_MORALE)
+  OFFER_EASIER_HEALTH: 'hurt' as HealthLevelKey,
+  OFFER_EASIER_MORALE: 'uneasy' as MoraleLevel,
+  OFFER_OPEN_TURNS: 2, // TF15: turns an AI-run listener (or the player) has to answer an offer; no answer is no
+  OFFER_BRIBE_PRICE: 5, // TF10: coin per character level that makes a bribe neither help nor hurt the Barter roll
+  OFFER_BRIBE_MOD: 10, // TF10: modifier on the briber's roll per doubling of the coin over that price (as much less per halving)
   /** NT3: each earlier try of the same speech kind at the same listener this engagement, on the speaker's roll */
   REPEAT_TRY: 15,
   HARD_BARGAIN_BUY: 0.9,
@@ -392,8 +418,8 @@ const DEFAULTS = {
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
   EQUIP_SHORT_STEP: 10,
   ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,
-  // GAP (placeholders, AN1–AN4): worn armor makes body-moving events this many NOISE steps louder, per
-  // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
+  // AN1–AN4 (values are placeholders): worn armor makes body-moving events this many NOISE steps louder, per
+  // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quiet Mail (AN5) takes one step off.
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
     tool: { quality_1: 5, quality_2: 10, quality_3: 15, quality_4: 20 } as Record<QualityKey, number>,
@@ -458,10 +484,9 @@ const DEFAULTS = {
   /** EN1 a: an essence row is on a template's list when the template's weighted average in the row's skills (raw × tier) is
    * at least this share of its best skill [placeholder] */
   ESSENCE_FIT_SHARE: 0.4,
-  /** an essence's appearance roll: one appears when d100 ≤ this % (by source: foe, or the ending's tier). Placeholders, set
-   * with ESSENCE_ROLL_NEEDED so essences come about as often as when one roll did both (about 31% from a notable foe or a
-   * Great Success ending, 50% from a Critical Success one) */
-  ESSENCE_APPEAR_CHANCE: { foe: 60, great_success: 60, critical_success: 70 } as Record<string, number>,
+  /** an essence's appearance roll: one appears when d100 ≤ this % (by source: a notable foe, any other foe (mob), or the
+   * ending's tier). D-274: a notable foe always has one and a mob 5%, so for a foe only the quality roll fails. Placeholders */
+  ESSENCE_APPEAR_CHANCE: { foe: 100, mob: 5, great_success: 60, critical_success: 70 } as Record<string, number>,
   /** an appeared essence's quality roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table; Near Miss or worse,
    * it fades (base 80: it holds 51%; 100: 71%) */
   ESSENCE_ROLL_NEEDED: 130,
@@ -589,6 +614,11 @@ const DEFAULTS = {
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × n
   /** no class levels higher than this; XP past a class's top level banks until a class with room is picked */
   CLASS_MAX_LEVEL: 20,
+  /** CS11: a ladder perk milestone every this many points of true skill, and an All step every ALL_STEP_EVERY, with no top */
+  PERK_MILESTONE_EVERY: 20,
+  ALL_STEP_EVERY: 50,
+  /** the perk page's rails always reach this far (milestones to 140, All steps to 150); a higher skill stretches them */
+  PERK_RAILS_TO: 150,
   /** a class's top level by tier: CLASS_TIER0_MAX_LEVEL + CLASS_LEVELS_PER_TIER × tier, at most CLASS_MAX_LEVEL
    * (tier 0 → 5, tier 1 → 10, tier 2 → 15, tier 3 and up → 20) */
   CLASS_TIER0_MAX_LEVEL: 5,
@@ -625,6 +655,8 @@ const DEFAULTS = {
   STEADY_GUARD: 5, // All-50 Steady Guard: Parry effective skill with a medium melee weapon (placeholder)
   SHIELD_BREAKER_MULT: 2, // A3 Shield Breaker: a heavy melee blow on a shield drains its pool by this multiple of the damage (placeholder)
   IRON_RIM_MULT: 0.75, // All-50 Iron Rim (Block's part): damage the owner's shield pool takes (placeholder)
+  AUGMENT_TRADE_SHARE: 0.5, // D-276 trade augment: share of the giving skill's true skill moved to the receiving skill (placeholder)
+  AUGMENT_PERCENT_RATE: 0.2, // D-276 percentage augment: receiving true skill × this × giving true skill ÷ 100 (placeholder)
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Lying that augments Vanishing (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
@@ -671,6 +703,7 @@ const DEFAULTS = {
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<DurationId, number>, // NW10: game minutes a routine step lasts (placeholders)
   RECENT_EVENTS: 8, // compact views: last few relevant events
+  HEADLINES_PER_PLACE: 3, // CS7: the Weaver sees this many top headlines of each ancestor place (placeholder)
   MEMORY_ENTRIES: 8, // PM1: an NPC's memory list holds at most this many entries (placeholder)
   EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself

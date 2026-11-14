@@ -57,11 +57,15 @@ describe('unique generation', () => {
     const seeds = new Set([1, 2, 3, 4, 5, 6].map((n) => JSON.stringify(rollUniqueSkills(bandit, createRng(n)))));
     expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
   });
-  it('never goes above 100: the rest spills into the tree', () => {
-    const t = { ...bandit, minimums: { [SK.melee_medium]: 98 }, level: 0, bonusPoints: 30, focus: [{ treeId: TR.melee, skill: SK.melee_medium }] };
+  it('never goes above the skill\'s own cap (a focus skill is tagged: 125, CS14); the rest spills into the tree', () => {
+    const t = { ...bandit, minimums: { [SK.melee_medium]: 118 }, level: 0, bonusPoints: 30, focus: [{ treeId: TR.melee, skill: SK.melee_medium }] };
     const s = rollUniqueSkills(t, createRng(1));
-    expect(s[SK.melee_medium].raw).toBe(100);
-    expect(sum(s)).toBe(128);
+    expect(s[SK.melee_medium].raw).toBe(CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS);
+    expect(s[SK.melee_medium].state).toBe('tagged');
+    expect(sum(s)).toBe(148);
+    // a tree skill that is not a focus pick stops at SKILL_CAP
+    const u = { ...bandit, minimums: { [SK.melee_medium]: 125, [SK.melee_light]: 98 }, level: 0, bonusPoints: 30, focus: [{ treeId: TR.melee, skill: SK.melee_medium }] };
+    expect(rollUniqueSkills(u, createRng(1))[SK.melee_light].raw).toBe(CONFIG.SKILL_CAP);
   });
   it('spawnNpc rolls a unique once (needs the rng) and saves its perk points; copies get fixed level points', () => {
     const lib = getLibrary();

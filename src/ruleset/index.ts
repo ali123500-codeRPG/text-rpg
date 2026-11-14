@@ -27,10 +27,10 @@ import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 
-export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
+export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
 export { meltAwayHere } from './perks';
-export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
+export { MILESTONES, ALL_STEPS, milestonesUpTo, allStepsUpTo, perksNeeded, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, eventRollMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, modeReach, augmentsOf } from './gear';
 
@@ -68,11 +68,9 @@ export function modTotal(mods: { type: string; value: number }[]): number {
   return [...byType.values()].reduce((s, vs) => s + stackType(vs), 0);
 }
 
-/** Layer 2b margin bands: the lowest margin for each tier above the worst */
-export const MARGIN_BANDS = [-75, -25, 0, 25, 75];
 /** the tier level a margin reaches */
 export function band(margin: number): number {
-  return MARGIN_BANDS.filter((t) => margin >= t).length;
+  return CONFIG.MARGIN_BANDS.filter((t) => margin >= t).length;
 }
 type Reach = { up: number; down: number };
 const NO_REACH: Reach = { up: 0, down: 0 };
@@ -80,7 +78,7 @@ const NO_REACH: Reach = { up: 0, down: 0 };
  * a band CONFIG.TIER_EXTRA_BAND wider past the end of MARGIN_BANDS: Critical Success+ from margin 75 + 50, Critical
  * Failure− below −75 − 50. Without an unlock a roll reads the table as before. */
 export function extraBands(margin: number, reach: Reach): number {
-  const top = MARGIN_BANDS[MARGIN_BANDS.length - 1], bottom = MARGIN_BANDS[0];
+  const top = CONFIG.MARGIN_BANDS[CONFIG.MARGIN_BANDS.length - 1], bottom = CONFIG.MARGIN_BANDS[0];
   let n = 0;
   for (let k = 1; k <= reach.up; k++) if (margin >= top + CONFIG.TIER_EXTRA_BAND * k) n++;
   for (let k = 1; k <= reach.down; k++) if (margin < bottom - CONFIG.TIER_EXTRA_BAND * k) n--;
@@ -111,18 +109,26 @@ function mustActor(state: GameState, id: string): Actor {
   return a;
 }
 
-/** gap ladder (Part 3, Defense); a gap past ±5 uses the ±5 entry */
+/** gap ladder (Part 3, Defense). A gap past GAP_MAX uses that row; past GAP_MIN each further step adds GAP_PAST_STEP to the
+ * GAP_MIN row, with no top (CS10) */
 export function ladder(type: DefenseKind, gap: number): number {
-  return CONFIG.GAP_LADDER[type][Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap))];
+  if (gap < CONFIG.GAP_MIN) return CONFIG.GAP_LADDER[type][CONFIG.GAP_MIN] + (CONFIG.GAP_MIN - gap) * CONFIG.GAP_PAST_STEP;
+  return CONFIG.GAP_LADDER[type][Math.min(CONFIG.GAP_MAX, gap)];
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
+// a dodge's +1 graze never lands on an essential part, like the tie (OQ-17 settled); off the shield, block and parry from +1 up keep the
+// gap-0 limit (CS2)
 function locRule(type: DefenseKind, g: number): LocRule {
-  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled)
-  return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block and parry +1..+5 off-shield keep the gap-0 limit
+  const H = CONFIG.HIT_GAPS;
+  if (type !== 'dodge' && g >= H.nonEssentialOnlyFrom[type]) return 'non_essential_only';
+  return g >= H.noEssentialFrom[type] ? 'no_essential' : 'any';
 }
+/** how far a hit may move toward the named part at this gap */
+const moveReach = (g: number): 'anywhere' | 'adjacent' | '' =>
+  g <= CONFIG.HIT_GAPS.movesAnywhere ? 'anywhere' : g <= CONFIG.HIT_GAPS.movesAdjacent ? 'adjacent' : '';
 function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
-  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
-  return [ladder(type, g), locRule(type, g), g <= -3 ? 'anywhere' : g === -2 ? 'adjacent' : '', shield && g >= 0].join('|');
+  const g = Math.min(CONFIG.GAP_MAX, gap);
+  return [ladder(type, g), locRule(type, g), moveReach(g), shield && g >= CONFIG.HIT_GAPS.shieldFrom].join('|');
 }
 
 /** sources whose removal alone changes the roll's tier index; natural edges listed as lucky/fumble */
@@ -157,7 +163,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const margin = rollMargin(d, eff.value, modifiers);
   const shifts = [...req.tierShifts];
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
-  let level = tierOf(d, eff.value, modifiers, shifts, tierReach(actor, req.rollKind)); // unclamped (Part 1 §4)
+  let level = tierOf(d, eff.value, modifiers, shifts, tierReach(actor, req.rollKind, !!req.contest)); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
   const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
@@ -173,12 +179,17 @@ function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
   return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill ? { asked: req.skill } : {}), target, passed, modifiers: req.modifiers };
 }
 
+/** two rolls as a contest: the gap is b's tier level minus a's; the acting side (a) wins below 0 (Part 1 §4 Contests) */
+export const toContest = (a: RollResult, b: RollResult): ContestResult => {
+  const gap = tierLevel(b) - tierLevel(a);
+  return { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
+};
+
 function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult {
   const noAim = (r: RollRequest) => ({ ...r, modifiers: r.modifiers.filter((m) => m.type !== 'aim') });
-  const ra = ruleset.roll(noAim({ ...a, against: a.against ?? b.actorId }), state, rng);
-  const rb = ruleset.roll(noAim({ ...b, against: b.against ?? a.actorId }), state, rng);
-  const gap = tierLevel(rb) - tierLevel(ra);
-  return { a: ra, b: rb, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
+  const ra = ruleset.roll(noAim({ ...a, against: a.against ?? b.actorId, contest: true }), state, rng);
+  const rb = ruleset.roll(noAim({ ...b, against: b.against ?? a.actorId, contest: true }), state, rng);
+  return toContest(ra, rb);
 }
 
 // Part 1 §4: read on the normal roll table (MARGIN_BANDS, ER3), the margin being total − 50 with the placeholder base
@@ -231,7 +242,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
   if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // 40/80/120 perk aimMult (none uses it today)
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
-  // GAP: the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value
+  // the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value (CS2)
   const hit = cls.hit + (mode.hitAdj ?? 0);
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
@@ -248,9 +259,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
     ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
-  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns, blend: mode.blend }, state, rng);
+  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend }, state, rng);
   const atkEff = mode.blend ? blendedSkill(state, A, mode.blend, { itemId: req.weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, skill, { itemId: req.weaponId });
-  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit'));
+  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit', true));
 
   const base: Omit<AttackResult, 'outcome' | 'deciding'> = {
     attack: atk, ...(req.context?.defenderUnaware ? { unaware: true as const } : {}), defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
@@ -282,9 +293,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
   }
   dm.push(...(req.context?.defenderMods ?? []));
-  const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
+  const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id, contest: true }, state, rng);
   const defEff = effectiveSkill(state, D, DEFENSE_SKILL[type], { itemId: blocker?.id });
-  const defDeciding = decidingOf(def, defEff.value, defEff.gear, tierReach(D, type));
+  const defDeciding = decidingOf(def, defEff.value, defEff.gear, tierReach(D, type, true));
 
   // 4. gap
   const gapShifts: TierShift[] = [];
@@ -301,7 +312,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
-  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
+  const g = Math.min(CONFIG.GAP_MAX, gap);
   let multiplier = ladder(type, g);
   const shield = type === 'block';
   const deciding = {
@@ -309,9 +320,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     defense: defDeciding,
     gap: gapShifts.filter((s) => rowKey(type, gap - s.value, shield) !== rowKey(type, gap, shield)).map((s) => s.source),
   };
+  const H = CONFIG.HIT_GAPS;
   let outcome: AttackResult['outcome'] =
-    multiplier === 0 ? (type === 'parry' ? 'parried' : 'dodged') : type === 'dodge' && g === 1 ? 'grazed' : type !== 'dodge' && (g >= 1 || (g === 0 && shield)) ? 'blocked'
-      : g <= -5 ? 'crushing_hit' : g === -4 ? 'heavy_hit' : 'full_hit';
+    multiplier === 0 ? (type === 'parry' ? 'parried' : 'dodged') : type === 'dodge' && g >= H.graze ? 'grazed' : type !== 'dodge' && (g >= H.blockFrom || (shield && g >= H.shieldFrom)) ? 'blocked'
+      : g <= H.crushing ? 'crushing_hit' : g <= H.heavy ? 'heavy_hit' : 'full_hit';
   // PA4: a parry at PARRY_STRIKE_GAP or better earns a free strike back (the engine makes it); PA7 Answer the Blow lowers it with a medium weapon
   const strikeAt = CONFIG.PARRY_STRIKE_GAP - (mediumParry && hasPerk(D, PK.answer_the_blow) ? CONFIG.ANSWER_THE_BLOW_DROP : 0);
   const strike = type === 'parry' && !ranged && gap >= strikeAt ? { strikeBack: true as const } : {};
@@ -320,7 +332,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 5. location
   let location: string;
   let locationHow: AttackResult['locationHow'];
-  if (shield && g >= 0) {
+  if (shield && g >= H.shieldFrom) {
     location = 'shield';
     locationHow = 'shield';
   } else {
@@ -335,7 +347,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
       locationHow = 'rolled';
     }
     const named = req.targetPart;
-    if (exists(named) && named !== location && (g <= -3 || (g === -2 && adjacent(state, D, location, named)))) {
+    const reach = moveReach(g);
+    if (exists(named) && named !== location && (reach === 'anywhere' || (reach === 'adjacent' && adjacent(state, D, location, named)))) {
       location = named;
       locationHow = 'redirected';
     }
@@ -415,7 +428,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     worn.pools = { ...worn.pools, [result.location]: ((left - absorbed) / poolPts) * 100 };
     dmg -= absorbed;
   }
-  // GAP: natural-armor pools have no saved state yet, so they absorb nothing
+  // natural-armor pools have no saved state yet, so they absorb nothing (parked: D-256)
   if (dmg <= 0 && general <= 0) return out;
   dmg = Math.max(0, dmg);
 
@@ -450,6 +463,8 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   // achievements count the player's HP lost as a flat number (the health % lost of total HP)
   if (T === state.player && T.core.condition.hpLostPct > lostBefore) tally(state, 'hp_lost', { add: ((T.core.condition.hpLostPct - lostBefore) / 100) * hp });
   const levelAfter = healthLevel(T);
+  // a kill is counted apart from a defeat: the player's blow took someone else to Dead
+  if (levelAfter === 'dead' && levelBefore !== 'dead' && T !== state.player && result.attackerId === state.player.id) tally(state, 'kills');
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;
 }
@@ -487,10 +502,10 @@ export function fallDamage(metres: number, step = 0): number {
   return at <= 0 ? 0 : bands[Math.min(at, bands.length) - 1].damage;
 }
 
-/** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
- * more; a tier past Critical Failure reads Critical Failure's row */
 /** BA2: seconds to pick a lock at effective Lockpicking `skill`: the Action times pick_lock row with its speed function */
 export const pickSeconds = (skill: number): number => actionSeconds(actionRow(DU.pick_lock)!, skill);
+/** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
+ * more; a tier past Critical Failure reads Critical Failure's row */
 export const landingStep = (t: Tiered): number => (CONFIG.FALL_LANDING_STEP[t.tier] ?? 0) - Math.max(0, t.beyond ?? 0) * CONFIG.FALL_LANDING_PAST_STEP;
 
 /** SD7: a jump down a drop: a Dodge roll on landing (rollKind dodge) moves the fall a band (FALL_LANDING_STEP), and the damage
@@ -514,9 +529,9 @@ export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: 
 
 /** the morale roll (MB4, MB30): the actor's Resolve (the Morale function), with wounds (health and morale, MB35),
  * the player's renown on every morale roll of a foe fighting the player (MB24) and rally on allies beside the player */
-export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0, extra: Mod[] = []): RollResult {
+export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0, extra: Mod[] = [], contest = false): RollResult {
   const mods = [...renownMods(state, actor, actor !== state.player && hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor)), ...extra];
-  return roll({ actorId: actor.id, skill: SK.resolve, modifiers: mods, tierShifts: shift ? [{ source: 'fear', value: shift }] : [] }, state, rng);
+  return roll({ actorId: actor.id, skill: SK.resolve, modifiers: mods, tierShifts: shift ? [{ source: 'fear', value: shift }] : [], ...(contest ? { contest: true as const } : {}) }, state, rng);
 }
 
 /** skills the actor has rolled that are not on its sheet: shown with raw 0 so a fist fighter sees Unarmed strike */

@@ -13,7 +13,8 @@ import { dayOf, now } from '../time';
 import { actorById, allActors, atLeast, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
 import { power, tally } from './xp';
-import { HEALTH_LEVELS } from '../scales';
+import { HEALTH_LEVELS, TIERS } from '../scales';
+import { tierLevel } from '../ruleset';
 import { seeingM } from './position';
 
 /** every turn, after the turn's events: zones and days, then the fight log */
@@ -76,6 +77,7 @@ function stateFeats(state: GameState, events: GameEvent[]): void {
 /** N4c: the player won a contest against someone with higher true skill: counted in general and per function of the
  * player's skill (or the functions given, such as the sense a notice roll used). Ties win nothing. */
 export function contestFeat(state: GameState, c: ContestResult, fns?: SkillFunction[]): void {
+  matchedCritFeat(state, c);
   const p = state.player;
   const side = c.a.actorId === p.id ? 'a' : c.b.actorId === p.id ? 'b' : null;
   if (!side || c.winner !== side) return;
@@ -84,6 +86,14 @@ export function contestFeat(state: GameState, c: ContestResult, fns?: SkillFunct
   if (!them || trueSkill(them, theirs.skill) <= trueSkill(p, mine.skill)) return;
   tally(state, 'outmatched');
   for (const f of fns ?? getLibrary().skills[mine.skill]?.functions ?? []) tally(state, 'outmatched', { by: 'function', of: f });
+}
+
+/** D-292: the player and the other side of a contest both landed on the same tier, Critical Success or past it */
+export function matchedCritFeat(state: GameState, c: ContestResult): void {
+  const p = state.player.id;
+  if ((c.a.actorId === p) === (c.b.actorId === p)) return;
+  const t = tierLevel(c.a);
+  if (t === tierLevel(c.b) && t >= TIERS.pos('critical_success')) tally(state, 'matched_crits');
 }
 
 /** keeps the player's fight log while the player's engagement holds a fight */
@@ -135,6 +145,8 @@ export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = 
   const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
   const lost = !!(f.down || f.broke || yieldTaken(state) || !isActive(state.player));
   strongerFoe(state, f, won && !lost);
+  // your nerve broke and the fight was won all the same; it still counts as a lost fight below (MB12), as going Down does
+  if (won && f.broke && f.foes.length && isActive(state.player) && !yieldTaken(state)) tally(state, 'won_broken');
   if (f.down || f.broke || yieldTaken(state) || !isActive(state.player)) return tally(state, 'defeated');
   if (f.brink) tally(state, 'brink');
   if (!won) {

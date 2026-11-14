@@ -8,7 +8,7 @@
 //   Bluff (LI1c): free, once per foe per engagement; a Lying roll against the foe's answer to a lie (answerRoll, so
 //   Takes One to Know One counts); unless the foe wins, it believes the lie and acts last next turn (initiativeOrder).
 import type { Actor, ContestResult, Effect, GameState, Rng } from '../types';
-import { PERK_MOVES, hasPerk, markUse, ruleset } from '../ruleset';
+import { PERK_MOVES, hasPerk, markUse, ruleset, toContest } from '../ruleset';
 import { usableGrips } from '../ruleset/body';
 import { handsOf, isHeld } from '../ruleset/gear';
 import { actorById, isActive, wary } from './relations';
@@ -17,9 +17,7 @@ import { markUntilNextTurn } from './perkMarks';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
-import { answerRoll, answerSkill, toContest } from './speech';
-import { getLibrary } from '../library';
-import { now } from '../time';
+import { answerRoll, answerSkill } from './speech';
 import { hearsClearly } from '../perception';
 import { sightDistM, withinM } from './position';
 import { CONFIG } from '../config';
@@ -78,7 +76,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   if (perk === PK.bluff) {
-    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng));
+    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng));
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c);
     markUse(state, t, c.b.skill, c);

@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -82,6 +82,9 @@ export function deathsDoor(state: GameState, a: Actor, before: number, lost: num
 export const achievementSkill = (a: Actor, skill: string): number => currentAchievements(a).reduce((n, x) =>
   n + chainRewards(x.d).reduce((m, e) => m + (e.field === 'skillAdd' ? e.from.skillAdd?.[skill] ?? 0 : 0), 0), 0);
 
+/** maxMorale: the flat max morale the actor's current achievements add, lower levels' amounts included */
+export const achievementMaxMorale = (a: Actor): number => currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, 'maxMorale'), 0);
+
 /** standIn: the share stand-ins gain on rolls of `skill`, from achievements earned for a group the skill is in */
 export function achievementStandIn(a: Actor, skill: string): number {
   const groups: string[] = groupsOf(getLibrary().skills[skill]);
@@ -106,19 +109,19 @@ export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean
 
 /** a tier unlock as a reward line */
 export function tierUnlockLine(u: TierUnlock): string {
-  const rolls = u.roll === 'any' ? 'all your rolls' : u.roll === 'event' ? 'your event rolls' : `your ${u.roll} rolls`;
+  const rolls = u.roll === 'any' ? 'all your rolls' : u.roll === 'event' ? 'your event rolls' : u.roll === 'contest' ? 'your contest rolls' : `your ${u.roll} rolls`;
   return u.side === 'up' ? `${rolls} can go +${u.steps} tier${u.steps === 1 ? '' : 's'} past Critical Success`
     : `${rolls} can fall +${u.steps} tier${u.steps === 1 ? '' : 's'} below Critical Failure`;
 }
 /** how many tiers past Critical Success (up) and below Critical Failure (down) the actor has opened on one kind of roll:
  * every current achievement's tierUnlocks along its chain, plus every active owned perk's, for that kind or 'any' (a
- * skill roll with no roll kind reads only 'any') */
-export function tierReach(a: Actor, roll: RollKind | undefined): { up: number; down: number } {
+ * skill roll with no roll kind reads only 'any'); a roll made in a contest also reads 'contest' (D-292) */
+export function tierReach(a: Actor, roll: RollKind | undefined, contest = false): { up: number; down: number } {
   const perks = getLibrary().perks ?? {};
   const all: TierUnlock[] = [
     ...currentAchievements(a).flatMap((x) => chainRewards(x.d).filter((e) => e.field === 'tierUnlocks').flatMap((e) => e.from.tierUnlocks ?? [])),
     ...a.core.perks.filter((p) => !p.dormant).flatMap((p) => perks[p.perkId]?.tierUnlocks ?? []),
-  ].filter((u) => u.roll === 'any' || (roll !== undefined && u.roll === roll));
+  ].filter((u) => u.roll === 'any' || (roll !== undefined && u.roll === roll) || (contest && u.roll === 'contest'));
   const sum = (side: TierUnlock['side']) => all.filter((u) => u.side === side).reduce((n, u) => n + u.steps, 0);
   return { up: sum('up'), down: sum('down') };
 }
@@ -146,6 +149,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'readsHealth': return [`you see the health level of every member of that ${(d.by ?? 'kind').replace('_', ' ')}`];
     case 'skillAdd': return Object.entries(d.skillAdd ?? {}).map(([sk, n]) => `+${n} true skill in ${skillName(sk)}`);
     case 'renown': return [`every foe fighting you takes ${-d.renown!} on its morale rolls`];
+    case 'maxMorale': return [`+${d.maxMorale} max morale`];
     case 'firstSight': {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
       return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];

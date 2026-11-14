@@ -9,13 +9,13 @@ import { SK } from '../../src/library/skillIds';
 import { intent, act, plannerOut, play } from '../cases/w4-kit';
 
 const cfg = CONFIG as unknown as { MARK_STACK_EVERY: number; GROWTH_AT_SCENARIO_END: boolean };
-afterEach(() => { cfg.MARK_STACK_EVERY = 3; cfg.GROWTH_AT_SCENARIO_END = true; });
+afterEach(() => { cfg.MARK_STACK_EVERY = 2; cfg.GROWTH_AT_SCENARIO_END = true; });
 
-it('marks 1, 4 and 7 each owe a roll at MARK_STACK_EVERY 3; the lever changes it', () => {
+it('marks 1, 3, 5 and 7 each owe a roll at MARK_STACK_EVERY 2; the lever changes it', () => {
   const s = makeVillage(), p = s.player;
   p.core.skills[SK.dodge] = { raw: 30, state: 'normal' };
   for (let i = 0; i < 7; i++) markIfClose(s, p, SK.dodge, 30);
-  expect(p.progression!.marks).toEqual([SK.dodge, SK.dodge, SK.dodge]);
+  expect(p.progression!.marks).toEqual([SK.dodge, SK.dodge, SK.dodge, SK.dodge]);
   clearMarkCounts(p); p.progression!.marks = [];
   cfg.MARK_STACK_EVERY = 5;
   for (let i = 0; i < 7; i++) markIfClose(s, p, SK.dodge, 30);

@@ -17,8 +17,11 @@ import { IT } from '../library/itemIds';
 import { ACH } from '../library/achievementIds';
 import { barMax, lineMax } from '../ruleset/fatigue';
 import { achievementInfo, grantAchievement } from '../engine/xp';
-import { actionNotes, doingSnap, placeName } from '../agents/game';
+import { actionNotes, doingSnap, NERVE_REFUSED, placeName } from '../agents/game';
 import { buildPlayerView } from '../views';
+import { passEssence, takeEssence } from '../engine/essence';
+import { ES } from '../library/essenceIds';
+import { now } from '../time';
 import { DU, FU } from '../library/tableIds';
 import { makeFurniture } from '../engine/furniture';
 
@@ -128,10 +131,16 @@ const FP = (id: string, kind: string, parentId: string | null, name: string, zon
   ({ id, storyId: 'fake', kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
 const FAKE_PLACES = (): GameState['places'] => placed([
   FP('village', 'village', null, 'Millbrook', [
-    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['ash_gate', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
+    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['w_road', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
   ]),
   FP('ashford', 'village', null, 'Ashford', [
-    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
+    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['w_road', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
+  ]),
+  // the west road, a day's walk (30 km) of real road from Millbrook's square to Ashford's gate, so the World shows the two
+  // villages that far apart (CO9); "travel" sets you partway along it
+  FP('west_road', 'road', null, 'the west road', [
+    FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.', [['v_square', 'Millbrook, east', false], ['ash_gate', 'Ashford, west', false]],
+      { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, ...roadShape('day', 'quiet') }),
   ]),
   FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
     FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall }, furniture: makeFurniture('tav_common', [{ kind: FU.counter, name: 'scarred counter', at: 'n' }, { kind: FU.hearth, name: 'hearth', at: 'w' }, { kind: FU.table, name: 'long table' }, { kind: FU.bench, name: 'bench', at: 'se' }, { kind: FU.barrels, name: 'ale barrels', at: 'ne' }]) }),
@@ -175,7 +184,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
 
   function start(b: CreationBuild) {
     const player = playerFromBuild(b, 'fake', 'tav_common', 'tavern');
-    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
+    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'w_road', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
     const settings = defaultSettings();
     const slime = spawnNpc(null, TP.slime, { id: 'slime_1', zone: 'field_mid', placeId: 'field', bandId: 'slimes', storyId: 'fake', name: 'slime' });
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
@@ -206,6 +215,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     player.core.inventory.push({ id: 'player_sack', itemId: IT.sack, qty: 1, contents: [{ id: 'sack_dagger', itemId: IT.dagger, qty: 1 }, { id: 'sack_bandage', itemId: IT.bandage, qty: 1 },
       { id: 'sack_inner', itemId: IT.sack, qty: 1, contents: [{ id: 'inner_draught', itemId: IT.healing_draught, qty: 1 }] }] });
     // Varo's Loop worn and bound, one power awake (its first deed earned), to show a Threadbound item's sealed powers
+    // a Street Instinct essence waiting on offer, to show the offer pop-up and the Character page's Essences section
+    if (player.progression) player.progression.essenceOffers = [{ essence: ES.street_instinct, grade: 'common', points: { [SK.dodge]: 1, [SK.insight]: 1 }, turn: 2, source: 'foe', untilMin: now(state) + 240 }];
     player.core.inventory.push({ id: 'player_loop', itemId: IT.varos_loop, qty: 1, equippedIn: ['acc:0'], boundTo: player.id });
     if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
@@ -263,11 +274,20 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (busy || !state) return;
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one
       const t = state.turn;
+      // 2.5: /essence take N [give M] and /essence pass N run the real rules, like the game's command (no turn)
+      const ess = /^\/essence (take|pass) (\d+)(?: give (\d+))?$/i.exec(text);
+      if (ess) {
+        const err = ess[1].toLowerCase() === 'take' ? takeEssence(state, Number(ess[2]) - 1, true, ess[3] ? Number(ess[3]) - 1 : undefined) : passEssence(state, Number(ess[2]) - 1);
+        lines = [...lines, { turn: t, kind: 'command', text }, { turn: t, kind: 'command', text: err ?? (ess[1].toLowerCase() === 'take' ? 'Taken. It is part of you now.' : 'You let it go.') }];
+        emit(); return;
+      }
       if (text === '/undo') { fell = false; state.turn = Math.max(1, t - 1); lines = [...lines, { turn: state.turn, kind: 'command', text: 'Turn undone.' }]; emit(); return; }
       lines = [...lines, { turn: t, kind: text.startsWith('/') ? 'command' : 'player', text, ...(o?.aimed ? { aimed: true } : {}) }];
       busy = true;
       if (/^end\b/i.test(text)) ending = { as: 'resolved', name: 'resolved' }; // the ending's rule draws while the turn runs (SD1)
       emit();
+      // NB5: with a broken nerve a punch is turned away before the turn, as the game does (no time passes)
+      if (/^(i )?punch\b/i.test(text) && moraleLevel(state.player) === 'broken') { lines = [...lines, { turn: t, kind: 'clarify', text: NERVE_REFUSED }]; busy = false; emit(); return; }
       // "punch the man": the game asks back which man, naming the guard and the field, to show the tappable names (no turn)
       if (/^(i )?punch the man\b/i.test(text)) { lines = [...lines, { turn: t, kind: 'clarify', text: 'Which man do you mean to punch: the village guard by the door, or do you mean the slime?' }]; busy = false; emit(); return; }
       await new Promise((r) => setTimeout(r, 600));
@@ -282,13 +302,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
       // "attack" lands a heavy hit; "attack hard" a crushing one and "attack light" a full one, to show the strike card's tiers
       const hurt = /^attack\b/i.test(text) ? fightTurn(state, /hard/i.test(text) ? 'crushing hit' : /light/i.test(text) ? 'full hit' : 'heavy hit') : null;
-      // "travel" adds a road west of the village and sets you partway along it, to show your point on the road on the Map (TV7)
+      // "travel" sets you partway along the west road, to show your point on the road on the Map (TV7)
       if (/^travel\b/i.test(text)) {
-        if (!state.places.some((x) => x.id === 'west_road')) {
-          state.places.push(FP('west_road', 'road', null, 'the west road', [FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.',
-            [['v_square', 'Millbrook, east', false], ['ash_gate', 'Ashford, west', false]], { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, ...roadShape('hour', 'quiet') })]));
-          placeZones(state, state.places.find((x) => x.id === 'west_road')!.zones);
-        }
         const road = state.places.find((x) => x.id === 'west_road')!.zones[0];
         state.player.zone = road.id; state.player.placeId = road.placeId;
         if (road.rect) state.player.pos = { x: road.rect.x - road.rect.w * 0.1, y: road.rect.y };
@@ -303,7 +318,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         setMoraleLost(p, /^fear/i.test(text) ? (Math.min(100, next) / 100) * max : (p.core.condition.moraleLost ?? 0) - max / 4);
       }
       // the turn "fear" breaks the nerve shows the Nerve broken card; "punch" while Broken is refused (MB12)
-      const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : wasBroken && /^punch\b/i.test(text) ? { nerveRefused: true as const } : null;
+      const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : null;
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;

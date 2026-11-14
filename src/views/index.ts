@@ -40,10 +40,12 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
+import { canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
+import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
-import { mentions } from '../words';
+import { cap, mentions, r1 } from '../words';
 import { modeName, usableModes } from '../ruleset/gear';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -53,7 +55,6 @@ import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../sc
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
-const r1 = (x: number) => Math.round(x * 10) / 10;
 /** FT20: the player's stamina bar as points left, to a tenth */
 export const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
 /** a rolled NPC's title from its template, given with its name in CHARACTER only */
@@ -67,8 +68,6 @@ function yieldView(state: GameState): YieldView | undefined {
   return { took: names(y.accepted), waiting: names(y.pending), refused: names(y.refused) };
 }
 
-// GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
-const HEADLINES_PER_PLACE = 3;
 /** others' health shows from CONFIG.HEALTH_SHOWN_FROM down (Voyage C2); Read Wounds (A13) shows it one step earlier on
  * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
 const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
@@ -102,14 +101,14 @@ function furnitureView(state: GameState, zoneId: string): { furniture?: ZoneView
   const fs = furnitureIn(state, zoneId);
   return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f) })) } : {};
 }
-/** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
-/** BG-181: what someone's wounds were last treated with, by item name, until their next wound */
 /** HF2: an echo's hidden past, for the Narrator only */
 const echoOf = (state: GameState, id: string): { echo?: string } => {
   const a = actorById(state, id), t = a?.core.origin === 'echo' && a.core.templateId ? npcTemplate(state, a.core.templateId) : undefined;
   return t?.unique ? { echo: t.unique.past } : {};
 };
+/** BG-181: what someone's wounds were last treated with, by item name, until their next wound */
 const tendedOf = (state: GameState, a: Actor): { tended?: string } => { const t = a.core.condition.tended; return t ? { tended: itemDef(state, t.itemId).name } : {}; };
+/** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
 function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: ItemInstance[] = i.contents ?? []): { container?: ContainerView } {
   if (!itemDef(state, i.itemId).container) return {};
   const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const } : {};
@@ -219,7 +218,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (hidden === 'unaware') continue;
     // BG-92: where someone is, even half seen, so nobody mistakes them for another person elsewhere
     const place = {
-      ...(a.pos && viewer.pos ? { distanceM: Math.round(sightDistM(state, viewer, a) * 10) / 10 } : {}),
+      ...(a.pos && viewer.pos ? { distanceM: r1(sightDistM(state, viewer, a)) } : {}),
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
     };
     if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
@@ -228,7 +227,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
     const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
     const level = sight === 'partial' || dark ? 'partial' : 'full';
-    // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
+    // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
     const name = nameFor(state, viewer, a);
     const h = healthLevel(a);
@@ -252,6 +251,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       gear: seenGear(state, a, revealedTo(viewer, a.id), viewer.id),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
+      ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
     });
   }
   return out;
@@ -301,7 +301,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
-    ...(e.overheard?.includes(viewer.id) ? { tell: tellFor(viewer) } : {}), // LI5a Overheard
+    ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor(viewer) } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
     ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
   };
 }
@@ -370,7 +370,7 @@ function headlinesFor(state: GameState, placeId: string, includeSelf: boolean): 
   let p = state.places.find((x) => x.id === placeId);
   if (p && !includeSelf) p = state.places.find((x) => x.id === p!.parentId);
   for (let n = 0; p && n < 32; n++) {
-    for (const id of p.headlines.slice(0, HEADLINES_PER_PLACE)) {
+    for (const id of p.headlines.slice(0, CONFIG.HEADLINES_PER_PLACE)) {
       const f = state.facts.find((x) => x.id === id);
       if (f) out.push(factText(state, f.text));
     }
@@ -391,15 +391,15 @@ function need(state: GameState, id: string): Actor {
 function talkingWithSeen(state: GameState): { id: string; name: string }[] {
   return talkingWith(state).map((id) => ({ id, name: callName(state, state.player.id, id) }));
 }
-/** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
- * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
- * off (BG-28) */
 /** BG-164: the player sees the spot where they last saw `id`, and nobody is made out there: they are gone from it, as far
  * as the player knows (never where to) */
 function goneFromSpot(state: GameState, id: string): boolean {
   const j = state.player.journal, zone = j?.lastKnown?.[id], pos = j?.lastSpot?.[id];
   return !!zone && !!pos && spotInSight(state, { zone, pos });
 }
+/** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
+ * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
+ * off (BG-28) */
 function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['lastSeen']> {
   const p = state.player;
   return Object.entries({ ...p.journal?.clearSight, ...p.journal?.lastKnown }).flatMap(([id, zone]) => {
@@ -434,7 +434,7 @@ function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metr
     const name = itemDef(state, inst.itemId).name.toLowerCase();
     best.set(name, Math.max(best.get(name) ?? 0, m.mode.reach));
   }
-  const out = [...best].map(([name, metres]) => ({ name, metres: Math.round(metres * 10) / 10 })).sort((a, b) => b.metres - a.metres);
+  const out = [...best].map(([name, metres]) => ({ name, metres: r1(metres) })).sort((a, b) => b.metres - a.metres);
   return out.length ? { reaches: out } : {};
 }
 /** BG-190: whom the player is following, or lost this turn and why */
@@ -467,6 +467,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
       ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
+      ...(offersTo(state, p).length ? { standDownOffers: offersTo(state, p).map((o) => ({ id: o.from, name: callName(state, p.id, o.from), landed: OFFER_WORDS[o.landed] })) } : {}), // TF11
     },
     zone: zoneView(state, zoneById(state, p.zone)!, p),
     zones: perceivedZones(state, p.zone, p),
@@ -541,6 +542,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(state.mercy?.pending.includes(a.id) ? { playerAtMercy: true as const } : {}),
+      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}) } } : {})(offersTo(state, a)[0]), // TF15
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
@@ -578,7 +580,7 @@ export function questGoalText(state: GameState, q: Quest): string {
   const who = (id: string) => callName(state, state.player.id, id);
   const name = (f: () => string, or: string) => { try { return f(); } catch { return or; } };
   const many = (n: string, k: number) => (k > 1 && !/s$/i.test(n) ? `${n}s` : n);
-  const count = (n: string, k: number) => `${n[0].toUpperCase()}${many(n, k).slice(1)} ${q.progress} / ${k}`;
+  const count = (n: string, k: number) => `${cap(many(n, k))} ${q.progress} / ${k}`;
   switch (g.kind) {
     case 'defeat': return g.by === 'actor' ? `Defeat ${who(g.of)}` : count(g.noun ?? (g.by === 'race' ? lib.races?.[g.of]?.name ?? g.of : name(() => bodyType(state, g.of).name, g.of)), g.count);
     case 'deliver': return `${count(g.inst ? itemName(state, g.item) ?? 'the item' : name(() => itemDef(state, g.item).name, g.item), g.qty)} to ${who(g.to)}`;
@@ -720,6 +722,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
+      ...(full && e.offers ? { offers: e.offers.map((o) => ({ to: callName(state, me, o.to), landed: o.landed })) } : {}), // TF12
+      ...(full && e.standDown ? { standDown: { with: e.standDown.with.map((id) => callName(state, me, id)), ...(e.standDown.coin ? { coin: coinWords(e.standDown.coin) } : {}) } } : {}), // TF16
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
       ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: wayWords(state, e.way) } : {}),

@@ -11,6 +11,7 @@ import { groupsOf } from '../library/functionNames';
 import { NERVE_HINTS, NERVE_LINES, type NerveLine, type Scale } from '../scales';
 import { chainRewards, currentAchievements } from './achRewards';
 import { ageYears, lifeStage } from './age';
+import { listWords } from '../words';
 
 /** the skill groups that count as fighting, and as attacking, for the tensions' bestFight and bestAttack */
 const ATTACK_GROUPS: string[] = [GR.melee, GR.ranged];
@@ -102,7 +103,7 @@ export function tensionsOf(state: GameState, a: Actor, p = personalityOf(a)): Te
     && (w.drives ?? []).every((d) => p.values.includes(d)) && (!w.anyDrive || w.anyDrive.some((d) => p.values.includes(d))));
 }
 
-const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+const list = (xs: string[]) => listWords(xs);
 
 /** PL4, PL9: the line the agent reads in CHARACTER: Nerve with its hint and the mood, a rolled NPC's signatures, the
  * archetype with its "but" traits, the top drives and the tensions. The morale level is the mood; the tier never moves with it. */

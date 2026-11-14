@@ -32,10 +32,12 @@ import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, im
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
+import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
 import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
+import { cap, r1 } from '../words';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scenario_fallback: 'Scenario planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -73,7 +75,6 @@ type Around = { who: Record<string, string>; head: Record<string, string>; heal:
 const SLOW_AFTER_S = 90; // past this the waiting line gets a "taking longer than usual" note
 const secs = (since: number) => Math.max(0, Math.round((Date.now() - since) / 1000));
 
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 /** Two hands meeting: the mark on the deals chip (K1 c). */
 function dealIcon(): HTMLElement {
   const i = h('span', { class: 'dl-i', 'aria-hidden': 'true' });
@@ -104,7 +105,7 @@ export function whoDistance(a: PlayerView['actors'][number], pv: PlayerView): st
   const where = a.zone && a.zone !== pv.zone.id ? `in ${pv.zones.find((z) => z.id === a.zone)?.name ?? a.zone}` : ''; // actors carry zone ids
   if (a.distanceM === undefined) return where ? cap(where) : '';
   const far = pv.player.reaches?.[0];
-  const m = (x: number) => (x < 10 ? `${Math.round(x * 10) / 10} m` : distText(x));
+  const m = (x: number) => (x < 10 ? `${r1(x)} m` : distText(x));
   const reach = !far ? '' : a.distanceM <= far.metres ? `in reach of your ${far.name} (${m(far.metres)})` : `beyond your ${far.name}’s ${m(far.metres)}`;
   return [`${m(a.distanceM)} away`, where, reach].filter(Boolean).join(' · ');
 }
@@ -169,7 +170,14 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
       : { group: 'Fight', key: 'fight', items: [...people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health), kind: 'attack' as const })),
         // SY1: in a fight, above Broken and not within its cooldown: one morale roll as your action
         ...(canSteady ? [{ text: 'Steady yourself', note: 'your action · a morale roll', kind: 'steady' as const }] : [])], all: true },
-    { group: 'Talk', key: 'talk', items: people.map((_, i) => ({ text: `Talk to ${names[i]}`, kind: 'talk' as const })), all: true },
+    // TF13/TF17/TF10/TF11: in a fight, ways to talk a foe out of it (a hurt or frightened foe gives in more easily)
+    { group: 'Talk', key: 'talk', items: [
+      ...(pv.player.standDownOffers ?? []).map((o) => ({ text: `Take ${o.name}'s offer to stop`, note: 'ends your fight with them', kind: 'talk' as const })),
+      ...people.flatMap((a, i) => a.talkDown ? [
+        { text: `Talk ${names[i]} down`, note: 'your action · Persuasion; easier once they are hurt or scared', kind: 'talk' as const },
+        { text: `Lie to ${names[i]} to end it`, note: 'your action · Lying against their Insight', kind: 'talk' as const },
+        { text: `Pay ${names[i]} to stop`, note: 'your action · Barter; name the coin, paid if they agree', kind: 'talk' as const },
+      ] : [{ text: `Talk to ${names[i]}`, kind: 'talk' as const }])], all: true },
     { group: 'Move', key: 'move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined, kind: l.frontier ? 'go_new' as const : 'go' as const })) },
     // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
     { group: 'Stealth', key: 'stealth', items: [
@@ -244,7 +252,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let confirmReset = false;
   // the fall: the story shakes and drains for a moment before "You fell" slams in (only when it happens in play, not on load)
   let wasFallen: boolean | null = null, dyingUntil = 0, fellKey = '';
-  const FALL_MS = () => ms('--m-fall') || 1400;
+  const FALL_MS = () => ms('--m-fall'); // durations come only from the --m-* tokens
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
@@ -679,17 +687,20 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (!busy) { delete waiting.dataset.since; waiting.replaceChildren(); }
     waiting.hidden = !busy;
-    // SD1: the ending moment starts as soon as the engine knows how the scenario ended, while the next scenario is still being
-    // made: the rule draws across with the ending's name. The closing line and the opening come with the turn's prose.
+    // SD1: the ending moment starts as soon as the engine knows the scenario ended, while the next scenario is still being
+    // made: the rule draws across, without the outcome. The closing line and the opening come with the turn's prose.
     const ending = busy ? api.scenarioEnding?.() ?? null : null;
     const key = ending ? `${ending.as}|${ending.name}` : '';
     if (key !== endKey) {
       endKey = key;
       if (!ending) endNow.replaceChildren();
       else {
-        const r = endRule(ending, '');
+        // how it ended (Resolved, Lost…) is the gains moment's reveal, so while the turn runs the rule names no outcome;
+        // the turn's own break (or the pop-up) names it when the turn lands
+        const r = h('p', { class: 'pbreak end-wait' }, h('b', {}, 'The scenario draws to a close'));
         endNow.replaceChildren(r);
-        endDrawn = drawBreak(r, 0) > 0;
+        drawBreak(r, 0);
+        endDrawn = false;
       }
     }
 
@@ -707,6 +718,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
           : h('p', { class: 'hs-note' }, 'Nothing right now')))),
       h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, ordered by their personality, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
     if (stick || busy) story.scrollTop = story.scrollHeight;
+    // 2.5: a new essence offer opens its pop-up once, when no turn is running (Take it / Let it go / Decide later)
+    if (!busy && !auto.playing()) maybeOfferPop(api, s, update);
 
     const ns = api.notices();
     notices.replaceChildren(...ns.map((n) => h('div', { class: 'hs-hl ' + (n.kind === 'stop_play' || n.kind === 'save_failed' ? 'bad' : 'ask'), role: 'status' },
@@ -780,7 +793,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
           h('div', { class: 'confirm' },
             h('button', { class: 'hs-btn-main', type: 'button', onclick: () => api.submit('/undo', { aimed: false }) }, 'Undo one turn'),
             confirmReset
-              ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and a new swordsman is made.'),
+              ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and you make a new character.'),
                  h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirmReset = false; await api.reset(); } }, 'Reset the story'),
                  h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirmReset = false; update(); } }, 'Keep it')]
               : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
@@ -800,8 +813,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     fresh = null;
   }
 
-  /** M-10–M-38: one live turn's motion, all on top of the final state. Prose sentence by sentence, then its results row by
-   * row, then the sheet in the order health, body parts, morale, skills, XP and level, coin, then gold cards. */
   /** Who's here (by the name shown, with its status words), the header's marked pieces and the quick slot, as shown now */
   function aroundNow(): Around {
     const text = (x: Element) => (x.textContent ?? '').trim();
@@ -822,6 +833,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return d * 0.6;
   }
 
+  /** M-10–M-38: one live turn's motion, all on top of the final state. Prose sentence by sentence, then its results row by
+   * row, then the sheet in the order health, body parts, morale, skills, XP and level, coin, then gold cards. */
   function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around, gainsLine?: LogLine) {
     finishAll();
     if (!e) return;
@@ -934,9 +947,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         pulse(w, d + fade, o - 1, o > 2);
         if (o === 3 && r.classList.contains('in')) shake([story, sheet], 0.6, d + fade); // a heavy hit on the player: about 1 px
       }
-      // a part that became Crippled or Destroyed: its card flares red, holds, and settles, with no growth that moves its text
       // coin that changed hands: its amount flares in its colour and pulses once (lost coin flares red, like a wound card)
       if (r.classList.contains('coin')) { const c = r.querySelector<HTMLElement>('b'); flare(c, 'color', c?.classList.contains('coin-down') ? 'var(--danger)' : 'var(--scenario-mark)', d + fade); pulse(c, d + fade, 2); }
+      // a part that became Crippled or Destroyed: its card flares red, holds, and settles, with no growth that moves its text
       if (r.classList.contains('wcard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--danger) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
       // MW2: the "Nerve broken" card lands like a wound card, in the morale violet
       if (r.classList.contains('ncard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--c5) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }

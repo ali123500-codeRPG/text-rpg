@@ -1,6 +1,6 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
-// GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
+// A missing nullable field reads as null; only a missing required field fails the answer (CS9).
 import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
@@ -83,8 +83,9 @@ const intent = obj<Intent>({
   clarify: nul(str),
   yields: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
   letsSearch: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null,
+  standDown: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null, // TF11
   look: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(['stats', 'inv'] as const)(v, p, e)) as 'stats' | 'inv',
-}, ['perkMove', 'yields', 'letsSearch', 'way', 'volume', 'look']);
+}, ['perkMove', 'yields', 'letsSearch', 'standDown', 'way', 'volume', 'look']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(NPC_ACTIONS),
@@ -134,7 +135,8 @@ const yields = (v: unknown, p: string, e: string[]) => (v === undefined || v ===
 const acceptYield = yields;
 const letsSearch = (v: unknown, p: string, e: string[]) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null; // BF16
 const spare = yields; // D-239
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'spare', 'headTo', 'lead', 'goals', 'steps'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps')[];
+const standDown = yields; // TF15
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead', 'goals', 'steps'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'standDown' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps')[];
 const headTo = nStr; // NW2
 // UG5/UG16: a goal holder's goals met, failed or added, and its next steps
 const goalOps = nul(obj<GoalOps>({
@@ -147,16 +149,16 @@ const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, 
 const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
 const npcMove = nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after']));
-const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, spare, headTo, lead, goals: goalOps, steps,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({
   action: npcAction, line: str, volume: VOLUME,
   shares: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-  gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, letsSearch, acceptYield, spare, headTo, lead,
-}, ['agreement', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'spare', 'headTo', 'lead']);
+  gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead,
+}, ['agreement', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead']);
 const narrator = obj<NarratorOutput>({
   text: (v, p, e) => {
     const s = str(v, p, e);

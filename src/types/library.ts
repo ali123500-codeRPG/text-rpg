@@ -11,12 +11,17 @@ import type { HealthLevelKey, PartStateKey, SkillTierKey } from '../scales';
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
 export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
-/** XP rating category of a skill (X18–X23). Set per skill: one tree may mix categories. */
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
+
+/** D-276: how an augment adds (ruleset/gear.ts augmentK, the one equation). plain (the default): the giving skill's true
+ * skill × share (default 1). trade: the same with share default CONFIG.AUGMENT_TRADE_SHARE, and the giving skill's own rolls
+ * lose what it gives (points moved, never made; always on). percent: the giving skill's true skill ÷ 100 × share (the rate,
+ * default CONFIG.AUGMENT_PERCENT_RATE) × the receiving skill's own true skill; two on one skill stack at STACK_RATIO. */
+export type AugmentKind = 'plain' | 'trade' | 'percent';
 
 export type SkillDef = {
   id: string;
@@ -24,19 +29,19 @@ export type SkillDef = {
   functions: SkillFunction[];
   groups?: SkillGroup[]; // groups the skill joins directly, without that group's function (Dodge: Speed)
   /** skills this skill augments: its effective value × share is added to every roll that asks for that skill,
-   * or only rolls of the listed kinds (none listed: every roll and check of that skill) */
-  augments?: { skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
+   * or only rolls of the listed kinds (none listed: every roll and check of that skill); kind as AugmentKind */
+  augments?: { skill: string; share?: number; kind?: AugmentKind; rollKinds?: import('./items').RollKind[] }[];
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
   access?: TreeAccess; // a skill's own rule on top of its tree's (SR1: persuasion and barter need a speaking race)
 };
-/** A source that opens or blocks a skill tree (TA1–TA11). 'class': the actor has that class, Current or
- * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
-/** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
-/** One access condition. Count kinds read `level` as the count: 'classes' = classes on the sheet in any state (id unused);
- * 'allStep' = trees whose All-XXX at step `id` (e.g. '50') the actor has; 'skillsAbove' = skills whose true skill is above `id`. */
+/** One access condition: a source that opens or blocks a skill tree (TA1–TA11). 'class': the actor has that class, Current
+ * or Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk; 'raceTag': the actor's race
+ * carries that tag (RaceDef.tags), e.g. 'speaks'. Count kinds read `level` as the count: 'classes' = classes on the sheet in
+ * any state (id unused); 'allStep' = trees whose All-XXX at step `id` (e.g. '50') the actor has; 'skillsAbove' = skills
+ * whose true skill is above `id`. */
 export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' | 'skill' | 'classes' | 'allStep' | 'skillsAbove'; id: string; level?: number };
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
@@ -44,7 +49,6 @@ export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy
 export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess;
   /** TREE_RATINGS key (default normal): how many skills at a step earn the tree's All-XXX (CONFIG.ALL_STEP_SKILLS) */
   rating?: import('../scales').TreeRatingKey };
-/** PY3: a service a seller can offer; heals names the healing row it pays for */
 /** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 export type EssenceDef = {
@@ -53,9 +57,10 @@ export type EssenceDef = {
   from: { race?: string; bodyType?: string; deed?: true; echo?: true };
   weight: number;
   skills: { skill: string; weight: number }[];
-  trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); none written yet (D-228 content round)
+  trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
   story: string;
 };
+/** PY3: a service a seller can offer; heals names the healing row it pays for */
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
@@ -182,22 +187,22 @@ export type ZoneKind = {
 /** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
 export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
-/** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean };
 export type FurnitureKind = { id: string; name: string };
+/** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;
   zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][]; furniture?: PlanFurniture[] }[];
 };
 /** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
 export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
-/** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all in the open in a quiet place (openAirReachM) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
 export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string };
 export type RoadLength = { id: import('../scales').RoadLengthKey; name: string; km: number };
 export type RoadDanger = { id: import('../scales').RoadDangerKey; name: string; encounterPct: number };
+/** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };
 
 /** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
@@ -205,8 +210,9 @@ export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: 
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 /** opens `steps` more tiers past Critical Success (side 'up') or below Critical Failure ('down') on one kind of roll, or
  * on every kind ('any'), while the owner holds the perk or achievement (achievements: added up along the chain). A roll
- * that stops at the Critical tiers (the event roll) can then reach Critical Success+ and beyond, or Critical Failure−. */
-export type TierUnlock = { roll: RollKind | 'any'; side: 'up' | 'down'; steps: number };
+ * that stops at the Critical tiers (the event roll) can then reach Critical Success+ and beyond, or Critical Failure−. Roll
+ * 'contest': every roll the owner makes as one side of a contest (RollRequest.contest). */
+export type TierUnlock = { roll: RollKind | 'any' | 'contest'; side: 'up' | 'down'; steps: number };
 export type PerkDef = {
   id: string; name: string; text?: string; eventRoll?: number;
   tierUnlocks?: TierUnlock[];
@@ -236,7 +242,7 @@ export type PerkDef = {
    * then on its stance toward the owner reads `colder` steps colder until play gives it a stance of its own */
   onSight?: { colder: number; fear: string };
   /** an All-XXX part (src/library/allPerks.ts): `skill` is the tree skill it belongs to; none = the tree's passive */
-  allStep?: { treeId: string; step: 50 | 100 | 150; skill?: string };
+  allStep?: { treeId: string; step: number; skill?: string };
   /** true skill added to every skill with this function (Hunter's Eye: +10 to the sight function) */
   fnSkill?: { fn: SkillFunction; add: number };
   /** a class-level perk (ClassDef.levelPerks): the class and level that grant it */
@@ -247,8 +253,8 @@ export type PerkDef = {
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
   searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach), while owned and active
   searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
-  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open) */
-  augments?: { from: string; skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
+  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open; kind as AugmentKind) */
+  augments?: { from: string; skill: string; share?: number; kind?: AugmentKind; rollKinds?: import('./items').RollKind[] }[];
   /** true skill added to every aura skill (the skills the game's auras roll, src/library/auras.ts) */
   auraSkill?: number;
   /** a linked perk (src/library/perkLinks.ts): granted by owning a set of perks, never taken */
@@ -268,17 +274,13 @@ export type PerkDef = {
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
 export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; cooldown?: string; needs?: string; open?: string };
-/** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
 /** What a write-up with no ladder yet is kept for: a later milestone perk of its own skill, an All-X candidate
  * (All-100/150 of the skill's tree), or something else. `aimAt` is the suggested milestone (60/100/140) or All tier (100/150). */
 export type BankedAs = 'milestone' | 'allX' | 'other';
+/** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50' | 'linked'; story: string; rules: PerkRules;
   bankedAs?: BankedAs; aimAt?: number };
 
-/** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`
- * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
- * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
- * of its skills reach `count` (50/100/150), id <id>:<tree>. */
 /** The Action times table (T1, AT1, AT11, AT12): how long an action takes, in seconds at a time factor of 1 (a skill-50
  * professional). `orders` lists the order types a row covers today; the action row (DU in src/library/tableIds.ts) is
  * the default turn outside a fight until turns last as long as their order; the sleep row is one sleep. Unset fields
@@ -345,8 +347,8 @@ export type RecoveryDef = {
 
 /** MB21–MB28: something that costs morale (a negative cost restores it). `rolled`: the morale roll's tier scales the cost
  * (MORALE_TIER_MULT); otherwise it is flat (× `perTier` the contest's tier gap for a lost speech roll).
- * `health`: the HEALTH_LEVELS keys that set it off; perks and achievements move `from` with fearFrom. */
-/** part: a PART_STATES key; the fear fires when one of the actor's body parts reaches that state or worse from a better one.
+ * `health`: the HEALTH_LEVELS keys that set it off; perks and achievements move `from` with fearFrom.
+ * part: a PART_STATES key; the fear fires when one of the actor's body parts reaches that state or worse from a better one.
  * partCost: its cost per part by the part's impact, for a body of refParts parts; a body with more parts pays less per part
  * (cost × refParts ÷ the body's part count). One roll per hit pays the sum for every part the hit took there. */
 export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; /** paid outside a fight too (a rolled fear otherwise needs one) */ unengaged?: true; health?: { from: HealthLevelKey; to: HealthLevelKey }; part?: PartStateKey;
@@ -354,10 +356,10 @@ export type FearDef = { id: string; name: string; cost: number; rolled: boolean;
   /** reads another part fear's partCost and refParts by reference, × mult, so editing that row changes this one too */
   partCostOf?: { fear: string; mult: number } };
 
-/** innatePerks / innateQuirks: perk ids every member of the race is born with (OwnedPerk source 'race').
- * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
 /** BR1–BR6: a race is what the being is. It names exactly one body type (BR5), its HP multiplier
- * (BR2) and natural armor (BR6), and adds its own natural attacks and fallback skill to the shape's (BR3). */
+ * (BR2) and natural armor (BR6), and adds its own natural attacks and fallback skill to the shape's (BR3).
+ * innatePerks / innateQuirks: perk ids every member of the race is born with (OwnedPerk source 'race').
+ * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
 export type RaceDef = {
   id: string; name: string; bodyTypeId: string; hpMultiplier: number;
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
@@ -368,9 +370,6 @@ export type RaceDef = {
   ageStages?: Partial<Record<import('../scales').LifeStageKey, number>>;
 };
 
-/** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
- * after: the key of the lower level this one builds on. Earning it switches the lower level off,
- * and its Bane bonus is the lower level's bonus plus its own. */
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
 export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
   | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
@@ -378,16 +377,22 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
   | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
   | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct' | 'event_crits' | 'event_crit_fails'
-  | 'essences_taken' | 'essence_room';
+  | 'essences_taken' | 'essence_room' | 'matched_crits' | 'kills' | 'survival_rolls' | 'won_broken';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source';
-/** scar: a negative achievement, listed under Scars instead of Achievements */
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
   | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
-  | 'searchArea' | 'searchReach';
+  | 'searchArea' | 'searchReach' | 'maxMorale';
+/** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is
+ * earned at `count` defeats (first defeat = count 1). With `by`, it is earned once per kind (body type, race …): the granted
+ * id is <id>:<kind> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when enough of its
+ * skills (by the tree's rating, CONFIG.ALL_STEP_SKILLS) reach `count` (50, 100, 150 …), id <id>:<tree>. level: a
+ * REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level]. after: the key of the lower level this one builds on; earning it
+ * switches the lower level off, and its Bane bonus is the lower level's bonus plus its own. scar: a negative achievement,
+ * listed under Scars instead of Achievements. */
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -401,6 +406,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   /** AP12: extra points while current, only when earned for this kind (`of`, e.g. a skill id on a by-skill row): Lying wins add Honesty −1 step */
   personalityByKind?: Record<string, PersonalityAdd>;
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
+  maxMorale?: number; // flat points added to the owner's max morale (ordeals pay nerve, never the skill used)
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
   standIn?: number; // + this share for stand-ins on rolls of a skill in the achievement's group

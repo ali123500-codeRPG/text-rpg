@@ -15,7 +15,7 @@ import { FUNCTION_ROLLS } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
 import { grantAchievement } from '../engine/xp';
-import { ALL_STEPS, hasPerk, trueSkill } from './perks';
+import { allStepsUpTo, hasPerk, trueSkill } from './perks';
 import { treeOpen } from './access';
 import { allActors, atLeast, isActive } from '../engine/relations';
 import { beliefStatus, updateBeliefs } from '../perception';
@@ -45,9 +45,10 @@ export function grantAllSteps(state: GameState, a: Actor, now = false): void {
   if (a.id === state.player.id) for (const treeId of Object.keys(lib.trees)) // each rating has its own line (MASTERY_ACH)
     for (const [step, key] of Object.entries(MASTERY_ACH[lib.trees[treeId].rating ?? 'normal'] ?? {}))
       if (treeAt(a, treeId, Number(step))) grantAchievement(state, key, treeId, undefined, now); // once only (B4)
-  for (const step of ALL_STEPS) for (const treeId of Object.keys(lib.trees)) { // All-50, All-100 and All-150 work alike
+  const top = Math.max(0, ...Object.keys(a.core.skills).map((s) => trueSkill(a, s)));
+  for (const step of allStepsUpTo(top)) for (const treeId of Object.keys(lib.trees)) { // every All step works alike (CS11)
     if (!treeAt(a, treeId, step)) continue;
-    const at = skillsAt(a, treeId, step), parts = STEP_PARTS[step];
+    const at = skillsAt(a, treeId, step), parts = STEP_PARTS[step] ?? {}; // a step past the written ones has no parts yet
     const passive = ALL_BUNDLES.find((b) => b.treeId === treeId && b.step === step)?.passive;
     for (const id of [...(passive ? [passive] : []), ...at.flatMap((s) => (parts[s] ? [parts[s]] : []))]) {
       if (!perks[id]?.built || a.core.perks.some((p) => p.perkId === id)) continue;

@@ -142,3 +142,38 @@ it('146h a lie rolls Lying and the listener answers with Insight; only the shady
   const liars = Object.values(lib.templates).filter((t) => t.minimums[SK.lying]).map((t) => t.id);
   expect(liars).toEqual([TP.thief]);
 });
+
+// NL1-NL4 (D-155 lies only): a lie one NPC aims at another rolls the same contest; a caught false name is not kept and
+// the listener's view of the line carries the tell; other speech at an NPC still does not roll
+it('146-NL an NPC lie at another NPC rolls; caught = tell and no alias, believed = alias; intimidation does not roll', () => {
+  const outcomes = new Set<string>();
+  for (let seed = 1; seed <= 40 && outcomes.size < 2; seed++) {
+    const s = makeVillage();
+    const g = actorById(s, 'guard_1')!, t = actorById(s, 'trader')!;
+    g.zone = 'tav_common'; g.placeId = t.placeId; g.knownOnSight = undefined;
+    t.mind!.knowledge.guard_1 = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] } as never;
+    g.mind!.knowledge.trader = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] } as never;
+    const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('talk', 'trader'), { dialogue: { line: "Name's Tam, from the coast.", volume: 'normal' } })] }, seed);
+    const e = ev.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
+    expect(e.contest!.a.asked ?? e.contest!.a.skill).toBe(SK.lying); // a stand-in may make the roll
+    expect(e.contest!.b).toMatchObject({ actorId: 'trader', skill: SK.insight });
+    expect(e.push).toMatchObject({ type: 'deceive', listener: 'trader' });
+    const tv = buildActorView(s, 'trader').told.find((x) => x.id === e.id);
+    if (e.push!.tell) {
+      outcomes.add('caught');
+      expect(t.mind!.aliases?.guard_1).toBeUndefined();
+      expect(tv?.tell).toBeTruthy();
+    } else {
+      outcomes.add('believed');
+      expect(t.mind!.aliases).toMatchObject({ guard_1: 'Tam' });
+    }
+    expect(s.player.journal!.aliases?.guard_1).toBe('Tam'); // the player, who heard it with no roll of their own, believes it
+    if (seed === 1) {
+      const ev2 = play(s, { agentOutputs: [plannerOut('guard_1', act('intimidate', 'trader'), { dialogue: { line: 'Keep out of my way.', volume: 'normal' } })] }, seed);
+      const e2 = ev2.find((x) => x.kind === 'speak' && x.actorId === 'guard_1')!;
+      expect(e2.contest).toBeUndefined();
+      expect(e2.push).toBeUndefined();
+    }
+  }
+  expect([...outcomes].sort()).toEqual(['believed', 'caught']);
+});

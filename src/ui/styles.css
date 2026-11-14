@@ -19,7 +19,7 @@
   --shadow-toast: 0 6px 24px rgba(0,0,0,.18);
   --bg: #0b1330; --surface: #16214a; --text: #eef4ff; --muted: #bccbec; --faint: #adbde2; --border: #2a3b70; --rule: #34477f;
   --accent: #93c5ff; --accent-soft: #1b3160; --ok: #5cc97a; --warn: #f2b552; --warn-soft: #2e2a22; --danger: #ff6b6b; --danger-soft: #3a1c26;
-  --on-btn: #ffffff; --on-pill: #0b1020; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
+  --on-btn: #ffffff; --on-pill: #0b1020; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; --essence: var(--perk-40); /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
   --c1: #689ce2; --c2: #72ae75; --c3: #8d99a5; --c4: #e97aac; --c5: #af80dc; --c7: #e29568; --c10: #df7369; --c12: #6cadae; --c14: #b27567; --c15: #caad69;
   --c6: #c7a5e4; --c8: #f19e94; --c9: #72bed3; --c11: #6474b0; --c13: #a2ad67; --c16: #628c71; --c17: #bf6895; --c18: #9865b7; --c19: #7c7bde; --c20: #92adff; --c21: #c18a9a; --c22: #8e6f8a;
   --btn-fill: linear-gradient(120deg in oklch, oklch(.50 .135 252) 8%, oklch(.53 .14 148) 92%);
@@ -30,7 +30,7 @@
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
   --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
-  --m-hold: 80ms; --m-strike: 1600ms; --m-shake: 280ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */
+  --m-hold: 80ms; --m-strike: 1600ms; --m-shake: 280ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */ --m-gains-min: 10000ms; /* and lasts at least this long, unless skipped */
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   color-scheme: dark;
 }
@@ -317,6 +317,24 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-figs div { display: grid; }
 .cs-figs b { font-size: 22px; font-weight: 800; }
 .cs-figs span { font-size: 12px; color: var(--muted); }
+/* D-273: the power rating, a button across both columns; its pop-up lists each part */
+.cs-figs .cs-power { grid-column: 1 / -1; display: grid; justify-items: start; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.cs-figs .cs-power span { text-decoration: underline dotted; text-underline-offset: 3px; }
+.cs-figs .cs-power:hover b, .cs-figs .cs-power:focus-visible b { color: var(--accent); }
+.pw-pop { width: min(460px, calc(100vw - 32px)); }
+.pw-pop .dpop-body { justify-items: stretch; }
+.pw-list { display: grid; gap: var(--space-1); }
+.pw-line { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; padding: var(--space-1) 0; }
+.pw-what { display: grid; }
+.pw-what span { font-size: 12px; color: var(--muted); }
+.pw-adds { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.pw-sub { padding-left: var(--space-4); }
+.pw-sub b { font-weight: 600; }
+.pw-group > summary { list-style: none; cursor: pointer; }
+.pw-group > summary::-webkit-details-marker { display: none; }
+.pw-group > summary .pw-what b::before { content: '▸ '; color: var(--muted); }
+.pw-group[open] > summary .pw-what b::before { content: '▾ '; }
+.pw-total { border-top: 1px solid var(--border); padding-top: var(--space-2); }
 .cs-gear { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .cs-gear .cs-item { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
 .cs-gear .cs-item:hover { color: var(--accent); }
@@ -487,6 +505,12 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-in p, .pk-in dl { flex-basis: 100%; margin: 0; font-size: 13px; }
 .pk-tag { font-size: 11px; font-weight: 700; border-radius: var(--r-pill); padding: 1px 8px; color: var(--scenario-mark); border: 1px solid color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
 .pk-in.quirk .pk-tag { color: var(--danger); border-color: color-mix(in oklch, var(--danger) 50%, transparent); }
+/* LR5: linked perks, the set they come from, and a merged set asleep */
+.pk-link .pk-tag { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 50%, transparent); }
+.pk-link-from { color: var(--muted); }
+.pk-link-from b { color: var(--text); font-weight: 700; }
+.pk-link-from .asleep b { color: var(--muted); text-decoration: line-through; }
+.pk-link-note { margin: 0; font-size: 13px; color: var(--accent); }
 .pk-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--space-3) 0 var(--space-4); border-bottom: 1px solid var(--border); }
 .pk-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 6px 10px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
 .pk-tabs button[aria-selected="true"] { color: var(--scenario-mark); border-color: var(--scenario-mark); font-weight: 700; }
@@ -828,6 +852,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-area.mine rect { fill: color-mix(in srgb, var(--scenario-mark) 6%, transparent); }
 .map-area.on rect, .map-area:hover rect, .map-area:focus-visible rect { stroke: var(--scenario-mark); stroke-dasharray: none; }
 .map-area-name { fill: var(--c15); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.map-area.real rect { fill: none; stroke-dasharray: none; stroke-width: 2; }
+.map-world-names { pointer-events: none; }
+.map-world-name .map-tile-name { font-size: 14px; }
+.map-world-name.here .map-tile-sub { fill: var(--scenario-mark); }
 .map-area.on .map-area-name { fill: var(--scenario-mark); }
 .map-tile { cursor: pointer; outline: none; }
 .map-tile-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
@@ -847,6 +875,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who circle { fill: var(--c4); stroke: var(--bg); stroke-width: 2; }
 /* To scale (CO1): zones as rectangles in metres; each side drawn by its edge kind */
 .map-tile.plan .map-tile-box { stroke: none; }
+.map-tile.world-place.plan .map-tile-box { stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); stroke-width: 2; }
+.map-tile.world-place.plan.road .map-tile-box { stroke: var(--muted); stroke-width: 3; stroke-dasharray: 10 6; stroke-linecap: round; }
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
 .map-tile.plan.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; opacity: 1; }
 .map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }
@@ -856,8 +886,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-edge.open { stroke-width: 1; stroke-dasharray: 1 5; opacity: .5; }
 .map-edge.low { stroke-width: 2; stroke-dasharray: 6 4; }
 .map-edge.window { stroke-width: 1; stroke-dasharray: 10 3 2 3; }
-.map-dot-who { fill: var(--c4); stroke: var(--bg); stroke-width: 1.5; }
-.map-dot-who.last { opacity: .5; }
 .map-scale line { stroke: var(--muted); stroke-width: 2; }
 .map-scale text { fill: var(--muted); font-size: 12px; }
 .k-edge { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--text); vertical-align: middle; }
@@ -868,6 +896,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who text { fill: var(--on-pill); font-size: 11px; font-weight: 800; }
 .map-who.last circle { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }
+.map-who.plan-who circle { stroke-width: 1.5; }
+.map-who.plan-who text { font-size: 9px; pointer-events: none; }
+.map-who.plan-who .map-who-label { fill: var(--text); font-size: 11px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; opacity: 0; pointer-events: none; }
+.map-who.plan-who:hover .map-who-label { opacity: 1; }
 .map-pin circle { fill: var(--scenario-mark); stroke: var(--bg); stroke-width: 2.5; }
 .map-pin circle.core { fill: var(--bg); stroke: none; }
 .map-crumbs { position: absolute; left: 12px; top: 12px; right: 64px; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px;
@@ -881,11 +913,16 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   border: 1px solid var(--rule); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--scenario-mark); font-weight: 800; font-size: 12px; padding-top: 4px; box-sizing: border-box; }
 .map-compass::after { content: ""; position: absolute; left: 50%; top: 19px; width: 2px; height: 14px; margin-left: -1px; background: linear-gradient(var(--scenario-mark), var(--rule)); }
 .map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
-.map-floors { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
-.map-floor { border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted); border-radius: var(--r-pill);
-  padding: 5px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
-.map-floor.on { color: var(--text); border-color: var(--accent); }
-.map-floor .you { color: var(--scenario-mark); }
+/* CO9: the height slider, lowest height at the bottom; the stops beside it name each height the map has */
+.map-floors { position: absolute; left: 12px; bottom: 12px; display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--r-md); background: color-mix(in srgb, var(--bg) 85%, transparent); }
+.map-floors[hidden] { display: none; }
+.map-floor-track { display: flex; gap: var(--space-2); align-items: stretch; }
+.map-floor-range { writing-mode: vertical-lr; direction: rtl; width: 24px; min-height: 96px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.map-floor-stops { display: flex; flex-direction: column; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.map-floor-stops .on { color: var(--text); font-weight: 700; }
+.map-floor-now { font-size: 13px; font-weight: 700; }
+.map-floor-now .you { color: var(--scenario-mark); }
 /* barriers you know stop you, on their exit: amber locked or barred, red blocked, green when you hold the key */
 .map-way { --wc: var(--warn); }
 .map-way.blocked { --wc: var(--danger); }
@@ -1004,13 +1041,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .itip dt { color: var(--faint); white-space: nowrap; }
 .itip dd { margin: 0; color: var(--text); }
 
-/* D-226 (M-39): the scenario-end gains panel. It covers the story column only, so the action box stays below it; the
-   night shows faintly through. A gold thread (XP is the Thread) runs down a spine of knots, one per kind of gain. */
+/* D-226 (M-39): the scenario-end gains moment, a pop-up over the whole screen (the grand moment: nothing else shows
+   while it plays); the night shows faintly through. A gold thread (XP is the Thread) runs down a spine of knots, one per
+   kind of gain. Continue, Enter or Esc closes it. */
 .play > .story { grid-area: 1 / 1; } .play > .sec { grid-area: 2 / 1; }
-.gains-veil { grid-area: 1 / 1; z-index: 5; position: relative; min-height: 0; overflow-y: auto; scrollbar-color: var(--rule) transparent;
-  background: var(--bg); border-top: 1px solid var(--rule); font: 14px/1.4 var(--font-round); }
-.gains { display: grid; gap: var(--space-6); padding: var(--space-6) var(--space-6) var(--space-8) 0; }
-.gains .g-rule { margin: 0; font-size: 15px; }
+.gains-veil { position: fixed; inset: 0; z-index: 80; overflow-y: auto; scrollbar-color: var(--rule) transparent; overscroll-behavior: contain;
+  background: radial-gradient(ellipse at 50% 18%, color-mix(in srgb, var(--scenario-mark) 10%, transparent), transparent 60%),
+    color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(4px); font: 15px/1.45 var(--font-round); }
+.gains { display: grid; gap: var(--space-8); width: min(1080px, 100%); margin: 0 auto; padding: clamp(32px, 7vh, 88px) var(--space-6) var(--space-8); }
+.gains .g-rule { margin: 0; font-size: clamp(22px, 1.6vw + 12px, 34px); letter-spacing: .08em; }
+.gains .g-title { text-align: center; font-size: clamp(34px, 2vw + 18px, 52px); }
+.gains .g-foot { justify-self: center; }
 .g-closing { margin: calc(-1 * var(--space-3)) 0 0; font: italic 400 var(--story-size)/1.6 var(--font-story); color: var(--muted); text-align: center; text-wrap: balance; }
 .gains-veil[data-end="lost"] { --g-thread: var(--danger); }
 .g-title { margin: 0; font: 400 clamp(26px, 1.2vw + 14px, 34px)/1.15 var(--font-story); letter-spacing: -.01em; color: var(--text); text-wrap: balance; }
@@ -1136,3 +1177,45 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .strike .sk-chg { margin: 4px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }
 .strike .sk-slash { position: absolute; left: -10%; right: -10%; top: 46%; height: 3px; transform-origin: left center; opacity: 0;
   background: linear-gradient(90deg, transparent, var(--sk) 30%, var(--text) 50%, var(--sk) 70%, transparent); }
+
+/* essences (2.5, 2.7): the offer pop-up, the Character page section and the sheet row; violet like the gem they are */
+.ess-pop { width: min(420px, calc(100vw - 32px)); }
+.ess-tile { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid color-mix(in oklch, var(--essence) 50%, transparent);
+  border-radius: var(--r-lg); background: color-mix(in oklch, var(--essence) 8%, var(--surface)); }
+.ess-top { display: flex; align-items: center; gap: var(--space-2); }
+.ess-top b { font-size: 17px; }
+.ess-gem { color: var(--essence); font-size: 18px; }
+.ess-grade { margin-left: auto; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in oklch, var(--essence) 60%, transparent); color: var(--essence); }
+.ess-stats { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ess-stat { font-weight: 700; font-variant-numeric: tabular-nums; padding: 2px 10px; border-radius: var(--r-md); background: color-mix(in oklch, var(--essence) 18%, transparent); color: var(--text); }
+.ess-story { margin: 0; color: var(--muted); font-size: 14px; font-style: italic; }
+.ess-meta { margin: 0; color: var(--faint); font-size: 13px; }
+.ess-acts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+.ess-pop .dpop-body { display: grid; gap: var(--space-3); }
+.ess-sec { margin: var(--space-6) 0; }
+.ess-head { display: flex; align-items: baseline; gap: var(--space-3); }
+.ess-head h2 { margin: 0; }
+.ess-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.ess-empty { place-items: center; min-height: 72px; border-style: dashed; background: none; color: var(--faint); }
+.ess-offers { margin-top: var(--space-4); }
+.ess-waiting { color: var(--essence); font-weight: 700; }
+.ess-pass { min-height: var(--input-h); padding: 0 16px; border-radius: var(--r-md); border: 1px solid var(--rule); background: none; color: var(--text); font: inherit; cursor: pointer; }
+.ess-pass:hover { border-color: var(--muted); }
+
+/* NB2: a sheet level word with its cost as a tip (hover or focus), not a line of its own */
+.cs-row:has(.cs-tipped) { position: relative; }
+.cs-tipped { cursor: help; text-decoration: underline dotted color-mix(in oklch, currentColor 60%, transparent); text-underline-offset: 3px; outline-offset: 2px; }
+.cs-tip { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30; padding: 6px 10px; border-radius: var(--r-md);
+  background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow-toast); font-size: 12px; font-weight: 400; line-height: 1.45; color: var(--text);
+  white-space: normal; text-align: left; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--m-feedback) var(--m-ease); }
+.cs-tipped:hover .cs-tip, .cs-tipped:focus .cs-tip, .cs-tipped:focus-within .cs-tip { opacity: 1; visibility: visible; }
+
+/* CT1: drag and drop on the Inventory: a dragged row dims, a row or group that takes the drop lights up */
+.hs-tbl tr[draggable="true"] { cursor: grab; }
+.hs-tbl tr.dragging { opacity: .5; }
+.hs-tbl tr.drop-ok > td { background: color-mix(in srgb, var(--accent) 16%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: -1px; }
+/* CT1: Put in, one button per carried container */
+.put-in { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.ach-chain { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); color: var(--muted); }
+.ach-chain .got { color: var(--text); }
+.ach-chain .got::marker { color: var(--ok); }

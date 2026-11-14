@@ -6,6 +6,7 @@ import { getLibrary } from '../library';
 import { essenceSkill, hasPerk, trueSkill } from './perks';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
+import { cap } from '../words';
 
 function holds(a: Actor, c: AccessCond): boolean {
   switch (c.kind) {
@@ -29,7 +30,7 @@ export function condName(c: AccessCond): string {
   if (c.kind === 'allStep') return `${c.level ?? 1} All-${c.id}`;
   if (c.kind === 'skillsAbove') return `${c.level ?? 1} skills above ${c.id}`;
   const name = c.kind === 'race' ? lib.races?.[c.id]?.name : c.kind === 'class' ? lib.classes[c.id]?.name : c.kind === 'perk' ? lib.perks[c.id]?.name : c.kind === 'body' ? lib.bodyTypes[c.id]?.name : undefined;
-  const n = name ?? c.id.charAt(0).toUpperCase() + c.id.slice(1).replace(/_/g, ' ');
+  const n = name ?? cap(c.id.replace(/_/g, ' '));
   return c.kind === 'class' && (c.level ?? 1) > 1 ? `${n} ${c.level}` : n;
 }
 

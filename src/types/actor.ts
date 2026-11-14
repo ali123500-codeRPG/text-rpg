@@ -74,8 +74,8 @@ export type Actor = {
   paid?: string[];
 };
 
-/** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */
-/** made: the turn a timed mark was made (it lasts PERK_MARK_ROUNDS rounds of game time from then); none: until used */
+/** a perk's lasting effect: target is the actor it names (an opening on that foe); made: the turn a timed mark was made (it
+ * lasts PERK_MARK_ROUNDS rounds of game time from then); none: until used */
 export type PerkMark = { perk: string; target?: string; made?: number };
 
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
@@ -122,10 +122,10 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link' | 'item'; // 'item': granted by a worn Threadbound item (D-218) // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
+  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link' | 'item' | 'essence'; // 'essence': a held essence's trait or quirk (D-229), once however many carry it (FP8) // 'item': granted by a worn Threadbound item (D-218) // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
-  tier?: 50 | 100 | 150;
+  tier?: number; // the All step (50, 100, 150 …; CS11)
   dormant?: boolean;
   /** a linked perk of kind 'merge' replaced this one (it is dormant until the merge no longer holds) */
   mergedInto?: LibraryRef;
@@ -202,6 +202,7 @@ export type Mind = {
   earlier?: { upTo: string; lines: string[] };
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
+  stoodDown?: true; // TF16: it stood down from the player's side (talked out of the fight): it counts as beaten
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware
   xpPaid?: true; // its defeat has paid XP (B4)
   essenceRolled?: true; // growth proposal 2.3: its defeat has rolled for an essence (one offer per foe, ever)

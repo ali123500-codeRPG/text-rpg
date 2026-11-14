@@ -2,6 +2,8 @@ import { PK } from './perkIds';
 // Perks whose rules are coded (perks are coded, so each is built against its Rules write-up in perks.ts).
 // A perk listed here can be taken; the rest show on the Perks screen but can't be taken yet.
 export const BUILT_PERKS = new Set<string>([
+  PK.plead, PK.buy_them_off, // B12, C3 (TF10): offers that can't be refused, src/engine/offer.ts cannotRefuse()
+  PK.fists_do_the_talking, // essence trait (Tavern Brawler), D-276 trade augment: src/ruleset/gear.ts augmentRows() and tradesOut()
   PK.dreaded_on_sight, // quirk: src/engine/auras.ts sightDread(), src/engine/relations.ts stance()
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
@@ -18,7 +20,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.hunters_eye, // T2d: src/ruleset/perks.ts trueSkill() fnSkill
   PK.opening_strike, PK.unerring, // T1a, T2a: src/engine/resolve.ts openingShifts()
   PK.hard_to_hold, // T3a: src/engine/held.ts breakFree()
-  PK.against_the_grain, PK.iron_rim, PK.grit, // PT10: attack() gap in src/ruleset/index.ts; PT11: applyEffects shield pool; PT8: perkAugments() in src/ruleset/gear.ts
+  PK.against_the_grain, PK.iron_rim, PK.grit, // PT10: attack() gap in src/ruleset/index.ts; PT11: applyEffects shield pool; PT8: augmentRows() in src/ruleset/gear.ts
   PK.junk_arsenal, PK.last_to_fall, // T3e: attack() in src/ruleset/index.ts; T4f: src/engine/morale.ts payFear()
   PK.know_the_step, // T5f: src/views/index.ts knowsStep()
   PK.iron_knuckles, PK.bare_handed_guard, // T3d, T3d2: attack() in src/ruleset/index.ts; trueSkillTo
@@ -38,7 +40,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.volley, // T2b: allFiftyAfterAttack()
   PK.second_wind, // T4b: allFiftyAfterAttack()
   PK.strike_and_fade, // T6a: allFiftyAfterAttack()
-  PK.misdirection, // T6e: perkAugments() in src/ruleset/gear.ts
+  PK.misdirection, // T6e: augmentRows() in src/ruleset/gear.ts
   PK.hushed_steps, // T6d: src/minds/state.ts stealthDetect(), allSteps.ts afterRollShifts()
   PK.shield_breaker, // A3: attack() and applyEffects()
   PK.point_blank, // A4: attack()

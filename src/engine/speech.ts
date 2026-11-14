@@ -3,9 +3,10 @@ import { FN } from '../library/functionIds';
 import type { Actor, ContestResult, GameEvent, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { hasPerk, markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
+import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
 import { getLibrary } from '../library';
-import { isActive, nameBook, wary } from './relations';
+import { isActive, isEngaged, nameBook, wary } from './relations';
+import { bribeMod, OFFER_WORDS, playerOffer } from './offer';
 import { distM, type Located } from './position';
 import { falseName } from '../words';
 import type { ExchangeSpeech } from './types';
@@ -191,8 +192,13 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   const named = SPEECH_SKILL[type] ?? SK.persuasion;
   // one player roll for every spokesperson: per-listener modifiers (Bane, Shaken, Swayed) count when there is one listener
   const p = state.player;
-  const tries = repeatTryMods(p, spokespeople, type); // NT3
-  const req = (actorId: string) => ({ actorId, skill: named, modifiers: tries, tierShifts: [], ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
+  const fight = isEngaged(state, p); // TF9 b: no repeat-try penalty in a fight
+  const tries = fight ? [] : repeatTryMods(p, spokespeople, type); // NT3
+  // TF10: a bribe to one listener: the coin offered weighs on the Barter roll
+  const briber = spokespeople.length === 1 ? state.actors.find((x) => x.id === spokespeople[0]) : undefined;
+  const bribe = briber ? playerOffer(state, intent, briber) : undefined;
+  if (bribe?.coin) tries.push({ source: 'Coin offered', type: 'situational', value: bribeMod(bribe.coin, briber!) });
+  const req = (actorId: string) => ({ actorId, skill: named, modifiers: tries, tierShifts: [], contest: true as const, ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
   // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
   const threat = (sp: string) => {
     const b = state.actors.find((x) => x.id === sp);
@@ -218,7 +224,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     if (contest.winner === 'a' && INFLUENCE().includes(mine.skill)) tally(state, 'speech_won', { by: 'skill', of: mine.skill });
     contestFeat(state, contest);
     markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
-    countTry(p, sp, type);
+    if (!fight) countTry(p, sp, type);
   }
   return { skill: shown.skill, playerTier: shown.tier, impression: impressionWords(type, shown.tier) ?? null, perSpokesperson };
 }
@@ -226,10 +232,6 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
 /** skills with the Influence function (persuasion, intimidation, barter, lying) */
 const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes(FN.influence)).map(([id]) => id);
 
-export const toContest = (a: RollResult, b: RollResult): ContestResult => {
-  const gap = tierLevel(b) - tierLevel(a);
-  return { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
-};
 
 /** OQ-29: the speech types that roll when an NPC aims them at the player; plain talk does not */
 export const PUSH_TYPES = ['persuade', 'deceive', 'intimidate', 'barter'];
@@ -247,17 +249,17 @@ export const tellFor = (listener: Actor | undefined, gap?: number): string =>
  * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
 export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng): RollResult {
   const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
+  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
 }
 
-/** OQ-29: an NPC's speech roll at the player; the player answers (answerSkill; the speaker is side a) */
-export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng): ContestResult {
+/** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */
+export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng, listener: Actor = state.player): ContestResult {
   const skill = SPEECH_SKILL[type] ?? SK.persuasion;
-  const p = state.player;
-  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: repeatTryMods(speaker, [p.id], type), tierShifts: [], against: p.id }, state, rng), answerRoll(state, p, answerSkill(type), speaker.id, rng));
-  countTry(speaker, p.id, type);
+  const fight = isEngaged(state, speaker); // TF9 b: no repeat-try penalty in a fight
+  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: fight ? [] : repeatTryMods(speaker, [listener.id], type), tierShifts: [], against: listener.id, contest: true }, state, rng), answerRoll(state, listener, answerSkill(type), speaker.id, rng));
+  if (!fight) countTry(speaker, listener.id, type);
   contestFeat(state, contest);
-  markUse(state, p, contest.b.skill, contest);
+  markUse(state, listener, contest.b.skill, contest);
   return contest;
 }
 
@@ -273,7 +275,7 @@ export function overhearLie(state: GameState, ev: GameEvent, answered: string[],
     if (o.id === speaker.id || answered.includes(o.id) || !isActive(o) || !hasPerk(o, PK.overheard)) continue;
     const heard = ev.perception?.[o.id];
     if (!hearsWords(heard)) continue;
-    roll ??= ruleset.roll({ actorId: speaker.id, skill: SK.lying, modifiers: [], tierShifts: [] }, state, rng);
+    roll ??= ruleset.roll({ actorId: speaker.id, skill: SK.lying, modifiers: [], tierShifts: [], contest: true }, state, rng);
     const contest = toContest(roll, answerRoll(state, o, SK.insight, speaker.id, rng));
     contestFeat(state, contest);
     markUse(state, o, contest.b.skill, contest);
@@ -313,7 +315,7 @@ export function pressedWords(e: GameEvent, listener?: Actor): { how?: string; to
   if (p.type === 'deceive') return p.tell || p.doubt ? { took: tellFor(listener, c.gap) } : undefined;
   const took = p.status === 'shaken' ? 'it shakes you' : p.status === 'swayed' ? 'you find yourself swayed'
     : p.tell ? tellFor(listener) : p.type === 'deceive' ? undefined : p.landed ? 'the haggling goes their way' : 'you hold firm';
-  return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}) };
+  return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}), ...(p.offer ? { offer: `an offer to stop fighting; it ${OFFER_WORDS[p.offer]}` } : {}) };
 }
 
 /** NT10: how the speaker saw the player take its speech roll; nothing when it could not see them */

@@ -4,11 +4,10 @@
 import { PK } from '../../src/library/perkIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { CONFIG } from '../../src/config';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from '../../src/engine';
 import type { GameEvent, GameState } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
-import { ago, tick, turnsFor } from '../harness/time';
+import { tick, turnsFor } from '../harness/time';
 import { engagementEndS } from '../../src/ruleset/actionTime';
 
 const speak = (s: GameState, from: string, to: string): GameEvent => ({

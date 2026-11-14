@@ -10,12 +10,21 @@ import { COVER, LIGHT } from '../scales';
 import { PK } from '../library/perkIds';
 import { AURA_SKILLS } from '../library/auras';
 import { syncPerkLinks } from './perkLinks';
+import { CONFIG } from '../config';
 
-export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
-/** all-XXX perks (formerly mastery perks; save key 'mastery'): granted when all three skills of a tree reach 50/100/150 */
-export const ALL_STEPS = [50, 100, 150] as const;
-/** ladder perks already taken in the same skill before a milestone shows; all-XXX perks don't count */
-export const PERKS_NEEDED: Record<number, number> = { 20: 0, 40: 0, 60: 1, 80: 1, 100: 2, 120: 2, 140: 3 };
+/** CS11: every `every` points up to `top`, with no top of its own */
+const series = (every: number, top: number): number[] => Array.from({ length: Math.max(0, Math.floor(top / every)) }, (_, i) => (i + 1) * every);
+/** CS11: a ladder perk milestone every PERK_MILESTONE_EVERY points of true skill, with no top; one past the last written
+ * perk is "empty" (reached, no perk yet) */
+export const milestonesUpTo = (top: number): number[] => series(CONFIG.PERK_MILESTONE_EVERY, top);
+/** CS11: All-XXX steps (formerly mastery perks; save key 'mastery') every ALL_STEP_EVERY points of true skill, with no top */
+export const allStepsUpTo = (top: number): number[] => series(CONFIG.ALL_STEP_EVERY, top);
+/** the milestones and All steps the perk rails always show (to PERK_RAILS_TO); the series go on past them */
+export const MILESTONES = milestonesUpTo(CONFIG.PERK_RAILS_TO);
+export const ALL_STEPS = allStepsUpTo(CONFIG.PERK_RAILS_TO);
+/** ladder perks already taken in the same skill before a milestone shows (0, 0, 1, 1, 2, 2, 3 … from 20 up); all-XXX
+ * perks don't count */
+export const perksNeeded = (milestone: number): number => Math.max(0, Math.floor((milestone / CONFIG.PERK_MILESTONE_EVERY - 1) / 2));
 
 const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
 /** the actor owns this perk and it is not dormant: every coded perk checks this */
@@ -83,7 +92,7 @@ export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
 /** ladder perks this actor owns in one skill */
 export const ladderPerksIn = (a: Actor, skill: string) =>
   a.core.perks.filter((p) => p.source === 'level' && getLibrary().perks[p.perkId]?.ladder?.skill === skill).length;
-const gated = (a: Actor, skill: string, milestone: number) => !hasPerk(a, PK.as_far_as_the_road_goes) && ladderPerksIn(a, skill) < (PERKS_NEEDED[milestone] ?? 0);
+const gated = (a: Actor, skill: string, milestone: number) => !hasPerk(a, PK.as_far_as_the_road_goes) && ladderPerksIn(a, skill) < perksNeeded(milestone);
 
 /** the library perk on one milestone of a skill's ladder, if written */
 export function milestonePerk(skill: string, milestone: number): PerkDef | undefined {

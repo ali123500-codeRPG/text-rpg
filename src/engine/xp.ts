@@ -18,16 +18,15 @@ import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
 import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
 import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
+import { r1 } from '../words';
+import { levelCost, xpToReach } from '../ruleset/levels';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
 /** character level: every class's level, plus bonus levels (levels no class gets) */
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0) + (a.progression?.bonusLevelsTaken ?? 0);
 /** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
 export const xpToNext = (a: Actor) => levelCost(charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
-/** the XP curve: what the step from level n to n + 1 costs. xpToNext and xpToReach both ask it, so changing it changes both. */
-export const levelCost = (n: number) => CONFIG.LEVEL_XP * Math.max(1, n);
-/** the XP the curve asks to reach level L from 0: the sum of every step on the way */
-export const xpToReach = (l: number) => { let n = 0; for (let i = 0; i < l; i++) n += levelCost(i); return n; };
+export { levelCost, xpToReach } from '../ruleset/levels';
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
@@ -207,7 +206,8 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
     const m = t.mind;
     if (!m || m.xpPaid) continue;
     // a foe that surrendered or broke while fighting the player has yielded to it (Q1, Q4); untouched: nothing
-    if (isActive(t) ? !m.moraleState || stance(state, t, state.player) !== 'yielded' : !m.hitByPlayer) continue;
+    // TF16: a foe that stood down from the player's offer is beaten too
+    if (isActive(t) ? !m.stoodDown && (!m.moraleState || stance(state, t, state.player) !== 'yielded') : !m.hitByPlayer) continue;
     m.xpPaid = true;
     awardXp(state, defeatXp(state, t), `defeat:${t.id}`);
     defeatAchievements(state, t);
@@ -223,16 +223,31 @@ export const skillRating = (s: number) => CONFIG.SKILL_RATING_AT_50 * (Math.max(
 /** a skill group's XP factor: its level on the XP_FACTORS scale (CONFIG.XP_GROUP_FACTOR) × CONFIG.XP_FACTOR_MULT; no level counts 0 */
 export const xpGroupFactor = (group: string): number => CONFIG.XP_FACTOR_MULT[CONFIG.XP_GROUP_FACTOR[group]] ?? 0;
 
-/** X18–X23: an actor's stat rating, the same for the player and a foe. Per skill group (a skill's first group) the skills' worths, highest first, count at 1, ½, ¼…, × the group's XP factor. */
-export function rating(a: Actor): number {
+/** one skill in the rating: its true skill × tier, its worth (skillRating), the share it counts at in its group (1, ½, ¼…)
+ * and what it adds (worth × share × the group's factor) */
+export type RatingSkill = { skill: string; value: number; worth: number; share: number; adds: number };
+/** one skill group in the rating: its XP factor, its skills highest first, and what the group adds */
+export type RatingGroup = { group: string; factor: number; skills: RatingSkill[]; adds: number };
+
+/** X18–X23: the rating's skill part, group by group (a skill's first group; no group counts 0). In each group the skills'
+ * worths, highest first, count at 1, ½, ¼…, × the group's XP factor. rating() and the character sheet both read this. */
+export function ratingGroups(a: Actor): RatingGroup[] {
   const lib = getLibrary();
-  const by: Record<string, number[]> = {};
+  const by: Record<string, { skill: string; value: number; worth: number }[]> = {};
   for (const id of Object.keys(a.core.skills)) {
-    const cat = groupsOf(lib.skills[id])[0] ?? ''; // the skill's first group; no group counts 0
-    (by[cat] ??= []).push(skillRating(trueSkill(a, id) * tierMult(id))); // LF16: true skill × tier; a closed tree counts 0
+    const value = trueSkill(a, id) * tierMult(id); // LF16: true skill × tier; a closed tree counts 0
+    (by[groupsOf(lib.skills[id])[0] ?? ''] ??= []).push({ skill: id, value, worth: skillRating(value) });
   }
-  return levelRating(a) + Object.entries(by).reduce((n, [cat, es]) =>
-    n + xpGroupFactor(cat) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
+  return Object.entries(by).map(([group, es]) => {
+    const factor = xpGroupFactor(group);
+    const skills = es.sort((p, q) => q.worth - p.worth).map((e, i) => ({ ...e, share: 1 / 2 ** i, adds: factor * e.worth / 2 ** i }));
+    return { group, factor, skills, adds: skills.reduce((n, k) => n + k.adds, 0) };
+  });
+}
+
+/** X18–X23: an actor's stat rating, the same for the player and a foe: its level part plus its skill groups */
+export function rating(a: Actor): number {
+  return levelRating(a) + ratingGroups(a).reduce((n, g) => n + g.adds, 0);
 }
 
 /** an actor's level: its full character level (free and bonus levels count), else an NPC's template level */
@@ -243,12 +258,24 @@ export const levelRating = (a: Actor): number => CONFIG.LEVEL_RATING_SHARE * xpT
 /** a foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of what it holds and wears (gear coin is priced at
  * about one coin per skill point of power). Carried spares and coin don't count. */
 export function gearRating(state: GameState, a: Actor): number {
-  return CONFIG.GEAR_RATING_FACTOR * a.core.inventory.filter((i) => isHeld(i) || isWorn(i)).reduce((n, i) => n + itemValue(state, itemDef(state, i.itemId)), 0);
+  return gearRatingItems(state, a).reduce((n, g) => n + g.adds, 0);
+}
+/** the gear rating item by item: each held or worn item's coin value and what it adds (GEAR_RATING_FACTOR × coin) */
+export function gearRatingItems(state: GameState, a: Actor): { id: string; itemId: string; coin: number; adds: number }[] {
+  return a.core.inventory.filter((i) => isHeld(i) || isWorn(i)).map((i) => {
+    const coin = itemValue(state, itemDef(state, i.itemId));
+    return { id: i.id, itemId: i.itemId, coin, adds: CONFIG.GEAR_RATING_FACTOR * coin };
+  });
 }
 
 /** An actor's power: its rating plus its gear rating. The one measure of how strong someone is, used by defeat XP and by
  * the stronger-foe achievements, so a change here changes both. */
 export const power = (state: GameState, a: Actor): number => rating(a) + gearRating(state, a);
+
+/** power() in its parts, for the character sheet: level, each skill group, gear; the parts add up to power() */
+export function powerParts(state: GameState, a: Actor) {
+  return { level: actorLevel(a), levelAdds: levelRating(a), groups: ratingGroups(a), gear: gearRatingItems(state, a), total: power(state, a) };
+}
 
 /** XP shrinks for foes much weaker than the player: min(1, TAPER × theirs ÷ mine) (X19). Defeat XP and defeat quests (QX2) share it. */
 export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.min(1, (CONFIG.DEFEAT_XP_TAPER * theirs) / mine) : 1);
@@ -258,7 +285,7 @@ export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.m
 export function defeatXp(state: GameState, t: Actor): number {
   const theirs = power(state, t), mine = power(state, state.player);
   const taper = weakFoeTaper(theirs, mine);
-  return Math.round(theirs * taper * CONFIG.DEFEAT_XP_MULT * 10) / 10;
+  return r1(theirs * taper * CONFIG.DEFEAT_XP_MULT);
 }
 
 const title = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -409,7 +436,7 @@ export function achievementInfo(state: GameState, a: { id: string; key?: string;
   if (!d) return { id: a.id, name, level: '', levelName: '', xp: 0, scar: false, earnedAt: '', why: '', rewards: [] as string[] };
   const level = achLevel(d, a.of), earnedAt = earnedAtText(state, d, a.of);
   // the value reached is named only when it went past what the row needs (a high-water mark like a 137-point power gap)
-  const reached = a.reached === undefined ? undefined : Math.round(a.reached * 10) / 10;
+  const reached = a.reached === undefined ? undefined : r1(a.reached);
   const why = reached !== undefined && !d.every && reached !== d.count
     ? `Turn ${a.turn}: you reached ${fmtCount(reached)}; this needs ${earnedAt}.`
     : `Turn ${a.turn}: you reached ${earnedAt}.`;

@@ -1,4 +1,4 @@
-// Essences (growth proposal section 2; EG1 a, EG2, EG3 b, EG4 a, EG9 a, EG11 b, EG15 b). A beaten notable foe, or a scenario
+// Essences (growth proposal section 2; EG1 a, EG2, EG3 b, EG4 a, EG9 a, EG11 b, EG15 b). A beaten foe (D-274: a notable one always, a mob at 5%), or a scenario
 // resolved at Great Success or better, may have an essence appear (the appearance roll); its quality roll then sets its grade,
 // or it fades. A held one is an offer: a package of true skill (and later a trait) the player can take
 // into a limited number of slots. Code rolls every offer from tables; no agent names, seeds or changes one.
@@ -37,8 +37,8 @@ export function gradeMult(grade: EssenceGradeKey, past = 0): number {
 export const appearRoll = (rng: Rng, source: string): boolean => rng.d100() <= (CONFIG.ESSENCE_APPEAR_CHANCE[source] ?? 0);
 
 /** the quality roll (2.4), made once an essence has appeared: d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural
- * edges included. Near Miss or worse: the essence fades; Success common, Great Success fine, Critical Success rare; returns the
- * grade and steps past the last grade. `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the
+ * edges included. Near Miss or worse: the essence fades; Success common, Great Success fine, Critical Success rare, and each step past
+ * Critical Success one grade more (CS13); returns the grade and steps past the last grade. `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the
  * Toss, All or Nothing), on this roll only. */
 export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }, echo = false): { grade: EssenceGradeKey; past: number } | null {
   const auto = by && fireEssenceAuto(by.state, by.actor);
@@ -47,7 +47,8 @@ export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; act
   if (auto) logCode(by!.state, 'essence_roll_auto', { perk: auto.perk, roll: d });
   const top = TIERS.keys.length - 1;
   const at = auto?.kind === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(d + base - CONFIG.ESSENCE_ROLL_NEEDED);
-  const level = Math.max(0, Math.min(top, at + naturalEdge(d)));
+  // CS13: a step past Critical Success (a natural high on a Critical Success) counts, one grade up per step, as an echo's does
+  const level = Math.max(0, at + naturalEdge(d));
   // HF29 a: an echo's roll goes ECHO_ESSENCE_TIERS up, past the last grade too, and never fades below ECHO_ESSENCE_FLOOR
   const step = level - TIERS.pos('success') + (echo ? CONFIG.ECHO_ESSENCE_TIERS : 0);
   if (step < 0) return echo ? { grade: CONFIG.ECHO_ESSENCE_FLOOR, past: 0 } : null;
@@ -127,16 +128,17 @@ export function notable(state: GameState, foe: Actor): boolean {
   return !!t?.notable || foe.core.generation === 'rolled' || foe.core.generation === 'unique' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
 }
 
-/** 2.3: each foe the player beat this turn (payDefeats) rolls once, ever, for an essence on its list (EN4), if notable.
- * The foes go on the running scenario's list (its ending's table). */
+/** 2.3: each foe the player beat this turn (payDefeats) rolls once, ever, for an essence on its list (EN4). D-274: a notable
+ * foe's essence always appears and a mob's at ESSENCE_APPEAR_CHANCE.mob, so the quality roll alone decides whether a notable
+ * foe's fades. The foes go on the running scenario's list (its ending's table). */
 export function offersFromDefeats(state: GameState, defeated: Actor[], rng: Rng): void {
   for (const foe of defeated) {
     const f = state.stage.scenario;
     if (f) (f.beaten ??= []).push(foe.id);
-    if (!foe.mind || foe.mind.essenceRolled || !notable(state, foe)) continue;
+    if (!foe.mind || foe.mind.essenceRolled) continue;
     foe.mind.essenceRolled = true;
     const rows = rowsFor(state, foe);
-    if (!rows.length || (!isEcho(foe) && !appearRoll(rng, 'foe'))) continue; // HF29 a: an echo always offers one
+    if (!rows.length || (!isEcho(foe) && !appearRoll(rng, notable(state, foe) ? 'foe' : 'mob'))) continue; // HF29 a: an echo always offers one
     const row = pick(rows, rng)!;
     appearAndRoll(state, rng, row, CONFIG.ESSENCE_ROLL_BASE.foe, 'foe', foe.names.current, row.skills, (sk) => (foe.core.skills[sk]?.raw ?? 0) * tierMult(sk), isEcho(foe));
   }
@@ -180,8 +182,18 @@ export function removeEssence(state: GameState, index: number, atRest: boolean):
   pr.xp -= cost;
   (pr.xpLog ??= []).push({ source: `essence removed:${e.essence}`, amount: -cost, turn: state.turn });
   if (!held.length) delete pr.essences;
+  syncEssenceTraits(state, state.player);
   logCode(state, 'essence_removed', { essence: e.essence, cost });
   return null;
+}
+
+/** FP8 (D-257): a held essence's trait and quirk are perks the holder owns (source essence), each once however many held
+ * essences carry it; letting the last of them go takes it away. Points still add up: they are skill, not a rule. */
+export function syncEssenceTraits(state: GameState, a: Actor): void {
+  const rows = getLibrary().essences ?? {};
+  const want = new Set((a.progression?.essences ?? []).flatMap((e) => [rows[e.essence]?.trait, rows[e.essence]?.quirk]).filter((x): x is string => !!x));
+  a.core.perks = a.core.perks.filter((p) => p.source !== 'essence' || want.has(p.perkId));
+  for (const id of want) if (!a.core.perks.some((p) => p.perkId === id)) a.core.perks.push({ perkId: id, source: 'essence', gainedTurn: state.turn });
 }
 
 /** 2.5: take an offer into an empty slot; with every slot full, `replace` names the held essence to give up (removal rules) */
@@ -198,6 +210,7 @@ export function takeEssence(state: GameState, offerIndex: number, atRest: boolea
   if (!pr.essenceOffers!.length) delete pr.essenceOffers;
   const { source: _s, untilMin: _u, ...e } = o;
   hold(p, { ...e, turn: state.turn } as HeldEssence);
+  syncEssenceTraits(state, p);
   logCode(state, 'essence_taken', { essence: o.essence, grade: o.grade });
   tally(state, 'essences_taken');
   if (pr.essences!.length >= essenceSlots(p)) tally(state, 'essence_room', { to: charLevel(p) });
@@ -240,7 +253,7 @@ function handOver(state: GameState, offerIndex: number, to: Actor, how: 'given' 
   if (!pr.essenceOffers!.length) delete pr.essenceOffers;
   const { source: _s, untilMin: _u, ...e } = o;
   const held = { ...e, turn: state.turn } as HeldEssence;
-  if (hasRoom(to)) hold(to, held);
+  if (hasRoom(to)) { hold(to, held); syncEssenceTraits(state, to); }
   else (to.essenceStock ??= []).push(held);
   const name = getLibrary().essences?.[o.essence]?.name ?? o.essence;
   applyMemoryOps(state, to, { add: [how === 'given' ? `${state.player.names.current} gave me an essence, ${name}.` : `I bought an essence, ${name}, from ${state.player.names.current} for ${price} coin.`], drop: [] });

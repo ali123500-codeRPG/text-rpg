@@ -2,7 +2,6 @@
 // The scan itself is code and may read GameState; nothing here is ever sent to an agent.
 import type { GameState, NarrationEvent, NarrationView, NarratorOutput } from '../types';
 import { getLibrary, itemDef } from '../library';
-import { SK } from '../library/skillIds';
 import { knowsName } from '../engine/relations';
 
 /** what must not appear in the text unless the view itself holds it */
@@ -48,7 +47,7 @@ export function buildLeakContext(state: GameState): LeakContext {
 }
 
 export { mentions } from '../words';
-import { mentions } from '../words';
+import { mentions, cap } from '../words';
 const uniq = (xs: string[]) => [...new Set(xs.filter((x) => x && x.trim()))];
 /** every forbidden name, id or term found in `text` that the view (or other allowed text) does not itself hold */
 export function leakScan(text: string, allowedText: string, ctx: LeakContext): string[] {
@@ -70,6 +69,7 @@ export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {
   const byPlayer = isPlayer(e.actor) || isPlayer(e.packet?.actor);
   const onPlayer = isPlayer(e.target) || isPlayer(e.packet?.target);
   if (byPlayer && POSITION.has(e.kind)) return true;
+  if ((byPlayer || onPlayer) && e.kind === 'stand_down') return true; // TF16
   if ((byPlayer || onPlayer) && INVENTORY.has(e.kind)) return true;
   if (onPlayer && ((e.changes?.length ?? 0) > 0 || (e.packet?.changes.length ?? 0) > 0)) return true;
   return false;
@@ -87,7 +87,6 @@ export function factCheck(out: NarratorOutput, view: NarrationView): string[] {
 // ---------------- fallback narration ----------------
 
 const who = (x?: string) => (!x ? 'someone' : x === 'player' ? 'you' : x);
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const SAYS = { whisper: 'whispers', normal: 'says', shout: 'shouts' } as const;
 const PARTIAL: Record<string, string> = {
   sound: 'You hear something',

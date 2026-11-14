@@ -6,12 +6,13 @@ import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, TIERS, type HealthLevelKey, type MoraleLevel, type PartStateKey } from '../scales';
 import { skillOpen } from './access';
-import { currentAchievements } from './achRewards';
+import { achievementMaxMorale, currentAchievements } from './achRewards';
 
-/** MB29: max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (raw, like Endurance for HP) */
+/** MB29: max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (raw, like Endurance for HP), plus the flat points the
+ * actor's current achievements add (AchievementDef.maxMorale) */
 export function maxMorale(a: Actor): number {
   const r = a.core.skills[SK.resolve];
-  return CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * (r && !r.dormant && skillOpen(a, SK.resolve) ? r.raw : 0);
+  return CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * (r && !r.dormant && skillOpen(a, SK.resolve) ? r.raw : 0) + achievementMaxMorale(a);
 }
 export const moraleLost = (a: Actor): number => a.core.condition.moraleLost ?? 0;
 /** share of max morale lost, in % */

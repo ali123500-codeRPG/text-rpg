@@ -7,19 +7,19 @@
 //   bigger of aura and spoken Shaken stands), and FR.dread_presence (10 morale per tier).
 import type { Actor, ContestResult, GameState, Rng } from '../types';
 import { CONFIG } from '../config';
-import { hasPerk, markUse, moraleRoll, ruleset } from '../ruleset';
+import { hasPerk, markUse, moraleRoll, ruleset, toContest } from '../ruleset';
 import { FN } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { FR } from '../library/tableIds';
-import { allActors, atLeast, isActive, onSightPerks, shortestPath, stance, wary } from './relations';
+import { allActors, atLeast, isActive, onSightPerks, stance, wary } from './relations';
 import { probe } from './yield';
 import { distM, withinM } from './position';
 import { besidePlayer } from './engagement';
 import { perceptionOf } from '../perception';
 import type { GameEvent } from '../types';
 import { AURAS, type AuraDef } from '../library/auras';
-import { applySpeech, toContest } from './speech';
+import { applySpeech } from './speech';
 import { contestFeat } from './feats';
 import { maxMorale } from '../ruleset/morale';
 
@@ -53,7 +53,7 @@ export function engagementAuras(state: GameState, rng: Rng, fear: AuraFear): Aur
       for (const t of allActors(state)) {
         if (t.auraChecks?.includes(key(aura, owner)) || !inReach(state, owner, t)) continue;
         (t.auraChecks ??= []).push(key(aura, owner));
-        const contest = toContest(ruleset.roll({ actorId: owner.id, skill: aura.skill, modifiers: [], tierShifts: [], against: t.id }, state, rng), moraleRoll(state, t, rng));
+        const contest = toContest(ruleset.roll({ actorId: owner.id, skill: aura.skill, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), moraleRoll(state, t, rng, 0, [], true));
         markUse(state, owner, contest.a.skill, contest); // I8: both sides mark, like any contest
         markUse(state, t, contest.b.skill, contest);
         contestFeat(state, contest);
@@ -109,7 +109,7 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
   for (const t of allActors(state)) {
     if (t === owner || !isActive(t) || !(ev.perception[t.id] ?? perceptionOf(ev, state, t))) continue;
     if (wary(state, t, owner)) {
-      const contest = toContest(ruleset.roll({ actorId: owner.id, skill: SK.intimidation, modifiers: [], tierShifts: [], against: t.id }, state, rng), moraleRoll(state, t, rng));
+      const contest = toContest(ruleset.roll({ actorId: owner.id, skill: SK.intimidation, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), moraleRoll(state, t, rng, 0, [], true));
       markUse(state, owner, contest.a.skill, contest);
       markUse(state, t, contest.b.skill, contest);
       contestFeat(state, contest);

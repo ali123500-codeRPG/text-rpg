@@ -6,7 +6,7 @@ import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
-import { achLevel, achXp, achievementName, earnedAtText } from '../engine/xp';
+import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
 import { rewardName, rewardPos } from '../ruleset/achRewards';
 import { CONFIG } from '../config';
@@ -15,6 +15,7 @@ import { gripWord, kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
+import { essencesSection } from './essences';
 import { closePanel, groupedTable, playDraft, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
@@ -25,6 +26,7 @@ import { coins, coinWords } from '../engine/trade';
 import { gripParts } from '../engine/gear';
 import { countWords } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
+import { cap } from '../words';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -40,19 +42,21 @@ type Spec = {
   top?: (redraw: () => void) => HTMLElement; // above the title: the page's sub-tabs
   lead?: (s: GameState) => HTMLElement; // under the title, above the tiles: the Inventory's equipment panel
   noTiles?: true; // no visibility tiles: the table alone (the Inventory, where the boxes only repeated the group counts)
+  startOpen?: true; // every group starts open, so the rows themselves show; a heading the player closes stays closed
 };
 
 export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: () => void } {
   const picks: Record<string, VisState> = {};
-  const open = new Set<string>();
+  const open = new Set<string>(), seen = new Set<string>();
   const sort = { key: spec.cols[0].key, dir: 0 as 0 | 1 | -1 };
   const el = h('main');
   const how = h('p', { class: 'how', hidden: true });
 
   function update() {
     const s = api.state();
-    if (!s) { el.replaceChildren(h('h1', {}, spec.title), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    if (!s) { el.replaceChildren(h('h1', {}, spec.title), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const all = spec.groups(s);
+    if (spec.startOpen) for (const g of all) if (!seen.has(g.id)) { seen.add(g.id); open.add(g.id); }
     const tileOf = spec.tileOf;
     const shown = tileOf ? all.map((g) => ({ ...g, rows: g.rows.filter((r) => visPass(tileOf(s, r), picks)) })).filter((g) => g.rows.length) : all.filter((g) => visPass(g.id, picks));
     const onOpen = (id: string) => {
@@ -74,7 +78,8 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     const count = shown.reduce((a, g) => a + g.rows.length, 0);
     const hint = picked.length
       ? [h('span', {}, `${plural(count, spec.noun[0], spec.noun[1])} shown · `), h('button', { class: 'hs-btn-text', type: 'button', style: 'min-height:0', onclick: () => { for (const k of Object.keys(picks)) delete picks[k]; update(); } }, 'Clear')]
-      : spec.noTiles ? 'Click a heading to open its rows.' : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
+      : spec.noTiles ? 'Click a heading to open its rows.' : spec.startOpen ? 'Click one to see how it is earned. Click a box: once for Shown, twice for Left out, three times to clear.'
+        : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
     el.replaceChildren(
       ...(spec.top ? [spec.top(update)] : []),
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
@@ -95,10 +100,11 @@ export function characterPage(api: GameApi) {
   const perks = perksSection(api);
   function update() {
     const s = api.state();
-    if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
-      h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s, s.player)),
+      h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s.player)),
+      essencesSection(api, s, update),
       h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
       perks);
     refreshPerks();
@@ -162,7 +168,6 @@ function threadboundRows(s: GameState, it: { boundTo?: string }, tb: NonNullable
 // Hovering or focusing an item shows its exact stats; Equip and Unequip send the same words the player could type,
 // so the turn rules hold (drawing and putting away are free, armor on or off is the turn's action).
 type InvItem = GameState['player']['core']['inventory'][number];
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 /** the words an Equip or Unequip button sends; null: the item can't be equipped */
 export function gearWords(s: GameState, it: InvItem): { label: string; text: string } | null {
@@ -264,11 +269,69 @@ export function insideOf(s: GameState, box: ItemInstance, path = ''): Inside[] {
 }
 const carriedBoxes = (s: GameState) => s.player.core.inventory.filter((i) => safe(() => itemDef(s, i.itemId).container) && !wornPack(i));
 const allInside = (s: GameState) => carriedBoxes(s).flatMap((b) => insideOf(s, b));
+/** CT1: the carried containers (by name, each name once) a loose item can be put in; none for something already inside one,
+ * and none for a container, which never goes into another */
+export function putInto(s: GameState, it: ItemInstance, inside = false): string[] {
+  if (inside || safe(() => itemDef(s, it.itemId).container)) return [];
+  return [...new Set(carriedBoxes(s).map((b) => (safe(() => itemDef(s, b.itemId).name) ?? 'container').toLowerCase()))];
+}
+/** CT1: what dropping a dragged item on a row or group of the Inventory means, as the order it drafts on Play: onto a
+ * carried container (its row, its "In your …" group, or anything already inside it) puts it in; an item inside a container
+ * dropped anywhere else in the pack takes it out. Null: no order (the same container, or not a place to drop). */
+export function dropOrder(s: GameState, itemId: string, onto: { row?: string; group?: string }): string | null {
+  const nameOf = (i: ItemInstance) => (safe(() => itemDef(s, i.itemId).name) ?? i.itemId).toLowerCase();
+  const inside = allInside(s), from = inside.find((x) => x.it.id === itemId);
+  const it = from?.it ?? s.player.core.inventory.find((i) => i.id === itemId);
+  if (!it) return null;
+  const boxes = carriedBoxes(s);
+  const box = boxes.find((b) => b.id === onto.row || `in:${b.id}` === onto.group)
+    ?? inside.find((x) => x.it.id === onto.row)?.box;
+  if (box) {
+    if (from) return null; // already in a container: moving it to another is two orders, so take it out first
+    return putInto(s, it).length && !safe(() => itemDef(s, it.itemId).container) ? `I put the ${nameOf(it)} in my ${nameOf(box)}` : null;
+  }
+  return from ? `I take the ${nameOf(it)} out of my ${nameOf(from.box)}` : null;
+}
+
+/** CT1: drag and drop on the Inventory table; a drop drafts the order on Play, as the Put in and Take out buttons do */
+function dragToBoxes(api: GameApi, el: HTMLElement): void {
+  let dragId: string | null = null;
+  const spot = (e: Event) => {
+    const t = (e.target as Element | null)?.closest?.('tr[data-row], tr[data-group]') as HTMLElement | null;
+    return t ? { tr: t, onto: { row: t.dataset.row, group: t.dataset.group } } : null;
+  };
+  const clear = () => el.querySelectorAll('.drop-ok, .dragging').forEach((x) => x.classList.remove('drop-ok', 'dragging'));
+  el.addEventListener('dragstart', (e) => {
+    const tr = (e.target as Element).closest?.('tr[data-row]') as HTMLElement | null;
+    if (!tr?.draggable) return;
+    dragId = tr.dataset.row ?? null;
+    e.dataTransfer?.setData('text/plain', dragId ?? '');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    tr.classList.add('dragging');
+  });
+  el.addEventListener('dragend', () => { dragId = null; clear(); });
+  el.addEventListener('dragover', (e) => {
+    const s = api.state(), at = spot(e);
+    el.querySelectorAll('.drop-ok').forEach((x) => x !== at?.tr && x.classList.remove('drop-ok'));
+    if (!s || !dragId || !at || !dropOrder(s, dragId, at.onto)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    at.tr.classList.add('drop-ok');
+  });
+  el.addEventListener('drop', (e) => {
+    const s = api.state(), at = spot(e), id = dragId;
+    clear(); dragId = null;
+    const order = s && id && at ? dropOrder(s, id, at.onto) : null;
+    if (!order) return;
+    e.preventDefault();
+    playDraft.text = order; closePanel(); location.hash = 'play';
+  });
+}
 const holdsText = (b: ItemInstance) => (b.contents?.length ? `Holds ${plural(b.contents.length, 'item')}` : 'Empty');
 
 export function inventoryPage(api: GameApi) {
-  return listPage(api, {
-    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
+  const page = listPage(api, {
+    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats; drag one onto a sack to put it in, or out of a sack to take it out.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
     focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
     lead: (s) => equipment(api, s),
     detail: (s, id) => {
@@ -282,6 +345,14 @@ export function inventoryPage(api: GameApi) {
         rows.splice(rows.length - 1, 0, { k: 'Inside', v: `Your ${boxName.toLowerCase()}` },
           { k: 'Take out', v: h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'take-out', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
             onclick: () => { playDraft.text = `I take the ${name.toLowerCase()} out of my ${boxName.toLowerCase()}`; closePanel(); location.hash = 'play'; } }, 'Take it out') });
+      }
+      // CT1: something loose in the pack, while a container is carried: Put in drafts the order on Play (a stow into it)
+      const boxes = putInto(s, it, !!inside);
+      if (boxes.length) {
+        const name = (safe(() => itemDef(s, it.itemId).name) ?? it.itemId).toLowerCase();
+        rows.splice(rows.length - 1, 0, { k: 'Put in', v: h('span', { class: 'put-in' }, boxes.map((box) =>
+          h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'put-in', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
+            onclick: () => { playDraft.text = `I put the ${name} in my ${box}`; closePanel(); location.hash = 'play'; } }, `Put it in your ${box}`))) });
       }
       const heal = healItems(s, s.player).find((x) => x.itemId === it.itemId);
       if (heal) {
@@ -311,7 +382,7 @@ export function inventoryPage(api: GameApi) {
         const pools = it.pools ? Object.entries(it.pools).map(([k, v]) => `${k} ${v}%`).join(', ') : 'Whole';
         const need = d ? requirement(d) : null;
         const needs = need ? `Needs ${needText(need)}` : '';
-        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: d?.container ? holdsText(it) : pools },
+        g.rows.push({ id: it.id, sortKey: n, drag: !d?.container, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: d?.container ? holdsText(it) : pools },
           ...(need ? { tones: { needs: shortBy(p, d!) > 0 ? 'bad' as const : 'muted' as const } } : {}) });
         groups.set(id, g);
       });
@@ -319,7 +390,7 @@ export function inventoryPage(api: GameApi) {
       const boxes = carriedBoxes(s).filter((b) => b.contents?.length).map((b, k) => {
         const name = safe(() => itemDef(s, b.itemId).name) ?? 'container';
         return { id: `in:${b.id}`, title: `In your ${name.toLowerCase()}`, color: 'c4', order: k, how: `What your ${name.toLowerCase()} holds. Click one to take it out.`,
-          rows: insideOf(s, b).map((x, n) => ({ id: x.it.id, sortKey: n, cells: { name: x.path, needs: '', qty: String(x.it.qty ?? 1),
+          rows: insideOf(s, b).map((x, n) => ({ id: x.it.id, sortKey: n, drag: true, cells: { name: x.path, needs: '', qty: String(x.it.qty ?? 1),
             cond: safe(() => itemDef(s, x.it.itemId).container) ? holdsText(x.it) : x.it.pools ? Object.entries(x.it.pools).map(([k2, v]) => `${k2} ${v}%`).join(', ') : 'Whole' } })) };
       });
       const inBoxes = boxes.map((g) => {
@@ -336,11 +407,13 @@ export function inventoryPage(api: GameApi) {
     },
     line: coinLine, noTiles: true,
   });
+  dragToBoxes(api, page.el);
+  return page;
 }
 
 /** a quest to open on arrival (the Play screen's quest line) */
 export const questFocus: { id: string | null } = { id: null };
-const titleCase = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const titleCase = cap;
 
 /** QT12: "Abandon quest", confirmed in place */
 function abandonButton(api: GameApi, id: string): HTMLElement {
@@ -423,7 +496,9 @@ export function achievementsPage(api: GameApi) {
     get empty() { return scars ? 'No scars yet.' : 'No achievements yet. Defeat foes, win fights, strike deals and explore.'; },
     get panelTitle() { return scars ? 'Scar' : 'Achievement'; },
     top: (redraw) => h('div', { class: 'pk-tabs', role: 'tablist' }, tab(false, 'Achievements', redraw), tab(true, 'Scars', redraw)),
+    startOpen: true,
     cols: [{ key: 'name', title: 'Name' }, { key: 'state', title: 'State' }, { key: 'turn', title: 'Earned' }],
+    detail: (s, id) => achievementDetail(s, id),
     groups: (s) => {
       const lib = getLibrary().achievements ?? {};
       const mine = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars);
@@ -445,6 +520,45 @@ export function achievementsPage(api: GameApi) {
   });
 }
 
+/** the chain an achievement belongs to, lowest level first: each row's `after` names the level below it */
+export function achievementChain(key: string): string[] {
+  const lib = getLibrary().achievements ?? {};
+  const down: string[] = [];
+  for (let k: string | undefined = key; k && lib[k] && !down.includes(k); k = lib[k].after) down.unshift(k);
+  const chain = [...down];
+  for (let k = key; ;) {
+    const next = Object.keys(lib).find((n) => lib[n].after === k && !chain.includes(n));
+    if (!next) break;
+    chain.push(next); k = next;
+  }
+  return chain;
+}
+
+/** the side panel for an earned achievement: how it is earned, when you earned it, what it pays, and every level of its chain
+ * with how each is earned and whether you have it */
+export function achievementDetail(s: GameState, id: string): PanelRow[] {
+  const a = (s.player.progression?.achievements ?? []).find((x) => x.id === id);
+  if (!a?.key) return [];
+  const info = achievementInfo(s, a);
+  const rows: PanelRow[] = [
+    { k: 'How it is earned', v: cap(info.earnedAt) },
+    { k: 'You earned it', v: info.why },
+    { k: 'Reward', v: [`Level ${info.levelName} · ${info.xp} XP`, ...info.rewards].join(' · ') },
+  ];
+  const levels = achievementLevels(s, a.key, a.of);
+  if (levels.length > 1) rows.push({ k: 'Every level', v: h('ol', { class: 'ach-chain' }, levels.map((l) =>
+    h('li', { class: l.got ? 'got' : '' }, h('b', {}, l.name), ` · ${l.earnedAt} · Level ${l.level}`, l.got ? ' · earned' : ''))) });
+  return rows;
+}
+
+/** every level of an achievement's chain for one kind (`of`): its name, how it is earned, its reward level, and whether you have it */
+export function achievementLevels(s: GameState, key: string, of?: string): { name: string; earnedAt: string; level: string; got: boolean }[] {
+  const lib = getLibrary().achievements ?? {};
+  const mine = s.player.progression?.achievements ?? [];
+  return achievementChain(key).map((k) => ({ name: achievementName(s, { id: '', key: k, of }), earnedAt: cap(earnedAtText(s, lib[k], of)),
+    level: rewardName(achLevel(lib[k], of)), got: mine.some((m) => m.key === k && (m.of ?? '') === (of ?? '')) }));
+}
+
 // ---------- Journal (Voyage U26, U28) ----------
 // Built only from what the character knows: people in view or whose name was learned, places the character was in or
 // heard facts about, and the turns played since this page was opened. Never the hidden store.
@@ -462,6 +576,12 @@ export function journalPeople(s: GameState): { id: string; name: string; label: 
     return [{ id, name: v?.name ?? (s.player.journal?.namesKnown.includes(id) ? a.names.current : '–'), label: a.label,
       where: v ? (zone ? `In view · ${zone}` : 'In view') : 'Not in view', health: v?.health ? othersHealthWord(v.health, v.level === 'full') : '–' }];
   });
+}
+
+/** the names the character has heard of people who weren't there (PlayerView.heardOf), less anyone already in People */
+export function heardOfNames(s: GameState, people = journalPeople(s)): string[] {
+  const known = new Set(people.map((p) => p.name.toLowerCase()));
+  return (safe(() => buildPlayerView(s))?.heardOf ?? []).filter((n) => !known.has(n.toLowerCase()));
 }
 
 /** Places: the current place and the places above it, and every place the character witnessed a fact about. */
@@ -488,11 +608,15 @@ export function journalPage(api: GameApi) {
   const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, edit: k === key })), 'Written by the game as you play, so it is read-only here.');
   function update() {
     const s = api.state();
-    if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const people = journalPeople(s), places = journalPlaces(s);
     const pGroups: TGroup[] = ['In view', 'Not in view'].map((g) => ({ id: 'p-' + g, title: g,
       rows: people.filter((p) => p.where.startsWith(g)).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, label: p.label, where: p.where, health: p.health } })),
       combined: { label: '', where: g, health: '' } })).filter((g) => g.rows.length);
+    // names heard of someone who wasn't there (PlayerView.heardOf); one met since is listed above instead
+    const heard = heardOfNames(s, people);
+    if (heard.length) pGroups.push({ id: 'p-heard', title: 'Heard of', combined: { label: '', where: 'Never met', health: '' },
+      rows: heard.map((name, i) => ({ id: `heard:${i}`, sortKey: i, cells: { name, label: '–', where: 'Heard of, never met', health: '–' } })) });
     const parents = [...new Set(places.map((p) => p.parent))];
     const plGroups: TGroup[] = parents.map((par) => ({ id: 'pl-' + par, title: par === '–' ? 'Top level' : par,
       rows: places.filter((p) => p.parent === par).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, parent: p.parent, facts: p.facts.join(' ') || '–' } })),
@@ -507,7 +631,7 @@ export function journalPage(api: GameApi) {
     const sec = (title: string, note: string, table: HTMLElement) => h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), h('p', { class: 'hs-note' }, note)), table);
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
-      sec('People', 'A label until you learn the name. Health shows only from Wounded down.',
+      sec('People', 'A label until you learn the name. Health shows only from Wounded down. Heard of: names you have heard for people you have never met.',
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
           groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
       sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',

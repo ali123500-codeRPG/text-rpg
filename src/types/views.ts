@@ -11,8 +11,8 @@ export type HealthLevel = HealthLevelKey;
 export type PartState = PartStateKey;
 
 /** CT1/CT3: a container as a viewer knows it: open or shut, with a lock (and the viewer's key to it), and what is inside
- * once it stands open. The Weaver's view (no viewer) has it all, and its owner. */
-/** shut: a shut one (BG-175), so a mind knows to open it */
+ * once it stands open. The Weaver's view (no viewer) has it all, and its owner. shut: a shut one (BG-175), so a mind knows to
+ * open it */
 export type ContainerView = { open?: true; shut?: true; lock?: 'locked' | 'unlocked'; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack
 export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11)
@@ -90,6 +90,7 @@ export type SeenActor = {
   wares?: WareView[]; // a seller the player sees, at the player's prices
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
+  talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
 };
 /** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
 export type DoingView = { what: string; done: number; left: number };
@@ -124,6 +125,7 @@ export type PlayerView = {
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
     spar?: SparView; // SP1: the spar the player fights in
     yielded?: YieldView; // MB40: the player yielded in a real fight this scenario
+    standDownOffers?: { id: string; name: string; landed: string }[]; // TF11: foes offering the player a stand-down; landed: how it struck the player
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
@@ -185,6 +187,7 @@ export type ActorView = {
     spar?: SparView; // SP1: the spar it is a fighter in
     playerYielded?: true; // MB41: the player yielded to self and awaits an answer (acceptYield)
     playerAtMercy?: true; // D-239: the player is down before self, which decides to finish or spare (spare)
+    standDownOffer?: { from: string; landed: string; coin?: string }; // TF15: an offer to stop fighting, and how it landed with self (answer standDown)
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
@@ -248,7 +251,7 @@ export type NarrationEvent = {
   activityLook?: string; // presence events
   packet?: CombatPacket; // attacks
   spar?: true; // SP11: a sparring blow, not a real attack
-  pressed?: { how?: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
+  pressed?: { how?: string; took?: string; offer?: string }; // OQ-29: an NPC's speech roll at the player, in words; offer: TF11, it was an offer to stand down
   overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
   into?: string; // put_in: the container's name
@@ -256,6 +259,8 @@ export type NarrationEvent = {
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
   steady?: 'calmer' | 'worse' | 'no change'; // SY1: how steadying oneself went, in words
+  offers?: { to: string; landed: string }[]; // TF12: the player's offer to stop fighting, and how it landed with each listener
+  standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
   mentallySteady?: true; // SY1: it left them Mentally steady
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
   way?: { what: string; did: string; to: string }; // SD3–SD5, BA2: a barrier on the way to `to`: what kind, and what was done at it

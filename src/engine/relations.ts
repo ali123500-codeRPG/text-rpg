@@ -67,8 +67,10 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
     return ac === 'loyal' || (ac === 'friend' && opposed);
   });
 }
-/** MB42: the player and a foe that took the player's yield are at truce for the rest of the scenario */
+/** MB42: the player and a foe that took the player's yield are at truce for the rest of the scenario; TF16: so are those
+ * at a stand-down truce (engine/offer.ts) */
 export function truce(state: GameState, a: Actor, b: Actor): boolean {
+  if (state.offers?.truces[a.id]?.includes(b.id)) return true;
   const y = state.yielding;
   const other = a === state.player ? b : b === state.player ? a : undefined;
   return !!y && !!other && y.accepted.includes(other.id);

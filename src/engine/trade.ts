@@ -15,6 +15,7 @@ import { itemValue as benefitValue } from '../ruleset/value';
 import { hearsClearly } from '../perception';
 import { canSpeak, gripReachM } from '../ruleset/body';
 import { withinGrip } from './position';
+import { listWords } from '../words';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -32,7 +33,7 @@ export function coinWords(n: number): string {
     left -= k * worth;
   }
   if (!parts.length) return `0 ${CONFIG.COIN_NAMES.at(-1)![0]}`;
-  return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
+  return listWords(parts);
 }
 
 export const coins = (a: Actor): number => a.core.inventory.filter((i) => i.itemId === IT.coin).reduce((n, i) => n + (i.qty ?? 1), 0);

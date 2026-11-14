@@ -16,7 +16,7 @@ import { SENSE_SKILL } from '../library/skillIds';
 import { IT } from '../library/itemIds';
 import { activity, itemDef } from '../library';
 import { NOISE, type AttentionKey, type NoiseKey } from '../scales';
-import { markUse, ruleset, situational, fnRoller, tierLevel } from '../ruleset';
+import { markUse, ruleset, situational, fnRoller, tierLevel, toContest } from '../ruleset';
 import { perkSum } from '../ruleset/perks';
 import { hearingOf } from '../perception/noise';
 import { sightLevel } from '../perception/sight';
@@ -26,6 +26,7 @@ import { allActors, isActive, isAsleep, nameFor, zoneById } from './relations';
 import { talkingWith } from './speech';
 import { stepStance } from './effects';
 import { applyMemoryOps } from './memory';
+import { matchedCritFeat } from './feats';
 
 export type FilchOutcome = 'taken' | 'fumbled' | 'caught';
 export type Filched = { outcome: FilchOutcome; roll: RollResult; noise: NoiseKey; caught: Actor[]; suspicious: Actor[]; perception: GameEvent['perception'] };
@@ -43,7 +44,7 @@ export const filchSize = (bulk: number): number | null => (bulk <= CONFIG.FILCH_
 
 /** the contest for one try at `at` (where the hand goes in), against everyone who could notice it */
 export function filchContest(state: GameState, a: Actor, owner: Actor | undefined, at: Located, bulk: number, rng: Rng, events: GameEvent[]): Filched {
-  const F = ruleset.roll({ actorId: a.id, skill: FN.filching, fn: FN.filching, modifiers: [], tierShifts: [], rollKind: 'stealth' }, state, rng);
+  const F = ruleset.roll({ actorId: a.id, skill: FN.filching, fn: FN.filching, modifiers: [], tierShifts: [], rollKind: 'stealth', contest: true }, state, rng);
   const noise = NOISE.at(NOISE.pos(CONFIG.FILCH_NOISE) + Math.max(0, tierLevel('near_miss') - tierLevel(F)));
   const perception: GameEvent['perception'] = { [a.id]: { level: 'full', cue: 'sight' } };
   const caught: Actor[] = [], suspicious: Actor[] = [];
@@ -56,9 +57,9 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
     const contest = (sense: 'sight' | 'hearing', level: Perception): 'caught' | 'suspicious' | null => {
       const fn = sense === 'sight' ? FN.sight : FN.hearing;
       const sit = situational(state, fnRoller(state, w, fn), { light: sense === 'sight' ? zone : undefined, actor: w });
-      const r = ruleset.roll({ actorId: w.id, skill: SENSE_SKILL[fn], fn, modifiers: [...sit.modifiers, ...mods], tierShifts: sit.tierShifts, rollKind: 'perception' }, state, rng);
-      const gap = tierLevel(r) - tierLevel(F);
-      const res = { a: F, b: r, gap, winner: gap < 0 ? 'a' as const : gap > 0 ? 'b' as const : 'tie' as const };
+      const r = ruleset.roll({ actorId: w.id, skill: SENSE_SKILL[fn], fn, modifiers: [...sit.modifiers, ...mods], tierShifts: sit.tierShifts, rollKind: 'perception', contest: true }, state, rng);
+      const res = toContest(F, r), gap = res.gap;
+      matchedCritFeat(state, res); // D-292
       markUse(state, a, F.skill, res);
       markUse(state, w, r.skill, res);
       if (gap < 0) return null;

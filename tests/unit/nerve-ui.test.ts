@@ -16,7 +16,7 @@ describe('morale stakes and a broken nerve on the play screen', () => {
     expect(moraleHint('terrified')).toMatch(/^−10 on every roll\. If your nerve breaks: you won't be able to attack\.$/);
     expect(moraleHint('panicking')).toMatch(/^−15 on every roll\. One more fright and your nerve breaks/);
     expect(moraleHint('broken')).toContain(`no one has fought you for ${engagementEndS()} s`);
-    expect(moraleHint('broken')).toContain('You can still flee, yield, hide');
+    expect(moraleHint('broken')).toContain('You can still move, flee, sneak, hide, vanish, yield');
   });
 
   it('with a broken nerve, Ideas trades Fight for the ways out', () => {

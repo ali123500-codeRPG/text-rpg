@@ -6,10 +6,11 @@ import { ladder, ruleset } from '../../src/ruleset';
 import { SK } from '../../src/library/skillIds';
 
 describe('78 Ladder ends', () => {
-  it('a gap past +5 or −10 uses the end entry; −6 has its own row', () => {
-    for (const t of ['dodge', 'block'] as const) {
+  it('a gap past +5 uses the +5 entry; past −10 each step adds GAP_PAST_STEP with no top (CS10); −6 has its own row', () => {
+    for (const t of ['dodge', 'block', 'parry'] as const) {
       expect(ladder(t, 6)).toBe(ladder(t, 5));
-      expect(ladder(t, -11)).toBe(ladder(t, -10));
+      expect(ladder(t, -11)).toBe(ladder(t, -10) + CONFIG.GAP_PAST_STEP);
+      expect(ladder(t, -20)).toBe(ladder(t, -10) + 10 * CONFIG.GAP_PAST_STEP);
       expect(ladder(t, -6)).toBeGreaterThan(ladder(t, -5));
     }
     const s = makeVillage();

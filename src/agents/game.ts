@@ -48,6 +48,7 @@ import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
 import { TURN_CHECK, checkTurn, snapTurn } from '../save/turnCheck';
+import { cap, listWords, r1 } from '../words';
 
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
@@ -87,9 +88,11 @@ const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
   '/help, /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
-/** NW18: a turn played while the player sleeps */
+/** NB5: what the game says when an attack is ordered with a broken nerve; the order is turned away and no time passes */
+export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to attack. Nothing happened and no time passed. You can still move, flee, sneak, hide, vanish, yield, talk or use a bandage.";
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
+/** NW18: a turn played while the player sleeps */
 const ASLEEP_INTENT = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 
 export function createGame(deps: GameDeps): Game {
@@ -244,7 +247,7 @@ export function createGame(deps: GameDeps): Game {
   function advance(): void {
     const s = state!;
     const p = engine.computePending(s);
-    // GAP: the pipeline owns the turn counter: state.turn moves to pending.turn once turn N is saved
+    // the pipeline owns the turn counter: state.turn moves to pending.turn once turn N is saved
     s.turn = p.turn;
     s.pending = p;
     s.mode = p.mode;
@@ -347,6 +350,12 @@ export function createGame(deps: GameDeps): Game {
       lastLog = [...turnLog]; // BG-143: every clarify keeps the turn's log, so the Parser output that led here can be seen
       return;
     }
+    // NB5: with a broken nerve an attack is turned away before the turn: nothing happens and no time passes
+    if (intent.action?.type === 'attack' && moraleLevel(s.player) === 'broken') {
+      lines.push({ turn: s.turn, kind: 'clarify', text: NERVE_REFUSED });
+      lastLog = [...turnLog];
+      return;
+    }
     const rngBefore = s.rngState;
     const rng = createRng(s.rngState);
     const quick = engine.quickWord(s, intent); // A15 in a fight, OA1 asides outside one: a line beside a deed, replied to for free
@@ -367,7 +376,10 @@ export function createGame(deps: GameDeps): Game {
       const world = worldIds(s);
       // NT7: a listener that saw through a lie hears the impression with a tell (plainly with Plain as Day, LI2a)
       // BG-84: a listener who heard only the voice (no contest) is told so, not given the words
-      const inputFor = (id: string): DialogueInput => (!exchange!.perSpokesperson[id] ? [{ spoken: engine.MUFFLED, impression: null }] : exchange!.perSpokesperson[id].tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id), exchange!.perSpokesperson[id].contest.gap)}` }] : input);
+      // TF15: words that are an offer to stop fighting say how the offer landed (an AI-run listener answers standDown)
+      const offerOf = (id: string) => { const a = s.actors.find((x) => x.id === id), r = exchange!.perSpokesperson[id]; return a && r ? engine.offerNote(s, intent, a, r.contest) : undefined; };
+      const withOffer = (id: string, d: DialogueInput): DialogueInput => (offerOf(id) ? [{ ...d[0], impression: `${d[0].impression ?? 'none'}; ${offerOf(id)}` }] : d);
+      const inputFor = (id: string): DialogueInput => (!exchange!.perSpokesperson[id] ? [{ spoken: engine.MUFFLED, impression: null }] : withOffer(id, exchange!.perSpokesperson[id].tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id), exchange!.perSpokesperson[id].contest.gap)}` }] : input));
       agentOutputs.push(...(await Promise.all(spokespeople.map((id) => dialogueCall(s, id, inputFor(id), exchange!, agenda.get(id)!, ctx, world)))));
     }
     // BG-50: a beat that has an agent-run NPC speak to the player gets its words from that NPC's Responder (COMMITTED: the beat)
@@ -651,7 +663,7 @@ export function createGame(deps: GameDeps): Game {
     const owner = opts.owner ?? 'player';
     const errs = validateBuild(build);
     if (errs.length) throw new Error(errs.join('; '));
-    // GAP: W6's director is injected; without it there is no way to set up turn 0
+    // W6's director is injected; without it there is no way to set up turn 0
     if (!director) throw new Error('scenario director not wired (W6)');
     abortBackground();
     // HF31: a free world picked on the creation screen: the new character carries on its last save
@@ -944,13 +956,11 @@ export function worldIds(s: GameState): Set<string> {
   ]);
 }
 
-/** names the Voice's line is checked against (allowed only where its own view holds them) */
-/** how the player sees an actor: its name if known, else its label, plus the zone when labels repeat */
 /** AT11a: the long actions the player perceives, keyed by actor id: the player's own, and every fully seen actor's */
 export type DoingSnap = Map<string, { who: string; doing?: import('../types').DoingView }>;
 export function doingSnap(pv: ReturnType<typeof views.buildPlayerView>): DoingSnap {
   const m: DoingSnap = new Map([['player', { who: 'You', ...(pv.player.doing ? { doing: pv.player.doing } : {}) }]]);
-  for (const a of pv.actors) if (a.level === 'full') m.set(a.id, { who: (a.name ?? a.label).replace(/^./, (c) => c.toUpperCase()), ...(a.doing ? { doing: a.doing } : {}) });
+  for (const a of pv.actors) if (a.level === 'full') m.set(a.id, { who: cap(a.name ?? a.label), ...(a.doing ? { doing: a.doing } : {}) });
   return m;
 }
 /** AT11a: before and after the turn, as the player saw them. An action seen going on before ends as broken (busy_broken this
@@ -970,6 +980,7 @@ export function actionNotes(s: GameState, before: DoingSnap, after: DoingSnap): 
   return out.sort((x, y) => Number(y.who === 'You') - Number(x.who === 'You'));
 }
 
+/** how the player sees an actor: its name if known, else its label, plus the zone when labels repeat */
 function seenName(pv: ReturnType<typeof views.buildPlayerView>, id: string): string {
   const a = pv.actors.find((x) => x.id === id)!;
   const base = a.name ?? a.label;
@@ -977,7 +988,7 @@ function seenName(pv: ReturnType<typeof views.buildPlayerView>, id: string): str
   const zone = pv.zones.find((z) => z.id === a.zone)?.name ?? (pv.zone.id === a.zone ? pv.zone.name : undefined);
   return twin && zone ? `${base} at ${zone}` : base;
 }
-const orList = (xs: string[]) => (xs.length < 3 ? xs.join(' or ') : `${xs.slice(0, -1).join(', ')} or ${xs.at(-1)}`);
+const orList = (xs: string[]) => listWords(xs, 'or');
 
 /**
  * Events kept for NPC views (spec: OppositionView holds the events it perceived, incl. the last few exchanges heard):
@@ -1020,6 +1031,7 @@ export function pruneRecent(s: GameState, all: GameEvent[]): GameEvent[] {
   return all.filter((e) => keep.has(e));
 }
 
+/** names the Voice's line is checked against (allowed only where its own view holds them) */
 function knownNames(s: GameState): string[] {
   return [s.player, ...s.actors].flatMap((a) => [a.names.current, ...a.names.past.map((p) => p.name)])
     .concat(s.places.map((p) => p.names.current));
@@ -1042,10 +1054,6 @@ function nameOf(s: GameState, itemId: string): string {
   }
 }
 
-/**
- * Play screen extras for a narration line, from what the player perceived (no numbers): the player's own check this
- * turn, the lines heard (word for word, unless the narration already quotes them) and the turn's visible changes.
- */
 /** H11, V1b, V2a: the player's healing, skill gains and milestones from this turn's code log, kept on the story line
  * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. X9: level-ups and
  * achievements from the player's progression, so the play screen can show them with mechanics off. */
@@ -1080,15 +1088,15 @@ export function partsWorse(before: { id: string; state: PartState }[], after: { 
 
 /** the player's gear (coin aside) as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */
 export type GearSnap = Map<string, { name: string; where: string; qty: number }>;
-const handWord = (slot: string) => gripWord(slot.replace(/^grip:/, ''));
+const gripName = (slot: string) => gripWord(slot.replace(/^grip:/, ''));
 export function gearSnap(s: GameState, p: Actor): GearSnap {
   const gear: GearSnap = new Map();
   for (const i of p.core.inventory) {
     if (i.itemId === IT.coin) continue; // coin has its own row: LogLine.coin
-    const hands = (i.equippedIn ?? []).filter((x) => x.startsWith('grip:'));
+    const grips = (i.equippedIn ?? []).filter((x) => x.startsWith('grip:'));
     let name = i.itemId;
     try { name = itemDef(s, i.itemId).name; } catch { /* an unknown item keeps its id */ }
-    gear.set(i.id, { name, qty: i.qty ?? 1, where: hands.length ? `held:${hands.map(handWord).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });
+    gear.set(i.id, { name, qty: i.qty ?? 1, where: grips.length ? `held:${grips.map(gripName).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });
   }
   return gear;
 }
@@ -1126,26 +1134,30 @@ export function wayRows(s: GameState, events: GameEvent[]): string[] {
     const b = e.way.barrier ? s.barriers?.[e.way.barrier] : undefined;
     const what = b ? barrierName(b) : 'way';
     const to = zoneById(s, e.way.to)?.name ?? e.way.to;
-    const row = `${what.charAt(0).toUpperCase()}${what.slice(1)} to ${to}: ${WAY_ROW[e.way.did]}`;
+    const row = `${cap(what)} to ${to}: ${WAY_ROW[e.way.did]}`;
     if (!rows.includes(row)) rows.push(row);
   }
   return rows;
 }
 
-/** where the player is: "River path · the Riverside" (the place and the place around it) */
 /** the zone the player ended the turn in, as the play header names it */
 const zoneOf = (s: GameState): { zone?: string } => { const z = zoneById(s, s.player.zone)?.name; return z ? { zone: z } : {}; };
 
+/** where the player is: "River path · the Riverside" (the place and the place around it) */
 export function placeName(s: GameState): string {
   const place = s.places.find((x) => x.id === s.player.placeId);
   const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;
   const t = [place?.names.current, parent?.names.current].filter(Boolean).join(' · ');
-  return t.charAt(0).toUpperCase() + t.slice(1);
+  return cap(t);
 }
 
+/**
+ * Play screen extras for a narration line, from what the player perceived (no numbers): the player's own check this
+ * turn, the lines heard (word for word, unless the narration already quotes them) and the turn's visible changes.
+ */
 export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> {
   const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> = {};
-  const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
+  const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? cap(n) : n);
   const words = (x: string) => x.replace(/_/g, ' ');
   let check: LineCheck | undefined, checkEv: string | undefined;
   for (const e of events) {
@@ -1231,10 +1243,9 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   const me = s.player.id;
   const pv = views.buildPlayerView(s).actors;
   const seen = new Set(pv.map((a) => a.id)), clear = new Set(pv.filter((a) => a.level === 'full').map((a) => a.id));
-  const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
   const name = (id: string) => (id === me ? 'You' : clear.has(id) ? cap(views.callName(s, me, id)) : 'Someone');
   const whose = (id: string) => (id === me ? 'Your' : `${name(id)}’s`);
-  const num = (n: number) => String(Math.round(n * 10) / 10);
+  const num = (n: number) => String(r1(n));
   const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${num(x.value)}`).join(', ')}]` : '');
   const roll = (r: TierRoll & { actorId: string; skill: string; d100: number }) => `${whose(r.actorId)} ${skillName(r.skill).toLowerCase()} d100 ${r.d100} → ${tierName(r)}`;
   const sense = (skill: string) => !!noticeCue(skill);

@@ -51,10 +51,10 @@ describe('206 scenario-end payout', () => {
     p.core.skills[SK.block] = { raw: 10, state: 'normal' };
     const total = Object.values(p.core.skills).filter((x) => x.state !== 'tagged').reduce((n, x) => n + x.raw, 0);
     pr.potential = { base: total - (CONFIG.K - 1), adjustments: [] }; // Burden 0 now, 1 after any 3+3
-    const gains = payRolls(s, fixed(41), [[SK.dodge, 2], [SK.block, 1]]);
-    // round 1: dodge 41 + 50 − 90 = 1, Success: 50 → 51; block 41 + 90 − 90 = 41, Great Success: 10 → 12.
-    // round 2: Burden is now 1, so dodge's margin is 41 + (100 − 51 − 1) − 90 = −1 and it gains nothing (with the old Burden it would)
-    expect(gains.map((g) => [g.skill, g.to])).toEqual([[SK.dodge, 51], [SK.block, 12]]);
+    const gains = payRolls(s, fixed(42), [[SK.dodge, 2], [SK.block, 1]]);
+    // round 1: dodge 42 + 50 − 90 = 2, Success: 50 → 52; block 42 + 90 − 90 = 42, Great Success: 10 → 13.
+    // round 2: Burden is now 1, so dodge's margin is 42 + (100 − 52 − 1) − 90 = −1 and it gains nothing (with the old Burden it would)
+    expect(gains.map((g) => [g.skill, g.to])).toEqual([[SK.dodge, 52], [SK.block, 13]]);
   });
 
   it('marks wait for the end; the end pays them, levels up, and the summary shows both', () => {
@@ -71,8 +71,8 @@ describe('206 scenario-end payout', () => {
     expect(charLevel(p)).toBe(lv + 1);
     const g = scenarioGainsNow(s)!;
     expect(g.levelUps).toHaveLength(1);
-    // 4 owed × 0.8 × 1 = 3 (+1 below level 5) = 4 rolls on a d100 of 100: margins 80, 77 (Critical, +3 each), 74, 72 (Great, +2 each)
-    expect(g.skills).toEqual([{ skill: SK.dodge, from: 30, to: 40 }]);
+    // 4 owed × 0.8 × 1 = 3 (+1 below level 5) = 4 rolls on a d100 of 100: margins 80, 76 (Critical, +4 each), 72, 69 (Great, +3 each)
+    expect(g.skills).toEqual([{ skill: SK.dodge, from: 30, to: 44 }]);
     expect(s.log.some((l) => l.code === 'growth_paid')).toBe(true);
   });
 

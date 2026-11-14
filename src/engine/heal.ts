@@ -23,10 +23,6 @@ export function healFromPerk(state: GameState, a: Actor, toLostPct: number): num
   return got;
 }
 
-/** Restores the row's share of HP and of each part pool (`pct` replaces both, for hourly rows). A part heals only if its state is no worse
- * than the row's reach (H4/H12); a Crippled or worse part a row reaches starts again from 0. Destroyed parts need a row
- * that reaches them (OQ-6: a special perk, item or story event). `quiet` logs only a visible change (passive healing).
- * Returns false if nothing changed. */
 /** Achievements count the HP the player gets back (a flat number: the health % healed of their total HP), by where it
  * came from: the healing row's id. Only a perk that heals directly (Second Wind) counts under the Perks row (HL.perk);
  * a perk that boosts another source (Fast Healer) counts as that source. Health only, not body parts. */
@@ -64,6 +60,10 @@ const wouldCalm = (a: Actor, sourceId?: string): boolean => {
   return !!src && !src.countOnly && src.pct > 0 && moraleLost(a) > 0;
 };
 
+/** Restores the row's share of HP and of each part pool (`pct` replaces both, for hourly rows). A part heals only if its state is no worse
+ * than the row's reach (H4/H12); a Crippled or worse part a row reaches starts again from 0. Destroyed parts need a row
+ * that reaches them (OQ-6: a special perk, item or story event). `quiet` logs only a visible change (passive healing).
+ * Returns false if nothing changed. */
 export function applyHealing(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; quiet?: boolean; share?: number } = {}): boolean {
   const src = getLibrary().healing?.[sourceId];
   if (!src) return false;
@@ -108,6 +108,9 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
     && PART_STATES.pos(p.state) <= reach);
 }
 
+/** an hourly row's % for the minutes passed: the row's skill (true value) × its pctPerPoint, per hour */
+const hourlyPct = (a: Actor, row: { skill: string; pctPerPoint: number }, minutes: number): number => trueSkill(a, row.skill) * row.pctPerPoint * (minutes / 60);
+
 /** H12–H14: hourly rows (natural recovery, and natural composure from the composure table) heal every active actor on the
  * stage for the game minutes that passed, fights included. Off-stage healing waits for offscreen changes (D-67). */
 export function passiveHealing(state: GameState, minutes: number): void {
@@ -118,11 +121,11 @@ export function passiveHealing(state: GameState, minutes: number): void {
   for (const a of [state.player, ...state.actors]) {
     if (!isActive(a) || (a !== state.player && !stage.has(a.zone))) continue;
     for (const h of rows) {
-      const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
+      const pct = hourlyPct(a, h.hourly!, minutes) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
       if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true });
     }
     for (const c of calmRows) { // MB34
-      const pct = trueSkill(a, c.hourly!.skill) * c.hourly!.pctPerPoint * (minutes / 60);
+      const pct = hourlyPct(a, c.hourly!, minutes);
       if (pct > 0) calm(state, a, c.id, { pct });
     }
   }
