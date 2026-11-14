@@ -8,7 +8,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill, trueSkill } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
-import { CONFIG } from '../../src/config';
 import type { Actor } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
@@ -21,15 +20,16 @@ const only = (a: Actor, skills: Record<string, number>) => {
 afterEach(() => { delete getLibrary().perks.test_stand_in; });
 
 describe('124 skill groups and functions', () => {
-  it('F1/F6: tremor has both the sight and hearing functions; XP reads the skill group', () => {
+  it('F1/F6: tremor has no function of its own, it augments Earshot; XP reads the skill group', () => {
     const k = getLibrary().skills;
-    expect(k[SK.tremor].functions).toEqual([FN.sight, FN.hearing]);
+    expect(k[SK.tremor].functions).toEqual([]);
+    expect(k[SK.tremor].augments).toEqual([{ skill: SK.earshot }]);
     // XP reads the skill's first group (no separate XP category)
     expect([k[SK.melee_light], k[SK.unarmed_strike], k[SK.ranged_heavy], k[SK.riposte], k[SK.blade_dance]].map((s) => groupsOf(s)[0])).toEqual([GR.melee, GR.melee, GR.ranged, GR.melee, GR.melee]);
     expect([k[SK.dodge], k[SK.endurance], k[SK.eyesight], k[SK.tremor], k[SK.barter], k[SK.lockpicking]].map((s) => groupsOf(s)[0])).toEqual([GR.defense, GR.health, GR.notice, GR.notice, GR.influence, GR.sleight]);
     expect(getLibrary().trees[TR.melee].name).toBe('Combat – Arms'); // F7
   });
-  it('F4: sight and hearing no longer stand in for each other; tremor stands in for both', () => {
+  it('F4: sight and hearing no longer stand in for each other; tremor adds to hearing only', () => {
     const s = makeVillage();
     only(s.player, { [SK.eyesight]: 80 });
     expect(effectiveSkill(s, s.player, SK.earshot).value).toBe(0);
@@ -37,8 +37,9 @@ describe('124 skill groups and functions', () => {
     expect(effectiveSkill(s, s.player, SK.eyesight).value).toBe(0);
     const slime = s.actors.find((a) => a.core.raceId === RC.slime)!;
     only(slime, { [SK.tremor]: 50 });
-    // tremor is tier 0 (×0.5) on top of the 0.3 stand-in share
-    for (const sense of [SK.eyesight, SK.earshot]) expect(effectiveSkill(s, slime, sense)).toMatchObject({ skill: SK.tremor, value: 50 * CONFIG.SUBSTITUTE_EFFICIENCY * 0.5 });
+    // an augment adds its full value, × tremor's tier 0 (×0.5); it never reaches sight
+    expect(effectiveSkill(s, slime, SK.earshot).value).toBe(50 * 0.5);
+    expect(effectiveSkill(s, slime, SK.eyesight).value).toBe(0);
   });
   it('F1: a 40 perk in a weapon skill gives +1 to every Melee skill, unarmed included, and not to Ranged', () => {
     const s = makeVillage();

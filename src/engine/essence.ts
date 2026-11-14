@@ -213,7 +213,7 @@ export function takeEssence(state: GameState, offerIndex: number, atRest: boolea
     const err = removeEssence(state, replace, atRest);
     if (err) return err;
   }
-  (pr.essences ??= []).push(takeOffer(state, offerIndex).held);
+  hold(p, takeOffer(state, offerIndex).held);
   syncEssenceTraits(state, p);
   logCode(state, 'essence_taken', { essence: o.essence, grade: o.grade });
   tally(state, 'essences_taken');
@@ -240,13 +240,19 @@ export function essenceText(e: HeldEssence, skillName: (id: string) => string): 
 export const essenceValue = (e: { points: Record<string, number> }): number =>
   Math.round(Object.values(e.points).reduce((n, v) => n + v, 0) * CONFIG.ITEM_VALUE.skillPoint * CONFIG.ESSENCE_VALUE_MULT);
 
+/** a held essence opens its skills (skillBlock) and puts any missing ones on the sheet at raw 0, so its points count */
+function hold(a: Actor, e: HeldEssence): void {
+  (a.progression!.essences ??= []).push(e);
+  for (const id of Object.keys(e.points)) a.core.skills[id] ??= { raw: 0, state: 'normal' };
+}
+
 /** ES3 a: who can take an essence in: someone with a progression record (the player, rolled NPCs), with a free slot */
 const hasRoom = (a: Actor): boolean => !!a.progression && (a.progression.essences?.length ?? 0) < essenceSlots(a);
 
 /** ES1 a/ES2 a: an offer leaves the player and goes straight to `to`: into their slots, or (a seller with no room) their stock */
 function handOver(state: GameState, offerIndex: number, to: Actor, how: 'given' | 'sold', price?: number): void {
   const { o, held } = takeOffer(state, offerIndex);
-  if (hasRoom(to)) { (to.progression!.essences ??= []).push(held); syncEssenceTraits(state, to); }
+  if (hasRoom(to)) { hold(to, held); syncEssenceTraits(state, to); }
   else (to.essenceStock ??= []).push(held);
   const name = getLibrary().essences?.[o.essence]?.name ?? o.essence;
   applyMemoryOps(state, to, { add: [how === 'given' ? `${state.player.names.current} gave me an essence, ${name}.` : `I bought an essence, ${name}, from ${state.player.names.current} for ${price} coin.`], drop: [] });

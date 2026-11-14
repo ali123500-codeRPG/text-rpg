@@ -3,7 +3,7 @@
 // raised; its points are kept and come back with access (TA4 a). The same rules hold for the player and NPCs (TA9).
 import type { AccessCond, Actor, TreeAccess } from '../types';
 import { getLibrary } from '../library';
-import { hasPerk, trueSkill } from './perks';
+import { essenceSkill, hasPerk, trueSkill } from './perks';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
 import { cap } from '../words';
@@ -54,7 +54,8 @@ export const treeOpen = (a: Actor, treeId: string): boolean => !treeBlock(a, tre
 /** why the actor can't use the skill: its tree's rule, then the skill's own */
 export const skillBlock = (a: Actor, skill: string): string => {
   const s = getLibrary().skills[skill];
-  return hasPerk(a, PK.no_road_closed) ? '' : treeBlock(a, s?.treeId ?? '') || ruleBlock(a, s?.access); // No Road Closed opens every tree and skill
+  // No Road Closed opens every tree and skill; so does a held essence that adds true skill to it, whatever the requirements
+  return hasPerk(a, PK.no_road_closed) || essenceSkill(a, skill) > 0 ? '' : treeBlock(a, s?.treeId ?? '') || ruleBlock(a, s?.access);
 };
 export const skillOpen = (a: Actor, skill: string): boolean => !skillBlock(a, skill);
 /** a class tree is a tree that needs a class */

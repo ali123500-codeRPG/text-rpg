@@ -136,7 +136,7 @@ export function standInShare(skill: string, id: string, table = standInTable(ski
 /** the skills that have function `fn` (a function roll counts them all at full value) */
 export const fnSkills = (fn: string): string[] => Object.values(getLibrary().skills).filter((s) => ((s.functions ?? []) as string[]).includes(fn)).map((s) => s.id);
 /** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
- * so light and Night Eyes follow the skill that rolls (Q3): Tremor ignores light. */
+ * so light and Night Eyes follow the skill that rolls (Q3): a hearing roll ignores light (Tremor augments Earshot). */
 /** the skills a function roll counts at full value: the function's skills; for an owner of the Perception All-150 Every
  * Sense One, a sight or hearing roll counts both senses' skills */
 export const rollFnSkills = (actor: Actor, fn: string): string[] => {

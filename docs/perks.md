@@ -1138,7 +1138,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 *Story:* Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.
 
 - **Kind:** Always on
-- **Trigger:** The owner makes a sight or hearing roll (any skill with that function, Tremor included).
+- **Trigger:** The owner makes a sight or hearing roll (any skill with that function; Tremor adds to every hearing roll).
 - **Conditions:** The roll ends in Success or better.
 - **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
 - **Lasts:** That roll.
