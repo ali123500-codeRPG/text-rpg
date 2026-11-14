@@ -12,7 +12,7 @@ import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 import { SK } from '../library/skillIds';
 import { hasPerk } from '../ruleset/perks';
-import { fnRoller, gradeMod, ruleset, situational, tierAtLeast } from '../ruleset';
+import { fnRoller, gradeMod, markUse, ruleset, situational, tierAtLeast } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { beliefStatus, soundCarries, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
@@ -62,7 +62,8 @@ export function wakeByEvent(state: GameState, ev: GameEvent): void {
  * their stealth, the contest an awake listener makes. Someone moving openly (making `noise`): a hearing check whose
  * difficulty comes from that noise (CONFIG.WAKE_GRADE: louder is easier). Either way their steps (`noise`, a sneaker's
  * own quieter steps) must reach the sleeper, or there is no roll. Passed, the sleeper wakes aware of them. A sneak's
- * contest joins `act` when given (CS25: the caller counts Against the Odds once for the act), else counts on its own. */
+ * contest joins `act` when given (CS25: the caller counts Against the Odds once for the act), else counts on its own.
+ * Both rolls learn (BG-249): the contest marks both sides, the check learns like any check. */
 export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise: NoiseKey, rng: Rng, act?: ActContest[]): boolean {
   if (!isAsleep(sleeper) || !lightSleeper(sleeper) || !soundCarries(state, sleeper, other, noise)) return false;
   let pass = false;
@@ -74,6 +75,8 @@ export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise:
       { actorId: sleeper.id, skill: SK.earshot, ...situational(state, fnRoller(state, sleeper, FN.hearing), { actor: sleeper }), rollKind: 'perception' as const, fn: FN.hearing },
       state, rng);
     matchedCritFeat(state, r); // D-292
+    markUse(state, other, r.a.skill, r); // BG-249: both sides learn, as in an awake listener's contest
+    markUse(state, sleeper, r.b.skill, r);
     const won: ActContest = { c: r, fns: sleeper === state.player ? [FN.hearing] : undefined };
     if (act) act.push(won); else outmatchedOnce(state, [won]);
     pass = r.gap > 0;
@@ -81,6 +84,7 @@ export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise:
     const target = CONFIG.DIFFICULTY[CONFIG.WAKE_GRADE[noise] ?? 'moderate'];
     const r = ruleset.roll({ actorId: sleeper.id, skill: SK.earshot, modifiers: [{ source: 'how quietly they came', type: 'situational', value: gradeMod(target) }], tierShifts: [], fn: FN.hearing }, state, rng);
     pass = tierAtLeast(r.tier, 'success');
+    ruleset.recordUse(sleeper, r.skill, { actorId: sleeper.id, skill: r.skill, target, passed: pass, modifiers: [] }, state); // BG-249: learns like a check
   }
   logCode(state, 'wake_check', { actorId: sleeper.id, other: other.id, sneaking: other.posture === 'stealthy', pass });
   if (pass) {
