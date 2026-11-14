@@ -13,14 +13,15 @@ export const ACH = {
   mastery_legendary_50: 'AC147', mastery_legendary_100: 'AC148', mastery_legendary_150: 'AC149',
   unaware_1: 'AC13', unaware_10: 'AC14', unaware_100: 'AC15',
   yielded_1: 'AC16', yielded_10: 'AC17', yielded_50: 'AC18',
-  crits_10: 'AC19', crits_100: 'AC20', crits_1000: 'AC21',
+  crits_1: 'AC214', crits_10: 'AC19', crits_50: 'AC20', crits_100: 'AC21',
   beyond_1: 'AC22', beyond_2: 'AC23', beyond_3: 'AC24',
   beyond_group_1: 'AC25', beyond_group_2: 'AC26', beyond_group_3: 'AC27',
   flawless_1: 'AC28', flawless_10: 'AC29', flawless_50: 'AC30',
   outnumbered_1: 'AC31', outnumbered_10: 'AC32',
   brink_1: 'AC33', brink_5: 'AC34',
   crippled_1: 'AC35', crippled_10: 'AC36',
-  zones_50: 'AC37', zones_250: 'AC38', zones_1000: 'AC39',
+  zones_1: 'AC205', zones_25: 'AC206', zones_50: 'AC37', zones_150: 'AC38', zones_300: 'AC39',
+  places_1: 'AC207', places_5: 'AC208', places_10: 'AC209', places_25: 'AC210', places_50: 'AC211', health_first: 'AC212', total_every: 'AC213',
   deals_1: 'AC40', deals_10: 'AC41', deals_100: 'AC42',
   days_7: 'AC43', days_30: 'AC44', days_100: 'AC45',
   class_unlock: 'AC46', defeats_250: 'AC47',
@@ -30,20 +31,20 @@ export const ACH = {
   char_level_10: 'AC58',
   brink_3: 'AC59', unaware_50: 'AC60',
   held_line_1: 'AC61', held_line_10: 'AC62',
-  quests_1: 'AC63', quests_5: 'AC64', quests_10: 'AC65', quests_25: 'AC66', quests_50: 'AC67', quests_abandoned_5: 'AC68',
-  clean_1: 'AC204', clean_10: 'AC69', clean_100: 'AC70', clean_500: 'AC71', unseen_10: 'AC72', unseen_50: 'AC73', unseen_250: 'AC74',
-  vanished_5: 'AC75', vanished_25: 'AC76', spotted_10: 'AC77', spotted_100: 'AC78', spotted_fn_1: 'AC79', spotted_fn_10: 'AC80',
-  spotted_fn_100: 'AC81', speech_10: 'AC82', speech_100: 'AC83', speech_500: 'AC84', talked_down_1: 'AC85', talked_down_10: 'AC86',
+  quests_1: 'AC63', quests_5: 'AC64', quests_10: 'AC65', quests_25: 'AC66', quests_50: 'AC67', quests_abandoned_1: 'AC220', quests_abandoned_5: 'AC68',
+  clean_1: 'AC204', clean_10: 'AC69', clean_100: 'AC70', clean_500: 'AC71', holds_1: 'AC217', unseen_1: 'AC218', unseen_10: 'AC72', unseen_50: 'AC73', unseen_250: 'AC74',
+  vanished_1: 'AC219', vanished_5: 'AC75', vanished_25: 'AC76', spotted_10: 'AC77', spotted_100: 'AC78', spotted_fn_1: 'AC79', spotted_fn_10: 'AC80',
+  spotted_fn_100: 'AC81', speech_1: 'AC216', speech_10: 'AC82', speech_100: 'AC83', speech_250: 'AC84', talked_down_1: 'AC85', talked_down_10: 'AC86',
   talked_down_50: 'AC87', outmatched_1: 'AC88', outmatched_10: 'AC89', outmatched_fn_1: 'AC90', outmatched_fn_10: 'AC91', enemy_friend_1: 'AC92',
   enemy_friend_5: 'AC93', no_blow_1: 'AC94', no_blow_10: 'AC95', bought_100: 'AC96', bought_1000: 'AC97', bought_10000: 'AC98',
   sold_100: 'AC99', sold_1000: 'AC100', sold_10000: 'AC101', mended_1: 'AC102', mended_10: 'AC103', mended_50: 'AC104',
   back_from_down_1: 'AC105', holds_10: 'AC106', holds_100: 'AC107', aimed_10: 'AC108', aimed_50: 'AC109', aimed_100: 'AC110',
   aimed_size_1: 'AC203', aimed_size_10: 'AC111', aimed_size_50: 'AC112', quests_giver_5: 'AC113', quest_givers_10: 'AC114', quest_chain_1: 'AC115', quests_early_1: 'AC116',
   quests_unpaid_1: 'AC117',
-  spar_1: 'AC118', spar_10: 'AC119', spar_25: 'AC120', spar_50: 'AC121', spar_200: 'AC122',
+  spar_1: 'AC118', spar_10: 'AC119', spar_25: 'AC120', spar_50: 'AC121', // AC122 (200 spar wins) retired by the trim (TM11)
   cruel_spar_1: 'AC123', cruel_spar_10: 'AC124', cruel_spar_25: 'AC125', spar_losses_10: 'AC126',
   total_10: 'AC127', total_25: 'AC128', total_50: 'AC129', total_100: 'AC130', total_250: 'AC131',
-  spar_losses_1: 'AC132', defeated_5: 'AC133', defeated_25: 'AC134', defeated_100: 'AC135',
+  spar_losses_1: 'AC132', defeated_1: 'AC215', defeated_5: 'AC133', defeated_25: 'AC134', // AC135 (100 times defeated) retired by the trim (TM13)
   won_panicking_1: 'AC138', won_panicking_10: 'AC139', won_panicking_25: 'AC140',
   morale_breaks_1: 'AC141', morale_breaks_5: 'AC142', morale_breaks_25: 'AC143',
   healed_rest_100: 'AC150', healed_rest_1000: 'AC151', healed_rest_10000: 'AC152',
@@ -61,9 +62,10 @@ export const ACH = {
   won_broken_1: 'AC199', won_broken_5: 'AC200', won_broken_25: 'AC201',
 } as const;
 /** TB6: chain heads with no trunk of their own; their branches are the per-source chains (healing and calming by source) */
-export const ACH_HEADS = { healed: 'AH1', calmed: 'AH2' } as const;
+export const ACH_HEADS = { healed: 'AH1', calmed: 'AH2', areas: 'AH3', wounds: 'AH4' } as const;
 export const ACH_HEAD_NAMES: Record<string, { name: string; tag: AchievementTag }> = {
   [ACH_HEADS.healed]: { name: 'Healed, by source', tag: 'survival' }, [ACH_HEADS.calmed]: { name: 'Calmed, by source', tag: 'survival' },
+  [ACH_HEADS.areas]: { name: 'Areas entered', tag: 'exploration' }, [ACH_HEADS.wounds]: { name: 'Wounds lived through', tag: 'survival' },
 };
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -74,7 +76,8 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   defeats: 'defeats', mastery: 'true skill in enough skills of a tree (by its rating)', unaware_defeats: 'foes defeated while unaware of you',
   yielded: 'foes who surrendered or broke while fighting you', crits: 'rolls at Critical Success or better with a skill of the group',
   beyond_crit: 'step(s) past Critical Success on a roll', crippled_defeats: 'foes defeated while one of your parts is Crippled',
-  zones: 'different zones entered', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
+  zones: 'different zones entered', places: 'different places of the kind entered (a settlement, a place in one, and any kind made later)',
+  health_reached: 'times your health reached the level', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
   flawless: 'fights won without losing HP, after at least one defense roll', outnumbered: `fights won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fights survived after reaching Critical health (once per fight)',
   event_crits: 'tiers of Critical Success reached on an event roll (1 = Critical Success, 2 = Critical Success+, 3 = ++)', event_crit_fails: 'tiers of Critical Failure reached on an event roll (1 = Critical Failure, 2 = Critical Failure−, 3 = −−)',
@@ -113,7 +116,7 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   defeats: 'defeat', unaware_defeats: 'foe defeated while unaware of you', yielded: 'foe who surrendered or broke while fighting you',
   event_crits: 'event roll at Critical Success', event_crit_fails: 'event roll at Critical Failure',
   crits: 'roll at Critical Success or better with a skill of the group', beyond_crit: 'step past Critical Success on a roll',
-  crippled_defeats: 'foe defeated while one of your parts is Crippled', zones: 'zone entered', deals: 'deal struck with you',
+  crippled_defeats: 'foe defeated while one of your parts is Crippled', zones: 'zone entered', places: 'place of the kind entered', health_reached: 'time your health reached the level', deals: 'deal struck with you',
   days: 'game day survived', flawless: 'fight won without losing HP, after at least one defense roll',
   outnumbered: `fight won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fight survived after reaching Critical health (once per fight)', held_line: 'fight won beside at least one ally, while the foes outnumbered your side',

@@ -68,7 +68,7 @@ describe('284 achievement chains, branches and the next level', () => {
     const s = makeVillage();
     give(s, ACH.crits_10, 'swords');
     give(s, ACH.crits_10, 'stealth');
-    expect(chainLines(s, false).filter((x) => x.id.startsWith(`${ACH.crits_10}:`))).toHaveLength(2);
+    expect(chainLines(s, false).filter((x) => x.id.startsWith(`${ACH.crits_1}:`))).toHaveLength(2);
     give(s, ACH.healed_rest_100, 'rest_src');
     give(s, ACH.healed_natural_50, 'natural_src');
     expect(line(s, ACH_HEADS.healed)).toMatchObject({ tag: 'survival', name: 'Healed, by source', level: '2 branches' });
@@ -76,9 +76,10 @@ describe('284 achievement chains, branches and the next level', () => {
 
   it('scars use the same shape on their own tab', () => {
     const s = makeVillage();
+    give(s, ACH.defeated_1);
     give(s, ACH.defeated_5);
     expect(chainLines(s, false)).toEqual([]);
-    expect(chainLines(s, true)[0]).toMatchObject({ id: ACH.defeated_5, name: 'Loser' });
+    expect(chainLines(s, true)[0]).toMatchObject({ id: ACH.defeated_1, name: 'Loser' });
     expect(chainLines(s, true)[0].next).toMatch(/^25 fights lost/);
   });
 });

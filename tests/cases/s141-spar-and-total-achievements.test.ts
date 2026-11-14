@@ -67,6 +67,7 @@ describe('141 lost fights and the first spar lost', () => {
     fightEnded(s, { hp: 0, foes: [slime.id], most: 1 });
     expect(keys(s)).toContain(ACH.defeated_5);
     expect(s.player.progression!.xpLog!.find((x) => x.source === `achievement:${ACH.defeated_5}`)!.amount).toBe(rewardXp('zero')); // a level I scar pays level 0's XP
+    expect(s.player.progression!.xpLog!.find((x) => x.source === `achievement:${ACH.defeated_1}`)!.amount).toBe(rewardXp('minus_1')); // Humbled, at the first loss
   });
 });
 
