@@ -2,7 +2,6 @@
 // (TURN_CHECK.strict), playtests stop on one, and the game files it as bug code turn_check without stopping play.
 // Each rule is one line in RULES; a new feature adds its own rule here. A rule names what broke, never fixes it.
 import type { Actor, GameEvent, GameState, ItemInstance } from '../types';
-import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { allActors, zoneById } from '../engine/relations';
 import { fightRenewed } from '../engine/engagement';

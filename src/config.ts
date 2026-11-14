@@ -115,6 +115,8 @@ const DEFAULTS = {
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,
   ROLE_PENALTY: { damaged: -10, crippled: -20 },
+  /** a part or pool is in a state while its % left is above that state's floor: Healthy >50, Damaged >0, Crippled >−100; else Destroyed */
+  PART_STATE_ABOVE: { healthy: 50, damaged: 0, crippled: -100 } as Record<string, number>,
   ESSENTIAL_CRIPPLED_PENALTY: -5, // wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
   WEAPON_CLASSES: {
@@ -741,6 +743,7 @@ const DEFAULTS = {
   PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, knows: 5 }, // Q2
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   WORLD_TITLE_CAP: 60, // WP5: the most characters a world's title keeps
+  NAME_CAP: 40, // the most characters the creation screen takes for the character's name
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<DurationId, number>, // NW10: game minutes a routine step lasts (placeholders)

@@ -77,6 +77,13 @@ export function soundCarries(state: GameState, observer: Actor, at: Located, noi
   return isActive(observer) && soundReach(state, observer, at, noise) !== null;
 }
 
+/** what `observer` makes out by sight of something of this visibility at a point: by metres and walls (seeingM, the sight
+ * table), and at most partial in a dark zone. One rule for events, filching and anything else seen. */
+export function sightAt(state: GameState, observer: Actor, at: Located, visibility: GameEvent['visibility']): 'full' | 'partial' | null {
+  const sl = sightLevel(visibility, seeingM(state, observer, at));
+  return sl && (zoneLight(state, zoneById(state, at.zone)) === 'dark' ? 'partial' : sl);
+}
+
 /** BG-89: event kinds that touch their target */
 const CONTACT = new Set(['attack', 'give', 'break_free', 'restrain']);
 
@@ -89,8 +96,8 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   const at = { zone: event.zone, pos: event.pos };
   /** what is seen of it at one point: step 2, metres from where it happened, half seen in the dark */
   const seenAt = (p: { zone: string; pos?: { x: number; y: number } }): Seen | null => {
-    const sl = sightLevel(event.visibility, seeingM(state, observer, p));
-    return sl ? { level: zoneLight(state, zoneById(state, p.zone)) === 'dark' ? 'partial' : sl, cue: 'sight' } : null;
+    const level = sightAt(state, observer, p, event.visibility);
+    return level ? { level, cue: 'sight' } : null;
   };
   let sight = seenAt(at);
   // BG-23: a leg out of a zone is seen where it set off as well as where it ended (someone walking out through a door

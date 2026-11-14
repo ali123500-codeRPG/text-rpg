@@ -83,8 +83,9 @@ function chaseGround(state: GameState, a: Actor): Set<string> | undefined {
   if (range === 'far') return undefined;
   const post = zonesOfPlaces(state, new Set([homePlace(state, a)]));
   if (range === 'post') return new Set(post);
-  const st = state.stage, ground = [...(st.scenario?.ground ?? []), ...(st.outer?.ground ?? [])];
+  const st = state.stage;
   if (!st.scenario?.ground) return undefined;
+  const ground = [...st.scenario.ground, ...(st.outer?.ground ?? [])];
   return new Set([...post, ...zonesOfPlaces(state, groundPlaces(state, ground))]);
 }
 

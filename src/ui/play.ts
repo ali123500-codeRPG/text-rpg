@@ -13,6 +13,7 @@ import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } 
 import { questFocus } from './pages';
 import { tierGap, xpSourceWords } from '../agents/game';
 import { isDownLevel, othersHealthWord, TAG_MARK, tierAtLeast, tierName } from '../ruleset';
+import { isHeld } from '../ruleset/slots';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
@@ -159,7 +160,7 @@ function apart(names: string[]): string[] {
 export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: Personality): { group: string; items: { text: string; note?: string }[] }[] {
   const people = pv.actors.filter((a) => a.level === 'full' && !(a.health && isDownLevel(a.health)));
   const names = apart(people.map((a) => a.name ?? a.label));
-  const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('grip:')) && i.kind === 'weapon');
+  const held = pv.player.inventory.filter((i) => isHeld(i) && i.kind === 'weapon');
   const stowed = pv.player.inventory.filter((i) => !i.equippedIn.length && i.kind === 'weapon');
   const [heldN, stowedN, groundN] = [apart(held.map((i) => i.name)), apart(stowed.map((i) => i.name)), apart(pv.zone.groundItems.map((i) => i.name))];
   const the = (n: string) => (n.startsWith('the other ') ? n : `the ${n}`);

@@ -30,7 +30,7 @@ import { besidePlayer } from './engagement';
 import { together } from './yield';
 import { logCode, loseNerve } from './effects';
 import { coins, payCoin } from './trade';
-import { tally } from './xp';
+import { charLevel, tally } from './xp';
 
 /** how an offer landed with its listener (TF15) */
 export type OfferLanded = 'convinced' | 'tempted' | 'unmoved';
@@ -92,8 +92,7 @@ export function cannotRefuse(speaker: Actor, type: string, contest: ContestResul
 /** TF10: a bribe's pull on the briber's Barter roll: OFFER_BRIBE_MOD for each doubling of the coin over the listener's
  * price (OFFER_BRIBE_PRICE per character level, at least 1), as much less for each halving (placeholders) */
 export function bribeMod(coin: number, listener: Actor): number {
-  const level = listener.core.classes.reduce((n, c) => n + (c.level ?? 0), 0);
-  const price = Math.max(1, CONFIG.OFFER_BRIBE_PRICE * level);
+  const price = Math.max(1, CONFIG.OFFER_BRIBE_PRICE * charLevel(listener));
   return coin > 0 ? Math.round(CONFIG.OFFER_BRIBE_MOD * Math.log2(coin / price)) : 0;
 }
 

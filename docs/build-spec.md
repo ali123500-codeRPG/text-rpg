@@ -1945,7 +1945,7 @@ On/off effects of shared roles (no running, can't fly) switch on when Crippled a
 
 1. The general area takes its 30% minimum.
 2. Every other part still in existence gets its size weight; a big general area also gets weight 4 on top of its minimum.
-3. The remaining 70% is split in proportion to weight and rounded to whole numbers that sum to 100.
+3. The remaining 70% is split in proportion to weight and rounded to whole numbers that sum to 100: each takes its whole share, and the points left go one each by largest remainder; ties go to the bigger weight, then to the later entry (this reproduces the tables below).
 4. Parts are laid out in database order, general area last; a separate d100 location roll picks the band, read as rolled (a 37 hits the part whose band holds 37; no digit reversal).
 5. When a part is Destroyed, the table is rebuilt from step 1 without it.
 6. A shield is never on the hit table; it takes only hits routed to it by a block.

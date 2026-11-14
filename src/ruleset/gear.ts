@@ -16,18 +16,17 @@ import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 import { skillName } from '../library/skillNames';
 import { AM } from '../library/tableIds';
+import { accSlot, gripSlot, gripsOf, isHeld, isWorn } from './slots';
 
-export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('grip:'));
-export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
+export { accSlot, gripSlot, gripsOf, isAccSlot, isGripSlot, isHeld, isWorn } from './slots';
 /** the actor's first free accessory slot, if any */
 export function freeAccSlot(a: Actor): string | undefined {
   const used = new Set(a.core.inventory.flatMap((i) => i.equippedIn ?? []));
-  return Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
+  return Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => accSlot(n)).find((s) => !used.has(s));
 }
 /** a grip part as the story names it: an arm grips with its hand ("left hand"); any other part by its own name (a
  * dragon's head) */
 export const gripWord = (part: string) => (part.endsWith('_arm') ? `${part.replace(/_arm$/, '')} hand` : part).replace(/_/g, ' ');
-export const gripsOf = (i: ItemInstance) => (i.equippedIn ?? []).filter((s) => s.startsWith('grip:')).map((s) => s.slice(5));
 
 type Active = { inst: ItemInstance; def: ItemDef; e: ItemEffect; source: string };
 
@@ -272,7 +271,7 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
   if (isHeld(best)) return { itemId: best.id, stowed: null };
   const grips = usableGrips(state, actor);
   if (!grips.length) return { itemId: null, stowed: null }; // no usable grip, so no tool
-  const holder = (h: string) => actor.core.inventory.find((i) => i.equippedIn?.includes(`grip:${h}`));
+  const holder = (h: string) => actor.core.inventory.find((i) => i.equippedIn?.includes(gripSlot(h)));
   if (grips.some((h) => !holder(h))) return { itemId: best.id, stowed: null };
   const items = grips.map(holder) as ItemInstance[];
   // off-grip: a held non-weapon (shield, torch), else the last grip's item

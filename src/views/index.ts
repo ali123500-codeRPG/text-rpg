@@ -49,7 +49,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
-import { gripsOf, isHeld, modeName, usableModes } from '../ruleset/gear';
+import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -172,7 +172,7 @@ function seenGear(state: GameState, a: Actor, revealed: string[], viewerId?: str
     const mine = viewerId && i.stolenFrom === viewerId ? { stolenFromYou: true as const } : {}; // FL6: its owner knows it on sight
     if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried', ...mine }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
-    const where = slot.startsWith('grip:') ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : slot.startsWith('acc:') && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
+    const where = isGripSlot(slot) ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : isAccSlot(slot) && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
     // CT5/CT7: a worn pack shows; once opened (its wearer downed or yielded), what it holds shows in it
     if (where) out.push({ id: i.id, name: d.name, look: d.look, where, ...mine, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
   }
@@ -781,7 +781,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     events: out,
     player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), fatigue: fatigueWord(p), ...steadyOf(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
-      gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${g.equippedIn.some((x) => x.startsWith('grip:')) ? 'held' : g.equippedIn.length ? 'worn' : g.pocket ? `in a ${g.pocket === 'pocket' ? 'pocket' : `${g.pocket} pocket`}` : 'carried'})${g.container?.contents?.length ? `, holding ${g.container.contents.map((c) => c.name).join(', ')}` : ''}`) }, // PI1: what is in it
+      gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${isHeld(g) ? 'held' : g.equippedIn.length ? 'worn' : g.pocket ? `in a ${g.pocket === 'pocket' ? 'pocket' : `${g.pocket} pocket`}` : 'carried'})${g.container?.contents?.length ? `, holding ${g.container.contents.map((c) => c.name).join(', ')}` : ''}`) }, // PI1: what is in it
     surroundings: perceivedZones(state, p.zone, p),
     heard,
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...echoOf(state, s.id) })),

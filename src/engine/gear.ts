@@ -13,7 +13,7 @@ import { withinGrip, type Located, type Pos } from './position';
 export { gripReachM };
 export { withinGrip } from './position';
 import { summon } from '../ruleset/threadboundItems';
-import { freeAccSlot, isHeld, isWorn } from '../ruleset/gear';
+import { freeAccSlot, gripSlot, isAccSlot, isHeld, isWorn } from '../ruleset/gear';
 import { fitsPocket, freePocket, pocketIt, tidyPockets } from './pockets';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
@@ -39,7 +39,7 @@ const yieldedTo = (state: GameState, src: Actor, taker: Actor) => stance(state, 
 function freeGrips(state: GameState, actor: Actor): string[] {
   const bad = new Set(partStates(state, actor).filter((p) => !working(p.state)).map((p) => p.id));
   const held = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
-  return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(`grip:${p}`)).map((p) => `grip:${p}`);
+  return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(gripSlot(p))).map(gripSlot);
 }
 
 function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
@@ -103,7 +103,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         break;
       }
       case 'remove_acc':
-        ok = !!inst?.equippedIn?.some((s) => s.startsWith('acc:'));
+        ok = !!inst?.equippedIn?.some(isAccSlot);
         if (ok) delete inst!.equippedIn;
         break;
       case 'summon': // TB6: the player's own Threadbound item comes to them from wherever it is, at any time

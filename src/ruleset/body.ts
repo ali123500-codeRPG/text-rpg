@@ -10,6 +10,7 @@ import { PK } from '../library/perkIds';
 import { moraleMods } from './morale';
 import { fatigueMods } from './fatigue';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
+import { gripsOf } from './slots';
 
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills[SK.endurance];
@@ -32,9 +33,10 @@ export function woundsOfLevel(level: HealthLevel): number {
   return CONFIG.HEALTH_TRACK.find(([l]) => l === level)?.[2] ?? 0;
 }
 
-/** state of a pool by % left: Healthy >50, Damaged 50..>0, Crippled 0..>−100, Destroyed ≤ −100 */
+/** state of a pool by % left: the first state whose floor it is above (CONFIG.PART_STATE_ABOVE: Healthy >50, Damaged
+ * 50..>0, Crippled 0..>−100), else Destroyed */
 export function poolState(pct: number): PartState {
-  return pct > 50 ? 'healthy' : pct > 0 ? 'damaged' : pct > -100 ? 'crippled' : 'destroyed';
+  return PART_STATES.keys.find((k) => k === 'destroyed' || pct > CONFIG.PART_STATE_ABOVE[k]) as PartState;
 }
 /** Healthy or Damaged: the part still does its job */
 export const working = (s: PartState) => PART_STATES.pos(s) <= PART_STATES.pos('damaged');
@@ -122,7 +124,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
       }
     } else if (uses.includes(role)) {
       if (role === RL.grip) {
-        const held = inst?.equippedIn?.filter((h) => h.startsWith('grip:')).map((h) => h.slice(5)) ?? [];
+        const held = inst ? gripsOf(inst) : [];
         const pens = (held.length ? held : parts.map((p) => p.id)).map((id) => pen(id));
         v = held.length ? Math.min(...pens) : Math.max(...pens);
       } else if (role === RL.strike && ctx.itemId?.startsWith('natural:')) {
@@ -130,7 +132,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
         if (partId) v = pen(partId);
       }
     }
-    if (v) out.push({ source: `${getLibrary().roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
+    if (v) out.push({ source: `${lib.roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
   }
   // a Damaged shield: −10 to block (wounds type)
   if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'damaged') {
@@ -151,7 +153,7 @@ export function hitTable(state: GameState, actor: Actor): { part: string; from: 
   const exact = entries.map((e) => (W ? e.min + (e.w / W) * (100 - CONFIG.GENERAL_MIN_PCT) : e.part === 'general' ? 100 : 0));
   const n = exact.map(Math.floor);
   const frac = (i: number) => Math.round((exact[i] - n[i]) * 1e6);
-  // largest remainder; ties: bigger weight, then later part (reproduces both spec tables; GAP: spec gives no tie rule)
+  // largest remainder; ties: bigger weight, then later part (spec, Building the hit table step 3)
   const order = entries.map((_, i) => i).sort((a, b) => frac(b) - frac(a) || entries[b].w - entries[a].w || b - a);
   let left = 100 - n.reduce((s, x) => s + x, 0);
   for (const i of order) if (left-- > 0) n[i]++;

@@ -5,6 +5,7 @@ import type { Pages } from './pages';
 import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
 import { tierAt } from '../ruleset';
 import { skillCap } from '../ruleset/skillCap';
+import { gripSlot, gripsOf } from '../ruleset/slots';
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
@@ -26,7 +27,6 @@ export function opposedToHostile(v: unknown): void {
   Object.values(o).forEach(opposedToHostile);
 }
 
-/** step from version v to v + 1, keyed by v. v1 is the baseline: no steps yet. Defaults for missing fields go only here. */
 // v1 stored tiers by name (old names Partial and Strong included) and roll results with a tierIndex 0..5.
 // v2 stores tier IDs −3..2 (unclamped on rolls): tier = tierIndex − 3.
 const V1_TIER_IDS: Record<string, number> = {
@@ -100,6 +100,7 @@ export function handToGrip(v: unknown): void {
   Object.values(o).forEach(handToGrip);
 }
 
+/** step from version v to v + 1, keyed by v. v1 is the baseline: no steps yet. Defaults for missing fields go only here. */
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
   2: (pages) => Object.values(pages).forEach(levelsToKeys),
@@ -244,12 +245,12 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
       for (const slot of it.equippedIn ?? []) {
         if (slots.has(slot)) r.errors.push(`invariant: ${a.id} slot ${slot} used twice`);
         slots.add(slot);
-        if (slot.startsWith('grip:') && !parts.has(slot.slice(5))) r.errors.push(`invariant: ${a.id} slot ${slot} names a part it lacks`);
         if (slot === 'armor') for (const p of def?.armor?.covers ?? []) {
           if (covered.has(p)) r.errors.push(`invariant: ${a.id} part ${p} covered by two worn items`);
           covered.add(p);
         }
       }
+      for (const g of gripsOf(it)) if (!parts.has(g)) r.errors.push(`invariant: ${a.id} slot ${gripSlot(g)} names a part it lacks`);
       if (def?.stackable && !((it.qty ?? 0) >= 1)) r.errors.push(`invariant: ${a.id} stack ${it.id} holds qty < 1`);
     }
   }
@@ -262,6 +263,8 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
   const placeIds = new Set(keys.filter((k) => k.startsWith('place.')).map((k) => (pages[k] as Place).id));
   const actorIds = new Set(actorKeys(pages).map((k) => (pages[k] as Actor).id));
   const factIds = new Set(keys.filter((k) => k.startsWith('facts.')).flatMap((k) => (pages[k] as FactsPage).facts.map((f) => f.id)));
+  const placePages = keys.filter((k) => k.startsWith('place.'));
+  const bands = (pages.engine as EnginePage | undefined)?.bands.map((b) => b.id) ?? [];
   const fix = (key: string, msg: string) => { r.repairs.push(`reference: ${key} ${msg}`); r.changed.add(key); };
   const keep = <T>(key: string, list: T[], ok: (x: T) => boolean, what: string): T[] => {
     const bad = list.filter((x) => !ok(x));
@@ -280,7 +283,7 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       // every link runs both ways (scenarios planned before the fix kept one-way links among their new zones)
       for (const z of p.zones) for (const l of z.links) {
         if (l.frontier) continue;
-        const ok = keys.filter((x) => x.startsWith('place.')).map((x) => [x, (pages[x] as Place).zones.find((zz) => zz.id === l.to)] as const).find(([, zz]) => zz);
+        const ok = placePages.map((x) => [x, (pages[x] as Place).zones.find((zz) => zz.id === l.to)] as const).find(([, zz]) => zz);
         if (ok && !ok[1]!.links.some((b) => b.to === z.id)) { ok[1]!.links.push({ to: z.id, label: z.name, sight: l.sight }); fix(ok[0], `added the way back from ${l.to} to ${z.id}`); }
       }
     } else if (k.startsWith('facts.')) {
@@ -301,7 +304,6 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       a.core.inventory = keep(k, a.core.inventory, (it) => L.hasItem(it.itemId), 'unknown items');
       for (const c of a.core.inventory) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
       if (a.core.templateId && !L.hasTemplate(a.core.templateId)) r.warnings.push(`${a.id} template ${a.core.templateId} unknown`);
-      const bands = (pages.engine as EnginePage).bands.map((b) => b.id);
       if (!bands.includes(a.bandId)) r.warnings.push(`${a.id} band ${a.bandId} unknown`);
     } else if (k === 'hidden') {
       const h = page as HiddenPage;
