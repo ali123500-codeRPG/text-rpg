@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-208
+
+**What was wrong:** After turn 32 Ali asked why the skills from the Street Instinct essence (Dodge +1, Insight +1) showed nowhere. Happi had neither skill on her sheet, so the essence's points counted as 0. Separately, /essence take was a command, and commands were not saved until the next turn, so the take was lost if the page reloaded first.
+
+**What was done:** Ali approved both parts (BF40). Part 1 was fixed in PR #704: a held essence puts the skills it gives on the sheet at raw 0, so its points count and show. Part 2: a command that changes the character (/essence take, pass, give, sell and remove, and /title) now saves at once, as a perk pick does. A unit test reloads the story after a take, a pass and a give.
+
+**Fixed by:** [PR #704](https://github.com/ali123500-codeRPG/text-rpg/pull/704) and [PR #757](https://github.com/ali123500-codeRPG/text-rpg/pull/757)
+
 ## BG-214
 
 **What was wrong:** On the stage map the high lane ran straight through the Bent Nail, with the bar on the far side of the lane; zone sides were not whole metres (a 60 m² room was 7.746 m across), and zone names, doors, exit marks and people covered each other, with exits pointing at empty space. Placement put each zone at the first free spot beside its link without leaving room for the exits still to come, a building's outline counted its open yard, and the map drew every mark at a fixed offset without looking at what was already there.

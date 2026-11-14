@@ -164,9 +164,9 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
   const [heldN, stowedN, groundN] = [apart(held.map((i) => i.name)), apart(stowed.map((i) => i.name)), apart(pv.zone.groundItems.map((i) => i.name))];
   const the = (n: string) => (n.startsWith('the other ') ? n : `the ${n}`);
   const groups: { group: string; key: IdeaGroup; items: { text: string; note?: string; kind?: IdeaKind }[]; all?: true }[] = [
-    // MB12: with a broken nerve no attack can come, so Fight gives way to the ways out
-    broken ? { group: 'Get away · your nerve is broken', key: 'getaway', items: [{ text: 'Yield', note: 'ends the fight if they take it', kind: 'yield' },
-      ...pv.zone.links.map((l) => ({ text: `Flee ${l.label}`, kind: 'flee' as const })), { text: 'Hide', note: 'your action', kind: 'hide' }], all: true }
+    // MB12/BF37: with a broken nerve no walk and no attack can come (fleeing too, for now): you cower, and words still work
+    broken ? { group: 'Your nerve is broken · you cower', key: 'getaway', items: [{ text: 'Yield', note: 'ends the fight if they take it', kind: 'yield' },
+      { text: 'Hide', note: 'your action', kind: 'hide' }], all: true }
       : { group: 'Fight', key: 'fight', items: [...people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health), kind: 'attack' as const })),
         // SY1: in a fight, above Broken and not within its cooldown: one morale roll as your action
         ...(canSteady ? [{ text: 'Steady yourself', note: 'your action · a morale roll', kind: 'steady' as const }] : [])], all: true },
@@ -278,10 +278,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // BG-190: the last order that played out (a clarify or a command doesn't count), offered back to carry on with it
   const againBtn = h('button', { type: 'button', class: 'itm', 'data-chip': 'again', onclick: () => { const o = lastOrder(api.lines()); if (o) pick(o); } }, 'Same again');
   const helpPanel = h('div', { class: 'helps', hidden: true });
-  // MB12: while the player's nerve is broken, Yield and Flee come forward and Aim steps back (no attack can come)
+  // MB12/BF37: while the player's nerve is broken, Yield comes forward and Aim steps back (no attack can come); no Flee, for now
   const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
-  const fleeBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'flee', title: 'Run from the fight. Add where to', onclick: () => pick('I flee ') }, 'Flee');
-  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, fleeBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
+  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the chips
   let doingHtml = '';
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, doingSlot, tools);
@@ -467,7 +466,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
       ...gear.map((g) => row('Gear', g)),
       // MB12: an attack refused because the player's nerve is broken (no roll was made)
-      l.nerveRefused ? h('p', { class: 'rrow nerve' }, h('span', { class: 'hs-label' }, 'Nerve'), h('span', {}, 'Your attack never came: your nerve is broken.')) : null,
+      l.nerveRefused ? h('p', { class: 'rrow nerve' }, h('span', { class: 'hs-label' }, 'Nerve'), h('span', {}, 'Your nerve is broken: no walk or attack came, and you cowered where you stand.')) : null,
       // coin gained or lost this turn: "+2 silver" in gold, "−5 copper" in red, so a theft or a price never passes unseen
       l.coin ? h('p', { class: 'rrow coin' }, h('span', { class: 'hs-label' }, 'Coin'), h('b', { class: l.coin > 0 ? 'coin-up' : 'coin-down' }, (l.coin > 0 ? '+' : '−') + coinWords(Math.abs(l.coin)))) : null,
       // AT11a: the long actions seen this turn: going on (time to go), done, broken off or set aside
@@ -732,8 +731,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     auto.update();
     aimBtn.disabled = stopped;
     const broken = !!s && moraleLevel(s.player) === 'broken';
-    yieldBtn.hidden = fleeBtn.hidden = !broken; aimBtn.hidden = broken;
-    yieldBtn.disabled = fleeBtn.disabled = stopped;
+    yieldBtn.hidden = !broken; aimBtn.hidden = broken;
+    yieldBtn.disabled = stopped;
     // AT11a: the player's own long action, and AT49 its walk on the way; a redraw that changes nothing keeps the element (M-74)
     if (!frozen) { const dn = [doingNow(pv?.player.doing, pick, stopped), pv?.player.following ? followingNow(pv.player.following, pv.player.walking, pick, stopped) : walkingNow(pv?.player.walking, pick, stopped)].filter((x): x is HTMLElement => !!x); const html = dn.map((x) => x.outerHTML).join(''); if (html !== doingHtml) { doingSlot.replaceChildren(...dn); doingHtml = html; } }
     st.set(stealthy, stopped);

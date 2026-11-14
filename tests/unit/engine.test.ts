@@ -114,7 +114,8 @@ vi.mock('../../src/views', () => ({
   },
 }));
 
-vi.mock('../../src/minds', () => {
+vi.mock('../../src/minds', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../src/minds')>();
   const o = (v: { self: { id: string } }, type: string, source: Order['source']): Order => ({ actorId: v.self.id, type, target: null, skill: null, intent: '', source });
   return {
     routineOrder: (v: { self: { id: string } }) => o(v, 'idle', 'routine'),
@@ -125,6 +126,7 @@ vi.mock('../../src/minds', () => {
     letSearch: () => {},
     fallbackOrder: (v: { self: { id: string } }) => o(v, 'hold', 'fallback'),
     brokenOrder: (v: { self: { id: string } }) => o(v, 'hold', 'broken'),
+    nerveHolds: real.nerveHolds, // BF37: the real rule
     bindTemplate: (tpl: Order, v: { self: { id: string } }, ctx: { triggerZone?: string; source: Order['source']; triggerId?: string }) => ({
       ...tpl, actorId: v.self.id, target: tpl.target === '$triggerZone' ? ctx.triggerZone : tpl.target === '$player' ? 'player' : tpl.target, source: ctx.source, triggerId: ctx.triggerId,
     }),
@@ -200,13 +202,13 @@ describe('turn start (computePending)', () => {
 });
 
 describe('order priority', () => {
-  it('fired trigger > agent > routine; broken > agent', () => {
+  it('fired trigger > agent > routine; broken keeps an allowed agent action', () => {
     const fired: Order[] = [{ actorId: 'guard_1', type: 'search', target: null, skill: null, intent: '', source: 'trigger' }];
     actor(s, 'trader').mind!.moraleState = 'broken';
     const ev = resolveTurn(s, input({ fired, agentOutputs: [planner('guard_1', npcAction('hold')), planner('trader', npcAction('call_help'))] }), createRng(1));
     const byActor = (id: string) => ev.filter((e) => e.actorId === id).map((e) => e.kind);
     expect(byActor('guard_1')).toEqual(['search']);
-    expect(byActor('trader')).toEqual(['hold']);
+    expect(byActor('trader')).toEqual(['call_help']); // BF37: broken keeps what its mind chose, less a walk or an attack
     expect(byActor('patron_1')).toEqual(['idle']);
     expect(byActor('player')).toEqual(['hold']);
   });

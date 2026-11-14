@@ -144,45 +144,33 @@ export function routineOrder(view: ActorView): Order {
 function hostileBeliefs(view: ActorView) {
   return view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && b.status !== 'unaware');
 }
-/** whom a broken actor runs from: those it is hostile to, and those it yielded to (Q4) */
-const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.stance === 'yielded') && b.active && b.status !== 'unaware');
-
-export function brokenOrder(view: ActorView): Order {
-  return flee(view, 'broken');
+/** BF37: what a broken nerve blocks, for now: any walk or run (fleeing too), and any attack, grab, filch or perk move (Battle
+ * Cry). Talking, begging, persuading, lying, yielding, giving, using an item, picking up and unlocking or opening a door or
+ * container within reach still work. An actor broken with nothing allowed to do cowers where it stands. */
+export const NERVE_BLOCKED: readonly string[] = ['attack', 'move', 'flee', 'filch', 'restrain'];
+const NOTHING_CHOSEN: readonly string[] = ['idle', 'hold', 'wait'];
+/** BF37: the cowering order: no move and no action, only words */
+export const cowerOrder = (actorId: string, source: Order['source']): Order => ({ actorId, type: 'idle', target: null, skill: null, intent: 'cower', source, activity: 'cowering' });
+/** BF37: the order a broken nerve leaves: the blocked parts taken away (the move, an attack, a perk move), the rest kept
+ * (its words, gear and an allowed action); nothing allowed left, it cowers. `blocked` says whether anything was taken. */
+export function nerveHolds(o: Order): { order: Order; blocked: boolean } {
+  const { move: _m, moveAfter: _ma, moveSpot: _ms, jump: _j, vanish: _v, perkMove: _pm, pace: _p, ...kept } = o;
+  const blocked = !!o.move || !!o.perkMove || !!o.vanish || NERVE_BLOCKED.includes(o.type);
+  if (!NERVE_BLOCKED.includes(o.type) && !NOTHING_CHOSEN.includes(o.type)) return { order: kept, blocked };
+  const cower = cowerOrder(o.actorId, o.source);
+  return { order: { ...cower, ...(kept.line ? { line: kept.line } : {}), ...(kept.addressees ? { addressees: kept.addressees } : {}), ...(kept.gear?.length ? { gear: kept.gear } : {}), ...(kept.way ? { way: kept.way } : {}), ...(kept.triggerId ? { triggerId: kept.triggerId } : {}) }, blocked };
 }
 
-function flee(view: ActorView, source: Order['source']): Order {
-  const hold = () => order(view, 'hold', source, 'hold');
-  if (view.self.surrendered) return hold();
-  const here = view.self.zone;
-  for (const key of ['exit', 'refuge']) {
-    const b = view.self.slots[key];
-    const zone = Array.isArray(b) ? b[0] : b;
-    if (!zone) continue;
-    if (zone === here) return hold();
-    const path = mapPath(view.map, here, zone);
-    if (path) return order(view, 'flee', source, 'flee', { target: path[0] });
-  }
-  // away from the nearest hostile actor it believes in: a linked zone farther from it than here; else hold.
-  const dist = (a: string, b: string) => mapPath(view.map, a, b)?.length ?? Infinity;
-  const threats = fleeFrom(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
-  if (!threats.length) return hold();
-  const threat = threats.reduce((best, z) => (dist(here, z) < dist(here, best) ? z : best));
-  const links = view.map.find((z) => z.id === here)?.links ?? [];
-  let best: string | null = null;
-  let bestD = dist(here, threat);
-  for (const l of links) {
-    if (l.frontier || l.drop || l.shut || !view.map.some((z) => z.id === l.to)) continue;
-    const d = dist(l.to, threat);
-    if (d > bestD) [best, bestD] = [l.to, d];
-  }
-  return best ? order(view, 'flee', source, 'flee', { target: best }) : hold();
+/** a broken actor no one asked anything of cowers (BF37); one that surrendered holds where it is */
+export function brokenOrder(view: ActorView): Order {
+  return view.self.surrendered ? order(view, 'hold', 'broken', 'hold') : cowerOrder(view.self.id, 'broken');
 }
 
 export function fallbackOrder(view: ActorView, rng: Rng): Order {
   const s = view.self;
-  // 1. Flee
-  if (s.broken || s.surrendered) return flee(view, 'fallback');
+  // 1. Broken: cower (BF37); surrendered: hold
+  if (s.surrendered) return order(view, 'hold', 'fallback', 'hold');
+  if (s.broken) return cowerOrder(s.id, 'fallback');
   // ZR12: a code-run pursuer at the end of its near chase range turns back
   if (s.atChaseLine && hostileBeliefs(view).some((b) => !b.lost)) return routineOrder(view);
   // 2. Attack

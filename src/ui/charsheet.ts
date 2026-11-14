@@ -285,9 +285,9 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
 
 /** MB12 in plain words, one source for the sheet, the story card and the input's chips: how a broken nerve passes
  * (the engagement ending gives morale back, rest too) and what still works while it lasts */
-export const NERVE_UNTIL = "You can't attack until the fight is behind you.";
+export const NERVE_UNTIL = "You can't walk, run or attack until the fight is behind you: with nothing else to do you cower where you stand.";
 export const NERVE_PASSES = () => `That is once no one has fought you for ${engagementEndS()} s, your yield is taken, this scenario ends, or you rest.`;
-export const NERVE_STILL = 'You can still move, flee, sneak, hide, vanish, yield, talk or use a bandage.';
+export const NERVE_STILL = 'You can still talk, beg, yield, give, hide, use an item such as a bandage, pick something up, or open a door or container within reach.';
 const moraleRoll = (k: string) => CONFIG.MORALE_TRACK.find(([x]) => x === k)?.[2] ?? 0;
 /** NB2: a level word that carries what it costs as a tip, shown on hover or keyboard focus (dotted underline as the cue);
  * screen readers get it as the word's description */
@@ -301,7 +301,7 @@ export function moraleHint(k: MoraleLevel): string | null {
   if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM as MoraleLevel)) return null;
   if (k === 'broken') return `${NERVE_PASSES()} ${NERVE_STILL}`;
   const roll = moraleRoll(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
-  return `${roll ? `−${Math.abs(roll)} on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack.`;
+  return `${roll ? `−${Math.abs(roll)} on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to walk away or attack.`;
 }
 
 /** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
