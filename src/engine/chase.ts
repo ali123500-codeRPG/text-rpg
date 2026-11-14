@@ -184,10 +184,16 @@ export const ROAM_DANGER = ['attack', 'spotted'];
 export function checkRoam(state: GameState, events: GameEvent[]): void {
   const st = state.stage;
   if (!st.roam || st.roam.since >= state.turn || st.scenario || st.breakCause) return;
-  const why = roamStart(state, events);
+  // SW6 a: a job taken or a deal made (with the player) starts a scenario about it, once free roam has lasted long enough
+  if (st.roam.job === undefined && state.log.some((l) => l.turn === state.turn && (l.code === 'quest_made' || (l.code === 'agreement_made' && (l.detail?.parties as string[] | undefined)?.includes(state.player.id))))) st.roam.job = state.turn;
+  let why = roamStart(state, events);
+  if (!ROAM_DANGER.includes(why ?? '') && st.roam.job !== undefined) why = 'job';
   if (!why) return;
   if (!ROAM_DANGER.includes(why) && state.turn - st.roam.since < CONFIG.ROAM_MIN_TURNS) return;
   st.breakCause = 'roam';
+  // SW3 a: the next scenario's Weaver is told why, what happened in the roam, and who saw the player this turn
+  const seenBy = state.actors.filter((a) => a !== state.player && isActive(a) && a.mind?.knowledge[state.player.id]?.lastSeenTurn === state.turn).map((a) => a.id);
+  st.cause = { why, happened: [...(st.roam.happened ?? [])], seenBy };
   logCode(state, 'roam_scenario', { why });
 }
 

@@ -36,7 +36,14 @@ export type StageInfo = {
   gains?: import('./game').ScenarioGains & { number: number; turn: number };
   closed?: { as: import('./hidden').ScenarioEnding; turn: number };
   /** SD2 a: free roam, since this turn: no scenario runs until something starts one (CH2), or an unbuilt frontier (CH3 a) */
-  roam?: { since: number };
+  roam?: { since: number;
+    /** SW6 a: the turn the player took a job or made a deal in this free roam: it starts a scenario once ROAM_MIN_TURNS have passed */
+    job?: number;
+    /** SW3 a: what happened in this free roam, one short hidden line per notable thing (as a scenario's `happened`, plus attacks) */
+    happened?: { turn: number; text: string }[] };
+  /** SW3 a: why free roam is ending in a scenario (roamStart's reason), what happened in the roam and who saw the player that
+   * turn; set with breakCause 'roam', read by the next scenario's Weaver view, cleared once that plan is applied */
+  cause?: { why: string; happened: { turn: number; text: string }[]; seenBy: string[] };
   /** BG-217: growth earned in free roam waits for the next scenario's end: where the XP stood when the roam began, taken by
    * the next scenario's frame so its gains moment counts the roam's XP too */
   roamGrowth?: { xpFrom: number; xpStart: { level: number; pct: number } };
