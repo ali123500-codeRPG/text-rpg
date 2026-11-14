@@ -411,9 +411,12 @@ const DEFAULTS = {
   // ---- Part 4 ----
   // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
   /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, in human years (AB7: scaled by race, TRAINING_ADULT_AGE) */
-  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_8: { anchor: 400, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_transcendent: { anchor: 300, level: 50, training: 45 } /* D-335 placeholder */, rank_8: { anchor: 400, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
   /** AB7 a: a rank's training years are human years; a race trains in (its Adult start ÷ this) of them (humans unchanged) */
   TRAINING_ADULT_AGE: 18,
+  /** D-314 c (placeholder): from this rank up, an NPC preset's skills skip the raw-skill cap (SKILL_CAP, tagged + TAG_CAP_BONUS),
+   * so a Beyond is 150 and a Mythic 200; ranks below it keep the player's cap (NG5 b) */
+  NPC_UNCAPPED_FROM: 'rank_6' as const,
   /** NG3: past the last rank row, each step adds this */
   RANK_BEYOND_STEP: { anchor: 100, level: 20, training: 10 },
   /** NG2: a role's bands as shares of the rank's anchor */
@@ -422,8 +425,8 @@ const DEFAULTS = {
   NPC_BAND_MULT: 1,
   /** NG13: the lowest rank of a combat role (fighting experience) and of a civilian role; beasts have none */
   RANK_FLOOR: { combat: 'rank_2', civilian: 'rank_1' } as Record<'combat' | 'civilian', `rank_${number}`>,
-  /** NG12: traits drawn from the theme's and role's pools, by rank (rank_0 first); past the last row, +RANK_TRAITS_BEYOND per step */
-  RANK_TRAITS: [0, 0, 0, 1, 1, 2, 2, 3, 3],
+  /** NG12: traits drawn from the theme's and role's pools, by rank key; past the last row, +RANK_TRAITS_BEYOND per step */
+  RANK_TRAITS: { rank_0: 0, rank_1: 0, rank_2: 0, rank_3: 1, rank_4: 1, rank_5: 2, rank_6: 2, rank_7: 3, rank_transcendent: 3, rank_8: 3 } as Record<string, number>,
   RANK_TRAITS_BEYOND: 1,
   /** NG14: each personality trait of a copy moves by up to this many points, seeded by its ID */
   PERSONALITY_SPREAD: 20,

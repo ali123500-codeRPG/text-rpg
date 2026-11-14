@@ -2,7 +2,7 @@ import { TP } from '../../src/library/templateIds';
 import { RC } from '../../src/library/raceIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
-import { createPlayer, npcMilestonePerks, patrols, presetPersonality, presetSkills, rankName, rankRow, rankTraitCount, recommendedBuild, refreshCopies, spawnNpc, templateLevel, templatePerks, templateRank, validateBuild } from '../../src/library/spawn';
+import { createPlayer, npcMilestonePerks, patrols, presetPersonality, presetSkills, rankKeyOf, rankName, rankPos, rankRow, rankTraitCount, recommendedBuild, refreshCopies, spawnNpc, templateLevel, templatePerks, templateRank, validateBuild } from '../../src/library/spawn';
 import { milestonePerk, trueSkill } from '../../src/ruleset/perks';
 import { perkPointsUpTo } from '../../src/ruleset/levels';
 import { personalityFrom } from '../../src/ruleset/personality';
@@ -12,6 +12,7 @@ import { getLibrary, itemDef, npcTemplate, resetLibrary, setLibrary } from '../.
 import { shortBy } from '../../src/ruleset/requirements';
 import { CONFIG, resetConfig } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { RANKS } from '../../src/scales';
 import { CL } from '../../src/library/classIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
@@ -61,14 +62,28 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
     expect(s[SK.melee_light]).toBeUndefined(); // no spill into the tree
     expect(s[SK.barter]).toBeUndefined();
   });
-  it('NG5 b: the cap is the player\'s, 100 or 125 tagged, at every rank; NG3: ranks go on past Divine', () => {
-    for (const rank of ['rank_5', 'rank_6', 'rank_8', 'rank_10'] as const) {
+  it('NG5 b: the cap is the player\'s, 100 or 125 tagged, up to Paragon; D-314 c: Beyond and up skip it; NG3: ranks go on past Divine', () => {
+    for (const rank of ['rank_4', 'rank_5'] as const) {
       const s = banded({ ...bandit, rank });
       expect(s[SK.melee_medium].raw).toBe(Math.min(rankRow(rank).anchor, CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS));
       expect(s[SK.medium_armor].raw).toBe(Math.min(rankRow(rank).anchor * 0.8, CONFIG.SKILL_CAP));
     }
+    for (const rank of ['rank_6', 'rank_7', 'rank_transcendent', 'rank_8', 'rank_10'] as const) {
+      const s = banded({ ...bandit, rank });
+      expect([s[SK.melee_medium].raw, s[SK.medium_armor].raw]).toEqual([rankRow(rank).anchor, Math.round(rankRow(rank).anchor * 0.8)]);
+    }
+    expect(banded({ ...bandit, rank: 'rank_6' })[SK.melee_medium].raw).toBe(150);
     expect(rankRow('rank_10')).toEqual({ anchor: 600, level: 100, training: 70 });
     expect([rankName('rank_2'), rankName('rank_8'), rankName('rank_10')]).toEqual(['Trained', 'Divine', 'Divine++']);
+  });
+  it('D-335: Transcendent (300) sits between Mythic and Divine on its own key; saved keys keep their meaning', () => {
+    expect([rankPos('rank_7') < rankPos('rank_transcendent'), rankPos('rank_transcendent') < rankPos('rank_8'), rankPos('rank_8') < rankPos('rank_9')]).toEqual([true, true, true]);
+    expect([rankName('rank_transcendent'), rankRow('rank_transcendent').anchor]).toEqual(['Transcendent', 300]);
+    expect([rankName('rank_9'), rankRow('rank_9').anchor]).toEqual(['Divine+', 500]); // a key past Divine still means one step past it
+    expect([rankKeyOf('Transcendent'), rankKeyOf('rank_transcendent'), rankKeyOf('Divine+'), rankKeyOf('rank_9')]).toEqual(['rank_transcendent', 'rank_transcendent', 'rank_9', 'rank_9']);
+    for (const k of RANKS.keys) { expect(CONFIG.RANK_ROWS[k], k).toBeDefined(); expect(CONFIG.RANK_TRAITS[k], k).toBeDefined(); }
+    const anchors = RANKS.keys.map((k) => rankRow(k).anchor);
+    expect(anchors).toEqual([...anchors].sort((a, b) => a - b));
   });
   it('NG9: each copy moves by up to ± COPY_SPREAD, seeded by its ID; minimums and class floors still hold', () => {
     const a = presetSkills(bandit, createRng(5));
@@ -149,8 +164,8 @@ describe('NPC perks, traits, rules and personality (NG11–NG14)', () => {
   });
 
   it('NG12: ranks draw traits from the theme and role pools, seeded by the actor; Veteran is the first to draw', () => {
-    expect([0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => rankTraitCount(`rank_${n}`))).toEqual(CONFIG.RANK_TRAITS);
-    expect(rankTraitCount('rank_10')).toBe(CONFIG.RANK_TRAITS[8] + 2 * CONFIG.RANK_TRAITS_BEYOND);
+    expect(RANKS.keys.map((k) => rankTraitCount(k))).toEqual(RANKS.keys.map((k) => CONFIG.RANK_TRAITS[k]));
+    expect(rankTraitCount('rank_10')).toBe(CONFIG.RANK_TRAITS.rank_8 + 2 * CONFIG.RANK_TRAITS_BEYOND);
     expect(templatePerks(guard(), 'g1')).toEqual(templatePerks(guard())); // Trained: none drawn
     const vet = { ...guard(), rank: 'rank_3' as const };
     const pool = [...(getLibrary().npcRoles![RO.soldier].traits ?? []), ...(getLibrary().themes![TH.town_watch].traits ?? [])];
