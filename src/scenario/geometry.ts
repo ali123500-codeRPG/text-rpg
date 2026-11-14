@@ -30,12 +30,30 @@ const sideOf = (d: [number, number]): Side => (Math.abs(d[0]) >= Math.abs(d[1]) 
 export const sameFloor = (a: Zone, b: Zone) => Math.abs(heightOf(a) - heightOf(b)) < CONFIG.STOREY_HEIGHT / 2;
 const overlaps = (a: Rect, b: Rect) => Math.abs(a.x - b.x) * 2 < a.w + b.w - 0.01 && Math.abs(a.y - b.y) * 2 < a.d + b.d - 0.01;
 
-/** width (east-west) and depth (north-south) of a zone's rectangle: its area at its aspect, the long side along `axis` */
+/** width (east-west) and depth (north-south) of a zone's rectangle: its area at its aspect, the long side along `axis`,
+ *  in whole metres (MAP-10: the map's grid is 1 m, so every zone's sides land on it) */
 function dims(z: Zone, axis: 'ew' | 'ns'): [number, number] {
   const area = z.area ?? CONFIG.ZONE_SIZE_M2.room;
   const r = Math.max(1, z.aspect ?? 1);
-  const short = Math.sqrt(area / r), long = short * r;
-  return axis === 'ew' ? [long, short] : [short, long];
+  // the whole-metre short side (just below or above the true one) whose rectangle comes closest to both the area and the
+  // shape: 25 m² at 4 to 1 is 8 × 3
+  const exact = Math.sqrt(area / r);
+  const fit = [Math.floor(exact), Math.ceil(exact)].filter((x) => x >= 1).map((short) => {
+    const long = Math.max(short, Math.round(area / short));
+    return { short, long, err: Math.abs(short * long - area) / area + Math.abs(long / short - r) / r };
+  }).sort((a, b) => a.err - b.err)[0] ?? { short: 1, long: Math.max(1, Math.round(area)) };
+  return axis === 'ew' ? [fit.long, fit.short] : [fit.short, fit.long];
+}
+
+/** MAP-10: a rectangle moved so its sides sit on whole metres (its size is whole metres already) */
+const snap = (r: Rect): Rect => ({ ...r, x: Math.round(r.x - r.w / 2) + r.w / 2, y: Math.round(r.y - r.d / 2) + r.d / 2 });
+
+/** the box around rectangles (null for none) */
+function boxOf(rs: Rect[]): Rect | null {
+  if (!rs.length) return null;
+  const x0 = Math.min(...rs.map((r) => r.x - r.w / 2)), x1 = Math.max(...rs.map((r) => r.x + r.w / 2));
+  const y0 = Math.min(...rs.map((r) => r.y - r.d / 2)), y1 = Math.max(...rs.map((r) => r.y + r.d / 2));
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, d: y1 - y0 };
 }
 
 /** the exit between two zones read from `from`'s side: its compass direction and whether it climbs or drops */
@@ -52,45 +70,95 @@ function exitBetween(from: Zone, to: Zone): { dir: [number, number] | null; vert
   return { dir: fwd ?? (rev ? [-rev[0], -rev[1]] : null), vertical };
 }
 
-/** gives each zone in `zones` without a rectangle one, next to a placed zone it links to (CO1 B) */
+/** gives each zone in `zones` without a rectangle one, next to a placed zone it links to (CO1 B). Zones already placed
+ *  never move (MAP-03), so a stage that grows only adds zones at its edges. A zone touches a zone it links to, on the
+ *  side the exit's compass words name when that side is free, and in whole metres (MAP-10). A building stays one piece
+ *  (MAP-12): no zone lands inside another place's footprint (the box around its zones on that floor), and a place never
+ *  grows its footprint over a zone that isn't its own, so a street runs beside a tavern and never through it. */
+/** how far along a wall placement steps a zone, in whole metres each way, and how many free spots it weighs before it
+ *  takes the best so far (a 30 km road has 15 000 metres of side) */
+const STEPS_ALONG = 60, SPOTS_TRIED = 80;
+
 export function placeZones(state: GameState, zones: Zone[]): void {
   const all = state.places.flatMap((p) => p.zones);
   const byId = new Map(all.map((z) => [z.id, z]));
+  const parentOf = new Map(state.places.map((p) => [p.id, p.parentId]));
+  /** a place and every place above it */
+  const chain = (id: string): Set<string> => { const out = new Set<string>(); for (let q: string | null | undefined = id, n = 0; q && n < 20; q = parentOf.get(q), n++) out.add(q); return out; };
   const open = new Set(zones.filter((z) => !z.rect).map((z) => z.id));
   const placed = () => all.filter((z) => z.rect);
-  const free = (z: Zone, r: Rect) => !placed().some((o) => o !== z && sameFloor(o, z) && overlaps(o.rect!, r));
+  /** a building's footprint on z's floor (MAP-12): the box around the indoor zones placed in it or in places inside it;
+   *  streets and yards make no footprint, so a lane may wind between houses */
+  const footprint = (placeId: string, z: Zone, extra?: Rect) => boxOf([...placed().filter((o) => o !== z && !o.outdoor && sameFloor(o, z) && chain(o.placeId).has(placeId)).map((o) => o.rect!), ...(extra ? [extra] : [])]);
+  const free = (z: Zone, r: Rect) => {
+    const floor = placed().filter((o) => o !== z && sameFloor(o, z));
+    if (floor.some((o) => overlaps(o.rect!, r))) return false;
+    const mine = chain(z.placeId);
+    // r stays out of every other place's footprint: a place z sits in (its own, or one above it) is no bar
+    const others = new Set(floor.flatMap((o) => [...chain(o.placeId)]).filter((pid) => !mine.has(pid)));
+    for (const pid of others) { const fp = footprint(pid, z); if (fp && overlaps(fp, r)) return false; }
+    // an indoor zone's building (when it sits inside another place) never grows over a zone of somewhere else
+    if (!z.outdoor && parentOf.get(z.placeId)) {
+      const fp = footprint(z.placeId, z, r)!;
+      if (floor.some((o) => !chain(o.placeId).has(z.placeId) && overlaps(o.rect!, fp))) return false;
+    }
+    return true;
+  };
+  /** spots touching `p` on `side`: centred, lined up with either end, then every whole-metre step along it */
+  const along = (z: Zone, p: Rect, side: Side): Rect[] => {
+    const [sx, sy] = STEP[side];
+    const [w, d] = dims(z, sx ? 'ew' : 'ns');
+    const base: Rect = { x: p.x + sx * (p.w + w) / 2, y: p.y + sy * (p.d + d) / 2, w, d };
+    const room = sx ? (p.d + d) / 2 - 1 : (p.w + w) / 2 - 1; // still sharing at least 1 m of wall
+    const ends = sx ? (p.d - d) / 2 : (p.w - w) / 2;
+    const steps = [0, ends, -ends];
+    for (let k = 1; k <= Math.min(Math.floor(room), STEPS_ALONG); k++) steps.push(k, -k);
+    return steps.filter((t) => Math.abs(t) <= room + 1e-9).map((t) => snap(sx ? { ...base, y: base.y + t } : { ...base, x: base.x + t }));
+  };
   for (let pass = 0; open.size && pass < 200; pass++) {
     let progress = false;
     for (const id of [...open]) {
       const z = byId.get(id)!;
-      const near = [...z.links.map((l) => byId.get(l.to)), ...all.filter((o) => o.links.some((l) => l.to === z.id))].find((o) => o?.rect);
+      const linked = [...z.links.map((l) => byId.get(l.to)), ...all.filter((o) => o.links.some((l) => l.to === z.id))].filter((o): o is Zone => !!o?.rect);
+      const near = linked[0];
       if (!near) continue;
       const p = near.rect!;
       const { dir, vertical } = exitBetween(near, z);
       if (vertical || !sameFloor(near, z)) {
         const [w, d] = dims(z, p.w >= p.d ? 'ew' : 'ns');
-        z.rect = { x: p.x, y: p.y, w, d }; // up or down the stairs: straight above or below
+        z.rect = snap({ x: p.x, y: p.y, w, d }); // up or down the stairs: straight above or below
       } else {
-        const sides: Side[] = dir ? [sideOf(dir)] : ['e', 's', 'w', 'n'];
-        const at = (side: Side): Rect => {
-          const [sx, sy] = STEP[side];
-          const [w, d] = dims(z, sx ? 'ew' : 'ns');
-          return { x: p.x + sx * (p.w + w) / 2, y: p.y + sy * (p.d + d) / 2, w, d };
-        };
-        // touch the near zone's side: centred on it, else lined up with either end of it, on any side the exit allows
-        // (BG-7: a blocked first side no longer leaves a gap while another side is free); only when every touching spot
-        // is in the way, slide outward from the first side's centred spot until nothing on this floor is
-        let best: Rect | undefined;
-        for (const side of sides) {
-          const r = at(side), sx = STEP[side][0];
-          const shifts = [0, 1, -1].map((k) => (sx ? [0, k * (p.d - r.d) / 2] : [k * (p.w - r.w) / 2, 0]));
-          best = shifts.map(([ex, ny]) => ({ ...r, x: r.x + ex, y: r.y + ny })).find((c) => free(z, c));
-          if (best) break;
+        // touch a zone it links to: the first one on the side its exit names, then that zone's other sides, then the
+        // other zones it links to, then the zones of its own place; the first spot that is free wins (BG-7, MAP-12)
+        const own = placed().filter((o) => o.placeId === z.placeId && sameFloor(o, z) && !linked.includes(o));
+        const anchors = [...new Set([...linked.filter((o) => sameFloor(o, z)), ...own])];
+        const ALL: Side[] = ['e', 's', 'w', 'n'];
+        // of the free spots, the first that leaves the most room for the zones z's exits name a side for (the bar
+        // "behind the counter, north" needs the common room's north side clear): an indoor one counts double
+        const wants = z.links.flatMap((l) => {
+          const u = byId.get(l.to), d = compassOf(l.label);
+          return u && !u.rect && open.has(u.id) && d && sameFloor(u, z) && !exitBetween(z, u).vertical ? [{ u, side: sideOf(d), w: u.outdoor ? 1 : 2 }] : [];
+        });
+        const most = wants.reduce((n, x) => n + x.w, 0);
+        const room = (c: Rect) => { z.rect = c; const n = wants.reduce((t, x) => t + (along(x.u, c, x.side).some((q) => free(x.u, q)) ? x.w : 0), 0); delete z.rect; return n; };
+        let best: Rect | undefined, bestN = -1, tried = 0;
+        search: for (const a of anchors) {
+          const d0 = a === near ? dir : exitBetween(a, z).dir;
+          const sides = d0 ? [sideOf(d0), ...ALL.filter((x) => x !== sideOf(d0))] : ALL;
+          for (const side of sides) for (const c of along(z, a.rect!, side)) {
+            if (!free(z, c)) continue;
+            const n = wants.length ? room(c) : 0;
+            if (n > bestN) { best = c; bestN = n; }
+            if (n === most || ++tried >= SPOTS_TRIED) break search;
+          }
         }
         if (!best) {
-          const r = at(sides[0]), [sx, sy] = STEP[sides[0]];
-          for (let k = 0; k < 100 && !free(z, r); k++) { r.x += sx * r.w / 2; r.y += sy * r.d / 2; }
-          best = r;
+          // every touching spot is in the way: slide outward from the first side's centred spot until nothing on this
+          // floor is
+          const side = dir ? sideOf(dir) : 'e', [sx, sy] = STEP[side];
+          const r = along(z, p, side)[0];
+          for (let k = 0; k < 100 && !free(z, r); k++) { r.x += sx * Math.ceil(r.w / 2); r.y += sy * Math.ceil(r.d / 2); }
+          best = snap(r);
         }
         z.rect = best;
       }
@@ -102,7 +170,7 @@ export function placeZones(state: GameState, zones: Zone[]): void {
       const rs = placed().map((o) => o.rect!);
       const [w, d] = dims(z, 'ew');
       const x = rs.length ? Math.max(...rs.map((r) => r.x + r.w / 2)) + 20 + w / 2 : 0;
-      z.rect = { x, y: 0, w, d };
+      z.rect = snap({ x, y: 0, w, d });
       open.delete(z.id);
     }
   }

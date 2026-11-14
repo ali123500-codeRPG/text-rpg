@@ -56,7 +56,8 @@ describe('276 long actions on the world clock', () => {
     expect(b.done).toBeGreaterThan(0);
     expect(b.done).toBeLessThan(b.need);
     expect(worn(s)).toBe(false);
-    expect(mechanicsLines(s, ev).some((l) => /^Put on heavy armour stopped (at once|after .+): someone/.test(l))).toBe(true);
+    // the hunting guard stops it: seen closing in, or first heard as a foe (which comes first hangs on the zones' sizes)
+    expect(mechanicsLines(s, ev).some((l) => /^Put on heavy armour stopped (at once|after .+): (someone|a fight)/.test(l))).toBe(true);
     // the guard goes off to the far field and forgets the player; the player keeps at it
     place(s, 'guard_1', 'field_far');
     g.mind!.overrides = {};
