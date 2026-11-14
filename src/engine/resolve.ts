@@ -1803,7 +1803,8 @@ function step(ctx: Ctx, id: string): void {
     if (g2.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g2.invalid, reason: 'out_of_reach' });
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
-  // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting)
+  // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting); BG-253: nor
+  // after words said at the turn's start
   const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > M_EPS);
   // AT48: the main action finishes after the walk that led to it and the gear ops before it
   const pools = slotsOf(ctx, a);
@@ -1824,7 +1825,7 @@ function step(ctx: Ctx, id: string): void {
   }
   ctx.at = (ctx.clock.get(id) ?? 0) + Math.min(cost?.seconds ?? pools.main, pools.main);
   const before = { main: pools.main, move: pools.move, clock: ctx.clock.get(id) ?? 0 }, evFrom = ctx.events.length;
-  if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && moved && !o.line)) { doMain(ctx, a, o); giveBack(ctx, a, before, evFrom); }
+  if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && !o.line && (moved || ctx.events.some((e) => e.actorId === id && e.kind === 'hold' && !!e.line)))) { doMain(ctx, a, o); giveBack(ctx, a, before, evFrom); }
   if (o.moveAfter && !turned) move(false); // AE3: act, then move
 }
 
@@ -2342,6 +2343,14 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const d of answerOffers(state, usableAgentOutputs(input))) emitStandDown(ctx, d);
   if (input.intent?.standDown) { const d = answerOffer(state, state.player, input.intent.standDown, false); if (d) emitStandDown(ctx, d); }
 
+  // BG-253: an NPC's words beside its action were picked at the turn's start, so they are said as its turn starts, before
+  // anyone's step changes what they are about; words kept for after a walk, and a late starter's (AT58), stay at its step
+  for (const id of ordered) {
+    const o = orders.get(id), a = actorById(state, id);
+    if (!o?.line || !a || a === state.player || !isActive(a) || isSpeech(o.type) || init.delay.has(id) || (o.move && !o.moveAfter && !o.wordsFirst)) continue;
+    emit(ctx, bark(mk(ctx, a, 'hold'), o));
+    o.line = null;
+  }
   // NW12: the player's wait or sleep goes last, so everyone has acted on this turn's orders before the clock moves on
   const skipsTime = (id: string) => id === state.player.id && ['wait', 'sleep'].includes(orders.get(id)?.type ?? '');
   for (const id of ordered) if (!ctx.acted.has(id) && !skipsTime(id)) step(ctx, id);

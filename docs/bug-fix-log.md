@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-253
+
+**What was wrong:** An NPC picks its deed and its words at the start of the turn, but words said beside a deed were only spoken at the NPC's place in the turn order. Anyone earlier in the order could already have changed what they were about: in the NPC value study the gate guard shouted "That one's near done, finish it" after the player's axe had already killed that slime, and the judges flagged the same slip in other runs.
+
+**What was done:** Ali approved the fix (BF74 a). An NPC's words beside its deed are now said as its turn starts, right after the player's words and the replies to them, before anyone's blow, walk or deed; the deed itself keeps its place in the order. Words an NPC keeps for the end of a walk, a late starter's words, spoken replies and talk as the main action are unchanged. No new Claude call and no change in timing.
+
+**Fixed by:** [PR #860](https://github.com/ali123500-codeRPG/text-rpg/pull/860)
+
 ## BG-254
 
 **What was wrong:** The playtest script (scripts/playtest.ts) still began every run as the Swordsman class (CL1). Starter classes became Starts, so CL1 is no longer one and every run crashed on its first turn with "CL1 is not a Start".
