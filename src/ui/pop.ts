@@ -3,7 +3,7 @@
 // opening another replaces it. A full-screen pop-up covers the page for a board too big for a panel (Perks); partial
 // pop-ups and the perk card still open on top of it. Both close with ✕ or Esc, focus goes back to what opened them, and
 // each opens and closes with one short fade (exit faster than entrance, M-51; none with motion off, M-72).
-import { h } from './kit';
+import { boxOf, h, pointOf, viewSize } from './kit';
 import { arrive, ms, moving, play } from './motion';
 
 let current: { el: HTMLElement; opener?: HTMLElement | null } | null = null;
@@ -27,11 +27,14 @@ function fadeOut(el: HTMLElement): void {
 
 let full: { el: HTMLElement; opener?: HTMLElement | null; shut: HTMLElement[]; onClose?: () => void } | null = null;
 
-/** closes the full-screen pop-up, if any, and any partial pop-up over it */
-export function closeFull(): boolean {
+/** closes the full-screen pop-up, if any, and any partial pop-up over it. BG-220: opening it adds a step to the browser's
+ * history, so Back (or the mouse's back button) closes it instead of leaving the page; closing it any other way takes that
+ * step back off, so Back still goes where it went before. */
+export function closeFull(byBack = false): boolean {
   if (!full) return false;
   const { el, opener, shut, onClose } = full;
   full = null;
+  if (!byBack && history.state?.fpop) history.back();
   closePop();
   for (const x of shut) x.inert = false;
   if (opener?.isConnected) opener.focus({ preventScroll: true });
@@ -43,7 +46,7 @@ export function closeFull(): boolean {
 /** opens a full-screen pop-up over the page: the page under it can't be reached until it closes (modal). The body
  * brings its own heading; `label` names the pop-up for screen readers. */
 export function openFull(o: { label: string; body: (Node | string | null)[]; opener?: HTMLElement | null; cls?: string; onClose?: () => void }): HTMLElement {
-  closeFull();
+  closeFull(true); // one replacing another keeps the history step
   closePop();
   const x = h('button', { type: 'button', class: 'hs-icon-btn fpop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => closeFull() }, '✕');
   const el = h('div', { class: `fpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': o.label, tabindex: '-1' }, x, h('div', { class: 'fpop-body' }, ...o.body));
@@ -51,6 +54,7 @@ export function openFull(o: { label: string; body: (Node | string | null)[]; ope
   for (const c of shut) c.inert = true;
   document.body.append(el);
   full = { el, opener: o.opener, shut, onClose: o.onClose };
+  if (!history.state?.fpop) history.pushState({ fpop: true }, ''); // BG-220: Back closes it
   play(el, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') });
   el.focus({ preventScroll: true });
   return el;
@@ -65,8 +69,9 @@ if (typeof document !== 'undefined') {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && full && !moving() && !e.defaultPrevented && !full.el.querySelector('.pk-card')) closeFull();
   });
-  // leaving the page closes it
-  addEventListener('hashchange', () => { closeFull(); });
+  // Back closes it (BG-220); leaving the page closes it
+  addEventListener('popstate', () => { closeFull(true); });
+  addEventListener('hashchange', () => { closeFull(true); });
 }
 
 /** opens a details pop-up near its opener; tone names a colour token for its edge (scenario-mark, danger…) */
@@ -78,20 +83,21 @@ export function openPop(o: { title: string; body: (Node | string | null)[]; open
   const el = h('aside', { class: `dpop ${o.cls ?? ''}`, role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1', style: o.tone ? `--pc: var(--${o.tone})` : undefined },
     head, h('div', { class: 'dpop-body' }, ...o.body));
   // beside the opener when there is room, else near the top right
-  const r = o.opener?.getBoundingClientRect();
+  const r = o.opener ? boxOf(o.opener) : undefined, v = viewSize();
   document.body.append(el);
   const w = el.offsetWidth || 360, hgt = el.offsetHeight || 200;
-  const left = r ? Math.min(innerWidth - w - 16, Math.max(16, r.left + r.width / 2 - w / 2)) : innerWidth - w - 32;
-  const top = r ? (r.top - hgt - 12 > 16 ? r.top - hgt - 12 : Math.min(innerHeight - hgt - 16, r.bottom + 12)) : 96;
+  const left = r ? Math.min(v.w - w - 16, Math.max(16, r.left + r.width / 2 - w / 2)) : v.w - w - 32;
+  const top = r ? (r.top - hgt - 12 > 16 ? r.top - hgt - 12 : Math.min(v.h - hgt - 16, r.bottom + 12)) : 96;
   el.style.left = `${left}px`; el.style.top = `${Math.max(16, top)}px`;
   // drag by the head
   head.addEventListener('pointerdown', (ev) => {
     if ((ev.target as Element).closest('a, button')) return;
-    const b = el.getBoundingClientRect();
-    const dx = ev.clientX - b.left, dy = ev.clientY - b.top;
+    const b = boxOf(el), p0 = pointOf(ev);
+    const dx = p0.x - b.left, dy = p0.y - b.top;
     const move = (m: PointerEvent) => {
-      el.style.left = `${Math.max(0, Math.min(innerWidth - 80, m.clientX - dx))}px`;
-      el.style.top = `${Math.max(0, Math.min(innerHeight - 40, m.clientY - dy))}px`;
+      const p = pointOf(m), v = viewSize();
+      el.style.left = `${Math.max(0, Math.min(v.w - 80, p.x - dx))}px`;
+      el.style.top = `${Math.max(0, Math.min(v.h - 40, p.y - dy))}px`;
     };
     const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
     addEventListener('pointermove', move);

@@ -3437,6 +3437,8 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-205 | Story mwf2lt7l t27 (invalid_gear): Wren's fourth try at the same give. Same bug as BG-192 | 13/11/2026 | fixed (Ali OK'd closing it, BF42) | Already fixed by PR #698, as BG-192 |
 | BG-217 | Ali's report, story mwf2lt7l t37: achievements, XP and levels earned in free roam land at once; they should wait for the end of the next scenario | 14/11/2026 | fixed (Ali OK'd the fix, BF44) | Growth earned in free roam waits for the next scenario's end, and its gains moment counts the roam's XP. PR #791 |
 | BG-218 | Interface thread: the Character card read "In the the Crooked Kettle": "In the" went before a place name that already starts with "the" (or is a proper name); the agent player's where-you-are line had the same gap | 14/11/2026 | fixed (Ali OK'd the fix, BF46) | One rule (theName) puts "the" only before a plain common name; the card reads "In the Crooked Kettle", "In Thornbury". PR #791 |
+| BG-219 | Play-page comment: the small Gear pop-up opened outside the screen; on 2400 px+ screens (page zoomed 1.3x) pop-ups and tips were placed in screen pixels as page pixels | 14/11/2026 | fixed (Ali OK'd the fix, BF47) | Window size, boxes and mouse positions are turned into page pixels (kit viewSize/boxOf/pointOf) for every floating panel; pop-ups capped at the zoomed window height. PR #PRNUM |
+| BG-220 | Play-page comment: Back went to another tab instead of closing the full-screen Perks pop-up | 14/11/2026 | fixed (Ali OK'd the fix, BF48) | Opening a full-screen pop-up adds one history step that Back pops; closing it by ✕ or Esc removes it. Small pop-ups unchanged. PR #PRNUM |
 
 ## Check on release
 
