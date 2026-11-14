@@ -9,9 +9,12 @@
     "build": "node scripts/build.mjs",
     "perks-doc": "esbuild scripts/perks-doc.ts --bundle --platform=node --format=esm --outfile=dist/perks-doc.mjs --log-level=warning && node dist/perks-doc.mjs",
     "playtest": "esbuild scripts/playtest.ts --bundle --platform=node --format=esm --outfile=dist/playtest.mjs --log-level=warning && node dist/playtest.mjs",
-    "smoke": "vitest run --config vitest.smoke.config.ts"
+    "smoke": "vitest run --config vitest.smoke.config.ts",
+    "icons": "node scripts/icons.mjs"
   },
   "devDependencies": {
+    "@iconify-json/fluent-emoji-high-contrast": "^1.2.6",
+    "@iconify-json/game-icons": "^1.2.4",
     "esbuild": "^0.25.0",
     "playwright": "1.63.0",
     "typescript": "^5.9.0",

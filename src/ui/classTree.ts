@@ -14,6 +14,7 @@ import { levelTarget, spendXp } from '../engine/xp';
 import { PK } from '../library/perkIds';
 import { skillName } from './creation';
 import { h } from './kit';
+import { classIcon } from './itemIcons';
 import { openPop, closePop } from './pop';
 
 /** a class opening another: `via` says how ("its capstone", "level 5") */
@@ -131,7 +132,7 @@ export function classTreeView(s: GameState, after: () => void): HTMLElement {
     const node = (x: ClassNode) => h('button', {
       type: 'button', class: `ct-node ${x.shown}${x.target ? ' target' : ''}${x.deadEnd ? ' dead' : ''}`, 'data-class': x.id, 'aria-haspopup': 'dialog',
       onclick: (e: Event) => openClassCard(s, x.id, e.currentTarget as HTMLElement, () => { draw(); after(); }),
-    }, h('b', {}, x.name), h('span', { class: 'ct-st' }, statusText(x)),
+    }, h('span', { class: 'ct-name' }, classIcon(x.id), h('b', {}, x.name)), h('span', { class: 'ct-st' }, statusText(x)),
       x.id === start ? h('span', { class: 'ct-chip start' }, 'Started here') : null,
       x.target ? h('span', { class: 'ct-chip next' }, 'Next level here') : null,
       x.shown === 'next' && x.source ? h('span', { class: 'ct-src' }, `From ${x.source}`) : null,

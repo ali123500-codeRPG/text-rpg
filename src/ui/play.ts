@@ -34,6 +34,7 @@ import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
 import { lootCount, lootSources, openLoot } from './loot';
+import { instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -772,7 +773,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (loot) {
       lootBtn.setAttribute('aria-label', `Loot, ${loot} thing${loot === 1 ? '' : 's'} to take`);
       lootBtn.replaceChildren('Loot', h('b', {}, `×${loot}`));
-      lootBtn.onclick = () => { const v = api.state() ? safe(() => buildPlayerView(api.state()!)) : null; if (v) openLoot(v, lootBtn, pick); };
+      lootBtn.onclick = () => { const v = api.state() ? safe(() => buildPlayerView(api.state()!)) : null; if (v) openLoot(v, lootBtn, pick, (id) => instanceIcon(api.state()!, id, 'iico lico')); };
     }
     const again = lastOrder(api.lines());
     againBtn.disabled = stopped || !again;
