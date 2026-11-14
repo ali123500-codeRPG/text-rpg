@@ -1,7 +1,7 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import { BT, RC } from './raceIds';
 import type { StartDef } from '../types/library';
-import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Personality, Pronouns, Rng, SkillEntry } from '../types';
+import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Personality, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
