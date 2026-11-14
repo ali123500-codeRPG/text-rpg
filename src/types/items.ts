@@ -47,8 +47,6 @@ export type ItemDef = {
   edge?: true;
   /** BK1: how easily it breaks when its container is forced open (FRAGILITY); unset: CONFIG.FRAGILITY_BY_KIND for its kind */
   fragility?: import('../scales').FragilityKey;
-  /** PO1: worn (an accessory: a belt, a bandolier), it adds this many pockets */
-  pockets?: number;
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
@@ -90,8 +88,6 @@ export type ItemInstance = {
   itemId: LibraryRef;
   qty?: number;
   equippedIn?: string[]; // 'grip:<grip part id>' | 'armor' | 'acc:<n>'; absent = carried (stowed)
-  /** PO1: stowed in a pocket, not the pack: 'pocket:<n>' one of everyone's own, '<worn item instance id>:<n>' one a worn piece adds (src/engine/pockets.ts) */
-  pocket?: string;
   pools?: Record<string, number>; // % left: 'shield', or a covered part id
   opens?: string[]; // BA3: a key: the barriers (GameState.barriers ids) it locks and unlocks
   boundTo?: string; // D-218: a Threadbound item's owner (actor id)

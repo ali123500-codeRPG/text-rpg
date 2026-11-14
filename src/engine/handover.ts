@@ -8,7 +8,6 @@ import { STANCES } from '../scales';
 import { gripReachM, usableGrips } from '../ruleset/body';
 import type { Actor, GameState, ItemInstance } from '../types';
 import { carriedContents } from './containers';
-import { pocketIt, tidyPockets } from './pockets';
 import { actorById, isActive, isAsleep, stance } from './relations';
 import { withinGrip } from './position';
 
@@ -31,14 +30,11 @@ export function transfer(state: GameState, from: Actor, to: Actor, instId: strin
   if (n < have) it.qty = have - n;
   else at.list.splice(at.list.indexOf(it), 1);
   const stack = stackable ? to.core.inventory.find((x) => x.itemId === it.itemId) : undefined;
-  tidyPockets(state, from);
   if (stack) { stack.qty = (stack.qty ?? 1) + n; return { id: stack.id, qty: n }; }
   const moved: ItemInstance = n < have ? { id: `${it.id}_${to.id}_${state.turn}`, itemId: it.itemId, qty: n } : it;
   delete moved.equippedIn;
-  delete moved.pocket;
   if (moved.stolenFrom === to.id) delete moved.stolenFrom; // FL6: handed back to its owner
   to.core.inventory.push(moved);
-  pocketIt(state, to, moved); // PO3
   return { id: moved.id, qty: n };
 }
 

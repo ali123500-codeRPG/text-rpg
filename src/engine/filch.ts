@@ -26,7 +26,6 @@ import { talkingWith } from './speech';
 import { stepStance } from './effects';
 import { applyMemoryOps } from './memory';
 import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
-import { pocketIt } from './pockets';
 
 export type FilchOutcome = 'taken' | 'fumbled' | 'caught';
 export type Filched = { outcome: FilchOutcome; roll: RollResult; noise: NoiseKey; caught: Actor[]; suspicious: Actor[]; perception: GameEvent['perception'] };
@@ -118,9 +117,7 @@ export function takeFilched(state: GameState, a: Actor, list: ItemInstance[], in
   }
   list.splice(list.indexOf(inst), 1);
   if (from && inst.stolenFrom === undefined) inst.stolenFrom = from;
-  delete inst.pocket;
   a.core.inventory.push(inst);
-  pocketIt(state, a, inst); // PO3: a thief pockets what fits
   return inst;
 }
 

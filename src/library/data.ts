@@ -361,9 +361,9 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.sack, kind: 'misc', name: 'sack', look: 'a tied hemp sack', bulk: 1, value: 1, container: { soft: true } },
   { id: IT.chest, kind: 'misc', name: 'chest', look: 'an iron-bound wooden chest', bulk: 3, value: 20, container: { fixed: true } },
   { id: IT.crate, kind: 'misc', name: 'crate', look: 'a nailed wooden crate', bulk: 3, value: 2, container: { fixed: true } },
-  // PO1: pockets that gear adds (placeholders)
-  { id: IT.belt_pouches, kind: 'accessory', name: 'belt with pouches', look: 'a leather belt hung with small pouches', bulk: 1, value: 3, slot: 'accessory', visible: true, pockets: 2 },
-  { id: IT.bandolier, kind: 'accessory', name: 'bandolier', look: 'a leather strap across the chest, lined with loops and pockets', bulk: 1, value: 5, slot: 'accessory', visible: true, pockets: 4 },
+  // belt and bandolier: plain accessories since pockets were removed; whether they stay is asked as PO4
+  { id: IT.belt_pouches, kind: 'accessory', name: 'belt with pouches', look: 'a leather belt hung with small pouches', bulk: 1, value: 3, slot: 'accessory', visible: true },
+  { id: IT.bandolier, kind: 'accessory', name: 'bandolier', look: 'a leather strap across the chest, lined with loops and pockets', bulk: 1, value: 5, slot: 'accessory', visible: true },
   { id: IT.coin, kind: 'misc', fragility: 'unbreakable', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
@@ -821,8 +821,8 @@ export function prototypeLibrary(): Library {
       [DU.door]: { id: DU.door, name: 'Open or close a door', effort: 'base', seconds: 1, locksMove: true },
       [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', effort: 'base', seconds: 2, locksMove: true },
       [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', effort: 'base', seconds: 4, locksMove: true },
-      // PO2: in a fight, getting something out of a pack you carry (or putting it back, or moving it to or from a pocket) takes your action (placeholder: one fight turn)
-      [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a pack', effort: 'base', seconds: 6 },
+      // in a fight, taking something out of a container you carry (a sack) takes your action; the pack itself is as quick as a draw (no pockets)
+      [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a container', effort: 'base', seconds: 6 },
       [DU.break_open]: { id: DU.break_open, name: 'Break something open', effort: 'hard', seconds: 6, locksMove: true, focus: 'steady' }, // BF31
       [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 60, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
         speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },

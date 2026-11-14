@@ -16,6 +16,6 @@ export const IT = {
   varos_loop: 'IT41', // D-218: the first Threadbound item, an earring
   // CT1: containers
   pack: 'IT42', sack: 'IT43', chest: 'IT44', crate: 'IT45',
-  // PO1: worn pieces that add pockets
+  // belt and bandolier: plain accessories since pockets were removed (PO4 asks whether they stay)
   belt_pouches: 'IT46', bandolier: 'IT47',
 } as const;

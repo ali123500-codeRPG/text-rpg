@@ -16,7 +16,7 @@ export type BodyAttackView = { mode: string; name: string; handsFull?: string };
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. shut: a shut one (BG-175), so a mind knows to
  * open it */
 export type ContainerView = { open?: true; shut?: true; lock?: 'locked' | 'unlocked'; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack
-export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView; pocket?: string; pockets?: number }; // pocket: PO1, the pocket it is in ("pocket", or the worn piece's name); none and not worn or held: in the pack. pockets: a worn piece's own pockets
+export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
@@ -126,7 +126,6 @@ export type PlayerView = {
     blindSpot?: true; // LR3 Blind Spot: Melt Away works here without cover or shade (a foe's sight is spoiled by Dirt in the Eyes)
     stamina: StaminaView; // FT20: the stamina bar and its short line
     inventory: OwnGearView[];
-    pockets?: { total: number; used: number }; // PO1: how many pockets the player has and how many hold something
     posture: 'open' | 'stealthy';
     standingDefense: DefenseKind;
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
