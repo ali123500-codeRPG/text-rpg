@@ -6,15 +6,14 @@ import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { healthLevel, partStates } from '../ruleset';
 import { logCode } from './effects';
-import { working } from '../ruleset/body';
+import { gripReachM, working } from '../ruleset/body';
 import { actorById, isActive, stance, zoneById } from './relations';
 import { findContainer, inContainer, isContainer, packUp, theft, wearIfNone, wornPack } from './containers';
 import { withinGrip, type Located, type Pos } from './position';
-import { gripReachM } from '../ruleset/body';
 export { gripReachM };
 export { withinGrip } from './position';
 import { summon } from '../ruleset/threadboundItems';
-import { freeAccSlot } from '../ruleset/gear';
+import { freeAccSlot, isHeld, isWorn } from '../ruleset/gear';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
@@ -36,7 +35,7 @@ export function pickUpAt(state: GameState, op: GearOp, taker?: Actor): Located |
 /** CT5: `src` yielded to `taker` and wears a pack: its pack (what it carries stowed) is open to them */
 const yieldedTo = (state: GameState, src: Actor, taker: Actor) => stance(state, src, taker) === 'yielded' && src.core.inventory.some(wornPack);
 
-function usableFreeHands(state: GameState, actor: Actor): string[] {
+function freeGrips(state: GameState, actor: Actor): string[] {
   const bad = new Set(partStates(state, actor).filter((p) => !working(p.state)).map((p) => p.id));
   const held = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
   return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(`grip:${p}`)).map((p) => `grip:${p}`);
@@ -44,7 +43,7 @@ function usableFreeHands(state: GameState, actor: Actor): string[] {
 
 function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
   const need = itemDef(state, inst.itemId).grips ?? 1;
-  const free = usableFreeHands(state, actor);
+  const free = freeGrips(state, actor);
   if (inst.equippedIn?.length || free.length < need) return false;
   inst.equippedIn = free.slice(0, need);
   return true;
@@ -61,7 +60,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
     switch (op.op) {
       case 'draw':
         // BG-24: drawing what is already in hand is nothing to do, not a mistake
-        ok = !!inst && (!!inst.equippedIn?.some((s) => s.startsWith('grip:')) || draw(state, actor, inst));
+        ok = !!inst && (isHeld(inst) || draw(state, actor, inst));
         break;
       case 'stow': {
         if (op.into) { // PI1: into a container one carries, or an open one within reach
@@ -70,13 +69,13 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
           if (put) res.putIn.push({ itemId: put.id, into: op.into, ...(put.qty ? { qty: put.qty } : {}) });
           break;
         }
-        ok = !!inst?.equippedIn?.some((s) => s.startsWith('grip:'));
+        ok = !!inst && isHeld(inst);
         if (ok) delete inst!.equippedIn;
         break;
       }
       case 'swap': {
         if (!inst || inst.equippedIn?.length) break;
-        const held = actor.core.inventory.filter((i) => i.equippedIn?.some((s) => s.startsWith('grip:')));
+        const held = actor.core.inventory.filter(isHeld);
         const before = held.map((i) => [i, i.equippedIn] as const);
         held.forEach((i) => { if (itemDef(state, i.itemId).kind === 'weapon') delete i.equippedIn; });
         ok = draw(state, actor, inst);
@@ -104,7 +103,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         if (ok) res.summoned.push(op.item);
         break;
       case 'set_down': { // OA4: setting something down where one stands is free, like stowing; worn things come off first
-        if (!inst || (inst.equippedIn?.length && !inst.equippedIn.every((s) => s.startsWith('grip:')))) break;
+        if (!inst || isWorn(inst)) break;
         const n = Math.floor(op.qty ?? inst.qty ?? 1), have = inst.qty ?? 1;
         if (n < 1 || n > have) break;
         if (n < have) {
@@ -164,7 +163,7 @@ export function fadeSoulbound(state: GameState, a: Actor): void {
  * instance now inside (a stack joins one of its kind) and how many, or null. */
 export function putInto(state: GameState, a: Actor, inst: ItemInstance, intoId: string, qty?: number): { id: string; qty?: number } | null {
   const c = findContainer(state, intoId);
-  if (!c || c.inst === inst || isContainer(state, inst) || inst.equippedIn?.some((s) => !s.startsWith('grip:'))) return null;
+  if (!c || c.inst === inst || isContainer(state, inst) || isWorn(inst)) return null;
   if (c.holder ? c.holder !== a : !c.inst.open || theft(state, a, c) || !withinGrip(state, a, c.at)) return null;
   if (wornPack(c.inst)) { delete inst.equippedIn; return { id: inst.id }; }
   const d = itemDef(state, inst.itemId), have = inst.qty ?? 1, n = qty == null || !d.stackable ? have : Math.floor(qty);
@@ -235,12 +234,12 @@ export function equipArmor(state: GameState, actor: Actor, instId: string | null
   return true;
 }
 
+/** the Parser's improvised base words and their library items */
+export const IMPROVISED_ITEM: Record<ImprovisedBase, string> = { improvised_light: IT.improvised_light, improvised_medium: IT.improvised_medium, improvised_heavy: IT.improvised_heavy };
 /**
  * Loot L3: a scenario object the player fights with becomes a story item on its improvised base (the base carries
  * IMPROVISED_HIT_ADJ). It goes into the actor's inventory; the caller draws it. Returns the instance id.
  */
-/** the Parser's improvised base words and their library items */
-export const IMPROVISED_ITEM: Record<ImprovisedBase, string> = { improvised_light: IT.improvised_light, improvised_medium: IT.improvised_medium, improvised_heavy: IT.improvised_heavy };
 export function improvise(state: GameState, actor: Actor, imp: { base: ImprovisedBase; name: string }): string {
   const base = itemDef(state, IMPROVISED_ITEM[imp.base]);
   const id = `${base.id}_i${state.turn}`;

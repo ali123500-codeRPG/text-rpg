@@ -1,13 +1,20 @@
 // Every chosen and banked perk. One source for the game and for docs/perks.md (npm run perks-doc).
 // Two views that must match: `story` is the write-up a player reads when choosing; `rules` is exactly
-// what code applies and is the basis for building it. The Perks screen switches between them. None is built yet, so
-// none can be taken; set built: true when a perk's rules are coded.
+// what code applies and is the basis for building it. The Perks screen switches between them. A perk can be
+// taken only once its rules are coded and it is listed in BUILT_PERKS (src/library/builtPerks.ts).
 import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
 import { skillName } from './skillNames';
 import { PK } from './perkIds';
 import { CONFIG } from '../config';
 import { PA } from './tableIds';
+import { FN } from './functionIds';
+
+// numbers in the rules text come from config, so the text can't drift from the code
+const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+const standInK = (skill: string, fn: string) => CONFIG.SUBSTITUTES[skill]?.find((t) => t.fn === fn)?.k ?? CONFIG.SUBSTITUTE_EFFICIENCY;
+const ladder = (kind: 'dodge' | 'block' | 'parry') => { const l = CONFIG.GAP_LADDER[kind], g = CONFIG.HIT_GAPS;
+  return `${l[g.heavy]}× at ${signed(g.heavy)}, ${l[g.crushing]}× at ${signed(g.crushing)}`; };
 
 export const PERK_WRITEUPS: PerkWriteup[] = [
   { id: PK.hidden_strike, ref: "A1", name: "Hidden Strike", skill: SK.melee_light, place: "20",
@@ -56,7 +63,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner's ranged attack hits a part with the Move role (a leg) and deals damage.",
       conditions: [`It is a ranged attack with a medium or heavy ranged mode (skill ${skillName(SK.ranged_medium)} or ${skillName(SK.ranged_heavy)}).`, "The location is a part with the Move role.", "Damage after armor is above 0."],
-      effect: "The leg's pool takes 1.5× the damage the hit puts on the health track. The target is slowed: it can't dash (AE2).",
+      effect: `The leg's pool takes ${CONFIG.LEG_BOLT_PART_MULT}× the damage the hit puts on the health track. The target is slowed: it can't dash (AE2).`,
       lasts: "The slow lasts until the end of the target's next turn." } },
   { id: PK.open_hand_guard, ref: "A7", name: "Open-Hand Guard", skill: SK.unarmed_strike, place: "20",
     ladder: { skill: SK.unarmed_strike, milestone: 20 }, effect: "defense",
@@ -64,7 +71,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner defends with parry.",
       conditions: ["The owner holds no shield or weapon, and has at least one working Grip arm with an empty hand."],
-      effect: "The owner may parry (parry normally needs a held melee weapon). The parry uses the parry column of the gap ladder, and a parry that earns the free strike back strikes with a fist. A hit that gets through is split: 0.5× of its damage goes to the parrying arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test.",
+      effect: `The owner may parry (parry normally needs a held melee weapon). The parry uses the parry column of the gap ladder, and a parry that earns the free strike back strikes with a fist. A hit that gets through is split: ${CONFIG.OPEN_HAND_ARM_SHARE}× of its damage goes to the parrying arm (a working Grip arm with an empty hand) and ${1 - CONFIG.OPEN_HAND_ARM_SHARE}× to the general area; both count on the health track. The shares are placeholders to test (CONFIG.OPEN_HAND_ARM_SHARE).`,
       lasts: "Each defense." } },
   { id: PK.hold, ref: "A8", name: "Don't Let Go", skill: SK.unarmed_grapple, place: "20",
     ladder: { skill: SK.unarmed_grapple, milestone: 20 }, effect: "attack",
@@ -72,7 +79,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner's grapple attack is resolved.",
       conditions: [`The attack uses skill ${skillName(SK.unarmed_grapple)}.`, "The attack roll is Great Success or better.", "The attack hits (not missed or dodged)."],
-      effect: `The target is held by the owner: it can't leave the owner's zone and can't use a two-grip attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses ${skillName(SK.unarmed_grapple)} at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4×.`,
+      effect: `The target is held by the owner: it can't leave the owner's zone and can't use a two-grip attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses ${skillName(SK.unarmed_grapple)} at full value, any skill with function arms at ${standInK(SK.unarmed_grapple, FN.arms)}×, or any other skill with function unarmed at ${standInK(SK.unarmed_grapple, FN.unarmed)}×.`,
       lasts: "Until the target breaks free, the owner is downed, or the owner leaves the zone." } },
   { id: PK.dirt_in_the_eyes, ref: "A9", name: "Dirt in the Eyes", skill: SK.unarmed_improvised, place: "20",
     ladder: { skill: SK.unarmed_improvised, milestone: 20 }, effect: "attack",
@@ -155,10 +162,9 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner buys or sells.",
       conditions: [],
-      effect: "Buying prices ×0.9; selling prices ×1.1.",
+      effect: `Buying prices ×${CONFIG.HARD_BARGAIN_BUY}; selling prices ×${CONFIG.HARD_BARGAIN_SELL}. A sale with it still pays less than buying the same item with it (SELL_SHARE × ${CONFIG.HARD_BARGAIN_SELL} < TRADE_MARKUP × ${CONFIG.HARD_BARGAIN_BUY}).`,
       lasts: "Always.",
-      needs: "Buying and selling (D-93).",
-      open: "Kept only if trade prices make a sale at 1.1× still pay less than buying the same item at 0.9×. That needs the price a merchant pays the player to be under 0.81× of the price it charges (1.1 × sell < 0.9 × buy)." } },
+      needs: "Buying and selling (D-93)." } },
   { id: PK.soft_tread, ref: "A18", name: "Soft Tread", skill: SK.sneaking, place: "20",
     ladder: { skill: SK.sneaking, milestone: 20 }, effect: "stealth",
     story: "You know where to put your feet. While you move unseen, your steps are one step quieter.",
@@ -181,7 +187,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner dodges an attack.",
       conditions: ["The owner wears light armor.", "The gap is 0."],
-      effect: "The gap counts as +1: a graze for 0.8× damage.",
+      effect: `The gap counts as ${signed(CONFIG.HIT_GAPS.graze)}: a graze for ${CONFIG.GAP_LADDER.dodge[CONFIG.HIT_GAPS.graze]}× damage.`,
       lasts: "That attack." } },
   { id: PK.quiet_mail, ref: "A21", name: "Quiet Mail", skill: SK.medium_armor, place: "20",
     ladder: { skill: SK.medium_armor, milestone: 20 }, effect: "stealth",
@@ -196,8 +202,8 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     story: "Plate takes the worst out of any blow. A heavy or crushing hit on a part your heavy armor covers lands as a plain full hit.",
     rules: { kind: "Always on",
       trigger: "An attack hits the owner.",
-      conditions: ["The hit is a heavy hit or a crushing hit (gap −4 or −5).", "The owner wears heavy armor that covers the struck part."],
-      effect: "The hit counts as a full hit: damage multiplier 1× instead of 1.5× or 2×.",
+      conditions: [`The hit is a heavy hit or a crushing hit (gap ${signed(CONFIG.HIT_GAPS.heavy)} or worse).`, "The owner wears heavy armor that covers the struck part."],
+      effect: `The hit counts as a full hit: damage multiplier 1× instead of the gap ladder's (on a dodge ${ladder('dodge')}, on a block ${ladder('block')}, on a parry ${ladder('parry')}, more past that).`,
       lasts: "That hit." } },
   { id: PK.in_and_out, ref: "A23", name: "In and Out", skill: SK.combat_stealth, place: "20",
     ladder: { skill: SK.combat_stealth, milestone: 20 }, effect: "stealth",
@@ -561,9 +567,9 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
   { id: PK.roll_with_it, ref: "D5", name: "Roll With It", skill: SK.dodge, place: "banked", bankedAs: "milestone", aimAt: 100,
     story: "Was that supposed to hurt? A blow that only grazes you does no harm at all.",
     rules: { kind: "Always on",
-      trigger: "The owner dodges and the gap is +1 (a graze).",
+      trigger: `The owner dodges and the gap is ${signed(CONFIG.HIT_GAPS.graze)} (a graze).`,
       conditions: [],
-      effect: "The multiplier is 0× instead of 0.8×.",
+      effect: `The multiplier is 0× instead of ${CONFIG.GAP_LADDER.dodge[CONFIG.HIT_GAPS.graze]}×.`,
       lasts: "Always." } },
   { id: PK.tough_it_out, ref: "D6", name: "Tough It Out", skill: SK.endurance, place: "very_high", bankedAs: "allX", aimAt: 100,
     story: "Broken bones are a problem for later. Your wound penalty is taken as if you were one health level less hurt, and every wounded body part hinders you as if it were one step better: a destroyed arm works like a crippled one.",

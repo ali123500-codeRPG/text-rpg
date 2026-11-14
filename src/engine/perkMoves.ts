@@ -10,7 +10,7 @@
 import type { Actor, ContestResult, Effect, GameState, Rng } from '../types';
 import { PERK_MOVES, hasPerk, markUse, ruleset, toContest } from '../ruleset';
 import { usableGrips } from '../ruleset/body';
-import { handsOf, isHeld } from '../ruleset/gear';
+import { gripsOf, isHeld } from '../ruleset/gear';
 import { actorById, isActive, wary } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markUntilNextTurn } from './perkMarks';
@@ -27,7 +27,7 @@ import { VOLUME_NOISE } from '../perception/noise';
 export const freeHand = (state: GameState, a: Actor) => freeGrips(state, a) > 0;
 /** AT79: how many working Grip parts hold nothing */
 export const freeGrips = (state: GameState, a: Actor): number => {
-  const busy = new Set(a.core.inventory.filter(isHeld).flatMap(handsOf));
+  const busy = new Set(a.core.inventory.filter(isHeld).flatMap(gripsOf));
   return usableGrips(state, a).filter((g: string) => !busy.has(g)).length;
 };
 

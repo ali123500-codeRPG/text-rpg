@@ -4,9 +4,8 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, NOISE, type NoiseKey } from '../scales';
 import { hearingOf, VOLUME_NOISE } from './noise';
-import type { Located } from '../engine/position';
+import { seeingM, type Located } from '../engine/position';
 import { sightLevel } from './sight';
-import { seeingM } from '../engine/position';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { now, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
@@ -112,7 +111,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // level for both: a full perception shows everything (read as sight), a partial one is heard too (its words come through)
   const oneSense = !!best && hasPerk(observer, PK.one_sense);
   if (best && oneSense) best = { level: best.level, cue: best.level === 'full' ? 'sight' : 'sound' };
-  // GAP: the target of a blow, a hand-over or a grip broken always feels it (at least partial, touch), e.g. a missile from an
+  // the target of a blow, a hand-over or a grip broken always feels it (at least partial, touch), e.g. a missile from an
   // unseen zone. BG-72/BG-89: only contact is felt; words, a walk toward them, a trade or a wasted action reach them only by
   // sound or sight
   if (event.target === observer.id && CONTACT.has(event.kind)) best = better(best, { level: 'partial', cue: 'touch' });
@@ -137,7 +136,7 @@ export function noteSightings(event: GameEvent, state: GameState): void {
 
 /** NS2–NS4: what `o` believes about `about`. NPCs read their knowledge; the player simply sees open actors and
  * keeps a belief (journal.stealthSeen) only about stealthy ones. */
-export function beliefStatus(state: GameState, o: Actor, about: Actor): BeliefStatus {
+export function beliefStatus(_state: GameState, o: Actor, about: Actor): BeliefStatus {
   if (o.kind !== 'player') return o.mind?.knowledge[about.id]?.status ?? 'unaware';
   // an entry outlives the posture until stealthEnd (a melee blow from stealth is resolved as an ambush first)
   return o.journal?.stealthSeen?.[about.id] ?? (about.posture === 'stealthy' ? 'unaware' : 'aware');

@@ -79,7 +79,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** The owner defends with parry.
 - **Conditions:** The owner holds no shield or weapon, and has at least one working Grip arm with an empty hand.
-- **Effect:** The owner may parry (parry normally needs a held melee weapon). The parry uses the parry column of the gap ladder, and a parry that earns the free strike back strikes with a fist. A hit that gets through is split: 0.5× of its damage goes to the parrying arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test.
+- **Effect:** The owner may parry (parry normally needs a held melee weapon). The parry uses the parry column of the gap ladder, and a parry that earns the free strike back strikes with a fist. A hit that gets through is split: 0.5× of its damage goes to the parrying arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The shares are placeholders to test (CONFIG.OPEN_HAND_ARM_SHARE).
 - **Lasts:** Each defense.
 
 ### Don't Let Go (Grapple) · A8
@@ -180,10 +180,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner buys or sells.
-- **Effect:** Buying prices ×0.9; selling prices ×1.1.
+- **Effect:** Buying prices ×0.9; selling prices ×1.1. A sale with it still pays less than buying the same item with it (SELL_SHARE × 1.1 < TRADE_MARKUP × 0.9).
 - **Lasts:** Always.
 - **Needs first:** Buying and selling (D-93).
-- **Open:** Kept only if trade prices make a sale at 1.1× still pay less than buying the same item at 0.9×. That needs the price a merchant pays the player to be under 0.81× of the price it charges (1.1 × sell < 0.9 × buy).
 
 ### Soft Tread (Sneaking) · A18
 
@@ -229,8 +228,8 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** An attack hits the owner.
-- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or −5). The owner wears heavy armor that covers the struck part.
-- **Effect:** The hit counts as a full hit: damage multiplier 1× instead of 1.5× or 2×.
+- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or worse). The owner wears heavy armor that covers the struck part.
+- **Effect:** The hit counts as a full hit: damage multiplier 1× instead of the gap ladder's (on a dodge 1.5× at −4, 2× at −5, on a block 1.5× at −4, 2× at −5, on a parry 2× at −4, 2.5× at −5, more past that).
 - **Lasts:** That hit.
 
 ### In and Out (Combat Stealth) · A23
@@ -1251,9 +1250,8 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 - **Kind:** Always on
 - **Trigger:** The owner answers a speech contest: someone speaks to it with Persuasion, Intimidation or Barter.
-- **Effect:** Tier shift +1 on the owner's answering roll.
+- **Effect:** Tier shift +1 on the owner's answering roll, the player's too when an NPC speaks to them with a roll (OQ-29).
 - **Lasts:** That roll.
-- **Open:** Only the player starts speech contests today, so this helps NPC owners. When NPCs speak to the player with a roll (OQ-29), it covers the player too.
 - **Built:** yes
 
 ### Silver Words (Speech, passive) · T7e
