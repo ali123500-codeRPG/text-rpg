@@ -12,6 +12,7 @@ import { grantThreadboundItem } from '../../src/ruleset/threadboundItems';
 import { CONFIG } from '../../src/config';
 import { checkParserLegality } from '../../src/agents/legality';
 import { CL } from '../../src/library/classIds';
+import { ST } from '../../src/library/startIds';
 import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
 import type { ItemInstance } from '../../src/types';
@@ -21,7 +22,7 @@ const loopOf = (inv: ItemInstance[]) => inv.find((i) => i.itemId === IT.varos_lo
 describe('192 the Threadbound start', () => {
   it('starts with What Was Always Yours and a Threadbound item, bound and worn', () => {
     makeVillage();
-    const build = { ...recommendedBuild(CL.threadbounded), classId: CL.threadbounded };
+    const build = { ...recommendedBuild(ST.threadbound) };
     expect(validateBuild(build)).toEqual([]);
     const p = createPlayer(build, 's1');
     expect(p.core.perks.find((x) => x.perkId === PK.always_yours)?.granted).toBe(IT.varos_loop);

@@ -3,7 +3,7 @@
 // lower level still counts as earned). In anyone else's hands it gives nothing. Runs at the end of every turn.
 import type { Actor, GameState, ItemDef, ItemInstance, Turn } from '../types';
 import { getLibrary } from '../library';
-import { createRng } from '../rng';
+import { createRng, textSeed } from '../rng';
 import { freeAccSlot, isWorn } from './gear';
 import { THREADBOUND_RANKS, type ThreadboundRankKey } from '../scales';
 import { now } from '../time';
@@ -69,10 +69,10 @@ export const freeThreadboundItems = (minRank: ThreadboundRankKey, taken: (itemId
 /** every Threadbound item in the world (carried by anyone or on any ground) */
 export const threadboundInWorld = (state: GameState): string[] => [...new Set(itemHolders(state).flat().filter((i) => libItem(i.itemId)?.threadbound).map((i) => i.itemId))];
 
-/** WP2 b: a starting class whose level 1 perk grants a Threadbound item has none free in a world holding `taken` */
-export function threadboundStartBlocked(classId: string, taken: string[]): boolean {
-  const lib = getLibrary();
-  return (lib.classes[classId]?.levelPerks?.[1] ?? []).some((p) => {
+/** WP2 b: a Start whose class's level 1 perk grants a Threadbound item has none free in a world holding `taken` */
+export function threadboundStartBlocked(startId: string, taken: string[]): boolean {
+  const lib = getLibrary(), classId = lib.starts[startId]?.classId;
+  return (classId ? lib.classes[classId]?.levelPerks?.[1] ?? [] : []).some((p) => {
     const g = lib.perks[p]?.grantsThreadboundItem;
     return !!g && !freeThreadboundItems(g.minRank, (id) => taken.includes(id)).length;
   });
@@ -88,7 +88,7 @@ export function grantThreadboundItem(a: Actor, state?: GameState): void {
     if (p.dormant || p.granted || !grant) continue;
     const free = freeThreadboundItems(grant.minRank, (id) => !!(state && inWorld(state, id)) || a.core.inventory.some((i) => i.itemId === id));
     if (!free.length) continue;
-    const pick = free[createRng([...a.storyId].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1).int(0, free.length - 1)];
+    const pick = free[createRng(textSeed(a.storyId)).int(0, free.length - 1)];
     const slot = pick.slot === 'accessory' ? freeAccSlot(a) : undefined;
     a.core.inventory.push({ id: `${pick.id}_${a.id}`, itemId: pick.id, boundTo: a.id, ...(slot ? { equippedIn: [slot] } : {}) });
     p.granted = pick.id;

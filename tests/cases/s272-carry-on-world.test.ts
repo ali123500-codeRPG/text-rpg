@@ -7,6 +7,7 @@ import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agent
 import { carryOn, loadStory, memoryStore, pastCharacterId, reachDay, readTurnRecord, saveTurn, storySaved } from '../../src/save';
 import { createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { CL } from '../../src/library/classIds';
+import { ST } from '../../src/library/startIds';
 import { healthLevel } from '../../src/ruleset';
 import { ageYears } from '../../src/ruleset/age';
 import { dayOf, now } from '../../src/time';
@@ -71,7 +72,7 @@ describe('272 carrying a world on', () => {
   });
 
   it('HF28: a Threadbound newcomer gets an item not already in that world', () => {
-    const b = { ...recommendedBuild(CL.threadbounded), tagged: [] as string[] };
+    const b = { ...recommendedBuild(ST.threadbound), tagged: [] as string[] };
     b.tagged = Object.keys(b.skills).slice(0, 3);
     const first = createPlayer(b, 'story_b').core.inventory.find((i) => i.boundTo)!;
     const world = fallenWorld();
@@ -104,9 +105,9 @@ describe('272 carrying a world on', () => {
   });
 
   it('WP2 b: a Threadbound start is off in a world whose Threadbound items are all taken', async () => {
-    expect(threadboundStartBlocked(CL.threadbounded, [IT.varos_loop])).toBe(true);
-    expect(threadboundStartBlocked(CL.threadbounded, [])).toBe(false);
-    expect(threadboundStartBlocked(CL.swordsman, [IT.varos_loop])).toBe(false);
+    expect(threadboundStartBlocked(ST.threadbound, [IT.varos_loop])).toBe(true);
+    expect(threadboundStartBlocked(ST.threadbound, [])).toBe(false);
+    expect(threadboundStartBlocked(ST.swordsman, [IT.varos_loop])).toBe(false);
     const clock = new VirtualClock(), store = memoryStore();
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: arrive });
     const old = fallenWorld();
@@ -116,7 +117,7 @@ describe('272 carrying a world on', () => {
     await g.reset();
     const [w] = await g.worlds();
     expect(w.threadbound).toEqual([IT.varos_loop]); // it lies there with the one who fell
-    const b = { ...recommendedBuild(CL.threadbounded), tagged: Object.keys(recommendedBuild(CL.threadbounded).skills).slice(0, 3) };
+    const b = { ...recommendedBuild(ST.threadbound), tagged: Object.keys(recommendedBuild(ST.threadbound).skills).slice(0, 3) };
     await expect(g.newStory(b, { worldId: w.worldId })).rejects.toThrow(/Threadbound/);
   });
 

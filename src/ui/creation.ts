@@ -5,7 +5,8 @@ import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, createPlayer, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { classFloors, createPlayer, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { blankPersonality, personalityPicker } from './personality';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
@@ -13,8 +14,8 @@ import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
 import { SK } from '../library/skillIds';
-import { CL } from '../library/classIds';
-import { CLASS_TIERS } from '../scales';
+import { ST } from '../library/startIds';
+import { BLESSING_TIERS, CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
 export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.stamina]: 'sets stamina', [SK.riposte]: 'adds to Parry', [SK.blade_dance]: 'adds to Dodge' };
@@ -30,37 +31,47 @@ const STEP = 5;
 /** the practice swings behind the "Vs one slime" estimate: the start, and the most and fewest the panel takes */
 const SWINGS = { start: 400, min: 50, max: 5000 };
 
-/** the starting options: the swordsman, the late bloomer, a nobody and the Threadbound (each a class's creation start) */
-const STARTS: string[] = [CL.swordsman, CL.late_bloomer, CL.a_nobody, CL.threadbounded];
-
-/** The creation screen. Switching the starting class swaps the screen inside one wrapper, so the app's
- * reference to this element stays valid and a later redraw never brings back the old class's screen. */
-export function creationScreen(api: GameApi, onStarted: () => void, classId: string = CL.swordsman): HTMLElement {
+/** The creation screen. Switching the Start swaps the screen inside one wrapper, so the app's
+ * reference to this element stays valid and a later redraw never brings back the old Start's screen. */
+export function creationScreen(api: GameApi, onStarted: () => void, startId: string = ST.swordsman): HTMLElement {
   const host = h('div', { class: 'creation-host' });
-  const show = (id: string) => host.replaceChildren(classScreen(api, onStarted, id, show));
-  show(classId);
+  const show = (id: string) => host.replaceChildren(startScreen(api, onStarted, id, show));
+  show(startId);
   return host;
 }
 
-// name and gender carry over when the player switches starting class
+/** DX1: what a Start puts on the screen: its class's tier, or the blessing it rolls; and the classes it can begin in */
+function startFacts(startId: string): { tier: string; classes: string[]; perks: string[]; blocked: string } {
+  const lib = getLibrary(), s = lib.starts[startId], b = s?.blessing;
+  const classes = b && !s.classId ? blessingGods(b.tier).map(blessedClass).filter((c): c is string => !!c) : [startGives(startId).classId].filter((c): c is string => !!c);
+  const perks = classes.length === 1 ? [...Object.values(lib.classes[classes[0]]?.levelPerks ?? {}).flat(), ...(lib.classes[classes[0]]?.capstone ?? [])].map((p) => lib.perks[p]?.name ?? p) : [];
+  return {
+    tier: b ? `${BLESSING_TIERS.name(b.tier)} blessing` : classes[0] ? CLASS_TIERS.name(lib.classes[classes[0]].tier) : '',
+    classes, perks: b ? [`a random god’s ${BLESSING_TIERS.name(b.tier)} blessing`, ...perks] : perks,
+    blocked: b && !blessingGods(b.tier).length ? `no god gives a ${BLESSING_TIERS.name(b.tier)} blessing yet.` : '',
+  };
+}
+
+// name and gender carry over when the player switches Start
 const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
 const identity: { name: string; pronouns: Pronouns; age?: number } = { name: 'Aldric', pronouns: 'he' }; // age: left out = the start's default (AG15)
 const persona = { p: blankPersonality() }; // PL14: carries over too
 const world: { id?: string; list: FreeWorld[] } = { list: [] }; // HF31: the free world picked (left out = a new world); carries over too
 
-function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
+function startScreen(api: GameApi, onStarted: () => void, startId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
-  const cls = lib.classes[classId];
-  const floors = classFloors(classId).all; // the class floors plus its unlock conditions
-  const who = { core: newPlayer(classId) } as Actor;
+  const start = lib.starts[startId], facts = startFacts(startId);
+  const cls = facts.classes.length === 1 ? lib.classes[facts.classes[0]] : undefined; // a blessed start's class waits for its god
+  const floors = classFloors(cls?.id).all; // the class floors plus its unlock conditions
+  const who = { core: newPlayer(startId) } as Actor;
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: SWINGS.start };
-  const total = () => creationPoints(classId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
+  const total = () => creationPoints(startId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
-  const recommended = () => { const r = recommendedBuild(classId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
+  const recommended = () => { const r = recommendedBuild(startId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
-  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, classId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(classId) });
+  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, startId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(startId) });
   const picker = personalityPicker(persona, () => createPlayer(build(), 'preview', { preview: true }));
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
 
@@ -159,7 +170,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     if (need > 0) return fail(`tag ${need} more skill${need > 1 ? 's' : ''} first.`);
     const errs = api.validateBuild(build());
     if (errs.length) return fail(errs.join(' '));
-    if (blockedWhy(classId)) return fail(blockedWhy(classId));
+    if (blockedWhy(startId)) return fail(blockedWhy(startId));
     msg.textContent = 'Starting the story…'; msg.className = 'msg ok';
     await api.newStory(build(), world.id ? { worldId: world.id } : undefined);
     onStarted();
@@ -168,24 +179,24 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
   recommended();
   render();
   const stopped = api.notices().find((n) => n.kind === 'stop_play');
-  const perkNames = (id: string) => [...Object.values(lib.classes[id]?.levelPerks ?? {}).flat(), ...(lib.classes[id]?.capstone ?? [])].map((p) => lib.perks[p]?.name ?? p);
-  const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Starting class' }, STARTS.filter((id) => lib.classes[id]).map((id) =>
-    h('button', { class: id === classId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(id === classId), 'data-start': id,
-      title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
-      onclick: () => { if (id !== classId) switchTo(id); } },
-    `${lib.classes[id].creation?.name ?? lib.classes[id].name} · ${CLASS_TIERS.name(lib.classes[id].tier)} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
-  /** WP2 b: why this start can't begin in the picked world (no Threadbound item free there), or '' */
+  const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Start' }, Object.values(lib.starts).map((s) =>
+    h('button', { class: s.id === startId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(s.id === startId), 'data-start': s.id,
+      title: [`${creationPoints(s.id)} points, level ${startLevel(s.id)}`, ...startFacts(s.id).perks].join(' · '),
+      onclick: () => { if (s.id !== startId) switchTo(s.id); } },
+    [s.name, startFacts(s.id).tier, `${creationPoints(s.id)} pts`, `level ${startLevel(s.id)}`].filter(Boolean).join(' · '))));
+  /** why this start can't begin: no god gives its blessing (DX1), or no Threadbound item free in the picked world (WP2 b); '' if it can */
   function blockedWhy(id: string): string {
+    if (startFacts(id).blocked) return startFacts(id).blocked;
     const w = world.list.find((x) => x.worldId === world.id);
     if (!w || !threadboundStartBlocked(id, w.threadbound)) return '';
     return `no Threadbound item is free in ${w.name}: ${w.threadbound.map((t) => lib.items[t]?.name ?? t).join(', ')} ${w.threadbound.length > 1 ? 'lie' : 'lies'} there already.`;
   }
   const worldNote = h('p', { class: 'hs-note', hidden: true });
   function paintStarts(): void {
-    starts.querySelectorAll<HTMLButtonElement>('[data-start]').forEach((b) => { const why = blockedWhy(b.dataset.start!); b.disabled = !!why; if (why) b.title = `Not in this world: ${why}`; });
-    const why = blockedWhy(classId);
+    starts.querySelectorAll<HTMLButtonElement>('[data-start]').forEach((b) => { const why = blockedWhy(b.dataset.start!); b.disabled = !!why; if (why) b.title = `${startFacts(b.dataset.start!).blocked ? 'Not yet' : 'Not in this world'}: ${why}`; });
+    const why = blockedWhy(startId);
     worldNote.hidden = !why;
-    worldNote.textContent = why ? `This start can’t begin here: ${why} Pick another start or world.` : '';
+    worldNote.textContent = !why ? '' : facts.blocked ? `This start can’t begin yet: ${why} Pick another start.` : `This start can’t begin here: ${why} Pick another start or world.`;
   }
   /** HF31: every free world (no one lives in it) and "New world"; shown only when there is a world to carry on. WP5: the
    * picked world can be retitled */
@@ -224,19 +235,20 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
   }
   /** AG15: whole years from the race's Youth start to its Venerable start, with the life stage it gives */
   function ageField(): HTMLElement | null {
-    const raceId = newPlayer(classId).raceId, range = creationAgeRange(raceId);
+    const raceId = who.core.raceId, range = creationAgeRange(raceId);
     if (!range) return null;
     const word = (n: number) => { const s = lifeStage(raceId, n); return s ? stageName(s) : ''; };
-    const stage = h('span', { class: 'hs-note' }, word(identity.age ?? creationAge(classId)));
-    return h('label', { class: 'hs-label' }, 'Age ', h('input', { class: 'hs-input', type: 'number', min: range.min, max: range.max, step: 1, value: identity.age ?? creationAge(classId), 'aria-label': 'Age', style: 'width:5em',
+    const stage = h('span', { class: 'hs-note' }, word(identity.age ?? creationAge(startId)));
+    return h('label', { class: 'hs-label' }, 'Age ', h('input', { class: 'hs-input', type: 'number', min: range.min, max: range.max, step: 1, value: identity.age ?? creationAge(startId), 'aria-label': 'Age', style: 'width:5em',
       oninput: (e: Event) => { const n = Math.round(Number((e.target as HTMLInputElement).value)); if (Number.isFinite(n)) { identity.age = Math.max(range.min, Math.min(range.max, n)); stage.textContent = word(identity.age); } } }), ' ', stage);
   }
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
       h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), whoRow(), starts, worldRow(), worldNote,
-        cls?.story ? h('p', { class: 'story-line' }, cls.story) : null,
-        perkNames(classId).length ? h('p', {}, `Class perk at level 1: ${perkNames(classId).join(', ')}.`) : null,
+        start?.story ?? cls?.story ? h('p', { class: 'story-line' }, start?.story ?? cls?.story) : null,
+        start?.blessing ? h('p', {}, `You begin with ${facts.perks[0]}, in that god’s Blessed class${facts.classes.length ? `: ${facts.classes.map((c) => `${lib.classes[c].name} (${CLASS_TIERS.name(lib.classes[c].tier)})`).join(' or ')}` : ''}.`)
+          : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { recommended(); render(); } }, 'Use recommended build'),
