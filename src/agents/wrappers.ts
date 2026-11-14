@@ -56,6 +56,12 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
     return { intent: null, clarify: illegalClarify(leg.illegal, view) ?? GENERIC_CLARIFY, run };
   }
   run.log.output = leg.intent;
+  // BF32: a blow with the hand while both hands are full is not made with what they hold: the player is told to put it away
+  const a = leg.intent.action, blow = a?.type === 'attack' && !a.item ? view.player.bodyAttacks?.find((b) => b.mode === a.mode && b.handsFull) : undefined;
+  if (blow) {
+    run.log.errors.push('hands_full', blow.mode);
+    return { intent: null, clarify: `Your hands are full with the ${blow.handsFull}. Put it away or drop it first, then make the ${blow.name === 'fists' ? 'punch' : blow.name}.`, run };
+  }
   return { intent: leg.intent, clarify: null, run };
 }
 

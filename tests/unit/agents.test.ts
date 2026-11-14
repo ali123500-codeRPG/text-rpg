@@ -169,6 +169,15 @@ describe('Parser legality', () => {
     expect(r.intent).toMatchObject({ move: { toZone: to }, action: null, deferred: ['give Corwin the lucky charm'] });
     expect(r.run.log.errors).toContain('deferred_to_arrival');
   });
+  it('BF32: a punch with both hands full asks the player to put what they hold away, and makes no blow', async () => {
+    const { claude, ctx } = setup();
+    const pv = playerView();
+    pv.player.bodyAttacks = [{ mode: 'AM5', name: 'fists', handsFull: 'shortbow' }];
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'attack', target: 'patron_1', mode: 'AM5', item: null, skill: '' } }));
+    const r = await callParser('I punch him', pv, ctx);
+    expect(r.intent).toBeNull();
+    expect(r.clarify).toBe('Your hands are full with the shortbow. Put it away or drop it first, then make the punch.');
+  });
   it('a speech action\'s skill is set by code, so a made-up one is not an error (P2)', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'intimidate', skill: 'intimidate', target: null } }));
