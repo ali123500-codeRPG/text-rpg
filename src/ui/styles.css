@@ -515,9 +515,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--space-3) 0 var(--space-4); border-bottom: 1px solid var(--border); }
 .pk-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 6px 10px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
 .pk-tabs button[aria-selected="true"] { color: var(--scenario-mark); border-color: var(--scenario-mark); font-weight: 700; }
-/* every tree in its own box, side by side in rows; a box is as wide as its skills (--n) need */
+/* every tree in its own box, side by side in rows; a box starts as wide as its skills (--n) need and the boxes of a row
+   share out the rest of its width, so no row leaves a gap (fit the screen) */
 .pk-trees { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
-.pk-board { flex: 1 1 calc(48px + var(--n) * 150px); max-width: calc(48px + var(--n) * 190px + 2 * var(--space-3)); min-width: 0; box-sizing: border-box;
+.pk-board { flex: var(--n) 1 calc(48px + var(--n) * 150px); min-width: 0; box-sizing: border-box;
   padding: var(--space-2) var(--space-3) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-md); }
 .pk-board h3 { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 700; color: var(--muted); }
 .pk-lad { --rh: 200px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 48px; }
