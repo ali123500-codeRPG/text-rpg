@@ -18,7 +18,7 @@ import { answerOffer, canOffer, landed, makeOffer, offersTo, tiersToConvince } f
 import { coins } from '../../src/engine/trade';
 import { repeatTryMods } from '../../src/ruleset/pressure';
 import { buildPlayerView } from '../../src/views';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 
 /** the patron (code-run) is hostile to the player and fighting them */
 const fight = (who = 'patron_1', s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })): GameState => {
@@ -124,13 +124,15 @@ it('TF11: a foe can offer the player a stand-down; the player takes it by saying
   expect(s.player.progression!.tally?.talked_down).toBeUndefined(); // nor a talk-down by the player
 });
 
-it('TF17 follow-up: in a fight the Talk ideas show the ways to talk a foe out of it', () => {
+it("TF17 follow-up: in a fight the deck's Talk group shows the ways to talk a foe out of it", () => {
   const s = fight();
   const pv = buildPlayerView(s);
   const foe = pv.actors.find((a) => a.id === 'patron_1');
   expect(foe?.talkDown).toBe(true);
-  const talk = ideas(pv).find((g) => g.group === 'Talk')!.items.map((x) => x.text);
-  expect(talk.some((t) => t.endsWith(' down'))).toBe(true);
+  const talk = deck({ pv, s }).find((g) => g.group === 'talk')!.actions;
+  expect(talk.find((a) => a.kind === 'persuade')?.note).toMatch(/talk a foe down/);
+  expect(talk.find((a) => a.kind === 'deceive')?.note).toMatch(/a lie to end it/);
+  expect(talk.find((a) => a.kind === 'barter')?.note).toMatch(/pay a foe to stop/);
 });
 
 it('whole turn: an AI-run listener hears that the words are an offer and how it landed; the Narrator hears how it landed', async () => {

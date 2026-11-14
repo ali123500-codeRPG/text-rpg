@@ -245,10 +245,16 @@ const DEFAULTS = {
   NERVE_BEYOND_STEP: 50,
   /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
   PERSONALITY_LEAN: 20,
-  /** the Ideas panel: a held value pulls toward its ideas by this many points, as a trait would */
+  /** the action deck: a held value pulls toward its actions by this many points, as a trait would */
   IDEA_VALUE_PULL: 50,
-  /** the Ideas panel: an idea the character is pulled away from by this many points or more says "against your nature" */
+  /** the action deck: an action the character is pulled away from by this many points or more says "against your nature" */
   IDEA_AGAINST_NATURE: 50,
+  /** AD9 the suggested action: base score of each kind of suggestion (higher wins); leanShare: points per point of the
+   * character's pull toward it; healInFight: taken off treating wounds while a fight runs. [placeholder] */
+  SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
+  /** AD9: the morale level from which steadying is suggested in a fight, and the health level from which treating wounds is */
+  SUGGEST_STEADY_FROM: 'rattled' as import('./scales').MoraleLevel,
+  SUGGEST_HEAL_FROM: 'hurt' as import('./scales').HealthLevelKey,
   /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
   TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
   /** archetype gap: the six axes and Nerve count 1 each, the drive fit counts this many times */

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
 import { buildPlayerView } from '../../src/views';
-import { lootCount, lootOrder, lootSources } from '../../src/ui/loot';
+import { lootCount, lootGear, lootOrder, lootSources } from '../../src/ui/loot';
 import { actorById, zoneById } from '../../src/engine/relations';
 import { newInstanceId } from '../../src/library/spawn';
 import { IT } from '../../src/library/itemIds';
@@ -48,6 +48,9 @@ describe('loot pop-up', () => {
     expect(lootOrder(srcs, new Set([found[0].id, found[1].id]))).toBe(`Take the bandage and the key from ${from}`);
     expect(lootOrder(srcs, new Set([found[1].id, 'picks_1', 'sack_1']))).toBe(`Take the key from ${from}, take the lockpicks from the chest and pick up the sack`);
     expect(lootOrder(srcs, new Set())).toBe('');
+    // AD7: the same pick as gear orders; a body's things come from that body
+    const bodyKey = srcs.find((x) => x.kind === 'body')!.key;
+    expect(lootGear(srcs, new Set([found[1].id, 'sack_1']))).toEqual([{ op: 'pick_up', item: found[1].id, from: bodyKey }, { op: 'pick_up', item: 'sack_1' }]);
   });
 
   it('a standing person\'s gear is not loot', () => {
@@ -57,10 +60,10 @@ describe('loot pop-up', () => {
     expect(lootSources(buildPlayerView(g.state)).some((x) => x.kind === 'body')).toBe(false);
   });
 
-  it('the chip opens it; Take types the order and sends nothing; Back closes it', () => {
-    const play = src('play.ts'), loot = src('loot.ts'), pop = src('pop.ts');
-    expect(play).toMatch(/lootBtn\.onclick = \(\) => \{[^}]*openLoot\(v, lootBtn, pick, /);
-    expect(loot).toMatch(/take\.onclick = \(\) => \{ const o = lootOrder\(src, picked\); if \(!o\) return; closePop\(\); onOrder\(o\); \}/);
+  it('the deck\'s Take things here opens it; Take plays the pick at once as gear orders (AD7); Back closes it', () => {
+    const deckView = src('deckView.ts'), loot = src('loot.ts'), pop = src('pop.ts');
+    expect(deckView).toMatch(/if \(a\.kind === 'loot'\) \{[^}]*openLoot\(pv, opener, \(line, gear\) => void play\(/);
+    expect(loot).toMatch(/take\.onclick = \(\) => \{ const o = lootOrder\(src, picked\); if \(!o\) return; closePop\(\); onOrder\(o, lootGear\(src, picked\)\); \}/);
     expect(loot).toMatch(/openPop\(\{ title: 'Loot', body, opener, cls: 'loot-pop', back: true \}\)/);
     expect(pop).toMatch(/if \(o\.back && !history\.state\?\.dpop\) history\.pushState\(\{ dpop: true \}, ''\)/);
     expect(pop).toMatch(/addEventListener\('popstate', \(\) => \{ if \(current\?\.back\) closePop\(true\); closeFull\(true\); \}\)/);

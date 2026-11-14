@@ -13,7 +13,7 @@ import { loseNerve } from '../../src/engine/effects';
 import { answerOffer, canDemand, canOffer, makeOffer, offerNote, offersTo, playerOffer, tiersToConvince } from '../../src/engine/offer';
 import { actorBody } from '../../src/library';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 
 const fight = (s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })): GameState => {
   const m = actorById(s, 'patron_1')!.mind!;
@@ -89,8 +89,9 @@ it('TF19: a foe cowering Broken can still be talked into surrendering, with one 
   expect(p.mind!.moraleState).toBe('surrendered');
 });
 
-it('TF19: the Talk ideas offer a demand to surrender', () => {
+it("TF19: the deck's Talk group offers a demand to surrender", () => {
   const s = fight();
-  const talk = ideas(buildPlayerView(s)).find((g) => g.group === 'Talk')!.items.map((x) => x.text);
-  expect(talk.some((t) => t.startsWith('Demand ') && t.endsWith(' surrender'))).toBe(true);
+  const demand = deck({ pv: buildPlayerView(s), s }).find((g) => g.group === 'talk')!.actions.find((a) => a.kind === 'demand');
+  expect(demand?.label).toBe('Demand surrender');
+  expect(demand?.play({ target: 'patron_1', words: 'Drop it.' }).intent.action).toMatchObject({ type: 'persuade', target: 'patron_1', demand: 'yield' });
 });

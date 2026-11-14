@@ -8,7 +8,7 @@ import { beside, makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { buildPlayerView } from '../../src/views';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 
 // BF68: the patron sleeps through the morning; in the evening it drinks at its seat
 const tavern = () => { const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] }); s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening; return s; };
@@ -24,7 +24,8 @@ it('Wren holds the charm out from his sack; it stays his until the player takes 
   expect(has(w, 'charm_1')).toBe(true);
   expect(has(s.player, 'charm_1')).toBe(false);
   expect(buildPlayerView(s).actors.find((a) => a.id === w.id)?.holdsOut?.item).toBe('charm_1');
-  expect(ideas(buildPlayerView(s)).flatMap((g) => g.items.map((i) => i.text)).some((t) => /^Take the .+ from /.test(t))).toBe(true);
+  const take = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).find((a) => a.kind === 'take')!;
+  expect(take.steps[1].key === 'item' && take.steps[1].picks({ target: w.id })[0]).toMatchObject({ id: 'charm_1', hot: true });
   play(s, { intent: intent({ action: { type: 'take', target: w.id, item: 'charm_1' } }) });
   expect(has(s.player, 'charm_1')).toBe(true);
   expect(has(w, 'charm_1')).toBe(false);

@@ -385,6 +385,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (guided && (guided.mustAsk || ++asks % 2)) return { command: '', say: 'The barkeep offers a job: clear the cellar for 5 silver. Take it?', ask: { kind: guided.mustAsk?.kind ?? 'deal', about: `the barkeep ${asks}`, choices: ['I take the job.', 'I turn it down.', 'I ask for more.'], pick: 0 } };
       return { command: 'I look around.', say: '<sigh> Getting my bearings first. The room is quiet, too quiet, and I do not like it.', direction: 'calm, a little curious' };
     },
+    async act(order, o) { return this.submit(order.line, o); }, // the fake reads only the line
     async submit(text, o) {
       if (busy || !state) return;
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one

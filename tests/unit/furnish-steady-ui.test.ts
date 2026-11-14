@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { FU } from '../../src/library/tableIds';
 import { FURN_GLYPH } from '../../src/ui/furnitureIcons';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 import { buildPlayerView } from '../../src/views';
 import { cantSteady } from '../../src/engine/steady';
 import { actorById } from '../../src/engine/relations';
@@ -17,7 +17,7 @@ const foe = (s: GameState): GameState => {
   m.knowledge.player = { status: 'engaged', lastKnownZone: s.player.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   return s;
 };
-const offered = (s: GameState) => ideas(buildPlayerView(s), false, cantSteady(s, s.player) === null).flatMap((g) => g.items.map((i) => i.text)).includes('Steady yourself');
+const offered = (s: GameState) => deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).some((a) => a.kind === 'steady');
 
 describe('furnished rooms and steady yourself on the play screen', () => {
   it('FR5: every furniture kind has a glyph of its own', () => {

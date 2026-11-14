@@ -41,16 +41,3 @@ export function pullOf(key: IdeaKind | IdeaGroup, p: Personality): number {
 }
 
 export const AGAINST_NATURE = 'against your nature';
-
-type Idea = { text: string; note?: string; kind?: IdeaKind };
-type Group = { group: string; key: IdeaGroup; items: Idea[] };
-
-/** Ideas shaped by who the character is: groups and the ideas in each ordered by pull (ties keep their place), and an idea
- * pulled away from by IDEA_AGAINST_NATURE or more says so. Nothing is added or taken away. A broken nerve's way out stays first. */
-export function leanIdeas<G extends Group>(groups: G[], p: Personality | undefined): G[] {
-  if (!p) return groups;
-  const by = <T>(xs: T[], pull: (x: T) => number) => xs.map((x, i) => ({ x, i, v: pull(x) })).sort((a, b) => b.v - a.v || a.i - b.i).map((e) => e.x);
-  return by(groups, (g) => (g.key === 'getaway' ? Infinity : pullOf(g.key, p))).map((g) => ({ ...g,
-    items: by(g.items, (it) => (it.kind ? pullOf(it.kind, p) : 0)).map((it) => it.kind && pullOf(it.kind, p) <= -CONFIG.IDEA_AGAINST_NATURE
-      ? { ...it, note: it.note ? `${it.note} · ${AGAINST_NATURE}` : AGAINST_NATURE } : it) }));
-}

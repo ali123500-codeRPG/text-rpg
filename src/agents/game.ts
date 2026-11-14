@@ -40,7 +40,7 @@ import { librarySends, saveSend, sendId } from '../save/sends';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import type { GuidedCtx } from './crossroads';
 
-import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
+import { acceptIntent, callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
 import { barkOnly, isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
@@ -103,6 +103,8 @@ function nerveBlocksAll(i: Intent): boolean {
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
 /** NW18: a turn played while the player sleeps */
+/** the bands of the people the player can see (the Parser's legality reads them) */
+const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
 const ASLEEP_INTENT = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 
 export function createGame(deps: GameDeps): Game {
@@ -321,7 +323,8 @@ export function createGame(deps: GameDeps): Game {
     return { agent: 'voice', actorId: id, output: r.output };
   }
 
-  async function playTurn(text: string, aimed: boolean): Promise<void> {
+  /** given: AD7, an order code built from a clicked action: it skips the Parser and passes the same checks */
+  async function playTurn(text: string, aimed: boolean, given?: Intent): Promise<void> {
     const s = state!;
     const submitAt = clock.now();
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
@@ -339,7 +342,8 @@ export function createGame(deps: GameDeps): Game {
     const doingBefore = doingSnap(pv);
     // NW18: asleep, the turn passes with you doing nothing; nothing you type is read
     const parsed = s.player.asleep || s.mercy ? { clarify: null, intent: ASLEEP_INTENT } // D-239: down, likewise
-      : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean), answering: answer });
+      : given ? acceptIntent(structuredClone(given), pv, bandsOf(s, pv), [])
+      : await callParser(text, pv, ctx, { bandIds: bandsOf(s, pv), answering: answer });
     if (parsed.clarify !== null || !parsed.intent) {
       // the turn stops: no resolution, turn unchanged, Planner outputs kept for this same turn
       lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?', ...('answers' in parsed && parsed.answers?.length ? { answers: parsed.answers } : {}) });
@@ -649,16 +653,16 @@ export function createGame(deps: GameDeps): Game {
     }
   }
 
-  async function submit(text: string, opts: { aimed: boolean }): Promise<void> {
+  async function submit(text: string, opts: { aimed: boolean }, given?: Intent): Promise<void> {
     const t = text.trim();
     if (!state || busy || stopped || !t) return;
-    if (t.startsWith('/')) return command(t, opts);
+    if (!given && t.startsWith('/')) return command(t, opts);
     rateLimited = false; // background calls resume after the next player action
     notices = notices.filter((n) => n.kind !== 'rate_limited');
     busy = true;
     emit();
     try {
-      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext);
+      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext, state.player.asleep ? undefined : given);
       // NW18/AT42: while you stay asleep the game plays your turns: the night runs on as one stretch between them, so each
       // moves the clock on; a turn that doesn't (nothing left to run) waits for you
       for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false); }
@@ -826,7 +830,8 @@ export function createGame(deps: GameDeps): Game {
       if (mv?.say || aloud.length) agentSaid = [...agentSaid, ...(mv?.say ? [mv.say] : []), ...aloud].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
       return mv;
     },
-    submit,
+    submit: (text: string, opts: { aimed: boolean }) => submit(text, opts),
+    act: (order: { intent: Intent; line: string }, opts: { aimed: boolean }) => submit(order.line, opts, order.intent),
     endScenario() {
       // SC15: the GM view's End scenario button (testing): the scenario ends after the next turn, recorded as interrupted
       if (!state?.stage.scenario || state.stage.breakCause) return;

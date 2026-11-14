@@ -25,21 +25,21 @@ describe('ui helpers', () => {
 describe('play screen extras (Voyage UI check)', async () => {
   const { makeVillage } = await import('../harness');
   const { buildPlayerView } = await import('../../src/views');
-  const { ideas } = await import('../../src/ui/play');
+  const { deck } = await import('../../src/ui/deck');
   const { lineExtras, tierGap } = await import('../../src/agents/game');
   const { narrationView } = await import('./agent-views');
 
-  it('ideas come only from PlayerView: people in view, exits, gear', () => {
+  it('the action deck comes only from PlayerView: people in view, ways out, gear', () => {
     const s = makeVillage();
     const pv = buildPlayerView(s);
-    const g = Object.fromEntries(ideas(pv).map((x) => [x.group, x.items.map((i) => i.text)]));
-    const seen = pv.actors.filter((a) => a.level === 'full').map((a) => a.name ?? a.label);
-    expect(g.Talk).toEqual(seen.slice(0, 3).map((n) => `Talk to ${n}`));
-    expect(g.Move).toEqual(pv.zone.links.slice(0, 3).map((l) => `Go ${l.label}`));
-    expect(g.Use.slice(-2)).toEqual(['Look around', 'Search']); // SE19
-    for (const list of Object.values(g)) expect(list.length).toBeLessThanOrEqual(3);
+    const all = deck({ pv, s }).flatMap((g) => g.actions);
+    const targets = (k: string) => { const a = all.find((x) => x.kind === k); return a && a.steps[0]?.key === 'target' ? a.steps[0].picks({}).map((p) => p.label) : []; };
+    const seen = pv.actors.filter((a) => a.level === 'full').map((a) => (a.name ?? a.label).toLowerCase());
+    expect(targets('talk').map((x) => x.toLowerCase())).toEqual(expect.arrayContaining(seen));
+    expect(targets('go').map((x) => x.toLowerCase())).toEqual(expect.arrayContaining(pv.zone.links.filter((l) => !l.drop).map((l) => l.label.toLowerCase())));
+    expect(all.map((a) => a.label)).toEqual(expect.arrayContaining(['Look around', 'Search'])); // SE19
     // nobody outside the view: slimes in the field are not in the tavern
-    expect(JSON.stringify(g)).not.toMatch(/slime/i);
+    expect(JSON.stringify(all.flatMap((a) => a.steps.map((st) => (st.key === 'words' ? [] : st.picks({})))))).not.toMatch(/slime/i);
   });
   it('tier gap in words', () => {
     expect(tierGap({ tier: 'great_success' }, { tier: 'success' })).toBe('1 tier ahead');
@@ -108,10 +108,3 @@ describe('body figure data', () => {
   });
 });
 
-describe('idea labels fill the box in the first person', () => {
-  it('asI turns a short label into an "I" line', async () => {
-    const { asI } = await import('../../src/ui/play');
-    expect(asI('Talk to a lanky youth')).toBe('I talk to a lanky youth');
-    expect(asI('Look around')).toBe('I look around');
-  });
-});

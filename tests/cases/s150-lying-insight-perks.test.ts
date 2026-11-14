@@ -14,7 +14,7 @@ import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
 import { bluffed } from '../../src/engine/perkMarks';
 import { answerRoll, pressedWords, tellFor, PLAIN, TELL } from '../../src/engine/speech';
 import { buildPlayerView } from '../../src/views';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
@@ -78,13 +78,13 @@ describe('150 Lying and Insight perks', () => {
     expect(bluffed(s2, w2)).toBe(false);
   });
 
-  it('shows in Ideas against a foe in the zone, and in the Parser view as a perk move', () => {
+  it('shows in the action deck against a foe in the zone, and in the Parser view as a perk move', () => {
     const s = makeVillage();
     foe(s);
     give(s.player, PK.bluff);
     const pv = buildPlayerView(s);
     expect(pv.player.perkMoves?.find((m) => m.id === PK.bluff)).toMatchObject({ name: 'Bluff', does: expect.stringContaining('Behind you!') });
-    expect(ideas(pv).find((g) => g.group === 'Perks')?.items.some((i) => /^Bluff .+: "Behind you!"$/.test(i.text))).toBe(true);
+    expect(deck({ pv, s }).find((g) => g.group === 'perks')?.actions.some((a) => a.label === 'Bluff "Behind you!"' && a.steps[0]?.key === 'target')).toBe(true);
   });
 
   it('Takes One to Know One answers a lie with the better of Insight and Lying', () => {
