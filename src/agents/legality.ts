@@ -137,7 +137,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     out.gear = out.gear.filter((op) => {
       const ok = op.op === 'summon' ? !!view.player.summonable?.some((x) => x.id === op.item) : op.op === 'pick_up'
         ? ground.has(op.item) || items.has(op.item) && !own.some((i) => i.id === op.item) || (!!op.from && actors.has(op.from) && view.actors.find((x) => x.id === op.from)!.gear.some((g) => g.id === op.item || inside(g.container).includes(op.item)))
-        : own.some((i) => i.id === op.item) && (!op.into || (op.op === 'stow' && boxes.has(op.into))); // PI1: into a container the player knows
+        : own.some((i) => i.id === op.item) && (!op.into || (op.op === 'stow' && (boxes.has(op.into) || op.into === 'pocket'))); // PI1: into a container the player knows; PO3: or a pocket
       if (!ok) gearErrors.push(`gear ${op.op} ${op.item}`);
       return ok;
     });
@@ -208,7 +208,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   }
   if (out.gear) {
     out.gear = out.gear.filter((op) => {
-      const ok = op.op === 'pick_up' ? k.ground.has(op.item) || (!!op.from && k.actors.has(op.from) && k.seenGear.has(op.item)) : k.own.has(op.item) && (!op.into || (op.op === 'stow' && (k.own.has(op.into) || k.ground.has(op.into))));
+      const ok = op.op === 'pick_up' ? k.ground.has(op.item) || (!!op.from && k.actors.has(op.from) && k.seenGear.has(op.item)) : k.own.has(op.item) && (!op.into || (op.op === 'stow' && (k.own.has(op.into) || k.ground.has(op.into) || op.into === 'pocket'))); // PO3: or a pocket
       if (!ok) errors.push('invalid_gear');
       return ok;
     });

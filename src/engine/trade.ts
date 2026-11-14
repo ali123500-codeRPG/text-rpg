@@ -16,6 +16,7 @@ import { itemValue as benefitValue } from '../ruleset/value';
 import { hearsClearly } from '../perception';
 import { canSpeak, gripReachM } from '../ruleset/body';
 import { withinGrip } from './position';
+import { pocketIt, tidyPockets } from './pockets';
 import { listWords } from '../words';
 
 const GOODS = 'goods:';
@@ -141,7 +142,9 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
     if (!left) break;
     if (!stackable) {
       seller.core.inventory.splice(seller.core.inventory.indexOf(g), 1);
+      delete g.pocket;
       to.core.inventory.push(g);
+      pocketIt(state, to, g); // PO3
       inst = g;
       left -= 1;
       continue;
@@ -152,7 +155,7 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
     if (g.qty <= 0) seller.core.inventory.splice(seller.core.inventory.indexOf(g), 1);
     inst = to.core.inventory.find((x) => x.itemId === itemId);
     if (inst) inst.qty = (inst.qty ?? 1) + take;
-    else to.core.inventory.push(inst = { id: `${g.id}_${to.id}_${state.turn}`, itemId, qty: take });
+    else { to.core.inventory.push(inst = { id: `${g.id}_${to.id}_${state.turn}`, itemId, qty: take }); pocketIt(state, to, inst); } // PO3
   }
   return { ok: true, price, qty, itemInst: inst?.id, to };
 }
@@ -216,9 +219,11 @@ export function sell(state: GameState, owner: Actor, seller: Actor | undefined, 
     moved = { id: `${inst.id}_${seller.id}_${state.turn}`, itemId: inst.itemId, qty };
   } else owner.core.inventory.splice(owner.core.inventory.indexOf(inst), 1);
   delete moved.equippedIn; // a held weapon or shield is stowed and sold
+  delete moved.pocket;
   const stack = stackable ? seller.core.inventory.find((x) => x.itemId === moved.itemId && !x.equippedIn?.length) : undefined;
   if (stack) stack.qty = (stack.qty ?? 1) + qty;
   else seller.core.inventory.push(moved);
   if (!seller.wares!.items.includes(moved.itemId)) seller.wares!.items.push(moved.itemId);
+  tidyPockets(state, owner); // PO1: a belt sold takes its pockets with it
   return { ok: true, price, qty, itemInst: stack?.id ?? moved.id };
 }

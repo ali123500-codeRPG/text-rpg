@@ -43,10 +43,11 @@ import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from '
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
-import { contentsOf, findContainer, guarded, openContainer, ownerOf, theft, wornPack } from './containers';
+import { POCKET, applyGearOps, dropToGround, equipArmor, fadeSoulbound, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
+import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
 import { cantSteady, steady } from './steady';
 import { breakInside } from './breakage';
+import { inPack } from './pockets';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
@@ -132,18 +133,31 @@ const useMoveSlot = (ctx: Ctx, a: Actor, mainToo: boolean): Paid | null => {
 };
 /** how a walk is paid: walked or run (a dash), its seconds, and the pool unwalked seconds go back to (none: a main action walked) */
 type Paid = { paid: 'move' | 'main'; seconds: number; pool?: 'move' | 'main' | 'none' };
+/** PO2: in a fight, the gear ops (before they are carried out) that reach into a pack `a` carries: drawing from it, moving
+ * between it and a pocket, taking from a sack it carries */
+function packOps(state: GameState, a: Actor, ops: GearOp[]): Set<GearOp> {
+  if (state.mode !== 'tactical') return new Set();
+  const inv = (id: string) => a.core.inventory.find((i) => i.id === id);
+  return new Set(ops.filter((op) => {
+    const i = inv(op.item);
+    if (op.op === 'draw' || op.op === 'swap') return !!i && inPack(a, i);
+    if (op.op === 'stow') return !!i && (op.into === POCKET ? inPack(a, i) : !!i.pocket && (!op.into || !!(findContainer(state, op.into)?.holder === a)));
+    return op.op === 'pick_up' && !op.from && inContainer(state, a, op.item)?.c.holder === a;
+  }));
+}
 /** AT11: seconds of the gear ops the actor carried out (draw, stow, swap, picking up), from its main time; a pick-up from the
- * ground locks movement too */
-function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[]): void {
+ * ground locks movement too. PO2: one in `pack` takes the from_pack row first */
+function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[], pack: Set<GearOp> = new Set()): void {
   for (const op of ops) {
     const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
-    const row = id ? actionRow(id) : undefined;
+    for (const row of [pack.has(op) ? actionRow(DU.from_pack) : undefined, id ? actionRow(id) : undefined]) {
     if (!row) continue;
     const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row));
     s.main -= take;
     if (row.locksMove) s.move = Math.max(0, s.move - take);
     ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
     payRow(ctx.state, a, row, take);
+    }
   }
 }
 /** AT11/AT19: a way op (a door, a bar, a key) takes its row's seconds from move time and main time; when the move time is
@@ -173,9 +187,10 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const span = def?.spanTime ? actionRow(def.spanTime) : undefined, shot = of(def?.shotTime ?? DU.bow_light);
       return span && shot ? { row: span, seconds: actionSeconds(span) + shot.seconds } : shot;
     }
-    case 'use_item': {
+    case 'use_item': { // PO2: in a fight, one in the pack is got out first
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
-      return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
+      const fetch = it && state.mode === 'tactical' && inPack(a, it) ? actionSeconds(actionRow(DU.from_pack)!) : 0;
+      return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined, fetch);
     }
     case 'hide': return of(DU.hide);
     case 'break': return of(DU.break_open); // BF31
@@ -1581,8 +1596,9 @@ function step(ctx: Ctx, id: string): void {
   // FR2: a pick-up out of grip reach waits for the walk over to it (closeIn); the rest are free, before the action
   const later = (o.gear ?? []).filter((op) => op.op === 'pick_up' && !reachable(state, a, op));
   const gearNow = (o.gear ?? []).filter((op) => !later.includes(op));
+  const pack = packOps(state, a, gearNow); // PO2: read before the ops move anything
   const g = applyGearOps(state, a, gearNow);
-  useGearTime(ctx, a, gearNow.filter((op) => !g.invalid.includes(op)));
+  useGearTime(ctx, a, gearNow.filter((op) => !g.invalid.includes(op)), pack);
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
   for (const d of g.setDown) emit(ctx, mk(ctx, a, 'set_down', { itemId: d.itemId, ...(d.qty ? { qty: d.qty } : {}) })); // OA4
