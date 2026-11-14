@@ -32,7 +32,7 @@ const armed = (state: GameState, x: Actor): number =>
 const comingFor = (x: Actor, w: Actor): boolean => atLeast(x.mind?.knowledge?.[w.id]?.status, 'tracking');
 const seen = (state: GameState, x: Actor, closing = false): Seen => ({ sneaking: x.posture === 'stealthy', closing, armed: armed(state, x) });
 /** metres between two spots; Infinity where an old map's zone has no rectangle */
-const distM = (state: GameState, a: Located, b: Located): number => distOrNull(state, a, b) ?? Infinity;
+const safeDistM = (state: GameState, a: Located, b: Located): number => distOrNull(state, a, b) ?? Infinity;
 /** metres from where the watcher stands at which someone closing at `speed` m/s fires the check */
 const triggerM = (w: NearWatch, speed: number): number => CONFIG.HOSTILE_NEAR_M + speed * warnS(w);
 
@@ -62,7 +62,7 @@ export function stepS(state: GameState, watch: NearWatch): number {
   for (const x of outsiders(state, w)) {
     if (watch.accepted.has(x.id) || !perceived(state, w, x)) continue;
     const run = moveSpeed(state, x).run;
-    if (run > 0) least = Math.min(least, (distM(state, w, x) - triggerM(watch, run)) / run);
+    if (run > 0) least = Math.min(least, (safeDistM(state, w, x) - triggerM(watch, run)) / run);
   }
   return Math.min(CONFIG.STEP_MAX_S, Math.max(CONFIG.STEP_MIN_S, least / 2));
 }
@@ -90,8 +90,8 @@ export function checkNear(state: GameState, watch: NearWatch, before: Map<string
   for (const x of outsiders(state, w)) {
     const was = watch.accepted.get(x.id);
     if (!perceived(state, w, x)) { watch.accepted.delete(x.id); continue; }
-    const d = distM(state, w, x), from = before.get(x.id);
-    const d0 = from ? distM(state, before.get(w.id) ?? w, from) : Infinity;
+    const d = safeDistM(state, w, x), from = before.get(x.id);
+    const d0 = from ? safeDistM(state, before.get(w.id) ?? w, from) : Infinity;
     const speed = Number.isFinite(d0) && Number.isFinite(d) && seconds > 0 ? (d0 - d) / seconds : 0; // the watcher may have walked too
     const walk = moveSpeed(state, x).walk;
     const coming = speed > 0 && (comingFor(x, w) || speed > CONFIG.RUSH_SHARE * walk);

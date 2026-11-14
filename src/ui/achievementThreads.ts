@@ -9,6 +9,7 @@ import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, t
 import { ACH_HEAD_NAMES } from '../library/achievementIds';
 import { h, openPanel, plural, type PanelRow } from './kit';
 import { cap } from '../words';
+import { roman } from '../scales';
 
 export type Knot = { key: string; of?: string; level: string; label: string; name: string; state: 'held' | 'next' | 'later'; turn?: number };
 export type Thread = { root: string; of?: string; kind?: string; knots: Knot[]; have?: number; need?: number; endless?: true };
@@ -16,7 +17,6 @@ export type ChainView = { id: string; tag: string; name: string; place: string; 
   trunk?: Thread; branches: { label: string; threads: Thread[] }[] };
 
 const lib = (): Record<string, AchievementDef> => getLibrary().achievements ?? {};
-const roman = (n: number): string => n < 1 || n > 39 ? String(n) : 'X'.repeat(Math.floor(n / 10)) + ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][n % 10];
 const fmt = (n: number) => n.toLocaleString('en');
 const mine = (s: GameState) => s.player.progression?.achievements ?? [];
 

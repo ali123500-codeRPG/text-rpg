@@ -75,6 +75,12 @@ export type Barrier = {
 /** a zone's four sides, by map compass */
 export type Side = 'n' | 'e' | 's' | 'w';
 export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
+/** the side across from each side */
+export const OPP_SIDE: Readonly<Record<Side, Side>> = { n: 's', s: 'n', e: 'w', w: 'e' };
+/** one step toward each side on a grid whose y runs north (a region's gx, gy) */
+export const SIDE_STEP: Readonly<Record<Side, readonly [number, number]>> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] };
+/** each side's compass word */
+export const SIDE_WORD: Readonly<Record<Side, string>> = { n: 'north', e: 'east', s: 'south', w: 'west' };
 /** a zone's rectangle in metres: centre x east, y north of the story's first zone; w east-west, d north-south */
 export type Rect = { x: number; y: number; w: number; d: number };
 
@@ -145,7 +151,6 @@ export type Zone = {
   edges?: Partial<Record<Side, string>>;
   /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
   aspect?: number;
-  /** HB3 how loud it is anyway, when not its kind's (a tavern's busy common room) */
   /** FR1/FR2: its furniture (the kind's defaults, a layout's, or the Weaver's own list) */
   furniture?: Furniture[];
   /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */

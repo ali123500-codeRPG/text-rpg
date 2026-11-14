@@ -418,7 +418,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   // ---- seeds ----
   const refs = { isZone, isActor };
   const checkTrigger = (where: string, t: StagePlan['seeds']['triggers'][number]) => {
-    for (const m of triggerErrors(state, t, refs, where)) err('bad_trigger', m);
+    for (const m of triggerErrors(t, refs, where)) err('bad_trigger', m);
     if (t && t.id && typeof t.once !== 'boolean') err('bad_trigger', `trigger ${t.id}: once is true or false`); // tidy() fills it in
   };
   for (const p of arr(seeds.plans)) {

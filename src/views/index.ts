@@ -58,6 +58,7 @@ import { shortShifts } from '../ruleset/requirements';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUsed } from '../ruleset/fatigue';
 import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
+import { inArmorSlot } from '../ruleset/slots';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 /** AS3: the word others see for someone's morale: a foe who surrendered shows Surrendered, a visible state like Broken */
@@ -1045,7 +1046,7 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
   const { mode, weapon } = modeOf(state, attacker, r.weaponId, r.modeId);
   const nat = (n: number) => (n > 0 ? 'lucky' : n < 0 ? 'fumble' : null);
   const armor = r.location && r.location !== 'shield'
-    ? target.core.inventory.find((i) => i.equippedIn?.includes('armor') && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
+    ? target.core.inventory.find((i) => inArmorSlot(i) && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
     : undefined;
   const shield = r.location === 'shield' && r.shieldItemId ? target.core.inventory.find((i) => i.id === r.shieldItemId) : undefined;
   const partName = r.location === 'general' ? actorBody(state, target).general.name : r.location;

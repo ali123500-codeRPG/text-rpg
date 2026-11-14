@@ -3,13 +3,13 @@
 // hides anything. FR2: a zone gets its kind's defaults unless a layout or the Weaver lists its own. FR4: a piece on an edge
 // (a counter, a rail) is one record on one zone and shows on the far side of that edge too.
 import type { Furniture, GameState, PlanFurniture, Side, Zone } from '../types';
+import { OPP_SIDE } from '../types';
 import { getLibrary } from '../library';
 import { FU } from '../library/tableIds';
 import { compassOf, edgeToward } from '../scenario/geometry';
 import { zoneById } from './relations';
 
 const WORDS: Record<string, string> = { n: 'north', ne: 'north east', e: 'east', se: 'south east', s: 'south', sw: 'south west', w: 'west', nw: 'north west' };
-const OPPOSITE: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
 /** how far in from the wall a piece on a side stands, in metres */
 const INSET_M = 0.5;
 
@@ -35,7 +35,7 @@ export function furnitureIn(state: GameState, zoneId: string): Furniture[] {
   for (const l of z.links) {
     const b = l.frontier ? undefined : zoneById(state, l.to);
     const side = b && facing(b, z);
-    for (const f of b?.furniture ?? []) if (f.edge && side && f.at === side && !out.some((x) => x.id === f.id)) out.push({ ...f, at: OPPOSITE[side] });
+    for (const f of b?.furniture ?? []) if (f.edge && side && f.at === side && !out.some((x) => x.id === f.id)) out.push({ ...f, at: OPP_SIDE[side] });
   }
   return out;
 }

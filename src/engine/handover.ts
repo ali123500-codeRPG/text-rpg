@@ -4,11 +4,10 @@
 // grabbing it is filching. Grips must reach both ways.
 import { CONFIG } from '../config';
 import { itemDef } from '../library';
-import { STANCES } from '../scales';
 import { gripReachM, usableGrips } from '../ruleset/body';
 import type { Actor, GameState, ItemInstance } from '../types';
 import { carriedContents } from './containers';
-import { actorById, isActive, isAsleep, stance } from './relations';
+import { actorById, atLeastStance, isActive, isAsleep, stance } from './relations';
 import { withinGrip } from './position';
 
 /** where an item an actor carries lies: on them, or in one of their unlocked bags (BG-195) */
@@ -75,7 +74,7 @@ export function takeBlock(state: GameState, taker: Actor, owner: Actor | undefin
 export function wantsOffer(state: GameState, npc: Actor, giver: Actor): boolean {
   if (!isActive(npc) || isAsleep(npc) || !usableGrips(state, npc).length) return false;
   const s = stance(state, npc, giver);
-  return s !== 'yielded' && STANCES.pos(s as never) >= STANCES.pos(CONFIG.TAKE_FROM_STANCE as never);
+  return atLeastStance(s, CONFIG.TAKE_FROM_STANCE);
 }
 
 /** the offer `giver` holds out, if it still stands and is for `to` */

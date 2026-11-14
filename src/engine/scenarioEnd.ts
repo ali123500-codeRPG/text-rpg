@@ -155,7 +155,7 @@ export function checkinErrors(state: GameState, a: CheckinAnswer | null): string
   if (a.verdict !== 'continue' && a.verdict !== 'end') return ['verdict is continue or end'];
   if (a.verdict === 'end' && !PLAN_AS.has(String(a.as))) return [`as is one of ${[...PLAN_AS].join(', ')}`];
   if (a.beats !== undefined && !Array.isArray(a.beats)) return ['beats is a list'];
-  return (a.beats ?? []).flatMap((t) => triggerErrors(state, t, { isZone: (r) => state.stage.zoneIds.includes(r), isActor: (r) => !!actorById(state, r) }));
+  return (a.beats ?? []).flatMap((t) => triggerErrors(t, { isZone: (r) => state.stage.zoneIds.includes(r), isActor: (r) => !!actorById(state, r) }));
 }
 
 /** a check-in's continue checked and applied by the caller: a scenario change, arrivals and frontiers (SC12) */

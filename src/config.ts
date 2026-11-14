@@ -160,8 +160,10 @@ const DEFAULTS = {
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
-  /** AT58/AT60: reaction time when a fight starts for an actor: REACT_BASE_S seconds at an initiative total of 50, halving
-   * every REACT_HALVING points above (doubling below), times the time factor; a hesitation waits it out again */
+  /** AT11: the skill at which an Action times row (or a reaction) takes its listed seconds; faster above, slower below */
+  ACTION_SPEED_PIVOT: 50,
+  /** AT58/AT60: reaction time when a fight starts for an actor: REACT_BASE_S seconds at an initiative total of
+   * ACTION_SPEED_PIVOT, halving every REACT_HALVING points above (doubling below), times the time factor; a hesitation waits it out again */
   REACT_BASE_S: 2,
   REACT_HALVING: 50,
   /** AT74: Gut Feeling rolls once every this many rounds for each hidden watcher */
@@ -691,7 +693,7 @@ const DEFAULTS = {
   FOLLOW_M: 2,
   FOLLOW_RANGE_SHARE: 0.8,
   /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
-  TAKE_FROM_STANCE: 'neutral',
+  TAKE_FROM_STANCE: 'neutral' as import('./scales').StanceKey,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
    * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
   // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about

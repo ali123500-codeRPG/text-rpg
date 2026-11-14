@@ -61,6 +61,7 @@ export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark
  * first; unfriendly = dislike without a standoff: not on guard, still trades, pays no XP; friend = helps at a cost to itself;
  * loyal = takes the other's side: anyone hostile to them it treats as hostile too) */
 export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['unfriendly', 'unfriendly'], ['neutral', 'neutral'], ['friendly', 'friendly'], ['friend', 'friend'], ['loyal', 'loyal']]);
+export type StanceKey = (typeof STANCES.keys)[number];
 /** how much a race thinks, least first: an achievement's first-sight reward covers races up to one of these */
 export const INTELLIGENCE = scale([['unintelligent', 'Unintelligent'], ['semi', 'Semi-intelligent'], ['intelligent', 'Intelligent']]);
 export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];
@@ -203,7 +204,8 @@ export type ThreadboundRankKey = (typeof THREADBOUND_RANKS.keys)[number];
 /** CC1 b: a blessing's tier counts up, weakest first: Tier I is the lowest, the blessed start's Tier V is mid-ladder, and
  * higher gods' blessings go on to VI, VII and up with no end. Rows run to BLESSING_TIER_ROWS; more means a bigger number */
 const BLESSING_TIER_ROWS = 30;
-const roman = (n: number): string => [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+/** a whole number from 1 up in Roman numerals (I, IV, XL …) */
+export const roman = (n: number): string => [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
   .reduce((out, [v, r]) => { while (n >= (v as number)) { out += r; n -= v as number; } return out; }, '');
 export const BLESSING_TIERS = scale(Array.from({ length: BLESSING_TIER_ROWS }, (_, i) => [`tier_${i + 1}` as `tier_${number}`, `Tier ${roman(i + 1)}`] as const));
 export type BlessingTierKey = (typeof BLESSING_TIERS.keys)[number];

@@ -11,14 +11,14 @@ export function triggerHolds(state: GameState, t: Trigger, owner: Actor, events:
   switch (w.type) {
     case 'player_seen_in_zone': {
       const b = owner.mind?.knowledge[state.player.id];
-      // GAP: "seen in zone" read as a fresh, first-hand sighting: source 'seen', lastSeenTurn = the latest resolved turn.
+      // "seen in zone" reads as a fresh, first-hand sighting: source 'seen', lastSeenTurn = the latest resolved turn.
       return !!b && atLeast(b.status, 'suspicious') && b.source === 'seen' && b.lastKnownZone === w.zone && b.lastSeenTurn === state.turn;
     }
     case 'turn_reached':
       return when === 'start' && turn >= w.turn;
     case 'actor_down': {
       const down = actorById(state, w.actorId);
-      // GAP: the owner must have perceived an event involving the downed actor (its own perception, not truth).
+      // the owner must have perceived an event involving the downed actor (its own perception, not truth).
       return !!down && !isActive(down) && events.some((e) => (e.target === w.actorId || e.actorId === w.actorId) && !!e.perception[owner.id]);
     }
     case 'alarm_heard':

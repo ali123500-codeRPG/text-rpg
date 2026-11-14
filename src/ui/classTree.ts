@@ -69,7 +69,7 @@ export function classSource(c: ClassDef): string | null {
   if (c.unlockPerkWith?.hearingDb) bits.push('a perk that sharpens hearing');
   if (c.unlockPerk && !perkOwner(c.unlockPerk)) bits.push(`the perk ${lib.perks[c.unlockPerk]?.name ?? c.unlockPerk}`);
   if (bits.length) return bits.join(' and ');
-  // a start counts only for a class no other class opens (A Nobody opens from Commoner as well as starting one)
+  // a start counts only for a class no other class opens
   if (Object.values(lib.starts ?? {}).some((st) => st.classId === c.id) && !(c.unlockPerk && perkOwner(c.unlockPerk)) && !c.unlockClass) return 'a start';
   return null;
 }

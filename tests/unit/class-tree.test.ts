@@ -21,7 +21,7 @@ describe('class tree', () => {
     const lib = getLibrary().classes;
     expect(classSource(lib[CL.swordsman])).toMatch(/Parry 40/);
     expect(classSource(lib[CL.commoner])).toBe('any class at its top level');
-    expect(classSource(lib[CL.blessed_essences])).toMatch(/blessing from Imbra/);
+    expect(classSource(lib[CL.blessed_by_imbra])).toMatch(/blessing from Imbra/);
     expect(classSource(lib[CL.a_nobody])).toBeNull(); // Commoner opens it; being a start does not count then
   });
 

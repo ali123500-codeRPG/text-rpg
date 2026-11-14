@@ -8,6 +8,7 @@ import { getLibrary, itemDef } from '../library';
 import { trueSkill } from './perks';
 import { achievementReqLower } from './achRewards';
 import { standInShare, standInTable } from './gear';
+import { inArmorSlot } from './slots';
 
 /** EQ11: a minted item of QUALITY_LEVEL_UP_FROM or better is one level above its base, up to the top */
 export function itemLevel(def: ItemDef): EquipLevelKey | undefined {
@@ -40,7 +41,7 @@ export function shortBy(actor: Actor, def: ItemDef): number {
 /** EQ12 c: the tier shifts one roll takes for gear the roller falls short on */
 export function shortShifts(state: GameState, actor: Actor, kind: RollKind | undefined, itemId: string | undefined): TierShift[] {
   const items: ItemInstance[] = actor.core.inventory.filter((i) =>
-    (itemId && i.id === itemId) || ((kind === 'dodge' || kind === 'stealth') && i.equippedIn?.includes('armor')));
+    (itemId && i.id === itemId) || ((kind === 'dodge' || kind === 'stealth') && inArmorSlot(i)));
   const out: TierShift[] = [];
   for (const inst of items) {
     const def = itemDef(state, inst.itemId), short = shortBy(actor, def);

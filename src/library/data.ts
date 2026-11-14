@@ -203,7 +203,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   // DX1-DX5: essence extraction, a blessing of Imbra, minor goddess of essence manipulation (D-311; the blessed Start grants it), and the quirk it leaves.
   // NM2: the blessing works on the essence, a small foreign addition to someone's Thread; no god touches the Thread itself.
   [PK.extract_essence]: {
-    id: PK.extract_essence, name: 'Extract Essence', built: true, blessing: { god: GD.essences, tier: 'tier_5' },
+    id: PK.extract_essence, name: 'Extract Essence', built: true, blessing: { god: GD.imbra, tier: 'tier_5' },
     story: 'Imbra has shown you where an essence sits on someone, apart from what they are. With them beaten and helpless before you, you can pry it off and keep it.',
     rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down and have broken or surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
@@ -689,7 +689,7 @@ export function prototypeLibrary(): Library {
       [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, levelPerks: { 1: [PK.always_yours] } },
       // DX1: Blessed by X, a variant per god; unlocks on being blessed by that god, and the blessed start (ST5) begins in it.
       // Class perk and capstone to come (about earning a higher blessing from the god); name and story placeholders
-      [CL.blessed_essences]: { id: CL.blessed_essences, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.essences },
+      [CL.blessed_by_imbra]: { id: CL.blessed_by_imbra, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.imbra },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
@@ -719,7 +719,7 @@ export function prototypeLibrary(): Library {
     // DX1: the gods, each with a narrow field. Varo and Imbra are minor gods (GOD_RANKS): grand to the average person, the minimum for the divine; lore belongs to the lore thread
     gods: {
       [GD.varo]: { id: GD.varo, name: 'Varo', rank: 'minor', field: 'extreme fortunes' },
-      [GD.essences]: { id: GD.essences, name: 'Imbra', rank: 'minor', field: 'essence manipulation' },
+      [GD.imbra]: { id: GD.imbra, name: 'Imbra', rank: 'minor', field: 'essence manipulation' },
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

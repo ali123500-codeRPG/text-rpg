@@ -351,7 +351,7 @@ export const tierSkill = (t: Tier | TierRoll): number =>
 export const markAgainst = (state: GameState, a: Actor, r: RollResult, opposition: number, passed: boolean): void =>
   markUse(state, a, r.skill, { actorId: a.id, skill: r.skill, ...(r.asked ? { asked: r.asked } : {}), target: opposition, passed, modifiers: [] });
 /** SE25 a: a hidden item's level to learn against: its stasher's stealth skill, else its hidden-at tier on the table */
-const itemLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hiddenAt!);
+const hiddenLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hiddenAt!);
 /** SE8: one sight roll against every hidden ground item in reach that the searcher doesn't know of: beating an item's
  * hidden-at tier finds it, the same tier only hints that something here was moved, below it nothing. Nothing hidden: no
  * roll (SE6). */
@@ -363,7 +363,7 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
   const r = sightRoll(state, a, z, rng);
   const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));
   for (const i of found) (i.knownTo ??= []).push(a.id);
-  markAgainst(state, a, r, Math.max(...hidden.map(itemLevel)), found.length === hidden.length); // SE25: against the best-hidden thing searched for; passed when it was found too
+  markAgainst(state, a, r, Math.max(...hidden.map(hiddenLevel)), found.length === hidden.length); // SE25: against the best-hidden thing searched for; passed when it was found too
   log(state, 'search_items', { actorId: a.id, tier: r.tier, hidden: hidden.length, found: found.length });
   return { r, found, hint: !found.length && hidden.some((i) => tierLevel(r) === tierLevel(i.hiddenAt!)) };
 }

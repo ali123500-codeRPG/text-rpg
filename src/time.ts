@@ -12,9 +12,11 @@ export function durationText(minutes: number): string {
 }
 /** a span in whole days when it is at least one ("3 days"), else as durationText */
 export const spanText = (minutes: number): string => minutes >= DAY_MINUTES && minutes % DAY_MINUTES === 0 ? `${minutes / DAY_MINUTES} day${minutes === DAY_MINUTES ? '' : 's'}` : durationText(minutes);
+/** minutes past midnight, 0 to DAY_MINUTES − 1, for any game minute (negative ones too) */
+export const minuteOfDay = (t: number): number => ((t % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
 /** a clock time of day from game minutes, as 24-hour "07:30" */
 export function clockText(minutes: number): string {
-  const d = ((Math.round(minutes) % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+  const d = minuteOfDay(Math.round(minutes));
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
 }
 /** a clock time of day from game minutes, to the second, as 24-hour "07:30:15" */
@@ -34,14 +36,14 @@ export const now = (state: GameState): number => state.clocks.time ?? (startDay(
 export const dayOf = (t: number): number => Math.floor(t / DAY_MINUTES) + 1;
 
 export function timeOfDay(t: number): TimeOfDay {
-  const m = ((t % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+  const m = minuteOfDay(t);
   const keys = [...TIME_OF_DAY.keys].sort((a, b) => from(a) - from(b));
   return keys.filter((k) => m >= from(k)).at(-1) ?? keys.at(-1)!;
 }
 
 /** minutes from t until `k` next begins (a full day if it begins right now) */
 export function minutesUntil(t: number, k: TimeOfDay): number {
-  const m = ((t % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+  const m = minuteOfDay(t);
   const d = (from(k) - m + DAY_MINUTES) % DAY_MINUTES;
   return d || DAY_MINUTES;
 }

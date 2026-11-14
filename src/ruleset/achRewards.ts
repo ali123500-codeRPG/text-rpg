@@ -9,6 +9,7 @@ import { dayOf, now } from '../time';
 import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
+import { levelMaxPct } from './body';
 
 type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak';
 const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak'];
@@ -62,7 +63,7 @@ export function firstSightOf(holder: Actor | undefined, foe: Actor): string | un
   return currentAchievements(holder).find((x) => ((x.d.by === 'body_type' && x.of === foe.core.bodyTypeId) || (x.d.by === 'race' && x.of === foe.core.raceId))
     && chainRewards(x.d).some((e) => e.field === 'firstSight' && INTELLIGENCE.pos(mind) <= INTELLIGENCE.pos(e.from.firstSight!)))?.key;
 }
-const criticalMax = () => CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
+const criticalMax = () => levelMaxPct('critical');
 /** deathsDoor: a hit that would take the actor from above Down to Down or worse leaves it at Critical, once per charge;
  * the charge refills after the reward's number of game days. Returns the HP lost to keep. */
 export function deathsDoor(state: GameState, a: Actor, before: number, lost: number): number {

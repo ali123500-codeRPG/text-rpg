@@ -4,7 +4,7 @@ import type { Actor, GameState, HealthLevel, LogLine, PartState } from '../types
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
-import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
+import { partName, poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
 import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
@@ -307,7 +307,6 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
   const key = h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st))));
   return h('div', { class: 'bf' }, svg, out, key);
 }
-const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
 /** width of the side sheet bar's Unhurt section, in % of the bar */
 const UNHURT_SECTION = 12;

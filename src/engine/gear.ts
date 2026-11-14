@@ -6,7 +6,7 @@ import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { healthLevel, partStates } from '../ruleset';
 import { logCode } from './effects';
-import { gripReachM, working } from '../ruleset/body';
+import { freeGrips, gripReachM, working } from '../ruleset/body';
 import { actorById, isActive, stance, zoneById } from './relations';
 import { carriedContents, findContainer, inContainer, isContainer, packUp, theft, wearIfNone, wornPack } from './containers';
 import { withinGrip, type Located, type Pos } from './position';
@@ -14,6 +14,7 @@ export { gripReachM };
 export { withinGrip } from './position';
 import { summon } from '../ruleset/threadboundItems';
 import { freeAccSlot, gripSlot, isAccSlot, isHeld, isWorn } from '../ruleset/gear';
+import { inArmorSlot } from '../ruleset/slots';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
@@ -35,15 +36,9 @@ export function pickUpAt(state: GameState, op: GearOp, taker?: Actor): Located |
 /** CT5: `src` yielded to `taker` and wears a pack: its pack (what it carries stowed) is open to them */
 const yieldedTo = (state: GameState, src: Actor, taker: Actor) => stance(state, src, taker) === 'yielded' && src.core.inventory.some(wornPack);
 
-function freeGrips(state: GameState, actor: Actor): string[] {
-  const bad = new Set(partStates(state, actor).filter((p) => !working(p.state)).map((p) => p.id));
-  const held = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
-  return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(gripSlot(p))).map(gripSlot);
-}
-
 function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
   const need = itemDef(state, inst.itemId).grips ?? 1;
-  const free = freeGrips(state, actor);
+  const free = freeGrips(state, actor).map(gripSlot);
   if (inst.equippedIn?.length || free.length < need) return false;
   inst.equippedIn = free.slice(0, need);
   return true;
@@ -224,13 +219,13 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
 export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined, dry = false): boolean {
   const inst = actor.core.inventory.find((x) => x.id === instId);
   if (!inst || itemDef(state, inst.itemId).slot !== 'armor') return false;
-  if (dry) return !!inst.equippedIn?.includes('armor') || !inst.equippedIn?.length; // AT45: would it go through
-  if (inst.equippedIn?.includes('armor')) {
+  if (dry) return inArmorSlot(inst) || !inst.equippedIn?.length; // AT45: would it go through
+  if (inArmorSlot(inst)) {
     delete inst.equippedIn;
     return true;
   }
   if (inst.equippedIn?.length) return false;
-  actor.core.inventory.forEach((i) => { if (i.equippedIn?.includes('armor')) delete i.equippedIn; });
+  actor.core.inventory.forEach((i) => { if (inArmorSlot(i)) delete i.equippedIn; });
   inst.equippedIn = ['armor'];
   return true;
 }

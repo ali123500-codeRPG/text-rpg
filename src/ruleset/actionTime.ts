@@ -12,16 +12,16 @@ export const timeFactor = (): number => 1;
 export const actionRow = (id: string): DurationDef | undefined => getLibrary().durations?.[id];
 
 /** AT11/D-248: a row's seconds at time factor `factor`. A row naming a speed function takes the effective skill of that
- * function (`skill`; 50 when not given): halved every `halving` points above 50 (no faster past `fastCap`), doubled every
+ * function (`skill`; CONFIG.ACTION_SPEED_PIVOT when not given): halved every `halving` points above the pivot (no faster past `fastCap`), doubled every
  * `halving` below */
-export function actionSeconds(row: DurationDef, skill = 50, factor = timeFactor()): number {
+export function actionSeconds(row: DurationDef, skill: number = CONFIG.ACTION_SPEED_PIVOT, factor = timeFactor()): number {
   const sp = row.speed;
   const eff = sp?.fastCap == null ? skill : Math.min(skill, sp.fastCap);
-  return row.seconds * factor * (sp ? 2 ** ((50 - eff) / sp.halving) : 1);
+  return row.seconds * factor * (sp ? 2 ** ((CONFIG.ACTION_SPEED_PIVOT - eff) / sp.halving) : 1);
 }
 
 /** AT58: reaction time in seconds for an initiative total: the same equation as a row sped by a function, the Initiative
- * function's total standing in for its skill (REACT_BASE_S at 50, halved every REACT_HALVING points above) */
+ * function's total standing in for its skill (REACT_BASE_S at CONFIG.ACTION_SPEED_PIVOT, halved every REACT_HALVING points above) */
 export const reactSeconds = (total: number, factor = timeFactor()): number =>
   actionSeconds({ id: 'react', name: 'Reaction', effort: 'base', seconds: CONFIG.REACT_BASE_S, speed: { fn: FN.initiative, halving: CONFIG.REACT_HALVING } }, total, factor);
 
