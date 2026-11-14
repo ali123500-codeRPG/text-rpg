@@ -152,6 +152,20 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('the map is a big pop-up from the Play header, not a tab: Map opens it over Play, Esc closes it', async () => {
+    await nav('Play');
+    expect(await page.locator('nav').getByText('Map', { exact: true }).count()).toBe(0);
+    await page.locator('[data-open="map"]').click();
+    const pop = page.locator('.fpop.map-full');
+    await pop.locator('.map-svg').waitFor();
+    expect(await pop.locator('h1', { hasText: 'Map' }).count()).toBe(1);
+    await page.waitForFunction(() => !document.getAnimations().some((a) => a.playState === 'running')); // M-12: while it fades in, Esc only skips
+    await page.keyboard.press('Escape');
+    await expect.poll(() => page.locator('.fpop').count()).toBe(0);
+    expect(new URL(page.url()).hash).toBe('#play');
+    expect(errors).toEqual([]);
+  });
+
   it('opens the Inventory with its Coin line and no summary boxes', async () => {
     await nav('Inventory');
     await page.getByText(/^Coin: /).waitFor();

@@ -947,6 +947,10 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 
 /* ---- Map page (map.ts): the map fills everything beside the side column; tiles are zones, lines their exits.
    Outdoors leans to the sky blue, indoors to the surface; remembered zones are faded; you are the gold pin. */
+/* the map as a full-screen pop-up from the Play header */
+.map-full main.map-page { padding-top: 20px; }
+.map-full .map-page > .head { padding-right: 56px; }
+.play-map { gap: 6px; flex: none; white-space: nowrap; }
 main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: auto minmax(0, 1fr); padding-bottom: 20px; }
 .map-body { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 24vw, 420px); gap: var(--space-6); min-height: 0; }
 .map-stage { position: relative; min-height: 420px; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden;
