@@ -34,8 +34,9 @@ describe('zone placement', () => {
     const room = zone('room', [['corr', 'the east passage']], { area: 64 });
     const corr = zone('corr', [['room', 'back']], { area: 25, aspect: 4 });
     placeZones(world([room, corr]), [room, corr]);
-    expect(corr.rect!.w).toBeCloseTo(10);
-    expect(corr.rect!.d).toBeCloseTo(2.5);
+    // whole metres (MAP-10): 25 m² at about 4 to 1 is 8 × 3
+    expect(corr.rect!.w).toBe(8);
+    expect(corr.rect!.d).toBe(3);
     expect(corr.rect!.x).toBeGreaterThan(room.rect!.x);
   });
 
@@ -43,7 +44,9 @@ describe('zone placement', () => {
     const hall = zone('hall', [['loft', 'the stairs up']], { area: 64 });
     const loft = zone('loft', [['hall', 'down']], { area: 25, height: CONFIG.STOREY_HEIGHT });
     placeZones(world([hall, loft]), [hall, loft]);
-    expect([loft.rect!.x, loft.rect!.y]).toEqual([hall.rect!.x, hall.rect!.y]);
+    // straight above, within the half metre it takes to put a 5 m loft's walls on whole metres (MAP-10)
+    expect(Math.abs(loft.rect!.x - hall.rect!.x)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(loft.rect!.y - hall.rect!.y)).toBeLessThanOrEqual(0.5);
   });
 
   it('zones already placed keep their rectangles', () => {
