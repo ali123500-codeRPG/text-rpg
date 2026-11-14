@@ -475,7 +475,7 @@ export function mapPage(api: GameApi) {
   };
   const innerPlaces = (zones: MapZone[]) => (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth)
     .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: zones.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);
-  const sceneAt = (k: number) => planScene({ zones: floorZones(), every: worldZones(), places: innerPlaces(floorZones()), k, measure,
+  const sceneAt = (k: number) => planScene({ zones: floorZones(), every: worldZones(), places: innerPlaces(floorZones()), k, measure, visits: new Set(cur?.visited ?? []),
     awayName: (id) => { const z = allZones().find((x) => x.id === id); return z ? placeOf(rootOf(z.placeId))?.name : undefined; } });
   /** the scale bar under the map, in screen pixels: 10 m and its paces */
   const barOf = (sc: Scene, k: number) => ({ x: sc.bounds.x0, y: sc.bounds.y1 + 22, len: 10 * PX_PER_M * k });

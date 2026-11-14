@@ -176,6 +176,57 @@ export function placeZones(state: GameState, zones: Zone[]): void {
   }
 }
 
+/** MAP-10/11/12 on stored rectangles: the places whose own zones are off the 1 m grid, partly over another zone on their
+ *  floor, or whose building (the box around its indoor zones) has a zone of somewhere else running through it */
+export function brokenLayouts(state: GameState): { placeId: string; why: string }[] {
+  const all = state.places.flatMap((p) => p.zones).filter((z) => z.rect);
+  const parentOf = new Map(state.places.map((p) => [p.id, p.parentId]));
+  const chain = (id: string): Set<string> => { const out = new Set<string>(); for (let q: string | null | undefined = id, n = 0; q && n < 20; q = parentOf.get(q), n++) out.add(q); return out; };
+  const whole = (v: number) => Math.abs(v - Math.round(v)) < 1e-6;
+  const out = new Map<string, string>();
+  const flag = (placeId: string, why: string) => { if (!out.has(placeId)) out.set(placeId, why); };
+  for (const z of all) {
+    const r = z.rect!;
+    if (!(whole(r.w) && whole(r.d) && whole(r.x - r.w / 2) && whole(r.y - r.d / 2))) flag(z.placeId, `MAP-10 ${z.id} is off the 1 m grid`);
+  }
+  for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+    const a = all[i], b = all[j];
+    if (sameFloor(a, b) && overlaps(a.rect!, b.rect!)) flag(a.placeId, `MAP-11 ${a.id} and ${b.id} overlap`);
+  }
+  for (const pl of state.places) for (const z of all.filter((x) => !x.outdoor && chain(x.placeId).has(pl.id))) {
+    const fp = boxOf(all.filter((o) => !o.outdoor && sameFloor(o, z) && chain(o.placeId).has(pl.id)).map((o) => o.rect!))!;
+    const inner: Rect = { ...fp, w: fp.w - 1, d: fp.d - 1 };
+    const through = all.find((o) => sameFloor(o, z) && !chain(o.placeId).has(pl.id) && !chain(pl.id).has(o.placeId) && overlaps(o.rect!, inner))
+      ?? all.find((o) => sameFloor(o, z) && o.outdoor && chain(pl.id).has(o.placeId) && o.placeId !== pl.id && overlaps(o.rect!, inner));
+    if (through) { flag(pl.id, `MAP-12 ${through.id} runs through ${pl.id}`); break; }
+  }
+  return [...out].map(([placeId, why]) => ({ placeId, why }));
+}
+
+/** MR2: a stored layout that breaks MAP-10, 11 or 12 is placed again, once, place by place (only the broken places' zones
+ *  move, so MAP-03 holds for everything else and for these from then on). Everyone and everything standing or lying in a
+ *  moved zone keeps its spot in it: the same share of the way across and up. Returns what was re-placed and why. */
+export function relayBroken(state: GameState): { placeId: string; why: string }[] {
+  const broken = brokenLayouts(state);
+  if (!broken.length) return [];
+  const ids = new Set(broken.map((b) => b.placeId));
+  const zones = state.places.filter((p) => ids.has(p.id)).flatMap((p) => p.zones).filter((z) => z.rect);
+  const before = new Map(zones.map((z) => [z.id, { ...z.rect! }]));
+  for (const z of zones) delete z.rect;
+  placeZones(state, zones);
+  const move = (zoneId: string, pt: { x: number; y: number }) => {
+    const a = before.get(zoneId), b = zones.find((z) => z.id === zoneId)?.rect;
+    if (!a || !b) return;
+    const fx = a.w ? (pt.x - a.x) / a.w : 0, fy = a.d ? (pt.y - a.y) / a.d : 0;
+    pt.x = b.x + Math.max(-0.5, Math.min(0.5, fx)) * b.w; pt.y = b.y + Math.max(-0.5, Math.min(0.5, fy)) * b.d;
+  };
+  for (const a of [state.player, ...state.actors]) if (a.pos) move(a.zone, a.pos);
+  for (const z of zones) for (const it of z.groundItems ?? []) if (it.at) move(z.id, it.at);
+  const j = state.player.journal;
+  for (const [who, pt] of Object.entries(j?.lastSpot ?? {})) { const zid = j?.lastKnown?.[who]; if (zid) move(zid, pt); }
+  return broken;
+}
+
 /** CO3: the doorway between two zones that touch, at the middle of their shared wall; null when they don't share one */
 export function doorway(a: Zone, b: Zone): { x: number; y: number } | null {
   if (!a.rect || !b.rect) return null;

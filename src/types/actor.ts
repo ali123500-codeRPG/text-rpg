@@ -326,6 +326,8 @@ export type Journal = {
   trail?: { zone: string; left: Turn }[];
   /** the Map page: every zone the player has stood in or seen across a sight link, oldest first */
   zonesSeen?: string[];
+  /** the Map page (MAP-33): every zone the player has stood in, oldest first; a save made before it starts from the trail */
+  zonesVisited?: string[];
 };
 
 export type { PlaceId };

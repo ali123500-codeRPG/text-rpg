@@ -11,6 +11,7 @@ export function noteLeft(state: GameState, from: string): void {
   const p = state.player;
   if (!from || from === p.zone) return;
   const j = journalOf(p);
+  noteVisited(state, from);
   j.trail = [{ zone: from, left: state.turn }, ...(j.trail ?? []).filter((x) => x.zone !== from)].slice(0, CONFIG.TRAIL_ZONES);
 }
 
@@ -21,6 +22,21 @@ export function noteZonesSeen(state: GameState): void {
   const j = journalOf(p);
   const seen = (j.zonesSeen ??= []);
   for (const z of perceivedZoneIds(state, p.zone)) if (!seen.includes(z)) seen.push(z);
+  noteVisited(state, p.zone);
+}
+
+/** the zones the player has stood in (MAP-33: the map draws them apart from zones only seen); a save made before the list
+ * existed starts it from the zones on its trail */
+export function visitedZoneIds(state: GameState): string[] {
+  const j = state.player.journal;
+  return j?.zonesVisited ?? [...new Set([...(j?.trail ?? []).map((t) => t.zone), state.player.zone].filter(Boolean))];
+}
+
+/** record that the player stood in `zone` (once each) */
+export function noteVisited(state: GameState, zone: string): void {
+  if (!zone) return;
+  const list = (journalOf(state.player).zonesVisited ??= visitedZoneIds(state));
+  if (!list.includes(zone)) list.push(zone);
 }
 
 /** the zones the player knows: stood in or saw across a sight link (zonesSeen), left (the trail), and where it is now;

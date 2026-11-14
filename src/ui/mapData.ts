@@ -6,7 +6,7 @@ import { compassOf as geoCompass } from '../scenario/geometry';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
 import { seesAcross, zoneById } from '../engine/relations';
-import { knownZoneIds } from '../engine/trail';
+import { knownZoneIds, visitedZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
 import { ZK } from '../library/tableIds';
@@ -34,7 +34,7 @@ export type MapZone = {
   along?: { m: number; len: number; from: 'west' | 'south'; to: 'east' | 'north' };
 };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
-export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[] };
+export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; /** zones the player has stood in (MAP-33) */ visited: string[] };
 
 /** FR5: a zone's furniture with its points, for the map's icons */
 function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
@@ -98,7 +98,7 @@ export function knownMap(s: GameState): KnownMap {
   const order: MapPlace[] = [];
   const visit = (parent: string | null) => { for (const x of places.filter((q) => (q.parentId && ids.has(q.parentId) ? q.parentId : null) === parent)) { order.push(x); visit(x.id); } };
   visit(null);
-  return { placeId: p.placeId, zoneId: p.zone, places: order };
+  return { placeId: p.placeId, zoneId: p.zone, places: order, visited: visitedZoneIds(s) };
 }
 
 /** a compass hint from an exit's words ("north gate", "the east road"); null when it names no direction. Up and down are

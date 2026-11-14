@@ -8,6 +8,8 @@ import { FAKE_STAGES } from '../../src/ui/fakeStages';
 import { wholeTurn } from '../harness/turn';
 import { intent } from '../cases/w4-kit';
 import type { GameState } from '../../src/types';
+import { brokenLayouts, relayBroken } from '../../src/scenario/geometry';
+import { noteLeft, noteZonesSeen, visitedZoneIds } from '../../src/engine/trail';
 
 const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 const inside = (a: Box, b: Box, pad: number) => a.x0 >= b.x0 + pad && a.x1 <= b.x1 - pad && a.y0 >= b.y0 + pad && a.y1 <= b.y1 - pad;
@@ -60,6 +62,50 @@ describe('MAP-52 test stages', () => {
     expect(out.some((f) => f.startsWith('MAP-10 zone tavern.common'))).toBe(true);
   });
   it('the stages exist as the fake preview names them', () => expect(Object.keys(FAKE_STAGES)).toEqual(['bent-nail', 'bent-nail-saved', 'one-room', 'long-names']));
+});
+
+describe('MR2: a stored layout that breaks the map rules is placed again once', () => {
+  it('the live save\'s Bent Nail is re-placed: on the grid, the lane beside the tavern, people keep their spot', () => {
+    const st = stageState('bent-nail-saved');
+    expect(brokenLayouts(st).map((b) => b.placeId).sort()).toEqual(['tavern', 'thornbury']);
+    const zoneOf = (id: string) => st.places.flatMap((p) => p.zones).find((z) => z.id === id)!;
+    const guard = st.actors.find((a) => a.zone === 'high_lane' && a.pos)!, r0 = { ...zoneOf('high_lane').rect! };
+    const share = { x: (guard.pos!.x - r0.x) / r0.w, y: (guard.pos!.y - r0.y) / r0.d };
+    expect(relayBroken(st).length).toBe(2);
+    expect(brokenLayouts(st)).toEqual([]);
+    const { zones, places } = sceneOf(st, 1);
+    expect(checkStage(zones, places)).toEqual([]);
+    const r1 = zoneOf('high_lane').rect!;
+    expect((guard.pos!.x - r1.x) / r1.w).toBeCloseTo(share.x);
+    expect((guard.pos!.y - r1.y) / r1.d).toBeCloseTo(share.y);
+    expect(relayBroken(st)).toEqual([]); // once: nothing moves on the next load
+  });
+  it('a layout already clean never moves (MAP-03)', () => {
+    const st = stageState('bent-nail'), before = JSON.stringify(st.places);
+    expect(relayBroken(st)).toEqual([]);
+    expect(JSON.stringify(st.places)).toBe(before);
+  });
+});
+
+describe('MR1: the zones the player has stood in', () => {
+  it('a save without the list starts it from the trail and where the player stands; then each zone stood in joins it once', () => {
+    const st = stageState('bent-nail');
+    delete st.player.journal!.zonesVisited;
+    expect(visitedZoneIds(st).sort()).toEqual(['high_lane', 'midden_yard', 'tavern.common', 'tavern.kitchen']);
+    noteZonesSeen(st);
+    noteZonesSeen(st);
+    expect(st.player.journal!.zonesVisited!.filter((z) => z === 'midden_yard').length).toBe(1);
+    st.player.zone = 'tavern.yard';
+    noteLeft(st, 'midden_yard');
+    noteZonesSeen(st);
+    expect(st.player.journal!.zonesVisited).toContain('tavern.yard');
+    expect(st.player.journal!.zonesSeen).not.toEqual(st.player.journal!.zonesVisited);
+  });
+  it('the map draws a zone only seen apart from one stood in, from the saved list', () => {
+    const st = stageState('long-names'), m = knownMap(st);
+    expect(m.visited).toContain('g.drive');
+    expect(m.visited).not.toContain('g.orchard');
+  });
 });
 
 describe('labels, doors and exits', () => {
