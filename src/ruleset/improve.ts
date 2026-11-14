@@ -12,7 +12,7 @@ import { MILESTONES, hasPerk, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
-import { augmentsOf, perkAugments, tierMult } from './gear';
+import { augmentFactors, augmentsOf, tradesOut } from './gear';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { isEcho } from '../library/echo';
@@ -48,20 +48,12 @@ export function markIfClose(state: GameState, actor: Actor | undefined, skill: s
   if (tied || close(actor, skill, opposition, won)) mark(actor, skill); // close calls teach: a tier gap of exactly 0 marks whatever the skills
 }
 
-/** the skills that augment `skill` on a roll of this kind (SkillDef.augments), each with its share × tier. On the sheet or
- * not: an augment at 0 can learn once its tree opens. */
-function augmenters(actor: Actor, skill: string, rollKind?: RollKind): { id: string; k: number }[] {
-  const out: { id: string; k: number }[] = [];
-  for (const d of Object.values(getLibrary().skills)) for (const g of d.augments ?? []) {
-    if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, d.id) || actor.core.skills[d.id]?.dormant) continue;
-    out.push({ id: d.id, k: (g.share ?? 1) * tierMult(d.id) });
-  }
-  for (const g of perkAugments(actor, skill, rollKind)) out.push({ id: g.from, k: (g.share ?? 1) * tierMult(g.from) }); // All-50 Grit
-  return out;
-}
+/** the skills that augment `skill` on a roll of this kind, each with its factor (augmentK: share × tier, a percentage
+ * augment's also × the receiver's true skill ÷ 100). On the sheet or not: an augment at 0 can learn once its tree opens. */
+const augmenters = (actor: Actor, skill: string, rollKind?: RollKind): { id: string; k: number }[] => augmentFactors(actor, skill, rollKind);
 /** a side's level on a roll for augment learning: its true skill plus what its augments added (AU2) */
 const rollLevel = (actor: Actor, r: { skill: string; asked?: string; rollKind?: RollKind }) =>
-  trueSkill(actor, r.skill) + augmentsOf(actor, r.asked ?? r.skill, r.rollKind).reduce((n, a) => n + a.value, 0);
+  trueSkill(actor, r.skill) + [...augmentsOf(actor, r.asked ?? r.skill, r.rollKind), ...tradesOut(actor, r.skill)].reduce((n, a) => n + a.value, 0);
 /** the learning window of a roll of `skill` with these augments (AU1 option B): raw sums to max(raw, true) sums, each augment at share × tier */
 function rollWindow(actor: Actor, skill: string, augs: { id: string; k: number }[]): [number, number] {
   const raw = (id: string) => actor.core.skills[id]?.raw ?? 0, top = (id: string) => Math.max(raw(id), trueSkill(actor, id));

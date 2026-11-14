@@ -18,14 +18,20 @@ export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof impo
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
 
+/** D-276: how an augment adds (ruleset/gear.ts augmentK, the one equation). plain (the default): the giving skill's true
+ * skill × share (default 1). trade: the same with share default CONFIG.AUGMENT_TRADE_SHARE, and the giving skill's own rolls
+ * lose what it gives (points moved, never made; always on). percent: the giving skill's true skill ÷ 100 × share (the rate,
+ * default CONFIG.AUGMENT_PERCENT_RATE) × the receiving skill's own true skill; two on one skill stack at STACK_RATIO. */
+export type AugmentKind = 'plain' | 'trade' | 'percent';
+
 export type SkillDef = {
   id: string;
   treeId: string;
   functions: SkillFunction[];
   groups?: SkillGroup[]; // groups the skill joins directly, without that group's function (Dodge: Speed)
   /** skills this skill augments: its effective value × share is added to every roll that asks for that skill,
-   * or only rolls of the listed kinds (none listed: every roll and check of that skill) */
-  augments?: { skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
+   * or only rolls of the listed kinds (none listed: every roll and check of that skill); kind as AugmentKind */
+  augments?: { skill: string; share?: number; kind?: AugmentKind; rollKinds?: import('./items').RollKind[] }[];
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
@@ -53,7 +59,7 @@ export type EssenceDef = {
   from: { race?: string; bodyType?: string; deed?: true; echo?: true };
   weight: number;
   skills: { skill: string; weight: number }[];
-  trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); none written yet (D-228 content round)
+  trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
   story: string;
 };
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
@@ -248,8 +254,8 @@ export type PerkDef = {
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
   searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach), while owned and active
   searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
-  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open) */
-  augments?: { from: string; skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
+  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open; kind as AugmentKind) */
+  augments?: { from: string; skill: string; share?: number; kind?: AugmentKind; rollKinds?: import('./items').RollKind[] }[];
   /** true skill added to every aura skill (the skills the game's auras roll, src/library/auras.ts) */
   auraSkill?: number;
   /** a linked perk (src/library/perkLinks.ts): granted by owning a set of perks, never taken */

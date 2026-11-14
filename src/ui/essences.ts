@@ -16,9 +16,11 @@ export const offerKey = (o: EssenceOffer): string => `${o.essence}:${o.turn}:${o
 const nameOf = (e: HeldEssence) => getLibrary().essences?.[e.essence]?.name ?? e.essence;
 const storyOf = (e: HeldEssence) => getLibrary().essences?.[e.essence]?.story ?? '';
 
-/** "+1 Dodge", one chip per skill the essence raises */
+/** "+1 Dodge", one chip per skill the essence raises, then its trait and quirk by name (FP8: owned once while held) */
 export function essenceStats(e: HeldEssence): string[] {
-  return Object.entries(e.points).map(([k, v]) => `+${v} ${skillName(k)}`);
+  const row = getLibrary().essences?.[e.essence], perks = getLibrary().perks;
+  return [...Object.entries(e.points).map(([k, v]) => `+${v} ${skillName(k)}`),
+    ...(row?.trait ? [`Trait: ${perks[row.trait]?.name ?? row.trait}`] : []), ...(row?.quirk ? [`Quirk: ${perks[row.quirk]?.name ?? row.quirk}`] : [])];
 }
 
 function tile(e: HeldEssence, extra: (Node | string | null)[] = []): HTMLElement {
