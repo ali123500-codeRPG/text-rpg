@@ -1,10 +1,12 @@
-// 323 Animal body types (NR14 a): one Quadruped shape for land beasts plus Serpent and Eight-legged; each animal race
-// sets its own real speeds and natural attacks, and the Weaver can compose any of them as a beast.
+// 323 Animal body types (NR14 a, AB1-AB15): one Quadruped shape for land beasts plus Serpent and Eight-legged; each animal
+// race sets its own real speeds, attacks and natural armor, and the Weaver can compose any of them as a beast.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
-import { getLibrary } from '../../src/library';
+import { actorBody, getLibrary } from '../../src/library';
+import { skillOpen } from '../../src/ruleset/access';
+import { SK } from '../../src/library/skillIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
 import { moveSpeed } from '../../src/engine/speed';
@@ -13,7 +15,7 @@ import { gripReachM, roleOff } from '../../src/ruleset/body';
 import { RL } from '../../src/library/tableIds';
 
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
-const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizard, RC.python];
+const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizard, RC.python, RC.spider, RC.lion, RC.leopard, RC.hyena, RC.crocodile];
 
 describe('323 animal body types', () => {
   it('every animal composes, spawns with its race speed and attacks, and grips only with jaws', () => {
@@ -31,15 +33,19 @@ describe('323 animal body types', () => {
       expect(moveSpeed(s, a)).toEqual(r.speed); // no armor: the race's own speeds
       expect(usableModes(s, a).map((m) => m.itemId)).toEqual(r.naturalAttacks!.map((m) => `natural:${m.id}`));
       expect(gripReachM(s, a)).toBe(r.bodyTypeId === BT.quadruped ? 0.5 : 0); // a snake carries nothing
+      expect(actorBody(s, a).naturalArmor).toEqual(r.naturalArmor); // AB13: boar, lizard, crocodile
     }
     const tiger = s.actors.find((x) => x.names.current === RC.tiger)!, dog = s.actors.find((x) => x.names.current === RC.dog)!;
     expect(moveSpeed(s, tiger).run).toBeGreaterThan(moveSpeed(s, dog).run); // same shape, different speeds
+    expect(ANIMALS.filter((r) => getLibrary().races![r].naturalArmor)).toEqual([RC.boar, RC.lizard, RC.crocodile]);
+    expect(skillOpen(s.actors.find((x) => x.names.current === RC.python)!, SK.tremor)).toBe(true); // AB11: snakes and spiders feel vibration
+    expect(skillOpen(dog, SK.tremor)).toBe(false);
   });
 
-  it('the spider shape stops running at 5 of 8 legs Crippled (CS24)', () => {
+  it('a giant spider stops running at 5 of 8 legs Crippled (CS24)', () => {
     const s = makeVillage(), a = s.player;
     a.core.bodyTypeId = BT.eight_legged;
-    a.core.raceId = undefined;
+    a.core.raceId = RC.spider;
     const legs = getLibrary().bodyTypes[BT.eight_legged].parts.filter((p) => p.roles.includes(RL.move)).map((p) => p.id);
     expect(legs).toHaveLength(8);
     legs.slice(0, 4).forEach((id) => (a.core.condition.parts[id] = -50));

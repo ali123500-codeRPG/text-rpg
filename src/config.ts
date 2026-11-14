@@ -394,8 +394,10 @@ const DEFAULTS = {
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
   // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
-  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, the same for every race */
+  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, in human years (AB7: scaled by race, TRAINING_ADULT_AGE) */
   RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_8: { anchor: 400, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  /** AB7 a: a rank's training years are human years; a race trains in (its Adult start ÷ this) of them (humans unchanged) */
+  TRAINING_ADULT_AGE: 18,
   /** NG3: past the last rank row, each step adds this */
   RANK_BEYOND_STEP: { anchor: 100, level: 20, training: 10 },
   /** NG2: a role's bands as shares of the rank's anchor */

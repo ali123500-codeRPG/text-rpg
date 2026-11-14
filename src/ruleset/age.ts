@@ -85,11 +85,12 @@ export function youngestAge(raceId: string | undefined): number | undefined {
   const st = stagesOf(raceId);
   return st ? startOf(st, CONFIG.YOUNGEST_STAGE) : undefined;
 }
-/** AG12, AG21: the youngest age someone of a race can be after `training` years at a talent: the race's Youth start +
- * years × the talent's multiplier, never under its youngest age. Undefined for an ageless race. */
+/** AG12, AG21, AB7: the youngest age someone of a race can be after `training` years at a talent: the race's Youth start +
+ * years × the talent's multiplier × the race's Adult start ÷ CONFIG.TRAINING_ADULT_AGE (a dog grows up 9 times faster than
+ * a person, so it trains 9 times faster), never under its youngest age. Undefined for an ageless race. */
 export function ageFloor(raceId: string | undefined, training: number, talent: TalentKey): number | undefined {
   const st = stagesOf(raceId);
-  return st ? Math.max(youngestAge(raceId)!, startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent)) : undefined;
+  return st ? Math.max(youngestAge(raceId)!, startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent) * startOf(st, LIFE_STAGES.at(2)) / CONFIG.TRAINING_ADULT_AGE) : undefined;
 }
 /** AG14: whether a life stage has any year at or past the floor (the last stage always does) */
 export function stageReaches(raceId: string | undefined, k: LifeStageKey, floor: number): boolean {

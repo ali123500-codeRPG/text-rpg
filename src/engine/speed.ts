@@ -1,5 +1,5 @@
-// RD7/ZP2: how fast an actor moves. One place: its body type's real speeds, slowed by worn armor (a flat m/s, then a
-// share), times a movement speed factor (1 today; perks, statuses and mounts plug in here later).
+// RD7/ZP2: how fast an actor moves. One place: its race's real speeds (AB1 c), slowed by worn armor (a flat m/s, then a
+// share), times a movement speed factor (1 today; a speed skill, perks, statuses and mounts multiply in here later, AB1).
 import { CONFIG } from '../config';
 import { actorBody, itemDef } from '../library';
 import type { Actor, GameState } from '../types';
@@ -7,7 +7,7 @@ import type { Actor, GameState } from '../types';
 /** the movement speed factor: every speed is multiplied by it (1 until movement speed effects exist) */
 export const speedFactor = (_a: Actor): number => 1;
 
-/** the actor's walk and run speeds in m/s: body type speeds, less worn armor's flat slowing, less its share, × speedFactor */
+/** the actor's walk and run speeds in m/s: race speeds, less worn armor's flat slowing, less its share, × speedFactor */
 export function moveSpeed(state: GameState, a: Actor): { walk: number; run: number } {
   const base = actorBody(state, a).speed;
   const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
