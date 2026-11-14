@@ -164,11 +164,16 @@ function improveRolls(a: Actor, raw: number): number {
 
 export type SkillGain = { skill: string; from: number; to: number; milestone?: number };
 
-/** Part 1 §6 Burden: how far the untagged raw total is over Potential, in steps of K */
-export function burdenOf(a: Actor): number {
+/** Part 1 §6: the raw total of every untagged skill (flawed ones count), and the Potential Burden starts from */
+export function burdenParts(a: Actor): { total: number; potential: number } {
   const pr = a.progression!;
   const total = Object.values(a.core.skills).filter((s) => s.state !== 'tagged').reduce((n, s) => n + s.raw, 0);
-  const potential = pr.potential.base + pr.potential.adjustments.reduce((n, x) => n + x.delta, 0);
+  return { total, potential: pr.potential.base + pr.potential.adjustments.reduce((n, x) => n + x.delta, 0) };
+}
+
+/** Part 1 §6 Burden: how far the untagged raw total is over Potential, in steps of K */
+export function burdenOf(a: Actor): number {
+  const { total, potential } = burdenParts(a);
   return Math.max(0, Math.floor((total - potential) / CONFIG.K));
 }
 
