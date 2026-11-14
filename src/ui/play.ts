@@ -12,7 +12,8 @@ import { buildPlayerView, distText, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
 import { questFocus } from './pages';
 import { tierGap, xpSourceWords } from '../agents/game';
-import { isDownLevel, othersHealthWord, TAG_MARK, tierAtLeast, tierName } from '../ruleset';
+import { isDownLevel, othersHealthWord, TAG_MARK, tierAtLeast, tierLevel, tierName } from '../ruleset';
+import { blowSound, deathSound, setSound, setSoundVolume, sfx, soundOn, soundVolume, tierSound } from './sound';
 import { isHeld } from '../ruleset/slots';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
@@ -663,6 +664,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
       title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
       onclick: () => { s.settings.showMechanics = !show; update(); } }, show ? '✓ Show rolls' : 'Show rolls') : null;
+    // AU7: the Sound switch beside Show rolls, and one volume slider while it is on; both kept per viewer
+    const sOn = soundOn();
+    const soundBtn = h('span', { class: 'sound-sw' },
+      h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(sOn),
+        title: sOn ? 'Clicks, blows and rolls make sounds. Click to mute' : 'Click to turn sound on',
+        onclick: () => { setSound(!sOn); update(); } }, sOn ? '✓ Sound' : 'Sound'),
+      sOn ? h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(soundVolume()), 'aria-label': 'Sound volume',
+        title: 'Sound volume', oninput: (e: Event) => setSoundVolume(Number((e.target as HTMLInputElement).value)) }) : null);
     // the map opens as a big pop-up over Play (it has no page of its own)
     const mapBtn = s ? h('button', { type: 'button', class: 'hs-btn-text play-map', 'data-open': 'map', title: 'Open the map of every place you know', onclick: () => nav('map') }, mapIcon(), 'Map') : null;
     // the header names the last turn played, the one the last results row shows
@@ -674,7 +683,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '')];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
@@ -799,7 +808,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (!frozen && sheetNow !== sheetHtml) { sheet.replaceChildren(...sheetKids); sheetHtml = sheetNow; }
 
     const fallen = api.fell();
-    if (wasFallen === false && fallen) { finishAll(); dyingUntil = Date.now() + FALL_MS(); setTimeout(update, FALL_MS() + 20); }
+    if (wasFallen === false && fallen) { deathSound(); finishAll(); dyingUntil = Date.now() + FALL_MS(); setTimeout(update, FALL_MS() + 20); }
     wasFallen = fallen;
     const dying = fallen && Date.now() < dyingUntil;
     el.classList.toggle('dying', dying);
@@ -879,12 +888,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     // BF66: the player's own blow that landed shows its strike card as the turn lands, before the prose
     const c = lineOf.get(e)?.check;
-    const strike = (d: number) => { if (c?.strike) strikeCard(c, d); };
+    const strike = (d: number) => { if (c?.strike) strikeCard(c, d); turnSound(lineOf.get(e), d); };
     // D-226 (M-39): a scenario that gave something opens its gains panel between the old scenario's close and the new one's
     // opening; the rest of the turn plays when the panel closes
-    if (gainsLine) { openGains(gainsLine, t, true, () => { strike(0); turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
+    if (gainsLine) { sfx('scenario_end', t); openGains(gainsLine, t, true, () => { strike(0); turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
     strike(t);
     turnRest(e, b, a, ab, aa, t);
+  }
+
+  /** AU6/AU8: the newest live turn's sounds, as its strike card shows: the player's own roll (an attack by its blow, any
+   * other roll by its tier), then each blow that landed on the player, a stagger apart */
+  function turnSound(l: LogLine | undefined, d: number) {
+    const c = l?.check;
+    if (c) { const o = c.kind === 'attack' ? outcomeOf(c.result) : null; if (o) blowSound(o, d); else tierSound(tierLevel(c), d); }
+    const hits = (l?.incomingChecks ?? []).filter((x) => { const o = outcomeOf(x.result); return o && struck(o); });
+    hits.forEach((_, i) => sfx('hurt', d + ms('--m-stagger') * (i + 1)));
   }
 
   /** the gains panel: live plays its moment from t0, otherwise it opens settled (reopened from the story) */

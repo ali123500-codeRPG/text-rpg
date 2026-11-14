@@ -869,6 +869,18 @@ const DEFAULTS = {
    * steady violet tint (Broken included). Where the red health edge shows too, the red one wins (placeholders) */
   MOTION_NERVE_FROM: 'terrified' as MoraleLevel,
   MOTION_NERVE_STEADY: 'panicking' as MoraleLevel,
+  /** Audio for the game (src/ui/sound.ts; all placeholders). VOLUME_DEFAULT: the volume slider's start. CLICK_GAP_MS: clicks
+   * closer together than this make one sound. TIER (AU8): the player's own roll, one note per tier row from Critical Failure
+   * to Critical Success (HZ), ringing DUR_S[0] in the middle up to DUR_S[1] at either end; failures sag to FALL of their pitch;
+   * each step past either end adds a voice an octave out. SWISH: a swing that met nothing. DEATH: the falling tone of the
+   * death scene. GAIN: each code-made sound's loudness before the slider. */
+  SOUND: {
+    VOLUME_DEFAULT: 0.6,
+    CLICK_GAP_MS: 60,
+    TIER: { HZ: [110, 147, 196, 330, 440, 660], DUR_S: [0.18, 0.7], FALL: 0.7, GAIN: 0.25 },
+    SWISH: { HZ: [2400, 600], DUR_S: 0.22, GAIN: 0.18 },
+    DEATH: { HZ: [196, 55], DUR_S: 2.4, GAIN: 0.3 },
+  },
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder)
   /** agents that name a model and effort; the others run on their MODEL_TIERS tier, which is also the fallback when the
    * named model can't answer. Narrator on Fable 5.2 low: won 15 of 16 blind judgements against the complex tier in playtests */
