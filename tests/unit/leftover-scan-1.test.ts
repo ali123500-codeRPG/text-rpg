@@ -24,7 +24,8 @@ const ROUND_2 = ['src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/engine/m
 const ROUND_3 = ['src/views/index.ts', 'src/agents/game.ts', 'src/engine/effects.ts'];
 const ROUND_4 = ['src/config.ts', 'src/types/views.ts', 'src/types/actor.ts', 'src/ui/fakeGame.ts', 'src/types/agents.ts', 'src/agents/schema.ts',
   'src/agents/legality.ts', 'src/engine/engagement.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4];
+const ROUND_5 = ['src/ui/libraryViewer.ts', 'src/types/library.ts', 'src/ruleset/equations.ts', 'src/ui/charsheet.ts', 'src/ui/sheet.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5];
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
@@ -159,5 +160,13 @@ describe('leftover scan answers (CS6, CS8, CS11)', () => {
     expect(milestonesUpTo(200).slice(-3)).toEqual([160, 180, 200]);
     expect(allStepsUpTo(300)).toEqual([50, 100, 150, 200, 250, 300]);
     expect([20, 40, 60, 80, 100, 120, 140, 160, 180].map(perksNeeded)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4]);
+  });
+});
+
+describe('leftover scan round 5', () => {
+  it('one XP curve: only ruleset/levels.ts reads LEVEL_XP, and the Equations tab totals come from it', () => {
+    const readers = files('src').filter((f) => f !== 'src/config.ts' && f !== 'src/ruleset/levels.ts' && /CONFIG\.LEVEL_XP\b/.test(readFileSync(f, 'utf8') as string));
+    expect(readers).toEqual(['src/ruleset/equations.ts']); // it only names the lever in the formula text
+    expect(readFileSync('src/ruleset/equations.ts', 'utf8')).not.toMatch(/LEVEL_XP \* l/);
   });
 });

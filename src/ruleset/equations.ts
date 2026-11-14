@@ -10,6 +10,7 @@ import { ladder, naturalEdge, pickSeconds, rollMargin, stackType, tierOf } from 
 import { MILESTONES } from './perks';
 import { growthRoll, learningWindow } from './improve';
 import { tierMult } from './gear';
+import { levelCost, xpToReach } from './levels';
 import { skillName } from '../library/skillNames';
 import { groupName } from '../library/functionNames';
 import { SK } from '../library/skillIds';
@@ -156,7 +157,7 @@ export function equations(lib: Library): EquationGroup[] {
         table: { head: ['Gap', 'Dodge', 'Block', 'Parry'], rows: [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((g) => [sg(g), `×${n(ladder('dodge', g))}`, `×${n(ladder('block', g))}`, `×${n(ladder('parry', g))}`]) },
         notes: [`A gap past ${sg(CONFIG.GAP_MAX)} uses its row. Past ${sg(CONFIG.GAP_MIN)} each further step adds ×${n(CONFIG.GAP_PAST_STEP)} to the ${sg(CONFIG.GAP_MIN)} row, with no top (CONFIG.GAP_PAST_STEP).`, `×0 is a clean dodge, and a dodge at ${sg(CONFIG.HIT_GAPS.graze)} is a graze. A block at ${sg(CONFIG.HIT_GAPS.blockFrom)} or better is blocked; a shield also blocks at ${sg(CONFIG.HIT_GAPS.shieldFrom)} and takes the hit itself. A hit at ${sg(CONFIG.HIT_GAPS.heavy)} is a heavy hit, at ${sg(CONFIG.HIT_GAPS.crushing)} or worse a crushing hit (CONFIG.HIT_GAPS).`,
           `Where it lands: at ${sg(CONFIG.HIT_GAPS.movesAdjacent)} the hit moves to the named part if it is adjacent, at ${sg(CONFIG.HIT_GAPS.movesAnywhere)} or worse to the named part anywhere. From ${sg(CONFIG.HIT_GAPS.noEssentialFrom.dodge)} (dodge) or ${sg(CONFIG.HIT_GAPS.noEssentialFrom.block)} (block, parry) up it never lands on an essential part; a block or parry from ${sg(CONFIG.HIT_GAPS.nonEssentialOnlyFrom.block)} up off the shield lets it land on non-essential parts only.`,
-          `A parry at +1 or +2 is blocked, and ×0 is parried. A parry at +${CONFIG.PARRY_STRIKE_GAP} (PARRY_STRIKE_GAP) or better also gives the defender one free melee attack back with the parrying weapon, once per turn; Answer the Blow lowers that by ${CONFIG.ANSWER_THE_BLOW_DROP} with a medium weapon.`] },
+          `A parry at ${sg(CONFIG.HIT_GAPS.blockFrom)} to ${sg(CONFIG.PARRY_STRIKE_GAP - 1)} is blocked, and ×0 is parried. A parry at +${CONFIG.PARRY_STRIKE_GAP} (PARRY_STRIKE_GAP) or better also gives the defender one free melee attack back with the parrying weapon, once per turn; Answer the Blow lowers that by ${CONFIG.ANSWER_THE_BLOW_DROP} with a medium weapon.`] },
       { name: 'Damage', at: 'attack · src/ruleset/index.ts',
         formula: 'damage = (class damage + mode damageAdj) × multiplier × perk damage multipliers, then armor: (damage − max(0, reduction − pierce)) × armor multiplier',
         table: { head: ['Class', 'Damage', 'Hit'], rows: [...Object.entries(CONFIG.WEAPON_CLASSES), ['unarmed (no class)', CONFIG.UNARMED_PROFILE] as const].map(([k, c]) => [k, String(c.damage), sg(c.hit)]) },
@@ -193,7 +194,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'XP to the next level', at: 'xpToNext · spendXp · src/engine/xp.ts',
         formula: `XP to go from level n to n + 1 = ${CONFIG.LEVEL_XP} × n`,
         terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level, plus bonus levels, less the free and bonus levels taken (at least 1); free and bonus levels never make the next level dearer']],
-        table: { head: ['From level', 'To level', 'XP needed', 'Total from level 1'], rows: [1, 2, 3, 4, 5, 10, 15, 19].map((l) => [String(l), String(l + 1), String(CONFIG.LEVEL_XP * l), String(CONFIG.LEVEL_XP * l * (l + 1) / 2)]) },
+        table: { head: ['From level', 'To level', 'XP needed', 'Total from level 1'], rows: [1, 2, 3, 4, 5, 10, 15, 19].map((l) => [String(l), String(l + 1), String(levelCost(l)), String(xpToReach(l + 1) - xpToReach(1))]) },
         notes: [`The XP is spent and the level goes into the current class, or the class picked for the next level. The player starts at level ${CONFIG.START_LEVEL}.`,
           'One gain can take several levels in a row. When the class has no room left (at its top level), the XP stays banked until a class with room is picked.',
           'Free levels (from achievements or perks with free levels) are taken first and cost no XP; they bank the same way when no class has room.'] },

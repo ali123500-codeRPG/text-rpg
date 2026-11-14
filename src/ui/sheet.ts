@@ -11,7 +11,7 @@ import { defenseItem } from '../ruleset/gear';
 import { itemDef } from '../library';
 import { skillName } from '../library/skillNames';
 import { createRng } from '../rng';
-import { SK, DEFENSE_SKILL } from '../library/skillIds';
+import { DEFENSE_SKILL } from '../library/skillIds';
 
 /** The preview's sheet: the game's own builder (library createPlayer), placed in the duel zone. */
 export function playerFromBuild(build: CreationBuild, storyId = 'preview', zone = 'duel', placeId = 'duel'): Actor {

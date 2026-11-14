@@ -19,16 +19,14 @@ import { skillName } from '../library/skillNames';
 import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
 import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
 import { r1 } from '../words';
+import { levelCost, xpToReach } from '../ruleset/levels';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
 /** character level: every class's level, plus bonus levels (levels no class gets) */
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0) + (a.progression?.bonusLevelsTaken ?? 0);
 /** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
 export const xpToNext = (a: Actor) => levelCost(charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
-/** the XP curve: what the step from level n to n + 1 costs. xpToNext and xpToReach both ask it, so changing it changes both. */
-export const levelCost = (n: number) => CONFIG.LEVEL_XP * Math.max(1, n);
-/** the XP the curve asks to reach level L from 0: the sum of every step on the way */
-export const xpToReach = (l: number) => { let n = 0; for (let i = 0; i < l; i++) n += levelCost(i); return n; };
+export { levelCost, xpToReach } from '../ruleset/levels';
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 

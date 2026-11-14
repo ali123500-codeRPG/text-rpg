@@ -103,7 +103,7 @@ export function characterPage(api: GameApi) {
     if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
-      h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s, s.player)),
+      h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s.player)),
       essencesSection(api, s, update),
       h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
       perks);
