@@ -2,6 +2,7 @@
 // seen, has no point, since the player can't tell where in the zone they are.
 import { describe, expect, it } from 'vitest';
 import { knownMap } from '../../src/ui/mapData';
+import { whoInitial } from '../../src/ui/map';
 import { buildPlayerView } from '../../src/views';
 import { wholeTurn, intent } from '../harness/turn';
 import type { GameState } from '../../src/types';
@@ -19,5 +20,18 @@ describe('people at their own points on the Map', () => {
     for (const a of full) expect(people(s).find((p) => p.id === a.id)?.at).toEqual(s.actors.find((x) => x.id === a.id)!.pos);
     for (const a of pv.actors.filter((x) => x.level !== 'full')) expect(people(s).find((p) => p.id === a.id)?.at).toBeUndefined();
     for (const p of people(s).filter((x) => !x.now)) expect(p.at).toBeUndefined();
+  });
+
+  it('whole turn: each person’s dot shows the initial of what you know them by, a name or a description', async () => {
+    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+    const s = g.game.state()!;
+    await g.turn(intent(), 'I look around');
+    const shown = people(s);
+    expect(shown.length).toBeGreaterThan(0);
+    for (const p of shown) expect(whoInitial(p.name)).toBe(p.name.replace(/^(a|an|the)\s+/i, '')[0].toUpperCase());
+    expect(whoInitial('a lean man')).toBe('L');
+    expect(whoInitial('Bren')).toBe('B');
+    expect(whoInitial('the old guard')).toBe('O');
+    expect(whoInitial('an archer')).toBe('A');
   });
 });
