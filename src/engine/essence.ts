@@ -125,6 +125,12 @@ function offer(state: GameState, row: EssenceDef, skills: { skill: string; weigh
   logCode(state, 'essence_offered', { essence: row.id, grade: roll.grade, source, from });
 }
 
+/** DX4 b: an extracted essence: always appears, its grade from a quality roll that never fades it */
+export function offerExtracted(state: GameState, row: EssenceDef, roll: { grade: EssenceGradeKey; past: number }, from: string, measure: (skill: string) => number): void {
+  logCode(state, 'essence_appeared', { essence: row.id, source: 'extract', from });
+  offer(state, row, row.skills, roll, 'extract', from, measure);
+}
+
 /** 2.3: a beaten foe is notable when its power is at least ESSENCE_NOTABLE_SHARE of the player's, or its template is notable,
  * rolled or unique */
 export function notable(state: GameState, foe: Actor): boolean {

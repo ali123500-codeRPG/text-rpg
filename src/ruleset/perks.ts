@@ -45,8 +45,15 @@ export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number;
 /** the perk moves an actor owns (shown to the Parser and in Commands) */
 export const ownPerkMoves = (a: Actor): string[] => Object.keys(PERK_MOVES).filter((id) => hasPerk(a, id));
 
+/** DX5: what the Hollowed quirk (essence extraction, src/engine/extract.ts) leaves of a true skill: the share lost in that
+ * skill, then HOLLOWED_ALL_LOSS of every skill */
+export const hollowedMult = (a: Actor, skill: string): number => {
+  const h = a.core.hollowed;
+  return h ? (1 - (h.skills[skill] ?? 0)) * (1 - h.all) : 1;
+};
+
 /** the actor's true skill: flat parts (raw, perks, achievements, essences) plus the 120 perks' shares (SH1, SH4), which read
- * flat true skill only, so they never feed each other; several shares on one skill stack by STACK_RATIO (SH7 b) */
+ * flat true skill only, so they never feed each other; several shares on one skill stack by STACK_RATIO (SH7 b); Hollowed (DX5) scales the whole */
 export function trueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant || !skillOpen(a, skill)) return 0;
@@ -60,7 +67,7 @@ export function trueSkill(a: Actor, skill: string): number {
     return [own === skill ? (d.shareOwn ?? 0) * base : 0,
       d.shareGroup && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g))) ? d.shareGroup * base : 0].filter((v) => v);
   });
-  return flat + shares.sort((x, y) => y - x).reduce((s, x, i) => s + x * CONFIG.STACK_RATIO ** i, 0);
+  return (flat + shares.sort((x, y) => y - x).reduce((s, x, i) => s + x * CONFIG.STACK_RATIO ** i, 0)) * hollowedMult(a, skill);
 }
 function flatTrueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];

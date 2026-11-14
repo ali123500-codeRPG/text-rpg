@@ -763,6 +763,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.breakOpen ? { breakOpen: { ...e.breakOpen, ...(e.breakOpen.broke ? { broke: e.breakOpen.opened ? e.breakOpen.broke.map((id) => itemName(state, id) ?? 'something') : ['something inside'] } : {}) } } : {}), // BF31; BK2: what broke, unnamed while it stays shut
       ...(full && e.standDown ? { standDown: { with: e.standDown.with.map((id) => callName(state, me, id)), ...(e.standDown.coin ? { coin: coinWords(e.standDown.coin) } : {}) } } : {}), // TF16
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
+      ...(full && e.extract ? { extract: { essence: getLibrary().essences?.[e.extract.essence]?.name ?? 'an essence' } } : {}), // DX3
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
       ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: wayWords(state, e.way) } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),

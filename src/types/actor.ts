@@ -111,6 +111,8 @@ export type Core = {
   personality?: Personality; // PL1: Nerve and personality points, before what perks, classes and achievements add (personalityOf)
   bornDay?: number; // AG2: the game day it was born (before day 1 is 0 and below); left out = no age (an ageless race)
   talent?: import('../scales').TalentKey; // AG25: an NPC's talent, set once at spawn (it set its youngest age); the player has none (AG27)
+  /** DX5: Hollowed by an essence extraction: the share of true skill lost in each of the essence's skills, and in every skill */
+  hollowed?: { skills: Record<LibraryRef, number>; all: number };
 };
 
 /** PL1: Nerve runs Cautious (−100) to Daring (+100); traits are points by personality axis (PA…, −100 to +100); values
@@ -126,7 +128,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link' | 'item' | 'essence'; // 'essence': a held essence's trait or quirk (D-229), once however many carry it (FP8) // 'item': granted by a worn Threadbound item (D-218) // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
+  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link' | 'item' | 'essence' | 'inflicted'; // 'inflicted': done to them by someone (Hollowed, DX5) // 'essence': a held essence's trait or quirk (D-229), once however many carry it (FP8) // 'item': granted by a worn Threadbound item (D-218) // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: number; // the All step (50, 100, 150 …; CS11)
@@ -201,7 +203,7 @@ export type Progression = {
 /** an essence: its row, the grade its quality roll gave, and the true skill it adds (its points, split by the row's weights) */
 export type HeldEssence = { essence: LibraryRef; grade: import('../scales').EssenceGradeKey; points: Record<LibraryRef, number>; turn: Turn; from?: string };
 /** an essence on offer: where it came from (a beaten foe's name, or the scenario's ending) and the last turn it can be taken */
-export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; /** AT75: game minutes it waits until */ untilMin: number;
+export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending' | 'extract'; /** AT75: game minutes it waits until */ untilMin: number;
   /** EB1: one of an ending's two offers; taking (or giving or selling) one lets the other go */ pair?: string };
 export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number }; why?: DefeatWhy }; // why: BG-199, how a defeat came
 /** BG-199: how a foe was beaten: down, or still up but broken or surrendered to the player */

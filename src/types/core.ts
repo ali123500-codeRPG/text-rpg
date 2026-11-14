@@ -187,6 +187,7 @@ export type GameEvent = {
   offers?: { to: string; landed: 'convinced' | 'tempted' | 'unmoved'; demand?: 'yield' }[]; // demand: TF19, it asked them to surrender
   /** BF31: a container broken open (kind break_open): whether it opened; cut: a blade cut a soft one open, no roll */
   breakOpen?: { opened: boolean; cut?: true; broke?: string[] }; // broke: BK2, instance ids of what broke inside
+  extract?: { essence: string; grade: string }; // DX3: an essence pulled out of the target (an essence row id and its grade)
   /** TF19: a surrender talked out of a foe (kind surrender; actorId gave up to target): bandmates that gave up with it */
   surrender?: { with: string[] };
   /** TF16: a stand-down (kind stand_down; actorId stood down from target): bandmates that went with it, coin paid for it */
