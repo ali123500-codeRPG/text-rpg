@@ -20,7 +20,7 @@ import { applyGearOps } from '../../src/engine/gear';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const tick = () => new Promise((r) => setTimeout(r, 0));
-const build = { name: 'Wren', age: 30, skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
+const build = { name: 'Wren', age: 30, skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
 // the opening: the new character steps into the first zone of the place they start at
 const arrive: ScenarioDirector = {
   startStory: async (s) => { const z = s.places.find((p) => p.id === s.player.placeId)!.zones[0]; s.player.zone = z.id; return []; },
@@ -107,7 +107,7 @@ describe('272 carrying a world on', () => {
   it('WP2 b: a Threadbound start is off in a world whose Threadbound items are all taken', async () => {
     expect(threadboundStartBlocked(ST.threadbound, [IT.varos_loop])).toBe(true);
     expect(threadboundStartBlocked(ST.threadbound, [])).toBe(false);
-    expect(threadboundStartBlocked(ST.swordsman, [IT.varos_loop])).toBe(false);
+    expect(threadboundStartBlocked(ST.late_bloomer, [IT.varos_loop])).toBe(false);
     const clock = new VirtualClock(), store = memoryStore();
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: arrive });
     const old = fallenWorld();

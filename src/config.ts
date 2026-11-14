@@ -413,9 +413,10 @@ const DEFAULTS = {
   /** NG8: skills every NPC has at least at this band when its body can use them: the senses. Dodge is left to roles: at Low it
    * would put the thief's essence (Dodge 2, Insight 1) on every NPC's list (fit 0.6 × 2/3 = ESSENCE_FIT_SHARE) */
   NPC_COMMON_SKILLS: { [SK.eyesight]: 'low', [SK.earshot]: 'low' } as Record<string, 'high' | 'moderate' | 'low'>,
-  CREATION_POINTS: 250,
-  START_LEVEL: 4, // EQ13: the player starts at level 4
-  CREATION_MAX_SKILL: 60,
+  CREATION_POINTS: 100, // every Start's point-buy
+  START_LEVEL: 4, // EQ13: a Start's level when its row names none (every Start names 1 today)
+  CREATION_MAX_UNTAGGED: 30, // the most points one untagged skill can take at creation
+  CREATION_MAX_TAGGED: 40, // the most points one tagged skill can take at creation
   // Character age (AG1–AG22; placeholders)
   YEAR_DAYS: 365, // AG2: game days in a year; age = (today − birth day) ÷ YEAR_DAYS
   AGE_PLUS_NUMBER_FROM: 4, // AG7: from this many steps past the last life stage the name reads "Ancient +4" instead of "Ancient++++"
