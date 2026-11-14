@@ -324,7 +324,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
       { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
     ] } },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
-  { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
+  { id: IT.lucky_charm, kind: 'misc', fragility: 'delicate', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, grips: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
@@ -336,15 +336,15 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: IMPROVISED_MODES('medium', 1) } },
   { id: IT.improvised_heavy, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, grips: 2, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
-  { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
-  { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
-  { id: IT.key, kind: 'misc', name: 'key', look: 'an iron key', bulk: 0, value: 1 }, // BA3: opens the barriers its instance names
+  { id: IT.curio, kind: 'misc', fragility: 'delicate', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
+  { id: IT.bandage, kind: 'consumable', fragility: 'sturdy', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
+  { id: IT.key, kind: 'misc', fragility: 'unbreakable', name: 'key', look: 'an iron key', bulk: 0, value: 1 }, // BA3: opens the barriers its instance names
   // CT1: containers. A worn pack holds its wearer's stowed items (CT7); a chest or crate stands where it is put
   { id: IT.pack, kind: 'misc', name: 'pack', look: 'a canvas pack on shoulder straps', bulk: 2, value: 4, container: { worn: true, soft: true } },
   { id: IT.sack, kind: 'misc', name: 'sack', look: 'a tied hemp sack', bulk: 1, value: 1, container: { soft: true } },
   { id: IT.chest, kind: 'misc', name: 'chest', look: 'an iron-bound wooden chest', bulk: 3, value: 20, container: { fixed: true } },
   { id: IT.crate, kind: 'misc', name: 'crate', look: 'a nailed wooden crate', bulk: 3, value: 2, container: { fixed: true } },
-  { id: IT.coin, kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
+  { id: IT.coin, kind: 'misc', fragility: 'unbreakable', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
 export const BODY_TYPES: Record<string, BodyType> = {
@@ -1032,6 +1032,10 @@ export function prototypeLibrary(): Library {
       [ACH.won_broken_1]: { id: ACH.won_broken_1, name: 'Back from the Break', level: 'ii', rule: 'won_broken', tags: ['combat'], count: 1, maxMorale: 5, personality: ap({ nerve: 1 }) },
       [ACH.won_broken_5]: { id: ACH.won_broken_5, name: 'Broken, Not Beaten', level: 'iii', rule: 'won_broken', tags: ['combat'], count: 5, after: ACH.won_broken_1, maxMorale: 5, personality: ap({ nerve: 1 }) },
       [ACH.won_broken_25]: { id: ACH.won_broken_25, name: 'Nothing Left to Fear', level: 'iv', rule: 'won_broken', tags: ['combat'], count: 25, after: ACH.won_broken_5, maxMorale: 5, personality: ap({ nerve: 1 }) },
+      // BK4: forcing locked containers open; each level moves every fragility line one tier worse (names: placeholders for the lore thread)
+      [ACH.broke_open_1]: { id: ACH.broke_open_1, name: 'Forced Entry', level: 'zero', rule: 'broke_open', tags: ['skill'], count: 1, safeBreak: 1 },
+      [ACH.broke_open_10]: { id: ACH.broke_open_10, name: 'Steady Crowbar', level: 'i', rule: 'broke_open', tags: ['skill'], count: 10, after: ACH.broke_open_1, safeBreak: 1 },
+      [ACH.broke_open_50]: { id: ACH.broke_open_50, name: 'Nothing Spilled', level: 'ii', rule: 'broke_open', tags: ['skill'], count: 50, after: ACH.broke_open_10, safeBreak: 1 },
       // D-174: HP healed (a flat number) from one healing row each; counts are placeholders
       [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100, branchOf: ACH_HEADS.healed },
       [ACH.healed_rest_1000]: { id: ACH.healed_rest_1000, name: 'Sleeps Through Anything', level: 'i', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 1000, after: ACH.healed_rest_100 },

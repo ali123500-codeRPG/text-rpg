@@ -5,7 +5,7 @@ import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinA
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { CHASE_RANGES, COVER, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, TRAVEL_PACES, type QualityKey, type Scale, type TimeOfDay, type TravelPaceKey } from '../scales';
+import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, TRAVEL_PACES, type FragilityKey, type QualityKey, type Scale, type TimeOfDay, type TravelPaceKey } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
@@ -224,8 +224,9 @@ const weaver = obj<StagePlan>({
   }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'goals'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
-    item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: QualityKey; boosts: string; name: string; look: string }>(
-      { base: str, quality: (q, qp, qe) => qualityOf(q) ?? (qe.push(`${qp}: expected one of ${QUALITY_LEVELS.keys.join(', ')}`), QUALITY_LEVELS.keys[0]), boosts: str, name: str, look: str })(v, p, e)),
+    item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: QualityKey; boosts: string; name: string; look: string; fragility?: FragilityKey }>(
+      { base: str, quality: (q, qp, qe) => qualityOf(q) ?? (qe.push(`${qp}: expected one of ${QUALITY_LEVELS.keys.join(', ')}`), QUALITY_LEVELS.keys[0]), boosts: str, name: str, look: str,
+        fragility: (f, fp, fe) => FRAGILITY.keyOf(f) ?? (fe.push(`${fp}: expected one of ${FRAGILITY.keys.join(', ')}`), undefined) }, ['fragility'])(v, p, e)), // BK1 c
     qty: num,
     place: (v, p, e) => (isObj(v) && typeof v.carriedBy === 'string' ? { carriedBy: v.carriedBy }
       : isObj(v) && typeof v.groundIn === 'string' ? { groundIn: v.groundIn, ...(v.hiddenAt !== undefined ? { hiddenAt: TIERS.keyOf(v.hiddenAt) ?? (e.push(`${p}.hiddenAt: expected one of ${TIERS.list()}`), 'success') } : {}) }

@@ -88,7 +88,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
 
 /** FL5: caught: the owner turns colder by FILCH_CAUGHT_OWNER_STEPS, every other catcher by FILCH_CAUGHT_WITNESS_STEPS, and
  * each remembers; FL4: a fumble leaves the suspicious remembering it */
-export function filchAftermath(state: GameState, a: Actor, owner: Actor | undefined, what: string, f: Filched): void {
+export function filchAftermath(state: GameState, a: Actor, owner: Actor | undefined, what: string, f: Pick<Filched, 'outcome' | 'caught' | 'suspicious'>): void {
   const whose = (w: Actor) => (owner === w ? 'my' : owner ? `${nameFor(state, w, owner) ?? 'someone'}'s` : 'the');
   for (const w of f.outcome === 'caught' ? f.caught : f.suspicious) {
     const who = nameFor(state, w, a) ?? 'a stranger';

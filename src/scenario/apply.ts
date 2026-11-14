@@ -126,7 +126,7 @@ export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['
   const base = itemDef(state, m.base);
   const q = qualityMult(m.quality);
   const T = CONFIG.QUALITY_TABLE;
-  const def: ItemDef = { ...structuredClone(base), id: `${base.id}_m${state.turn}_${n}`, name: m.name, look: m.look, base: { itemId: base.id, quality: m.quality, boosts: m.boosts } };
+  const def: ItemDef = { ...structuredClone(base), id: `${base.id}_m${state.turn}_${n}`, name: m.name, look: m.look, base: { itemId: base.id, quality: m.quality, boosts: m.boosts }, ...(m.fragility ? { fragility: m.fragility } : {}) }; // BK1 c: the Weaver may set how easily it breaks
   const need = requirement(def)?.need ?? 0; // gear stats scale with the minted level's need (QUALITY_LEVEL_UP_FROM and better move it up a level)
   if (def.weapon) {
     for (const mode of def.weapon.modes) {

@@ -1,5 +1,5 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
-import type { EffortKey, FatigueLevel, GradeLevel, HealthLevelKey, MoraleLevel, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
+import type { EffortKey, FatigueLevel, FragilityKey, GradeLevel, HealthLevelKey, MoraleLevel, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -583,6 +583,17 @@ const DEFAULTS = {
   FALL_LANDING_PAST_STEP: 1,
   /** BA2: a Lockpicking roll's modifier by the lock's grade (placeholders); master or magic locks would add grades past extreme */
   LOCK_GRADE_MOD: { none: 0, minor: -10, moderate: -20, major: -35, extreme: -50 } as Record<GradeLevel, number>,
+  /** BK1/BK2: the best break roll that still breaks an item inside the container, by its fragility (placeholders). One roll
+   * checks everything inside; a tier past Critical Failure is that tier with beyond −1, −2 (Critical Failure−, −−), which a
+   * roll reaches only once an achievement unlocks it. null: never breaks. */
+  FRAGILITY_BREAKS_AT: {
+    fragile: { tier: 'near_miss' }, delicate: { tier: 'failure' }, sturdy: { tier: 'critical_failure' },
+    tough: { tier: 'critical_failure', beyond: -1 }, solid: { tier: 'critical_failure', beyond: -2 }, unbreakable: null,
+  } as Record<FragilityKey, { tier: Tier; beyond?: number } | null>,
+  /** BK1 (with the extra tier between armor and weapons): an item's fragility when its row sets none, by kind (placeholders) */
+  FRAGILITY_BY_KIND: { weapon: 'solid', armor: 'sturdy', shield: 'sturdy', accessory: 'delicate', tool: 'tough', consumable: 'fragile', misc: 'sturdy' } as Record<string, FragilityKey>,
+  /** BK3: a broken item is worth this share of what it was worth whole (scrap; placeholder) */
+  BROKEN_VALUE_SHARE: 0.1,
   /** BA2: picking a lock (the Action times pick_lock row, about a minute for a common lock at effective skill 50) is halved
    * for every PICK_HALVING_PER points above 50 and doubled for every PICK_HALVING_PER below */
   PICK_HALVING_PER: 25,

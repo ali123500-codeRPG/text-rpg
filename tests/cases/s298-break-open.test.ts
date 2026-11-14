@@ -1,8 +1,8 @@
 // 298 BF31 (Bug Fix Questions, approved base): breaking a locked container open. It is the turn's action, loud (heard
 // like a shout), within grip reach. A sack or pack is cut open by an edged weapon in hand with no roll; otherwise it is a
 // roll of the melee weapon in hand (bare hands: Improvised) at the lock's grade, the modifier Lockpicking uses. Success
-// or better opens it and breaks its lock for good. A container its owner guards can't be broken yet (BK6 on the
-// "Breaking things open, guards and locked boxes" page); nothing inside is harmed yet (BK1-BK3).
+// or better opens it and breaks its lock for good. What it does to what is inside, and breaking one its owner guards
+// (BK1-BK6): s299-break-fragility.
 import { expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { makeVillage } from '../harness';
@@ -49,11 +49,8 @@ it('BF31: a blade in hand cuts a locked sack open with no roll', () => {
   expect(c.open).toBe(true);
 });
 
-it('BF31: nothing to break when it is not locked; a guarded one can not be broken yet', () => {
+it('BF31: nothing to break when it is not locked', () => {
   const s = village();
   box(s, IT.chest, { lock: undefined });
   expect(play(s, { intent: intent({ action: { type: 'break', target: 'box' } }) }).find((e) => e.kind === 'wasted')?.reason).toBe('not_locked');
-  const t = village();
-  box(t, IT.chest, { owner: 'patron_1' });
-  expect(play(t, { intent: intent({ action: { type: 'break', target: 'box' } }) }).find((e) => e.kind === 'wasted')?.reason).toBe('theft');
 });

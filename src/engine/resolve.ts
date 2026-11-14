@@ -26,7 +26,7 @@ import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './h
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
-import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
+import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -45,6 +45,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, openContainer, ownerOf, theft, wornPack } from './containers';
 import { cantSteady, steady } from './steady';
+import { breakInside } from './breakage';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
@@ -1340,25 +1341,43 @@ function doOpen(ctx: Ctx, a: Actor, o: Order): void {
 /** BF31: breaking a locked container open, within grip reach: the turn's action, loud (heard like a shout). A soft one (a
  * sack, a pack) is cut open by an edged weapon in hand, with no roll. Otherwise a roll of the melee weapon in hand (bare
  * hands: Improvised) at the lock's grade, the same modifier Lockpicking uses; Success or better opens it, and its lock is
- * broken for good. Nothing inside is harmed yet (BK1-BK3). One its owner guards can't be broken yet (BK6). */
+ * broken for good. BK1-BK4: the same roll is checked against everything inside (src/engine/breakage.ts), opened or not, and
+ * a rolled open counts toward the broke_open chain. BK6: one someone guards is open theft (theftSeen). */
 function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const c = findContainer(state, o.target);
-  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : c.inst.open ? 'already_open' : !c.inst.lock?.locked ? 'not_locked' : theft(state, a, c) ? 'theft' : null;
+  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : c.inst.open ? 'already_open' : !c.inst.lock?.locked ? 'not_locked' : null;
   if (why || !c) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), reason: why ?? 'no_container' }), o));
-  const ev = (opened: boolean, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'break_open', { target: c.inst.id, itemId: c.inst.id, breakOpen: { opened }, ...extra }), o);
+  const owner = theft(state, a, c) ? ownerOf(state, c) : undefined;
+  const done = (ev: GameEvent) => { emit(ctx, bark(ev, o)); if (owner) theftSeen(state, a, owner, itemDef(state, c.inst.itemId).name, ev); };
+  const ev = (opened: boolean, extra: Partial<GameEvent> = {}) => mk(ctx, a, 'break_open', { target: c.inst.id, itemId: c.inst.id, breakOpen: { opened }, ...extra });
   const held = usableModes(state, a).find((m) => m.mode.tree === 'melee' && !m.itemId.startsWith('natural:'));
   const blade = held && itemDef(state, a.core.inventory.find((i) => i.id === held.itemId)?.itemId ?? '').edge;
   const open = () => { c.inst.lock = { locked: false, broken: true }; c.inst.open = true; };
-  if (blade && itemDef(state, c.inst.itemId).container?.soft) { open(); return emit(ctx, ev(true, { breakOpen: { opened: true, cut: true } })); }
+  if (blade && itemDef(state, c.inst.itemId).container?.soft) { open(); return done(ev(true, { breakOpen: { opened: true, cut: true } })); }
   c.inst.grade ??= 'minor';
   const skill = held ? modeSkill(held.mode) : SK.unarmed_improvised;
   const modifiers: Mod[] = CONFIG.LOCK_GRADE_MOD[c.inst.grade] ? [{ source: 'lock', type: 'situational', value: CONFIG.LOCK_GRADE_MOD[c.inst.grade] }] : [];
   const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], ...(held ? { itemId: held.itemId } : {}) }, state, rng);
   const opened = tierAtLeast(r.tier, 'success');
   ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY[c.inst.grade] ?? CONFIG.DIFFICULTY.moderate, passed: opened, modifiers }, state);
+  const broke = breakInside(state, a, contentsOf(c), r);
   if (opened) open();
-  emit(ctx, ev(opened, { roll: r, tier: r.tier }));
+  if (opened && a === state.player) tally(state, 'broke_open');
+  done(ev(opened, { roll: r, tier: r.tier, breakOpen: { opened, ...(broke.length ? { broke: broke.map((i) => i.id) } : {}) } }));
+}
+
+/** BK6: a container its owner guards forced open is theft seen, with no Filching contest: everyone outside the breaker's
+ * band who made it out clearly caught them, as caught Filching (FL5); one who only half perceived it is suspicious. Those
+ * who did not know the breaker was there perceive it too (as detection reads it): the noise is what tells them. */
+function theftSeen(state: GameState, a: Actor, owner: Actor, what: string, ev: GameEvent): void {
+  const caught: Actor[] = [], suspicious: Actor[] = [];
+  for (const w of allActors(state)) {
+    if (w === a || w.bandId === a.bandId || (!w.mind && w.kind !== 'player') || !isActive(w) || isAsleep(w)) continue;
+    const level = ev.perception[w.id]?.level ?? perceptionOf(ev, state, w)?.level;
+    if (level) (level === 'full' ? caught : suspicious).push(w);
+  }
+  if (caught.length || suspicious.length) filchAftermath(state, a, owner, what, { outcome: caught.length ? 'caught' : 'fumbled', caught, suspicious });
 }
 
 /** CT4/FL4: a guarded container opened or picked under watch: the Filching contest, with the container's size. Caught or

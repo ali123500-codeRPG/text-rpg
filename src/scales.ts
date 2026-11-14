@@ -101,6 +101,12 @@ export const HIT_OUTCOMES = scale([['missed', 'Missed'], ['dodged', 'Dodged'], [
   ['full_hit', 'Full hit'], ['heavy_hit', 'Heavy hit'], ['crushing_hit', 'Crushing hit']]);
 export type HitOutcome = (typeof HIT_OUTCOMES.keys)[number];
 
+/** BK1: how easily an item breaks when its container is forced open, most fragile first. Each row breaks at the break roll
+ * CONFIG.FRAGILITY_BREAKS_AT gives it or worse; the last never breaks. An item's row is ItemDef.fragility, else
+ * CONFIG.FRAGILITY_BY_KIND for its kind. */
+export const FRAGILITY = scale([['fragile', 'Fragile'], ['delicate', 'Delicate'], ['sturdy', 'Sturdy'], ['tough', 'Tough'], ['solid', 'Solid'], ['unbreakable', 'Unbreakable']]);
+export type FragilityKey = (typeof FRAGILITY.keys)[number];
+
 /** a minted item's quality, lowest first (CS9). Its multiplier in the quality formulas is its position + 1
  * (src/ruleset/quality.ts). */
 export const QUALITY_LEVELS = scale([['quality_1', 'Passable'], ['quality_2', 'Solid'], ['quality_3', 'Exceptional'], ['quality_4', 'Flawless']]);

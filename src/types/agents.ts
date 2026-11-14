@@ -209,7 +209,7 @@ export type StagePlan = {
   }[];
   seeds: { plans: (Plan & { ownerId: string })[]; triggers: Trigger[]; secrets: Secret[] };
   rewards: {
-    item: string | { base: string; quality: import('../scales').QualityKey; boosts: string; name: string; look: string };
+    item: string | { base: string; quality: import('../scales').QualityKey; boosts: string; name: string; look: string; fragility?: import('../scales').FragilityKey }; // fragility: BK1 c, how easily it breaks (unset: its base's)
     qty?: number;
     place: { carriedBy: string } | { groundIn: string; hiddenAt?: import('./core').Tier } | { in: string }; // SE8/SE10: hidden on the ground, found by beating this tier; in: CT2, a container of this plan by its key
     owner?: string; // BF18: whom it belongs to (cast key or actor id), when not with them: they know it is missing

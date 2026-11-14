@@ -664,14 +664,18 @@ function eventTarget(state: GameState, me: string, target: string, seenIds: Set<
   return itemName(state, target);
 }
 
-/** the library item of an item instance anyone carries or that lies on the ground */
+/** the library item of an item instance anyone carries or that lies on the ground, or one inside a container there (BK2) */
 function instanceItem(state: GameState, instanceId: string): string | undefined {
+  const find = (list: ItemInstance[]): ItemInstance | undefined => {
+    for (const x of list) { if (x.id === instanceId) return x; const inner = x.contents && find(x.contents); if (inner) return inner; }
+    return undefined;
+  };
   for (const a of allActors(state)) {
-    const i = a.core.inventory.find((x) => x.id === instanceId);
+    const i = find(a.core.inventory);
     if (i) return i.itemId;
   }
   for (const z of state.zones) {
-    const i = z.groundItems.find((x) => x.id === instanceId);
+    const i = find(z.groundItems);
     if (i) return i.itemId;
   }
   return undefined;
@@ -730,7 +734,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
       ...(full && e.offers ? { offers: e.offers.map((o) => ({ to: callName(state, me, o.to), landed: o.landed, ...(o.demand ? { demand: o.demand } : {}) })) } : {}), // TF12, TF19
       ...(full && e.surrender ? { surrender: { with: e.surrender.with.map((id) => callName(state, me, id)) } } : {}), // TF19
-      ...(full && e.breakOpen ? { breakOpen: { ...e.breakOpen } } : {}), // BF31
+      ...(full && e.breakOpen ? { breakOpen: { ...e.breakOpen, ...(e.breakOpen.broke ? { broke: e.breakOpen.opened ? e.breakOpen.broke.map((id) => itemName(state, id) ?? 'something') : ['something inside'] } : {}) } } : {}), // BF31; BK2: what broke, unnamed while it stays shut
       ...(full && e.standDown ? { standDown: { with: e.standDown.with.map((id) => callName(state, me, id)), ...(e.standDown.coin ? { coin: coinWords(e.standDown.coin) } : {}) } } : {}), // TF16
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),

@@ -36,7 +36,7 @@ export type ItemDef = {
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
   base?: { itemId: LibraryRef; quality: import('../scales').QualityKey; boosts: string };
-  tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
+  tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll); 'broken' a broken item (BK3: its name starts "broken", it does nothing)
   /** D-218 Threadbound item: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
    * grant's perk is theirs once they have earned its achievement (src/ruleset/threadboundItems.ts) */
   threadbound?: { rank: import('../scales').ThreadboundRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // rank: TB11, its Rank (THREADBOUND_RANKS)
@@ -45,6 +45,8 @@ export type ItemDef = {
   container?: { worn?: true; fixed?: true; soft?: true }; // soft: BF31, cloth (a sack, a pack): an edged weapon cuts it open
   /** BF31: an edged weapon (a blade or an axe): it cuts a soft container open */
   edge?: true;
+  /** BK1: how easily it breaks when its container is forced open (FRAGILITY); unset: CONFIG.FRAGILITY_BY_KIND for its kind */
+  fragility?: import('../scales').FragilityKey;
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
