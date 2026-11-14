@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved both parts (BF40). Part 1 was fixed in PR #704: a held essence puts the skills it gives on the sheet at raw 0, so its points count and show. Part 2: a command that changes the character (/essence take, pass, give, sell and remove, and /title) now saves at once, as a perk pick does. A unit test reloads the story after a take, a pass and a give.
 
-**Fixed by:** [PR #704](https://github.com/ali123500-codeRPG/text-rpg/pull/704) and [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #704](https://github.com/ali123500-codeRPG/text-rpg/pull/704) and [PR #757](https://github.com/ali123500-codeRPG/text-rpg/pull/757)
 
 ## BG-214
 
