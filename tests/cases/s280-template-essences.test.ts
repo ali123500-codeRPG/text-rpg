@@ -38,7 +38,7 @@ describe('template essences', () => {
     makeVillage();
     const lib = getLibrary();
     const human = lib.templates[TP.trader];
-    const slimeLike = { [SK.unarmed_natural]: { raw: 50, state: 'normal' as const }, [SK.tremor]: { raw: 50, state: 'normal' as const } };
+    const slimeLike = { [SK.slam]: { raw: 50, state: 'normal' as const }, [SK.tremor]: { raw: 50, state: 'normal' as const } };
     expect(fittingEssences(human.raceId, slimeLike).map((x) => x.row.id)).not.toContain(ES.gel_patience);
     for (const t of Object.values(lib.templates)) expect(ids(t.id)).not.toContain(ES.hard_won_habit);
   });

@@ -160,8 +160,10 @@ const DEFAULTS = {
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
-  /** AT58/AT60: reaction time when a fight starts for an actor: REACT_BASE_S seconds at an initiative total of 50, halving
-   * every REACT_HALVING points above (doubling below), times the time factor; a hesitation waits it out again */
+  /** AT11: the skill at which an Action times row (or a reaction) takes its listed seconds; faster above, slower below */
+  ACTION_SPEED_PIVOT: 50,
+  /** AT58/AT60: reaction time when a fight starts for an actor: REACT_BASE_S seconds at an initiative total of
+   * ACTION_SPEED_PIVOT, halving every REACT_HALVING points above (doubling below), times the time factor; a hesitation waits it out again */
   REACT_BASE_S: 2,
   REACT_HALVING: 50,
   /** AT74: Gut Feeling rolls once every this many rounds for each hidden watcher */
@@ -183,6 +185,10 @@ const DEFAULTS = {
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
+  /** BG-251: how loud a missile's impact is where it lands: on armour, a shield or a hard surface like an axe biting wood
+   * (3M Noise Navigator: chopping wood 66-71 dBA at 5 m, pounding tent stakes 66 dBA at 15.2 m, about 80-90 dB at 1 m);
+   * on flesh, clothing or soft ground some 20 dB less (Brüel: soft-material impacts peak 20-25 dB below metal; an estimate) */
+  IMPACT_NOISE: { hard: 'loud', soft: 'raised' } as const,
   /** hearing (perception/noise.ts, BG-57, HB1–HB5): a sound weakens 20·log10(metres) with distance (the inverse-square
    * law, never nearer than NEAREST_M) and loses SOUND_LOSS_DB at each crossing on its way, by the least-loss route. It is
    * heard while at least HEARING_FLOOR_DB and heard clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it: ANSI/ASA S12.60
@@ -241,10 +247,16 @@ const DEFAULTS = {
   NERVE_BEYOND_STEP: 50,
   /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
   PERSONALITY_LEAN: 20,
-  /** the Ideas panel: a held value pulls toward its ideas by this many points, as a trait would */
+  /** the action deck: a held value pulls toward its actions by this many points, as a trait would */
   IDEA_VALUE_PULL: 50,
-  /** the Ideas panel: an idea the character is pulled away from by this many points or more says "against your nature" */
+  /** the action deck: an action the character is pulled away from by this many points or more says "against your nature" */
   IDEA_AGAINST_NATURE: 50,
+  /** AD9 the suggested action: base score of each kind of suggestion (higher wins); leanShare: points per point of the
+   * character's pull toward it; healInFight: taken off treating wounds while a fight runs. [placeholder] */
+  SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
+  /** AD9: the morale level from which steadying is suggested in a fight, and the health level from which treating wounds is */
+  SUGGEST_STEADY_FROM: 'rattled' as import('./scales').MoraleLevel,
+  SUGGEST_HEAL_FROM: 'hurt' as import('./scales').HealthLevelKey,
   /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
   TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
   /** archetype gap: the six axes and Nerve count 1 each, the drive fit counts this many times */
@@ -310,10 +322,10 @@ const DEFAULTS = {
   RUN_EFFORT: 'hard' as EffortKey,
   /** FT5: a dodge, block or parry (no Action times row of its own) */
   DEFENSE_EFFORT: 'light' as EffortKey,
-  /** FT5: worn armour multiplies all strain, by weight */
-  STRAIN_ARMOR_MULT: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** FT23: strain past an empty short line spills into the long-term bar at this share */
   SPILL_SHARE: 0.5,
+  /** SR4: every strain point paid also adds this share of itself to the long-term bar */
+  STRAIN_RESIDUE: 0.1,
   /** FT27/FB6: one Stamina mark per this many points of strain paid, any effort, armour included */
   STAMINA_MARK_EVERY: 50,
   /** FT28: catching your breath: in a calm stretch (nothing above Light for BREATH_CALM_S) the line refills BREATH_BASE_PCT
@@ -324,7 +336,7 @@ const DEFAULTS = {
   /** FT7/FT8: sleep clears SLEEP_CLEAR_PCT % of the bar an hour × the spot (in a bed or not) × worn armour by weight */
   SLEEP_CLEAR_PCT: 4,
   SLEEP_SPOT_MULT: { bed: 1, elsewhere: 0.75 } as Record<string, number>,
-  SLEEP_ARMOR_MULT: { light: 1, medium: 0.75, heavy: 0.5 } as Record<string, number>,
+  SLEEP_ARMOR_MULT: { light: 1, medium: 1, heavy: 1 } as Record<string, number>, // sleeping in armour makes no difference (less realism; was 1 / 0.75 / 0.5)
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
   /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
@@ -333,7 +345,6 @@ const DEFAULTS = {
   HIGH_PERK_SPREAD: 0.01,
   /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
   CATNAP_SLEEP_HOURS: 1, // SS1 Catnap: a full rest clears the sleep debt this many hours of sleep would
-  FORCED_MARCH_RUN_EFFORT: 'moderate' as EffortKey, // SS3 Forced March: the owner's run pays this tier instead of RUN_EFFORT
   DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
   SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
@@ -354,9 +365,12 @@ const DEFAULTS = {
   /** AE12/AT13: the most a fight turn lasts, in seconds, and the least (a turn lasts as long as the player's order) */
   FIGHT_TURN_S: 6,
   FIGHT_TURN_MIN_S: 3,
+  /** AT20/TP4: carried time lasts this many turns, and each pool carries at most CARRY_MAX_TURNS fight turns of it */
+  CARRY_TURNS: 2,
+  CARRY_MAX_TURNS: 2,
   /** AT46: the most a turn outside a fight lasts, in seconds (as long as the player's order); longer actions, walks, rests
    * and waits run on the world clock instead (AT45) */
-  EXPLORE_TURN_S: 120,
+  EXPLORE_TURN_S: 30,
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
   // ---- the world clock (AT56, AT65 to AT68; src/engine/comingNear.ts). Placeholders from the Action Time part three page.
@@ -492,6 +506,8 @@ const DEFAULTS = {
   SCHEMA_VERSION: 9, // v9: land (regions, WZ12): older saves end; v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 5,
+  /** AX1/AX2: an accessory's bonus = this × EQUIP_NEED of its level: Common 5, Fine 10, Superior 15, Masterwork 20 */
+  ACCESSORY_FACTOR: 0.2,
   /** GD3: a code-run guard asks someone it suspects to open their locked container once every this many turns (placeholder) */
   SUSPECT_ASK_TURNS: 3,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
@@ -620,6 +636,12 @@ const DEFAULTS = {
   ARMOR_SPEED: { light: { flat: 0, pct: 0 }, medium: { flat: 0.1, pct: 0.05 }, heavy: { flat: 0.2, pct: 0.15 } } as Record<string, { flat: number; pct: number }>,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
+  /** AD8/AD9 the play screen's minimap: how many metres across it shows at first, the widths its zoom steps through
+   * (closest first; the widest also bounds the reach ring, past it the ring is a note), and the nearest point a click
+   * plans a move to (closer is where you stand) */
+  MINIMAP_VIEW_M: 25,
+  MINIMAP_ZOOM_M: [10, 15, 25, 40, 60, 100],
+  MINIMAP_MIN_M: 0.5,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   // ---- land first (WZ1-WZ12): a region's land, drawn once by code (src/land); placeholders unless a source is given ----
@@ -652,13 +674,14 @@ const DEFAULTS = {
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
-  /** TV2 travel paces as shares of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels slow 3, normal
-   * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
-  TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
-  CATCH_UP_PACE: 'normal' as import('./scales').TravelPaceKey, // NW11: the pace NPCs keep while a turn's time moves them on
+  /** TV2/SR5: travel is one pace, a share of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels 4.5 km/h
+   * (US Army FM 21-18: about 4 km/h on a day march); NPCs keep it too while a turn's time moves them on (NW11) */
+  TRAVEL_SPEED_SHARE: 0.9,
+  /** TV5: pressing on in the dark, the travel speed is this share of the walking speed instead (3 km/h) */
+  TRAVEL_DARK_SPEED_SHARE: 0.6,
+  /** SR5: each hour of travel adds this many points of strain straight to the long-term bar, whatever the armour (placeholder) */
+  TRAVEL_STRAIN_PER_HOUR: 1,
   LONG_TURN_LINES: 5, // BF2e4: a long turn's summary names at most this many people; the rest are "others came and went"
-  /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
-  TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
   TRAVEL_LEG_MIN: 60,
   TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn
@@ -682,7 +705,7 @@ const DEFAULTS = {
   FOLLOW_M: 2,
   FOLLOW_RANGE_SHARE: 0.8,
   /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
-  TAKE_FROM_STANCE: 'neutral',
+  TAKE_FROM_STANCE: 'neutral' as import('./scales').StanceKey,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
    * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
   // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about
@@ -860,6 +883,18 @@ const DEFAULTS = {
    * steady violet tint (Broken included). Where the red health edge shows too, the red one wins (placeholders) */
   MOTION_NERVE_FROM: 'terrified' as MoraleLevel,
   MOTION_NERVE_STEADY: 'panicking' as MoraleLevel,
+  /** Audio for the game (src/ui/sound.ts; all placeholders). VOLUME_DEFAULT: the volume slider's start. CLICK_GAP_MS: clicks
+   * closer together than this make one sound. TIER (AU8): the player's own roll, one note per tier row from Critical Failure
+   * to Critical Success (HZ), ringing DUR_S[0] in the middle up to DUR_S[1] at either end; failures sag to FALL of their pitch;
+   * each step past either end adds a voice an octave out. SWISH: a swing that met nothing. DEATH: the falling tone of the
+   * death scene. GAIN: each code-made sound's loudness before the slider. */
+  SOUND: {
+    VOLUME_DEFAULT: 0.6,
+    CLICK_GAP_MS: 60,
+    TIER: { HZ: [110, 147, 196, 330, 440, 660], DUR_S: [0.18, 0.7], FALL: 0.7, GAIN: 0.25 },
+    SWISH: { HZ: [2400, 600], DUR_S: 0.22, GAIN: 0.18 },
+    DEATH: { HZ: [196, 55], DUR_S: 2.4, GAIN: 0.3 },
+  },
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder)
   /** agents that name a model and effort; the others run on their MODEL_TIERS tier, which is also the fallback when the
    * named model can't answer. Narrator on Fable 5.2 low: won 15 of 16 blind judgements against the complex tier in playtests */

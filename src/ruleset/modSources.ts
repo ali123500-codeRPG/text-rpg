@@ -4,7 +4,7 @@
 import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
-import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, TRAVEL_PACES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey, type TravelPaceKey } from '../scales';
+import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
 import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
@@ -117,8 +117,6 @@ export const MOD_SOURCES: ModSource[] = [
     when: 'Persuading, lying, threatening or haggling again at the same listener, out of a fight (plain talk never counts; in a fight there is no repeat penalty, TF9).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
   { type: 'situational', roll: 'skill', source: 'Coin offered', at: 'src/engine/speech.ts', when: 'A bribe in a fight (TF10): the briber\'s Barter roll, by the coin offered against the listener\'s price (OFFER_BRIBE_PRICE per level).',
     value: `${sg(CONFIG.OFFER_BRIBE_MOD)} per doubling over the price, as much less per halving` },
-  { type: 'situational', roll: 'skill', source: 'Travel pace', at: 'src/engine/travel.ts', when: 'The noticing roll on a road trip when something meets you, by pace (TV8).',
-    value: Object.entries(CONFIG.TRAVEL_NOTICE_MOD).filter(([, v]) => v).map(([k, v]) => `${TRAVEL_PACES.name(k as TravelPaceKey)} ${sg(v)}`).join(' · ') },
   // status
   { type: 'status', roll: 'skill', source: 'Shaken', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose intimidation beat you, until your engagement ends.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },

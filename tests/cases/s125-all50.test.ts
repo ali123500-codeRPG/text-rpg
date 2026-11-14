@@ -330,7 +330,7 @@ describe('125 All-50 moves', () => {
     give(s.player, PK.strike_and_fade);
     s.player.posture = 'stealthy';
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
-    const fade = ev.find((e) => e.actorId === 'player' && e.kind === 'hide' && e.vanish);
+    const fade = ev.find((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish);
     expect(fade?.effects.map((f) => f.kind)).toContain(PK.strike_and_fade);
     expect(s.log.some((l) => l.code === 'stealth_contest' && (l.detail as { skill: string }).skill === SK.vanishing)).toBe(true);
   });

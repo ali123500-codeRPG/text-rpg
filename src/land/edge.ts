@@ -1,13 +1,11 @@
 // WZ18 the next region: drawn when the player can see past their region's edge (WZ17 sight) or stands on a road that
 // leaves by it, and joined to every drawn neighbour so its roads, rivers, streams and ground run on across the edge.
 import type { GameState, Region, Side } from '../types';
+import { OPP_SIDE, SIDE_STEP, SIDES } from '../types';
 import { zoneById } from '../engine/relations';
 import type { EdgeJoin } from './generate';
 import { landSightM, regionAt } from './sight';
 
-const SIDES: Side[] = ['n', 'e', 's', 'w'];
-const OPP: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
-const STEP: Record<Side, [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] };
 const drawn = (state: GameState, gx: number, gy: number) => state.regions?.find((r) => r.gx === gx && r.gy === gy);
 
 /** the squares beside the player's region that should be drawn now: one whose edge is in sight from where the player
@@ -25,14 +23,14 @@ export function squaresWanted(state: GameState): { gx: number; gy: number }[] {
   }
   const line = z.road ? r.roads.find((x) => x.id === z.road) : undefined;
   for (const end of line?.ends ?? []) { const n = r.nodes.find((x) => x.id === end); if (n?.kind === 'edge' && n.side) sides.add(n.side); }
-  return [...sides].map((sd) => ({ gx: r.gx + STEP[sd][0], gy: r.gy + STEP[sd][1] })).filter((q) => !drawn(state, q.gx, q.gy));
+  return [...sides].map((sd) => ({ gx: r.gx + SIDE_STEP[sd][0], gy: r.gy + SIDE_STEP[sd][1] })).filter((q) => !drawn(state, q.gx, q.gy));
 }
 
 /** what the drawn neighbours of square gx, gy fix on their shared edges, from the new region's side */
 export function joinsFor(state: GameState, gx: number, gy: number): EdgeJoin[] {
   return SIDES.flatMap((side): EdgeJoin[] => {
-    const nb = drawn(state, gx + STEP[side][0], gy + STEP[side][1]);
-    return nb ? [joinOf(nb, OPP[side], side)] : [];
+    const nb = drawn(state, gx + SIDE_STEP[side][0], gy + SIDE_STEP[side][1]);
+    return nb ? [joinOf(nb, OPP_SIDE[side], side)] : [];
   });
 }
 

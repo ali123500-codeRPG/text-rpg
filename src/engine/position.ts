@@ -9,7 +9,7 @@ import { compassOf, doorway, edgeToward } from '../scenario/geometry';
 import { furnitureById, furniturePos } from './furniture';
 import { heightOf } from '../scenario/heights';
 import { actorById, allActors, nameFor, shortestPath, wayPath, zoneById } from './relations';
-import { theOf } from '../words';
+import { theName, theOf } from '../words';
 import { barrierOn, gripPasses, passage, type Passage } from './barriers';
 import { gripReachM } from '../ruleset/body';
 import { followGap } from './follow';
@@ -146,6 +146,21 @@ export function pathM(state: GameState, a: Located, b: Located, path: string[]):
   let m = 0, cur = A, h = heightOf(zoneById(state, a.zone));
   for (const s of r) { m += flat(cur, s.out!) + Math.abs(heightOf(s.zone) - h); cur = s.at!; h = heightOf(s.zone); }
   return m + flat(cur, B);
+}
+
+/** AD16: the walk from A to B as walkLeg walks it (the walker's way round shut ways it knows, wayPath; else the plain path):
+ * the zones after A's, its points from A's to B's through the doorways, and its metres (pathM); null with no way */
+export function walkRoute(state: GameState, a: Located, b: Located, walker?: Actor): { path: string[]; pts: Pos[]; metres: number } | null {
+  const path = a.zone === b.zone ? [] : walker ? wayPath(state, a.zone, b.zone, walker) : shortestPath(state, a.zone, b.zone);
+  if (!path) return null;
+  const pts = [pointOf(state, a)];
+  for (const s of legs(state, a.zone, path)) {
+    if (!s.at) throw noRect(s.zone);
+    pts.push(s.out!);
+    if (flat(s.out!, s.at) > EPS) pts.push(s.at);
+  }
+  pts.push(pointOf(state, b));
+  return { path, pts, metres: pathM(state, a, b, path) };
 }
 
 /** a step of a walk to `to`: the walker now faces the way it walked (BG-18: \"the slime on the left\") */
@@ -304,10 +319,10 @@ export function frontierPoint(z: Zone, label: string, from: Pos): Pos {
   return ends.sort((p, q) => Math.hypot(q.x - from.x, q.y - from.y) - Math.hypot(p.x - from.x, p.y - from.y))[0];
 }
 
-/** BG-81: a spot's words (said as reached: "at the gate", "away from the door", "on the north side") for a walk that
- * stopped before it: "toward the gate", "heading away from the door", "toward the north side" */
+/** BG-81: a spot's words (said as reached: "at the gate", "away from the door", "on the north side", "to a spot in the
+ * yard") for a walk that stopped before it: "toward the gate", "heading away from the door", "toward the north side" */
 export function spotOnTheWay(words: string): string {
-  return words.startsWith('at ') ? `toward ${words.slice(3)}` : words.startsWith('on the ') ? `toward the ${words.slice(7)}` : `heading ${words}`;
+  return words.startsWith('at ') || words.startsWith('to ') ? `toward ${words.slice(3)}` : words.startsWith('on the ') ? `toward the ${words.slice(7)}` : `heading ${words}`;
 }
 
 /** the point of the way out of zone `zoneId` to `to`: its doorway, or where a frontier is left; null without a rectangle
@@ -321,7 +336,8 @@ export function wayPoint(state: GameState, zoneId: string, to: string, from: Loc
 
 /** BG-12: the point a move spot names in zone `zoneId`, as seen from `from`: beside someone there (`near` an actor:
  * stopShort keeps PLACE_SPACING_M from them) or at a way out (`near` a link's zone: its doorway, a frontier's side); the far
- * edge straight across from someone or a way out (`awayFrom`); or the middle of the side a compass word names (`side`).
+ * edge straight across from someone or a way out (`awayFrom`); the middle of the side a compass word names (`side`); or an
+ * exact point (`at`, AD16: picked on the minimap), kept inside the walls.
  * Points stand ENTER_M (a step) inside the edge. null: the zone has no rectangle, or the spot names nothing there. `toward` is the
  * actor walked to; `words` says the spot for the story ("to the north side", "away from the cellar steps"). */
 export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located, walker?: Actor): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {
@@ -347,6 +363,10 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     const at = wayPoint(state, z.id, ref, from);
     return at ? { at, label: z.links.find((l) => l.to === ref)!.label } : null;
   };
+  if (spot.at) { // AD16: the point itself, a step (ENTER_M) in from the walls at most, as the other spots stand
+    const m = Math.min(CONFIG.ENTER_M, r.w / 2, r.d / 2), cl = (v: number, c0: number, half: number) => Math.max(c0 - half + m, Math.min(c0 + half - m, v));
+    return { pos: { x: cl(spot.at.x, r.x, r.w / 2), y: cl(spot.at.y, r.y, r.d / 2) }, stopShort: 0, words: `to a spot in ${theName(z.name)}` };
+  }
   if (spot.near) {
     const p = point(spot.near);
     if (!p || (p.actor && !p.here)) return null; // someone elsewhere is a move to their zone, not a spot in this one

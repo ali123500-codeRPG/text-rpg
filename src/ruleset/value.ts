@@ -5,7 +5,7 @@ import type { GameState, ItemDef } from '../types';
 import { qualityMult } from './quality';
 import { CONFIG } from '../config';
 import { itemDef } from '../library';
-import { kitBonus, modeReach } from './gear';
+import { effectValue, modeReach } from './gear';
 
 const V = () => CONFIG.ITEM_VALUE;
 
@@ -13,7 +13,7 @@ const V = () => CONFIG.ITEM_VALUE;
 export function benefits(def: ItemDef): { what: string; coin: number }[] {
   const out: { what: string; coin: number }[] = [];
   for (const e of def.effects ?? []) {
-    const v = e.kit ? kitBonus(def, e) : e.value;
+    const v = effectValue(def, e);
     if (v <= 0) continue;
     // a roll bonus is worth the skill points that move a roll as much (skill counts at SKILL_WEIGHT)
     out.push(e.kind === 'rollMod'

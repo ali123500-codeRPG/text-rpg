@@ -11,6 +11,7 @@ import { moraleMods } from './morale';
 import { fatigueMods } from './fatigue';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { gripsOf } from './slots';
+import { cap } from '../words';
 
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills[SK.endurance];
@@ -24,6 +25,8 @@ export function healthLevel(actor: Actor): HealthLevel {
 }
 /** levels from Incapacitated on are "down" (by position on the health scale) */
 export const isDownLevel = (l: HealthLevel) => HEALTH_LEVELS.pos(l) >= HEALTH_LEVELS.pos('incapacitated');
+/** the most of its HP an actor can have lost and still be at health level `l` (CONFIG.HEALTH_TRACK) */
+export const levelMaxPct = (l: HealthLevel): number => CONFIG.HEALTH_TRACK.find(([k]) => k === l)![1];
 /** the levels the UI shows: Dead is never shown; a Dead actor shows as Incapacitated */
 export const SHOWN_LEVELS = () => CONFIG.HEALTH_TRACK.filter(([l]) => l !== 'dead');
 export const shownLevel = (l: HealthLevel): HealthLevel => (l === 'dead' ? 'incapacitated' : l);
@@ -79,6 +82,14 @@ export function usableGrips(state: GameState, actor: Actor): string[] {
     .filter((p) => p.roles.includes(RL.grip) && working(poolState(partPct(actor, p.id))))
     .map((p) => p.id);
 }
+
+/** the grip parts that work and hold nothing: one rule for drawing an item, Dirt in the Eyes and Flurry (AT79) */
+export function freeGrips(state: GameState, actor: Actor): string[] {
+  const busy = new Set(actor.core.inventory.flatMap(gripsOf));
+  return usableGrips(state, actor).filter((g) => !busy.has(g));
+}
+/** a body part's id as words ("left_arm" is "Left arm"): parts have no names of their own */
+export const partName = (id: string): string => cap(id.replace(/_/g, ' '));
 
 /** a part's state for its penalties: Tough It Out counts each one step milder (D6) */
 export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES.at(PART_STATES.pos(s) - (hasPerk(a, PK.tough_it_out) ? 1 : 0));

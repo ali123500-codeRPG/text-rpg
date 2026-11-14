@@ -3,14 +3,14 @@
 // (default: the strongest, ties to the one carried most). H2 a (the healed body part glows) is in charsheet.ts.
 import { HL } from '../library/tableIds';
 import type { Actor, GameState, HealNote, HealingDef, HealthLevel, PartState } from '../types';
-import { SHOWN_LEVELS } from '../ruleset/body';
+import { partName, SHOWN_LEVELS } from '../ruleset/body';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { h } from './kit';
 import { cap } from '../words';
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
-export const partName = (id: string) => cap(id.replace(/_/g, ' '));
+export { partName };
 
 /** a health level's or part state's colour class: by its position in its scale */
 const LEVELS = () => SHOWN_LEVELS().map(([l]) => l);

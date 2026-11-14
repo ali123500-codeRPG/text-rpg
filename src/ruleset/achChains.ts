@@ -51,12 +51,12 @@ export function heldChain(s: GameState, root: string, of?: string): HeldChain | 
   const next = every ? undefined : rows.find((k) => !held.includes(k) && rows.indexOf(k) > rows.indexOf(held[held.length - 1]));
   return { root, ...(of ? { of } : {}), rows, held, current: held[held.length - 1], ...(next ? { next } : {}) };
 }
-/** every chain (root, kind) the player has started, grouped by the head it shows under. A by-kind chain with no trunk is
- * its own head per kind (`head:of`), so each skill group or class stands on its own line. */
 /** whether the player can see where a chain ends: its last level is held or is the next one. Until then a chain's place
  * reads "I of ?", since later levels stay hidden (TB5) */
 export const endInSight = (c: HeldChain): boolean => (c.next ? c.rows.indexOf(c.next) : c.rows.indexOf(c.current)) >= c.rows.length - 1;
 
+/** every chain (root, kind) the player has started, grouped by the head it shows under. A by-kind chain with no trunk is
+ * its own head per kind (`head:of`), so each skill group or class stands on its own line. */
 export function heldChains(s: GameState, scars: boolean): Map<string, HeldChain[]> {
   const L = lib(), out = new Map<string, HeldChain[]>();
   const seen = new Set<string>();

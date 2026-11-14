@@ -2,16 +2,18 @@
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { AWARENESS, GRADE_LEVELS, NOISE, type GradeLevel, type NoiseKey } from '../scales';
+import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { seeingM, type Located } from '../engine/position';
-import { sightLevel } from './sight';
+import { distOrNull, seeingM, type Located } from '../engine/position';
+import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { now, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
+import { SK } from '../library/skillIds';
+import { effectiveSkill } from '../ruleset/gear';
 
 export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
@@ -84,6 +86,15 @@ export function sightAt(state: GameState, observer: Actor, at: Located, visibili
   return sl && (zoneLight(state, zoneById(state, at.zone)) === 'dark' ? 'partial' : sl);
 }
 
+/** AB18 a: `observer` smells someone at that point: within its Scent skill in metres along the open ways (the straight line
+ * where they see each other, else the path through the doorways: walls stop a smell, light never does) */
+export function smells(state: GameState, observer: Actor, at: Located): boolean {
+  const reach = effectiveSkill(state, observer, SK.scent).value;
+  if (reach <= 0) return false;
+  const d = distOrNull(state, observer, at);
+  return d !== null && d <= reach;
+}
+
 /** BG-89: event kinds that touch their target */
 const CONTACT = new Set(['attack', 'give', 'break_free', 'restrain']);
 
@@ -134,14 +145,15 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // BG-23: a leg out of a zone is seen where it set off as well as where it ended (someone walking out through a door
   // in plain sight is seen going, though the room beyond is out of sight)
   if (event.fromZone) sight = better(sight, seenAt({ zone: event.fromZone, pos: event.fromPos }));
-  // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
-  if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
-    const d = seeingM(state, observer, at);
-    if (d !== null && d <= lookReach()) sight = { level: 'full', cue: 'sight' };
-  }
+  // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see); BG-252
+  // (PG11 a): as long as they can still be glimpsed, the same rule as Who's here (seenActors)
+  if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone
+    && stillGlimpsed(event.visibility, seeingM(state, observer, at))) sight = { level: 'full', cue: 'sight' };
   const nl = soundReach(state, observer, at, event.noise, leansIn(event, observer));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
+  // AB18 a: someone neither seen nor heard but smelled is noticed, not made out (partial: something, not who)
+  if (!best && smells(state, observer, at)) best = { level: 'partial', cue: 'smell' };
   // Perception All-150 Every Sense One: what the owner hears it sees, and what it sees it hears. The better sense sets the
   // level for both: a full perception shows everything (read as sight), a partial one is heard too (its words come through)
   const oneSense = !!best && hasPerk(observer, PK.one_sense);
@@ -149,7 +161,9 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // the target of a blow, a hand-over or a grip broken always feels it (at least partial, touch), e.g. a missile from an
   // unseen zone. BG-72/BG-89: only contact is felt; words, a walk toward them, a trade or a wasted action reach them only by
   // sound or sight
-  if (event.target === observer.id && CONTACT.has(event.kind)) best = better(best, { level: 'partial', cue: 'touch' });
+  // BG-251: a shot or throw is felt only when it meets them (a shield or the body); a miss reaches them by its impact
+  const felt = !event.ranged || !event.attack || HIT_OUTCOMES.pos(event.attack.outcome) >= HIT_OUTCOMES.pos('blocked');
+  if (event.target === observer.id && CONTACT.has(event.kind) && felt) best = better(best, { level: 'partial', cue: 'touch' });
   // words need the sound heard clearly (CLEAR_ABOVE_FLOOR_DB over the hearing floor: who and what; a sound heard only partly is a voice without its
   // words), or Every Sense One
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;

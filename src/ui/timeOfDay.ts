@@ -2,7 +2,8 @@
 // time of day are in its tip), T2 b a divider in the story when a wait or sleep moves the clock, T3 b natural recovery as
 // a quiet green line (src/ui/healing.ts). Icons and colours are keyed by TIME_OF_DAY key; names come from that table.
 import { TIME_OF_DAY } from '../scales';
-import { h } from './kit';
+import { h, lineIcon, plural } from './kit';
+import type { TimeOfDay } from '../scales';
 import { clockSecondsText } from '../time';
 
 // one path set per key, drawn on a 24 grid with round strokes (same style as the other hs-i icons)
@@ -15,18 +16,9 @@ const PATHS: Record<string, string[]> = {
   night: ['M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z'],
 };
 
-export function todIcon(key: string): SVGSVGElement {
-  const NS = 'http://www.w3.org/2000/svg';
-  const s = document.createElementNS(NS, 'svg');
-  s.setAttribute('class', 'tod-i'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
-  for (const d of PATHS[key] ?? PATHS.afternoon) {
-    const p = document.createElementNS(NS, 'path');
-    p.setAttribute('d', d); s.append(p);
-  }
-  return s;
-}
+export const todIcon = (key: string): SVGSVGElement => lineIcon('tod-i', PATHS[key] ?? PATHS.afternoon);
 
-const words = (day: number, key: string) => `Day ${day} · ${TIME_OF_DAY.name(key as never)}`;
+const words = (day: number, key: string) => `Day ${day} · ${TIME_OF_DAY.name(key as TimeOfDay)}`;
 
 /** T1: the header's icon, coloured by time of day; the words and the clock to the second are its tip and its label */
 export const todBadge = (day: number, key: string, at?: number) => {
@@ -38,6 +30,6 @@ export const todBadge = (day: number, key: string, at?: number) => {
 /** T2: "11 hours later · Day 2 · Dawn" between story lines */
 export function timePassedRow(t: { minutes: number; day: number; timeOfDay: string }): HTMLElement {
   const hrs = Math.floor(t.minutes / 60), min = t.minutes % 60;
-  const span = [hrs ? `${hrs} hour${hrs === 1 ? '' : 's'}` : '', min ? `${min} minute${min === 1 ? '' : 's'}` : ''].filter(Boolean).join(' ');
+  const span = [hrs ? plural(hrs, 'hour') : '', min ? plural(min, 'minute') : ''].filter(Boolean).join(' ');
   return h('p', { class: `tpass tod-${t.timeOfDay}`, role: 'status' }, todIcon(t.timeOfDay), `${span} later · ${words(t.day, t.timeOfDay)}`);
 }

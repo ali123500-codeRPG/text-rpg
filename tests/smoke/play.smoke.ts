@@ -14,9 +14,10 @@ let browser: Browser, page: Page, url: string, errors: string[];
 
 beforeAll(async () => {
   const dir = mkdtempSync(`${tmpdir()}/smoke-`);
+  // sounds go inline as data URLs: the page runs from file://, where fetch can't read the assets/ copies
   await build({
     entryPoints: ['tests/smoke/entry.ts'], bundle: true, minify: true, format: 'iife', target: 'es2022', outdir: dir, logLevel: 'warning',
-    loader: { '.woff2': 'file', '.webp': 'file' }, assetNames: 'assets/[name]', define: { __BUILD__: JSON.stringify({ sha: 'smoke', date: '2026-01-01' }) },
+    loader: { '.woff2': 'file', '.webp': 'file', '.mp3': 'dataurl' }, assetNames: 'assets/[name]', define: { __BUILD__: JSON.stringify({ sha: 'smoke', date: '2026-01-01' }) },
   });
   writeFileSync(`${dir}/index.html`, '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="entry.css"></head><body><script src="entry.js"></script></body></html>');
   url = `file://${dir}/index.html`;
@@ -59,6 +60,15 @@ describe('play page smoke (TQ7)', () => {
     await turn('look around', 1);
     await expect.poll(() => page.getByText(NARRATION).count()).toBe(2); // the opening and this turn
     expect(await page.getByText('look around', { exact: true }).count()).toBeGreaterThan(0);
+    expect(errors).toEqual([]);
+  });
+
+  it('AD6/AD7: a click on Look around in the action deck plays the turn at once, with no typing', async () => {
+    const before = await page.locator('.ln-player').count();
+    await page.locator('.dk-act[data-kind="look"]').click();
+    await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
+    expect(await page.locator('.ln-player').last().innerText()).toBe('Look around');
+    await page.locator('.dk-act[data-kind="look"]:not([disabled])').waitFor(); // the deck comes back once the turn lands
     expect(errors).toEqual([]);
   });
 
@@ -182,6 +192,33 @@ describe('play page smoke (TQ7)', () => {
     expect(await page.evaluate(() => (window as unknown as { endWait: number }).endWait)).toBe(0);
     expect(errors).toEqual([]);
   }, 60_000);
+
+  it('AU6/AU7: no sound starts while a turn runs; the Sound switch shows a volume slider and, off, silences clicks', async () => {
+    type Api = { __GAME_API__: { busy(): boolean } };
+    await page.evaluate(() => {
+      const w = window as unknown as { starts: { busy: boolean }[] } & Api;
+      w.starts = [];
+      for (const C of [OscillatorNode, AudioBufferSourceNode]) {
+        const start = C.prototype.start;
+        C.prototype.start = function (this: AudioScheduledSourceNode, when?: number) { w.starts.push({ busy: w.__GAME_API__.busy() }); return start.call(this, when); };
+      }
+    });
+    await turn('look around', 1);
+    await turn('look around', 2);
+    expect(await page.evaluate(() => (window as unknown as { starts: { busy: boolean }[] }).starts.filter((x) => x.busy).length)).toBe(0);
+    const sw = page.getByRole('button', { name: /Sound/ });
+    expect(await sw.getAttribute('aria-pressed')).toBe('true');
+    expect(await page.getByRole('slider', { name: 'Sound volume' }).count()).toBe(1);
+    await sw.click();
+    expect(await page.getByRole('slider', { name: 'Sound volume' }).count()).toBe(0);
+    const before = await page.evaluate(() => (window as unknown as { starts: unknown[] }).starts.length);
+    await page.getByRole('button', { name: /Sound/ }).click(); // turning it back on is the one click that may sound
+    await page.getByRole('button', { name: /Sound/ }).click();
+    await page.locator('nav').getByText('Character', { exact: true }).click();
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => (window as unknown as { starts: unknown[] }).starts.length)).toBeLessThanOrEqual(before + 1);
+    expect(errors).toEqual([]);
+  });
 
   it('BG-220: Back closes the full-screen Perks pop-up and stays on the Character page; closing it with ✕ leaves Back as it was', async () => {
     await nav('Character');

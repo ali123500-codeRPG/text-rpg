@@ -10,6 +10,7 @@ import { PK } from '../library/perkIds';
 import { hasPerk } from './perks';
 import { FATIGUE_LEVELS, type FatigueLevel } from '../scales';
 import { skillOpen } from './access';
+import { wornArmor } from './slots';
 
 /** raw Stamina (like Endurance for HP); a closed or dormant skill counts 0 */
 export function staminaSkill(a: Actor): number {
@@ -31,8 +32,6 @@ export function perkSleepMult(a: Actor, field: 'sleepNeed' | 'sleepClear'): numb
   const perks = getLibrary().perks;
   return a.core.perks.filter((p) => !p.dormant).reduce((m, p) => m * ((perks[p.perkId] as PerkDef | undefined)?.[field] ?? 1), 1);
 }
-/** SS3: the tier a run (a dash) pays: Forced March makes it Moderate */
-export const runEffort = (a: Actor) => (hasPerk(a, PK.forced_march) ? CONFIG.FORCED_MARCH_RUN_EFFORT : CONFIG.RUN_EFFORT);
 export const lineUsed = (a: Actor): number => Math.min(fatigueOf(a).line, lineMax(a));
 /** FT10: Spent: the bar is full and the actor awake; no action above Light until it is below full */
 export const isSpent = (a: Actor): boolean => fatigueLevel(a) === 'collapsed' && !a.asleep;
@@ -45,6 +44,6 @@ export function fatigueMods(a: Actor): Mod[] {
 export const fatigueShows = (l: FatigueLevel): boolean => FATIGUE_LEVELS.pos(l) >= FATIGUE_LEVELS.pos(CONFIG.FATIGUE_SHOWN_FROM);
 /** the weight of the armour the actor wears, if any */
 export function wornWeight(state: GameState | null, a: Actor): string | undefined {
-  const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(a.core.inventory);
   return worn ? itemDef(state, worn.itemId).armor?.weight : undefined;
 }

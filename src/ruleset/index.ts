@@ -3,7 +3,7 @@
 import { DU, RL } from '../library/tableIds';
 import { actionRow, actionSeconds } from './actionTime';
 import type {
-  Actor, AttackRequest, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
+  Actor, AttackRequest, NaturalArmor, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
@@ -30,6 +30,7 @@ import { augmentK, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
+import { wornArmor } from './slots';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, burdenParts, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
@@ -234,6 +235,9 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
 }
 
+/** AB20 (one equation with worn armor): natural armor stops ARMOR_FACTOR × the owner's effective Hide × its race's hide */
+export const naturalReduction = (state: GameState, a: Actor, n: NaturalArmor): number => CONFIG.ARMOR_FACTOR * effectiveSkill(state, a, SK.hide).value * n.hide;
+
 /** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the
  * mode's reach (both in metres) */
 export function rangeMod(dist: number, reach: number): number {
@@ -325,8 +329,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze
-  const wornArmor = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
-  const armor = wornArmor ? itemDef(state, wornArmor.itemId).armor : undefined;
+  const worn = wornArmor(D.core.inventory);
+  const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
   if (type === 'dodge' && armor?.weight === 'light' && hasPerk(D, PK.slip_the_blow) && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
@@ -395,7 +399,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const pierce = boostAdd(A, skill, 'armorPierce'); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
-    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
+    const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
+    for (const a of [armor, nat]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
@@ -439,7 +444,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   const hp = totalHp(state, T);
   const levelBefore = healthLevel(T);
   // armor pool on the struck part drains first; it never counts on the health track
-  const worn = T.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(T.core.inventory);
   const poolPts = worn ? itemDef(state, worn.itemId).armor?.pools?.[result.location] : undefined;
   if (worn && poolPts) {
     const left = ((worn.pools?.[result.location] ?? 100) / 100) * poolPts;

@@ -11,7 +11,7 @@ describe('minor gods and the divine minimum', () => {
   it('every god has a standing on GOD_RANKS, and the current gods are minor gods', () => {
     const gods = getLibrary().gods ?? {};
     for (const g of Object.values(gods)) expect(GOD_RANKS.has(g.rank), g.id).toBe(true);
-    expect([gods[GD.varo]?.rank, gods[GD.essences]?.rank]).toEqual(['minor', 'minor']);
+    expect([gods[GD.varo]?.rank, gods[GD.imbra]?.rank]).toEqual(['minor', 'minor']);
     expect(GOD_RANKS.name('minor')).toBe('Minor god');
   });
   it('mortals call every god a god: no in-world text says "minor god"', () => {

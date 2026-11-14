@@ -1,9 +1,12 @@
-// 91 Gear ops take time (AT11): picking up from the ground 4 s, stow 2 s, draw 1 s, swap 3 s; a draw and a blow fit one fight turn.
+// 91 Gear ops are instant and cost no strain (less realism; they took 1 to 4 s each under AT11): a turn of them still holds the blow.
 import { expect, it } from 'vitest';
 import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
+import { DU } from '../../src/library/tableIds';
+import { actionRow } from '../../src/ruleset/actionTime';
+import { lineUsed } from '../../src/ruleset/fatigue';
 
 const MAIN = new Set(['attack', 'wasted', 'equip', 'hold', 'speak', 'give', 'rest']);
 
@@ -17,7 +20,7 @@ it('91 Free gear ops', () => {
     action: { type: 'attack', target: 'patron_1', skill: SK.melee_light },
   }) });
   const mine = ev.filter((e) => e.actorId === 'player');
-  expect(mine.filter((e) => MAIN.has(e.kind))).toHaveLength(0); // 10 s of gear ops use the whole 6 s turn
+  expect(mine.some((e) => e.kind === 'attack')).toBe(true); // four gear ops take no time: the blow still comes
   const inv = Object.fromEntries(s.player.core.inventory.map((i) => [i.id, i.equippedIn]));
   expect(inv.dg2?.[0]).toMatch(/^grip:/);
   expect(inv.dg).toBeUndefined();
@@ -26,4 +29,14 @@ it('91 Free gear ops', () => {
   const ev2 = play(s, { intent: intent({ action: { type: 'equip', item: `player_${IT.gambeson}_3` } }) });
   expect(ev2.filter((e) => e.actorId === 'player' && MAIN.has(e.kind)).map((e) => e.kind)).toEqual(['equip']);
   expect(s.player.core.inventory.find((i) => i.id === `player_${IT.gambeson}_3`)!.equippedIn).toBeUndefined();
+});
+
+it('91 changing gear, armour included, costs no strain and no time', () => {
+  const s = makeVillage({ playerZone: 'tav_common' });
+  s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger });
+  const before = lineUsed(s.player);
+  play(s, { intent: intent({ gear: [{ op: 'stow', item: `player_${IT.round_shield}_2` }, { op: 'draw', item: 'dg' }] }) });
+  play(s, { intent: intent({ action: { type: 'equip', item: `player_${IT.gambeson}_3` } }) });
+  expect(lineUsed(s.player)).toBe(before);
+  for (const id of [DU.draw, DU.stow, DU.swap, DU.pick_up_ground, DU.from_pack, DU.armor_heavy_on, DU.armor_heavy_off]) expect(actionRow(id)).toMatchObject({ seconds: 0, effort: 'base' });
 });

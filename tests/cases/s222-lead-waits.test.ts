@@ -1,6 +1,8 @@
 // BF4 (BG-121): Marda said "follow me round to the kitchen", walked there and went straight back to her counter as the
 // player came in. A head_to walk an NPC makes leading someone (lead) waits at the end until they come, or
 // LEAD_WAIT_TURNS pass, before it goes back to its routine.
+import { DU } from '../../src/library/tableIds';
+import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
@@ -21,7 +23,7 @@ const setUp = () => {
 describe('BF4 a walk that leads someone waits for them', () => {
   it('waits LEAD_WAIT_S for someone who does not come, then goes back to its routine', () => {
     const { s, m } = setUp();
-    for (let i = 0; i < turnsFor(CONFIG.LEAD_WAIT_S, 60) - 1; i++) { play(s); expect(m.mind!.routine?.id).toBe('head_to'); expect(m.zone).toBe('tav_cellar'); }
+    for (let i = 0; i < turnsFor(CONFIG.LEAD_WAIT_S, actionRow(DU.action)!.seconds) - 1; i++) { play(s); expect(m.mind!.routine?.id).toBe('head_to'); expect(m.zone).toBe('tav_cellar'); }
     play(s);
     expect(m.mind!.routine?.id).not.toBe('head_to');
   });

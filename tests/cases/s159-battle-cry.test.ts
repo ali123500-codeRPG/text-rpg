@@ -11,7 +11,7 @@ import { PERK_MOVES } from '../../src/ruleset/perks';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
 import { buildPlayerView } from '../../src/views';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, GameState } from '../../src/types';
@@ -41,12 +41,12 @@ describe('159 Battle Cry', () => {
     expect(PERK_MOVES[PK.battle_cry]).toMatchObject({ free: false, perEngagement: 1, untargeted: true });
   });
 
-  it('needs no target, shows as an action in the Parser view and in Ideas', () => {
+  it('needs no target, shows as an action in the Parser view and in the action deck', () => {
     const { s } = setup();
     expect(perkMoveBlock(s, s.player, PK.battle_cry, null)).toBeNull();
     const pv = buildPlayerView(s);
     expect(pv.player.perkMoves?.find((m) => m.id === PK.battle_cry)).toMatchObject({ name: 'Battle Cry', action: true });
-    expect(ideas(pv).find((g) => g.group === 'Perks')?.items.some((i) => i.text === 'Let out a battle cry')).toBe(true);
+    expect(deck({ pv, s }).find((g) => g.group === 'perks')?.actions.some((a) => a.label === 'Let out a battle cry' && !a.steps.length)).toBe(true);
   });
 
   it('foes who hear it roll Resolve against Intimidation; allies take heart; it takes 1 s and the attack follows (AT11)', () => {

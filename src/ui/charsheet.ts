@@ -4,7 +4,7 @@ import type { Actor, GameState, HealthLevel, LogLine, PartState } from '../types
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
-import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
+import { partName, poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
 import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
@@ -307,7 +307,6 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
   const key = h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st))));
   return h('div', { class: 'bf' }, svg, out, key);
 }
-const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
 /** width of the side sheet bar's Unhurt section, in % of the bar */
 const UNHURT_SECTION = 12;
@@ -480,7 +479,6 @@ export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string
 export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   const level = shownLevel(healthLevel(p));
   const left = level === 'unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
-  const hw = heldWorn(s, p);
   return [
     h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, h('span', { 'data-m': 'hp-level' }, HEALTH_LEVELS.name(level)))),
     h('span', { class: 'cs-hptrack', 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
@@ -489,7 +487,17 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
     ...staminaBar(p, false),
     ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x),
     pressureChips(s, p),
-    h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? gearLine(s, p, true) : 'Nothing'),
+  ];
+}
+
+/** AD3: the short sheet under Who's here on Play: what is held and worn, coin, and the level with its XP bar (skills
+ *  live on the Character page) */
+export function shortSheet(s: GameState, p: Actor): HTMLElement[] {
+  const g = [...gearLine(s, p, true), ...gearLine(s, p, false)];
+  return [
+    h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, ...(g.length ? g.map((x, k) => (k && !x.textContent?.startsWith(' · ') ? [' · ', x] : x)) : ['Nothing']))),
+    h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', {}, h('span', { 'data-m': 'coin' }, coinWords(coins(p))))),
+    ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
   ];
 }
 

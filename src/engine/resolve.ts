@@ -7,11 +7,11 @@ import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
 import { CP, DU, FR, HL, RL } from '../library/tableIds';
 import { passiveFatigue, payMove, payRow, payStrain, restRecover, sleepMinutes, tooSpent } from './fatigue';
-import { runEffort } from '../ruleset/fatigue';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
+import { freeGrips, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
@@ -38,7 +38,7 @@ import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
-import { countPerkMove, freeGrips, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { countPerkMove, hasFreeGrip, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -63,17 +63,18 @@ import { cantExtract, extractEssence } from './extract';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
-import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, truceBars, type StoodDown, type TalkedYield } from './offer';
+import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
 import type { ExchangeSpeech, TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
-import { met } from '../ruleset/hits';
+import { met, struck } from '../ruleset/hits';
 import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
+import { wornArmor } from '../ruleset/slots';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
@@ -96,7 +97,7 @@ export function isMajorAction(_event: GameEvent): boolean {
 
 /** AT19/AT20: an actor's move and main time left this turn, in seconds (two pools side by side), what of each carried in from
  * its last turn, and the seconds it has walked */
-type Slots = { move: number; main: number; carried: { move: number; main: number }; walkedS: number; arrived?: boolean };
+type Slots = { move: number; main: number; carried: { move: number; main: number }; walkedS: number; arrived?: boolean; carryIn: NonNullable<Actor['carry']> };
 const T_EPS = 1e-6;
 /** AT50: the round (ROUND_S) the action resolving now falls in, for once-a-round limits; keyed per actor */
 const roundKey = (ctx: Ctx, id: string): string => `${id}@${Math.max(0, Math.ceil(ctx.at / CONFIG.ROUND_S - T_EPS) - 1)}`;
@@ -104,8 +105,9 @@ const roundKey = (ctx: Ctx, id: string): string => `${id}@${Math.max(0, Math.cei
 const slotsOf = (ctx: Ctx, a: Actor): Slots => {
   let s = ctx.slots.get(a.id);
   if (!s) {
-    const c = a.carry && a.carry.turn === ctx.state.turn - 1 ? a.carry : undefined;
-    s = { move: ctx.turnS + (c?.move ?? 0), main: ctx.turnS + (c?.main ?? 0), carried: { move: c?.move ?? 0, main: c?.main ?? 0 }, walkedS: 0 };
+    const carryIn = (a.carry ?? []).filter((c) => ctx.state.turn - c.turn <= CONFIG.CARRY_TURNS); // TP4: oldest first
+    const c = { move: carryIn.reduce((n, x) => n + x.move, 0), main: carryIn.reduce((n, x) => n + x.main, 0) };
+    s = { move: ctx.turnS + c.move, main: ctx.turnS + c.main, carried: c, walkedS: 0, carryIn };
     ctx.slots.set(a.id, s);
   }
   return s;
@@ -188,7 +190,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
-    case 'hide': return of(DU.hide);
+    case 'vanish': return of(DU.vanish_in_place); // A19 Melt Away: the only Vanish left after setPosture
     case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
@@ -199,6 +201,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
     }
     default:
+      // TP6 c: in a fight plain talk is no action (its time stays and carries); words that use a skill (persuade, lie,
+      // threaten, haggle) take their words' time
+      if (o.type === 'talk' && state.mode === 'tactical') return { row: actionRow(DU.talk)!, seconds: 0 };
       if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row) * o.line.text.trim().split(/\s+/).length }; }
       return undefined;
   }
@@ -255,7 +260,7 @@ function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): G
  * a Stealthy move is one step quieter */
 function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): NoiseKey {
   if (!BODY_MOVING.has(kind)) return noise;
-  const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const worn = wornArmor(a.core.inventory);
   const w = worn && itemDef(state, worn.itemId).armor?.weight;
   const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
   const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, PK.soft_tread) ? 1 : 0;
@@ -405,6 +410,26 @@ function struckSeen(ctx: Ctx, t: Actor, ev: GameEvent, before: { lost: number; a
   return s.perception;
 }
 
+/** BG-251: a shot or throw, hit or miss, sounds where it lands: an 'impact' event by its target, at its spot, loud on armour
+ * (the part hit is covered), a shield or a hard surface (a miss indoors), quieter on flesh or soft ground (a miss outdoors)
+ * (CONFIG.IMPACT_NOISE). Those it reaches that the shot itself didn't are alarmed (updateAlarms) and startled; the
+ * missed target notices it here. It shows where it landed, never where it came from. */
+function landImpact(ctx: Ctx, t: Actor, ev: GameEvent, res: AttackResult, struckBy: GameEvent['perception']): void {
+  const { state } = ctx;
+  const worn = wornArmor(t.core.inventory);
+  const armored = !!res.location && !!worn && !!itemDef(state, worn.itemId).armor?.covers.includes(res.location);
+  const hit = struck(res.outcome);
+  const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || !zoneById(state, t.zone)?.outdoor); // blocked or parried: on a shield or weapon
+  const kind = hard ? 'hard' as const : 'soft' as const;
+  const s = mk(ctx, t, 'impact', { impact: kind, noise: CONFIG.IMPACT_NOISE[kind], visibility: 'normal', ...(ev.spar ? { spar: true as const } : {}) });
+  s.perception = computePerception(s, state, ctx.rng);
+  for (const id of Object.keys(ev.perception)) delete s.perception[id]; // they perceived the shot itself
+  if (struckBy[t.id]) delete s.perception[t.id]; // the target felt the hit (a bystander who saw it may still hear it land)
+  if (!Object.keys(s.perception).length) return;
+  emit(ctx, s, undefined, true);
+  for (const id of Object.keys(s.perception)) { const mm = actorById(state, id)?.mind; if (mm) mm.startled = state.turn; }
+}
+
 /** BF65: someone who comes upon a body it did not see fall finds it, once per body: alarm (updateAlarms), a Planner call
  * to react, and the bandmate fear when it is one of its own. One that saw it fall already knows of it. */
 function findBodies(ctx: Ctx): void {
@@ -522,7 +547,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
 function roundShut(state: GameState, a: Actor, goal: string): { way: string; shut: 'blocked' | 'barred' | 'locked' } | undefined {
   const l = zoneById(state, a.zone)?.links.find((x) => x.to === goal), b = barrierOn(state, l);
   if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || wayPath(state, a.zone, goal, a)?.[0] === goal) return undefined;
-  return { way: l.label, shut: shutBy(b, a, a.zone) };
+  return { way: l.label, shut: shutBy(b, a.zone) };
 }
 
 /** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding) */
@@ -543,7 +568,7 @@ function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhea
   if (g.pass === 'shut') noteTried(g.b, a);
   const way = (d: WayDid, i: number) => { const ev = mk(ctx, a, 'way', { target: g.to, way: { to: g.to, barrier: g.b.id, did: d } }); return withLine && i === 0 ? bark(ev, withLine) : ev; };
   if (did.length) did.forEach((d, i) => emit(ctx, way(d, i)));
-  else emit(ctx, way(`found_${shutBy(g.b, a, a.zone)}` as WayDid, 0));
+  else emit(ctx, way(`found_${shutBy(g.b, a.zone)}` as WayDid, 0));
   return 'spent';
 }
 
@@ -601,7 +626,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
       paid = slot(n++);
       if (!paid) return true;
       if (paid.paid === 'main' && lame(state, a)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' }); return true; }
-      if (paid.paid === 'main' && tooSpent(a, runEffort(a))) { logCode(state, 'dash_blocked', { actorId: a.id, reason: 'spent' }); slotsOf(ctx, a).main += paid.seconds; paid = null; return true; } // FT10: no run, its time kept
+      if (paid.paid === 'main' && tooSpent(a, CONFIG.RUN_EFFORT)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: 'spent' }); slotsOf(ctx, a).main += paid.seconds; paid = null; return true; } // FT10: no run, its time kept
       perS = slotMetres(state, a, paid.paid, 1);
       left = perS * paid.seconds;
       fresh = true;
@@ -620,8 +645,22 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
   }
 }
 
-/** TP2: why a planned deed can no longer happen (its target is gone or out of reach), as against a choice that holds it back */
-const STALE_REASONS = ['no_target', 'already_dead', 'out_of_reach', 'no_room'];
+/** TP2/TP3: why a planned deed can no longer happen (its target or thing is gone, dead, down or out of reach), as against a
+ * choice that holds it back (a yield, a truce) or a try that was really made (a miss, a refusal) */
+const STALE_REASONS = ['no_target', 'already_dead', 'already_down', 'out_of_reach', 'no_room', 'no_item', 'no_container', 'no_lock', 'not_locked', 'already_open'];
+
+/** TP3: an action that could not happen (all the actor did with it was a wasted event for a STALE_REASONS reason) spends none
+ * of its time: its main time, the move time it locked and its clock come back, and what is left carries (TP4) */
+function giveBack(ctx: Ctx, a: Actor, before: { main: number; move: number; clock: number }, from: number): void {
+  const mine = ctx.events.slice(from).filter((e) => e.actorId === a.id && e.kind !== 'move');
+  if (!mine.length || !mine.every((e) => e.kind === 'wasted' && STALE_REASONS.includes(e.reason ?? ''))) return;
+  const s = slotsOf(ctx, a);
+  s.main = Math.max(s.main, before.main);
+  s.move = Math.max(s.move, before.move);
+  ctx.clock.set(a.id, Math.min(ctx.clock.get(a.id) ?? 0, before.clock));
+  ctx.finished.add(a.id);
+  ctx.stopped.add(a.id); // no repeat of what could not happen
+}
 
 function dropped(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
@@ -630,6 +669,7 @@ function dropped(ctx: Ctx, a: Actor, o: Order): void {
     const f = fallbackOrder(buildActorView(state, a.id), ctx.rng);
     const near = reachOf(state, a, f); // TP2: the move time left closes in on the new target, as any blow's would (ZP3)
     if (near && !near.ok()) closeInOn(ctx, a, f, near);
+    if (f.type === 'attack' && near && !near.ok() && runOn(ctx, a, f, near)) { const line = f.line ?? o.line; if (line) hold(ctx, a, { ...f, line }); return; } // BG-255: words said where the run ends
     return doMain(ctx, a, { ...f, line: f.line ?? o.line });
   }
   hold(ctx, a, o);
@@ -668,6 +708,8 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const line = o.line?.text?.trim() ? o.line : undefined;
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, ...(line ? { line } : {}), noise: VOLUME_NOISE[line?.volume ?? 'normal'] });
   if (a.kind === 'player') ev.speech = { skill: speechSkillOf(o.type), addressees: o.addressees ?? [] };
+  // NV5: words aimed at a creature that cannot understand them (a slime, a beast): the story says it does not understand
+  if (a.kind === 'player') for (const id of new Set([o.target, ...(o.addressees ?? [])])) { const x = id ? actorById(state, id) : undefined; if (x && x !== a && isActive(x) && !speaks(x)) ev.effects.push({ kind: 'not_understood', actorId: x.id, data: {} }); }
   // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers.
   // NL1/NL2: a lie at another NPC rolls the same way (D-155: other speech at NPCs stays banked)
   const p = state.player;
@@ -789,8 +831,11 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (m.mode.thrown && dropToGround(state, a, m.itemId, t.zone, t.pos)) { // it lands where they stand, hit or miss
     ev.effects.push({ kind: 'item_landed', actorId: a.id, data: { itemId: m.itemId, zone: t.zone } });
   }
+  if (m.mode.tree === 'ranged') ev.ranged = true; // BG-251
   emit(ctx, ev, res, true);
-  const seenBy = { ...struckSeen(ctx, t, ev, before), ...ev.perception }; // BF65
+  const struckBy = struckSeen(ctx, t, ev, before);
+  if (ev.ranged) landImpact(ctx, t, ev, res, struckBy); // BG-251
+  const seenBy = { ...struckBy, ...ev.perception }; // BF65
   // Destroyed arm drops what it held: ruleset.applyEffects moves the item; each drop is its own perceived event
   for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
   // morale (MB21–MB23): a new health level a health fear covers; bandmates who perceive a fall; the one who downed it
@@ -805,13 +850,13 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   }
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
-    && isActive(t) && freeHand(state, a)) {
+    && isActive(t) && hasFreeGrip(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
     if (fist && withinM(sightDistM(state, a, t), fist.mode.reach)) { ctx.oneTwo = true; doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true); }
   }
   // AT79 Flurry: every unarmed strike thrown with two Grip parts free, hit or miss, brings one free strike at the same target
   // at once (no time, no action). Its own free strike never sets it off again; One-Two's free punch does
-  if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a) >= 2
+  if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a).length >= 2
     && withinM(sightDistM(state, a, t), m.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: m.itemId, mode: m.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, followUp, true);
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
   parryStrike(ctx, a, t, res);
@@ -894,7 +939,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   // T6a Strike and Fade: right after an attack from hiding, a free Vanishing roll in place
   if (fromHiding && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
     if (a.posture !== 'stealthy') { a.posture = 'stealthy'; stealthStart(state, a); }
-    const ev = mk(ctx, a, 'hide', { vanish: true });
+    const ev = mk(ctx, a, 'vanish', { vanish: true });
     ev.effects.push({ kind: PK.strike_and_fade, actorId: a.id, data: {} });
     emit(ctx, ev);
   }
@@ -1290,7 +1335,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   if (link) {
     const b = barrierOn(state, link), pass = b ? passage(b, a, a.zone) : 'open';
     if (b && pass === 'shut') noteTried(b, a);
-    ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a, a.zone)}` as WayDid) };
+    ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a.zone)}` as WayDid) };
   }
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
     // Q17/SE15: looking is a sight (or hearing) roll with light only, no scene number; Success or better shows everyone in sight clearly
@@ -1385,7 +1430,7 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
   // BG-70: opening a way shut to them is trying it: the move slot goes on it and they learn why it won't open
   if (dryWhy === 'shut' && b && useWayTime(ctx, a, w.op, mainToo)) {
     noteTried(b, a);
-    emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: `found_${shutBy(b, a, a.zone)}` as WayDid } }));
+    emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: `found_${shutBy(b, a.zone)}` as WayDid } }));
     return true;
   }
   const why = dryWhy ?? (!useWayTime(ctx, a, w.op, mainToo) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
@@ -1631,9 +1676,9 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
       return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
     }
-    case 'hide':
-      // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
-      return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));
+    case 'vanish':
+      // A19 Melt Away: a Vanish in place is a Vanishing contest per observer (stealthDetect)
+      return emit(ctx, bark(mk(ctx, a, 'vanish', { vanish: true }), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -1759,7 +1804,8 @@ function step(ctx: Ctx, id: string): void {
     if (g2.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g2.invalid, reason: 'out_of_reach' });
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
-  // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting)
+  // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting); BG-253: nor
+  // after words said at the turn's start
   const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > M_EPS);
   // AT48: the main action finishes after the walk that led to it and the gear ops before it
   const pools = slotsOf(ctx, a);
@@ -1779,7 +1825,10 @@ function step(ctx: Ctx, id: string): void {
     cost = long;
   }
   ctx.at = (ctx.clock.get(id) ?? 0) + Math.min(cost?.seconds ?? pools.main, pools.main);
-  if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && moved && !o.line)) doMain(ctx, a, o);
+  const before = { main: pools.main, move: pools.move, clock: ctx.clock.get(id) ?? 0 }, evFrom = ctx.events.length;
+  // BG-255 (NV9 b): a blow the close-in walk left out of reach runs on at the target instead (runOn), and comes next turn
+  if (o.type === 'attack' && !ctx.spoke.has(id) && closeIn && !o.way && near && !near.ok() && runOn(ctx, a, o, near, behind)) { if (o.line) emit(ctx, bark(mk(ctx, a, 'hold'), o)); if (o.moveAfter && !turned) move(false); return; }
+  if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && !o.line && (moved || ctx.events.some((e) => e.actorId === id && e.kind === 'hold' && !!e.line)))) { doMain(ctx, a, o); giveBack(ctx, a, before, evFrom); }
   if (o.moveAfter && !turned) move(false); // AE3: act, then move
 }
 
@@ -1897,15 +1946,19 @@ function repeatAttacks(ctx: Ctx, ordered: string[]): void {
     if (near && !near.ok()) closeInOn(ctx, a, o, near);
     if (near && !near.ok()) { ctx.stopped.add(a.id); continue; }
     ctx.at = at;
+    const before = { main: slotsOf(ctx, a).main, move: slotsOf(ctx, a).move, clock: ctx.clock.get(a.id) ?? 0 };
     useMain(ctx, a, cost);
     const from = ctx.events.length;
     doAttack(ctx, a, { ...o, move: null, line: null, gear: [] });
+    giveBack(ctx, a, before, from);
     if (ctx.events.slice(from).some((e) => e.actorId === a.id && e.kind === 'wasted')) ctx.stopped.add(a.id);
   }
 }
 
-/** AT20: each pool keeps, for the next turn only, what was left after the actor's last finished action, less any time it
- * carried in and left unused; a hold, a wait and a turn where nothing finished carry nothing. In a fight only. */
+/** AT20/TP4: each pool keeps what was left after the actor's last finished action (or given back, TP3) for CARRY_TURNS
+ * turns: time carried in is spent oldest first, what is left of it carries on until it is too old, and each pool holds at
+ * most CARRY_MAX_TURNS fight turns (the oldest goes first); a hold, a wait and a turn where nothing finished carry nothing
+ * new. In a fight only. */
 function noteCarry(ctx: Ctx): void {
   const { state } = ctx;
   for (const [id, s] of ctx.slots) {
@@ -1913,12 +1966,18 @@ function noteCarry(ctx: Ctx): void {
     if (!a) continue;
     delete a.carry;
     if (state.mode !== 'tactical' || !o || ['hold', 'idle', 'wait', 'sleep', 'rest'].includes(o.type)) continue;
-    const keep = (pool: 'main' | 'move', done: boolean) => {
-      const left = pool === 'main' ? mainLeft(ctx, a) : s.move, used = ctx.turnS + s.carried[pool] - left;
-      return done ? Math.max(0, left - Math.max(0, s.carried[pool] - used)) : 0;
-    };
-    const carry = { main: keep('main', ctx.finished.has(id)), move: keep('move', !!s.arrived), turn: state.turn };
-    if (carry.main > T_EPS || carry.move > T_EPS) a.carry = carry;
+    const chunks = [...s.carryIn.map((c) => ({ ...c })), { main: 0, move: 0, turn: state.turn }];
+    for (const [pool, done] of [['main', ctx.finished.has(id)], ['move', !!s.arrived]] as const) {
+      const left = pool === 'main' ? mainLeft(ctx, a) : s.move;
+      let used = ctx.turnS + s.carried[pool] - left;
+      for (const c of chunks) { const take = Math.min(c[pool], Math.max(0, used)); c[pool] -= take; used -= take; }
+      const kept = chunks.reduce((n, c) => n + c[pool], 0);
+      chunks[chunks.length - 1][pool] = done ? Math.max(0, left - kept) : 0;
+      let over = chunks.reduce((n, c) => n + c[pool], 0) - CONFIG.CARRY_MAX_TURNS * CONFIG.FIGHT_TURN_S;
+      for (const c of chunks) { const cut = Math.min(c[pool], Math.max(0, over)); c[pool] -= cut; over -= cut; }
+    }
+    const carry = chunks.filter((c) => state.turn + 1 - c.turn <= CONFIG.CARRY_TURNS && (c.main > T_EPS || c.move > T_EPS));
+    if (carry.length) a.carry = carry;
   }
 }
 
@@ -1929,7 +1988,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
   const trip = travel(state, a, t.goal, o, ctx.rng);
   for (const id of [a.id, ...trip.companions]) noteWalked(state, { id } as Actor, Infinity); // NW11: they spent the turn on the road
   if (a.zone !== trip.fromZone) noteLeft(state, trip.fromZone);
-  const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), pace: trip.pace, night: trip.night, stop: trip.stop, companions: trip.companions };
+  const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), night: trip.night, stop: trip.stop, companions: trip.companions };
   logCode(state, 'travelled', { actorId: a.id, ...detail });
   if (trip.minutes > 0) logCode(state, 'time_passed', { actorId: a.id, minutes: trip.minutes, travel: true });
   emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
@@ -2011,12 +2070,30 @@ const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUp
 
 /** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
  * from the actor's zone it is reached over from the actor's side of it (BG-62), unless the actor goes behind it (BG-183) */
-function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false): void {
+function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false, dash = false): void {
   const { state } = ctx;
   const over = !behind && near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
   const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
   const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
-  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
+  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, dash) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
+}
+
+/** BG-255 (NV9 b): a melee blow still out of reach after the close-in walk is not swung at nothing: the actor runs on at
+ * the target on its main time exactly as a dash does (AE2, useMoveSlot: same pools, same clock), and strikes next turn.
+ * Only the seconds run are spent (AT19), and nothing more is done this turn. False when the run gets no nearer (no way there): the blow is
+ * then lost as before (doAttack says why). */
+function runOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false): boolean {
+  const { state } = ctx;
+  const t = o.target ? actorById(state, o.target) : undefined;
+  if (!t || slotsOf(ctx, a).main <= T_EPS) return false;
+  const from = sightDistM(state, a, t);
+  closeInOn(ctx, a, o, near, behind, true); // the move slot is spent, so this runs on the main time
+  const ran = sightDistM(state, a, t) < from - M_EPS;
+  if (!ran) return false;
+  ctx.clock.set(a.id, Math.max(ctx.clock.get(a.id) ?? 0, slotsOf(ctx, a).walkedS));
+  ctx.stopped.add(a.id); // no second blow this turn (repeatAttacks)
+  logCode(state, 'ran_on', { actorId: a.id, target: t.id });
+  return true;
 }
 
 /** BF12: handing something across a way (bars, a grate, a doorway): the giver holds it out there, and the one it is for, if
@@ -2077,15 +2154,15 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 /** AE2: no running (the move role switched off by the shared-role rule, CS8) stops a dash, and so does Leg Bolt's slow (A6) */
 const lame = (state: GameState, a: Actor) => slowed(state, a) || roleOff(state, a, RL.move);
 
-/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
- * Vanish is the turn's move, contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
+/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a
+ * Vanish is the turn's move (in place, with Melt Away, the main action), contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
  * vanish names the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
  * following the player copies the player's posture (NS9). */
 function setPosture(state: GameState, a: Actor, o: Order): void {
   const was = a.posture ?? 'open';
   const npc = a !== state.player;
   const goTo = npc && o.target && o.target !== a.zone && zoneById(state, o.target) ? o.target : null;
-  if (o.type === 'sneak' || o.type === 'vanish') {
+  if (o.type === 'sneak' || (o.type === 'vanish' && !o.vanish)) {
     a.posture = 'stealthy';
     if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
     // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
@@ -2093,9 +2170,8 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
     // LR3 Blind Spot: with a foe's sight spoiled by Dirt in the Eyes, Melt Away needs no cover or shade
     const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, PK.melt_away) && !!zone && (blindSpotNow(state, a) || meltAwayHere(zone.cover, zoneLight(state, zone)));
     if (inPlace) o.vanish = true;
-    o.type = inPlace ? 'hide' : goTo ? 'move' : 'hold';
+    o.type = inPlace ? 'vanish' : goTo ? 'move' : 'hold';
   }
-  if (o.type === 'hide') a.posture = 'stealthy';
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
   if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';
   if (npc && r?.kind === 'follow' && a.bandId === state.player.bandId) a.posture = state.player.posture ?? 'open';
@@ -2129,7 +2205,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
     if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a)) continue;
     const d = desiredState(buildActorView(state, a.id));
     if (!d || d.zone === a.zone) continue;
-    let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
+    let left = travelSpeed(state, a) * minutes * 60 - (walked[a.id] ?? 0);
     const start = a.zone;
     for (let i = 0; i < 100 && left > M_EPS && a.zone !== d.zone; i++) {
       const gate = gateAhead(state, a, d.zone);
@@ -2288,6 +2364,14 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const d of answerOffers(state, usableAgentOutputs(input))) emitStandDown(ctx, d);
   if (input.intent?.standDown) { const d = answerOffer(state, state.player, input.intent.standDown, false); if (d) emitStandDown(ctx, d); }
 
+  // BG-253: an NPC's words beside its action were picked at the turn's start, so they are said as its turn starts, before
+  // anyone's step changes what they are about; words kept for after a walk, and a late starter's (AT58), stay at its step
+  for (const id of ordered) {
+    const o = orders.get(id), a = actorById(state, id);
+    if (!o?.line || !a || a === state.player || !isActive(a) || isSpeech(o.type) || init.delay.has(id) || (o.move && !o.moveAfter && !o.wordsFirst)) continue;
+    emit(ctx, bark(mk(ctx, a, 'hold'), o));
+    o.line = null;
+  }
   // NW12: the player's wait or sleep goes last, so everyone has acted on this turn's orders before the clock moves on
   const skipsTime = (id: string) => id === state.player.id && ['wait', 'sleep'].includes(orders.get(id)?.type ?? '');
   for (const id of ordered) if (!ctx.acted.has(id) && !skipsTime(id)) step(ctx, id);
@@ -2420,7 +2504,7 @@ function playerDown(state: GameState, rng: Rng): void {
 /** D-54/D-239: the downed player lives: wakes somewhere safe at Critical, in the next scenario */
 function wakeUp(state: GameState, code?: string): void {
   if (code) logCode(state, code, {});
-  state.player.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
+  state.player.core.condition.hpLostPct = levelMaxPct('critical');
   state.stage.breakCause = 'knocked_out';
 }
 

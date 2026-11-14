@@ -9,7 +9,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 
 export type Volume = 'whisper' | 'normal' | 'shout';
 /** every action the Parser can give (schema and completeness tests read this list) */
-export const PARSER_ACTIONS = ['attack', 'hide', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate',
+export const PARSER_ACTIONS = ['attack', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate',
   'use_item', 'equip', 'give', 'take', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'break', 'restrain', 'filch', 'steady', 'show', 'extract'] as const; // extract: DX3, pull out the essence of someone helpless (a blessing); break: BF31, force a locked container open; show: BF16, turn out your own pockets; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
 export type ParserActionType = (typeof PARSER_ACTIONS)[number];
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
@@ -23,9 +23,9 @@ export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
  * id) or at a way out (`near` a link's zone id); the far side `awayFrom` someone or a way out; or the `side` a compass word
  * names ("north", "south-west"). lastSeen (BG-125, code-set): near someone the player cannot see now, at the point they
  * last perceived them */
-export type MoveSpot = { near?: string; awayFrom?: string; side?: string; lastSeen?: true; follow?: boolean; keep?: number | 'melee' | 'range' }; // keep: BF35, a follow's distance in metres, or striking reach (melee) or 80% of the ranged weapon's reach (range) // follow: BG-190, keep after the one near names
+export type MoveSpot = { near?: string; awayFrom?: string; side?: string; lastSeen?: true; follow?: boolean; keep?: number | 'melee' | 'range'; at?: { x: number; y: number } }; // at: AD16, an exact point (metres, the zone's frame, as Actor.pos) picked on the minimap; only code sets it, never the Parser // keep: BF35, a follow's distance in metres, or striking reach (melee) or 80% of the ranged weapon's reach (range) // follow: BG-190, keep after the one near names
 export type Intent = {
-  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62/BG-158, the player crosses a counter, fence or rail (going behind it or coming out); after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
+  move: { toZone: string; after?: boolean; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62/BG-158, the player crosses a counter, fence or rail (going behind it or coming out); after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {
     type: ParserActionType;
     skill: string;
@@ -63,7 +63,7 @@ export type Intent = {
 
 // ---- Agent Planner / Responder / Voice ----
 /** every action an NPC order can give (schema and completeness tests read this list) */
-export const NPC_ACTIONS = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee',
+export const NPC_ACTIONS = ['attack', 'move', 'search', 'sneak', 'vanish', 'hold', 'call_help', 'flee',
   'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'take', 'pick', 'open', 'filch', 'steady', 'show', 'other'] as const; // show: BF16; // open: BG-173, a container (CT3); filch: FL7
 export type NpcActionType = (typeof NPC_ACTIONS)[number];
 export type NpcAction = {

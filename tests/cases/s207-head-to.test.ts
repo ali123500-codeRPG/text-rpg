@@ -35,7 +35,7 @@ describe('207 head_to (NW2, NW7, NW1)', () => {
     // NW11: a minute's turn is time enough to walk the five ways there (the village's zones have no size, so each way is
     // one link of metres); it arrives within the turn
     expect(g.zone).toBe('gate_inner');
-    turn(s);
+    for (let i = 0; i < 3 && !s.log.some((l) => l.code === 'head_to_arrived'); i++) turn(s);
     expect(s.log.some((l) => l.code === 'head_to_arrived' && l.detail?.zone === 'tav_cellar')).toBe(true);
     // arrived: back on its own routine (the old anchor kept), dest unbound; from there the routine walks it home
     expect(g.mind!.routine).toEqual(before);

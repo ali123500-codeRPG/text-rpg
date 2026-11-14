@@ -1,5 +1,5 @@
-// 49 Deed instead of a reply: an addressed Responder attacks instead of answering: no line is spoken,
-// and the attack resolves at its own initiative.
+// 49 Deed instead of a reply: an addressed Responder attacks instead of answering: no line is spoken as a reply,
+// and the attack resolves at its own initiative (its words, a bark, come as its turn starts: BG-253).
 import { afterEach, expect, it, vi } from 'vitest';
 import { actor, beside, createRng, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
@@ -26,7 +26,10 @@ it('49 Deed instead of a reply', () => {
   const ev = play(s, { intent: i, spokespeople, exchange, agentOutputs: [reply] });
   expect(ev[0]).toMatchObject({ actorId: 'player', kind: 'speak' });
   expect(ev.filter((e) => e.actorId === 'trader' && e.kind === 'speak')).toEqual([]);
-  const deed = ev.findIndex((e) => e.actorId === 'trader');
-  expect(ev[deed]).toMatchObject({ kind: 'attack', target: 'player', bark: true });
+  // BG-253: the words beside the deed are said as the trader's turn starts, right after the player's; the blow keeps its initiative
+  expect(ev[1]).toMatchObject({ actorId: 'trader', kind: 'hold', bark: true, line: { text: 'Mind your business!' } });
+  const deed = ev.findIndex((e) => e.actorId === 'trader' && e.kind === 'attack');
+  expect(ev[deed]).toMatchObject({ target: 'player' });
+  expect(ev[deed].line).toBeUndefined();
   expect(ev.slice(deed + 1).some((e) => e.actorId !== 'trader' && e.kind !== 'move')).toBe(false); // lowest initiative: last (BF2: only end-of-turn catch-up walks follow)
 });

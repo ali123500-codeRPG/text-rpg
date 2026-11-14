@@ -75,6 +75,12 @@ export type Barrier = {
 /** a zone's four sides, by map compass */
 export type Side = 'n' | 'e' | 's' | 'w';
 export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
+/** the side across from each side */
+export const OPP_SIDE: Readonly<Record<Side, Side>> = { n: 's', s: 'n', e: 'w', w: 'e' };
+/** one step toward each side on a grid whose y runs north (a region's gx, gy) */
+export const SIDE_STEP: Readonly<Record<Side, readonly [number, number]>> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] };
+/** each side's compass word */
+export const SIDE_WORD: Readonly<Record<Side, string>> = { n: 'north', e: 'east', s: 'south', w: 'west' };
 /** a zone's rectangle in metres: centre x east, y north of the story's first zone; w east-west, d north-south */
 export type Rect = { x: number; y: number; w: number; d: number };
 
@@ -145,7 +151,6 @@ export type Zone = {
   edges?: Partial<Record<Side, string>>;
   /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
   aspect?: number;
-  /** HB3 how loud it is anyway, when not its kind's (a tavern's busy common room) */
   /** FR1/FR2: its furniture (the kind's defaults, a layout's, or the Weaver's own list) */
   furniture?: Furniture[];
   /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */
@@ -191,6 +196,8 @@ export type GameEvent = {
   visibility: VisibilityKey;
   perception: Record<string, { level: Perception; cue: Cue; heard?: true }>; // absent = not perceived; heard = the sound reached them (words need it)
   spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
+  ranged?: true; // BG-251: a shot or throw: its target feels it only when it meets them (blocked or past); an impact sounds where it lands
+  impact?: 'hard' | 'soft'; // BG-251: an impact event: what the missile struck (armour, a shield, a hard surface; or flesh, soft ground)
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: import('./agents').Volume; to?: string }; // to (BG-132): who a reply's words are for

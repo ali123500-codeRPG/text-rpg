@@ -1,6 +1,6 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, ContestResult, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
+import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
 import { TIERS } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { hiddenFrom } from '../engine/gear';
@@ -138,9 +138,9 @@ export function isCalm(state: GameState, a: Actor): boolean {
   return !isEngaged(state, a) && !alarm?.armed && secondsSince(state, last) >= CONFIG.DECAY_AWARE_S;
 }
 
-const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body']);
-/** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body */
-const SELF_ALARM = new Set(['struck', 'found_body']);
+const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body', 'impact']);
+/** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body; BG-251: the one a missile lands by */
+const SELF_ALARM = new Set(['struck', 'found_body', 'impact']);
 
 /** onAlert once (queued as onAlertDue), switch to the alert variant anchored now, save returnTo. */
 export function raiseAlarm(state: GameState, a: Actor): void {
@@ -212,14 +212,16 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
 /** ST2: Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
 export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? SK.combat_stealth : SK.sneaking);
 
-type Sense = typeof FN.sight | typeof FN.hearing;
-/** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; a Hide adds the hide
- * tag and ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
+type Sense = typeof FN.sight | typeof FN.hearing | typeof FN.smell;
+/** the sense a perception cue rolls (a stealth contest, an ambush): smell rolls Scent (AB18), sound hearing, else sight */
+const cueSense = (cue: Cue | undefined): Sense => (cue === 'sound' ? FN.hearing : cue === 'smell' ? FN.smell : FN.sight);
+/** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
+ * (a Vanish in place, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
-function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, hide: boolean) {
+function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean) {
   const zone = zoneById(state, s.zone);
   const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {};
-  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}), ...hushed };
+  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */
 function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined) {
@@ -239,17 +241,17 @@ const pairKey = (s: Actor, a: Actor) => (s.kind === 'player' ? a.id : `${s.id}>$
  * like any other (NS3); NPCs contest each other too (NS5). Observer wins: aware. Tie: an unaware observer turns suspicious. A Vanish (a move) is contested
  * with Vanishing by everyone, those who see the actor included: one who loses it drops to suspicious at the zone the actor
  * left (ST15); for the rest it counts as a passed stealth check (ST16). A shot's target that loses still turns suspicious,
- * at the shooter's zone (ST19). Light and cover reach the rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); a hide
- * ignores leg wounds (ST10). With Unblinking, an observer who loses a Vanish must also lose a Sneaking or Combat Stealth
+ * at the shooter's zone (ST19). Light and cover reach the rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); a Vanish
+ * in place ignores leg wounds (ST10). With Unblinking, an observer who loses a Vanish must also lose a Sneaking or Combat Stealth
  * contest (ST23). */
 export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
   const s = actorById(state, event.actorId);
   if (!s) return;
-  const hide = event.kind === 'hide';
+  const still = event.kind === 'vanish'; // a Vanish in place; a Vanish by a link is a move
   const vanish = !!event.vanish;
   const zone = zoneById(state, s.zone);
   const skill = vanish ? SK.vanishing : stealthSkill(s, event);
-  const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, hide);
+  const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, still);
   const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone);
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const done = contestedThisTurn(state);
@@ -259,10 +261,10 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a) || done.ids.includes(key)) continue;
     const cur = beliefStatus(state, a, s);
     const sees = atLeast(cur, 'aware');
-    if (sees && !vanish) continue; // ST12: Hide and Sneak never shake off someone who sees you
+    if (sees && !vanish) continue; // ST12: Sneak never shakes off someone who sees you
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
-    const sense = seen.cue === 'sound' ? FN.hearing : FN.sight;
+    const sense = cueSense(seen.cue);
     const r = ruleset.contested(mine(skill, sense), theirs(a, sense), state, rng);
     done.ids.push(key);
     if (sees) saw++;
@@ -315,7 +317,8 @@ function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean
 export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng, opts: { look?: Sense; only?: string } = {}): { found: Actor; r: ContestResult }[] {
   const here = zoneById(state, a.zone);
   const after = (sense: Sense) => CONFIG.SKILL_WEIGHT * senseSkill(state, a, sense) + watcherRoll(state, a, sense, here).modifiers.reduce((n, m) => n + m.value, 0);
-  const sense: Sense = opts.look ?? (after(FN.hearing) > after(FN.sight) ? FN.hearing : FN.sight);
+  // AB18 a: a search rolls the better sense after light; smell only when it beats both (light never touches it)
+  const sense: Sense = opts.look ?? ([FN.sight, FN.hearing, FN.smell] as Sense[]).reduce((b, f) => (after(f) > after(b) ? f : b));
   const area = searchAreaM2(a, senseSkill(state, a, sense));
   const reaches = (h: Actor) => opts.look ? ((d) => d !== null && withinM(d, CONFIG.SIGHT_M.normal![0]))(seeingM(state, a, h)) : inSearch(state, a, h, area);
   const done = contestedThisTurn(state);
@@ -351,7 +354,7 @@ export const tierSkill = (t: Tier | TierRoll): number =>
 export const markAgainst = (state: GameState, a: Actor, r: RollResult, opposition: number, passed: boolean): void =>
   markUse(state, a, r.skill, { actorId: a.id, skill: r.skill, ...(r.asked ? { asked: r.asked } : {}), target: opposition, passed, modifiers: [] });
 /** SE25 a: a hidden item's level to learn against: its stasher's stealth skill, else its hidden-at tier on the table */
-const itemLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hiddenAt!);
+const hiddenLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hiddenAt!);
 /** SE8: one sight roll against every hidden ground item in reach that the searcher doesn't know of: beating an item's
  * hidden-at tier finds it, the same tier only hints that something here was moved, below it nothing. Nothing hidden: no
  * roll (SE6). */
@@ -363,7 +366,7 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
   const r = sightRoll(state, a, z, rng);
   const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));
   for (const i of found) (i.knownTo ??= []).push(a.id);
-  markAgainst(state, a, r, Math.max(...hidden.map(itemLevel)), found.length === hidden.length); // SE25: against the best-hidden thing searched for; passed when it was found too
+  markAgainst(state, a, r, Math.max(...hidden.map(hiddenLevel)), found.length === hidden.length); // SE25: against the best-hidden thing searched for; passed when it was found too
   log(state, 'search_items', { actorId: a.id, tier: r.tier, hidden: hidden.length, found: found.length });
   return { r, found, hint: !found.length && hidden.some((i) => tierLevel(r) === tierLevel(i.hiddenAt!)) };
 }
@@ -477,7 +480,7 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   const spar = !!target && sparring(state, attacker, target); // SP11: a sparring blow from hiding raises no alarm
   const act: ActContest[] = [];
   for (const o of observers) {
-    const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
+    const skill = cueSense(perception[o.id]?.cue);
     const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill, contest: true }, state, rng); // function roll
     const contest = toContest(ambush, p), gap = contest.gap;
     matchedCritFeat(state, contest); // D-292

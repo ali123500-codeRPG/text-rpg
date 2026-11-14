@@ -4,7 +4,7 @@
 export const PK = {
   hidden_strike: 'PK1', turn_the_blade: 'PK2', shield_breaker: 'PK3', point_blank: 'PK4', hunters_mark: 'PK5',
   leg_bolt: 'PK6', open_hand_guard: 'PK7', hold: 'PK8', dirt_in_the_eyes: 'PK9', make_them_stumble: 'PK10',
-  cover_ally: 'PK11', iron_frame: 'PK12', read_wounds: 'PK13', keen_ear: 'PK14', quick_word: 'PK15',
+  cover_ally: 'PK11', iron_frame: 'PK12', read_wounds: 'PK13', keen_ear: 'PK14',
   threaten_for_answers: 'PK16', haggler: 'PK17', soft_tread: 'PK18', melt_away: 'PK19', slip_the_blow: 'PK20',
   quiet_mail: 'PK21', turn_aside: 'PK22', in_and_out: 'PK23', unblinking: 'PK24', set_them_up: 'PK25',
   one_two: 'PK26', answer_the_blow: 'PK27', blade_wall: 'PK28', keen_edge: 'PK29', guard_drill: 'PK30',
@@ -22,14 +22,15 @@ export const PK = {
   junk_arsenal: 'PK106', know_the_step: 'PK107', last_to_fall: 'PK108', overheard: 'PK109', grit: 'PK110', against_the_grain: 'PK111', iron_rim: 'PK112', gut_feeling: 'PK113', overwhelm: 'PK114', crushing_presence: 'PK115', steady_nerves: 'PK116', used_to_the_pain: 'PK117', run_later: 'PK118', one_sense: 'PK119',
   // D-218: the Varo's Loop's abilities (granted by the item, never taken)
   loose_odds: 'PK120', twin_abyss: 'PK121', call_the_toss: 'PK122', pull_to_the_edges: 'PK123', all_or_nothing: 'PK124', further_still: 'PK125',
-  light_sleeper: 'PK127', // NW14: Earshot 60 perk, wakes to a hearing check
+  // PK15 retired: Quick Word (Persuasion 20) became everyone's rule (TP6 c, src/engine/speech.ts quickWord); never reuse
+  // PK127 retired: Light Sleeper (Earshot 60) became everyone's rule (NW14, src/engine/sleep.ts wakeCheck); never reuse
   always_yours: 'PK126', // TB7: Threadbounded level 1, gives a random Threadbound item
   misdirection: 'PK128', fade_back: 'PK129', // PT12: Vanishing's All-50 part; Fade Back parked (D-232)
   // banked write-ups (not yet milestone perks)
   precise: 'PK74', disarming_cut: 'PK75', cleave: 'PK76', shoot_and_move: 'PK77', human_shield: 'PK78', anything_goes: 'PK79', slip_the_crowd: 'PK80', shield_wall: 'PK81', refuse_to_fall: 'PK82', calm_words: 'PK83', plead: 'PK84', menace: 'PK85', out_of_nowhere: 'PK86', go_to_ground: 'PK87', held_shot: 'PK88', battle_cry: 'PK89', buy_them_off: 'PK90', crushing_blow: 'PK91', punch_through: 'PK92', staggering_bolt: 'PK93', flurry: 'PK94', roll_with_it: 'PK95', tough_it_out: 'PK96', night_eyes_full: 'PK97',
   not_born_yesterday: 'PK104', dreaded_on_sight: 'PK130', fists_do_the_talking: 'PK131',
   // Stamina perks (SS1-SS15); Short Sleeper is banked (D-300)
-  catnap: 'PK132', iron_lungs: 'PK133', forced_march: 'PK134', deep_lungs: 'PK135', sleepless: 'PK136', bottomless: 'PK137',
+  catnap: 'PK132', iron_lungs: 'PK133', deep_lungs: 'PK135', sleepless: 'PK136', bottomless: 'PK137', // PK134 (Forced March) retired (SR5)
   second_breath: 'PK138', heavy_sleeper: 'PK139', insomniac: 'PK140', short_sleeper: 'PK141',
   // linked perks LR1-LR4
   ghost_blade: 'PK142', combination: 'PK143', blind_spot: 'PK144', bulwark: 'PK145',

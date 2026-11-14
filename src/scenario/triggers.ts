@@ -1,9 +1,11 @@
 // The rules every trigger meets, wherever it comes from: a stage plan's seeds (validate.ts) or a beat a Weaver check-in adds
 // to a running scenario (SC8, engine/scenarioEnd.ts). One function, so both read the same rules.
 import { ORDER_TYPES, WAY_ORDERS } from '../types';
-import type { GameState, StagePlan, TriggerWhen } from '../types';
+import type { StagePlan, TriggerWhen } from '../types';
 
 export const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
+/** the triggers an NPC's own plan may hold (the Planner's planUpdate): every kind but a beat, which only the Weaver sets */
+export const PLAN_TRIGGER_TYPES: TriggerWhen['type'][] = TRIGGER_TYPES.filter((t) => t !== 'quiet_turns');
 
 type Refs = { isZone: (r: string) => boolean; isActor: (r: string) => boolean };
 
@@ -19,7 +21,7 @@ export function whenErrors(where: string, w: TriggerWhen | undefined, { isZone, 
 }
 
 /** what is wrong with a trigger: its id, owner, condition, its one order and `once` */
-export function triggerErrors(_state: GameState | null, t: StagePlan['seeds']['triggers'][number], refs: Refs, where = 'trigger'): string[] {
+export function triggerErrors(t: StagePlan['seeds']['triggers'][number], refs: Refs, where = 'trigger'): string[] {
   if (!t || !t.id) return [`${where}: trigger without an id`];
   const out: string[] = [];
   if (!refs.isActor(t.ownerId)) out.push(`trigger ${t.id}: owner ${t.ownerId} unknown`);
@@ -28,7 +30,7 @@ export function triggerErrors(_state: GameState | null, t: StagePlan['seeds']['t
   if (!t.then || Array.isArray(t.then) || typeof t.then.type !== 'string') out.push(`trigger ${t.id}: then holds exactly one order`);
   else if (!(ORDER_TYPES as readonly string[]).includes(t.then.type)) out.push(`trigger ${t.id}: then.type ${t.then.type} unknown; known: ${ORDER_TYPES.join(', ')}`);
   else if (WAY_ORDERS.includes(t.then.type) && (t.then.target === '$player' || (!!t.then.target && refs.isActor(t.then.target))))
-    out.push(`trigger ${t.id}: ${t.then.type} opens a lock on a way, so its target is a zone, never a person (there is no stealing)`);
+    out.push(`trigger ${t.id}: ${t.then.type} opens a lock on a way, so its target is a zone, never a person (taking from someone is filch)`);
   if (t.once !== undefined && typeof t.once !== 'boolean') out.push(`trigger ${t.id}: once is true or false`);
   return out;
 }

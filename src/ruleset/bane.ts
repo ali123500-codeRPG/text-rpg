@@ -1,7 +1,7 @@
 // D-111 Bane bonuses (AGG comparison A3): an achievement earned against a race or body type ("Bane of
 // {race}kind", "{body_type}bane" …) gives skill on rolls against that race or type. Its bonus is the bonus of the lower
 // level it builds on (AchievementDef.after) plus CONFIG.BANE_SKILL_PER_LEVEL, so I = +5, II = +10, III = +15. Lower levels switched off by a higher one are skipped. The best
-// race one and the best body type one both count, as one modifier type, so the weaker is halved by type stacking.
+// race one and the best body type one both count, as one modifier type, so the weaker counts at stackWeight(2, MOD_STACK_EXP) by type stacking.
 // D-119 total-defeats achievements (Blooded Fighter …) add +1 per tier to every attack and defense roll, as the same modifier type.
 import { achievementName } from '../engine/xp';
 import type { AchievementDef, Actor, GameState, Mod } from '../types';

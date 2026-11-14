@@ -324,8 +324,9 @@ describe('dialogue', () => {
     const resp = { agent: 'responder', actorId: 'trader', output: { action: npcAction('attack', 'player'), dialogue: { line: 'die', volume: 'shout' }, gear: null, stance: null, reveals: [], planUpdate: null } } as never;
     const ev2 = resolveTurn(s2, input({ intent: intent({ action: { type: 'talk' }, spoken: 'hi' }), spokespeople: ['trader'], exchange: resolveSpeech(s2, intent({ action: { type: 'talk' } }), ['trader'], createRng(2)), agentOutputs: [resp] }), createRng(1));
     expect(ev2.filter((e) => e.kind === 'speak').map((e) => e.actorId)).toEqual(['player']);
-    const atk = ev2.find((e) => e.actorId === 'trader')!;
-    expect(atk).toMatchObject({ kind: 'attack', bark: true, line: { text: 'die' } });
+    expect(ev2.find((e) => e.actorId === 'trader')).toMatchObject({ kind: 'hold', bark: true, line: { text: 'die' } }); // BG-253: said as its turn starts
+    const atk = ev2.find((e) => e.actorId === 'trader' && e.kind === 'attack')!;
+    expect(atk.line).toBeUndefined();
     expect(ev2.slice(ev2.indexOf(atk)).every((e) => e.actorId === 'trader')).toBe(true); // initiative 10: last (its next blow follows)
   });
   it('words beside an attack are a bark', () => {
@@ -437,7 +438,10 @@ describe('gear and combat', () => {
     s.turn = 2;
     const ev2 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'pick_up', item: `guard_1_${IT.arming_sword}_1` }], action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     expect(s.player.core.inventory.some((i) => i.id === `guard_1_${IT.arming_sword}_1`)).toBe(true);
-    expect(ev2.filter((e) => e.actorId === 'player').map((e) => e.kind)).toEqual(['pick_up', 'attack']);
+    const kinds = ev2.filter((e) => e.actorId === 'player').map((e) => e.kind);
+    expect(kinds[0]).toBe('pick_up'); // instant: the whole turn's blows follow
+    expect(kinds.slice(1).length).toBeGreaterThan(0);
+    expect(kinds.slice(1).every((k) => k === 'attack')).toBe(true);
   });
   it('equip on armor takes the main action', () => {
     const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'equip', item: `player_${IT.gambeson}_3` } }) }), createRng(1));

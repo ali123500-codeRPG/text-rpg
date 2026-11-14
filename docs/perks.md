@@ -152,18 +152,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner hears 10 dB quieter (hearingDb): every sound counts 10 dB louder for the owner, so it carries about three times as far (a normal voice is clear to about 56 m in the open instead of about 18 m). A Silent sound stays unheard.
 - **Lasts:** Always.
 
-### Quick Word (Persuasion) · A15
-
-*Story:* Blades clash, and you still have time for the last word. Once a turn, a one-sentence remark is spoken without using up your action, and the answer it gets costs the other side nothing either.
-
-- **Kind:** Always on
-- **Trigger:** A tactical turn in which the owner both speaks and acts.
-- **Conditions:** The line is short (one sentence).
-- **Effect:** The line resolves as talk without using the owner's action. An NPC's spoken reply to that line is also free: it doesn't use the NPC's action.
-- **Lasts:** That line.
-- **Cooldown:** Once per turn.
-- **Open:** Trial perk: test in play how NPCs answer. It is dropped if the free exchange doesn't work.
-
 ### Threaten for Answers (Intimidation) · A16
 
 *Story:* Charm is a request. Fear is an answer. Asking an unfriendly or hostile person for information, your intimidation counts at its full value instead of half.
@@ -200,7 +188,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** The owner Vanishes without a zone to go to.
 - **Conditions:** The owner's zone has some or heavy cover, or its light is dim or dark.
-- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action, as a Hide does.
+- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action.
 - **Lasts:** That Vanish.
 
 ### Slip the Blow (Light Armor) · A20
@@ -436,16 +424,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## Higher milestone
 
-### Light Sleeper (Earshot) · NW14
-
-*Story:* You sleep with one ear open. A step on the stair, a hand on the latch: someone who means you harm has to get past your hearing before they can catch you asleep.
-
-- **Kind:** Always on
-- **Trigger:** Someone hostile to the sleeping owner is in its zone: when they arrive, and at the start of each turn while they stay.
-- **Conditions:** The owner is asleep.
-- **Effect:** The owner makes a hearing check. Against someone sneaking it is their stealth against the owner's hearing; against someone moving openly its difficulty comes from how much noise they make (quieter is harder). Passed, the owner wakes and is aware of them.
-- **Lasts:** Each time someone hostile is near.
-
 ### Find the Gap (Light weapons) · B1
 
 *Story:* There is a gap in every guard, and you see it. With any attack, aiming at a small body part costs you only half the usual penalty.
@@ -665,15 +643,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner is told plainly that the speaker is lying, instead of the hint that something doesn't sit right.
 - **Lasts:** Each lie seen through.
 
-### Forced March (Stamina) · SS3
+### Protagonist Mentality (Resolve) · CN7
 
-*Story:* You run the way others walk. A run costs you Moderate effort instead of Hard, and a legion's march would leave you ready to fight.
+*Story:* Every flaw is one more thing the story has to get past, and it never does. Your Resolve grows with every quirk you carry.
 
-- **Kind:** Always on
-- **Trigger:** The owner runs (a dash).
-- **Effect:** The run costs the owner the moderate effort tier instead of RUN_EFFORT (Hard) (CONFIG.FORCED_MARCH_RUN_EFFORT), for its strain and for whether a Spent owner may run.
+- **Kind:** Always on (augment)
+- **Trigger:** A Resolve roll by the owner.
+- **Conditions:** The owner has at least one quirk.
+- **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being 5% × quirks owned^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): 5% for one quirk, 8.7% for two.
 - **Lasts:** Always.
-- **Open:** Once travel paces get an effort tier, the normal and fast paces should cost the owner no strain (SS3 a).
+- **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
 
 ## Very high milestone
 
@@ -776,25 +755,14 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% × ambush pieces^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): Patient Knife alone gives 5%, with two more 12%, with no ceiling.
 - **Lasts:** Always.
 
-### Protagonist Mentality (Resolve) · CN7
-
-*Story:* Every flaw is one more thing the story has to get past, and it never does. Your Resolve grows with every quirk you carry.
-
-- **Kind:** Always on (augment)
-- **Trigger:** A Resolve roll by the owner.
-- **Conditions:** The owner has at least one quirk.
-- **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being 5% × quirks owned^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): 5% for one quirk, 8.7% for two.
-- **Lasts:** Always.
-- **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
-
 ## Banked, no milestone yet
 
 ### Go to Ground (Sneaking) · D9
 
-*Story:* Lie still long enough and they decide they imagined you. When you hide, someone who was only suspicious of you can lose you entirely.
+*Story:* Lie still long enough and they decide they imagined you. When you sneak, someone who was only suspicious of you can lose you entirely.
 
 - **Kind:** Always on
-- **Trigger:** The owner Hides outside an engagement.
+- **Trigger:** The owner is Stealthy (Sneak) outside an engagement and an observer makes a stealth contest against it.
 - **Conditions:** The observer is suspicious of the owner, not aware.
 - **Effect:** An observer who loses the contest drops to unaware, instead of staying suspicious.
 - **Lasts:** That contest.

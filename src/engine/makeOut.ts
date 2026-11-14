@@ -11,30 +11,22 @@ import { SENSE_SKILL } from '../library/skillIds';
 import { gradeMod, markUse, ruleset, tierAtLeast } from '../ruleset';
 import { faintness, hasWords } from '../perception';
 import { actorById, isAsleep } from './relations';
+import { madeOutResult, recordMadeOut, type MadeOutSense } from '../perception/madeOut';
 
-type Sense = typeof FN.sight | typeof FN.hearing;
-
-/** this turn's make-out results, by observer, person and sense (PG6 a) */
-function doneThisTurn(state: GameState): Record<string, boolean> {
-  const sc = (state.scratch ??= {});
-  const cur = sc.madeOut as { turn: number; done: Record<string, boolean> } | undefined;
-  if (cur?.turn === state.turn) return cur.done;
-  sc.madeOut = { turn: state.turn, done: {} };
-  return (sc.madeOut as { done: Record<string, boolean> }).done;
-}
+type Sense = MadeOutSense;
 
 /** one make-out roll by `o` with `fn` on `ev`, or this turn's earlier result for that person and sense */
 function rollOnce(state: GameState, o: Actor, ev: GameEvent, fn: Sense, rng: Rng): boolean {
-  const done = doneThisTurn(state), key = `${o.id}>${ev.actorId}:${fn}`;
-  if (key in done) return done[key];
+  const earlier = madeOutResult(state, o.id, ev.actorId, fn);
+  if (earlier !== undefined) return earlier;
   const grade = faintness(state, ev, o, fn === FN.hearing ? 'sound' : 'sight');
-  if (!grade) return (done[key] = false);
+  if (!grade) return recordMadeOut(state, o.id, ev.actorId, fn, false);
   const target = CONFIG.DIFFICULTY[grade];
   const r = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[fn], fn, modifiers: [{ source: 'how faint', type: 'situational', value: gradeMod(target) }], tierShifts: [], rollKind: 'perception' }, state, rng);
   const passed = tierAtLeast(r.tier, 'success');
   markUse(state, o, r.skill, { actorId: o.id, skill: r.skill, target, passed, modifiers: [] }); // PG7 a: learns like a check
   if (o.id === state.player.id) ev.madeOut = { roll: r, target, passed };
-  return (done[key] = passed);
+  return recordMadeOut(state, o.id, ev.actorId, fn, passed);
 }
 
 /** PG3-PG8: every observer who half perceives `ev` tries to make it out; a success upgrades its perception in place */
@@ -43,7 +35,7 @@ export function makeOut(state: GameState, ev: GameEvent, rng: Rng): void {
   if (!s || s.posture === 'stealthy') return; // someone hiding: the stealth contests decide
   for (const [id, p] of Object.entries(ev.perception)) {
     const o = id === ev.actorId ? undefined : actorById(state, id);
-    if (!o || (!o.mind && o.kind !== 'player') || isAsleep(o) || p.cue === 'touch') continue;
+    if (!o || (!o.mind && o.kind !== 'player') || isAsleep(o) || p.cue === 'touch' || p.cue === 'smell') continue; // AB18: a smell is never made out
     if (p.level === 'partial') {
       const fn: Sense = p.cue === 'sound' ? FN.hearing : FN.sight;
       if (!rollOnce(state, o, ev, fn, rng)) continue;

@@ -62,7 +62,7 @@ function startStep(state: GameState, a: Actor, d: Drive): void {
     d.steps.shift();
     failed = true;
   }
-  endQueue(state, a, d, failed ? 'steps failed' : 'steps done');
+  endQueue(a, d, failed ? 'steps failed' : 'steps done');
 }
 
 function begin(state: GameState, a: Actor, s: GoalStep): boolean {
@@ -75,7 +75,7 @@ function begin(state: GameState, a: Actor, s: GoalStep): boolean {
 }
 
 /** UG10: the queue ran out: back to its own routine (after a walk or a wait), and it thinks next if it holds goals (UG7 1) */
-function endQueue(state: GameState, a: Actor, d: Drive, why: string): void {
+function endQueue(a: Actor, d: Drive, why: string): void {
   d.steps = [];
   delete d.endsAt;
   const m = a.mind;

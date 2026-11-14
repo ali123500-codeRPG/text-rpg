@@ -33,7 +33,7 @@ describe('307 payoff perks', () => {
     for (const ids of Object.values(PERK_THEMES)) for (const id of ids) expect(perks[id], id).toBeDefined();
     expect(themesOf(PK.battle_cry)).toEqual(['shout']);
     expect(perks[PK.patient_knife].ladder).toEqual({ skill: SK.combat_stealth, milestone: 100 });
-    expect(perks[PK.protagonist_mentality].ladder).toEqual({ skill: SK.resolve, milestone: 140 });
+    expect(perks[PK.protagonist_mentality].ladder).toEqual({ skill: SK.resolve, milestone: 60 });
     expect([BUILT_PERKS.has(PK.patient_knife), BUILT_PERKS.has(PK.protagonist_mentality)]).toEqual([true, true]);
   });
 

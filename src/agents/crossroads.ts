@@ -5,13 +5,19 @@ import type { GameState, LogLine } from '../types';
 import { CONFIG } from '../config';
 import { allActors, isEngaged, stance } from '../engine/relations';
 import { coinWords, coins } from '../engine/trade';
-import { healthLevel } from '../ruleset/body';
+import { healthLevel, partName } from '../ruleset/body';
 import { HEALTH_LEVELS, PART_STATES, type HealthLevelKey } from '../scales';
+import { listWords } from '../words';
+
+/** the health levels that ask when first reached, and the part states (this one and worse) that ask */
+const HURT_ASKS: HealthLevelKey[] = ['wounded', 'mauled', 'critical'];
+const PART_ASKS_FROM = 'crippled';
+const partAsks = PART_STATES.keys.filter((k) => PART_STATES.pos(k) >= PART_STATES.pos(PART_ASKS_FROM)).map((k) => PART_STATES.name(k));
 
 /** by: 'code' = checked after each turn; 'agent' = the agent asks before making such a move */
 export const CROSSROADS: { kind: string; by: 'code' | 'agent'; rule: string }[] = [
   { kind: 'fight_started', by: 'code', rule: 'a fight starts that you did not start (GA3)' },
-  { kind: 'badly_hurt', by: 'code', rule: 'your health first reaches Wounded, Mauled or Critical, or a body part becomes Crippled or Destroyed (GA4)' },
+  { kind: 'badly_hurt', by: 'code', rule: `your health first reaches ${listWords(HURT_ASKS.map((k) => HEALTH_LEVELS.name(k)), 'or')}, or a body part becomes ${listWords(partAsks, 'or')} (GA4)` },
   { kind: 'foe_yields', by: 'code', rule: 'a foe yields to you: spare them or fight on (GA5)' },
   { kind: 'perk_point', by: 'code', rule: 'a perk point is waiting, on the watcher’s own story only (GA6)' },
   { kind: 'start_fight', by: 'agent', rule: 'attacking anyone who is not already attacking you (fighting back does not count)' },
@@ -83,7 +89,6 @@ export function turnSnap(s: GameState): TurnSnap {
   return { engaged: isEngaged(s, p), health: healthLevel(p), yielded: allActors(s).filter((a) => a !== p && stance(s, a, p) === 'yielded').map((a) => a.id) };
 }
 
-const HURT_ASKS: HealthLevelKey[] = ['wounded', 'mauled', 'critical'];
 
 /** the code-spotted crossroads of the turn that just ended (GA3–GA5; the perk point, GA6, is the bar's own card).
  *  ownFight: the watcher already approved the fight the agent started this turn. */
@@ -92,7 +97,7 @@ export function spotCrossroads(before: TurnSnap, s: GameState, line: LogLine | u
   if (!before.engaged && now.engaged && !ownFight) out.push({ kind: 'fight_started', about: 'this fight', key: `fight from turn ${s.turn}`, situation: 'a fight has started that you did not start (see the latest story lines): fight, talk, run or yield?' });
   const health = HEALTH_LEVELS.name(now.health);
   if (HURT_ASKS.includes(now.health) && HEALTH_LEVELS.pos(now.health) > HEALTH_LEVELS.pos(before.health)) out.push({ kind: 'badly_hurt', about: health, situation: `your health is now ${health}` });
-  for (const w of line?.wounds ?? []) if (PART_STATES.pos(w.to) >= PART_STATES.pos('crippled')) out.push({ kind: 'badly_hurt', about: `${w.id.replace(/_/g, ' ')} ${PART_STATES.name(w.to)}`, situation: `your ${w.id.replace(/_/g, ' ')} is now ${PART_STATES.name(w.to)}` });
+  for (const w of line?.wounds ?? []) if (PART_STATES.pos(w.to) >= PART_STATES.pos(PART_ASKS_FROM)) out.push({ kind: 'badly_hurt', about: `${partName(w.id).toLowerCase()} ${PART_STATES.name(w.to)}`, situation: `your ${partName(w.id).toLowerCase()} is now ${PART_STATES.name(w.to)}` });
   const yielded = now.yielded.filter((id) => !before.yielded.includes(id));
   if (yielded.length) out.push({ kind: 'foe_yields', about: 'a foe who yielded', key: `yield of ${yielded.join(', ')}`, situation: 'a foe has yielded to you (see the latest story lines): spare them or fight on?' });
   return out;

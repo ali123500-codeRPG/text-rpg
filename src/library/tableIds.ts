@@ -4,9 +4,9 @@
 export const RL = { sense: 'RL1', grip: 'RL2', move: 'RL3', fly: 'RL4', strike: 'RL5', speech: 'RL6' } as const;
 /** healing sources (health); HL5 is retired (natural composure moved to the composure table, CP) */
 export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', perk: 'HL6', draught: 'HL7' } as const;
-/** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */
 /** FT7 the stamina recovery table: Sleep, Rest, Catching your breath, and Perks (a counting row) */
 export const RV = { sleep: 'RV1', rest: 'RV2', breath: 'RV3', perk: 'RV4' } as const;
+/** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */
 export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5', steady: 'CP6', foe_downed: 'CP7', rallied: 'CP8' } as const;
 /** fears: what costs (or restores) morale (MB21–MB28) */
 export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', dread_presence: 'FR7', battle_cry: 'FR8', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12', steady_slipped: 'FR13' } as const; // FR6, FR9 retired: moved to the composure table (TM28)
@@ -25,12 +25,12 @@ export const DU = {
   action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5', blow: 'DU6', throw: 'DU7', bow_light: 'DU8', bow_medium: 'DU9', crossbow_shot: 'DU10',
   span_light: 'DU11', span_stirrup: 'DU12', span_crossbow: 'DU13', battle_cry: 'DU14', talk: 'DU15', draw: 'DU16', stow: 'DU17', swap: 'DU18',
   pick_up_reach: 'DU19', pick_up_ground: 'DU20', hand_over: 'DU21', door: 'DU22', bar: 'DU23', key: 'DU24', pick_lock: 'DU25', bandage: 'DU26',
-  drink: 'DU27', hide: 'DU28', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
+  drink: 'DU27', vanish_in_place: 'DU28', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
   armor_heavy_on: 'DU34', armor_heavy_off: 'DU35', wait: 'DU36', break_open: 'DU37', from_pack: 'DU38',
 } as const;
-/** CO15 edge kinds: what a zone's side is (wall, open, low, window); a new kind is a new row */
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;
+/** CO15 edge kinds: what a zone's side is (wall, open, low, window); a new kind is a new row */
 export const EK = { wall: 'EK1', open: 'EK2', low: 'EK3', window: 'EK4' } as const;
 /** SD3–SD5 barrier kinds: what stands on a way (door, gate, grate, hatch, rubble); a new kind is a new row */
 export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5' } as const;

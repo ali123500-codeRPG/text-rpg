@@ -50,14 +50,14 @@ export type LogLine = {
 };
 export type ActionNote = { who: string; what: string; done: number; left: number; state: 'going' | 'done' | 'broken' | 'stopped' };
 export type ScenarioEndNote = { as: import('./hidden').ScenarioEnding; name: string; closing?: string };
-/** D-226: what the player gained in a scenario, for the ending moment's gains pop-up (on the narration line of the turn that
- * ended it, LogLine.scenarioGains). Achievements and All-XXX are granted at the end; skill raises, XP and levels are what the
- * scenario brought in all. An empty list = nothing of that kind. */
 /** one row of the gains moment's XP sum: kind says what earned it, label names it for the player */
 export type XpPart = { kind: 'defeat' | 'achievement' | 'quest' | 'other'; label: string; amount: number };
 /** one scenario's gains kept on the character (Progression.gainsLog): its number, how it ended, the turn it ended on, and the
  * closing line the Narrator gave it (added once the turn's narration arrives) */
 export type GainsRecord = ScenarioGains & { number: number; ending: import('./hidden').ScenarioEnding; endTurn: number; closing?: string };
+/** D-226: what the player gained in a scenario, for the ending moment's gains pop-up (on the narration line of the turn that
+ * ended it, LogLine.scenarioGains). Achievements and All-XXX are granted at the end; skill raises, XP and levels are what the
+ * scenario brought in all. An empty list = nothing of that kind. */
 export type ScenarioGains = {
   skills: { skill: string; from: number; to: number }[]; // raw skill before and after
   perks: { skill: string; milestone: number }[]; // milestone perks unlocked (never named)
@@ -79,9 +79,9 @@ export type FallenCharacter = import('./state').FameEntry & { owner: import('./s
 /** the blow that dropped the player, in words the player knows: by = the attacker as perceived ('someone' if unseen) */
 export type DownedBy = { by: string; weapon: string | null; part: string | null; outcome: string; unseen?: true };
 
-/** one healing of the player: the health level and each body part that changed state */
-/** better: health went up without changing level or any part state (a bandage on a light wound) */
 export type AchievementNote = { id: string; name: string; level?: string; levelName?: string; xp?: number; scar?: boolean; earnedAt?: string; why?: string; rewards?: string[] };
+/** one healing of the player: the health level and each body part that changed state. better: health went up without
+ * changing level or any part state (a bandage on a light wound) */
 export type HealNote = { source: string; from: HealthLevelKey; to: HealthLevelKey; parts: { id: string; from: PartStateKey; to: PartStateKey }[]; better?: boolean };
 
 export type LineCheck = {
@@ -143,11 +143,12 @@ export interface GameApi {
   reportBug(note: string): Promise<string | null>;
   /** the open bugs, newest first */
   openBugs(): Promise<import('../save/bugs').FiledBug[]>;
-  /** style: a VOICE_STYLES id */
-  /** guided: the guided mode's context (GA1–GA17); the move may then be a question for the watcher (ask, no command) */
+  /** style: a VOICE_STYLES id. guided: the guided mode's context (GA1–GA17); the move may then be a question for the watcher (ask, no command) */
   agentMove(persona?: string, style?: string, guided?: import('../agents/crossroads').GuidedCtx): Promise<import('../agents/autopilot').Move | null>;
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
+  /** AD7: a turn from an order code built from a clicked action (no Parser call); line is the player's line in the story */
+  act(order: { intent: import('./agents').Intent; line: string }, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first
   /** SC15: the GM view's End scenario button: the running scenario ends after the next turn */
   endScenario(): void;

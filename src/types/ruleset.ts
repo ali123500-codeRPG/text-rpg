@@ -152,7 +152,7 @@ export interface Ruleset {
 export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine' | 'fallback' | 'broken';
 
 /** every order type the engine knows (trigger orders are checked against it) */
-export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
+export const ORDER_TYPES = ['attack', 'move', 'search', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
   'intimidate', 'use_item', 'equip', 'give', 'take', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'pick', 'stash', 'open', 'break', 'restrain', 'filch', 'steady', 'show', 'extract', 'other'] as const;
 /** BG-128: orders aimed at a way (a zone), never at a person: picking a lock (the player may also pick a container's, CT3) */
 export const WAY_ORDERS: readonly string[] = ['pick'];
@@ -166,7 +166,6 @@ export type Order = {
   move?: string | null; // the turn's one move (toZone), resolved before the main action (player, or an NPC's Planner/Responder)
   moveAfter?: boolean; // AE3: the player's move comes after the main action
   wordsFirst?: true; // BF36: an NPC's words beside a move are said where it sets off, before the walk
-  pace?: import('../scales').TravelPaceKey; // TV2: the player's travel pace on a road trip (normal when left out)
   moveSpot?: import('./agents').MoveSpot; // BG-12: where in the move's zone the player heads
   jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
   way?: { toZone: string; op: import('../engine/barriers').WayOp }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot

@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
 import { getLibrary } from '../library';
 import { isActive, isEngaged, nameBook, wary } from './relations';
-import { bribeMod, OFFER_WORDS, playerOffer } from './offer';
+import { bribeMod, OFFER_WORDS, playerOffer, speaks } from './offer';
 import { distM, type Located } from './position';
 import { falseName } from '../words';
 import type { ExchangeSpeech } from './types';
@@ -106,14 +106,15 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
 
 /** A line said beside a non-speech action that is heard and answered this turn, the action still done (the exchange
  * slot holds it, so it uses no slot of its own).
- * A15 Quick Word: in a fight, only with the perk and only one sentence; it is said where the player stands, before the move.
+ * A15 Quick Word, everyone's rule since TP6 c (the perk is retired): in a fight, only one sentence; it is said where the
+ * player stands, before the move.
  * OA1 asides: outside a fight, any words beside a deed (a buy, a give, a knock) go with it, said after the walk over. An
  * attack starts a fight, so its words stay a bark. */
 export function quickWord(state: GameState, intent: Intent): boolean {
   const line = intent.spoken?.trim() ?? '';
   if (!intent.action || isSpeech(intent.action.type) || !line || !intent.addressees?.length) return false;
   if (state.mode !== 'tactical') return intent.action.type !== 'attack';
-  return hasPerk(state.player, PK.quick_word) && !/[.!?]["”’)]*\s+\S/.test(line);
+  return !/[.!?]["”’)]*\s+\S/.test(line);
 }
 
 /**
@@ -125,7 +126,9 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   if ((!isSpeech(intent.action?.type) && !quickWord(state, intent)) || !intent.addressees?.length) return [];
   const voice = playerVoice(state, intent);
   const dist = (a: Actor) => distM(state, voice.from, a); // BG-103: nearest in metres from where the player speaks
-  const live = state.actors.filter((a) => isActive(a) && voice.heard(a)); // BG-84: only someone who hears the player answers
+  // BG-84: only someone who hears the player answers; NV5: a creature that cannot understand words (a slime, a beast) never
+  // does: no Claude call, code runs it, and the story says it does not understand (resolve.ts doSpeak)
+  const live = state.actors.filter((a) => isActive(a) && voice.heard(a) && speaks(a));
   const nearest = (members: Actor[]) =>
     [...members].sort((a, b) => dist(a) - dist(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).find((a) => dist(a) < Infinity);
   const out: string[] = [];

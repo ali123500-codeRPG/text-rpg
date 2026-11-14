@@ -6,6 +6,45 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-255
+
+**What was wrong:** In the NPC value study, code-run fighters swung at foes they could not reach, again and again: slimes walked their 3 m and lunged from 1.1 to 9.3 m short (39 lost swings), the code-run gate guard lost 5 to 7. The combat list orders a blow at any foe in the same zone however far, and the walk before a blow used only the move time (ZP3), so a foe across a wide zone was never reached that turn. An agent's blow that went stale fell back to the same order and was lost the same way.
+
+**What was done:** A blow still out of reach after the close-in walk is no longer swung at nothing: the striker runs on at the target on its main time, exactly as a dash (same pools and clock, so the turn timer is unchanged), and strikes next turn (Ali's NV9 b: for everyone, the player and agents too). A run that gets no nearer still loses the blow.
+
+**Fixed by:** [PR #861](https://github.com/ali123500-codeRPG/text-rpg/pull/861)
+## BG-253
+
+**What was wrong:** An NPC picks its deed and its words at the start of the turn, but words said beside a deed were only spoken at the NPC's place in the turn order. Anyone earlier in the order could already have changed what they were about: in the NPC value study the gate guard shouted "That one's near done, finish it" after the player's axe had already killed that slime, and the judges flagged the same slip in other runs.
+
+**What was done:** Ali approved the fix (BF74 a). An NPC's words beside its deed are now said as its turn starts, right after the player's words and the replies to them, before anyone's blow, walk or deed; the deed itself keeps its place in the order. Words an NPC keeps for the end of a walk, a late starter's words, spoken replies and talk as the main action are unchanged. No new Claude call and no change in timing.
+
+**Fixed by:** [PR #860](https://github.com/ali123500-codeRPG/text-rpg/pull/860)
+
+## BG-254
+
+**What was wrong:** The playtest script (scripts/playtest.ts) still began every run as the Swordsman class (CL1). Starter classes became Starts, so CL1 is no longer one and every run crashed on its first turn with "CL1 is not a Start".
+
+**What was done:** With no --class given, the script picks a random Start from the library and prints which one (Ali's NV8 b); --class ST… still picks one.
+
+**Fixed by:** [PR #859](https://github.com/ali123500-codeRPG/text-rpg/pull/859)
+
+## BG-252
+
+**What was wrong:** After the make-out roll (PR #840) succeeded, the story named the person, but Who's here, the Narrator's list of people present and name learning still showed them as "someone": all three come from one function (seenActors) that went by distance alone. The Narrator was told both that the event's actor was "a village guard" and that the same person was an unknown "someone". The "stays put" rule (Q17) only reached 25 m and, in Who's here, only dark rooms.
+
+**What was done:** Ali approved the fix (PG11 a). The turn's make-out results live in src/perception/madeOut.ts; seenActors counts anyone the viewer made out by sight this turn as seen clearly, for the player and NPCs alike. The player keeps anyone seen clearly named while they stay put and can still be glimpsed (stillGlimpsed in src/perception/sight.ts), the same rule in event perception and in Who's here, in light and dark.
+
+**Fixed by:** [PR #854](https://github.com/ali123500-codeRPG/text-rpg/pull/854)
+
+## BG-251
+
+**What was wrong:** Ali asked whether shots make noise where they land: they didn't. A shot or throw was heard and seen only where the shooter stood, at conversation loudness, so people where it landed never learned they were under attack, and a missed target still "felt" the miss.
+
+**What was done:** Ali approved the fix (BF73). Every shot or throw, hit or miss, makes an impact event at its target's spot (src/engine/resolve.ts landImpact): Loud on armour, a shield or a hard surface (a miss indoors), Raised on flesh or soft ground (a miss outdoors), from real impact measurements (CONFIG.IMPACT_NOISE). It raises the alarm and startles those it reaches, so they react; a missed target notices the miss by it instead of feeling it (perception), and the shooter stays as hidden as before.
+
+**Fixed by:** [PR #847](https://github.com/ali123500-codeRPG/text-rpg/pull/847)
+
 ## BG-250
 
 **What was wrong:** Every animal race (dog, wolf, tiger, bear and the rest) attacked at skill 0. Their bites, claws, kicks, tusks and tail lashes roll the Natural Weapons skill, but that skill's tree was open only to slimes and dragons, so for an animal the game counted the skill as locked: a wolf built with Natural Weapons 61 rolled as if it had none. Found in the animal body types work, right after PR #838.

@@ -11,7 +11,7 @@ import { afterAttack, markShifts, slowed } from '../../src/engine/perkMarks';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
 import { checkParserLegality } from '../../src/agents/legality';
 import { buildPlayerView } from '../../src/views';
-import { ideas } from '../../src/ui/play';
+import { deck } from '../../src/ui/deck';
 import type { Actor, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
@@ -69,7 +69,7 @@ describe('115 Dirt in the Eyes', () => {
     give(s.player, PK.dirt_in_the_eyes);
     expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, 'nobody')).toBe('no_target');
     crossbow(s); // both hands on the crossbow
-    expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, wim.id)).toBe('no_free_hand');
+    expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, wim.id)).toBe('no_free_grip');
     for (const i of s.player.core.inventory) delete i.equippedIn;
     expect(perkMoveBlock(s, s.player, PK.dirt_in_the_eyes, wim.id)).toBeNull();
     resolvePerkMove(s, s.player, PK.dirt_in_the_eyes, wim.id, forcedRng([90, 10]));
@@ -108,7 +108,9 @@ describe('115 Dirt in the Eyes', () => {
     const pv = buildPlayerView(s);
     expect(pv.player.perkMoves).toEqual([{ id: PK.dirt_in_the_eyes, name: 'Dirt in the Eyes', does: PERK_MOVES[PK.dirt_in_the_eyes].does, inRange: expect.any(Array) }]);
     expect(checkParserLegality(i, pv).intent.perkMove).toEqual({ perk: PK.dirt_in_the_eyes, target: wim.id });
-    expect(ideas(pv).find((g) => g.group === 'Perks')?.items[0]?.text).toMatch(/^Throw dirt in .+'s eyes$/);
+    const perk = deck({ pv, s }).find((g) => g.group === 'perks')?.actions[0];
+    expect(perk?.label).toBe('Throw dirt in the eyes');
+    expect(perk?.steps[0].key === 'target' && perk.steps[0].picks({}).map((p) => p.id)).toContain(wim.id);
     const ev = play(s, { intent: i });
     const pm = ev.findIndex((e) => e.kind === 'perk_move' && e.actorId === 'player');
     const atk = ev.findIndex((e) => e.kind === 'attack' && e.actorId === 'player');

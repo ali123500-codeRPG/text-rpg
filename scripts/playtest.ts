@@ -4,7 +4,8 @@
 // F8: prompts here differ from the artifact's: the CLI joins the fixed and per-turn user turns into one prompt, adds its
 // own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
 //   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
-import { mkdirSync, writeFileSync, appendFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, appendFileSync, readFileSync, copyFileSync } from 'node:fs';
+import { readTurnRecord } from '../src/save';
 import { join } from 'node:path';
 import type { ClaudeClient, ClaudeRequest, ClaudeResponse } from '../src/types';
 import { createGame, parseTolerant, realClock } from '../src/agents';
@@ -19,7 +20,6 @@ import { isSeller } from '../src/engine/trade';
 import type { GameState, StagePlan } from '../src/types';
 import type { ScenarioDirector } from '../src/agents';
 import { recommendedBuild } from '../src/library/spawn';
-import { CL } from '../src/library/classIds';
 import { PERSONAS, autoPerk } from '../src/agents/autopilot';
 import { villageStagePlan } from '../src/scenario/fixtures';
 import { TP } from '../src/library/templateIds';
@@ -71,8 +71,15 @@ const CALL_EFFORT = arg('call-effort', '');
 let calls = 0;
 /** --fixture: the story opens on the fixture stage plan (Brookmere, its tavern, street and slime field) instead of a Weaver call */
 let fixtureLeft = process.argv.includes('--fixture') ? 1 : 0;
+/** NPC-VALUE STUDY (local only): --npcs agents|code-fights|code. code-fights: every Planner call fails at once, so code runs
+ * NPC deeds (combat list, routines, alerts); code: Responder and Voice fail too (the fixed placeholder line) */
+const NPCS = arg('npcs', 'agents');
+const DROPPED: string[] = NPCS === 'code' ? ['planner', 'responder', 'voice'] : NPCS === 'code-fights' ? ['planner'] : [];
+const stepCalls: Record<string, number> = {};
 const cliClient: ClaudeClient = {
   async call(req: ClaudeRequest): Promise<ClaudeResponse> {
+    if (DROPPED.includes(req.agent)) { stepCalls[`${req.agent}_dropped`] = (stepCalls[`${req.agent}_dropped`] ?? 0) + 1; return { ok: false, error: 'upstream_error', message: 'npc-value study: code-run' }; }
+    stepCalls[req.agent] = (stepCalls[req.agent] ?? 0) + 1;
     if (fixtureLeft && req.agent === 'weaver') { fixtureLeft--; return { ok: true, value: villageStagePlan(), truncated: false, modelTierApplied: 'complex', modelApplied: 'fixture' }; }
     const model = CALL_MODEL || (req.model ?? TIER_MODEL[req.modelTier ?? 'default']);
     const effort = CALL_EFFORT || req.effort;
@@ -89,7 +96,11 @@ const cliClient: ClaudeClient = {
   },
 };
 
-const PLAYER_BRIEF = `You are playtesting a text RPG as its player: ${arg('class', CL.swordsman) === CL.swordsman ? 'a swordsman with a sword and shield' : 'a nobody with little gear'}. Play naturally and curiously:
+/** --class ST…: the Start to play (lib.starts); NV8 b: none named, a random one, printed so a run can be repeated with it */
+const STARTS = Object.keys(getLibrary().starts ?? {});
+const START = arg('class', '') || STARTS[Math.floor(Math.random() * STARTS.length)];
+console.log(`start ${START} (${getLibrary().starts?.[START]?.name ?? 'unknown'})`);
+const PLAYER_BRIEF = `You are playtesting a text RPG as its player: a new character who began as ${getLibrary().starts?.[START]?.name ?? 'a newcomer'}. Play naturally and curiously:
 talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try unusual things to test
 the game. Reply with ONLY what you type next, one short line in plain words (no quotes). Now and then use a command:
 /stats, /inv, /quests, /help or /aim <text>.`;
@@ -168,7 +179,7 @@ async function main() {
     firstTurn = saved.step + 1;
     writeFileSync(join(OUT, 'resumed-from.json'), JSON.stringify({ dir: RESUME, step: saved.step })); // the replay set starts a resumed run here
     console.log(`resumed ${RESUME} after turn ${saved.step}`);
-  } else await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden', ...(pers ? { personality: pers } : {}) });
+  } else await game.newStory({ ...recommendedBuild(START), name: 'Arden', ...(pers ? { personality: pers } : {}) });
   const storyId = game.state()?.storyId;
   // the Character page shows the personality; the agent reads it as a player would, but plays as its persona
   if (pers) charLine = `\nYour character's sheet describes their personality as: ${personalityText(game.state()!.player, 'steady')} You may play differently from it; play the way your persona says.`;
@@ -207,6 +218,8 @@ async function main() {
     const aimed = input.startsWith('/aim');
     console.log(`turn ${t}: ${input}`);
     const rawBefore = Object.fromEntries(Object.entries(game.state()?.player.core.skills ?? {}).map(([k, v]) => [k, v.raw]));
+    const turnBefore = game.state()?.turn ?? 0, stepT0 = Date.now();
+    for (const k of Object.keys(stepCalls)) delete stepCalls[k];
     try {
       await game.submit(input, { aimed });
     } catch (e) {
@@ -222,6 +235,15 @@ async function main() {
     appendFileSync(agentLog, JSON.stringify({ step: t, input, notices: game.notices(), agentLog: gm.agentLog }) + '\n');
     tracePacing(game, t, input);
     writeTranscript(game, storyId!, t0);
+    {
+      const rec = await readTurnRecord(store, storyId!, turnBefore).catch(() => null);
+      const st = game.state()!;
+      const name = (id: string) => (id === st.player.id ? 'player' : id);
+      const npcEv = (rec?.events ?? []).filter((e) => e.actorId !== st.player.id).map((e) => ({ actor: e.actorId, kind: e.kind, target: e.target ? name(e.target) : undefined, tier: e.tier, line: e.line?.text, eff: e.effects.map((f) => f.kind) }));
+      appendFileSync(join(OUT, 'npc-events.jsonl'), JSON.stringify({ step: t, turn: turnBefore, ms: Date.now() - stepT0, calls: { ...stepCalls }, codes: (rec?.log ?? []).map((l) => l.code), events: npcEv,
+        sources: (rec?.agentLog ?? []).filter((a) => ['planner', 'responder', 'voice'].includes(a.agent)).map((a) => ({ agent: a.agent, actor: a.actorId, status: a.status, act: (a.output as { action?: { type?: string } } | null)?.action?.type })) }) + '\n');
+    }
+    if (process.argv.includes('--keep-stores')) { dumpStore(t); copyFileSync(join(OUT, 'store.json'), join(OUT, `store-${t}.json`)); }
     dumpStore(t); // the turn's own save (background calls that finish later land in the next turn's)
   }
   await game.settle();

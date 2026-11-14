@@ -1,0 +1,4 @@
+Sound effects by Kenney (www.kenney.nl), Creative Commons Zero (CC0): public domain, no credit required.
+Packs: Interface Sounds 1.0 (click), Impact Sounds (parry, block, hit, heavy, plate, hurt, scenario_end),
+RPG Audio 1.0 (graze). Trimmed, made mono and re-encoded as MP3 for the game.
+https://creativecommons.org/publicdomain/zero/1.0/

@@ -45,7 +45,7 @@ export const CASES: { line: string; bug?: string; check: Check }[] = [
   { line: 'Lie to the barkeep that I am a city guard.', check: act('deceive', 'trader') },
   { line: 'Try to convince the patron to come with me.', check: act('persuade', 'patron_1') },
   { line: 'Hold the patron back so he can\'t leave.', bug: 'BF5', check: act('restrain', 'patron_1') },
-  { line: 'Hide behind the bar.', check: all(act('hide'), moves(['tav_counter'])) },
+  { line: 'Hide behind the bar.', check: all(act('sneak'), moves(['tav_counter'])) },
   { line: 'Sneak out the front door.', check: moves(['street_door']) },
   { line: 'Search the room.', check: act('search') },
   { line: 'Look around.', check: all(act('observe'), noMove) },

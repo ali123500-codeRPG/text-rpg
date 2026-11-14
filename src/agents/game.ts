@@ -26,9 +26,10 @@ import { NERVE_BLOCKED } from '../minds';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
-import { actorBody, getLibrary, itemDef } from '../library';
-import { LIGHT_SLEEPER } from '../engine/sleep';
-import { actorById, isActive, zoneById } from '../engine/relations';
+import { actorBody, getLibrary, hasTemplate, itemDef, npcTemplate } from '../library';
+import { RO } from '../library/npcLayerIds';
+import { fightingWith } from '../engine/engagement';
+import { actorById, allActors, isActive, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { threadboundInWorld } from '../ruleset/threadboundItems';
@@ -41,7 +42,7 @@ import { librarySends, saveSend, sendId } from '../save/sends';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import type { GuidedCtx } from './crossroads';
 
-import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
+import { acceptIntent, callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
 import { barkOnly, isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
@@ -103,6 +104,8 @@ function nerveBlocksAll(i: Intent): boolean {
 }
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
+/** the bands of the people the player can see (the Parser's legality reads them) */
+const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
 /** NW18: a turn played while the player sleeps */
 const ASLEEP_INTENT = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 
@@ -143,6 +146,8 @@ export function createGame(deps: GameDeps): Game {
     void Promise.resolve().then(() => save.listBackups(store, storyId)).then((b) => { if (state?.storyId === storyId) { backups = b; emit(); } }).catch(() => {});
   };
   let background = new Map<string, Background>();
+  /** NV1 b: each fighter's fightKey when last checked, by story and actor id; a change is a turning point */
+  const fightSeen = new Map<string, string>();
   const subs = new Set<() => void>();
   const emit = () => subs.forEach((cb) => cb());
   let calls = 0; // Claude calls this session, shown on the Play screen
@@ -194,7 +199,13 @@ export function createGame(deps: GameDeps): Game {
     if (!s || rateLimited || stopped) return;
     const world = worldIds(s);
     const ctx = ctxFor(s.turn, []);
-    const fights = plannerActors(s);
+    const fights = plannerActors(s).filter((id) => {
+      const a = actorById(s, id)!, key = `${s.storyId}:${id}`;
+      if (!inFight(s, a) || plansEveryTurn(s, a)) { fightSeen.delete(key); return true; }
+      const k = fightKey(s, a), turning = fightSeen.get(key) !== k || answerDue(s, a);
+      fightSeen.set(key, k);
+      return turning; // NV1 b: between turning points code runs its deeds (merge.ts: combat list)
+    });
     for (const actorId of [...fights.slice(0, CONFIG.MAX_PLANNER_CALLS), ...goalThinkers(s, new Set(fights)).slice(0, CONFIG.UNIQUE_THINKS_PER_TURN)]) {
       const controller = new AbortController();
       const view = views.buildOppositionView(s, actorId); // from saved state, before submit
@@ -322,7 +333,8 @@ export function createGame(deps: GameDeps): Game {
     return { agent: 'voice', actorId: id, output: r.output };
   }
 
-  async function playTurn(text: string, aimed: boolean): Promise<void> {
+  /** given: AD7, an order code built from a clicked action: it skips the Parser and passes the same checks */
+  async function playTurn(text: string, aimed: boolean, given?: Intent): Promise<void> {
     const s = state!;
     const submitAt = clock.now();
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
@@ -340,7 +352,8 @@ export function createGame(deps: GameDeps): Game {
     const doingBefore = doingSnap(pv);
     // NW18: asleep, the turn passes with you doing nothing; nothing you type is read
     const parsed = s.player.asleep || s.mercy ? { clarify: null, intent: ASLEEP_INTENT } // D-239: down, likewise
-      : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean), answering: answer });
+      : given ? acceptIntent(structuredClone(given), pv, bandsOf(s, pv), [])
+      : await callParser(text, pv, ctx, { bandIds: bandsOf(s, pv), answering: answer });
     if (parsed.clarify !== null || !parsed.intent) {
       // the turn stops: no resolution, turn unchanged, Planner outputs kept for this same turn
       lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?', ...('answers' in parsed && parsed.answers?.length ? { answers: parsed.answers } : {}) });
@@ -650,16 +663,16 @@ export function createGame(deps: GameDeps): Game {
     }
   }
 
-  async function submit(text: string, opts: { aimed: boolean }): Promise<void> {
+  async function submit(text: string, opts: { aimed: boolean }, given?: Intent): Promise<void> {
     const t = text.trim();
     if (!state || busy || stopped || !t) return;
-    if (t.startsWith('/')) return command(t, opts);
+    if (!given && t.startsWith('/')) return command(t, opts);
     rateLimited = false; // background calls resume after the next player action
     notices = notices.filter((n) => n.kind !== 'rate_limited');
     busy = true;
     emit();
     try {
-      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext);
+      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext, state.player.asleep ? undefined : given);
       // NW18/AT42: while you stay asleep the game plays your turns: the night runs on as one stretch between them, so each
       // moves the clock on; a turn that doesn't (nothing left to run) waits for you
       for (let t = -1; state?.player.asleep && !stopped && gameNow(state) > t; ) { t = gameNow(state); await playTurn(ASLEEP_TEXT, false); }
@@ -827,7 +840,8 @@ export function createGame(deps: GameDeps): Game {
       if (mv?.say || aloud.length) agentSaid = [...agentSaid, ...(mv?.say ? [mv.say] : []), ...aloud].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
       return mv;
     },
-    submit,
+    submit: (text: string, opts: { aimed: boolean }) => submit(text, opts),
+    act: (order: { intent: Intent; line: string }, opts: { aimed: boolean }) => submit(order.line, opts, order.intent),
     endScenario() {
       // SC15: the GM view's End scenario button (testing): the scenario ends after the next turn, recorded as interrupted
       if (!state?.stage.scenario || state.stage.breakCause) return;
@@ -954,6 +968,31 @@ export function plannerActors(s: GameState): string[] {
     .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && (!busyNow(a) || !!a.busy!.alert)) // NW20: a sleeper is not asked; AT47: nor one at a long action, unless its coming-near check fired (AT67)
     .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
+}
+
+/** NV1 b: a's own side (itself and its bandmates) and their foes, while a fights someone */
+function fightSides(s: GameState, a: Actor): Actor[] {
+  const all = allActors(s), fights = (x: Actor) => all.some((y) => fightingWith(s, x, y) || fightingWith(s, y, x));
+  const side = all.filter((x) => x === a || (!!a.bandId && x.bandId === a.bandId && fights(x)));
+  return all.filter((x) => side.includes(x) || side.some((m) => fightingWith(s, m, x) || fightingWith(s, x, m)));
+}
+export const inFight = (s: GameState, a: Actor): boolean => fightSides(s, a).length > 1;
+/** NV1 b: what a fighter sees of its fight, as a key that changes at a turning point: a newcomer joins, someone in it goes down
+ * (an ally falls), a nerve breaks or someone surrenders, or someone yields */
+export function fightKey(s: GameState, a: Actor): string {
+  const yielded = (x: Actor) => (x === s.player ? !!s.yielding && !s.yielding.ended : Object.values(x.mind?.overrides ?? {}).includes('yielded'));
+  return fightSides(s, a).map((x) => `${x.id}:${isActive(x) ? 'up' : 'down'}:${x.mind?.moraleState ?? (moraleLevel(x) === 'broken' ? 'broken' : '')}:${yielded(x) ? 'yielded' : ''}`).sort().join('|');
+}
+/** NV1 b: an offer to stand down, a demand to surrender or the player's yield waits for this AI-run foe's answer */
+const answerDue = (s: GameState, a: Actor): boolean => !!s.yielding?.pending.includes(a.id) || !!s.offers?.pending.some((o) => o.to === a.id);
+/** NV1 b / NV2: who keeps a Planner call every turn of a fight: those deciding the player's fate, in a deal, on an errand or
+ * startled (plannerActors' other reasons), goal holders and uniques, and schemers: a secret holder or a Sneak role [Proposed] */
+export function plansEveryTurn(s: GameState, a: Actor): boolean {
+  const tpl = a.core.templateId && hasTemplate(s, a.core.templateId) ? npcTemplate(s, a.core.templateId) : undefined;
+  return !!s.mercy?.pending.includes(a.id) || !!s.hidden.agreements?.some((g) => g.parties.includes(a.id))
+    || (a.mind?.errandUntil ?? -Infinity) > s.turn || (a.mind?.startled ?? -Infinity) >= s.turn - 1
+    || !!s.hidden.drives?.[a.id]?.goals.length || tpl?.generation === 'unique'
+    || s.hidden.secrets.some((x) => x.holderId === a.id) || tpl?.roleId === RO.sneak;
 }
 
 /** UG7/UG8/UG9: goal holders due to think (their queue ran out or a step failed, they noticed what a goal names, or they
@@ -1374,9 +1413,9 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   // TV7: a trip says how far it went and why it stopped
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'travelled') continue;
-    const d = l.detail as { actorId: string; metres: number; pace: string; night: boolean; stop: string };
+    const d = l.detail as { actorId: string; metres: number; night: boolean; stop: string };
     if (d.actorId !== s.player.id) continue;
-    out.push(`Travelled ${views.distText(d.metres)} at a ${d.pace} pace${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
+    out.push(`Travelled ${views.distText(d.metres)} ${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
   }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {
@@ -1402,7 +1441,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
       const i = d.watches.findIndex((w) => w.actorId === s.player.id);
       out.push(`Night watch: ${d.watches.length} watches; yours is ${clockText(d.watches[i].from)} to ${clockText(d.watches[i].to)}`);
     } else if (l.code === 'woke') {
-      const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: `you hear someone come (${getLibrary().perks[LIGHT_SLEEPER]?.name ?? 'Light Sleeper'})`, rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
+      const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: 'you hear someone come', rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
       out.push(`Awake: ${why}`);
     }
   }

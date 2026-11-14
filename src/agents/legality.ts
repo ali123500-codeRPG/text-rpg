@@ -73,7 +73,9 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     const sp = out.move.spot!;
     if (sp.near && lastSeen(sp.near)) out.move.spot = { ...sp, lastSeen: true };
     const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => sp[k]);
-    const ok = keys.length === 1 && (sp.side ? !!compassOf(sp.side) : ref((sp.near ?? sp.awayFrom)!));
+    // AD16: an exact point (code sets it, from the minimap) in a zone the player knows, alone
+    const atOk = (at: { x: unknown; y: unknown }) => !keys.length && Number.isFinite(at.x) && Number.isFinite(at.y) && (out.move!.toZone === view.zone.id || reachable(out.move!.toZone));
+    const ok = sp.at ? atOk(sp.at) : keys.length === 1 && (sp.side ? !!compassOf(sp.side) : ref((sp.near ?? sp.awayFrom)!));
     // BG-31 (run 40): on a move to another zone the spot is only where to stop there; one that can't be checked (a zone
     // out of view) or doesn't fit is dropped and the move goes on, instead of asking where in the current zone to go
     if (!ok && out.move.toZone !== view.zone.id) delete out.move.spot;
@@ -99,8 +101,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if (a.type === 'filch' && (a.target === null ? a.item === null : !(actors.has(a.target) && !dead.has(a.target)) && !boxes.has(a.target))) illegal.push(`action.target ${a.target}`); // FL2: someone in view or a container
     else if ((a.type === 'restrain' || a.type === 'extract') && (a.target === null || !actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // BF5, DX3: someone alive in view
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
-    // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
-    if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish' || a.type === 'search' || a.type === 'stash') a.skill = ''; // SE2/SE9: code picks the roll
+    // sneak and vanish: code picks the stealth skill (ST2), so the Parser's skill there is dropped
+    if (a.type === 'sneak' || a.type === 'vanish' || a.type === 'search' || a.type === 'stash') a.skill = ''; // SE2/SE9: code picks the roll
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     // a buy, or haggling over one, names a ware of the seller it targets (goods:… / service:…), not an item the player can reach

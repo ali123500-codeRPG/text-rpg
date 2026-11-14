@@ -23,6 +23,7 @@ import { moveSpeed } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
+import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
@@ -50,7 +51,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
-import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, usableModes } from '../ruleset/gear';
+import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, pieceName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -58,6 +59,7 @@ import { shortShifts } from '../ruleset/requirements';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUsed } from '../ruleset/fatigue';
 import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
+import { inArmorSlot } from '../ruleset/slots';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 /** AS3: the word others see for someone's morale: a foe who surrendered shows Surrendered, a visible state like Broken */
@@ -102,7 +104,7 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
-    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name, ...containerOf(state, i, viewer) })), // SE8
+    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
     ...furnitureView(state, z.id),
   };
 }
@@ -125,7 +127,7 @@ function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: 
   const key = viewer && i.lock && viewer.core.inventory.some((k) => k.opens?.includes(i.id)) ? { key: true as const } : {};
   const shows = !viewer || i.open;
   return { container: { ...(i.open ? { open: true as const } : { shut: true as const }), ...(itemDef(state, i.itemId).container?.fixed ? { fixed: true as const } : {}), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
-    ...(shows ? { contents: inside.map((c) => ({ id: c.id, name: itemDef(state, c.itemId).name, ...(itemDef(state, c.itemId).stackable ? { qty: c.qty ?? 1 } : {}) })) } : {}) } };
+    ...(shows ? { contents: inside.map((c) => ({ id: c.id, name: pieceName(state, c), ...(itemDef(state, c.itemId).stackable ? { qty: c.qty ?? 1 } : {}) })) } : {}) } };
 }
 const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));
 
@@ -161,7 +163,7 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
     const d = itemDef(state, i.itemId);
     const classes = [...new Set((d.weapon?.modes ?? []).map((m) => m.class))];
     return {
-      id: i.id, itemId: i.itemId, name: d.name, look: d.look, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
+      id: i.id, itemId: i.itemId, name: pieceName(state, i), look: d.look, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
       modes: (d.weapon?.modes ?? []).map((m) => ({ id: m.id, name: modeName(m) })),
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
@@ -180,11 +182,11 @@ function seenGear(state: GameState, a: Actor, revealed: string[], viewerId?: str
     const slot = i.equippedIn?.[0];
     const d = itemDef(state, i.itemId);
     const mine = viewerId && i.stolenFrom === viewerId ? { stolenFromYou: true as const } : {}; // FL6: its owner knows it on sight
-    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried', ...mine }); continue; }
+    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: pieceName(state, i), look: d.look, where: 'carried', ...mine }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
     const where = isGripSlot(slot) ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : isAccSlot(slot) && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
     // CT5/CT7: a worn pack shows; once opened (its wearer downed or yielded), what it holds shows in it
-    if (where) out.push({ id: i.id, name: d.name, look: d.look, where, ...mine, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
+    if (where) out.push({ id: i.id, name: pieceName(state, i), look: d.look, where, ...mine, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
   }
   return out;
 }
@@ -244,9 +246,11 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
     // P3: in a dark zone someone is half seen, unless within clear sight and the viewer perceived them fully this scenario
     // (spoke face to face, say): then they stay seen
-    const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
-    const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
-    const level = sight === 'partial' || dark ? 'partial' : 'full';
+    // Q17/BG-252 (PG11 a): someone the player saw clearly (by distance, a look or a make-out roll) stays seen while they
+    // stay put and can still be glimpsed (sight is not null here); anyone made out by sight this turn is seen clearly
+    const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone || madeOutBySight(state, viewer.id, a.id);
+    const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
+    const level = keptSight ? 'full' : sight === 'partial' || dark ? 'partial' : 'full';
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
     const name = nameFor(state, viewer, a);
@@ -322,6 +326,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
+    ...(e.impact ? { impact: e.impact } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
     ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor(viewer) } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
     ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
@@ -354,6 +359,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     }
     if (f.kind === 'found_secret') out.push(`${by} catches something ${who} would rather keep hidden`); // SE17: the secret itself shows once known
     if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
+    if (f.kind === 'not_understood') out.push(`${who} does not understand words`); // NV5: a slime or a beast spoken to
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_off') out.push(`${who} ${own ? 'are' : 'is'} broken off ${(actionRow(String(f.data.row))?.name ?? 'what they were doing').toLowerCase()}${f.data.then === 'kept' ? ', the work so far kept' : ', the work lost'}`); // AT6/AT25
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
@@ -367,10 +373,10 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
     if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
-      const d = f.data as { metres: number; minutes: number; pace: string; night: boolean; stop: string };
+      const d = f.data as { metres: number; minutes: number; night: boolean; stop: string };
       const km = distText(d.metres);
       const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
-      out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
+      out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)}${d.night ? ' through the dark' : ''}${stop}`);
     }
     if (f.kind === 'part_state_changed') {
       const to = f.data.to as PartState;
@@ -662,7 +668,9 @@ function agreementViews(state: GameState, viewerId: string): AgreementView[] {
 export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): string | null {
   if (['hold', 'idle', 'wait', 'rest', 'sleep', 'presence'].includes(e.kind)) return null;
   const v = eventView(state, viewer, e);
-  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
+  // BG-251: a missile landing shows where it struck, never who sent it
+  if (e.kind === 'impact') return `${v.level === 'full' ? 'saw' : 'heard'} something shot or thrown strike ${e.actorId === viewer.id ? 'beside you' : v.level === 'full' ? `by ${callName(state, viewer.id, e.actorId)}` : 'nearby'}${v.where ? ` ${v.where}` : ''}`;
+  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : v.cue === 'smell' ? 'smelled' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
   // BF65: struck by someone unseen; a body come upon
@@ -761,6 +769,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(full && e.spar ? { spar: true as const } : {}),
+    ...(e.impact ? { impact: e.impact } : {}),
       ...(e.push?.listener === me && pressedWords(e, p) ? { pressed: pressedWords(e, p) } : {}),
       ...(e.overheard?.includes(me) ? { overheard: tellFor(p) } : {}), // LI5a
       ...(item ? { item } : {}),
@@ -833,7 +842,7 @@ function notThere(state: GameState, intent: Intent | null | undefined, seenIds: 
 function stayedPut(state: GameState, events: GameEvent[], intent: Intent | null | undefined): string | undefined {
   const m = intent?.move, p = state.player;
   if (!m || m.toZone !== p.zone || events.some((e) => e.actorId === p.id && ['move', 'wasted', 'way', 'travel'].includes(e.kind))) return undefined;
-  const at = m.spot ? spotPoint(state, m.toZone, m.spot, p)?.words : undefined;
+  const at = m.spot && !m.spot.at ? spotPoint(state, m.toZone, m.spot, p)?.words : undefined; // AD16: a point picked is "in" the zone
   return `${at ?? 'in'} ${zoneById(state, p.zone)?.name ?? p.zone}`.trim();
 }
 
@@ -1041,7 +1050,7 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
   const { mode, weapon } = modeOf(state, attacker, r.weaponId, r.modeId);
   const nat = (n: number) => (n > 0 ? 'lucky' : n < 0 ? 'fumble' : null);
   const armor = r.location && r.location !== 'shield'
-    ? target.core.inventory.find((i) => i.equippedIn?.includes('armor') && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
+    ? target.core.inventory.find((i) => inArmorSlot(i) && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
     : undefined;
   const shield = r.location === 'shield' && r.shieldItemId ? target.core.inventory.find((i) => i.id === r.shieldItemId) : undefined;
   const partName = r.location === 'general' ? actorBody(state, target).general.name : r.location;

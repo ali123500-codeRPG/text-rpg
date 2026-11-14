@@ -20,7 +20,7 @@ export type ReplayDeps = {
 
 export class ReplayRefused extends Error {}
 
-const USED = new Set(['ok', 'repaired', 'fallback']); // GAP: 'fallback' outputs are code-made orders the turn did use
+const USED = new Set(['ok', 'repaired', 'fallback']); // 'fallback' outputs are code-made orders the turn did use
 
 export function replayTurn(stateBefore: GameState, rec: TurnRecord, deps: ReplayDeps): { state: GameState; events: GameEvent[]; rngState: number } {
   const record = structuredClone(rec);

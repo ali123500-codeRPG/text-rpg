@@ -164,6 +164,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['Worn armor and natural armor each apply if they cover the part hit. Damage never goes below 0, and fractions stay.',
           `A minted weapon that boosts damage adds QUALITY_DAMAGE_FACTOR (${n(CONFIG.QUALITY_DAMAGE_FACTOR)}) × need × quality × its class factor (${Object.entries(CONFIG.DAMAGE_CLASS_FACTOR).map(([k, v]) => `${k} ${n(v)}`).join(', ')}) × its tree factor (${Object.entries(CONFIG.DAMAGE_TREE_FACTOR).map(([k, v]) => `${k} ${n(v)}`).join(', ')}) to damageAdj.`,
           `A worn armor's reduction is ARMOR_FACTOR (${n(CONFIG.ARMOR_FACTOR)}) × its need; its multiplier comes from its weight. A minted piece adds ARMOR_QUALITY_FACTOR (${n(CONFIG.ARMOR_QUALITY_FACTOR)}) × need × quality, rounded.`,
+          `Natural armor (a boar's shield, a crocodile's plates) uses the same equation with the owner's Hide skill in place of the need, times its race's hide: ARMOR_FACTOR × Hide × race hide (naturalReduction); its multiplier is light armor's.`,
           `A shield's pool is POOL_BASE (${n(CONFIG.POOL_BASE)}) + POOL_FACTOR (${n(CONFIG.POOL_FACTOR)}) × its need; a minted shield adds POOL_QUALITY_FACTOR (${n(CONFIG.POOL_QUALITY_FACTOR)}) × need × quality, rounded. A blow on a shield drains its pool by the damage (×${n(CONFIG.SHIELD_BREAKER_MULT)} with Shield Breaker; ×${n(CONFIG.IRON_RIM_MULT)} with Iron Rim).`] },
     ] },
     { key: 'gain', title: 'Skill gain', about: 'How a marked skill improves.', equations: [

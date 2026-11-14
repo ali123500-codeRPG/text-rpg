@@ -36,6 +36,14 @@ import { EK, RV, ZK } from '../../src/library/tableIds';
 import { recoverDebt } from '../../src/engine/fatigue';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import type { Zone } from '../../src/types';
+import { freshId } from '../../src/ids';
+import { levelMaxPct, partName } from '../../src/ruleset/body';
+import { OPP_SIDE, SIDES, SIDE_STEP } from '../../src/types';
+import { PLAN_TRIGGER_TYPES, TRIGGER_TYPES } from '../../src/scenario/triggers';
+import { minuteOfDay, DAY_MINUTES } from '../../src/time';
+import { actionSeconds } from '../../src/ruleset/actionTime';
+import { CROSSROADS } from '../../src/agents/crossroads';
+import { roman } from '../../src/scales';
 
 // files the leftover scan has covered (add each round's files)
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
@@ -55,11 +63,40 @@ const ROUND_9 = ['src/ui/mapPlan.ts', 'src/save/checks.ts', 'src/scenario/direct
 const ROUND_10 = ['src/ui/motion.ts', 'src/scenario/geometry.ts', 'src/ui/gains.ts', 'src/ui/gm.ts', 'src/ui/kit.ts', 'src/agents/call.ts',
   'src/agents/narration.ts', 'src/save/turnCheck.ts', 'src/agents/autopilot.ts', 'src/ruleset/personality.ts', 'src/engine/fatigue.ts',
   'src/ruleset/modSources.ts', 'src/engine/yield.ts', 'src/engine/auras.ts', 'src/engine/travel.ts', 'src/ui/doing.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7, ...ROUND_8, ...ROUND_9, ...ROUND_10];
+// round 11: every file not covered before (all of src but library/data.ts)
+const ROUND_11 = ['src/land/generate.ts', 'src/types/state.ts', 'src/types/core.ts', 'src/ui/classTree.ts', 'src/types/hidden.ts',
+  'src/types/ruleset.ts', 'src/ui/mapData.ts', 'src/types/game.ts', 'src/ui/app.ts', 'src/library/achievementIds.ts',
+  'src/ui/achievementThreads.ts', 'src/ui/landSvg.ts', 'src/agents/director.ts', 'src/types/items.ts', 'src/land/brief.ts',
+  'src/scenario/fixtures.ts', 'src/engine/goals.ts', 'src/agents/client.ts', 'src/ruleset/age.ts', 'src/ui/personality.ts',
+  'src/ui/fakeStages.ts', 'src/ui/pop.ts', 'src/ruleset/threadboundItems.ts', 'src/engine/barriers.ts', 'src/engine/comingNear.ts',
+  'src/ui/essences.ts', 'src/engine/perkMarks.ts', 'src/save/pages.ts', 'src/save/store.ts', 'src/save/world.ts', 'src/engine/triggers.ts',
+  'src/engine/containers.ts', 'src/agents/crossroads.ts', 'src/engine/suspicion.ts', 'src/ui/bugs.ts', 'src/ruleset/allSteps.ts',
+  'src/time.ts', 'src/agents/clock.ts', 'src/engine/spar.ts', 'src/engine/perkMoves.ts', 'src/land/sight.ts', 'src/library/boostPerks.ts',
+  'src/library/index.ts', 'src/ruleset/achChains.ts', 'src/engine/handover.ts', 'src/ui/healing.ts', 'src/ui/loot.ts',
+  'src/ruleset/morale.ts', 'src/library/layouts.ts', 'src/library/builtPerks.ts', 'src/library/echo.ts', 'src/ui/itemIcons.ts',
+  'src/agents/format.ts', 'src/ruleset/access.ts', 'src/engine/happened.ts', 'src/ui/fame.ts', 'src/ui/rpgVoice.ts', 'src/engine/trail.ts',
+  'src/engine/furniture.ts', 'src/library/tableIds.ts', 'src/ui/power.ts', 'src/engine/makeOut.ts', 'src/engine/steady.ts',
+  'src/land/edge.ts', 'src/scenario/checkin.ts', 'src/ui/ideaLeans.ts', 'src/engine/breakage.ts', 'src/engine/held.ts',
+  'src/engine/memory.ts', 'src/ui/furnitureIcons.ts', 'src/engine/morale.ts', 'src/save/bugs.ts', 'src/engine/hunches.ts',
+  'src/ruleset/bane.ts', 'src/ruleset/requirements.ts', 'src/save/replay.ts', 'src/ruleset/fatigue.ts', 'src/scenario/heights.ts',
+  'src/ui/stealth.ts', 'src/engine/extract.ts', 'src/ui/main.ts', 'src/engine/mode.ts', 'src/ruleset/value.ts', 'src/library/skillIds.ts',
+  'src/ui/perkDoc.ts', 'src/rng.ts', 'src/ui/timeOfDay.ts', 'src/library/perkIds.ts', 'src/ui/iconArt.ts', 'src/agents/fame.ts',
+  'src/minds/bank.ts', 'src/ui/fell.ts', 'src/ui/voiceSamples.ts', 'src/ui/libraryTones.ts', 'src/ui/mapCheck.ts',
+  'src/ruleset/actionTime.ts', 'src/scenario/triggers.ts', 'src/save/sends.ts', 'src/scenario/stage.ts', 'src/engine/secrets.ts',
+  'src/engine/types.ts', 'src/library/functionNames.ts', 'src/ruleset/blessings.ts', 'src/ruleset/perkLinks.ts', 'src/ruleset/pressure.ts',
+  'src/engine/speed.ts', 'src/engine/follow.ts', 'src/library/itemIds.ts', 'src/library/perkThemes.ts', 'src/scenario/index.ts',
+  'src/ruleset/stacking.ts', 'src/agents/answering.ts', 'src/library/functionIds.ts', 'src/agents/index.ts', 'src/engine/index.ts',
+  'src/library/auras.ts', 'src/library/perkLinks.ts', 'src/library/skillNames.ts', 'src/save/universe.ts', 'src/ruleset/hits.ts',
+  'src/library/raceIds.ts', 'src/engine/busy.ts', 'src/perception/sight.ts', 'src/types/index.ts', 'src/library/classIds.ts',
+  'src/ruleset/quality.ts', 'src/ruleset/skillCap.ts', 'src/library/npcLayerIds.ts', 'src/library/treeIds.ts', 'src/library/godIds.ts',
+  'src/library/names.ts', 'src/library/templateIds.ts', 'src/library/uniques.ts', 'src/library/startIds.ts', 'src/minds/index.ts',
+  'src/library/essenceIds.ts', 'src/library/serviceIds.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7, ...ROUND_8, ...ROUND_9, ...ROUND_10, ...ROUND_11];
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts', 'src/ruleset/body.ts'];
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts', 'src/save/index.ts', 'src/scenario/director.ts', 'src/ruleset/body.ts',
+  'src/agents/client.ts', 'src/engine/secrets.ts', 'src/save/replay.ts', 'src/engine/triggers.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -388,11 +425,11 @@ describe('leftover scan round 10', () => {
     expect(a).not.toMatch(/'friend', 'loyal'/);
     expect(read('src/engine/travel.ts')).not.toMatch(/perceivesNow/);
   });
-  it('the Stacking tab names noise, attention, light and pace by their scale names', () => {
+  it('the Stacking tab names noise, attention and light by their scale names', () => {
     const v = (src: string) => MOD_SOURCES.find((m) => m.source === src)!.value;
     expect(v('Waking')).toMatch(/^Faint /);
     expect(v('Light')).toMatch(/dim -5/);
-    expect(v('Travel pace')).toMatch(/slow \+10 · fast -10/);
+    expect(MOD_SOURCES.some((m) => m.source === 'Travel pace')).toBe(false); // SR5: one travel pace
   });
   it('no literal durations in motion, one walk chip, one plural, packet words used as they come', () => {
     expect(read('src/ui/motion.ts')).not.toMatch(/dur: Math\.min\(\d|\+ \d+ \* strength/);
@@ -413,5 +450,67 @@ describe('answers CS23 to CS25', () => {
   });
   it('CS25: filch, ambush and sneaking past sleepers count Against the Odds once per act', () => {
     for (const f of ['src/engine/filch.ts', 'src/minds/state.ts', 'src/engine/sleep.ts', 'src/engine/resolve.ts']) expect(read(f)).toMatch(/outmatchedOnce\(state, /);
+  });
+});
+
+describe('leftover scan round 11', () => {
+  const read = (f: string) => readFileSync(f, 'utf8') as string;
+  const src = files('src').filter((f) => f !== 'src/library/data.ts');
+  it('one table of opposite sides and steps; no file keeps its own', () => {
+    expect(SIDES.map((d) => OPP_SIDE[OPP_SIDE[d]])).toEqual([...SIDES]);
+    for (const d of SIDES) expect(SIDE_STEP[OPP_SIDE[d]].map((v) => 0 - v)).toEqual([...SIDE_STEP[d]]);
+    expect(src.filter((f) => f !== 'src/types/core.ts' && /\{ n: 's', s: 'n'|\{ n: \[0, 1\]/.test(read(f)))).toEqual([]);
+  });
+  it('the armor slot is read in slots.ts only; comments, icons and roman numerals have one home each', () => {
+    expect(src.filter((f) => f !== 'src/ruleset/slots.ts' && /includes\('armor'\)/.test(read(f)))).toEqual([]);
+    expect(src.filter((f) => f !== 'src/ui/kit.ts' && /type CommentsApi/.test(read(f)))).toEqual([]);
+    expect(src.filter((f) => f !== 'src/scales.ts' && /(function|const) roman/.test(read(f)))).toEqual([]);
+    expect(roman(4)).toBe('IV');
+  });
+  it('body parts, health levels and grips have one helper each', () => {
+    expect(partName('left_arm')).toBe('Left arm');
+    expect(levelMaxPct('critical')).toBe(CONFIG.HEALTH_TRACK.find(([k]) => k === 'critical')![1]);
+    expect(src.filter((f) => f !== 'src/ruleset/body.ts' && /const partName = \(/.test(read(f)))).toEqual([]);
+    expect(src.filter((f) => f !== 'src/ruleset/body.ts' && /function freeGrips|const freeGrips/.test(read(f)))).toEqual([]);
+    expect(read('src/engine/perkMoves.ts')).not.toMatch(/no_free_hand|freeHand/);
+  });
+  it('fresh ids come from one helper', () => {
+    const taken = new Set(['a', 'a_2']);
+    expect(freshId('a', taken)).toBe('a_3');
+    expect(taken.has('a_3')).toBe(true);
+    for (const f of ['src/engine/spar.ts', 'src/engine/memory.ts', 'src/engine/quests.ts']) expect(read(f)).not.toMatch(/for \(let i = 2;/);
+    expect(src.filter((f) => f !== 'src/ids.ts' && /function freshId/.test(read(f)))).toEqual([]);
+  });
+  it('plans name every trigger type but quiet_turns, from the one list', () => {
+    expect(PLAN_TRIGGER_TYPES).toEqual(TRIGGER_TYPES.filter((t) => t !== 'quiet_turns'));
+    expect(read('src/engine/effects.ts')).not.toMatch(/const TRIGGER_TYPES/);
+  });
+  it('time of day, action speed and the hurt crossroads read their tables', () => {
+    expect([minuteOfDay(-1), minuteOfDay(DAY_MINUTES + 5)]).toEqual([DAY_MINUTES - 1, 5]);
+    expect(actionSeconds({ id: 'x', name: 'x', effort: 'base', seconds: 4, speed: { fn: 'FN1', halving: 25 } }, CONFIG.ACTION_SPEED_PIVOT, 1)).toBe(4);
+    expect(read('src/ruleset/actionTime.ts')).not.toMatch(/50/);
+    expect(CROSSROADS.find((c) => c.kind === 'badly_hurt')!.rule).toBe('your health first reaches Wounded, Mauled or Critical, or a body part becomes Crippled or Destroyed (GA4)');
+    expect(read('src/agents/crossroads.ts')).not.toMatch(/'your health first reaches Wounded/);
+    expect(read('src/ruleset/age.ts')).not.toMatch(/slice\(7\)|LIFE_STAGES\.at\([12]\)/);
+  });
+  it('no leftover file or names from removed rules', () => {
+    expect(src).not.toContain('src/todo.ts');
+    expect(read('src/library/godIds.ts')).not.toMatch(/essences:/);
+    expect(read('src/library/classIds.ts')).not.toMatch(/blessed_essences/);
+    expect(read('src/ui/classTree.ts')).not.toMatch(/A Nobody/);
+    expect(read('src/ui/loot.ts')).not.toMatch(/pocket/);
+    expect(read('docs/build-spec.md')).not.toMatch(/agents that return JSON call sample\.json/);
+  });
+});
+
+describe('answer CS26', () => {
+  it('the land maker keeps its shaping numbers in one named table (LAND) at the top, not in the drawing code', () => {
+    const g = readFileSync('src/land/generate.ts', 'utf8') as string;
+    const body = g.slice(g.indexOf('export function drawRegion'));
+    expect(g.indexOf('const LAND = {')).toBeLessThan(g.indexOf('export function drawRegion'));
+    // left in the body: 0, 1 and 2, halves, noise and hash salts and octave counts, the 16 moves and the crossing samples
+    const left = body.replace(/seed \+ \d+|hash\(seed, \w+, \d+\)/g, '').replace(/, [234]\)/g, ')').replace(/\[0, 0\.34, 0\.67, 1\]/, '').replace(/const MOVES[^\n]*/, '')
+      .replace(/\/\/[^\n]*/g, '').match(/(?<![\w.])\d+(\.\d+)?(?![\w])/g)?.filter((n) => !['0', '1', '2', '0.5'].includes(n)) ?? [];
+    expect(left).toEqual([]);
   });
 });

@@ -243,7 +243,6 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .changes .sum { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .chg { border-collapse: collapse; margin: 4px 0 0 22px; font-size: 13px; }
 .chg td { padding: 4px 12px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
-.who .pp { display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 10px; border: 1px solid var(--border); border-radius: var(--r-pill); font-size: 13px; }
 .who .st { color: var(--muted); }
 .who .st.warn { color: var(--warn); } .who .st.down { color: var(--danger); } .who .st.fear { color: var(--c5); } .who .st.tired { color: var(--c7); }
 .helps { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 14px 20px 16px; display: grid; gap: var(--space-3); }
@@ -724,7 +723,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .inbar button.itm[hidden] { display: none; }
 .hico svg { width: 20px; height: 20px; display: block; }
 .itm b { font-weight: 600; color: var(--text); }
-/* Stealth (src/ui/stealth.ts): Sneak and Hide in the action bar; a filled badge and an outlined bar while stealthy, in the Stealth tree's colour */
+/* Stealth (src/ui/stealth.ts): Sneak and Vanish in the action bar; a filled badge and an outlined bar while stealthy, in the Stealth tree's colour */
 .st-i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .inbar button.st-act { color: var(--text); }
 .inbar button.st-act .st-i { color: var(--c3); }
@@ -739,19 +738,17 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .tone-bad { color: var(--danger); }
 .tone-muted { color: var(--muted); }
 
-/* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
-   filling the space on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
+/* Play screen: fixed rows (header, story and deck), one reading column filling the space on the left with each turn's
+   results under its prose and the action deck at its foot, and the right column (health strip, minimap, Who's here, short sheet) */
 .playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto auto auto minmax(0, 1fr); padding-bottom: 0; }
 /* fixed rows, so a row that is empty or moved (Who's here inside the header line) leaves the story where it is */
-.playmain { row-gap: 0; } .playmain > .who, .playmain > .play-wrap, .playmain > .fell { margin-top: var(--space-6); }
-.playmain > .head { grid-row: 1; } .playmain > .who { grid-row: 2; } .playmain > .play-wrap { grid-row: 4; }
-/* Who's here in the header line while everyone fits: it takes the room between the place and the switches */
-.head > .who.inline { flex: 1 1 0; align-self: center; }
+.playmain { row-gap: 0; } .playmain > .play-wrap, .playmain > .fell { margin-top: var(--space-6); }
+.playmain > .head { grid-row: 1; } .playmain > .play-wrap { grid-row: 4; }
 /* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
 .playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
 .playmain > .fell { grid-row: 4; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
-.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--sheet-w); } /* the open sheet is as narrow as its skill rows; the story takes the rest */
+.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--panel-w); } /* the right column holds the minimap; the story takes the rest */
 .play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
 /* the story fills all the space beside the sheet at every width (always fit the screen, no empty spaces); its type
    grows a little with the screen so wide lines stay readable */
@@ -814,12 +811,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .undone-row::before { content: "\203A  "; } .undone-row[aria-expanded="true"]::before { content: "\2304  "; }
 .earlier { justify-self: start; }
 .working { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); margin: var(--space-4) 0 0; }
-/* who's here: one row that keeps its height, empty or full */
-.who { display: flex; align-items: center; gap: var(--space-2) var(--space-4); flex-wrap: nowrap; overflow: hidden; min-width: 0; height: var(--control-h); }
-.who .pp { flex: none; }
-.who .pp:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.who-tip { position: fixed; z-index: 60; padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-  color: var(--text); font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
 /* input: the box takes the column's width, the tools sit in one row under it */
 .inbar { display: grid; gap: var(--space-2); }
 .inrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }
@@ -835,8 +826,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .clar-ans:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .clar-ans:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .in-hint .hs-btn-text { min-height: 0; padding: 0 6px; font-size: inherit; }
-.tools { display: flex; align-items: center; gap: var(--space-2) var(--space-3); flex-wrap: wrap; }
-.inbar button.aim { width: calc(var(--space-9) * 2); justify-content: center; }
 .helps { max-height: calc(var(--vh) * .4); overflow-y: auto; }
 /* the status strip (default) and the full sheet; the full sheet is the HISAB side panel: pushes, never covers */
 .cs-side { border-left: 1px solid var(--border); padding-left: var(--space-6); display: grid; gap: var(--space-4); align-content: start; overflow-y: auto; min-height: 0; }
@@ -1516,3 +1505,134 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .loot-foot { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
 .loot-order { font-style: italic; }
 .loot-btns { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-3); }
+
+/* ---- the action deck (AD1–AD16): suggestion, Say box, Aim and Stance, every action in its group. Only colour and
+   opacity change on hover; nothing moves while a turn runs (M-06) ---- */
+.inbar { gap: var(--space-3); }
+.inrow { display: flex; align-items: center; }
+.inrow .hs-input { flex: 1 1 auto; min-width: 0; }
+.say-for { align-self: center; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: var(--r-pill);
+  padding: 0 var(--space-3); min-height: 30px; font: 700 13px var(--font-round); cursor: pointer; white-space: nowrap; }
+.say-for[hidden] { display: none; }
+.dk-sug { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-3); align-items: center; padding: var(--space-3) var(--space-4);
+  border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border); }
+.dk-sug[hidden] { display: none; }
+.dk-sug .dk-sl { grid-column: 1 / -1; color: var(--scenario-mark); margin: 0; }
+.dk-go { justify-self: start; max-width: 100%; min-height: var(--touch); padding: 0 var(--space-4); border: 0; border-radius: var(--r-md); background: var(--btn-fill); color: var(--on-btn);
+  font: 800 17px var(--font-round); text-align: left; cursor: pointer; transition: opacity var(--m-feedback) var(--m-ease); }
+.dk-go:hover { opacity: .9; } .dk-go:disabled { opacity: .5; cursor: default; }
+.dk-alt[hidden] { display: none; }
+.dk-why { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 13px; }
+.deck { display: grid; gap: var(--space-3); }
+.dk-mods { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: 13px; color: var(--muted); }
+.dk-mods .hs-label { margin: 0; }
+.dk-tog { border: 1px solid var(--border); background: none; color: var(--text); border-radius: var(--r-pill); min-height: 30px; padding: 0 var(--space-3); font: 700 13px var(--font-round); cursor: pointer; }
+.dk-tog[aria-pressed="true"] { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.dk-seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--r-pill); overflow: hidden; }
+.dk-seg button { background: none; border: 0; min-height: 30px; padding: 0 var(--space-3); color: var(--muted); font: 13px var(--font-round); cursor: pointer; }
+.dk-seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-pill); font-weight: 700; }
+.dk-links { margin-left: auto; display: flex; gap: var(--space-2); }
+.dk-links .hs-btn-text[aria-pressed="true"] { text-decoration: underline; }
+.dk-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-2) var(--space-4); max-height: calc(var(--vh) * .3); overflow-y: auto; align-items: start; }
+.dk-h { margin: 0 0 var(--space-1); font: 800 11px var(--font-round); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-bottom: 4px; border-bottom: 2px solid var(--border); }
+.dk-col.g-fight .dk-h { border-color: var(--c10); } .dk-col.g-talk .dk-h { border-color: var(--c12); } .dk-col.g-move .dk-h { border-color: var(--accent); }
+.dk-col.g-stealth .dk-h { border-color: var(--perk-40); } .dk-col.g-use .dk-h { border-color: var(--c15); } .dk-col.g-perks .dk-h { border-color: var(--scenario-mark); }
+.dk-col.g-getaway .dk-h { border-color: var(--c5); color: var(--c5); }
+.dk-act { display: grid; width: 100%; text-align: left; background: none; border: 0; border-radius: var(--r-md); padding: 5px var(--space-2); min-height: 34px;
+  color: var(--text); cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
+.dk-act:hover, .dk-act:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }
+.dk-act:disabled { opacity: .5; cursor: default; background: none; }
+.dk-act .t { font: 600 14px var(--font-round); }
+.dk-act .n { font-size: 12px; color: var(--faint); }
+.dk-act.hot .t::after { content: " •"; color: var(--warn); }
+/* the pick pop-up: whom, with what, which part */
+.deck-pick .dk-picks { display: grid; gap: 2px; min-width: 240px; max-height: calc(var(--vh) * .5); overflow-y: auto; }
+.dk-pick { display: grid; text-align: left; background: none; border: 0; border-radius: var(--r-md); padding: 6px var(--space-2); color: var(--text); cursor: pointer;
+  transition: background-color var(--m-feedback) var(--m-ease); }
+.dk-pick:hover, .dk-pick:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }
+.dk-pick b { font: 700 14px var(--font-round); } .dk-pick small { color: var(--muted); font-size: 12px; }
+.dk-pick.hot b::after { content: " •"; color: var(--warn); }
+
+/* ---- the right column: health strip, minimap, Who's here, short sheet ---- */
+.cs-side { display: flex; flex-direction: column; gap: var(--space-4); overflow: hidden; }
+.cs-side[hidden] { display: none; }
+.vitals { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: start; padding: var(--space-3); border: 1px solid var(--border);
+  border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 80%, transparent); flex: none; }
+.vitals .cs-strip { margin: 0; padding: 0; }
+.vitals .cs-strip:hover { background: none; } .vitals:hover { border-color: var(--accent); }
+.vitals .heal-slot[hidden] { display: none; }
+.vitals-pop .hs-btn-main { justify-self: start; }
+.cs-side > .mm { flex: none; }
+.here { display: flex; flex-direction: column; min-height: 120px; flex: 1 1 0; }
+.here > .hs-label { margin: 0 0 var(--space-2); }
+.who { display: grid; gap: 2px; overflow-y: auto; min-height: 0; align-content: start; }
+.who .pp { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 0 var(--space-2); align-items: center; padding: 5px var(--space-2); border-radius: var(--r-md);
+  cursor: pointer; font-size: 13px; transition: background-color var(--m-feedback) var(--m-ease); }
+.who .pp:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.who .pp:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.who .pp .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.who .pp.foe .dot { background: var(--danger); }
+.who .pp b { font: 700 14px var(--font-round); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who .pp .ds { grid-column: 2 / -1; grid-row: 2; font-size: 12px; color: var(--muted); }
+.who .pp .ds:empty { display: none; }
+.who .pp .pin { background: none; border: 0; color: var(--faint); cursor: pointer; font-size: 14px; padding: 0 2px; }
+.who .pp .pin[aria-pressed="true"] { color: var(--scenario-mark); }
+.who .pp .sts { grid-column: 2 / -1; grid-row: 3; display: flex; flex-wrap: wrap; gap: 0 var(--space-2); font-size: 12px; }
+.who .pp .sts:empty { display: none; }
+.short-wrap { flex: none; display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); font-size: 13px; }
+.short { display: grid; gap: var(--space-1); }
+.short-wrap > .hs-btn-text { justify-self: start; }
+
+
+/* ---- the play screen's minimap (AD8–AD16, src/ui/minimap.ts), the mock-up's look; its doors, stairs, furniture and people
+   are the full Map's own marks. Only colour changes, on hover (M-70) */
+.mm { border: 1px solid var(--border); border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 70%, transparent); overflow: hidden; }
+.mm-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); font-size: 13px; border-bottom: 1px solid var(--border); }
+.mm-head b { font-weight: 800; }
+.mm-floor { color: var(--muted); }
+.mm-tools { margin-left: auto; display: flex; gap: var(--space-1); }
+.mm-tools button { width: 30px; height: 30px; padding: 0; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; font-weight: 700; cursor: pointer;
+  transition: border-color var(--m-feedback) var(--m-ease); }
+.mm-tools button:hover { border-color: var(--accent); }
+.mm-svg { display: block; width: 100%; height: 360px; cursor: crosshair; touch-action: none; }
+.mm-svg.no-way { cursor: not-allowed; }
+.mm-svg:focus { outline: none; }
+.mm-svg:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.mm-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); min-height: 32px; padding: 6px var(--space-3); font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+.mm-foot b { color: var(--text); }
+.mm-foot b.now { color: var(--accent); }
+.mm-foot b.far { color: var(--warn); }
+.mm-say { flex: 1 1 220px; }
+.mm-carry { margin-left: auto; font-size: 11px; color: var(--faint); white-space: nowrap; }
+.mm-carry:empty { display: none; }
+.mm-go { height: 26px; padding: 0 10px; border: 1px solid var(--accent); border-radius: var(--r-md); background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer;
+  transition: background-color var(--m-feedback) var(--m-ease); }
+.mm-go:hover { background: var(--accent-soft); }
+.mm-zone .mm-ground { fill: color-mix(in srgb, var(--surface) 90%, black); }
+.mm-zone.outdoor .mm-ground { fill: color-mix(in srgb, var(--c12) 20%, var(--bg)); }
+.mm-zone.current .mm-ground { fill: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.mm-zone.seen .mm-ground { fill-opacity: .55; }
+.mm-zone .map-edge { stroke: color-mix(in srgb, var(--text) 75%, transparent); }
+.mm-zone .map-edge.wall { stroke-width: 2; }
+.mm-zone.seen .map-edge { stroke-dasharray: 2 4; } /* MAP-34: seen, not been in, reads without colour */
+.mm-zone.current .map-edge { stroke: var(--accent); }
+.mm-here { fill: none; stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
+.mm-name { font-family: var(--font-round); font-weight: 700; fill: color-mix(in srgb, var(--text) 35%, transparent); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; pointer-events: none; }
+.mm-ring { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-dasharray: 4 4; pointer-events: none; }
+.mm-path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1 6; pointer-events: none; }
+.mm-path.far { stroke: var(--warn); }
+.mm-path.set { stroke-dasharray: none; opacity: .7; }
+.mm-goal { fill: none; stroke: var(--accent); stroke-width: 2; pointer-events: none; }
+.mm-goal.far { stroke: var(--warn); }
+.mm-goal.set { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
+.mm-you { pointer-events: none; }
+.mm-you circle, .mm-you path { fill: var(--scenario-mark); }
+.mm-you circle { stroke: var(--bg); stroke-width: 2; }
+.mm-you text { font: 800 7px var(--font-round); fill: var(--on-pill); }
+.mm-svg .map-who { cursor: pointer; }
+.mm-svg .map-who circle { transition: stroke var(--m-feedback) var(--m-ease); }
+.mm-svg .map-who:hover circle, .mm-svg .map-who:focus-visible circle { stroke: var(--scenario-mark); }
+
+/* AU7: the Sound switch and its volume slider on the play header */
+.sound-sw { display: inline-flex; align-items: center; gap: var(--space-1); }
+.sound-sw input[type="range"] { width: 88px; accent-color: var(--accent); }

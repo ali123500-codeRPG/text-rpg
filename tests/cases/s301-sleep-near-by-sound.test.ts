@@ -1,6 +1,6 @@
 // 301 CS20: a sleeper's "near" is a sound rule, never a zone. Someone hostile is near a sleeper when their steps reach it
 // (their movement sound, a sneaker's at its sneaking noise, carried as for a listener awake: metres, walls and doors).
-// Light Sleeper rolls only against those; the player's night stops only for those.
+// A sleeper's hearing check (every sleeper sleeps light) rolls only against those; the player's night stops only for those.
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
@@ -18,7 +18,6 @@ const setUp = () => {
   const g = s.actors.find((a) => a.id === 'guard_1')!;
   (g.mind!.overrides ??= {}).player = 'hostile';
   s.player.pos = { x: 91, y: Y };
-  s.player.core.perks.push({ perkId: PK.light_sleeper, source: 'level', gainedTurn: 0 });
   fallAsleep(s, s.player, now(s) + 480);
   return { s, g };
 };
@@ -81,7 +80,6 @@ describe('301 sleepers hear who is near by sound, not by zone', () => {
     s.player.core.skills[SK.sneaking] = { raw: 50, state: 'normal' };
     s.player.posture = 'stealthy';
     g.core.skills[SK.earshot] = { raw: 50, state: 'normal' };
-    g.core.perks.push({ perkId: PK.light_sleeper, source: 'level', gainedTurn: 0 });
     put(s, g, 'field_edge', 88);
     fallAsleep(s, g, now(s) + 480);
     wakeCheck(s, g, s.player, 'quiet', createRng(1));

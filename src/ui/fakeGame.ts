@@ -324,6 +324,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point
     const common = state.places.flatMap((x) => x.zones).find((z) => z.id === 'tav_common')?.rect;
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
+    // the minimap's walks (AD16) go through the stage's zones, as in the game; a little move time carried from last turn (TP4)
+    state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
+    if (state.mode === 'tactical') player.carry = [{ main: 0, move: 2.4, turn: state.turn - 1 }];
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
     // a sack carried in the pack, with a dagger, a bandage and a smaller sack inside it, to show containers on the Inventory (CT1)
@@ -385,6 +388,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (guided && (guided.mustAsk || ++asks % 2)) return { command: '', say: 'The barkeep offers a job: clear the cellar for 5 silver. Take it?', ask: { kind: guided.mustAsk?.kind ?? 'deal', about: `the barkeep ${asks}`, choices: ['I take the job.', 'I turn it down.', 'I ask for more.'], pick: 0 } };
       return { command: 'I look around.', say: '<sigh> Getting my bearings first. The room is quiet, too quiet, and I do not like it.', direction: 'calm, a little curious' };
     },
+    async act(order, o) { return this.submit(order.line, o); }, // the fake reads only the line
     async submit(text, o) {
       if (busy || !state) return;
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one
@@ -411,7 +415,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "door" tries and opens doors, to show the play screen's Way rows
       const ways = /^door\b/i.test(text) ? { ways: ['Door to kitchen: locked', 'Door to back yard: barred from the other side', 'Door to village square: unlocked with your key on the way through'] } : null;
       state.turn = t + 1;
-      if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
+      if (/^(sneak|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
