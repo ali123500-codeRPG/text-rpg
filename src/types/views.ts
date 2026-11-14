@@ -263,6 +263,8 @@ export type NarrationEvent = {
   steady?: 'calmer' | 'worse' | 'no change'; // SY1: how steadying oneself went, in words
   offers?: { to: string; landed: string; demand?: 'yield' }[]; // TF12: the player's offer to stop fighting, and how it landed with each listener; demand: TF19, it asked them to surrender
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
+  surrender?: { with: string[] }; // TF19: someone talked into surrendering: who gave up with them (names)
+  breakOpen?: { opened: boolean; cut?: true }; // BF31: a container broken open (or not); cut: a blade cut a soft one open
   mentallySteady?: true; // SY1: it left them Mentally steady
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
   way?: { what: string; did: string; to: string }; // SD3–SD5, BA2: a barrier on the way to `to`: what kind, and what was done at it

@@ -12,7 +12,7 @@ import { resolveSpeech } from '../../src/engine/speech';
 import { loseNerve } from '../../src/engine/effects';
 import { answerOffer, canDemand, canOffer, makeOffer, offerNote, offersTo, playerOffer, tiersToConvince } from '../../src/engine/offer';
 import { actorBody } from '../../src/library';
-import { buildPlayerView } from '../../src/views';
+import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { ideas } from '../../src/ui/play';
 
 const fight = (s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })): GameState => {
@@ -53,6 +53,10 @@ it('TF19: a code-run foe convinced by the demand surrenders: beaten (XP paid), n
   expect(hostile(s, p, s.player)).toBe(false);
   expect(truce(s, p, s.player)).toBe(false);
   expect(p.mind!.xpPaid).toBe(true); // TF19: a talked surrender is a defeat
+  // the Narrator hears that it was a demand to surrender, and the surrender itself
+  const nv = buildNarrationView(s, ev, i);
+  expect(nv.events.find((e) => e.kind === 'speak' && e.offers)?.offers?.[0].demand).toBe('yield');
+  expect(nv.events.find((e) => e.kind === 'surrender')?.surrender).toEqual({ with: [] });
 });
 
 it('TF19: a win short of the demand only tempts; the foe fights on', () => {

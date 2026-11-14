@@ -95,7 +95,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
     else if (WAY_ORDERS.includes(a.type) && a.target !== null && !zones.has(a.target) && !boxes.has(a.target)) illegal.push(`action.target ${a.target}`); // BG-128: a lock is on a way or a container (CT3)
-    else if (a.type === 'open' && (a.target === null || !boxes.has(a.target))) illegal.push(`action.target ${a.target}`);
+    else if ((a.type === 'open' || a.type === 'break') && (a.target === null || !boxes.has(a.target))) illegal.push(`action.target ${a.target}`);
     else if (a.type === 'filch' && (a.target === null ? a.item === null : !(actors.has(a.target) && !dead.has(a.target)) && !boxes.has(a.target))) illegal.push(`action.target ${a.target}`); // FL2: someone in view or a container
     else if (a.type === 'restrain' && (a.target === null || !actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // BF5: someone in view
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped

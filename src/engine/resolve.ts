@@ -74,7 +74,7 @@ import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, w
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
-  way: ['quiet', 'normal'], pick: ['hushed', 'low'], // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  way: ['quiet', 'normal'], pick: ['hushed', 'low'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
   stash: ['hushed', 'low'], // SE9: tucking something away
   filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts)
 };
@@ -176,6 +176,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'hide': return of(DU.hide);
+    case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
     case 'give': return of(DU.hand_over);
@@ -1336,6 +1337,30 @@ function doOpen(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, bark(mk(ctx, a, why ? 'wasted' : 'open', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), ...(why ? { reason: why } : {}) }), o));
 }
 
+/** BF31: breaking a locked container open, within grip reach: the turn's action, loud (heard like a shout). A soft one (a
+ * sack, a pack) is cut open by an edged weapon in hand, with no roll. Otherwise a roll of the melee weapon in hand (bare
+ * hands: Improvised) at the lock's grade, the same modifier Lockpicking uses; Success or better opens it, and its lock is
+ * broken for good. Nothing inside is harmed yet (BK1-BK3). One its owner guards can't be broken yet (BK6). */
+function doBreak(ctx: Ctx, a: Actor, o: Order): void {
+  const { state, rng } = ctx;
+  const c = findContainer(state, o.target);
+  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : c.inst.open ? 'already_open' : !c.inst.lock?.locked ? 'not_locked' : theft(state, a, c) ? 'theft' : null;
+  if (why || !c) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), reason: why ?? 'no_container' }), o));
+  const ev = (opened: boolean, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'break_open', { target: c.inst.id, itemId: c.inst.id, breakOpen: { opened }, ...extra }), o);
+  const held = usableModes(state, a).find((m) => m.mode.tree === 'melee' && !m.itemId.startsWith('natural:'));
+  const blade = held && itemDef(state, a.core.inventory.find((i) => i.id === held.itemId)?.itemId ?? '').edge;
+  const open = () => { c.inst.lock = { locked: false, broken: true }; c.inst.open = true; };
+  if (blade && itemDef(state, c.inst.itemId).container?.soft) { open(); return emit(ctx, ev(true, { breakOpen: { opened: true, cut: true } })); }
+  c.inst.grade ??= 'minor';
+  const skill = held ? modeSkill(held.mode) : SK.unarmed_improvised;
+  const modifiers: Mod[] = CONFIG.LOCK_GRADE_MOD[c.inst.grade] ? [{ source: 'lock', type: 'situational', value: CONFIG.LOCK_GRADE_MOD[c.inst.grade] }] : [];
+  const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], ...(held ? { itemId: held.itemId } : {}) }, state, rng);
+  const opened = tierAtLeast(r.tier, 'success');
+  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY[c.inst.grade] ?? CONFIG.DIFFICULTY.moderate, passed: opened, modifiers }, state);
+  if (opened) open();
+  emit(ctx, ev(opened, { roll: r, tier: r.tier }));
+}
+
 /** CT4/FL4: a guarded container opened or picked under watch: the Filching contest, with the container's size. Caught or
  * fumbled: the filch event says so and the try stops (false); unnoticed: it goes on (true). */
 function filchStep(ctx: Ctx, a: Actor, o: Order, owner: Actor | undefined, at: Located, inst: ItemInstance): boolean {
@@ -1443,6 +1468,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doStash(ctx, a, o);
     case 'open':
       return doOpen(ctx, a, o);
+    case 'break':
+      return doBreak(ctx, a, o);
     case 'restrain': {
       // BF5: a grab to hold someone back, within the grabber's grip reach; no damage, no hostility
       const t = o.target ? actorById(state, o.target) : undefined;
