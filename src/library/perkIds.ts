@@ -34,7 +34,7 @@ export const PK = {
   // linked perks LR1-LR4
   ghost_blade: 'PK142', combination: 'PK143', blind_spot: 'PK144', bulwark: 'PK145',
   overdrive: 'PK146', // SS15: Stamina's 140 perk
-  patient_knife: 'PK147', protagonist_mentality: 'PK148', // CN6, CN7: payoff perks (D-260)
+  patient_knife: 'PK147', protagonist_mentality: 'PK148', chorus: 'PK151', // CN6-CN8: payoff perks (D-260)
   extract_essence: 'PK149', hollowed: 'PK150', // DX1-DX5: essence extraction (a blessing of Imbra) and the quirk it leaves
 } as const;
 /** a perk ID: PK + a number */

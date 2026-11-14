@@ -328,6 +328,7 @@ const DEFAULTS = {
   SECOND_BREATH_PCT: 50, // SS8 Second Breath: once per engagement an emptied line refills to this % of its size
   OVERDRIVE_SHARE: 0.1, // SS15 Overdrive (Stamina 140): while the line is above half, every roll adds this share of Stamina (the augment equation)
   PAYOFF_SHARE: 0.05, // CN4 payoff perks: one counted piece adds this share of the skill (placeholder)
+  CHORUS_REACH_M: 1, // CN8 Chorus: metres of engagement-aura reach each shout piece adds in full (placeholder)
   PAYOFF_EXP: 0.8, // RN4 a / CN9 d: n pieces give PAYOFF_SHARE × n^PAYOFF_EXP (5, 8.7, 12, 15.2, 18.1% …; no ceiling; placeholder)
   OVERDRIVE_STRAIN: 1, // SS15 Overdrive: strain points each of those rolls costs (with worn armour and Bottomless)
   HEAVY_SLEEPER_STEPS: 1, // SS10 Heavy Sleeper: noise levels louder than WAKE_NOISE it takes to wake the owner

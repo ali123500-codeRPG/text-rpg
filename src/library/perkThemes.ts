@@ -11,7 +11,7 @@ export const PERK_THEMES: Record<ThemeTag, string[]> = {
   ambush: [PK.hidden_strike, PK.strike_and_fade, PK.in_and_out, PK.opening_strike, PK.patient_knife],
   counter: [PK.counter, PK.answer_the_blow, PK.step_and_cut],
   guard: [PK.cover_ally, PK.shield_wall, PK.iron_rim, PK.blade_wall],
-  shout: [PK.battle_cry, PK.dread_presence, PK.overwhelm, PK.crushing_presence],
+  shout: [PK.battle_cry, PK.dread_presence, PK.overwhelm, PK.crushing_presence, PK.chorus],
   trick: [PK.bluff, PK.dirt_in_the_eyes, PK.misdirection, PK.set_them_up, PK.make_them_stumble],
   shadow: [PK.melt_away, PK.hushed_steps, PK.child_of_night, PK.soft_tread, PK.quiet_mail],
 };

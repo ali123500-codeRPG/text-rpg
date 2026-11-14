@@ -621,7 +621,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       conditions: ["The owner's short-term line is more than half full before the roll."],
       effect: `The roll adds ${CONFIG.OVERDRIVE_SHARE * 100}% of the owner's Stamina (the augment equation: true skill × CONFIG.OVERDRIVE_SHARE × Stamina's tier, placeholder) and costs ${CONFIG.OVERDRIVE_STRAIN} strain more (CONFIG.OVERDRIVE_STRAIN, with worn armour and Bottomless; it counts toward Stamina's marks like any strain).`,
       lasts: "Each roll, while the line stays above half." } },
-  // ---- Payoff perks that count pieces (CN1-CN7, D-260): PAYOFF_SHARE × pieces^PAYOFF_EXP (RN4) ----
+  // ---- Payoff perks that count pieces (CN1-CN8, D-260): PAYOFF_SHARE × pieces^PAYOFF_EXP (RN4) ----
   { id: PK.patient_knife, ref: "CN6", name: "Patient Knife", skill: SK.combat_stealth, place: "very_high",
     ladder: { skill: SK.combat_stealth, milestone: 100 }, effect: "attack",
     augments: [{ from: SK.combat_stealth, rollKinds: ["hit"], when: "from_hiding", payoff: "ambush" }],

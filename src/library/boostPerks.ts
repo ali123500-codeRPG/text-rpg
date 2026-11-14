@@ -10,6 +10,7 @@ import { SK } from './skillIds';
 import { GR } from './functionIds';
 import { PK } from './perkIds';
 import { CONFIG } from '../config';
+import { payoffShare } from '../ruleset/stacking';
 
 type Row = {
   id: string; ref: string; skill: string; name: string; effect: PerkEffect;
@@ -57,13 +58,17 @@ const ROWS: Row[] = [
     extra: { story: 'You breathe deeper than other people: your short-term stamina is half again as large.', rule: `The owner's short-term line is ×${CONFIG.DEEP_LUNGS_LINE} its size (CONFIG.DEEP_LUNGS_LINE, placeholder), before the fatigue level bands shrink it.` } },
   { id: PK.bottomless, ref: 'SS6', skill: SK.stamina, group: GR.stamina, name: 'Bottomless', effect: 'health', milestone: 120,
     extra: { story: 'Effort that would empty anyone else barely touches you: every strain you pay is halved.', rule: `Every strain cost the owner pays is ×${CONFIG.BOTTOMLESS_STRAIN} (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.` } },
+  // CN8 (D-260): a payoff perk on Intimidation 120 (Battle Cry holds 140), with the 120 boosts like any other
+  { id: PK.chorus, ref: 'CN8', skill: SK.intimidation, group: GR.influence, name: 'Chorus', effect: 'speech', milestone: 120,
+    extra: { story: 'Every way you have learned to strike fear joins the one voice: your auras reach further for every shout perk you own.',
+      rule: `The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds ${CONFIG.CHORUS_REACH_M} m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M, ${CONFIG.AURA_REACH_M} m) grows by the payoff share of those pieces, ${CONFIG.PAYOFF_SHARE * 100}% × pieces^${CONFIG.PAYOFF_EXP} (placeholders). Chorus alone: ${+(CONFIG.AURA_REACH_M * (1 + payoffShare(1)) + 1 * CONFIG.CHORUS_REACH_M).toFixed(1)} m; with three shout pieces: ${+(CONFIG.AURA_REACH_M * (1 + payoffShare(3)) + 3 * CONFIG.CHORUS_REACH_M).toFixed(1)} m.` } },
 ];
 
 /** SH1-SH4: the 40 and 80 perks give +5 to their own skill; the 120 perk gives HIGH_PERK_SHARE of it instead, and HIGH_PERK_SPREAD of
  * it to every skill sharing a group on top of the +1. Shares read true skill without shares (trueSkill in src/ruleset/perks.ts) */
 const own = (r: Row) => r.milestone === 120
   ? { short: `+${CONFIG.HIGH_PERK_SHARE * 100}% ${skillName(r.skill)}, +1 and +${CONFIG.HIGH_PERK_SPREAD * 100}% ${GROUP_NAMES[r.group]}`,
-    rule: `+${CONFIG.HIGH_PERK_SHARE * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SHARE, placeholder) as true skill in ${skillName(r.skill)}. +1 true skill, and +${CONFIG.HIGH_PERK_SPREAD * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SPREAD, placeholder), in every skill of group ${groupName(r.group)}. Shares read true skill without shares; several on one skill stack (the second and later at half).` }
+    rule: `+${CONFIG.HIGH_PERK_SHARE * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SHARE, placeholder) as true skill in ${skillName(r.skill)}. +1 true skill, and +${CONFIG.HIGH_PERK_SPREAD * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SPREAD, placeholder), in every skill of group ${groupName(r.group)}. Shares read true skill without shares; several on one skill add in full.` }
   : { short: `+5 ${skillName(r.skill)}, +1 ${GROUP_NAMES[r.group]}`,
     rule: `+5 true skill in ${skillName(r.skill)}. +1 true skill in every skill of group ${groupName(r.group)}.` };
 
