@@ -1660,6 +1660,8 @@ function step(ctx: Ctx, id: string): void {
     }
     turned ||= walked;
   }
+  // BF36: words the NPC says as it sets off are heard from where it stands, before the walk
+  if (o.wordsFirst && o.line && o.move && !turned && !o.moveAfter) { emit(ctx, bark(mk(ctx, a, 'hold'), o)); o.line = null; }
   if (!turned && !o.moveAfter) move(o.type === 'hold');
   if (!o.way) closer();
   if (later.length) {

@@ -100,7 +100,7 @@ export type SparMade = { sides: string[][]; cruel?: boolean };
 
 /** the NPC's one move beside its action, as the player's: toZone is where it heads (it walks toward it; with hold it runs
  * on, a dash); after: act first, then move */
-export type NpcMove = { toZone: string; after?: boolean };
+export type NpcMove = { toZone: string; after?: boolean; speakAt?: 'end' }; // BF36: speakAt end: walk there, then say it (words come first by default)
 /** UG5: goals met or failed (by their number in the view) and goals added */
 export type GoalOps = { met: number[]; failed: number[]; add: { text: string; about?: string[] }[] };
 export type PlannerOutput = {

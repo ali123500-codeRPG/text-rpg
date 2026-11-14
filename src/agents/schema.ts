@@ -150,7 +150,7 @@ const timeOfDay: V<TimeOfDay> = (v, p, e) => TIME_OF_DAY.keyOf(v) ?? (e.push(`${
 const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, e) => (bool(v, p, e) || undefined) as true, until: obj<StepEnd>({ at: timeOfDay, arrival: str }, ['at', 'arrival']) }, ['go', 'lead', 'routine', 'wait', 'until']);
 const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
-const npcMove = nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after']));
+const npcMove = nul(obj<{ toZone: string; after?: boolean; speakAt?: 'end' }>({ toZone: str, after: bool, speakAt: oneOf(['end'] as const) }, ['after', 'speakAt']));
 const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
   action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps,

@@ -161,6 +161,7 @@ export type Order = {
   source: OrderSource;
   move?: string | null; // the turn's one move (toZone), resolved before the main action (player, or an NPC's Planner/Responder)
   moveAfter?: boolean; // AE3: the player's move comes after the main action
+  wordsFirst?: true; // BF36: an NPC's words beside a move are said where it sets off, before the walk
   pace?: import('../scales').TravelPaceKey; // TV2: the player's travel pace on a road trip (normal when left out)
   moveSpot?: import('./agents').MoveSpot; // BG-12: where in the move's zone the player heads
   jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
