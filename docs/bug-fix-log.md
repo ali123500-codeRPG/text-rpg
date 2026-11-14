@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF65). A blow that hurts or downs someone is felt by them and seen by anyone who sees them as a struck event, while the striker stays as hidden as the stealth rolls say (src/engine/resolve.ts struckSeen). Someone who first sees a body it did not see fall finds it once (findBodies, Mind.bodiesFound). Both raise the alarm (src/minds/state.ts updateAlarms) and the existing fears, and startle the NPC so it gets a Planner call to react even outside a fight (src/agents/game.ts plannerActors). Awake on a sleep step reads as lying awake.
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-237
 
@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF62). The Parser's rule now reads taking something not in view from a named place or thing as a search there (move plus search). A put-off line is never an action name with a stand-in: the Parser is told so, an action waiting for arrival with no line the player would type waits as nothing (src/agents/wrappers.ts actionWords), and any placeholder put-off line is dropped and logged (placeholderLine, deferred_placeholder).
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-236
 
@@ -28,7 +28,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF61). Givers may offer only jobs code can check (defeat, deliver, reach, find): "other" is gone from the job schema, the job rule tells them never to offer a chore and never to say a tool or thing is somewhere their view doesn't show, and a job code still can't read is refused (src/engine/quests.ts makeQuest, unchecked_goal) and filed as a gap. Doable chores went to the features thread.
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-247
 
@@ -36,7 +36,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF71), with the gap cut to 0.2 m. Closing in keeps no gap from its target and stops at the action's reach; a taken straight-line spot makes the walker step round to the nearest free spot at that reach within its walk (src/engine/position.ts walkLeg, ringSpots). Hemmed in on every side, the blow or grab is lost with no_room (roomAround). A walk's end keeps PLACE_GAP_M (0.2 m) from everyone, no one let off; placing people and walking up to someone keep PLACE_SPACING_M (1 m). The code-run opening move closes to the blow's reach.
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-246
 
@@ -44,7 +44,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF70). Every roll line shows the outcome before its whole steps, the steps with their sources, and the outcome after (src/agents/game.ts tiered), for attacks, defenses, contests and checks. An NPC's own gear in its view says when it is beyond its skill and by how many steps (OwnGearView.beyondYou, src/views/index.ts beyond).
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-245
 
@@ -52,7 +52,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF69). Collapse uses the same guards as routine sleep (src/engine/sleep.ts mayDropOff): not within FALL_ASLEEP_MIN of waking, nor while alarmed, broken, engaged or held. Once those lift, exhaustion takes the actor again.
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-244
 
@@ -60,7 +60,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF68). When the cast is placed, anyone whose set has a bed slot and none given gets a real bed within BED_NEAR_HOPS links of its own spots, else its refuge, else its work spot (src/scenario/apply.ts withBed). A sleep step with no bed in play runs where the NPC stands, and the gap is filed once as a bug (bed_missing).
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-243
 
@@ -68,7 +68,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF67). A bark is real speech: those who hear it get its words, the speaker's said list includes it (src/views/index.ts), and the shared line rule tells every speaker never to say a line from its said list again, or the same thing in other words (src/agents/prompts.ts LINE_RULE). Barks still copy no beliefs.
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-233
 
@@ -76,7 +76,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF60). A queued achievement keeps the turn it was reached on (pendingAchievements[].turn), and the grant uses it (src/engine/xp.ts grantAchievement, src/engine/growth.ts flushGrowth).
 
-**Fixed by:** [PR #NEXT](https://github.com/ali123500-codeRPG/text-rpg/pull/NEXT)
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
 ## BG-248
 
