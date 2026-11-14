@@ -1002,6 +1002,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile.plan .map-tile-box { stroke: none; }
 .map-tile.world-place.plan .map-tile-box { stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); stroke-width: 2; }
 .map-tile.world-place.plan.road .map-tile-box { stroke: var(--muted); stroke-width: 3; stroke-dasharray: 10 6; stroke-linecap: round; }
+.map-tile.world-place.plan.road.here .map-tile-box { stroke: var(--accent); }
+.map-tile.world-place.plan.road.selected:not(.here) .map-tile-box { stroke: var(--scenario-mark); }
+.map-tile.world-place.plan.road .map-road-hit { stroke: transparent; stroke-width: 18; cursor: pointer; }
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
 .map-tile.plan.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; opacity: 1; }
 .map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }
