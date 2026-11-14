@@ -1,11 +1,11 @@
-// The scenario-end gains moment (D-226, proposed M-39): when a scenario ends, everything it gave the player opens in one
+// The scenario-end gains moment (D-226, M-39 to M-39b): when a scenario ends, everything it gave the player opens in one
 // panel over the story, between the old scenario's closing line and the new one's opening. A gold thread (XP is the
 // Thread) runs down the panel and each gain is knotted onto it in turn, from the commonest to the rarest: skills, perks,
 // All-XXX perks, achievements and scars, any essence offered, then the XP the Thread gathered, and last the levels it brought.
 // Like every play-screen motion it plays on top of the final state (M-74): the panel is built complete, so skipping,
 // finishing or motion off always shows every gain at once. Each step's length comes from the --m-* tokens, never from how
 // long the turn took (M-03); only how many gains there are sets how long it runs, as long as the moment needs.
-import { h } from './kit';
+import { h, plural } from './kit';
 import { arrive, bar as barMove, count, impact, later, measured, motionOn, ms, paced, play, stamp } from './motion';
 import { skillName } from './creation';
 import { perkSeries } from './perks';
@@ -13,7 +13,6 @@ import { getLibrary } from '../library';
 import { SCENARIO_ENDING_NAMES, type AchievementNote, type GameApi, type ScenarioEndNote, type ScenarioGains, type XpPart } from '../types';
 import { cap } from '../words';
 
-const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 /** one way to write a number in the moment, counting or still, so a count never ends in a jump (XP can be fractional) */
 const num = (v: number) => String(+v.toFixed(1));
 const plus = (v: number) => `+${num(v)}`;

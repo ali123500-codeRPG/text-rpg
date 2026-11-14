@@ -5,7 +5,7 @@ import { getLibrary } from '../library';
 import { ageText } from '../ruleset/age';
 import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
-import { QUALITY_LEVELS, TIERS } from '../scales';
+import { HIT_OUTCOMES, QUALITY_LEVELS, TIERS } from '../scales';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
 import { openPop } from './pop';
 import { CONFIG } from '../config';
@@ -94,6 +94,7 @@ export function gmPage(api: GameApi) {
 
   function update() {
     const g = api.gm(), s = g.state;
+    const ways = waysByTier(s?.hidden.scenarios ?? []);
     const rolls = (s?.events ?? []).filter((e) => e.attack || e.contest || e.check);
     const confirmRow = (text: string, yes: string, act: () => void) => h('div', { class: 'confirm' }, h('span', { class: 'hs-note' }, text),
       h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = null; act(); update(); } }, yes),
@@ -125,7 +126,7 @@ export function gmPage(api: GameApi) {
         { label: 'Rolls', value: String(rolls.length), unit: unitOf(rolls.length, 'roll'), sub: plural(g.log.length, 'log code'), how: 'Attacks, contests and checks among this turn’s events.' },
       ], how), how,
         // moved here from the play header: the count and the running agents change with the encounter mode (hidden)
-        h('p', { class: 'hs-note' }, `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`,
+        h('p', { class: 'hs-note' }, `${plural(api.calls(), 'Claude call')} this session`,
           api.working().length ? ` · running now: ${api.working().map((w) => w.agent).join(', ')}${api.busy() ? '' : ' (in the background)'}` : '')),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Agent calls · exact input and output'),
@@ -141,7 +142,7 @@ export function gmPage(api: GameApi) {
         rolls.length ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Actor', 'Kind', 'Target', 'Result', 'Detail'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rolls.map((e) => h('tr', {}, h('td', {}, e.actorId), h('td', {}, e.kind), h('td', {}, e.target ?? '–'),
-            h('td', {}, e.attack ? `${e.attack.outcome} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier !== undefined ? tierName(e.tier) : '–')),
+            h('td', {}, e.attack ? `${HIT_OUTCOMES.name(e.attack.outcome)} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier !== undefined ? tierName(e.tier) : '–')),
             h('td', {}, e.attack ? `d100 ${e.attack.attack.d100} vs ${e.attack.defense?.d100 ?? '–'} · gap ${e.attack.gap ?? '–'} · ${e.attack.location ?? '–'}` : '')))))
           : h('p', { class: 'empty' }, 'No rolls this turn.')),
 
@@ -169,9 +170,9 @@ export function gmPage(api: GameApi) {
 
       // BA8: the barriers each tier's scenarios put on ways, so the tier's lean can be checked
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Ways per tier · barriers the scenarios put on ways'),
-        waysByTier(s?.hidden.scenarios ?? []).length ? h('table', { class: 'hs-tbl' },
+        ways.length ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Tier', 'Scenarios', 'Barriers', 'Of them', 'Grades'].map((t) => h('th', {}, t)))),
-          h('tbody', {}, waysByTier(s?.hidden.scenarios ?? []).map((r) => h('tr', {}, h('td', {}, r.tier), h('td', { class: 'hs-num' }, String(r.scenarios)),
+          h('tbody', {}, ways.map((r) => h('tr', {}, h('td', {}, r.tier), h('td', { class: 'hs-num' }, String(r.scenarios)),
             h('td', { class: 'hs-num' }, String(r.barriers)), h('td', {}, r.shut || '–'), h('td', {}, r.grades || '–')))))
           : h('p', { class: 'empty' }, 'No scenario has ended yet.')),
 
