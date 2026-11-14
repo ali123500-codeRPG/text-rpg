@@ -51,17 +51,12 @@ export const ruleMet = (a: Actor, r?: TreeAccess): boolean => !ruleBlock(a, r);
 /** why the actor can't use the tree, or '' when it can */
 export const treeBlock = (a: Actor, treeId: string): string => (hasPerk(a, PK.no_road_closed) ? '' : ruleBlock(a, getLibrary().trees[treeId]?.access));
 export const treeOpen = (a: Actor, treeId: string): boolean => !treeBlock(a, treeId);
-/** BG-250: a skill one of the actor's own natural attacks (its body type's or its race's) rolls: a wolf's bite, a slime's slam */
-const ownAttackSkill = (a: Actor, skill: string): boolean => {
-  const lib = getLibrary();
-  return [...(lib.bodyTypes[a.core.bodyTypeId]?.naturalAttacks ?? []), ...(lib.races?.[a.core.raceId ?? '']?.naturalAttacks ?? [])].some((m) => m.skill === skill);
-};
 /** why the actor can't use the skill: its tree's rule, then the skill's own */
 export const skillBlock = (a: Actor, skill: string): string => {
   const s = getLibrary().skills[skill];
   // No Road Closed opens every tree and skill; so does a held essence that adds true skill to it, whatever the requirements,
   // and so does the actor's own natural attack (BG-250)
-  return hasPerk(a, PK.no_road_closed) || essenceSkill(a, skill) > 0 || ownAttackSkill(a, skill) ? '' : treeBlock(a, s?.treeId ?? '') || ruleBlock(a, s?.access);
+  return hasPerk(a, PK.no_road_closed) || essenceSkill(a, skill) > 0 ? '' : treeBlock(a, s?.treeId ?? '') || ruleBlock(a, s?.access);
 };
 export const skillOpen = (a: Actor, skill: string): boolean => !skillBlock(a, skill);
 /** a class tree is a tree that needs a class */

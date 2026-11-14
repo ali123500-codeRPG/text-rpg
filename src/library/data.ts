@@ -89,7 +89,13 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.unarmed_strike, TR.unarmed, [FN.unarmed], [RL.grip]),
   sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], [RL.grip]),
   sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], [RL.grip]), // fighting with whatever is at hand
-  sk(SK.unarmed_natural, TR.natural, [FN.unarmed], [RL.strike]), // its own tree, open to slime and dragon bodies (TA5)
+  // AB16 a: Natural weapons split into one skill per kind of natural attack; each opens only to bodies and races with that
+  // attack (worked out from the attacks at the end of prototypeLibrary). A Python's constrict rolls Grapple.
+  sk(SK.bite, TR.natural, [FN.unarmed], [RL.strike]),
+  sk(SK.claws, TR.natural, [FN.unarmed], [RL.strike]), // claws and talons
+  sk(SK.hooves_horns, TR.natural, [FN.unarmed], [RL.strike]), // a kick, tusks or horns
+  sk(SK.tail, TR.natural, [FN.unarmed], [RL.strike]), // a tail lash
+  sk(SK.slam, TR.natural, [FN.unarmed], [RL.strike]), // a slime's body blow
   { ...sk(SK.dodge, TR.defense, [FN.defense], [RL.move]), groups: [GR.speed] }, // Defense and Speed groups; no Initiative function, so it doesn't add to initiative
   sk(SK.block, TR.defense, [FN.defense], [RL.grip]), // shields only: a held weapon parries instead
   sk(SK.parry, TR.defense, [FN.defense], [RL.grip]), // turn a melee blow aside with a held melee weapon; a full stop earns a free strike back
@@ -119,11 +125,15 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.lying, TR.trickery, [FN.influence], [RL.speech]), // NT16: deceive rolls Lying
   { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee, GR.defense], augments: [{ skill: SK.parry }] }, // adds its full value to every Parry roll
   { ...sk(SK.blade_dance, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense], augments: [{ skill: SK.dodge }] }, // Riposte's mirror: adds its full value to every Dodge roll
+  // AB20: raises natural armor (ruleset naturalReduction); no function, so nothing stands in for it; open only to races with natural armor
+  { ...sk(SK.hide, TR.defense, [], []), groups: [GR.defense] },
   // Merchant's advanced barter: augments Barter, adding its effective value to every roll that asks for Barter
   { ...sk(SK.shrewd_dealing, TR.merchant, [], [RL.speech]), groups: [GR.influence], augments: [{ skill: SK.barter }] },
-  // slime class skills are tier 0; tremor is no sense function of its own: it adds its full value to every hearing roll
+  // tremor is tier 0 and no sense function of its own: it adds its full value to every hearing roll
   // (every hearing roll asks for Earshot, SENSE_SKILL)
   { ...sk(SK.tremor, TR.slime_senses, [], [RL.sense], 'sound', 'tier_0'), groups: [GR.notice], augments: [{ skill: SK.earshot }] },
+  // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells)
+  sk(SK.scent, TR.scent, [FN.smell], [RL.sense]),
   // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
@@ -134,7 +144,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
 const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   [SK.melee_light]: ['sight'], [SK.melee_medium]: ['sight'], [SK.melee_heavy]: ['sight'],
   [SK.ranged_light]: ['sight', 'ranged'], [SK.ranged_medium]: ['sight', 'ranged'], [SK.ranged_heavy]: ['sight', 'ranged'],
-  [SK.unarmed_strike]: ['sight'], [SK.unarmed_grapple]: ['sight'], [SK.unarmed_improvised]: ['sight'], [SK.unarmed_natural]: ['sight'],
+  [SK.unarmed_strike]: ['sight'], [SK.unarmed_grapple]: ['sight'], [SK.unarmed_improvised]: ['sight'], [SK.bite]: ['sight'], [SK.claws]: ['sight'], [SK.hooves_horns]: ['sight'], [SK.tail]: ['sight'], [SK.slam]: ['sight'],
   [SK.dodge]: ['sight'], [SK.block]: ['sight'], [SK.parry]: ['sight'], [SK.eyesight]: ['sight'], [SK.earshot]: ['hearing'], [SK.tremor]: ['hearing'], // hearing: no table reads it yet
   [SK.sneaking]: ['stealth', 'hide'], [SK.combat_stealth]: ['stealth', 'hide'], [SK.vanishing]: ['stealth', 'hide'],
 };
@@ -424,9 +434,9 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
-    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, grips: 0, name: 'slam' }],
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.slam, reachM: 0.5, reach: 0.5, grips: 0, name: 'slam' }],
     parts: [],
-    fallback: { attackSkill: SK.unarmed_natural },
+    fallback: { attackSkill: SK.slam },
   },
   [BT.winged_quadruped]: {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
@@ -441,7 +451,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
       { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
-    fallback: { attackSkill: SK.unarmed_natural },
+    fallback: { attackSkill: SK.bite },
   },
   // NR14 a: one four-legged shape for every land beast; each race sets its own speeds and attacks (a dog, a tiger, a horse)
   [BT.quadruped]: {
@@ -455,7 +465,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
       { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
       { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
-    fallback: { attackSkill: SK.unarmed_natural },
+    fallback: { attackSkill: SK.bite },
   },
   // legless: the coils move it and squeeze; nothing to carry with (grip reach 0, as amorphous)
   [BT.serpent]: {
@@ -466,7 +476,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
       { id: 'coils', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
       { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.move] },
     ],
-    fallback: { attackSkill: SK.unarmed_natural },
+    fallback: { attackSkill: SK.bite },
   },
   // a spider's shape (CS24: 5 of 8 legs Crippled, or 4 Destroyed, stop it running); fangs on the head; no grip
   [BT.eight_legged]: {
@@ -476,14 +486,17 @@ export const BODY_TYPES: Record<string, BodyType> = {
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
       ...[1, 2, 3, 4].flatMap((n) => (['left', 'right'] as const).map((side) => ({ id: `${side}_leg_${n}`, size: 'extra_small' as const, impact: 'normal' as const, roles: [RL.move] }))),
     ],
-    fallback: { attackSkill: SK.unarmed_natural },
+    fallback: { attackSkill: SK.bite },
   },
 };
 
-/** AB13 a: natural armor equal to Common light armor (the hide skill that raises it waits on round 2) */
-const HIDE = (({ reduction, multiplier }) => ({ reduction, multiplier }))(ARMOR('light', 'common'));
-/** a race's natural attack: unarmed tree, natural weapons skill unless given, reach in metres from the race's comment */
-const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: string, name: string, skill: string = SK.unarmed_natural): AttackMode =>
+/** AB13 a, AB20: natural armor stops ARMOR_FACTOR × Hide × the race's hide (Hide 25 at hide 1 is Common light armor); the
+ * light multiplier stays */
+const HIDE = (hide: number) => ({ hide, multiplier: CONFIG.ARMOR_MULTIPLIER.light });
+/** AB16 a: the skill each kind of natural attack rolls; a tail lash names its own (SK.tail) */
+const NAT_SKILL: Record<string, string> = { [AM.bite]: SK.bite, [AM.claw]: SK.claws, [AM.kick]: SK.hooves_horns, [AM.gore]: SK.hooves_horns, [AM.slam]: SK.slam };
+/** a race's natural attack: unarmed tree, its kind's skill unless given, reach in metres from the race's comment */
+const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: string, name: string, skill: string = NAT_SKILL[id]): AttackMode =>
   ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, partId, name });
 
 /** AP2: an achievement's personality points, written in steps of CONFIG.ACH_PERSONALITY_STEP (the one balance lever) */
@@ -502,7 +515,7 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.watcher, 'Watcher', 'combat', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
   role(RO.talker, 'Talker', 'civilian', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
   role(RO.worker, 'Worker', 'civilian', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
-  role(RO.beast, 'Beast', 'beast', { high: [SK.unarmed_natural], low: [SK.dodge] }),
+  role(RO.beast, 'Beast', 'beast', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
 ].map((r) => [r.id, r]));
 
 /** NG21: NPC themes: what their world adds; per-theme rank titles come from the lore thread */
@@ -519,9 +532,9 @@ export const THEMES: Record<string, ThemeDef> = {
  * only pins what differs from the layers. */
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
-    id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
+    id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.slam]: 30, [SK.scent]: 50 }, // AB19 a: slimes smell, not feel
     roleId: RO.beast, themeId: TH.wild_beasts, rank: 'rank_0', resolve: 50, control: 'code', label: 'a slime', chase: 'far', // CH5: monsters hunt anywhere
-    fallback: { attackSkill: SK.unarmed_natural },
+    fallback: { attackSkill: SK.slam },
   },
   [TP.guard]: {
     id: TP.guard, raceId: RC.human, classId: CL.guard, generation: 'copy', // its class floors (the Guard unlock) raise its minimums
@@ -651,6 +664,8 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
 
 // BR9: a rule names a body type or a race; a block the shape already gives is not repeated on the race
 const AMORPHOUS: AccessCond = { kind: 'body', id: BT.amorphous }; // no hands, eyes, ears or voice
+/** NR14, AB14: the animal races (AB18: they smell) */
+const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizard, RC.python, RC.spider, RC.lion, RC.leopard, RC.hyena, RC.crocodile];
 
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
@@ -663,8 +678,8 @@ export function prototypeLibrary(): Library {
       [TR.melee]: { id: TR.melee, name: 'Combat – Arms', skills: [SK.melee_light, SK.melee_medium, SK.melee_heavy], access: { blockedBy: [AMORPHOUS] } },
       [TR.ranged]: { id: TR.ranged, name: 'Combat – Ranged', skills: [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], access: { blockedBy: [AMORPHOUS] } },
       [TR.unarmed]: { id: TR.unarmed, name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
-      [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: RC.dragon }] } /* the shape's slam; the dragon's own attacks */ },
-      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.parry] },
+      [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam] }, // its access and each skill's: from the attacks (end of this function)
+      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.parry, SK.hide] },
       [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve, SK.stamina] },
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
       [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
@@ -675,7 +690,9 @@ export function prototypeLibrary(): Library {
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
-      [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.slime, RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11: snakes and spiders feel vibration too
+      [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
+      // AB18 a: animals smell; anyone else only through an essence
+      [TR.scent]: { id: TR.scent, name: 'Scent', skills: [SK.scent], access: { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) } },
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
@@ -734,8 +751,8 @@ export function prototypeLibrary(): Library {
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition
     // that sits on someone's Thread, never a strand of it, so stories say it came with you or sits beside you, never that it knots in.
     essences: {
-      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.unarmed_natural, weight: 2 }, { skill: SK.tremor, weight: 1 }], // EN5: slimes have no Endurance
-        story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Footsteps reach you through the floor before your ears catch them, and your body starts to feel like the weapon.' },
+      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
+        story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Who passed by reaches you as a smell before your eyes find them, and your body starts to feel like the weapon.' },
       [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if you had brought someone else\'s long watches home with you.' },
       [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
@@ -906,8 +923,10 @@ export function prototypeLibrary(): Library {
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
       [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, speed: { walk: 0.5, run: 1 }, // a creeping mass: a placeholder
         innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent' }, // Slime and Dragon are not playable (reverses CC8 b)
-      // on the ground as a horse: walk about 1.8 m/s, gallop about 12 (flight not modelled, D-323)
-      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon },
+      // on the ground as a horse: walk about 1.8 m/s, gallop about 12 (flight not modelled, D-323). AB17 a: about 1,000 kg,
+      // twice a horse: (1000 ÷ 70)^(2/3) = 5.9. AB16: it bites and lashes its tail as the big beasts do (it had no attacks of its own)
+      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 5.9, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon,
+        naturalAttacks: [nat(AM.bite, 'heavy', 1.5, 'head', 'bite'), nat(AM.slam, 'slam', 2, 'tail', 'tail lash', SK.tail)] },
       // Animals (NR14, NR15). hpMultiplier (AB6 a): (mass ÷ a 70 kg person)^(2/3), rounded: dog 30 kg, wolf 40, tiger 220,
       // bear 300, boar 90, horse 500, Komodo 70, python 75. Run = the cited burst; walk = an everyday gait (estimates unless cited).
       // Attack class by bite or blow force [Proposed]: a weak bite light, a tiger's or bear's (about 1,000 psi, National
@@ -931,7 +950,7 @@ export function prototypeLibrary(): Library {
       [RC.boar]: { id: RC.boar, name: 'Wild boar', bodyTypeId: BT.quadruped, hpMultiplier: 1.2, intelligence: 'semi', ageStages: AGES.boar,
         speed: { walk: 1.4, run: 11.1 }, // about 40 km/h
         naturalAttacks: [nat(AM.gore, 'medium', 0.5, 'head', 'tusks')],
-        naturalArmor: { covers: ['general'], ...HIDE }, // AB13 a: a shoulder shield of gristle up to about 5 cm thick
+        naturalArmor: { covers: ['general'], ...HIDE(1) }, // AB13 a: a shoulder shield of gristle up to about 5 cm thick
         innatePerks: [], innateQuirks: [], tags: [] },
       [RC.horse]: { id: RC.horse, name: 'Horse', bodyTypeId: BT.quadruped, hpMultiplier: 3.7, intelligence: 'semi', ageStages: AGES.horse,
         speed: { walk: 1.8, run: 12 }, // walk about 1.8 m/s, gallop about 12 m/s (as the winged quadruped)
@@ -942,8 +961,8 @@ export function prototypeLibrary(): Library {
       // bite (about 39 N, Fry et al., PNAS 2009) that tears with serrated teeth
       [RC.lizard]: { id: RC.lizard, name: 'Monitor lizard', bodyTypeId: BT.quadruped, hpMultiplier: 1, intelligence: 'unintelligent', ageStages: AGES.lizard,
         speed: { walk: 1, run: 5.6 },
-        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash')],
-        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE }, // AB13 a: bony scales (osteoderms)
+        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash', SK.tail)],
+        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(0.8) }, // AB13 a: small bony scales (osteoderms) in the skin, a lighter hide than the boar's shield (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
       // a large constrictor (reticulated or Burmese python, 5–6 m): strikes about a third of its length, then coils and squeezes;
       // slow on land. Venomous snakes wait on a venom rule.
@@ -974,8 +993,8 @@ export function prototypeLibrary(): Library {
       // Erickson et al. 2012); swimming is not modelled
       [RC.crocodile]: { id: RC.crocodile, name: 'Crocodile', bodyTypeId: BT.quadruped, hpMultiplier: 3.2, intelligence: 'unintelligent', ageStages: AGES.crocodile,
         speed: { walk: 0.5, run: 3.9 },
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.8, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash')],
-        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE }, // AB13 a: bony scales (osteoderms)
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.8, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash', SK.tail)],
+        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(1.5) }, // AB13 a: large bony plates (scutes) along the back, the heaviest hide here (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
@@ -1378,5 +1397,13 @@ export function prototypeLibrary(): Library {
     const treeId = lib.skills[p.allStep.skill]?.treeId;
     if (treeId) p.allStep = { ...p.allStep, treeId };
   }
+  // AB16 a, AB20: a natural attack's skill opens to the bodies and races with that attack, Hide to the races with natural armor
+  const holders = (has: (x: { naturalAttacks?: AttackMode[]; naturalArmor?: unknown }) => boolean): AccessCond[] => [
+    ...Object.values(lib.bodyTypes).filter(has).map((b) => ({ kind: 'body' as const, id: b.id })),
+    ...Object.values(lib.races ?? {}).filter(has).map((r) => ({ kind: 'race' as const, id: r.id }))];
+  const natural = lib.trees[TR.natural];
+  natural.access = { either: holders((x) => !!x.naturalAttacks?.some((m) => natural.skills.includes(m.skill ?? ''))) };
+  for (const id of natural.skills) lib.skills[id].access = { either: holders((x) => !!x.naturalAttacks?.some((m) => m.skill === id)) };
+  lib.skills[SK.hide].access = { either: holders((x) => !!x.naturalArmor) };
   return lib;
 }

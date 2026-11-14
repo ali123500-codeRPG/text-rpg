@@ -14,8 +14,8 @@ describe('281 essences unlock their skills', () => {
   it('a human holding a Tremor essence can use Tremor (it adds to hearing) until the essence is let go', () => {
     const s = makeVillage(), p = s.player, pr = p.progression!;
     delete p.core.skills[SK.tremor];
-    expect(skillBlock(p, SK.tremor)).not.toBe(''); // a slime-only tree
-    pr.essenceOffers = [{ essence: ES.gel_patience, grade: 'common', points: { [SK.unarmed_natural]: 4, [SK.tremor]: 2 }, turn: s.turn, source: 'foe', untilMin: now(s) + 5 }];
+    expect(skillBlock(p, SK.tremor)).not.toBe(''); // a snake-and-spider tree (AB19)
+    pr.essenceOffers = [{ essence: ES.gel_patience, grade: 'common', points: { [SK.slam]: 4, [SK.tremor]: 2 }, turn: s.turn, source: 'foe', untilMin: now(s) + 5 }];
     const ear = effectiveSkill(s, p, SK.earshot).value;
     expect(takeEssence(s, 0, true)).toBeNull();
     expect(skillBlock(p, SK.tremor)).toBe('');

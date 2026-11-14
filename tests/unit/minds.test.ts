@@ -90,7 +90,7 @@ describe('fallback list', () => {
     sl.mind!.knowledge.player = belief('field_mid');
     sl.mind!.knowledge.comp = belief('field_mid');
     void c;
-    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1))).toMatchObject({ type: 'attack', target: 'player', skill: SK.unarmed_natural, targetPart: null, aimed: false, source: 'fallback' });
+    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1))).toMatchObject({ type: 'attack', target: 'player', skill: SK.slam, targetPart: null, aimed: false, source: 'fallback' });
     expect(fallbackOrder(fakeView(s, 'slime_1', { lastHitBy: 'comp' }), createRng(1)).target).toBe('comp');
   });
   it('rng pick among non-player targets', () => {

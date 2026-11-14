@@ -35,7 +35,7 @@ export function makeOut(state: GameState, ev: GameEvent, rng: Rng): void {
   if (!s || s.posture === 'stealthy') return; // someone hiding: the stealth contests decide
   for (const [id, p] of Object.entries(ev.perception)) {
     const o = id === ev.actorId ? undefined : actorById(state, id);
-    if (!o || (!o.mind && o.kind !== 'player') || isAsleep(o) || p.cue === 'touch') continue;
+    if (!o || (!o.mind && o.kind !== 'player') || isAsleep(o) || p.cue === 'touch' || p.cue === 'smell') continue; // AB18: a smell is never made out
     if (p.level === 'partial') {
       const fn: Sense = p.cue === 'sound' ? FN.hearing : FN.sight;
       if (!rollOnce(state, o, ev, fn, rng)) continue;

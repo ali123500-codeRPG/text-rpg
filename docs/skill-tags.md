@@ -5,7 +5,7 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 
 | Tag | Values | Used for |
 |---|---|---|
-| Tree | melee, ranged, unarmed, natural, defense, armor, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
+| Tree | melee, ranged, unarmed, natural, defense, armor, perception, stealth, speech, swordsman, slime_senses (Tremor senses), scent, tools | Tree-wide perks (the tree rule), the Perks screen |
 | Functions (narrow, one or more) | arms, unarmed, ranged, defense, armor, health, sight, hearing, stealth, influence, initiative | Stand-ins: a skill sharing a function stands in for a missing one |
 | Group (broad, from the functions) | melee, ranged, defense, health, notice, stealth, influence, speed | The 40 perk's +1 (every skill sharing a group with the ladder skill), XP category. A skill can also join a group directly (`groups`, e.g. dodge in Speed) without its function |
 | Situation tags | sight, hearing, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. No table reads hearing yet. An action can add a tag (a stash adds hide, ST22) |
@@ -22,7 +22,7 @@ function in its group; adding a function or group is one row there.
 | Group | Function | Skills |
 |---|---|---|
 | Melee | arms | melee_light, melee_medium, melee_heavy (tree "Combat – Arms") |
-| Melee | unarmed | unarmed_strike, unarmed_grapple, unarmed_improvised, unarmed_natural |
+| Melee | unarmed | unarmed_strike, unarmed_grapple, unarmed_improvised, bite, claws, hooves_horns, tail, slam (AB16: the last five are the Natural weapons tree) |
 | Ranged | ranged | ranged_light, ranged_medium, ranged_heavy |
 | Defense | defense | dodge, block |
 | Defense | armor | light_armor, medium_armor, heavy_armor (tree "Armor – Conventional", AR1–AR3) |
@@ -30,6 +30,7 @@ function in its group; adding a function or group is one row there.
 | Will | morale | resolve (tree "Fortitude"; the morale roll) |
 | Notice | sight | sight |
 | Notice | hearing | hearing (tremor augments it) |
+| Notice | smell | scent (AB18) |
 | Stealth | stealth | sneaking, combat_stealth, vanishing |
 | Stealth | lockpicking | thievery (BA2; the group is a placeholder) |
 | Influence | influence | persuasion, intimidation, barter |
@@ -41,7 +42,7 @@ function in its group; adding a function or group is one row there.
 | melee_light, melee_medium, melee_heavy | melee | grip | | sight |
 | ranged_light, ranged_medium, ranged_heavy | ranged | grip | | sight, ranged |
 | unarmed_strike, unarmed_grapple, unarmed_improvised | unarmed | grip | | sight |
-| unarmed_natural | natural | strike | | sight |
+| bite, claws, hooves_horns, tail, slam (each open only to bodies and races with that attack, AB16) | natural | strike | | sight |
 | dodge | defense | move | | sight |
 | block | defense | grip | | sight |
 | endurance | defense | | | |
@@ -52,7 +53,9 @@ function in its group; adding a function or group is one row there.
 | vanishing | stealth | move | | stealth, hide |
 | persuasion, intimidation, barter | speech | speech | | |
 | feint, riposte, disarm (placeholders) | swordsman | grip | | |
-| tremor (slime only, tier 0) | slime_senses | sense | sound | hearing |
+| tremor (snakes and spiders, tier 0; AB19) | slime_senses | sense | sound | hearing |
+| scent (animals and slimes, AB18) | scent | sense | | |
+| hide (no function, Defense group; races with natural armor, AB20) | defense | | | |
 | thievery (functions: lockpicking) | tools | grip | | |
 
 Persuasion and barter also need a speaking race (race tag `speaks`: Human, Elf); intimidation does not (SR1, Ali 08/11/2026).
