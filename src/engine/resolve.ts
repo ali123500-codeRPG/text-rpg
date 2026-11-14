@@ -43,12 +43,11 @@ import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from '
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { POCKET, applyGearOps, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
+import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
 import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
 import { cantSteady, steady } from './steady';
 import { breakInside } from './breakage';
-import { inPack } from './pockets';
 import { isGuard, lockedBoxes, shownInside, suspect } from './suspicion';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
@@ -136,20 +135,14 @@ const useMoveSlot = (ctx: Ctx, a: Actor, mainToo: boolean): Paid | null => {
 };
 /** how a walk is paid: walked or run (a dash), its seconds, and the pool unwalked seconds go back to (none: a main action walked) */
 type Paid = { paid: 'move' | 'main'; seconds: number; pool?: 'move' | 'main' | 'none' };
-/** PO2: in a fight, the gear ops (before they are carried out) that reach into a pack `a` carries: drawing from it, moving
- * between it and a pocket, taking from a sack it carries */
+/** In a fight, the gear ops (before they are carried out) that reach into a container `a` carries (a sack): taking from
+ * it. What is in the pack itself, outside any container, is as quick to reach as drawing a weapon (there are no pockets) */
 function packOps(state: GameState, a: Actor, ops: GearOp[]): Set<GearOp> {
   if (state.mode !== 'tactical') return new Set();
-  const inv = (id: string) => a.core.inventory.find((i) => i.id === id);
-  return new Set(ops.filter((op) => {
-    const i = inv(op.item);
-    if (op.op === 'draw' || op.op === 'swap') return !!i && inPack(a, i);
-    if (op.op === 'stow') return !!i && (op.into === POCKET ? inPack(a, i) : !!i.pocket && (!op.into || !!(findContainer(state, op.into)?.holder === a)));
-    return op.op === 'pick_up' && !op.from && inContainer(state, a, op.item)?.c.holder === a;
-  }));
+  return new Set(ops.filter((op) => op.op === 'pick_up' && !op.from && inContainer(state, a, op.item)?.c.holder === a));
 }
 /** AT11: seconds of the gear ops the actor carried out (draw, stow, swap, picking up), from its main time; a pick-up from the
- * ground locks movement too. PO2: one in `pack` takes the from_pack row first */
+ * ground locks movement too. One in `pack` (out of a carried container) takes the from_pack row first */
 function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[], pack: Set<GearOp> = new Set()): void {
   for (const op of ops) {
     const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
@@ -190,10 +183,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const span = def?.spanTime ? actionRow(def.spanTime) : undefined, shot = of(def?.shotTime ?? DU.bow_light);
       return span && shot ? { row: span, seconds: actionSeconds(span) + shot.seconds } : shot;
     }
-    case 'use_item': { // PO2: in a fight, one in the pack is got out first
+    case 'use_item': {
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
-      const fetch = it && state.mode === 'tactical' && inPack(a, it) ? actionSeconds(actionRow(DU.from_pack)!) : 0;
-      return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined, fetch);
+      return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'hide': return of(DU.hide);
     case 'break': return of(DU.break_open); // BF31

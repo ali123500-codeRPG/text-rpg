@@ -1072,15 +1072,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .eq-qty { position: absolute; right: -6px; bottom: -6px; padding: 0 5px; border-radius: var(--r-pill); background: var(--bg); border: 1px solid var(--border); font-size: 11px; font-weight: 700; color: var(--text); }
 .eq-act { min-height: 30px; padding: 0 12px; font-size: 13px; }
 .eq-foot, .eq-status { grid-column: 1 / -1; margin: 0; }
-.eq-count { color: var(--faint); font-weight: 600; font-size: 12px; letter-spacing: 0; text-transform: none; }
-.eq-pockets, .eq-packbox { display: grid; gap: var(--space-2); padding: var(--space-2); margin: calc(-1 * var(--space-2)); border-radius: var(--r-lg); border: 1px dashed transparent; }
-.eq-pocket-row { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
-.eq-item.empty { border-style: dashed; background: none; justify-content: center; }
-.eq-item.empty .iico { width: 40px; height: 40px; padding: 8px; }
-.eq-item[draggable="true"] { cursor: grab; }
-.eq-item.dragging { opacity: .5; }
-.eq-pockets.drop-ok, .eq-packbox.drop-ok { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.eq-move { min-height: 26px; padding: 0 8px; font-size: 12px; }
 .eq-status:empty { display: none; }
 /* the hover card with the item's exact stats */
 .itip { position: fixed; z-index: 70; width: max-content; max-width: 360px; padding: var(--space-3) var(--space-4); pointer-events: none;
