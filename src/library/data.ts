@@ -757,7 +757,7 @@ export function prototypeLibrary(): Library {
       [TN.crooked_means]: { id: TN.crooked_means, name: 'good ends, crooked means', hint: 'bends the truth to help the people they care about', when: { max: { [PA.honesty]: -20 }, anyDrive: [VL.loyalty, VL.kindness] } },
     },
     fears: {
-      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 25, rolled: true, health: { from: 'injured', to: 'mauled' } },
+      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 15, rolled: true, health: { from: 'injured', to: 'mauled' } },
       [FR.own_critical]: { id: FR.own_critical, name: 'Your health reaches Critical', cost: 50, rolled: true, health: { from: 'critical', to: 'critical' } },
       [FR.bandmate_down]: { id: FR.bandmate_down, name: 'A bandmate goes down', cost: 10, rolled: true },
       [FR.bandmate_broken]: { id: FR.bandmate_broken, name: 'A bandmate breaks', cost: 10, rolled: true }, // MB23
