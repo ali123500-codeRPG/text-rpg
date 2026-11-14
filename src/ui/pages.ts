@@ -21,7 +21,7 @@ import { chainCard, chainViews, foldAll, type ChainView } from './achievementThr
 import { closePanel, groupedTable, playDraft, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
-import { personalityBlock } from './personality';
+import { personalityBlock, signaturesBox } from './personality';
 import { archetypeOf, nerveLine, nerveTier, personalityOf } from '../ruleset/personality';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
@@ -122,7 +122,7 @@ export function characterPage(api: GameApi) {
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats. Click a skill, the body or a tile for more.'))),
       h('div', { class: 'cs-split' }, charCard(s, p), h('div', { class: 'cs-right' }, treeBars(p),
         h('p', { class: 'hs-note cs-foot' }, `✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`))),
-      charTiles(s, { essences: openEss, perks: openPerks }));
+      charTiles(s, { essences: openEss, perks: openPerks, sign: (lines) => api.setSignatures(lines) }));
     if (fullOpen()?.contains(perks)) refreshPerks();
     const go = charFocus.open;
     charFocus.open = null;
@@ -155,7 +155,7 @@ function openItemPop(s: GameState, i: ItemInstance, opener?: HTMLElement | null)
 }
 
 /** the strip of tiles under the Character page: one line on each section, a click opens it */
-function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; perks: (b: HTMLElement) => void }): HTMLElement {
+function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; perks: (b: HTMLElement) => void; sign: (lines: string[]) => void }): HTMLElement {
   const p = s.player;
   const ess = essencesSummary(p);
   const pts = p.progression?.unspentPerkPoints ?? 0;
@@ -171,7 +171,7 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
     tile('essences', 'Essences', ess.used, ess.waiting ? h('span', { class: 'ess-waiting' }, `◆ ${ess.waiting} on offer`) : 'slots used', open.essences, false, !!ess.waiting),
     tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : `perk${owned === 1 ? '' : 's'} taken`, open.perks, true, pts > 0),
     tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
-    tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p)] })),
+    tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), signaturesBox(p, open.sign)] })),
   );
 }
 const KIND_GROUP: Record<string, [string, string, string]> = {

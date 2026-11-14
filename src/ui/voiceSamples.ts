@@ -17,6 +17,18 @@ export const VOICE_SAMPLES: Record<string, Sample[]> = {
     { say: 'He yields. Good. I lower my sword and ask him who sent him.' },
     { say: 'The road splits here. North to the mill, east to the river. North it is.' },
   ],
+  // In character: the character's own voice; in play it comes from the character's personality and signatures, so these
+  // show a few different people
+  character: [
+    { say: 'Hmph. Five silver for a cot and a draught. I have slept in ditches that charged less.' },
+    { say: 'Oh no, no, no. He has seen me. Stay calm. Smile. Why am I smiling?' },
+    { say: 'You struck first, friend. I only finish what others start.' },
+    { say: 'A locked door. Well, every lock is just a question, and I like questions.' },
+    { say: 'Steady. Breathe. The arm still answers me. Good. Again.' },
+    { say: 'I gave my word to the miller, and my word is the one thing nobody takes from me.' },
+    { say: 'Ha! Did you see his face? Come on then, who is next?' },
+    { say: 'Quiet here. Too quiet. I will wait, and let them come to me.' },
+  ],
   // AI companion: warm, lively, reacting beside the watcher; a Japanese word slips out now and then
   companion: [
     { say: 'Whoa, did you see that? He actually flinched! Okay, okay, my turn now!' },

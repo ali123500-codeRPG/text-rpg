@@ -109,6 +109,8 @@ export type Core = {
   standingDefense: DefenseKind;
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
   personality?: Personality; // PL1: Nerve and personality points, before what perks, classes and achievements add (personalityOf)
+  /** short lines on how this character acts or talks, set on the Character page; given with its personality line */
+  signatures?: string[];
   bornDay?: number; // AG2: the game day it was born (before day 1 is 0 and below); left out = no age (an ageless race)
   talent?: import('../scales').TalentKey; // AG25: an NPC's talent, set once at spawn (it set its youngest age); the player has none (AG27)
   /** DX5: Hollowed by an essence extraction: the share of true skill lost in each of the essence's skills, and in every skill */

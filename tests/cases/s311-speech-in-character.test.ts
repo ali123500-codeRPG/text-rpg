@@ -1,0 +1,67 @@
+// 311 Speech in character: the agent bar's "In character" style speaks from the player character's personality line, and
+// signatures set on the Character page join that line (and so reach the narrator, and the Planner and Responder for an NPC).
+import { describe, expect, it, vi } from 'vitest';
+import { ScriptedClaude, makeVillage } from '../harness';
+import { intent, wholeTurn } from '../harness/turn';
+import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
+import { memoryStore, saveTurn } from '../../src/save';
+import { VOICE_STYLES, autopilotTurn } from '../../src/agents/autopilot';
+import { personalityText, setSignatures } from '../../src/ruleset/personality';
+import { actorById } from '../../src/engine/relations';
+import { CONFIG } from '../../src/config';
+import type { GameState, TurnRecord } from '../../src/types';
+
+const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
+const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
+
+describe('311 speech in character', () => {
+  it('signatures are cleaned: trimmed, blanks dropped, capped in number and length; none left removes them', () => {
+    const s = makeVillage(), p = s.player;
+    setSignatures(p, ['  Calls everyone   "friend". ', '', 'x'.repeat(500), ...Array(10).fill('Never draws first.')]);
+    expect(p.core.signatures?.[0]).toBe('Calls everyone "friend".');
+    expect(p.core.signatures?.[1]).toHaveLength(CONFIG.SIGNATURE_MAX_CHARS);
+    expect(p.core.signatures).toHaveLength(CONFIG.SIGNATURES_MAX);
+    setSignatures(p, [' ', '']);
+    expect(p.core.signatures).toBeUndefined();
+  });
+
+  it('an actor\'s own signatures join its personality line, for the player and for an NPC', () => {
+    const s = makeVillage(), npc = actorById(s, 'patron_1')!;
+    setSignatures(s.player, ['Hums when nervous.']);
+    setSignatures(npc, ['Never pays first.']);
+    expect(personalityText(s, s.player, 'Steady')).toContain('Hums when nervous.');
+    expect(personalityText(s, npc, 'Steady')).toContain('Never pays first.');
+  });
+
+  it('"In character" gives the agent who the character is, signatures included; other styles do not', () => {
+    const s = makeVillage();
+    setSignatures(s.player, ['Calls everyone "friend".']);
+    expect(VOICE_STYLES.some(([id]) => id === 'character')).toBe(true);
+    const turn = autopilotTurn([], '', 'character', [], undefined, s);
+    expect(turn).toContain('You ARE the player character');
+    expect(turn).toContain('Who you are: Nerve:');
+    expect(turn).toContain('Calls everyone "friend".');
+    expect(autopilotTurn([], '', 'companion', [], undefined, s)).not.toContain('Who you are:');
+  });
+
+  it('set in play, signatures are saved at once and a reload keeps them', async () => {
+    const clock = new VirtualClock(), store = memoryStore(), s = makeVillage();
+    await saveTurn(store, s, rec(s));
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    expect(await g.resume()).toBe(true);
+    g.setSignatures(['Speaks in proverbs.']);
+    expect(g.state()?.player.core.signatures).toEqual(['Speaks in proverbs.']);
+    await vi.waitFor(async () => {
+      const again = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+      expect(await again.resume()).toBe(true);
+      expect(again.state()?.player.core.signatures).toEqual(['Speaks in proverbs.']);
+    });
+  });
+
+  it('whole turn: signatures set in play reach the narrator with the player character\'s personality', async () => {
+    const t = wholeTurn();
+    t.game.setSignatures(['Hums when nervous.']);
+    await t.turn(intent());
+    expect(t.claude.callsFor('narrator')[0].input[1].content).toContain('Hums when nervous.');
+  });
+});

@@ -47,6 +47,7 @@ import { barkOnly, isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
+import { setSignatures } from '../ruleset/personality';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
 import { TURN_CHECK, checkTurn, snapTurn } from '../save/turnCheck';
 import { cap, listWords, r1 } from '../words';
@@ -900,6 +901,7 @@ export function createGame(deps: GameDeps): Game {
     undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); amend((x) => undoPerk(x, x.player, id)); emit(); } },
     abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) { amend((x) => { abandonQuest(x, id); }); emit(); } },
     pinQuest(id) { if (state && !busy) { pinQuest(state, id); amend((x) => pinQuest(x, id)); emit(); } },
+    setSignatures(lines) { if (state && !busy) { setSignatures(state.player, lines); amend((x) => setSignatures(x.player, lines)); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;
