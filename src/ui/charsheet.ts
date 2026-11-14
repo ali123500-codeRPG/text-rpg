@@ -1,13 +1,13 @@
 // Character sheet pieces (approved mock-up round 2): the character card, skill bars by tree, and the
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
-import type { Actor, GameState, HealthLevel, HeldEssence, LogLine, PartState } from '../types';
+import type { Actor, GameState, HealthLevel, LogLine, PartState } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { defenseItem } from '../ruleset/gear';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
-import { essenceSlots, essenceText } from '../engine/essence';
+import { essenceSlots } from '../engine/essence';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, learningWindow } from '../ruleset/improve';
@@ -114,7 +114,6 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       bodyFigure(s, p)),
     xpTrack(s, p),
     capstoneChoice(s, p),
-    essenceBlock(p),
     h('div', { class: 'cs-figs' },
       powerFigure(s, p),
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
@@ -158,16 +157,6 @@ function essenceRow(p: Actor): HTMLElement | null {
     h('a', { href: '#stats', class: 'cs-item', title: 'Open the Essences section on the Character page', onclick: () => setTimeout(() => document.getElementById('essences')?.scrollIntoView({ block: 'start' })) },
       held.length ? held.map((e) => getLibrary().essences?.[e.essence]?.name ?? e.essence).join(' · ') : `None · ${essenceSlots(p)} slot${essenceSlots(p) === 1 ? '' : 's'} free`),
     offers.length ? h('a', { href: '#stats', class: 'ess-waiting', 'data-chip': 'essence-waiting', onclick: () => setTimeout(() => document.getElementById('essences')?.scrollIntoView({ block: 'start' })) }, ` ◆ ${offers.length} on offer`) : null));
-}
-
-/** growth proposal 2.7: the essences held, the room for them, and any on offer (taken or passed with /essence) */
-function essenceBlock(p: Actor): HTMLElement | null {
-  const pr = p.progression, held = pr?.essences ?? [], offers = pr?.essenceOffers ?? [];
-  if (!pr || (!held.length && !offers.length && charLevel(p) < 2)) return null;
-  const row = (e: HeldEssence) => h('span', { title: getLibrary().essences?.[e.essence]?.story ?? '' }, essenceText(e, skillName));
-  return h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, `Essences · ${held.length} of ${essenceSlots(p)} slots`),
-    held.length ? held.map(row) : h('span', {}, 'None held yet.'),
-    offers.length ? [h('p', { class: 'hs-label' }, 'On offer (type /essence)'), ...offers.map(row)] : null);
 }
 
 /** alternate capstones on offer: the default is inactive until the player keeps it or picks an alternate (final) */
