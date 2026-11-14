@@ -11,6 +11,7 @@ import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
 import { ZK } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
+import { landSeen } from '../land/sight';
 
 /** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
@@ -34,7 +35,9 @@ export type MapZone = {
   along?: { m: number; len: number; from: 'west' | 'south'; to: 'east' | 'north' };
 };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
-export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; /** zones the player has stood in (MAP-33) */ visited: string[] };
+/** WZ4 a region's land as the character knows it: the cells made out, and the sites known by word only (drawn faint) */
+export type MapLand = { region: import('../types').Region; seen: (i: number) => boolean; faint: Set<string> };
+export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; /** zones the player has stood in (MAP-33) */ visited: string[]; land?: MapLand[] };
 
 /** FR5: a zone's furniture with its points, for the map's icons */
 function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
@@ -98,7 +101,9 @@ export function knownMap(s: GameState): KnownMap {
   const order: MapPlace[] = [];
   const visit = (parent: string | null) => { for (const x of places.filter((q) => (q.parentId && ids.has(q.parentId) ? q.parentId : null) === parent)) { order.push(x); visit(x.id); } };
   visit(null);
-  return { placeId: p.placeId, zoneId: p.zone, places: order, visited: visitedZoneIds(s) };
+  // WZ4: each region's land the character has made out; a site is known by word once its place is (the Journal's)
+  const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)) }));
+  return { placeId: p.placeId, zoneId: p.zone, places: order, visited: visitedZoneIds(s), land };
 }
 
 /** a compass hint from an exit's words ("north gate", "the east road"); null when it names no direction. Up and down are
