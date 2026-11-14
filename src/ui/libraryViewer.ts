@@ -21,7 +21,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, BLESSING_TIERS, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, BLESSING_TIERS, GOD_RANKS, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -109,6 +109,7 @@ function val(v: unknown, depth = 0): Node | string {
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
+  if (k === 'rank' && GOD_RANKS.has(v)) return GOD_RANKS.name(v); // a god's standing: Minor god
   // the game's own wording for tier unlocks (D-211), on perks and anywhere else the field turns up
   if (k === 'tierUnlocks' && Array.isArray(v)) return v.map((u) => tierUnlockLine(u as TierUnlock)).join('; ');
   // personality points (PL1, PL15, PL16) in words: axis names, signed points, the Nerve line, values as links

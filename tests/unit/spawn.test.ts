@@ -67,7 +67,7 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
       expect(s[SK.melee_medium].raw).toBe(Math.min(rankRow(rank).anchor, CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS));
       expect(s[SK.medium_armor].raw).toBe(Math.min(rankRow(rank).anchor * 0.8, CONFIG.SKILL_CAP));
     }
-    expect(rankRow('rank_10')).toEqual({ anchor: 500, level: 100, training: 70 });
+    expect(rankRow('rank_10')).toEqual({ anchor: 600, level: 100, training: 70 });
     expect([rankName('rank_2'), rankName('rank_8'), rankName('rank_10')]).toEqual(['Trained', 'Divine', 'Divine++']);
   });
   it('NG9: each copy moves by up to ± COPY_SPREAD, seeded by its ID; minimums and class floors still hold', () => {

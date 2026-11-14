@@ -19,7 +19,7 @@ describe('task grades (CR4, CR12)', () => {
   it('SE23: a grade moves a solo roll by half a point per grade point, so a task at your own grade plays the same at every level', () => {
     expect(gradeMod(CONFIG.DIFFICULTY.moderate)).toBe(0);
     expect(gradeMod(CONFIG.DIFFICULTY.extreme)).toBe(-15);
-    expect(gradeMod(CONFIG.DIFFICULTY.divine)).toBe(-125);
+    expect(gradeMod(CONFIG.DIFFICULTY.divine)).toBe(-175);
     const net = (skill: number) => CONFIG.SKILL_WEIGHT * skill + gradeMod(skill);
     for (const s of [CONFIG.DIFFICULTY.mortal_limit, CONFIG.DIFFICULTY.mythic, CONFIG.DIFFICULTY.divine]) expect(net(s)).toBe(net(CONFIG.DIFFICULTY.moderate));
   });
