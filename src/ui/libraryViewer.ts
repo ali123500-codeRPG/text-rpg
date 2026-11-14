@@ -19,7 +19,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { ESSENCE_GRADES, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -68,7 +68,6 @@ function card(sec: string, id: string, entry: unknown, title: string, chips: (HT
     h('div', { class: 'lv-cbody' }, ...body, raw(entry)));
 }
 
-/** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
 /** a field key as words: raceId → Race, focusTreeId → Focus tree, hpMultiplier → Hp multiplier */
 const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase().replace(/^fn\b/, 'function'); return cap(w); };
 /** typed ids (RC1, CL6, IT2, SK1 …) shown as their entry's name, linked to its pop-up; the raw id stays in the Code view */
@@ -89,6 +88,7 @@ function typedId(v: string): Node | null {
   }
   return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
 }
+/** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
   if (v instanceof Node) return v;
@@ -170,10 +170,10 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
-    i.hands !== undefined ? row('Hands', String(i.hands)) : null,
+    i.hands !== undefined ? row('Grips', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
     i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
-      `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.hands} grip${m.hands === 1 ? '' : 's'}`,
       m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
@@ -190,8 +190,8 @@ function gear(): HTMLElement[] {
   const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter'));
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts')),
     h('ol', { class: 'lv-steps' },
-      h('li', {}, 'After creation the player gets, for each gear class, the highest-level item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share). Every class has a 25 and a 50 piece.'),
-      h('li', {}, 'Held: the met weapon whose required skill is highest, then the higher item level. A met shield goes in the other hand unless that weapon takes two hands.'),
+      h('li', {}, `After creation the player gets, for each gear class, the highest-level item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share). Every class has a ${CONFIG.EQUIP_NEED.common} and a ${CONFIG.EQUIP_NEED.fine} piece.`),
+      h('li', {}, 'Held: the met weapon whose required skill is highest, then the higher item level. A met shield goes in another grip unless that weapon takes two grips.'),
       h('li', {}, 'Worn: the highest-level armor met.'),
       h('li', {}, 'Everything else met is carried in the pack.')));
   const kitKinds = [...new Set(kit.map((i) => i.kind))];
@@ -326,7 +326,7 @@ function perks(): HTMLElement[] {
   const classPerks = all.filter((d) => classPerkIds.has(d.id) || d.classLevel);
   const other = all.filter((d) => d.built && !d.ladder && !d.allStep && !classPerks.includes(d));
   const quirks = all.filter((d) => d.quirk).length;
-  // milestone grid: skills × 20/40/60 … ; All-XX grid: trees × 50/100/150 (dashed = not built yet, as in the game's tiles)
+  // milestone grid: skills × the milestones with perks written; All-XX grid: trees × the steps with parts written (dashed = not built yet, as in the game's tiles)
   const steps = [...new Set(ladder.map((d) => d.ladder!.milestone))].sort((x, y) => x - y).map(String);
   const ladderRows = Object.keys(lib.skills).filter((s) => ladder.some((d) => d.ladder!.skill === s))
     .map((s): [string, (c: string) => PerkDef[]] => [skillName(s), (c) => ladder.filter((d) => d.ladder!.skill === s && String(d.ladder!.milestone) === c)]);
@@ -346,7 +346,7 @@ function perks(): HTMLElement[] {
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By skill and milestone'), grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))]))),
         cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
       { key: 'all', title: 'All-XX perks', short: 'All-XX', n: allParts.length, content: [
-        h('p', { class: 'hs-note' }, 'Granted when enough skills of a tree reach the step, by the tree\'s rating (inferior never, normal 3, superior 2, legendary 1): the tree\'s passive plus each of those skills\' part; a further skill at the step adds its part (allStep in src/library/allPerks.ts).'),
+        h('p', { class: 'hs-note' }, `Granted when enough skills of a tree reach the step, by the tree's rating (${TREE_RATINGS.keys.map((k) => `${TREE_RATINGS.name(k).toLowerCase()} ${CONFIG.ALL_STEP_SKILLS[k] ?? 'never'}`).join(', ')}): the tree's passive plus each of those skills' part; a further skill at the step adds its part (allStep in src/library/allPerks.ts).`),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By tree and step'), grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))]))),
         cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
       { key: 'unused', title: 'Not in use', n: unused.length, content: [

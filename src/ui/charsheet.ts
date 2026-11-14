@@ -52,7 +52,7 @@ function attackOf(s: GameState, p: Actor): { name: string; value: number | null 
 }
 
 /** Trees the player has points in, each with its open skills. */
-export function trees(s: GameState, p: Actor, withZero: boolean) {
+export function trees(p: Actor, withZero: boolean) {
   const lib = getLibrary(), used = usedOffSheet(p);
   return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => {
     // a skill rolled but not on the sheet yet shows at 0 (fists use Strike), so the player sees it learning
@@ -69,9 +69,9 @@ const offNote = () => h('small', { class: 'off', title: 'You have used this skil
 const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
 const marked = (p: Actor, id: string) => !!p.progression?.marks.includes(id);
 const pct = (n: number) => Math.max(0, Math.min(100, (n / BAR_SCALE) * 100));
-/** the skill's learning window: the opposition range a use of it learns from (SP2) */
-/** an augmenting skill learns only on the rolls it adds to, at that roll's level (AU1), so it shows that roll's window */
 type Win = { lo: number; hi: number; via?: string };
+/** the skill's learning window: the opposition range a use of it learns from (SP2). An augmenting skill learns only on the
+ * rolls it adds to, at that roll's level (AU1), so it shows that roll's window */
 const windowOf = (p: Actor, id: string): Win => {
   const aug = augmentWindow(p, id);
   const [lo, hi] = (aug?.window ?? learningWindow(p.core.skills[id]?.raw ?? 0, trueSkill(p, id))).map((n) => Math.max(0, Math.round(n)));
@@ -178,8 +178,8 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
   return el;
 }
 
-export function treeBars(s: GameState, p: Actor): HTMLElement {
-  return h('div', { class: 'cs-trees' }, trees(s, p, true).map((t) =>
+export function treeBars(p: Actor): HTMLElement {
+  return h('div', { class: 'cs-trees' }, trees(p, true).map((t) =>
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
       h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
       t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
@@ -232,10 +232,10 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
 }
 const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
-/** Health bar with the health-track thresholds (Part 3) marked; clicking it opens each body part's pool and state. */
 /** width of the side sheet bar's Unhurt section, in % of the bar */
 const UNHURT_SECTION = 12;
 
+/** Health bar with the health-track thresholds (Part 3) marked; clicking it opens each body part's pool and state. */
 function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, changed: Set<string> = new Set()): HTMLElement[] {
   // the body figure opens by itself once on a turn that healed or changed a part
   if ((healed.size || changed.size) && partOpen.autoTurn !== turn) { partOpen.on = true; partOpen.autoTurn = turn; }
@@ -283,8 +283,6 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
   return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st}`, 'data-part': x.id }, `${partName(x.id)} ${PART_STATES.name(x.st).toLowerCase()}`)));
 }
 
-/** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
-/** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
 /** MB12 in plain words, one source for the sheet, the story card and the input's chips: how a broken nerve passes
  * (the engagement ending gives morale back, rest too) and what still works while it lasts */
 export const NERVE_UNTIL = "You can't attack until the fight is behind you.";
@@ -306,6 +304,7 @@ export function moraleHint(k: MoraleLevel): string | null {
   return `${roll ? `−${Math.abs(roll)} on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack.`;
 }
 
+/** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
 export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   const key = moraleLevel(p), hint = moraleHint(key);
   const level = MORALE_LEVELS.name(key);
@@ -359,6 +358,7 @@ export function yieldBlock(s: GameState): HTMLElement | null {
     row('Took it', y.accepted, 'took'), row('Deciding', y.pending, 'wait'), row('Fight on', y.refused, 'refused'));
 }
 
+/** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
 export function pressureChips(s: GameState, p: Actor): HTMLElement {
   const rows = Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => {
     const who = callName(s, p.id, id);
@@ -428,7 +428,7 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
     ...[essenceRow(p)].filter((x): x is HTMLElement => !!x),
     h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', {}, h('span', { 'data-m': 'coin' }, coinWords(coins(p))))),
     ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
-    ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
+    ...trees(p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
       t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : ''), 'data-skill': r.id },
         h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
@@ -469,7 +469,7 @@ export function shownValues(s: GameState, p: Actor): ShownValues {
     hp: hpLeft(s, p).hp, level, hpFill: level === 'unhurt' ? 100 : left * scale,
     morale: MORALE_LEVELS.name(moraleLevel(p)), moraleKey: moraleLevel(p), moraleLeft: Math.round(maxMorale(p) * (100 - lost) / 100), moraleFill: 100 - lost,
     parts: Object.fromEntries((safe(() => actorBody(s, p).parts) ?? []).map((d) => [d.id, poolState(p.core.condition.parts[d.id] ?? 100)])),
-    skills: Object.fromEntries(trees(s, p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
+    skills: Object.fromEntries(trees(p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
     lvl: xp?.level ?? null, xp: xp?.xp ?? null, xpPct: xp?.pct ?? null, coin: coins(p),
     gear: Object.fromEntries(p.core.inventory.filter((i) => i.equippedIn?.length).map((i) => [i.id, { name: cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId), note: gearNote(s, i)?.text ?? '' }])),
     chips: Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => `${id}:${k}`)),
