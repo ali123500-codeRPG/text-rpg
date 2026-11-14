@@ -4,10 +4,9 @@
 // nothing has engaged it, either way, for ENGAGEMENT_END (engagementEndS) in a row. Talk turning into a fight (or back)
 // stays one engagement, so once-per-engagement effects and the end-of-engagement improvement rolls happen once.
 import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
-import { CONFIG } from '../config';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring } from './relations';
 import { logCode } from './effects';
-import { distM } from './position';
+import { M_EPS, distM } from './position';
 import { calm } from './heal';
 import { CP } from '../library/tableIds';
 import { yieldAllTaken } from './yield';
@@ -55,7 +54,7 @@ export function noteFighting(state: GameState, events: GameEvent[]): void {
       for (const b of allActors(state)) {
         // a leg that ends nearer b in metres than it set off, or a walk at b
         const start = { zone: e.fromZone ?? e.zone, pos: e.fromPos };
-        const closer = e.target === b.id || distM(state, { zone: e.zone, pos: e.pos }, b) < distM(state, start, b) - 0.01;
+        const closer = e.target === b.id || distM(state, { zone: e.zone, pos: e.pos }, b) < distM(state, start, b) - M_EPS;
         if (b === a || !isActive(b) || !closer) continue;
         const mine = a.mind?.knowledge?.[b.id], theirs = b.mind?.knowledge?.[a.id];
         if (hostile(state, a, b) && atLeast(mine?.status, 'aware')) press(state, a, b, 'hunting');

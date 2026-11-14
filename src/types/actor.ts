@@ -74,8 +74,8 @@ export type Actor = {
   paid?: string[];
 };
 
-/** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */
-/** made: the turn a timed mark was made (it lasts PERK_MARK_ROUNDS rounds of game time from then); none: until used */
+/** a perk's lasting effect: target is the actor it names (an opening on that foe); made: the turn a timed mark was made (it
+ * lasts PERK_MARK_ROUNDS rounds of game time from then); none: until used */
 export type PerkMark = { perk: string; target?: string; made?: number };
 
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are

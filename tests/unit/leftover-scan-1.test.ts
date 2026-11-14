@@ -11,7 +11,7 @@ import { makeVillage, place, forcedRng } from '../harness';
 import { M_EPS } from '../../src/engine/position';
 import { MILESTONES } from '../../src/ruleset/perks';
 import { perkSeries } from '../../src/ui/perks';
-import { cap, r1 } from '../../src/words';
+import { cap, listWords, r1 } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
 import type { Actor, RollResult } from '../../src/types';
 
@@ -19,7 +19,11 @@ import type { Actor, RollResult } from '../../src/types';
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
 const ROUND_2 = ['src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/engine/merge.ts', 'src/ui/perks.ts'];
 const ROUND_3 = ['src/views/index.ts', 'src/agents/game.ts', 'src/engine/effects.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3];
+const ROUND_4 = ['src/config.ts', 'src/types/views.ts', 'src/types/actor.ts', 'src/ui/fakeGame.ts', 'src/types/agents.ts', 'src/agents/schema.ts',
+  'src/agents/legality.ts', 'src/engine/engagement.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4];
+// config levers nothing reads yet, each waiting on a question (CS8: the shared-role 60% rule)
+const UNREAD_LEVERS = ['SHARED_ROLE_OFF_PCT'];
 // files whose GAP notes are settled into the spec (round 1: CS2)
 const GAPS_SETTLED = ROUND_1;
 // names the spec mentions only to say they are gone
@@ -73,6 +77,18 @@ describe('leftover scan round 1', () => {
     expect(MILESTONES.filter((m) => perkSeries(m) === '20')).toEqual([20, 60, 100, 140]);
     expect(MILESTONES.filter((m) => perkSeries(m) === '40')).toEqual([40, 80, 120]);
     expect(readFileSync('src/ui/perks.ts', 'utf8') as string).not.toMatch(/'\s*20, 60, 100, 140'|'\s*40, 80, 120'/);
+  });
+
+  it('round 4: a list as a sentence says it has one helper', () => {
+    expect([listWords([]), listWords(['a']), listWords(['a', 'b']), listWords(['a', 'b', 'c'], 'or')]).toEqual(['', 'a', 'a and b', 'a, b or c']);
+    const copies = files('src').filter((f) => f !== 'src/words.ts' && f !== 'src/library/data.ts' && /slice\(0, -1\)\.join\(', '\)\} (and|or)/.test(readFileSync(f, 'utf8') as string));
+    expect(copies).toEqual([]);
+  });
+
+  it('round 4: every CONFIG lever is read somewhere outside config.ts', () => {
+    const code = [...files('src'), ...files('tests'), ...files('scripts')].filter((f) => f !== 'src/config.ts' && !f.endsWith('leftover-scan-1.test.ts')).map((f) => readFileSync(f, 'utf8') as string).join('\n');
+    const unread = Object.keys(CONFIG).filter((k) => !new RegExp(`\\b${k}\\b`).test(code) && !UNREAD_LEVERS.includes(k));
+    expect(unread).toEqual([]);
   });
 
   it('cap capitalises the first letter only', () => {
