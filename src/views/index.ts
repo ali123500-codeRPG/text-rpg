@@ -13,7 +13,7 @@ import type { AttackOutcome, ScenarioFrame, Tier,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, NERVE_LINES, RANKS, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
+import { COVER, LIGHT, NERVE_LINES, RANKS, SCENARIO_SCALES, VISIBILITY, type NarrationBand, type VisibilityKey } from '../scales';
 import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
@@ -799,7 +799,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   }
   const a = intent?.action;
   return {
-    style: { tone: state.settings.tone || CONFIG.STYLE.tone, length: CONFIG.STYLE.length },
+    style: { tone: state.settings.tone || CONFIG.STYLE.tone, length: lengthText(state, 'normal') }, // the turn's own band is set by narrationBand
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
@@ -822,6 +822,34 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       .map((l) => String((l.detail as { essence?: string } | undefined)?.essence ?? ''))
       .map((id) => ({ name: getLibrary().essences?.[id]?.name ?? id, story: getLibrary().essences?.[id]?.story ?? '' }))),
   };
+}
+
+/** LN3/LN6: a band's length as the Narrator is told it, scaled by the story's Narration length setting */
+export function lengthText(state: GameState, band: NarrationBand): string {
+  const row = CONFIG.NARRATION_LENGTH[band], k = CONFIG.NARRATION_LENGTH_SCALE[state.settings.narrationLength ?? 'normal'] ?? 1;
+  const [from, to] = row.words.map((w) => Math.max(1, Math.round(w * k)));
+  return `${from} to ${to} words, ${row.paragraphs} paragraph${row.paragraphs === '1' ? '' : 's'}; the spoken lines shown under your text come on top`;
+}
+
+/** the top of a band's words after the story's setting: LN7 measures each narration against it */
+export function lengthTop(state: GameState, band: NarrationBand): number {
+  return Math.round(CONFIG.NARRATION_LENGTH[band].words[1] * (CONFIG.NARRATION_LENGTH_SCALE[state.settings.narrationLength ?? 'normal'] ?? 1));
+}
+
+const BACKGROUND_KINDS: string[] = ['idle', 'presence'];
+
+/** LN2/LN4: how long this turn's narration is, picked by code from what was resolved. Big: a scenario opens or ends, the player
+ * stands in a zone for the first time, falls (a jump down, or goes down) or sees someone die, is offered an essence, or perceived
+ * NARRATION_BIG_EVENTS events. Quick: at most NARRATION_QUICK_EVENTS events with no change on anyone. Else Normal. Someone only
+ * being there (idle, presence) is not an event here. */
+export function narrationBand(state: GameState, events: GameEvent[], nv: NarrationView, turn: { opening?: boolean; ended?: boolean; newZone?: boolean }): NarrationBand {
+  const me = state.player.id;
+  const fell = nv.events.some((e) => e.fall) || events.some((e) => e.perception[me] && e.effects.some((f) => f.kind === 'threshold_crossed'
+    && (f.data.to === 'dead' || (f.actorId === me && isDownLevel(f.data.to as HealthLevel)))));
+  const acts = nv.events.filter((e) => !BACKGROUND_KINDS.includes(e.kind));
+  if (turn.opening || turn.ended || turn.newZone || fell || nv.essences?.length || acts.length >= CONFIG.NARRATION_BIG_EVENTS) return 'big';
+  const changed = nv.events.some((e) => e.changes?.length || e.packet?.changes.length);
+  return acts.length <= CONFIG.NARRATION_QUICK_EVENTS && !changed && !nv.cameAndWent?.length ? 'quick' : 'normal';
 }
 
 /** BG-164: people this turn's words, action or walk were for, who are not where the player last saw them (seen empty):

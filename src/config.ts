@@ -1,5 +1,5 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
-import type { EffortKey, FatigueLevel, FragilityKey, GradeLevel, HealthLevelKey, MoraleLevel, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
+import type { EffortKey, FatigueLevel, FragilityKey, GradeLevel, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -910,14 +910,22 @@ const DEFAULTS = {
     parser: { model: 'claude-sonnet-5-5' },
   } as Record<string, { model: string; effort?: 'low' | 'medium' | 'high' }>,
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', world: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,
-  STYLE: { tone: 'grounded dark fantasy, told close on the hero\'s shoulder: short, dry lines that size everything up as threat, price or use; big moments count the odds, then one brutal act and one flat line; dark things are told fast and plainly, never lingered on', // TL1 a, TL2 d, TL3 d (was flavor voice V5)
-    length: '2 to 4 short paragraphs' },
+  STYLE: { tone: 'grounded dark fantasy, told close on the hero\'s shoulder: short, dry lines that size everything up as threat, price or use; big moments count the odds, then one brutal act and one flat line; dark things are told fast and plainly, never lingered on' }, // TL1 a, TL2 d, TL3 d (was flavor voice V5)
+  /** LN3 narration length per band (placeholders): words from-to and paragraphs; spoken lines come on top (LN8 b) */
+  NARRATION_LENGTH: { quick: { words: [25, 60], paragraphs: '1' }, normal: { words: [60, 110], paragraphs: '1 or 2' }, big: { words: [110, 180], paragraphs: '2 or 3' } } as Record<NarrationBand, { words: [number, number]; paragraphs: string }>,
+  /** LN6 the story's Narration length setting multiplies the band's words (placeholders) */
+  NARRATION_LENGTH_SCALE: { shorter: 0.6, normal: 1, longer: 1.5 } as Record<NarrationScale, number>,
+  /** LN4: a turn is Big with at least this many perceived events, Quick with at most NARRATION_QUICK_EVENTS and no change on anyone */
+  NARRATION_BIG_EVENTS: 6,
+  NARRATION_QUICK_EVENTS: 2,
+  /** LN7: playtest reports flag a narration over this many times its band's top */
+  NARRATION_OVER: 1.5,
 };
 
 export type Config = typeof DEFAULTS;
 export const CONFIG: Config = structuredClone(DEFAULTS);
 /** a new story's settings (difficulty is not a setting: it comes from who is there and the event roll, CS10) */
-export const defaultSettings = (): { showMechanics: boolean; tone: string } => ({ showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone });
+export const defaultSettings = (): { showMechanics: boolean; tone: string; narrationLength: NarrationScale } => ({ showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone, narrationLength: 'normal' });
 export function resetConfig(): void {
   Object.assign(CONFIG, structuredClone(DEFAULTS));
 }

@@ -40,7 +40,7 @@ import { instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 import { cap, r1, theOf } from '../words';
 
@@ -597,6 +597,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
       title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
       onclick: () => { s.settings.showMechanics = !show; update(); } }, show ? '✓ Show rolls' : 'Show rolls') : null;
+    // LN6: the story's Narration length (Shorter, Normal, Longer), one click to the next; the next turn is told at that length
+    const nl = s?.settings.narrationLength ?? 'normal', nlNext = NARRATION_SCALES.keys[(NARRATION_SCALES.pos(nl) + 1) % NARRATION_SCALES.keys.length];
+    const lengthBtn = s ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', title: `How long the story's telling is, from the next turn. Click for ${NARRATION_SCALES.name(nlNext)}`,
+      onclick: () => { s.settings.narrationLength = nlNext; update(); } }, `Narration: ${NARRATION_SCALES.name(nl)}`) : null;
     // AU7: the Sound switch beside Show rolls, and one volume slider while it is on; both kept per viewer
     const sOn = soundOn();
     const soundBtn = h('span', { class: 'sound-sw' },
@@ -616,7 +620,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '', soundBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '', lengthBtn ?? '', soundBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);

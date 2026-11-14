@@ -1,6 +1,7 @@
 // Narrator leak scan, fact check and the templated fallback narration (D-23: plain templates until decided).
 // The scan itself is code and may read GameState; nothing here is ever sent to an agent.
-import type { GameState, NarrationEvent, NarrationView, NarratorOutput } from '../types';
+import type { GameState, LogLine, NarrationEvent, NarrationView, NarratorOutput } from '../types';
+import { NARRATION_BANDS } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { knowsName } from '../engine/relations';
 import { CONFIG } from '../config';
@@ -151,4 +152,14 @@ export function fallbackNarration(view: NarrationView): NarratorOutput {
   const here = view.surroundings.find((z) => z.id === view.player.zone) ?? view.surroundings[0];
   if (here) lines.push(`You are in ${here.name}.`);
   return { text: lines.join(' '), narrated: view.events.map((e) => e.id) };
+}
+
+/** LN7: each band's narrations (count, typical words) and every turn over NARRATION_OVER times its band's top */
+export function lengthReport(lines: LogLine[]): string {
+  const told = lines.filter((l) => l.kind === 'narration' && l.length);
+  const mid = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  const bands = NARRATION_BANDS.keys.map((b) => { const w = told.filter((l) => l.length!.band === b).map((l) => l.length!.words); return w.length ? `- ${NARRATION_BANDS.name(b)}: ${w.length} turns, typical ${mid(w)} words` : ''; }).filter(Boolean);
+  const over = told.filter((l) => l.length!.words > l.length!.top * CONFIG.NARRATION_OVER);
+  return [`# Narration length (${told.length} turns)`, '', ...bands, '', `## Over ${CONFIG.NARRATION_OVER}x the band's top (${over.length})`, '',
+    ...over.map((l) => `- turn ${l.turn}: ${l.length!.words} words, ${NARRATION_BANDS.name(l.length!.band)} band up to ${l.length!.top}`)].join('\n') + '\n';
 }

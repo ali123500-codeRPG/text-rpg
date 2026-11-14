@@ -43,6 +43,7 @@ import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import type { GuidedCtx } from './crossroads';
 
 import { acceptIntent, callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
+import { visitedZoneIds } from '../engine/trail';
 import { buildLeakContext } from './narration';
 import { barkOnly, isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
@@ -341,7 +342,7 @@ export function createGame(deps: GameDeps): Game {
     const answer = answering(lines, s.turn); // BF72: read before this order joins the story
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
     const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player), brokenBefore = moraleLevel(s.player) === 'broken';
-    const partsBefore = partStates(s, s.player);
+    const partsBefore = partStates(s, s.player), zonesBefore = [...visitedZoneIds(s)];
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
       notice({ kind: 'read_only', text: 'This story is open in another window; this one is read-only.' });
@@ -443,11 +444,11 @@ export function createGame(deps: GameDeps): Game {
     for (const b of checkTurn(s, before, events)) s.log.push({ turn: s.turn, code: 'turn_check', detail: { ...b } });
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, doingBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, zonesBefore, doingBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; partsBefore?: { id: string; state: PartState }[]; zonesBefore?: string[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -488,6 +489,9 @@ export function createGame(deps: GameDeps): Game {
     fileLogBugs(s);
     const nv = views.buildNarrationView(s, events, rec.intent);
     if (rec.ended) nv.scenarioEnded = SCENARIO_ENDING_NAMES[rec.ended];
+    // LN2-LN4: code picks the turn's length band; a zone stood in for the first time is a Big turn
+    const band = views.narrationBand(s, events, nv, { opening: rec.opening, ended: !!rec.ended, newZone: !!rec.zonesBefore && !rec.zonesBefore.includes(s.player.zone) });
+    nv.style.length = views.lengthText(s, band);
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events, record.eventRoll);
     const turn = s.turn;
@@ -521,7 +525,8 @@ export function createGame(deps: GameDeps): Game {
     endingNow = null;
     // rolls are kept on every line, so Show rolls also shows past turns' (the screen hides them while it is off)
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...scenarioEnd, ...(CONFIG.SHOW_MECHANICS && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
+      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}),
+      length: { band, words: wordCount(narr.output.text), top: views.lengthTop(s, band) } }); // LN7: measured, never re-asked
     lastLog = narrLog;
     lastDisplayAt = clock.now();
     await storeHistory(s.storyId);
@@ -1479,3 +1484,6 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
     meta: { storyId, title: CONFIG.STORY_PREMISE, schemaVersion: CONFIG.SCHEMA_VERSION, createdAt, settings },
   };
 }
+
+/** LN7: words in a narration, as the length bands count them */
+export const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length;
