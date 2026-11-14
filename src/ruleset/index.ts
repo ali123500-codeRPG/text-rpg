@@ -294,7 +294,11 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
   }
   dm.push(...(req.context?.defenderMods ?? []));
-  const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id, contest: true }, state, rng);
+  // BG-207 (BF30): someone down, asleep or held in a grip fails the defense outright: the lowest tier, no dice
+  const helpless = req.context?.helpless;
+  const def: RollResult = helpless
+    ? { actorId: D.id, skill: DEFENSE_SKILL[type], rollKind: type, d100: 0, margin: CONFIG.MARGIN_BANDS[0] - 1, tier: 'critical_failure', natural: 0, modifiers: [{ source: `${helpless}: can't defend`, type: 'situational', value: 0 }], tierShifts: [] }
+    : ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id, contest: true }, state, rng);
   const defEff = effectiveSkill(state, D, DEFENSE_SKILL[type], { itemId: blocker?.id });
   const defDeciding = decidingOf(def, defEff.value, defEff.gear, tierReach(D, type, true));
 
