@@ -31,12 +31,17 @@ export type MapZone = {
   furniture?: { id: string; name: string; kind: string; x: number; y: number }[];
   /** where you stand, in the frame of rect (Actor.pos), when you are here and code has placed you */
   you?: { x: number; y: number };
-  /** TV7: on a road, how far along it you are: metres from its west (or south) end, of its whole length */
-  along?: { m: number; len: number; from: 'west' | 'south'; to: 'east' | 'north' };
+  /** TV7: on a road, how far along it you are: metres from its west (or south) end, of its whole length; on a road bound
+   *  to the land (Zone.road), metres from its line's first point, that end named by its compass side */
+  along?: { m: number; len: number; from: Compass; to: Compass };
+  /** WZ1: a road bound to a region road line runs along this line, in metres in the world's frame */
+  line?: Pt[];
 };
+type Compass = 'west' | 'east' | 'south' | 'north';
+type Pt = { x: number; y: number };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
 /** WZ4 a region's land as the character knows it: the cells made out, and the sites known by word only (drawn faint) */
-export type MapLand = { region: import('../types').Region; seen: (i: number) => boolean; faint: Set<string> };
+export type MapLand = { region: import('../types').Region; seen: (i: number) => boolean; faint: Set<string>; /** changes when the cells seen do */ key: string };
 export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[]; /** zones the player has stood in (MAP-33) */ visited: string[]; land?: MapLand[] };
 
 /** FR5: a zone's furniture with its points, for the map's icons */
@@ -45,6 +50,31 @@ function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
   return out.length ? { furniture: out } : {};
 }
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
+
+/** WZ1: a point on a road line: metres along it from its first point to the point of the line nearest `at` */
+export function alongLine(pts: Pt[], at: Pt): NonNullable<MapZone['along']> {
+  let best = Infinity, m = 0, run = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy);
+    const t = l ? Math.max(0, Math.min(1, ((at.x - a.x) * dx + (at.y - a.y) * dy) / (l * l))) : 0;
+    const d = Math.hypot(a.x + t * dx - at.x, a.y + t * dy - at.y);
+    if (d < best) { best = d; m = run + t * l; }
+    run += l;
+  }
+  const a = pts[0], b = pts[pts.length - 1], ew = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
+  const from: Compass = ew ? (a.x <= b.x ? 'west' : 'east') : (a.y <= b.y ? 'south' : 'north');
+  const opp: Record<Compass, Compass> = { west: 'east', east: 'west', south: 'north', north: 'south' };
+  return { m, len: run, from, to: opp[from] };
+}
+/** WZ1: the point `m` metres along a line from its first point (clamped to its ends) */
+export function pointAlong(pts: Pt[], m: number): Pt {
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], l = Math.hypot(b.x - a.x, b.y - a.y);
+    if (m <= l || i === pts.length - 1) { const t = l ? Math.max(0, Math.min(1, m / l)) : 0; return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+    m -= l;
+  }
+  return { ...pts[0] };
+}
 
 /** TV7: a point on a road, measured along the road's long side from its west end (or south end, for a north-south road) */
 export function alongRoad(r: import('../types').Rect, at: { x: number; y: number }): NonNullable<MapZone['along']> {
@@ -81,8 +111,10 @@ export function knownMap(s: GameState): KnownMap {
       return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}) };
     });
     const you = id === p.zone && p.pos && z.rect ? { x: p.pos.x, y: p.pos.y } : undefined;
+    const line = z.road ? s.regions?.flatMap((r) => r.roads).find((r) => r.id === z.road)?.pts : undefined;
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges, ...furnitureOn(s, id) } : {}), links,
-      ...(you ? { you } : {}), ...(you && z.kind === ZK.road ? { along: alongRoad(z.rect!, you) } : {}),
+      ...(you ? { you } : {}), ...(line ? { line } : {}),
+      ...(you && line ? { along: alongLine(line, you) } : you && z.kind === ZK.road ? { along: alongRoad(z.rect!, you) } : {}),
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);
     byPlace.get(z.placeId)!.push(mz);
@@ -102,7 +134,8 @@ export function knownMap(s: GameState): KnownMap {
   const visit = (parent: string | null) => { for (const x of places.filter((q) => (q.parentId && ids.has(q.parentId) ? q.parentId : null) === parent)) { order.push(x); visit(x.id); } };
   visit(null);
   // WZ4: each region's land the character has made out; a site is known by word once its place is (the Journal's)
-  const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)) }));
+  const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)),
+    key: `${r.id}:${s.player.journal?.landSeen?.[r.id] ?? ''}` }));
   return { placeId: p.placeId, zoneId: p.zone, places: order, visited: visitedZoneIds(s), land };
 }
 
@@ -146,9 +179,9 @@ export function worldTiles(m: KnownMap): MapZone[] {
       if (to && to !== r.id && !links.some((x) => x.to === to)) links.push({ to, label: l.label, sight: false, frontier: false, known: true });
     }
     const n = zones.length;
-    const along = zones.find((z) => z.along)?.along;
+    const along = zones.find((z) => z.along)?.along, line = zones.find((z) => z.line)?.line;
     const rect = extentOf(zones);
     return { id: r.id, placeId: r.id, name: r.name, look: n ? `${n} zone${n === 1 ? '' : 's'} known` : 'no zones known', outdoor: true,
-      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [], ...(along ? { along } : {}), ...(rect ? { rect } : {}) };
+      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [], ...(along ? { along } : {}), ...(line ? { line } : {}), ...(rect ? { rect } : {}) };
   });
 }

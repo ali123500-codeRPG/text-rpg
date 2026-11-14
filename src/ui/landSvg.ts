@@ -118,23 +118,29 @@ export function landLayer(r: Region, mask?: LandMask): string {
   return out.join('');
 }
 
-/** settlements and landmarks over the land: a mark and a name each (seen ones, and those known by word, faint) */
-export function landMarks(r: Region, mask?: LandMask): string {
+/** a settlement or landmark the character knows on a region: seen ones, and sites known by word only (faint) */
+export type LandLabel = { id: string; kind: Region['sites'][number]['size'] | 'feature'; name: string; at: { x: number; y: number }; faint: boolean; placeId?: string };
+export function landLabels(r: Region, mask?: LandMask): LandLabel[] {
   const N = Math.round(r.size / r.cell), C = r.cell, ox = r.gx * r.size, oy = r.gy * r.size;
   const seen = mask?.seen ?? (() => true);
   const at = (p: { x: number; y: number }) => seen(Math.floor((p.y - oy) / C) * N + Math.floor((p.x - ox) / C));
-  const R = { town: 160, village: 100, hamlet: 60 } as const;
-  const out: string[] = [];
+  const out: LandLabel[] = [];
   for (const s of r.sites) {
-    const faint = !at(s.at) && mask?.faint?.has(s.id);
-    if (!at(s.at) && !faint) continue;
-    out.push(`<g class="land-site land-${s.size}${faint ? ' land-faint' : ''}" data-id="${s.id}"><circle cx="${s.at.x}" cy="${-s.at.y}" r="${R[s.size]}"/>` +
-      (s.name ? `<text x="${s.at.x}" y="${-s.at.y - R[s.size] - 60}">${s.name}</text>` : '') + '</g>');
+    const faint = !at(s.at) && !!mask?.faint?.has(s.id);
+    if (at(s.at) || faint) out.push({ id: s.id, kind: s.size, name: s.name, at: s.at, faint, ...(s.placeId ? { placeId: s.placeId } : {}) });
   }
-  for (const f of r.features) {
-    if (!at(f.at)) continue;
-    out.push(`<g class="land-feature" data-id="${f.id}"><rect x="${f.at.x - 50}" y="${-f.at.y - 50}" width="100" height="100" transform="rotate(45 ${f.at.x} ${-f.at.y})"/>` +
-      (f.name ? `<text x="${f.at.x}" y="${-f.at.y - 110}">${f.name}</text>` : '') + '</g>');
-  }
-  return out.join('');
+  for (const f of r.features) if (at(f.at)) out.push({ id: f.id, kind: 'feature', name: f.name, at: f.at, faint: false });
+  return out;
+}
+
+/** settlements and landmarks over the land: a mark and a name each (seen ones, and those known by word, faint) */
+export function landMarks(r: Region, mask?: LandMask): string {
+  const R = { town: 160, village: 100, hamlet: 60 } as const;
+  return landLabels(r, mask).map((l) => {
+    const x = l.at.x, y = -l.at.y;
+    if (l.kind === 'feature') return `<g class="land-feature" data-id="${l.id}"><rect x="${x - 50}" y="${y - 50}" width="100" height="100" transform="rotate(45 ${x} ${y})"/>` +
+      (l.name ? `<text x="${x}" y="${y - 110}">${l.name}</text>` : '') + '</g>';
+    return `<g class="land-site land-${l.kind}${l.faint ? ' land-faint' : ''}" data-id="${l.id}"><circle cx="${x}" cy="${y}" r="${R[l.kind]}"/>` +
+      (l.name ? `<text x="${x}" y="${y - R[l.kind] - 60}">${l.name}</text>` : '') + '</g>';
+  }).join('');
 }

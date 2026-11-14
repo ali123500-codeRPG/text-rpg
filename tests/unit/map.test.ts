@@ -88,10 +88,10 @@ describe('map', () => {
   it('the World view has one tile per top-level place, joined by the roads between them', async () => {
     const s = await game();
     const w = worldTiles(knownMap(s));
-    expect(w.map((t) => t.id).sort()).toEqual(['ashford', 'village', 'west_road']);
+    expect(w.map((t) => t.id).sort()).toEqual(['ashford', 'mill_road', 'village', 'west_road']); // the mill road runs along the land (WZ1)
     expect(w.find((t) => t.id === 'village')!.here).toBe(true);
     expect(w.find((t) => t.id === 'village')!.look).toBe('7 zones known');
-    expect(w.find((t) => t.id === 'village')!.links.map((l) => l.to)).toEqual(['west_road']);
+    expect(w.find((t) => t.id === 'village')!.links.map((l) => l.to)).toEqual(['west_road', 'mill_road']);
     expect(w.find((t) => t.id === 'ashford')!.links.map((l) => l.to)).toEqual(['west_road']);
     expect(w.find((t) => t.id === 'west_road')!.links.map((l) => l.to).sort()).toEqual(['ashford', 'village']);
   });
