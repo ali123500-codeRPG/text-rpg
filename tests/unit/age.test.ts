@@ -77,7 +77,8 @@ describe('youngest age per rank (AG12, AG21–AG25)', () => {
     expect(talentName('talent_6')).toBe('Prodigy++');
     expect(ageFloor(RC.human, rankRow('rank_4').training, 'talent_0')).toBe(49); // a Common human Elite
     expect(ageFloor(RC.human, rankRow('rank_5').training, 'talent_0')).toBe(73); // a Common human Paragon
-    expect(ageFloor(RC.elf, rankRow('rank_5').training, 'talent_2')).toBe(33);
+    expect(ageFloor(RC.elf, rankRow('rank_5').training, 'talent_2')).toBeCloseTo(13 + 20 * 20 / 18); // AB7: an elf is Adult at 20
+    expect(ageFloor(RC.dog, rankRow('rank_3').training, 'talent_2')).toBeCloseTo(0.5 + 8 * 2 / 18); // a Veteran dog: under 1.4 years
     expect(ageFloor(RC.slime, 20, 'talent_2')).toBeUndefined();
   });
   it('takes the Weaver\'s talent, then the preset\'s, then its theme\'s, then Able', () => {

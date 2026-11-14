@@ -7,7 +7,7 @@ import { resolveTurn } from '../../src/engine';
 import { moveSpeed, slotMetres } from '../../src/engine/speed';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
-import { BT } from '../../src/library/raceIds';
+import { RC } from '../../src/library/raceIds';
 import { rangeMod } from '../../src/ruleset';
 import { hearsWords, perceptionOf } from '../../src/perception';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -19,7 +19,7 @@ const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, {
 describe('170 real distances', () => {
   afterEach(() => resetConfig());
 
-  it('speed comes from the body type, less worn armor (flat, then a share); a walk is 8.4 m and a dash 21.6 m more', () => {
+  it('speed comes from the race, less worn armor (flat, then a share); a walk is 8.4 m and a dash 21.6 m more', () => {
     const s = makeVillage();
     for (const i of s.player.core.inventory) if (i.equippedIn?.includes('armor')) delete i.equippedIn;
     expect(moveSpeed(s, s.player)).toEqual({ walk: 1.4, run: 5 });
@@ -35,7 +35,7 @@ describe('170 real distances', () => {
     t.player.core.inventory.push({ id: 'hv', itemId: heavy.id, equippedIn: ['armor'] });
     const h = CONFIG.ARMOR_SPEED.heavy;
     expect(moveSpeed(t, t.player).run).toBeCloseTo((5 - h.flat) * (1 - h.pct));
-    expect(getLibrary().bodyTypes[BT.amorphous].speed.walk).toBeLessThan(1.4); // a slime creeps
+    expect(getLibrary().races![RC.slime].speed.walk).toBeLessThan(1.4); // a slime creeps
   });
 
   it('range penalty: by the distance as a share of the reach, so a longbow is barely stretched where a shortbow is at its limit', () => {

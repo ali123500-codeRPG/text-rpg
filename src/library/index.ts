@@ -1,6 +1,7 @@
 // Library access. Lookup order: the story's blueprints first, then the library (Part 4 §2), following aliases.
 import type { ActivityDef, Actor, BodyType, GameState, ItemDef, Library, NaturalArmor, NpcTemplate, RaceDef, Routine, RoutineSet } from '../types';
 import { prototypeLibrary } from './data';
+import { RC } from './raceIds';
 
 let current: Library = prototypeLibrary();
 export function getLibrary(): Library {
@@ -41,9 +42,9 @@ export function bodyType(state: GameState | null | undefined, id: string): BodyT
   if (!d) throw new Error(`unknown body type ${id}`);
   return d;
 }
-/** BR3/BR5: an actor's shape merged with its race: the shape's attacks plus the race's, the race's speed (NR14), natural armor
+/** BR3/BR5: an actor's shape merged with its race: the shape's attacks plus the race's, the race's speed (AB1), natural armor
  * and fallback skill (else the shape's), and the race's HP multiplier (BR2; 1 with no race). */
-export type ActorBody = BodyType & { hpMultiplier: number; naturalArmor?: NaturalArmor };
+export type ActorBody = BodyType & { hpMultiplier: number; speed: RaceDef['speed']; naturalArmor?: NaturalArmor };
 export function race(id: string): RaceDef {
   const r = current.races?.[resolveAlias(id)];
   if (!r) throw new Error(`unknown race ${id}`);
@@ -56,7 +57,7 @@ export function actorBody(state: GameState | null | undefined, actor: Actor): Ac
     ...b,
     naturalAttacks: [...b.naturalAttacks, ...(r?.naturalAttacks ?? [])],
     fallback: r?.fallback ?? b.fallback,
-    speed: r?.speed ?? b.speed,
+    speed: (r ?? race(RC.human)).speed, // an actor with no race moves as a person
     hpMultiplier: r?.hpMultiplier ?? 1,
     ...(r?.naturalArmor ? { naturalArmor: r.naturalArmor } : {}),
   };
