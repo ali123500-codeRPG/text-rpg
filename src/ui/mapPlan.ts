@@ -43,7 +43,7 @@ export type SLabel = SText & { zoneId: string; placement: 'inside'; size: number
 export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening' | 'group'; way?: MapWay; count?: number; title: string; zones: string[] };
 export type SConnector = { id: string; a: string; b: string; x1: number; y1: number; x2: number; y2: number; sight: boolean; title: string };
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
-export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string };
+export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string; label: string };
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
 export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string };
 export type Scene = {
@@ -420,7 +420,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     for (const [cx, cy] of spots) if (!p && within(disc(cx, cy, STAIR_R), zb) && free(disc(cx, cy, STAIR_R))) p = { cx, cy };
     p ??= nearFree((zb.x0 + zb.x1) / 2, zb.y1 - inset, STAIR_R, zb) ?? outsideNear(zb.x0 - STAIR_R - 6, zb.y1 - STAIR_R, STAIR_R);
     const gone = st.other ? `${st.up ? 'up' : 'down'} to ${st.other.name}` : `${st.up ? 'up' : 'down'}, unexplored`;
-    stairs.push({ id, zoneId: st.x.z.id, ...p, ...disc(p.cx, p.cy, STAIR_R), up: st.up, ...(st.other ? { goto: st.other.id } : {}), title: `${st.l.label}: ${gone}` });
+    stairs.push({ id, zoneId: st.x.z.id, ...p, ...disc(p.cx, p.cy, STAIR_R), up: st.up, ...(st.other ? { goto: st.other.id } : {}), title: `${st.l.label}: ${gone}`, label: st.l.label });
     take(disc(p.cx, p.cy, STAIR_R), 'icon');
     used.add(st.up ? 'stairs-up' : 'stairs-down');
   }
