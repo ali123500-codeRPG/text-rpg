@@ -42,7 +42,9 @@ export type ItemDef = {
   threadbound?: { rank: import('../scales').ThreadboundRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // rank: TB11, its Rank (THREADBOUND_RANKS)
   /** CT1: it holds other items. worn: a pack worn on the back (CT7: its wearer's stowed items are its contents); fixed:
    * it stands in a zone and can't be picked up (a chest); neither: carried or set down (a sack) */
-  container?: { worn?: true; fixed?: true };
+  container?: { worn?: true; fixed?: true; soft?: true }; // soft: BF31, cloth (a sack, a pack): an edged weapon cuts it open
+  /** BF31: an edged weapon (a blade or an axe): it cuts a soft container open */
+  edge?: true;
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
@@ -105,7 +107,7 @@ export type ItemInstance = {
   /** CT3: a container's lid stands open: its contents can be seen and taken */
   open?: true;
   /** CT3: a locked container: a key naming it (opens) or a Lockpicking roll at its grade opens it, as a lock on a way (BA2) */
-  lock?: { locked: boolean };
+  lock?: { locked: boolean; broken?: true }; // broken: BF31, broken open: it never locks again
   grade?: import('./core').Grade;
   beyond?: Record<string, number>; // BA2, as on a barrier
   work?: Record<string, number>; // BA2, as on a barrier
