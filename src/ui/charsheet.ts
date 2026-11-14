@@ -13,6 +13,7 @@ import { treeBlock } from '../ruleset/access';
 import { augmentWindow, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
 import { personalityBlock } from './personality';
+import { powerFigure } from './power';
 import { ageText } from '../ruleset/age';
 import { callName, staminaOf } from '../views';
 import { fatigueLevel } from '../ruleset/fatigue';
@@ -115,6 +116,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     capstoneChoice(s, p),
     essenceBlock(p),
     h('div', { class: 'cs-figs' },
+      powerFigure(s, p),
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
