@@ -41,7 +41,7 @@ export function bodyType(state: GameState | null | undefined, id: string): BodyT
   if (!d) throw new Error(`unknown body type ${id}`);
   return d;
 }
-/** BR3/BR5: an actor's shape merged with its race: the shape's attacks plus the race's, the race's natural armor
+/** BR3/BR5: an actor's shape merged with its race: the shape's attacks plus the race's, the race's speed (NR14), natural armor
  * and fallback skill (else the shape's), and the race's HP multiplier (BR2; 1 with no race). */
 export type ActorBody = BodyType & { hpMultiplier: number; naturalArmor?: NaturalArmor };
 export function race(id: string): RaceDef {
@@ -56,6 +56,7 @@ export function actorBody(state: GameState | null | undefined, actor: Actor): Ac
     ...b,
     naturalAttacks: [...b.naturalAttacks, ...(r?.naturalAttacks ?? [])],
     fallback: r?.fallback ?? b.fallback,
+    speed: r?.speed ?? b.speed,
     hpMultiplier: r?.hpMultiplier ?? 1,
     ...(r?.naturalArmor ? { naturalArmor: r.naturalArmor } : {}),
   };

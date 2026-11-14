@@ -508,12 +508,13 @@ function races(): HTMLElement[] {
         row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
+        r.speed ? row('Speed', `walk ${r.speed.walk} m/s · run ${r.speed.run} m/s`) : null,
         r.naturalAttacks?.length ? row('Own natural attacks', val(r.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`))) : null,
         r.naturalArmor ? row('Natural armor', val(r.naturalArmor)) : null,
         r.fallback ? row('Fallback attack', skillName(r.fallback.attackSkill)) : null,
         row('Innate perks', perkList(r.innatePerks)), row('Innate quirks', perkList(r.innateQuirks)),
         row('NPC templates', usedBy((t) => t.raceId === r.id)))),
-      ...fields(r as unknown as Entry, ['id', 'name', 'bodyTypeId', 'hpMultiplier', 'naturalAttacks', 'naturalArmor', 'fallback', 'innatePerks', 'innateQuirks', 'intelligence']));
+      ...fields(r as unknown as Entry, ['id', 'name', 'bodyTypeId', 'hpMultiplier', 'speed', 'naturalAttacks', 'naturalArmor', 'fallback', 'innatePerks', 'innateQuirks', 'intelligence']));
   }))];
 }
 function bodyTypes(): HTMLElement[] {

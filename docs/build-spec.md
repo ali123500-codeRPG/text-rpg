@@ -2069,6 +2069,8 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
 
 adjacent lists the parts a hit can move to at gap −2. Default when absent: the general area only. The general area is adjacent to every part. A body type is the shape only (BR1, Ali 08/11/2026): parts, general area, silhouette and the natural attacks the shape always has. Shape names are generic so later races can reuse them (BR4): the Slime race is amorphous and the Dragon race is a winged quadruped. Toughness (hpMultiplier), natural armor and a race's own natural attacks are on the race (BR2, BR3, BR6).
 
+**Animal body types (NR14 a).** Quadruped (BT4: head that bites and carries in the jaws, neck, forelegs, hind legs, tail), Serpent (BT5: head, coils, tail; no grip) and Eight-legged (BT6: head and eight legs; no grip). A race may set its own walk and run speeds over its shape's (RaceDef.speed), so one Quadruped serves a dog and a tiger. Animal races, each with real speeds, life stages and its own natural attacks (bite, claw, kick, gore, tail lash, constrict): Dog RC5, Wolf RC6, Tiger RC7, Bear RC8, Wild boar RC9, Horse RC10, Monitor lizard RC11 (Komodo-sized), Python RC12. HP multipliers are [Proposed] (mass ÷ 70 kg)^(2/3); attack classes by bite or blow force are [Proposed]. The Eight-legged shape has no race yet: a spider's size waits on the "Animal body types" questions page, as do venom, scent, flight and the other gaps listed there.
+
 **Body types not in the database**
 
 1. Agent Weaver names a type that is not in the catalog.
