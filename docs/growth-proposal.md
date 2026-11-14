@@ -39,7 +39,7 @@ The review is right about the feel and mostly right about the shape. Four parts 
 
 ### 2.1 What it is
 
-When you overcome someone, part of the thread their training wound ties into yours: that is defeat XP. An **essence** is a rarer, stronger knot. It is one specific strand of what they were, which you can choose to tie into your own thread whole. It is thread, not body, so its points are **true skill**. They count everywhere true skill counts, and they ignore the mortal limit.
+When you overcome someone, part of the thread their training wound ties into yours: that is defeat XP. An **essence** is something else. It is not thread at all but a small foreign addition that sits on someone's thread: one specific piece of what they were, which you can choose to take on and carry with your own (NM2). No god touches the thread itself; the god of essences works only on these additions. An essence is not body either, so its points are **true skill**. They count everywhere true skill counts, and they ignore the mortal limit.
 
 It is felt, never seen: no glowing strings. The narration tells what the player feels, such as a slime's patience settling into the gut, and the card gives the rules. Thread itself stays hidden lore unless Ali opens it (EG11).
 
