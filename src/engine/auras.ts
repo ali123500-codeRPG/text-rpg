@@ -1,6 +1,6 @@
 // Auras (NT14, MB19, MB36–MB39; Intimidation aura doc I1–I8). An aura is a perk-granted function of one skill. Each kind
 // has its own trigger: an engagement aura checks each opposed-or-worse target once per engagement, the first time the
-// target is aware of the owner within reach (CONFIG.AURA_REACH_M metres, by distM). The target rolls its morale
+// target is aware of the owner within reach (auraReachM: CONFIG.AURA_REACH_M metres, more with Chorus; by distM). The target rolls its morale
 // skill (Resolve, with renown) against the owner's aura skill; when the owner wins, the target takes the aura's effect
 // and pays the aura's fear per tier of gap. Several auras check and cost on their own, so their morale costs add up.
 //   Dread Presence (Intimidation 100): Shaken toward the owner by SHAKEN_PER_TIER × gap until the engagement ends (the
@@ -23,6 +23,7 @@ import { AURAS, type AuraDef } from '../library/auras';
 import { applySpeech } from './speech';
 import { contestFeat } from './feats';
 import { maxMorale } from '../ruleset/morale';
+import { payoffShare, themeCount } from '../ruleset/perks';
 
 export { AURAS, type AuraDef } from '../library/auras';
 
@@ -32,7 +33,14 @@ const key = (aura: AuraDef, owner: Actor) => `${aura.perk}:${owner.id}`;
 function inReach(state: GameState, owner: Actor, t: Actor): boolean {
   if (t === owner || !isActive(t) || !wary(state, t, owner)) return false;
   if (!atLeast(t.mind?.knowledge?.[owner.id]?.status, 'aware')) return false;
-  return withinM(distM(state, owner, t), CONFIG.AURA_REACH_M);
+  return withinM(distM(state, owner, t), auraReachM(owner));
+}
+/** an owner's engagement-aura reach in metres: AURA_REACH_M; with Chorus (CN8, Intimidation 120) each shout piece, Chorus
+ * included, adds CHORUS_REACH_M in full, and the reach grows by the payoff share of those pieces */
+export function auraReachM(owner: Actor): number {
+  if (!hasPerk(owner, PK.chorus)) return CONFIG.AURA_REACH_M;
+  const n = themeCount(owner, 'shout');
+  return CONFIG.AURA_REACH_M * (1 + payoffShare(n)) + CONFIG.CHORUS_REACH_M * n;
 }
 
 export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };

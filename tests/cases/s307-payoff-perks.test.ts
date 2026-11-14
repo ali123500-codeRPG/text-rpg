@@ -18,6 +18,7 @@ import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
+import { auraReachM } from '../../src/engine/auras';
 
 afterEach(() => vi.restoreAllMocks());
 const give = (a: Actor, perkId: string, dormant = false) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0, ...(dormant ? { dormant } : {}) });
@@ -86,5 +87,17 @@ describe('307 payoff perks', () => {
     expect(effectiveSkill(s, s.player, SK.resolve).value).toBeCloseTo(base);
     give(s.player, PK.heavy_sleeper); give(s.player, PK.insomniac);
     expect(effectiveSkill(s, s.player, SK.resolve).value).toBeCloseTo(base + trueSkill(s.player, SK.resolve) * payoffShare(2) * tierMult(SK.resolve));
+  });
+  it('CN8 Chorus (Intimidation 120, with the 120 boosts): each shout piece adds 1 m of aura reach and grows the base reach by the payoff share', () => {
+    const s = makeVillage();
+    const def = getLibrary().perks[PK.chorus];
+    expect(def.ladder).toEqual({ skill: SK.intimidation, milestone: 120 });
+    expect([def.shareOwn, def.shareGroup, def.functionBoost]).toEqual([CONFIG.HIGH_PERK_SHARE, CONFIG.HIGH_PERK_SPREAD, 1]);
+    expect(themesOf(PK.chorus)).toEqual(['shout']);
+    expect(auraReachM(s.player)).toBe(CONFIG.AURA_REACH_M);
+    give(s.player, PK.chorus);
+    expect(auraReachM(s.player)).toBeCloseTo(CONFIG.AURA_REACH_M * (1 + payoffShare(1)) + CONFIG.CHORUS_REACH_M);
+    give(s.player, PK.dread_presence); give(s.player, PK.battle_cry);
+    expect(auraReachM(s.player)).toBeCloseTo(CONFIG.AURA_REACH_M * (1 + payoffShare(3)) + 3 * CONFIG.CHORUS_REACH_M);
   });
 });
