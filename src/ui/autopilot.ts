@@ -23,10 +23,6 @@ const WAITS = [2, 5, 10];
 const RATES = [1, 1.25, 1.5]; // speaking speed (Claude's voices read at most 1.5×)
 const PREFS: Prefs = { persona: '', waitS: 5, voice: true, style: 'plain', voiceName: '', rate: 1.5, mode: 'alone' };
 const MODES: [Prefs['mode'], string][] = [['alone', 'Plays alone'], ['guided', 'Asks me at crossroads']];
-/** GA16: standing orders, kept with each story (on this PC) */
-const ORDERS = (storyId: string) => `rpg.autopilot.orders.${storyId}`;
-const readOrders = (storyId: string) => { try { return localStorage.getItem(ORDERS(storyId)) ?? ''; } catch { return ''; } };
-const writeOrders = (storyId: string, t: string) => { try { localStorage.setItem(ORDERS(storyId), t); } catch { /* per-PC convenience only */ } };
 /** a question on the card: the agent's (or code's, worded by the agent), or the perk card (GA6) */
 type Question = { kind: string; about: string; key: string; say: string; direction?: string; choices: string[]; pick: number; perk?: { id: string; name: string; points: number } };
 type Answer = { choice: string } | { words: string } | { decide: true } | { played: true } | { perk: true } | { later: true };
@@ -197,7 +193,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       }
       const must = guided ? pending[0] : undefined;
       set(must ? 'Something needs your call…' : 'Thinking about the next move…');
-      const ctx = guided ? { orders: s ? readOrders(s.storyId) : '', guidance: guidance?.text, settled: [...calls].map(([k, v]) => `${k} → ${v}`), mustAsk: must } : undefined;
+      const ctx = guided ? { guidance: guidance?.text, settled: [...calls].map(([k, v]) => `${k} → ${v}`), mustAsk: must } : undefined;
       const mv = await api.agentMove(prefs.persona, prefs.style, ctx);
       if (!playing) break;
       if (!mv) { if (++failures >= 2) { pause('The agent couldn’t decide: the Claude call failed twice.'); break; } continue; }
@@ -263,7 +259,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
 
   const pickBox = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' });
   const fieldsBox = h('div', { class: 'auto-fields' }), goBox = h('div', { class: 'auto-go' });
-  const ordersBox = h('div', { class: 'auto-row' }), liveBox = h('div', { class: 'auto-live' });
+  const liveBox = h('div', { class: 'auto-live' });
   const close = () => { pause(''); open = false; update(); };
   const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label' }, 'Watch an agent play'),
     h('button', { type: 'button', class: 'hs-icon-btn dpop-x auto-x', 'aria-label': 'Close the agent and pause it', title: 'Close (pauses the agent)', onclick: close }, '✕'));
@@ -279,7 +275,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     addEventListener('pointermove', move);
     addEventListener('pointerup', up);
   });
-  const panel = h('div', { class: 'auto-panel dpop-body' }, pickBox, fieldsBox, ordersBox, goBox, liveBox);
+  const panel = h('div', { class: 'auto-panel dpop-body' }, pickBox, fieldsBox, goBox, liveBox);
   /** a list open or a box being typed in inside this part */
   const held = (box: Element) => { const f = document.activeElement; return !!f && box.contains(f) && (f.tagName === 'SELECT' || f.tagName === 'INPUT'); };
   function update() {
@@ -303,7 +299,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       el.classList.add('dpop', 'auto-pop');
       el.replaceChildren(head, panel);
       // first opened at the top right, under the header; after a drag, where it was left
-      const v = viewSize(), w = Math.min(460, v.w - 32);
+      const v = viewSize(), w = el.offsetWidth || Math.min(880, v.w - 64); // its CSS width (large)
       el.style.left = `${at?.left ?? Math.max(16, v.w - w - 32)}px`; el.style.top = `${at?.top ?? 96}px`;
       arrive(el, 0, 6);
     }
@@ -329,10 +325,6 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s`)));
     const mode = h('select', { 'aria-label': 'Mode', onchange: (e: Event) => { prefs.mode = (e.target as HTMLSelectElement).value as Prefs['mode']; writePrefs(prefs); update(); } },
       MODES.map(([id, name]) => h('option', { value: id, selected: prefs.mode === id }, name)));
-    const sid = api.state()?.storyId;
-    const orders = prefs.mode === 'guided' && sid ? h('label', { class: 'auto-field auto-orders' }, 'Standing orders',
-      h('input', { type: 'text', value: readOrders(sid), placeholder: 'e.g. never kill; save coin for a horse', 'aria-label': 'Standing orders the agent always follows',
-        onchange: (e: Event) => writeOrders(sid, (e.target as HTMLInputElement).value), onblur: () => update() })) : '';
     const q = question;
     const own = h('input', { type: 'text', placeholder: 'Or say what to do in your own words', 'aria-label': 'Your own answer',
       onkeydown: (e: KeyboardEvent) => { const t = (e.target as HTMLInputElement).value.trim(); if (e.key === 'Enter' && t) { (e.target as HTMLInputElement).blur(); reply({ words: t }); } } }) as HTMLInputElement; // Enter leaves the box, so the answered card can go
@@ -364,7 +356,6 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     goBox.replaceChildren(
       btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
       playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }));
-    if (!held(ordersBox)) { ordersBox.replaceChildren(orders); ordersBox.hidden = !orders; }
     if (!held(liveBox)) liveBox.replaceChildren(
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), `“${plainLine(said)}”`) : ''),
       !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
