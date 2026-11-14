@@ -9,6 +9,7 @@ import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
 import { allStepNeed, skillsAt } from '../ruleset/allSteps';
+import { PERK_LINKS } from '../library/perkLinks';
 
 const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
 // Story or Rules: the player picks which write-up the perk card shows; kept per browser
@@ -102,6 +103,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
   return h('aside', { class: 'pk-card', 'data-series': perkSeries(milestone), role: 'dialog', 'aria-modal': 'false', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
     head,
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
+    st === 'own' && d && linkNote(p, d.id) ? h('p', { class: 'pk-link-note' }, linkNote(p, d.id)) : null,
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
     st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? 'No perk point' : 'Take · 1 point') : null,
     // A11: a perk the owner can switch off, on by default
@@ -120,6 +122,41 @@ function writeup(d: PerkDef) {
   }
   const t = d.story ?? d.text;
   return t ? [h('p', {}, t)] : [];
+}
+
+/** where a perk sits: "Intimidation 100" for a milestone perk; '' for one on no ladder */
+const perkWhere = (d: PerkDef): string => (d.ladder ? `${skillName(d.ladder.skill)} ${d.ladder.milestone}` : '');
+
+/** LR5: the linked perks the actor holds. A link shows only once its whole set is owned (a link not yet earned stays
+ *  unseen, like a sealed milestone, K4): its perk, whether it was granted beside the set or merged from it, and each perk
+ *  of the set with where it sits and whether it is asleep inside the merge. */
+export type LinkView = { id: string; perk: string; name: string; kind: 'grant' | 'merge'; needs: { id: string; name: string; where: string; asleep: boolean }[] };
+export function linkViews(p: Actor): LinkView[] {
+  const lib = getLibrary();
+  return PERK_LINKS.filter((l) => p.core.perks.some((o) => o.perkId === l.perk && o.source === 'link')).map((l) => ({
+    id: l.id, perk: l.perk, name: lib.perks[l.perk]?.name ?? l.perk, kind: l.kind,
+    needs: l.needs.map((id) => ({ id, name: lib.perks[id]?.name ?? id, where: lib.perks[id] ? perkWhere(lib.perks[id]) : '',
+      asleep: p.core.perks.some((o) => o.perkId === id && o.dormant && o.mergedInto === l.perk) })),
+  }));
+}
+
+/** the line a perk's card adds when the perk is part of a link the actor holds */
+export function linkNote(p: Actor, perkId: string): string | null {
+  const v = linkViews(p).find((l) => l.needs.some((n) => n.id === perkId));
+  if (!v) return null;
+  const others = v.needs.filter((n) => n.id !== perkId).map((n) => n.name).join(' and ');
+  return v.kind === 'merge' ? `Merged with ${others} into ${v.name}: asleep while the merge holds.` : `Linked with ${others}: together they grant ${v.name}.`;
+}
+
+function linked(p: Actor) {
+  const lib = getLibrary(), list = linkViews(p);
+  if (!list.length) return null;
+  return h('section', { class: 'pk-inn pk-links', 'aria-label': 'Linked perks' }, h('h3', {}, 'Linked'),
+    list.map((v) => h('div', { class: `pk-in pk-link ${v.kind}` }, h('b', {}, v.name), h('span', { class: 'pk-tag' }, v.kind === 'merge' ? 'Merged' : 'Linked'),
+      h('p', { class: 'pk-link-from' }, v.kind === 'merge' ? 'Merged from ' : 'From ',
+        ...v.needs.flatMap((n, i) => [i ? ' + ' : '', h('span', { class: n.asleep ? 'asleep' : '' }, h('b', {}, n.name), n.where || n.asleep ? ` (${[n.where, n.asleep ? 'asleep' : ''].filter(Boolean).join(', ')})` : '')]),
+        v.kind === 'merge' ? '. The set sleeps while the merge holds.' : '. It lasts while you hold them all.'),
+      ...(lib.perks[v.perk] ? writeup(lib.perks[v.perk]) : []))));
 }
 
 // innate perks and quirks: what the race gives; nothing shows while the race gives none
@@ -155,6 +192,7 @@ export function perksSection(api: GameApi): HTMLElement {
         h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Breakthrough'), ` ${seriesList('20')}`),
         h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Refinement'), ` ${seriesList('40')}`)),
       innate(p),
+      linked(p),
       ...(ui.view === 'tree'
         ? [h('div', { class: 'pk-tabs', role: 'tablist' }, trees.map((t) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(t.id === ui.tree), onclick: () => { ui.tree = t.id; ui.sel = null; redraw(); } }, t.name))),
           tree ? h('div', { class: 'pk-board' }, ladders(p, tree.id, tree.skills), h('div', { class: 'pk-trk' }, tree.skills.map((k) => track(p, k, (_r, st) => st)))) : null]
