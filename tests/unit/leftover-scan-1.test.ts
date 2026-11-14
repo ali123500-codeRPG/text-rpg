@@ -6,6 +6,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { CONFIG, resetConfig } from '../../src/config';
 import { band, ruleset, toContest } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
+import { getLibrary } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
 import { makeVillage, place, forcedRng } from '../harness';
 import { M_EPS } from '../../src/engine/position';
@@ -16,7 +17,10 @@ import { RL } from '../../src/library/tableIds';
 import { perkSeries } from '../../src/ui/perks';
 import { cap, listWords, r1 } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
-import type { Actor, RollResult } from '../../src/types';
+import type { Actor, Quest, RollResult } from '../../src/types';
+import { rewardXp, rewardXpAt } from '../../src/ruleset/achRewards';
+import { questXp } from '../../src/engine/quests';
+import { QUEST_REWARD_LEVELS } from '../../src/scales';
 
 // files the leftover scan has covered (add each round's files)
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
@@ -168,5 +172,27 @@ describe('leftover scan round 5', () => {
     const readers = files('src').filter((f) => f !== 'src/config.ts' && f !== 'src/ruleset/levels.ts' && /CONFIG\.LEVEL_XP\b/.test(readFileSync(f, 'utf8') as string));
     expect(readers).toEqual(['src/ruleset/equations.ts']); // it only names the lever in the formula text
     expect(readFileSync('src/ruleset/equations.ts', 'utf8')).not.toMatch(/LEVEL_XP \* l/);
+  });
+});
+
+describe('answers CS15 to CS17', () => {
+  it('CS15: one equation gives every reward level its XP, with no top; only achRewards reads it', () => {
+    expect(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'vi', 'x', 'xv'].map(rewardXp)).toEqual([6, 50, 169, 400, 781, 1350, 3200, 10800, 30706]);
+    expect(rewardXpAt(20)).toBeGreaterThan(rewardXpAt(15)); // past XV it keeps growing
+    const readers = files('src').filter((f) => f !== 'src/config.ts' && /CONFIG\.REWARD_XP_CURVE/.test(readFileSync(f, 'utf8') as string));
+    expect(readers).toEqual(['src/ruleset/achRewards.ts']);
+  });
+  it('CS16: a quest pays the same XP as an achievement of its reward level', () => {
+    const s = makeVillage();
+    for (const level of QUEST_REWARD_LEVELS.keys) {
+      const q = { level, goal: { kind: 'deliver' } } as unknown as Quest;
+      expect(questXp(s, q)).toBe(rewardXp(level));
+    }
+  });
+  it('CS17: items and attack modes count grips, never hands', () => {
+    const offenders = files('src').filter((f) => /([{,]|^)\s*hands\??:|\.hands\b|'hands'/m.test(readFileSync(f, 'utf8') as string));
+    expect(offenders).toEqual([]);
+    const lib = getLibrary();
+    expect(lib.items![IT.greatsword].grips).toBe(2);
   });
 });

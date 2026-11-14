@@ -1,4 +1,4 @@
-// Part 5 §4: hands, free gear ops, equip and give (main actions), ground items, Destroyed arm drops, thrown items.
+// Part 5 §4: grips, free gear ops, equip and give (main actions), ground items, Destroyed arm drops, thrown items.
 import { RL } from '../library/tableIds';
 import type { Actor, GameState, GearOp, ImprovisedBase, ItemInstance } from '../types';
 import { CONFIG } from '../config';
@@ -43,7 +43,7 @@ function usableFreeHands(state: GameState, actor: Actor): string[] {
 }
 
 function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
-  const need = itemDef(state, inst.itemId).hands ?? 1;
+  const need = itemDef(state, inst.itemId).grips ?? 1;
   const free = usableFreeHands(state, actor);
   if (inst.equippedIn?.length || free.length < need) return false;
   inst.equippedIn = free.slice(0, need);

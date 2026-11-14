@@ -661,11 +661,9 @@ const DEFAULTS = {
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Lying that augments Vanishing (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
-  /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
-  REWARD_XP: { minus_1: 25, zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000,
-    vii: 20000, viii: 40000, ix: 80000, x: 160000, xi: 320000, xii: 640000, xiii: 1280000, xiv: 2560000, xv: 5120000 } as Record<string, number>, // VII–XV placeholders
-  /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
-  QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  /** XP per reward level (REWARD_LEVELS in src/scales.ts), one equation for achievements and quests with no top:
+   * XP = base × ((p + shift) ÷ div)^power, p = the level's place (0 = level 0, I = 1, −1 = −1); read through rewardXp */
+  REWARD_XP_CURVE: { base: 50, shift: 2, div: 2, power: 3 },
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
   GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item

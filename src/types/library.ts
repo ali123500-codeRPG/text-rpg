@@ -392,7 +392,7 @@ export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHeal
  * earned at `count` defeats (first defeat = count 1). With `by`, it is earned once per kind (body type, race …): the granted
  * id is <id>:<kind> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when enough of its
  * skills (by the tree's rating, CONFIG.ALL_STEP_SKILLS) reach `count` (50, 100, 150 …), id <id>:<tree>. level: a
- * REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level]. after: the key of the lower level this one builds on; earning it
+ * REWARD_LEVELS key; its XP is rewardXp(level). after: the key of the lower level this one builds on; earning it
  * switches the lower level off, and its Bane bonus is the lower level's bonus plus its own. scar: a negative achievement,
  * listed under Scars instead of Achievements. */
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;

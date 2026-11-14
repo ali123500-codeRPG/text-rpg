@@ -89,7 +89,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** The owner's grapple attack is resolved.
 - **Conditions:** The attack uses skill Grapple. The attack roll is Great Success or better. The attack hits (not missed or dodged).
-- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses Grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4×.
+- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-grip attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses Grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4×.
 - **Lasts:** Until the target breaks free, the owner is downed, or the owner leaves the zone.
 
 ### Dirt in the Eyes (Improvisation) · A9

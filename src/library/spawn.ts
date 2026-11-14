@@ -32,17 +32,17 @@ export function fullParts(state: GameState | null, bodyTypeId: string): Record<s
   return Object.fromEntries(bodyType(state, bodyTypeId).parts.map((p) => [p.id, 100]));
 }
 
-/** equip a loadout the obvious way: weapons/shields into free hands, armor worn. */
+/** equip a loadout the obvious way: weapons/shields into free grips, armor worn. */
 export function equipLoadout(state: GameState | null, items: string[], idPrefix: string): ItemInstance[] {
   const out: ItemInstance[] = [];
-  const hands = ['grip:right_arm', 'grip:left_arm'];
+  const grips = ['grip:right_arm', 'grip:left_arm'];
   let n = 0;
   for (const itemId of items) {
     const d = itemDef(state, itemId);
     n += 1;
     const inst: ItemInstance = { id: `${idPrefix}_${itemId}_${n}` , itemId };
     if (d.slot === 'armor') inst.equippedIn = ['armor'];
-    else if ((d.kind === 'weapon' || d.kind === 'shield') && hands.length) inst.equippedIn = [hands.shift()!];
+    else if ((d.kind === 'weapon' || d.kind === 'shield') && grips.length) inst.equippedIn = [grips.shift()!];
     if (d.shield) inst.pools = { shield: 100 };
     if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
     out.push(inst);
@@ -237,7 +237,7 @@ export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyType
 
 /** The starter kit: after creation the player gets, for each gear class, the highest-level item tagged 'starter'
  * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
- * that weapon takes two hands; worn: the highest-level armor met, and a plain pack (CT7) that holds the rest. */
+ * that weapon takes two grips; worn: the highest-level armor met, and a plain pack (CT7) that holds the rest. */
 export function starterKit(a: Actor): ItemInstance[] {
   const lib = getLibrary();
   const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
@@ -250,11 +250,11 @@ export function starterKit(a: Actor): ItemInstance[] {
   const score = (d: ItemDef) => { const r = requirement(d); return (r ? skillToward(a, r.skill) : 0) * 10 + lvl(d); };
   const best = (ds: ItemDef[]) => ds.reduce<ItemDef | undefined>((b, d) => (!b || score(d) > score(b) ? d : b), undefined);
   const weapon = best(met.filter((d) => d.kind === 'weapon'));
-  const shield = (weapon?.hands ?? 1) < 2 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
+  const shield = (weapon?.grips ?? 1) < 2 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
   const armor = met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
   return met.map((d, n) => {
     const inst: ItemInstance = { id: `player_${d.id}_${n + 1}`, itemId: d.id };
-    if (d === weapon) inst.equippedIn = (d.hands ?? 1) > 1 ? ['grip:right_arm', 'grip:left_arm'] : ['grip:right_arm'];
+    if (d === weapon) inst.equippedIn = (d.grips ?? 1) > 1 ? ['grip:right_arm', 'grip:left_arm'] : ['grip:right_arm'];
     if (d === shield) inst.equippedIn = ['grip:left_arm'];
     if (d === armor) inst.equippedIn = ['armor'];
     if (d.shield) inst.pools = { shield: 100 };

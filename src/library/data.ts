@@ -128,15 +128,15 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
 /** an attack mode with its reach in metres (real references) */
-const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'hands'> & { reachM: number }) => ({ ...m, reach: m.reachM });
+const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'> & { reachM: number }) => ({ ...m, reach: m.reachM });
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
 /** Improvised weapons: a melee strike and a throw (like throwing a vase), both rolled with
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
-const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
-  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
-  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
+const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
+  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
+  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, grips, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
 /** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
@@ -239,60 +239,60 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
-  { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, hands: 1, thrown: true })] } },
-  { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, hands: 1 })] } },
-  { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, hands: 2 })] } },
-  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, hands: 1, thrown: true })] } },
-  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, hands: 2 })] } },
-  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 90, hands: 2 })] } },
-  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, hands: 2 })] } },
+  { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, grips: 1, thrown: true })] } },
+  { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, grips: 1 })] } },
+  { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, grips: 2 })] } },
+  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, grips: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
+  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, grips: 2 })] } },
+  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 90, grips: 2 })] } },
+  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, grips: 2 })] } },
   // SL12 test piece: a medium weapon whose basket hilt gives +5 Parry while held, apart from its requirement's skill
-  { id: IT.basket_hilt_sword, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, hands: 1,
+  { id: IT.basket_hilt_sword, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, grips: 1,
     effects: [KIT(), { kind: 'skill', skill: SK.parry, value: 5, active: 'held', scope: 'any' }],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.7, hands: 1 })] } },
-  { id: IT.hidden_blade, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.7, grips: 1 })] } },
+  { id: IT.hidden_blade, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, grips: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
     effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 0.9, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
   { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
-  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reachM: 1.3, hands: 1 })] } },
-  { id: IT.rusty_knife, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 0.9, hands: 1 })] } },
+  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reachM: 1.3, grips: 1 })] } },
+  { id: IT.rusty_knife, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
   { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'common') } },
   { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
     armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'fine') } },
   { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
-  { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: POOL('common') },
+  { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, grips: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   // Starter pairs: every gear class but improvised has a Common (need 25) and a Fine (need 50) starter piece;
   // creation gives the highest one met per class (starterKit). Superior and Masterwork gear stays out of the kit.
-  { id: IT.short_sword, level: 'fine', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, value: 15, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.3, hands: 1 })] } },
-  { id: IT.hand_axe, level: 'common', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, value: 8, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reachM: 1.2, hands: 1 })] } },
-  { id: IT.woodsman_axe, level: 'common', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, value: 10, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 1.6, hands: 2 })] } },
-  { id: IT.greatsword, level: 'fine', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, hands: 2 })] } },
-  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 70, hands: 2 })] } },
-  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 60, hands: 2 })] } },
-  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 60, hands: 2 })] } },
-  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 70, hands: 2 })] } },
+  { id: IT.short_sword, level: 'fine', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, value: 15, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.3, grips: 1 })] } },
+  { id: IT.hand_axe, level: 'common', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, value: 8, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reachM: 1.2, grips: 1 })] } },
+  { id: IT.woodsman_axe, level: 'common', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, value: 10, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 1.6, grips: 2 })] } },
+  { id: IT.greatsword, level: 'fine', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, grips: 2 })] } },
+  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, value: 35, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 70, grips: 2 })] } },
+  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 60, grips: 2 })] } },
+  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 60, grips: 2 })] } },
+  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, value: 35, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 70, grips: 2 })] } },
   { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, value: 30, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'fine') } },
   { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, value: 30, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
@@ -301,7 +301,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'common') } },
   { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, value: 120, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
-  { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, hands: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
+  { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth, stamped with the coin of Varo, god of fortune', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
     threadbound: { rank: 'rank_4', grants: [
@@ -312,15 +312,15 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
-  { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
+  { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, grips: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
-  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true, heal: HL.draught },
+  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, grips: 1, stackable: true, consumable: true, heal: HL.draught },
   // generic bases for minted items with no close match, and for scenario objects the player grabs (loot L2, L3)
-  { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, grips: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('light', 1) } },
-  { id: IT.improvised_medium, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_medium, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, grips: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('medium', 1) } },
-  { id: IT.improvised_heavy, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
+  { id: IT.improvised_heavy, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, grips: 2, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
   { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
@@ -337,8 +337,8 @@ export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
     speed: { walk: 1.4, run: 5 }, // an everyday walk about 1.4 m/s; a run in kit about 5 m/s (a sprinter reaches 8–10)
-    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, hands: 0, name: 'fists' },
-      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, hands: 0, name: 'grapple' }],
+    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' },
+      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, grips: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
       // FR2: an adult's arm reaches about 0.7 m from the shoulder to the fingertips (NASA-STD-3000 anthropometry), as fists do
@@ -368,7 +368,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
     speed: { walk: 0.5, run: 1 }, // no real reference: a placeholder for a creeping mass
-    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, hands: 0, name: 'slam' }],
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, grips: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },
@@ -848,7 +848,7 @@ export function prototypeLibrary(): Library {
       ...CLASS_PERKS,
     },
     achievements: {
-      // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
+      // XP by reward level (REWARD_LEVELS, rewardXp); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
       // after = the lower level it builds on; earning it switches the lower one off.
       [ACH.first_defeat_body_type]: { id: ACH.first_defeat_body_type, name: 'First {body_type} Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'body_type', branchOf: ACH.defeats_10 },
       [ACH.defeats_10_body_type]: { id: ACH.defeats_10_body_type, name: '{body_type}bane', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'body_type', after: ACH.first_defeat_body_type, firstSight: 'unintelligent' },

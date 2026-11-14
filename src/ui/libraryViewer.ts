@@ -7,7 +7,7 @@ import './libraryViewer.css';
 import type { NpcTemplate, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
-import { achLevel, achXp, rewardLines, rewardName, tierUnlockLine } from '../ruleset/achRewards';
+import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { branchLabel, branchRoots, chainHead, chainRows, chainTag, isBareHead } from '../ruleset/achChains';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
@@ -171,10 +171,10 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
-    i.hands !== undefined ? row('Grips', String(i.hands)) : null,
+    i.grips !== undefined ? row('Grips', String(i.grips)) : null,
     i.slot ? row('Slot', i.slot) : null,
     i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
-      `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.hands} grip${m.hands === 1 ? '' : 's'}`,
+      `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.grips} grip${m.grips === 1 ? '' : 's'}`,
       m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
@@ -821,11 +821,11 @@ function questsView(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, 'Quests have no fixed list: each one is a job someone gives you in play, held in a deal, and kept in your save (see them on the Play screen\'s Quests page or with /quests). These are the rules every quest follows. Quest achievements are under Achievements.'),
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Rules'), h('div', { class: 'lv-grid wide' },
-      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('QUEST_REWARD_XP · QUEST_GAIN_LEVEL')],
-        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scenario stands to gain. Quests have their own XP table, apart from achievements.'),
+      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('REWARD_XP_CURVE · rewardXp · QUEST_GAIN_LEVEL')],
+        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scenario stands to gain. A quest pays the XP of its reward level from the same equation as achievements.'),
         tbl(['Level', 'XP', 'Scenario gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
           const g = gainsFor(lv);
-          return [QUEST_REWARD_LEVELS.name(lv), String(CONFIG.QUEST_REWARD_XP[lv] ?? 0), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
+          return [QUEST_REWARD_LEVELS.name(lv), String(rewardXp(lv)), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
         })))),
       fixed(card('quests', 'defeat-xp', {}, 'Defeat jobs against weak foes', [chip('questXp · weakFoeTaper')],
         h('p', { class: 'lv-formula' }, `XP × min(1, ${CONFIG.DEFEAT_XP_TAPER} × average foe power ÷ your power)`),

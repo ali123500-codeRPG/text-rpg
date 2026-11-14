@@ -18,6 +18,7 @@ import { IT } from '../../src/library/itemIds';
 import { actorBody } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import type { GameEvent, GameState, Quest, RollResult } from '../../src/types';
+import { rewardXp } from '../../src/ruleset/achRewards';
 
 const earned = (s: GameState) => (s.player.progression?.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.key);
 const ids = (s: GameState) => (s.player.progression?.achievements ?? []).map((a) => a.id);
@@ -46,7 +47,7 @@ describe('140 achievement ideas', () => {
     const xp = s.player.progression!.xpLog?.length ?? 0;
     for (let i = 0; i < 10; i++) tally(s, 'aimed_hits', { by: 'size', of: 'tiny' });
     expect(ids(s)).toContain(`${ACH.aimed_size_10}:tiny`);
-    expect(s.player.progression!.xpLog!.slice(xp).map((x) => x.amount)).toContain(CONFIG.REWARD_XP.iii);
+    expect(s.player.progression!.xpLog!.slice(xp).map((x) => x.amount)).toContain(rewardXp('iii'));
     expect(achievementName(s, { id: `${ACH.aimed_size_10}:extra_small`, key: ACH.aimed_size_10, of: 'extra_small' })).toBe('Extra Small Target');
   });
 
