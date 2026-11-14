@@ -170,7 +170,14 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
       : { group: 'Fight', key: 'fight', items: [...people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health), kind: 'attack' as const })),
         // SY1: in a fight, above Broken and not within its cooldown: one morale roll as your action
         ...(canSteady ? [{ text: 'Steady yourself', note: 'your action · a morale roll', kind: 'steady' as const }] : [])], all: true },
-    { group: 'Talk', key: 'talk', items: people.map((_, i) => ({ text: `Talk to ${names[i]}`, kind: 'talk' as const })), all: true },
+    // TF13/TF17/TF10/TF11: in a fight, ways to talk a foe out of it (a hurt or frightened foe gives in more easily)
+    { group: 'Talk', key: 'talk', items: [
+      ...(pv.player.standDownOffers ?? []).map((o) => ({ text: `Take ${o.name}'s offer to stop`, note: 'ends your fight with them', kind: 'talk' as const })),
+      ...people.flatMap((a, i) => a.talkDown ? [
+        { text: `Talk ${names[i]} down`, note: 'your action · Persuasion; easier once they are hurt or scared', kind: 'talk' as const },
+        { text: `Lie to ${names[i]} to end it`, note: 'your action · Lying against their Insight', kind: 'talk' as const },
+        { text: `Pay ${names[i]} to stop`, note: 'your action · Barter; name the coin, paid if they agree', kind: 'talk' as const },
+      ] : [{ text: `Talk to ${names[i]}`, kind: 'talk' as const }])], all: true },
     { group: 'Move', key: 'move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined, kind: l.frontier ? 'go_new' as const : 'go' as const })) },
     // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
     { group: 'Stealth', key: 'stealth', items: [

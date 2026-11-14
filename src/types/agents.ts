@@ -52,6 +52,7 @@ export type Intent = {
   deferred: string[];
   clarify: string | null;
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
+  standDown?: string | null; // TF11: the player takes the offer to stand down that this one made (player.standDownOffers)
   letsSearch?: string | null; // BF16: the one the player lets search them
   look?: 'stats' | 'inv'; // OA4: the player only looks at their own sheet or what they carry: no turn passes
 };
@@ -114,6 +115,7 @@ export type PlannerOutput = {
   yields?: boolean; // SP5: gives up the spar it is in
   letsSearch?: string | null; // BF16: the one it lets search it hands-on
   acceptYield?: boolean; // MB41: takes (true) or refuses the player's yield (self.playerYielded)
+  standDown?: boolean; // TF15: takes (true) or refuses an offer to stand down (self.standDownOffer); no answer refuses
   spare?: boolean; // D-239: spares (true) or finishes the downed player (self.playerAtMercy); no answer finishes
   headTo?: string | null; // NW2: where it is going, further than one move: a zone or frontier id; code walks it there
   lead?: string | null; // BF4: who it takes along on that walk; it waits there for them
@@ -135,6 +137,7 @@ export type VoiceOutput = {
   yields?: boolean;
   letsSearch?: string | null;
   acceptYield?: boolean;
+  standDown?: boolean;
   spare?: boolean;
   headTo?: string | null; // NW2
   lead?: string | null; // BF4

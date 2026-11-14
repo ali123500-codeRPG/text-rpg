@@ -32,6 +32,7 @@ vi.mock('../../src/engine', () => ({
   beatSpeakers: () => H.beat,
   BEAT_OPENING: '(you speak first)',
   MUFFLED: '(muffled)',
+  offerNote: () => undefined,
   resolveTurn: (s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });
     H.onResolve?.(s);

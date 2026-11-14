@@ -181,7 +181,11 @@ export type GameEvent = {
   speech?: { skill: string; impression?: string; addressees: string[] }; // dialogue-turn speech
   /** OQ-29: an NPC's speech roll at the player: the speech type, whether it landed, the penalty it left, a lie the player saw
    * through, and whether the speaker saw how it was taken */
-  push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; doubt?: true; seen?: true };
+  push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; doubt?: true; seen?: true; offer?: 'convinced' | 'tempted' | 'unmoved' }; // offer: TF11, an offer to stand down, how it landed
+  /** TF13: the player's words were an offer to stop fighting: how they landed with each listener */
+  offers?: { to: string; landed: 'convinced' | 'tempted' | 'unmoved' }[];
+  /** TF16: a stand-down (kind stand_down; actorId stood down from target): bandmates that went with it, coin paid for it */
+  standDown?: { with: string[]; coin?: number };
   /** LI5a Overheard: owners of Overheard who heard this lie told to someone else and saw through it */
   overheard?: string[];
   /** NM3: listeners whose answer beat this line's lie (the player's deceive at its spokespeople) */

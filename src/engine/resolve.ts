@@ -56,10 +56,11 @@ import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
+import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, truceBars, type StoodDown } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
-import type { TurnInput } from './types';
+import type { ExchangeSpeech, TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
@@ -561,6 +562,26 @@ function dropped(ctx: Ctx, a: Actor, o: Order): void {
   hold(ctx, a, o);
 }
 
+/** TF16: a stand-down, as an event the people there can see: who stood down, from whom, who went with it */
+function emitStandDown(ctx: Ctx, d: StoodDown): void {
+  emit(ctx, mk(ctx, d.who, 'stand_down', { target: d.from.id, standDown: { with: d.with, ...(d.coin ? { coin: d.coin } : {}) } }));
+}
+
+/** TF13/TF17/TF10: the player's persuasion, lie or bribe at foes in a fight is an offer to stop: each listener that made
+ * out the words answers it (makeOffer), for its bandmates who heard the words too (TF6) */
+function playerOffers(ctx: Ctx, ev: GameEvent, ex: ExchangeSpeech): void {
+  const { state } = ctx;
+  for (const [sp, r] of Object.entries(ex.perSpokesperson)) {
+    const to = actorById(state, sp);
+    const o = to && playerOffer(state, ctx.input.intent, to);
+    if (!to || !o) continue;
+    const heard = state.actors.filter((m) => m !== to && m.bandId === to.bandId && hearsWords(ev.perception[m.id])).map((m) => m.id);
+    const res = makeOffer(state, state.player, to, o.type, r.contest, heard, o.coin);
+    (ev.offers ??= []).push({ to: sp, landed: res.landed });
+    if (res.stood) emitStandDown(ctx, res.stood);
+  }
+}
+
 function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   // BG-50: a speak with no words (a code-run beat, or a call that gave no line) carries no line at all, never an empty one
@@ -582,6 +603,8 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
       ev.push = { type, listener: to.id, landed: contest.winner === 'a', ...applySpeech(a, to, type, contest),
         ...(atLeast(beliefStatus(state, a, to), 'aware') ? { seen: true as const } : {}) }; // NT10: the speaker sees how it was taken
       if (ev.push.status === 'shaken') fear(ctx, to, FR.lost_intimidation, { gap: contest.gap }); // MB15/MB28
+      // TF11: a persuasion or lie at the player in a fight is an offer to stand down; the player answers by saying so
+      if (to === p && OFFER_TYPES.includes(type) && type !== 'barter' && canOffer(state, a, p)) ev.push.offer = makeOffer(state, a, p, type, contest, []).landed;
     }
   }
   // Voice shares: only facts from its knows list
@@ -609,6 +632,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (t === state.player && !isActive(t)) return wasted('already_down'); // a downed player's fate is the survival roll's (D-54)
   if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
   if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
+  if (truceBars(state, a, t)) { logCode(state, 'truce_no_attack', { actorId: a.id, target: t.id }); return wasted('truce'); } // TF16
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted('spar_held'); }
   const dist = sightDistM(state, a, t);
   if (notInHand(state, a, o)) return wasted('not_in_hand'); // BG-186: never a fist in its place
@@ -1665,7 +1689,7 @@ function repeatAttacks(ctx: Ctx, ordered: string[]): void {
     if (!next) return;
     const { a, o, cost, at } = next;
     const t = o.target ? actorById(state, o.target) : undefined;
-    if (!t || !isActive(t) || notInHand(state, a, o) || yieldBars(state, a, t) || stance(state, t, a) === 'yielded') { ctx.stopped.add(a.id); continue; } // broken or surrendered mid-turn: the next blow is the attacker's own call
+    if (!t || !isActive(t) || notInHand(state, a, o) || yieldBars(state, a, t) || truceBars(state, a, t) || stance(state, t, a) === 'yielded') { ctx.stopped.add(a.id); continue; } // broken or surrendered mid-turn: the next blow is the attacker's own call
     const near = reachOf(state, a, o);
     if (near && !near.ok()) closeInOn(ctx, a, o, near);
     if (near && !near.ok()) { ctx.stopped.add(a.id); continue; }
@@ -1982,6 +2006,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     ctx.exchangeEvents.push(ev);
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
     if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }
+    playerOffers(ctx, ev, ex); // TF13: words that are an offer to stop fighting
     if (input.quickWord) playerOrder.line = null; // A15/OA1: the line was said; the action follows in turn order
     else { useMain(ctx, state.player, orderCost(state, state.player, playerOrder)); ctx.spoke.add(state.player.id); }
     const spokes = new Set(input.spokespeople);
@@ -2009,6 +2034,10 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       ctx.exchangeEvents.push(ctx.events[ctx.events.length - 1]);
     }
   }
+
+  // TF15/TF11: answers to offers to stand down (this turn's Responders, later outputs, the player's intent), before the blows
+  for (const d of answerOffers(state, usableAgentOutputs(input))) emitStandDown(ctx, d);
+  if (input.intent?.standDown) { const d = answerOffer(state, state.player, input.intent.standDown, false); if (d) emitStandDown(ctx, d); }
 
   // NW12: the player's wait or sleep goes last, so everyone has acted on this turn's orders before the clock moves on
   const skipsTime = (id: string) => id === state.player.id && ['wait', 'sleep'].includes(orders.get(id)?.type ?? '');

@@ -40,6 +40,8 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
+import { canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
+import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
@@ -249,6 +251,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       gear: seenGear(state, a, revealedTo(viewer, a.id), viewer.id),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
+      ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
     });
   }
   return out;
@@ -464,6 +467,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
       ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
+      ...(offersTo(state, p).length ? { standDownOffers: offersTo(state, p).map((o) => ({ id: o.from, name: callName(state, p.id, o.from), landed: OFFER_WORDS[o.landed] })) } : {}), // TF11
     },
     zone: zoneView(state, zoneById(state, p.zone)!, p),
     zones: perceivedZones(state, p.zone, p),
@@ -538,6 +542,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(state.mercy?.pending.includes(a.id) ? { playerAtMercy: true as const } : {}),
+      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}) } } : {})(offersTo(state, a)[0]), // TF15
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
@@ -717,6 +722,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
+      ...(full && e.offers ? { offers: e.offers.map((o) => ({ to: callName(state, me, o.to), landed: o.landed })) } : {}), // TF12
+      ...(full && e.standDown ? { standDown: { with: e.standDown.with.map((id) => callName(state, me, id)), ...(e.standDown.coin ? { coin: coinWords(e.standDown.coin) } : {}) } } : {}), // TF16
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
       ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: wayWords(state, e.way) } : {}),
