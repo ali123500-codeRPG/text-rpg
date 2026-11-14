@@ -30,7 +30,7 @@ import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { answering } from '../agents/answering';
-import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
+import { arrive, bar as barMove, count, delta, finishAll, flare, impact, moving, ms, play, pulse, sentences, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
@@ -375,8 +375,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else if (!fits && who.parentElement !== el) { who.classList.remove('inline'); el.insertBefore(who, auto.el); }
   }
   if (typeof ResizeObserver === 'function') new ResizeObserver(() => placeWho()).observe(el);
-  applyMotion();
-  if (typeof matchMedia === 'function') matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', () => { applyMotion(); if (el.isConnected) update(); });
   // M-12: a click on the story finishes everything still moving
   story.addEventListener('click', () => { if (moving()) finishAll(); });
 
@@ -665,11 +663,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
       title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
       onclick: () => { s.settings.showMechanics = !show; update(); } }, show ? '✓ Show rolls' : 'Show rolls') : null;
-    // M-72: the Motion switch, kept per viewer; it starts from the system's reduced-motion setting
-    const mOn = motionOn();
-    const motionBtn = h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(mOn),
-      title: mOn ? 'Values animate when they change. Click to turn motion off' : 'Values change without moving. Click to turn motion on',
-      onclick: () => { setMotion(!mOn); update(); } }, mOn ? '✓ Motion' : 'Motion');
     // the map opens as a big pop-up over Play (it has no page of its own)
     const mapBtn = s ? h('button', { type: 'button', class: 'hs-btn-text play-map', 'data-open': 'map', title: 'Open the map of every place you know', onclick: () => nav('map') }, mapIcon(), 'Map') : null;
     // the header names the last turn played, the one the last results row shows
@@ -681,7 +674,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
     const here = s ? placeHead(s, pv) : null;
     const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '', motionBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '')];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
@@ -806,8 +799,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (!frozen && sheetNow !== sheetHtml) { sheet.replaceChildren(...sheetKids); sheetHtml = sheetNow; }
 
     const fallen = api.fell();
-    const calm = !motionOn();
-    if (wasFallen === false && fallen && !calm) { finishAll(); dyingUntil = Date.now() + FALL_MS(); setTimeout(update, FALL_MS() + 20); }
+    if (wasFallen === false && fallen) { finishAll(); dyingUntil = Date.now() + FALL_MS(); setTimeout(update, FALL_MS() + 20); }
     wasFallen = fallen;
     const dying = fallen && Date.now() < dyingUntil;
     el.classList.toggle('dying', dying);
@@ -863,7 +855,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** M-40: a break's rule draws outward from its name; returns how long the prose waits for it */
   function drawBreak(brk: Element, delay: number): number {
-    if (!motionOn()) return 0;
     const d = ms('--m-scenario');
     play(brk, [{ opacity: 0 }, { opacity: 1 }], { dur: d / 2, delay });
     play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'right' }, { transform: 'scaleX(1)', transformOrigin: 'right' }], { dur: d, delay, pseudo: '::before' });
@@ -876,10 +867,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around, gainsLine?: LogLine) {
     finishAll();
     if (!e) return;
-    const on = motionOn();
     let t = 0;
     // a turn with a gains panel opens it at once: the panel carries the ending and its closing line itself
-    if (on && !gainsLine) {
+    if (!gainsLine) {
       // SD1: the old scenario's closing line comes first
       const closing = e.querySelector('.ln-closing');
       if (closing) { play(closing, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') }); t += ms('--m-state'); }
@@ -887,17 +877,17 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       const brk = e.querySelector('.pbreak');
       if (brk) t += drawBreak(brk, t);
     }
-    // BF66: the player's own blow that landed shows its strike card as the turn lands, before the prose, motion on or off
+    // BF66: the player's own blow that landed shows its strike card as the turn lands, before the prose
     const c = lineOf.get(e)?.check;
     const strike = (d: number) => { if (c?.strike) strikeCard(c, d); };
     // D-226 (M-39): a scenario that gave something opens its gains panel between the old scenario's close and the new one's
     // opening; the rest of the turn plays when the panel closes
-    if (gainsLine) { openGains(gainsLine, t, on, () => { strike(0); if (motionOn()) turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
+    if (gainsLine) { openGains(gainsLine, t, true, () => { strike(0); turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
     strike(t);
-    if (on) turnRest(e, b, a, ab, aa, t);
+    turnRest(e, b, a, ab, aa, t);
   }
 
-  /** the gains panel: live plays its moment from t0, otherwise it opens settled (motion off, or reopened from the story) */
+  /** the gains panel: live plays its moment from t0, otherwise it opens settled (reopened from the story) */
   function openGains(l: LogLine, t0: number, live: boolean, then?: () => void) {
     closeGains(true);
     const g = l.scenarioGains;
@@ -918,7 +908,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     afterGains = null;
     finishAll();
     const exit = ms('--m-state') * 0.7;
-    if (now || !motionOn()) v.remove();
+    if (now) v.remove();
     else play(v, [{ opacity: 1 }, { opacity: 0, transform: 'translateY(6px)' }], { dur: exit, exit: true, done: () => v.remove() });
     then?.();
     if (!input.disabled) input.focus();
@@ -949,7 +939,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     strikeTimer = setTimeout(() => {
       body.append(card);
       strikeTimer = setTimeout(() => card.remove(), life);
-      if (!motionOn()) return;
       const enter = ms('--m-state') / life, leave = 1 - ms('--m-feedback') * 2 / life;
       play(card, [{ opacity: 0, transform: 'translateY(10px) scale(.96)' }, { opacity: 1, transform: 'none', offset: enter, easing: 'linear' }, { opacity: 1, transform: 'none', offset: leave, easing: 'cubic-bezier(0.4, 0, 1, 1)' }, { opacity: 0, transform: 'translateY(-6px)' }],
         { dur: life });
