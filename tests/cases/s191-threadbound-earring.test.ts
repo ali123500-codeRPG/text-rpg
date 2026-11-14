@@ -18,6 +18,9 @@ import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
 import type { Actor, GameState, StagePlan } from '../../src/types';
 
+/** a quality-roll base whose margin is d100 − 70 whatever ESSENCE_ROLL_NEEDED is */
+const LOW = CONFIG.ESSENCE_ROLL_NEEDED - 70;
+
 /** BG-199: an essence comes only from a death: the player hurt this foe and it lies dead */
 const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { hitByPlayer?: boolean } }>(a: T): T => { a.core.condition.hpLostPct = 200; a.mind!.hitByPlayer = true; return a; };
 
@@ -95,21 +98,21 @@ describe('191 the Varo\'s Loop', () => {
     const s = worn([ACH.event_crit_2]);
     const by = { state: s, actor: s.player };
     expect(PERK_MOVES[PK.call_the_toss]).toBeUndefined(); // not a move any more
-    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toEqual({ grade: 'rare', past: 0 }); // 99 is farther from 50.5 than 55
-    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toBeNull(); // cooling down: 55 alone is a Near Miss
+    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toEqual({ grade: 'rare', past: 0 }); // 99 is farther from 50.5 than 55
+    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toBeNull(); // cooling down: 55 alone is a Near Miss
     advanceClock(s, 1440);
-    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toEqual({ grade: 'rare', past: 0 });
+    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toEqual({ grade: 'rare', past: 0 });
     expect(ruleset.eventRoll(s.player, s, forcedRng([55, 99])).roll).toBe(55); // event rolls are untouched
   });
 
   it('All or Nothing fires first and lands an essence roll only on the Critical tiers; one ability per roll', () => {
     const s = worn([ACH.event_crit_2, ACH.event_crit_3]);
     const by = { state: s, actor: s.player };
-    expect(qualityRoll(forcedRng([51]), 60, by)).toEqual({ grade: 'rare', past: 0 }); // All or Nothing
-    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toEqual({ grade: 'rare', past: 0 }); // now Call the Toss
-    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toBeNull(); // both cooling down
+    expect(qualityRoll(forcedRng([51]), LOW, by)).toEqual({ grade: 'rare', past: 0 }); // All or Nothing
+    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toEqual({ grade: 'rare', past: 0 }); // now Call the Toss
+    expect(qualityRoll(forcedRng([55, 99]), LOW, by)).toBeNull(); // both cooling down
     const t = worn([ACH.event_crit_3]);
-    expect(qualityRoll(forcedRng([50]), 60, { state: t, actor: t.player })).toBeNull(); // Critical Failure: nothing
+    expect(qualityRoll(forcedRng([50]), LOW, { state: t, actor: t.player })).toBeNull(); // Critical Failure: nothing
   });
 
   it('the actives work on the quality roll only: an essence that never appears leaves them ready', () => {
@@ -118,7 +121,7 @@ describe('191 the Varo\'s Loop', () => {
     foe.core.generation = 'rolled';
     offersFromDefeats(s, [slain(foe)], forcedRng([CONFIG.ESSENCE_APPEAR_CHANCE.foe + 1]));
     expect(s.log.some((l) => l.code === 'essence_roll_auto')).toBe(false);
-    expect(qualityRoll(forcedRng([55, 99]), 60, { state: s, actor: s.player })).toEqual({ grade: 'rare', past: 0 }); // still ready
+    expect(qualityRoll(forcedRng([55, 99]), LOW, { state: s, actor: s.player })).toEqual({ grade: 'rare', past: 0 }); // still ready
   });
 
   it('the Weaver does not place Threadbound items (D-220) and cannot mint one', () => {
