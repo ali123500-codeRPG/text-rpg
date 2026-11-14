@@ -16,7 +16,7 @@ import { openAirReachM } from '../perception/noise';
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -36,7 +36,14 @@ import { IT } from './itemIds';
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 /** AG3–AG6: life stage start ages per race (placeholders but the human row) */
 const ages = (y: number[]) => Object.fromEntries(LIFE_STAGES.keys.map((k, i) => [k, y[i]])) as Record<LifeStageKey, number>;
-const AGES = { human: ages([0, 13, 18, 40, 60, 80, 100]), elf: ages([0, 13, 20, 150, 250, 350, 450]), dragon: ages([0, 5, 100, 200, 300, 400, 500]) };
+const AGES = { human: ages([0, 13, 18, 40, 60, 80, 100]), elf: ages([0, 13, 20, 150, 250, 350, 450]), dragon: ages([0, 5, 100, 200, 300, 400, 500]),
+  // animals: Youth = weaned and on its own feet, Adult = grown and breeding, Old about the usual wild lifespan, Ancient the
+  // longest kept animals live (dog: AAHA 2019 life stages, 10-13 years; wolf: 4-6 wild, 15 kept; tiger: grown at 4-5, 10-15
+  // wild, 20-26 kept; brown bear: 20-25 wild, 35+ kept; wild boar: 10-14; horse: grown at 5, 25-30; Komodo: grown at 8-9,
+  // about 30; python: grown at 3-4, 20-25). Placeholders built on those figures.
+  dog: ages([0, 0.5, 2, 7, 10, 13, 16]), wolf: ages([0, 0.5, 2, 5, 8, 11, 14]), tiger: ages([0, 1.5, 4, 9, 14, 18, 22]),
+  bear: ages([0, 2, 5, 12, 20, 26, 32]), boar: ages([0, 0.5, 1.5, 5, 8, 11, 14]), horse: ages([0, 1, 5, 12, 18, 25, 30]),
+  lizard: ages([0, 1, 8, 15, 22, 28, 33]), python: ages([0, 1, 3, 10, 18, 23, 28]) };
 /** PL19: a short behaviour hint for each value, given to the agent with the value */
 const VALUE_HINTS: Record<keyof typeof VL, string> = {
   duty: 'does what is expected of them, sees obligations through',
@@ -419,7 +426,49 @@ export const BODY_TYPES: Record<string, BodyType> = {
     ],
     fallback: { attackSkill: SK.unarmed_natural },
   },
+  // NR14 a: one four-legged shape for every land beast; each race sets its own speeds and attacks (a dog, a tiger, a horse)
+  [BT.quadruped]: {
+    id: BT.quadruped, name: 'Quadruped', general: { name: 'body', size: 'big' },
+    speed: { walk: 1.4, run: 8.9 }, // a dog's, used when a race sets none: most dogs run 15–20 mph (AKC), 20 mph = 8.9 m/s
+    naturalAttacks: [], // by race: bite force differs too much between a dog and a tiger for one shape attack
+    parts: [
+      // FR4: takes and carries things in its jaws; a medium dog's head and neck reach about 0.5 m forward of its chest (estimate)
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike, RL.grip], adjacent: ['general', 'neck'], reachM: 0.5 },
+      { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
+      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
+    ],
+    fallback: { attackSkill: SK.unarmed_natural },
+  },
+  // legless: the coils move it and squeeze; nothing to carry with (grip reach 0, as amorphous)
+  [BT.serpent]: {
+    id: BT.serpent, name: 'Serpent', general: { name: 'body', size: 'normal' },
+    speed: { walk: 0.5, run: 4.4 }, // the fastest snake, the black mamba, bursts 16–19 km/h (Guinness World Records); crawl an estimate
+    naturalAttacks: [],
+    parts: [
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
+      { id: 'coils', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.move] },
+    ],
+    fallback: { attackSkill: SK.unarmed_natural },
+  },
+  // a spider's shape (CS24: 5 of 8 legs Crippled, or 4 Destroyed, stop it running); fangs on the head; no grip
+  [BT.eight_legged]: {
+    id: BT.eight_legged, name: 'Eight-legged', general: { name: 'body', size: 'normal' },
+    speed: { walk: 0.5, run: 3.6 }, // an Australian huntsman spider sprints 3.59 m/s (EWN news report, July 2026; study not yet peer reviewed); walk an estimate
+    naturalAttacks: [],
+    parts: [
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
+      ...[1, 2, 3, 4].flatMap((n) => (['left', 'right'] as const).map((side) => ({ id: `${side}_leg_${n}`, size: 'extra_small' as const, impact: 'normal' as const, roles: [RL.move] }))),
+    ],
+    fallback: { attackSkill: SK.unarmed_natural },
+  },
 };
+
+/** a race's natural attack: unarmed tree, natural weapons skill unless given, reach in metres from the race's comment */
+const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: string, name: string, skill: string = SK.unarmed_natural): AttackMode =>
+  ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, partId, name });
 
 /** AP2: an achievement's personality points, written in steps of CONFIG.ACH_PERSONALITY_STEP (the one balance lever) */
 const ap = (steps: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(steps).map(([k, n]) => [k, n * CONFIG.ACH_PERSONALITY_STEP]));
@@ -839,6 +888,47 @@ export function prototypeLibrary(): Library {
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
       [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent', playable: true },
       [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon, playable: true },
+      // Animals (NR14, NR15). hpMultiplier [Proposed]: (mass ÷ a 70 kg person)^(2/3), rounded: dog 30 kg, wolf 40, tiger 220,
+      // bear 300, boar 90, horse 500, Komodo 70, python 75. Run = the cited burst; walk = an everyday gait (estimates unless cited).
+      // Attack class by bite or blow force [Proposed]: a weak bite light, a tiger's or bear's (about 1,000 psi, National
+      // Geographic) or a horse's kick heavy. Reach in metres: head and neck forward of the chest, a foreleg's swipe, a kick behind.
+      [RC.dog]: { id: RC.dog, name: 'Dog', bodyTypeId: BT.quadruped, hpMultiplier: 0.6, intelligence: 'semi', ageStages: AGES.dog,
+        speed: { walk: 1.4, run: 8.9 }, // AKC: most dogs 15–20 mph
+        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite')],
+        innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] }, // dogs hear sounds about 10 dB fainter than people at their best pitch (Heffner 1983)
+      [RC.wolf]: { id: RC.wolf, name: 'Wolf', bodyTypeId: BT.quadruped, hpMultiplier: 0.7, intelligence: 'semi', ageStages: AGES.wolf,
+        speed: { walk: 2.4, run: 15.6 }, // travels at 8.7 km/h (Mech, J. Mammalogy 1994, USGS); bursts 56–64 km/h (Mech and Boitani 2003)
+        naturalAttacks: [nat(AM.bite, 'light', 0.5, 'head', 'bite')],
+        innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] },
+      [RC.tiger]: { id: RC.tiger, name: 'Tiger', bodyTypeId: BT.quadruped, hpMultiplier: 2.1, intelligence: 'semi', ageStages: AGES.tiger,
+        speed: { walk: 1.4, run: 15.6 }, // short bursts of about 56 km/h
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'medium', 1, 'forelegs', 'claws')],
+        innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] }, // a cat sees in about a sixth of the light a person needs
+      [RC.bear]: { id: RC.bear, name: 'Bear', bodyTypeId: BT.quadruped, hpMultiplier: 2.6, intelligence: 'semi', ageStages: AGES.bear,
+        speed: { walk: 1.4, run: 15.6 }, // a brown bear charges at up to about 56 km/h
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'heavy', 1, 'forelegs', 'claws')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      [RC.boar]: { id: RC.boar, name: 'Wild boar', bodyTypeId: BT.quadruped, hpMultiplier: 1.2, intelligence: 'semi', ageStages: AGES.boar,
+        speed: { walk: 1.4, run: 11.1 }, // about 40 km/h
+        naturalAttacks: [nat(AM.gore, 'medium', 0.5, 'head', 'tusks')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      [RC.horse]: { id: RC.horse, name: 'Horse', bodyTypeId: BT.quadruped, hpMultiplier: 3.7, intelligence: 'semi', ageStages: AGES.horse,
+        speed: { walk: 1.8, run: 12 }, // walk about 1.8 m/s, gallop about 12 m/s (as the winged quadruped)
+        // the head and neck reach about 1.5 m forward (FR4); a kick lands up to about 1.8 m (6 ft) behind
+        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, 'hind_legs', 'kick'), nat(AM.bite, 'light', 1.5, 'head', 'bite')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      // a monitor lizard sized as the largest, the Komodo dragon: about 3 m long, half of it tail; bursts to about 20 km/h; a weak
+      // bite (about 39 N, Fry et al., PNAS 2009) that tears with serrated teeth
+      [RC.lizard]: { id: RC.lizard, name: 'Monitor lizard', bodyTypeId: BT.quadruped, hpMultiplier: 1, intelligence: 'unintelligent', ageStages: AGES.lizard,
+        speed: { walk: 1, run: 5.6 },
+        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash')],
+        innatePerks: [], innateQuirks: [], tags: [] },
+      // a large constrictor (reticulated or Burmese python, 5–6 m): strikes about a third of its length, then coils and squeezes;
+      // slow on land. Venomous snakes wait on a venom rule.
+      [RC.python]: { id: RC.python, name: 'Python', bodyTypeId: BT.serpent, hpMultiplier: 1, intelligence: 'unintelligent', ageStages: AGES.python,
+        speed: { walk: 0.4, run: 1 },
+        naturalAttacks: [nat(AM.bite, 'light', 1.5, 'head', 'bite'), nat(AM.grapple, 'grapple', 1.5, 'coils', 'constrict', SK.unarmed_grapple)],
+        innatePerks: [], innateQuirks: [], tags: [] },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     // gear classes (GC): the class sets which skill an item asks for; its level sets how much (EQUIP_NEED)

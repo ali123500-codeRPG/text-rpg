@@ -423,6 +423,8 @@ export type FearDef = { id: string; name: string; cost: number; rolled: boolean;
 export type RaceDef = {
   id: string; name: string; bodyTypeId: string; hpMultiplier: number;
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
+  /** NR14 a: the race's own walk and run speeds in m/s, over its body type's (one Quadruped shape: a dog and a tiger run apart) */
+  speed?: { walk: number; run: number };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
   playable?: true; // CC7 a: the player can pick this race on the creation screen

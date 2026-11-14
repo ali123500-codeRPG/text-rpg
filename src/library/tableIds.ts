@@ -49,7 +49,7 @@ export const LM = { quarry: 'LM1', mill: 'LM2', ruin: 'LM3', shrine: 'LM4', towe
 export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10', road: 'ZK11' } as const;
 export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',
-  throw: 'AM11', thrust: 'AM12', unarmed: 'AM13',
+  throw: 'AM11', thrust: 'AM12', unarmed: 'AM13', bite: 'AM14', claw: 'AM15', kick: 'AM16', gore: 'AM17',
 } as const;
 /** gear classes: a class sets which skill an item asks for (its level sets how much) */
 export const GC = {
