@@ -2,7 +2,7 @@
 // player's marks only count (owed rolls), achievements queue (grantAchievement), All-XXX steps and level-ups wait. When the
 // scenario ends, closeScenario calls flushGrowth: the scenario pays its improvement rolls (payScenario, in rounds), levels are
 // taken, then achievements and All-XXX are granted, and one gains summary is left (stage.gains, then LogLine.scenarioGains) for
-// the ending moment's pop-up. In free roam achievements come at once (growthWaits); marks wait for the next scenario.
+// the ending moment's pop-up. Growth earned in free roam waits for the next scenario's end too (BG-217, growthWaits).
 import type { AchievementNote, GameState, Rng, ScenarioEnding, ScenarioFrame, ScenarioGains, Tier, XpAward, XpPart } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';

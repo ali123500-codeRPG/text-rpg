@@ -37,6 +37,9 @@ export type StageInfo = {
   closed?: { as: import('./hidden').ScenarioEnding; turn: number };
   /** SD2 a: free roam, since this turn: no scenario runs until something starts one (CH2), or an unbuilt frontier (CH3 a) */
   roam?: { since: number };
+  /** BG-217: growth earned in free roam waits for the next scenario's end: where the XP stood when the roam began, taken by
+   * the next scenario's frame so its gains moment counts the roam's XP too */
+  roamGrowth?: { xpFrom: number; xpStart: { level: number; pct: number } };
   /** CH6: frontiers the player crossed during the current chase: from the zone before it to the zone it led to */
   crossings?: { from: string; to: string; turn: number }[];
   /** SC8: a Weaver check-in is due after this turn is saved, and why */

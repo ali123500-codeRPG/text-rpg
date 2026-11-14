@@ -9,6 +9,7 @@ import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { coinWords, coins } from '../engine/trade';
 import { buildPlayerView } from '../views';
 import type { WayView } from '../types/views';
+import { theName } from '../words';
 
 /** playstyles: the playtest script's --persona and the autopilot's persona picker (eager: an over-enthusiastic adventurer
  * who drives the story forward on their own, the P7 pacing test) */
@@ -111,10 +112,10 @@ export function surroundings(s: GameState): string {
   const ways = v.zone.links.map((l) => {
     const w = l.way as WayView | undefined, to = v.zones.find((z) => z.id === l.to)?.name;
     const shut = [w?.locked && 'locked', w?.barred && 'barred', w?.blocked && 'blocked'].filter(Boolean).join(', ');
-    return `${l.label}${to && to !== l.label ? ` (to the ${to})` : ''}${shut ? ` [${shut}]` : ''}`;
+    return `${l.label}${to && to !== l.label ? ` (to ${theName(to)})` : ''}${shut ? ` [${shut}]` : ''}`;
   });
   const known = (v.known ?? []).filter((k) => k.id !== v.zone.id && !here.has(k.id)).map((k) => k.name);
-  return `Where you are: the ${v.zone.name}. Ways out you can see from here: ${ways.join('; ') || 'none'}.${known.length ? ` Other places you know, which a move can name: ${known.join('; ')}.` : ''} To leave, use only these: never head for a door, stair or path that isn't listed, however likely one seems (a tavern may have no cellar door you know of).`;
+  return `Where you are: ${theName(v.zone.name)}. Ways out you can see from here: ${ways.join('; ') || 'none'}.${known.length ? ` Other places you know, which a move can name: ${known.join('; ')}.` : ''} To leave, use only these: never head for a door, stair or path that isn't listed, however likely one seems (a tavern may have no cellar door you know of).`;
 }
 
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
