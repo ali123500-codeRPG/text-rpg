@@ -8,6 +8,7 @@ import { unlockClasses } from '../../src/engine/xp';
 import { CL } from '../../src/library/classIds';
 import { GD } from '../../src/library/godIds';
 import { ST } from '../../src/library/startIds';
+import { BLESSING_TIERS } from '../../src/scales';
 import { PK } from '../../src/library/perkIds';
 import { makeVillage } from '../harness';
 
@@ -22,6 +23,11 @@ describe('308 Starts and the blessed start', () => {
       ['Swordsman', CL.swordsman, undefined, undefined], ['Unwritten Legend', CL.late_bloomer, 50, 1], ['A Nobody', CL.a_nobody, 50, 1],
       ['The Threadbound', CL.threadbounded, 50, 1], ['The Blessed', undefined, 50, 1]]);
     expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }]);
+  });
+
+  it('blessing tiers count up with no end: Tier I is the weakest, the start\'s Tier V is mid-ladder (CC1 b)', () => {
+    expect([BLESSING_TIERS.pos('tier_1'), BLESSING_TIERS.pos('tier_5'), BLESSING_TIERS.pos('tier_6')]).toEqual([0, 4, 5]);
+    expect([BLESSING_TIERS.name('tier_4'), BLESSING_TIERS.name('tier_9'), BLESSING_TIERS.name('tier_14'), BLESSING_TIERS.name('tier_30')]).toEqual(['Tier IV', 'Tier IX', 'Tier XIV', 'Tier XXX']);
   });
 
   it('the blessed start can not begin while no god gives a Tier V blessing', () => {
