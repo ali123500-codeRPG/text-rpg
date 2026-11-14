@@ -57,6 +57,7 @@ export const ACH = {
   event_crit_1: 'AC186', event_crit_2: 'AC187', event_crit_3: 'AC188', event_crit_fail_1: 'AC189', event_crit_fail_2: 'AC190', event_crit_fail_3: 'AC191',
   first_knot: 'AC192', room_for_no_more: 'AC193',
   kills_1: 'AC194', kills_10: 'AC195', kills_50: 'AC196', survival_roll_1: 'AC197',
+  matched_crit_1: 'AC198',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -88,6 +89,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   essences_taken: 'essences taken', essence_room: 'character level with every essence slot full',
   kills: 'foes who died by your hand (counted apart from defeats; a kill is also a defeat)',
   survival_rolls: 'survival rolls passed after going Down with no one left to finish you',
+  matched_crits: 'contests where you and the other side landed on the same tier, Critical Success or past it',
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
   won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
   healed: 'HP healed from one source (a healing-table row: Rest, Natural recovery, Perks…)',
@@ -127,6 +129,7 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   essences_taken: 'essence taken', essence_room: 'character level with every essence slot full',
   kills: 'foe who died by your hand (counted apart from defeats; a kill is also a defeat)',
   survival_rolls: 'survival roll passed after going Down with no one left to finish you',
+  matched_crits: 'contest where you and the other side landed on the same tier, Critical Success or past it',
 };
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,
  * grander the higher the rating; an inferior tree earns none */

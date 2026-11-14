@@ -20,6 +20,7 @@ import { desiredState } from '../minds';
 import { stealthSkill } from '../minds/state';
 import { actorById, allActors, atLeast, hostile, isActive, isAsleep, isEngaged, zoneById } from './relations';
 import { logCode } from './effects';
+import { matchedCritFeat } from './feats';
 
 /** NW14: the perk that lets a sleeper wake to a hearing check (Earshot's 60 perk) */
 export const LIGHT_SLEEPER = PK.light_sleeper;
@@ -70,6 +71,7 @@ export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise:
       { actorId: other.id, skill, ...situational(state, skill, { cover: zone, actor: other }), rollKind: 'stealth' as const },
       { actorId: sleeper.id, skill: SK.earshot, ...situational(state, fnRoller(state, sleeper, FN.hearing), { actor: sleeper }), rollKind: 'perception' as const, fn: FN.hearing },
       state, rng);
+    matchedCritFeat(state, r); // D-292
     pass = r.gap > 0;
   } else if (soundCarries(state, sleeper, other, noise)) {
     const target = CONFIG.DIFFICULTY[CONFIG.WAKE_GRADE[noise] ?? 'moderate'];

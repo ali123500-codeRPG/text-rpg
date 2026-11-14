@@ -206,7 +206,8 @@ export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 
 /** opens `steps` more tiers past Critical Success (side 'up') or below Critical Failure ('down') on one kind of roll, or
  * on every kind ('any'), while the owner holds the perk or achievement (achievements: added up along the chain). A roll
  * that stops at the Critical tiers (the event roll) can then reach Critical Success+ and beyond, or Critical Failure−. */
-export type TierUnlock = { roll: RollKind | 'any'; side: 'up' | 'down'; steps: number };
+/** roll 'contest': every roll the owner makes as one side of a contest (RollRequest.contest) */
+export type TierUnlock = { roll: RollKind | 'any' | 'contest'; side: 'up' | 'down'; steps: number };
 export type PerkDef = {
   id: string; name: string; text?: string; eventRoll?: number;
   tierUnlocks?: TierUnlock[];
@@ -378,7 +379,7 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
   | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
   | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct' | 'event_crits' | 'event_crit_fails'
-  | 'essences_taken' | 'essence_room' | 'kills' | 'survival_rolls';
+  | 'essences_taken' | 'essence_room' | 'matched_crits' | 'kills' | 'survival_rolls';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
