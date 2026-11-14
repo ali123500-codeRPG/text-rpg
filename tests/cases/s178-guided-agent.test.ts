@@ -29,9 +29,10 @@ describe('178 guided agent', () => {
 
   it('the agent is told what to ask about, the coin limit, what is settled, and a code crossroads to word', () => {
     const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-    const p = guidedPrompt(s, [], { orders: 'never kill', settled: ['deal: the barkeep → yes'] });
+    s.player.core.signatures = ['Never kills.'];
+    const p = guidedPrompt(s, [], { settled: ['deal: the barkeep → yes'] });
     for (const c of CROSSROADS.filter((x) => x.by === 'agent')) expect(p).toContain(`- ${c.kind}:`);
-    expect(p).toContain('Standing orders from the watcher (always follow them; never ask about what they already settle): never kill');
+    expect(p).toContain("Your character's signatures (always keep to them; never ask about what they already settle): Never kills."); // they replaced standing orders
     expect(p).toContain('Coin limit:');
     expect(p).toContain('deal: the barkeep → yes');
     const must = guidedPrompt(s, [], { mustAsk: { kind: 'badly_hurt', about: 'Wounded', situation: 'your health is now Wounded' } });

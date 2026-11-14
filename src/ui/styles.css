@@ -407,7 +407,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .ct-now { color: var(--scenario-mark); font-weight: 700; }
 @media (max-width: 760px) { .ct { padding: 20px var(--space-4); } .ct-node { min-width: 0; } .ct-tier { padding-inline: var(--space-2); } }
 .pe-signs { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
-.pe-sign { width: 100%; resize: vertical; font: 14px/1.5 var(--font-ui, inherit); padding: 8px 10px; }
+.pe-sign { width: 100%; font: 14px/1.5 var(--font-ui, inherit); padding: 6px 10px; }
 /* CP2: the full-screen pop-up, for a board too big for a panel; partial pop-ups and the perk card open over it */
 .fpop { position: fixed; inset: 0; z-index: 30; overflow: auto; background: var(--bg); }
 .fpop-x { position: fixed; top: 20px; right: var(--space-6); z-index: 1; }
@@ -867,11 +867,11 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .quest-line .more { color: var(--faint); }
 /* Watch an agent play: a floating pop-up (dpop) over the play screen, opened by the header switch */
 .auto { min-width: 0; } .auto:empty { display: none; }
-.dpop.auto-pop { width: min(460px, calc(100vw - 32px)); }
+.dpop.auto-pop { width: min(880px, calc(100vw - 64px)); } /* large: every setting on one or two rows */
 .auto-panel { justify-items: stretch; }
 .auto-panel .hs-picker { justify-self: start; }
 /* the settings two to a row, each list under its name */
-.auto-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-3); }
+.auto-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-2) var(--space-3); }
 .auto-live { display: contents; }
 .auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); min-width: 0; }
 .auto-row[hidden] { display: none; }
@@ -885,8 +885,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .auto-ask { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--bg); border-radius: var(--r-md); }
 .auto-choices { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .auto-own { display: inline-flex; flex: 1 1 280px; gap: var(--space-2); }
-.auto-own input, .auto-orders input { flex: 1; min-width: 0; font: 14px/1.4 var(--font-round); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 6px 10px; }
-.auto-orders { flex: 1; } .auto-orders input { min-width: 240px; }
+.auto-own input { flex: 1; min-width: 0; font: 14px/1.4 var(--font-round); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 6px 10px; }
 /* the agent's own story: the opener and the pressed "Its own story" choice turn yellow instead of a banner row */
 .auto-agent[aria-pressed="true"], .auto-open.auto-agent { color: var(--warn); background: var(--warn-soft); }
 .title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }

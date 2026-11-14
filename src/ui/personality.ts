@@ -103,12 +103,14 @@ export function personalityBlock(a: Actor): HTMLElement {
     h('span', {}, h('b', { class: 'cs-pe-v' }, arch.name), ` · ${arch.hint}`));
 }
 
-/** the character's signatures, set in play: one short line each, saved when the box loses focus (setSignatures cleans them) */
+/** the character's signatures, set in play: a box each, SIGNATURES_MAX of them, saved as one leaves its box (setSignatures cleans them) */
 export function signaturesBox(a: Actor, save: (lines: string[]) => void): HTMLElement {
-  const box = h('textarea', { class: 'hs-input pe-sign', rows: CONFIG.SIGNATURES_MAX, 'aria-label': 'Signatures, one per line',
-    placeholder: 'e.g. Never draws first, but never stops once drawn.\nCalls everyone "friend", even foes.',
-    onchange: (e: Event) => save((e.target as HTMLTextAreaElement).value.split('\n')) }, (a.core.signatures ?? []).join('\n'));
+  const had = a.core.signatures ?? [];
+  const boxes = Array.from({ length: CONFIG.SIGNATURES_MAX }, (_, i) => h('input', { type: 'text', class: 'hs-input pe-sign', value: had[i] ?? '',
+    maxlength: CONFIG.SIGNATURE_MAX_CHARS, 'aria-label': `Signature ${i + 1}`, placeholder: SIGN_HINTS[i] ?? '',
+    onchange: () => save(boxes.map((b) => b.value)) }));
   return h('div', { class: 'pe-signs' }, h('p', { class: 'hs-label' }, 'Signatures'),
-    h('p', { class: 'hs-note' }, `How you always act or talk, one per line: up to ${CONFIG.SIGNATURES_MAX}, ${CONFIG.SIGNATURE_MAX_CHARS} characters each. The narrator and an agent playing in character use them.`),
-    box);
+    h('p', { class: 'hs-note' }, `How you always act or talk, one in each box, up to ${CONFIG.SIGNATURE_MAX_CHARS} characters. The narrator and an agent playing in character use them.`),
+    ...boxes);
 }
+const SIGN_HINTS = ['e.g. Never draws first, but never stops once drawn.', 'e.g. Calls everyone "friend", even foes.'];
