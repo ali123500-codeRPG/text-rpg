@@ -5,7 +5,7 @@ import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, classlessStart, defaultClass, createPlayer, playableRaces, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { classFloors, classlessStart, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { personalityPicker } from './personality';
@@ -36,7 +36,9 @@ const SWINGS = { start: 400, min: 50, max: 5000 };
  * reference to this element stays valid and a later redraw never brings back the old Start's screen. */
 export function creationScreen(api: GameApi, onStarted: () => void, startId: string = ST.swordsman): HTMLElement {
   const host = h('div', { class: 'creation-host' });
-  const show = (id: string) => host.replaceChildren(startScreen(api, onStarted, id, show));
+  // CC8: a start whose class the picked race can't learn (a Slime can't hold a sword) gives way to the first one it can begin
+  const fits = (id: string) => !raceStartBlock(id, identity.raceId);
+  const show = (id: string) => host.replaceChildren(startScreen(api, onStarted, fits(id) ? id : Object.keys(getLibrary().starts).find(fits) ?? id, show));
   show(startId);
   return host;
 }
@@ -73,7 +75,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: SWINGS.start };
   const total = () => creationPoints(startId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
-  const recommended = () => { const r = recommendedBuild(startId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
+  const recommended = () => { const r = recommendedBuild(startId, identity.raceId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
   const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, startId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(startId), raceId: identity.raceId });
   const picker = personalityPicker(persona, () => createPlayer(build(), 'preview', { preview: true }));
@@ -191,13 +193,14 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   /** why this start can't begin: no god gives its blessing (DX1), or no Threadbound item free in the picked world (WP2 b); '' if it can */
   function blockedWhy(id: string): string {
     if (startFacts(id).blocked) return startFacts(id).blocked;
+    if (raceStartBlock(id, identity.raceId)) return raceStartBlock(id, identity.raceId);
     const w = world.list.find((x) => x.worldId === world.id);
     if (!w || !threadboundStartBlocked(id, w.threadbound)) return '';
     return `no Threadbound item is free in ${w.name}: ${w.threadbound.map((t) => lib.items[t]?.name ?? t).join(', ')} ${w.threadbound.length > 1 ? 'lie' : 'lies'} there already.`;
   }
   const worldNote = h('p', { class: 'hs-note', hidden: true });
   function paintStarts(): void {
-    starts.querySelectorAll<HTMLButtonElement>('[data-start]').forEach((b) => { const why = blockedWhy(b.dataset.start!); b.disabled = !!why; if (why) b.title = `${startFacts(b.dataset.start!).blocked ? 'Not yet' : 'Not in this world'}: ${why}`; });
+    starts.querySelectorAll<HTMLButtonElement>('[data-start]').forEach((b) => { const why = blockedWhy(b.dataset.start!); b.disabled = !!why; if (why) b.title = `${startFacts(b.dataset.start!).blocked ? 'Not yet' : raceStartBlock(b.dataset.start!, identity.raceId) ? 'Not for this race' : 'Not in this world'}: ${why}`; });
     const why = blockedWhy(startId);
     worldNote.hidden = !why;
     worldNote.textContent = !why ? '' : facts.blocked ? `This start can’t begin yet: ${why} Pick another start.` : `This start can’t begin here: ${why} Pick another start or world.`;

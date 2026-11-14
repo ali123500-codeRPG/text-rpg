@@ -23,6 +23,8 @@ import { TP } from './templateIds';
 import { PLAYER_NAMES } from './names';
 import { personalityFrom } from '../ruleset/personality';
 import { ST } from './startIds';
+import { RL } from './tableIds';
+import { gripSlot } from '../ruleset/slots';
 import { blessedClass, blessingGods, rollBlessing } from '../ruleset/blessings';
 
 /** a fixed seed from a string (a template's ID, or a template and an actor's ID) */
@@ -457,13 +459,16 @@ export function starterKit(a: Actor): ItemInstance[] {
   const met = [...top.values()];
   const score = (d: ItemDef) => { const r = requirement(d); return (r ? skillToward(a, r.skill) : 0) * 10 + lvl(d); };
   const best = (ds: ItemDef[]) => ds.reduce<ItemDef | undefined>((b, d) => (!b || score(d) > score(b) ? d : b), undefined);
-  const weapon = best(met.filter((d) => d.kind === 'weapon'));
-  const shield = (weapon?.grips ?? 1) < 2 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
-  const armor = met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
+  // CC8: held in the body's grip parts (a Human's arms, right first; a Dragon's jaws; a Slime has none), worn armor only on
+  // a humanoid body [Proposed]
+  const grips = (getLibrary().bodyTypes[a.core.bodyTypeId]?.parts ?? []).filter((p) => p.roles.includes(RL.grip)).map((p) => p.id).reverse();
+  const weapon = best(met.filter((d) => d.kind === 'weapon' && (d.grips ?? 1) <= grips.length));
+  const shield = grips.length - (weapon?.grips ?? (weapon ? 1 : 0)) >= 1 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
+  const armor = a.core.bodyTypeId !== BT.humanoid ? undefined : met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
   return met.map((d, n) => {
     const inst: ItemInstance = { id: `player_${d.id}_${n + 1}`, itemId: d.id };
-    if (d === weapon) inst.equippedIn = (d.grips ?? 1) > 1 ? ['grip:right_arm', 'grip:left_arm'] : ['grip:right_arm'];
-    if (d === shield) inst.equippedIn = ['grip:left_arm'];
+    if (d === weapon) inst.equippedIn = grips.slice(0, d.grips ?? 1).map(gripSlot);
+    if (d === shield) inst.equippedIn = [gripSlot(grips[weapon?.grips ?? (weapon ? 1 : 0)])];
     if (d === armor) inst.equippedIn = ['armor'];
     if (d.shield) inst.pools = { shield: 100 };
     if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
@@ -500,17 +505,48 @@ export function randomIdentity(rng: Rng, raceId?: string): { name: string; prono
 
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, parry, endurance). */
-export function recommendedBuild(startId = PLAYER_START): CreationBuild {
-  if (startId !== PLAYER_START) return { // the 50-point starts; the same kit, so its gear is short at the start
+export function recommendedBuild(startId = PLAYER_START, raceId?: string): CreationBuild {
+  const base: CreationBuild = startId !== PLAYER_START ? { // the 50-point starts; the same kit, so its gear is short at the start
     name: 'Aldric', startId,
     skills: { [SK.melee_medium]: 15, [SK.parry]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
-  };
-  return {
+  } : {
     name: 'Aldric',
     skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
+  return raceId === undefined || raceId === PLAYER_RACE ? base : raceBuild(base, startId, raceId);
+}
+
+/** CC8: the recommended build for a race whose body closes some of its skills (a Slime has no hands, eyes or ears): the
+ * closed skills' points go to the open skills of the build, then to the other open skills, in library order, up to the
+ * creation cap; tags move to the highest open skills. Class floors stay. */
+function raceBuild(base: CreationBuild, startId: string, raceId: string): CreationBuild {
+  const who = { core: newPlayer(startId, undefined, raceId) } as Actor;
+  const open = Object.keys(getLibrary().skills).filter((k) => skillOpen(who, k));
+  const floors = classFloors(startGives(startId).classId).all;
+  const skills: Record<string, number> = {};
+  for (const [k, v] of Object.entries(base.skills)) if (open.includes(k)) skills[k] = Math.max(v, floors[k] ?? 0);
+  for (const k of Object.keys(floors)) if (open.includes(k) && !(k in skills)) skills[k] = floors[k];
+  let spare = creationPoints(startId) - Object.values(skills).reduce((n, v) => n + v, 0);
+  for (const k of [...Object.keys(skills), ...open.filter((k) => !(k in skills))]) {
+    if (spare <= 0) break;
+    const add = Math.min(spare, CONFIG.CREATION_MAX_SKILL - (skills[k] ?? 0));
+    if (add > 0) { skills[k] = (skills[k] ?? 0) + add; spare -= add; }
+  }
+  const tagged = base.tagged.filter((k) => open.includes(k));
+  for (const k of Object.keys(skills).sort((a, b) => skills[b] - skills[a])) if (tagged.length < CONFIG.CREATION_TAGS && !tagged.includes(k)) tagged.push(k);
+  return { ...base, skills, tagged, raceId };
+}
+
+/** CC8: why a race can't begin a Start: its class needs a skill that race's body can't learn; '' when it can */
+export function raceStartBlock(startId: string, raceId: string = PLAYER_RACE): string {
+  const who = { core: newPlayer(startId, undefined, raceId) } as Actor, f = classFloors(startGives(startId).classId);
+  const closed = [...Object.keys(f.all).filter((k) => !skillOpen(who, k)),
+    ...f.any.filter((g) => !Object.keys(g).some((k) => skillOpen(who, k))).map((g) => Object.keys(g).map(skillName).join(' or '))];
+  if (!closed.length) return '';
+  const r = getLibrary().races?.[raceId]?.name ?? raceId, c = getLibrary().classes[startGives(startId).classId ?? '']?.name ?? 'its class';
+  return `a ${r} can't learn ${closed.map((k) => getLibrary().skills[k] ? skillName(k) : k).join(', ')}, which ${c} needs.`;
 }
 
 /** Empty = valid. Every point spent, skills in trees open to a new player only (TA1), none above the cap, class floors met, exactly CREATION_TAGS tags. */
@@ -522,6 +558,7 @@ export function validateBuild(build: CreationBuild): string[] {
   else if (lib.starts[st].blessing && !blessingGods(lib.starts[st].blessing.tier).length) errs.push(`No god gives a ${BLESSING_TIERS.name(lib.starts[st].blessing.tier)} blessing yet`);
   const raceId = build.raceId ?? PLAYER_RACE;
   if (!playableRaces().includes(raceId)) errs.push(`${getLibrary().races?.[raceId]?.name ?? raceId} is not a race you can play`);
+  else if (lib.starts[st] && raceStartBlock(st, raceId)) errs.push(`This start can't begin: ${raceStartBlock(st, raceId)}`);
   const who = { core: newPlayer(st, undefined, raceId) } as Actor, cls = startGives(st).classId;
   if (!build.name?.trim()) errs.push('Name the character');
   let spent = 0;

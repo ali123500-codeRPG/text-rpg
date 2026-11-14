@@ -16,12 +16,15 @@ describe('309 random identity at creation', () => {
     for (let seed = 1; seed <= 200; seed++) {
       const r = randomIdentity(createRng(seed));
       seen.add(r.pronouns); races.add(r.raceId);
-      const st = getLibrary().races![r.raceId].ageStages!;
-      expect(r.age).toBeGreaterThanOrEqual(st[LIFE_STAGES.at(1)]!); // Youth starts
-      expect(r.age).toBeLessThan(st[LIFE_STAGES.at(4)]!); // before Old
+      const st = getLibrary().races![r.raceId].ageStages;
+      if (!st) expect(r.age).toBeUndefined(); // an ageless race (Slime)
+      else {
+        expect(r.age).toBeGreaterThanOrEqual(st[LIFE_STAGES.at(1)]!); // Youth starts
+        expect(r.age).toBeLessThan(st[LIFE_STAGES.at(4)]!); // before Old
+      }
       if (r.raceId === RC.human) expect(r.age).toBeLessThan(60);
       expect(r.pronouns === 'they' ? [...PLAYER_NAMES.he, ...PLAYER_NAMES.she] : PLAYER_NAMES[r.pronouns]).toContain(r.name);
-      expect(validateBuild({ ...recommendedBuild(ST.late_bloomer), ...r })).toEqual([]);
+      expect(validateBuild({ ...recommendedBuild(ST.late_bloomer, r.raceId), ...r })).toEqual([]);
     }
     expect([...seen].sort()).toEqual(['he', 'she', 'they']);
     expect([...races].sort()).toEqual(playableRaces().sort()); // CC7 a: the race is random too

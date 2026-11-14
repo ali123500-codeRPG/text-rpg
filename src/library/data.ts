@@ -842,10 +842,10 @@ export function prototypeLibrary(): Library {
     // innate perks and quirks per race: lists, empty until chosen
     races: {
       [RC.human]: { id: RC.human, name: 'Human', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.human, playable: true },
-      [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.elf, playable: true }, // CC7 a: Human and Elf playable [Proposed]
+      [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent', ageStages: AGES.elf, playable: true },
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
-      [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent' },
-      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon },
+      [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent', playable: true },
+      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon, playable: true },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     // gear classes (GC): the class sets which skill an item asks for; its level sets how much (EQUIP_NEED)
