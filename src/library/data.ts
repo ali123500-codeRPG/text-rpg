@@ -22,7 +22,7 @@ import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
 import { SK, OLD_SKILL_IDS } from './skillIds';
-import { ACH } from './achievementIds';
+import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
@@ -850,10 +850,10 @@ export function prototypeLibrary(): Library {
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
       // after = the lower level it builds on; earning it switches the lower one off.
-      [ACH.first_defeat_body_type]: { id: ACH.first_defeat_body_type, name: 'First {body_type} Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'body_type' },
+      [ACH.first_defeat_body_type]: { id: ACH.first_defeat_body_type, name: 'First {body_type} Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'body_type', branchOf: ACH.defeats_10 },
       [ACH.defeats_10_body_type]: { id: ACH.defeats_10_body_type, name: '{body_type}bane', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'body_type', after: ACH.first_defeat_body_type, firstSight: 'unintelligent' },
       [ACH.defeats_100_body_type]: { id: ACH.defeats_100_body_type, name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'body_type', after: ACH.defeats_10_body_type, readsHealth: true, firstSight: 'semi', excludes: ['firstSight'] },
-      [ACH.first_defeat_race]: { id: ACH.first_defeat_race, name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'race' },
+      [ACH.first_defeat_race]: { id: ACH.first_defeat_race, name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'race', branchOf: ACH.defeats_10 },
       [ACH.defeats_10_race]: { id: ACH.defeats_10_race, name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'race', after: ACH.first_defeat_race, firstSight: 'unintelligent' },
       [ACH.defeats_100_race]: { id: ACH.defeats_100_race, name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'race', after: ACH.defeats_10_race, firstSight: 'semi', excludes: ['firstSight'] },
       [ACH.defeats_10]: { id: ACH.defeats_10, name: 'Blooded Fighter', level: 'i', rule: 'defeats', tags: ['combat'], count: 10 },
@@ -890,7 +890,7 @@ export function prototypeLibrary(): Library {
       [ACH.beyond_1]: { id: ACH.beyond_1, name: 'Beyond Perfect', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1 },
       [ACH.beyond_2]: { id: ACH.beyond_2, name: 'Past the Limit', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, after: ACH.beyond_1 },
       [ACH.beyond_3]: { id: ACH.beyond_3, name: 'Touched by Fate', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, after: ACH.beyond_2 },
-      [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group' },
+      [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group', branchOf: ACH.beyond_1 },
       [ACH.beyond_group_2]: { id: ACH.beyond_group_2, name: 'Past the Limit ({group})', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, by: 'group', after: ACH.beyond_group_1 },
       [ACH.beyond_group_3]: { id: ACH.beyond_group_3, name: 'Touched by Fate ({group})', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, by: 'group', after: ACH.beyond_group_2 },
       [ACH.flawless_1]: { id: ACH.flawless_1, name: 'Untouched', level: 'i', rule: 'flawless', tags: ['combat'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
@@ -923,7 +923,7 @@ export function prototypeLibrary(): Library {
       [ACH.vanished_25]: { id: ACH.vanished_25, name: 'Smoke on the Wind', level: 'ii', rule: 'vanished', tags: ['stealth'], count: 25, after: ACH.vanished_5 },
       [ACH.spotted_10]: { id: ACH.spotted_10, name: 'Nothing Gets Past', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10 },
       [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10 },
-      [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function' },
+      [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function', branchOf: ACH.spotted_10 },
       [ACH.spotted_fn_10]: { id: ACH.spotted_fn_10, name: '{function} That Never Sleeps', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10, after: ACH.spotted_fn_1, by: 'function' },
       [ACH.spotted_fn_100]: { id: ACH.spotted_fn_100, name: 'Nothing Hides from Your {function}', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_fn_10, by: 'function' },
       [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
@@ -934,7 +934,7 @@ export function prototypeLibrary(): Library {
       [ACH.talked_down_50]: { id: ACH.talked_down_50, name: 'Every Fight Ends in Talk', level: 'iii', rule: 'talked_down', tags: ['social'], count: 50, after: ACH.talked_down_10, personality: ap({ [PA.temper]: -1 }) },
       [ACH.outmatched_1]: { id: ACH.outmatched_1, name: 'Against the Odds', level: 'i', rule: 'outmatched', tags: ['skill'], count: 1 },
       [ACH.outmatched_10]: { id: ACH.outmatched_10, name: 'No Match for You', level: 'ii', rule: 'outmatched', tags: ['skill'], count: 10, after: ACH.outmatched_1 },
-      [ACH.outmatched_fn_1]: { id: ACH.outmatched_fn_1, name: 'Better {function}', level: 'zero', rule: 'outmatched', tags: ['skill'], count: 1, by: 'function' },
+      [ACH.outmatched_fn_1]: { id: ACH.outmatched_fn_1, name: 'Better {function}', level: 'zero', rule: 'outmatched', tags: ['skill'], count: 1, by: 'function', branchOf: ACH.outmatched_1 },
       [ACH.outmatched_fn_10]: { id: ACH.outmatched_fn_10, name: '{function} Without Equal', level: 'i', rule: 'outmatched', tags: ['skill'], count: 10, after: ACH.outmatched_fn_1, by: 'function' },
       [ACH.enemy_friend_1]: { id: ACH.enemy_friend_1, name: 'Enemy to Friend', level: 'i', rule: 'enemy_to_friend', tags: ['social'], count: 1, personality: ap({ [PA.temper]: -1, [PA.sociability]: 1 }) },
       [ACH.enemy_friend_5]: { id: ACH.enemy_friend_5, name: 'Mender of Grudges', level: 'ii', rule: 'enemy_to_friend', tags: ['social'], count: 5, after: ACH.enemy_friend_1, personality: ap({ [PA.temper]: -1, [PA.sociability]: 1 }) },
@@ -962,10 +962,10 @@ export function prototypeLibrary(): Library {
       [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_50 },
       // TM26/TM27: per part size 1 / 10 / 50; each row takes AIM_EASE_PCT % off that size's aim penalty (carried up: 10 / 20 / 30 %).
       // The first row's name is a placeholder.
-      [ACH.aimed_size_1]: { id: ACH.aimed_size_1, name: 'Found the {size} Mark', level: 'zero', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
+      [ACH.aimed_size_1]: { id: ACH.aimed_size_1, name: 'Found the {size} Mark', level: 'zero', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT, branchOf: ACH.aimed_10 },
       [ACH.aimed_size_10]: { id: ACH.aimed_size_10, name: '{size} Target', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10, after: ACH.aimed_size_1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
       [ACH.aimed_size_50]: { id: ACH.aimed_size_50, name: 'Threads the Needle ({size})', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 50, after: ACH.aimed_size_10, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
-      [ACH.quests_giver_5]: { id: ACH.quests_giver_5, name: 'Go-To for {giver}', level: 'i', rule: 'quests_for_giver', tags: ['social'], count: 5, by: 'giver' },
+      [ACH.quests_giver_5]: { id: ACH.quests_giver_5, name: 'Go-To for {giver}', level: 'i', rule: 'quests_for_giver', tags: ['social'], count: 5, by: 'giver', branchOf: ACH.quests_1 },
       [ACH.quest_givers_10]: { id: ACH.quest_givers_10, name: 'Known in Every House', level: 'ii', rule: 'quest_givers', tags: ['social'], count: 10 },
       [ACH.quest_chain_1]: { id: ACH.quest_chain_1, name: 'Saw It Through', level: 'i', rule: 'quest_chains', tags: ['social'], count: 1 },
       [ACH.quests_early_1]: { id: ACH.quests_early_1, name: 'Early Every Time', level: 'i', rule: 'quests_early', tags: ['social'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
@@ -975,7 +975,7 @@ export function prototypeLibrary(): Library {
       [ACH.spar_25]: { id: ACH.spar_25, name: 'Yard Veteran', level: 'i', rule: 'spar_wins', tags: ['combat'], count: 25, after: ACH.spar_10 },
       [ACH.spar_50]: { id: ACH.spar_50, name: 'Regular at the Yard', level: 'ii', rule: 'spar_wins', tags: ['combat'], count: 50, after: ACH.spar_25 },
       [ACH.spar_200]: { id: ACH.spar_200, name: 'Nobody Wants to Spar You', level: 'ii', rule: 'spar_wins', tags: ['combat'], count: 200, after: ACH.spar_50 },
-      [ACH.cruel_spar_1]: { id: ACH.cruel_spar_1, name: 'Blood on the Practice Sword', level: 'i', rule: 'cruel_spar_wins', tags: ['combat'], count: 1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.cruel_spar_1]: { id: ACH.cruel_spar_1, name: 'Blood on the Practice Sword', level: 'i', rule: 'cruel_spar_wins', tags: ['combat'], count: 1, personality: ap({ [PA.temper]: 1 }), branchOf: ACH.spar_1 },
       [ACH.cruel_spar_10]: { id: ACH.cruel_spar_10, name: 'Cruel Teacher', level: 'ii', rule: 'cruel_spar_wins', tags: ['combat'], count: 10, after: ACH.cruel_spar_1, personality: ap({ [PA.temper]: 1 }) },
       [ACH.cruel_spar_25]: { id: ACH.cruel_spar_25, name: 'No One Spars You Twice', level: 'ii', rule: 'cruel_spar_wins', tags: ['combat'], count: 25, after: ACH.cruel_spar_10, personality: ap({ [PA.temper]: 1 }) },
       [ACH.spar_losses_1]: { id: ACH.spar_losses_1, name: 'Flat on Your Back', level: 'zero', rule: 'spar_losses', tags: ['combat'], count: 1, scar: true, personality: ap({ [PA.pride]: -1 }) },
@@ -996,23 +996,23 @@ export function prototypeLibrary(): Library {
       [ACH.won_broken_5]: { id: ACH.won_broken_5, name: 'Broken, Not Beaten', level: 'iii', rule: 'won_broken', tags: ['combat'], count: 5, after: ACH.won_broken_1, maxMorale: 5, personality: ap({ nerve: 1 }) },
       [ACH.won_broken_25]: { id: ACH.won_broken_25, name: 'Nothing Left to Fear', level: 'iv', rule: 'won_broken', tags: ['combat'], count: 25, after: ACH.won_broken_5, maxMorale: 5, personality: ap({ nerve: 1 }) },
       // D-174: HP healed (a flat number) from one healing row each; counts are placeholders
-      [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100 },
+      [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100, branchOf: ACH_HEADS.healed },
       [ACH.healed_rest_1000]: { id: ACH.healed_rest_1000, name: 'Sleeps Through Anything', level: 'i', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 1000, after: ACH.healed_rest_100 },
       [ACH.healed_rest_10000]: { id: ACH.healed_rest_10000, name: 'The Long Rest', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 10000, after: ACH.healed_rest_1000 },
-      [ACH.healed_natural_50]: { id: ACH.healed_natural_50, name: 'Knits Back Together', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 50 },
+      [ACH.healed_natural_50]: { id: ACH.healed_natural_50, name: 'Knits Back Together', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 50, branchOf: ACH_HEADS.healed },
       [ACH.healed_natural_500]: { id: ACH.healed_natural_500, name: 'Walks It Off', level: 'i', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 500, after: ACH.healed_natural_50 },
       [ACH.healed_natural_2500]: { id: ACH.healed_natural_2500, name: 'The Body Remembers', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 2500, after: ACH.healed_natural_500 },
-      [ACH.healed_perk_50]: { id: ACH.healed_perk_50, name: 'Borrowed Strength', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 50 },
+      [ACH.healed_perk_50]: { id: ACH.healed_perk_50, name: 'Borrowed Strength', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 50, branchOf: ACH_HEADS.healed },
       [ACH.healed_perk_500]: { id: ACH.healed_perk_500, name: 'Tricks of the Flesh', level: 'i', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 500, after: ACH.healed_perk_50 },
       [ACH.healed_perk_2500]: { id: ACH.healed_perk_2500, name: 'Unkillable by Habit', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 2500, after: ACH.healed_perk_500 },
       // morale restored (flat points) from one composure row each, mirroring healing by source; counts are placeholders
-      [ACH.calmed_rest_100]: { id: ACH.calmed_rest_100, name: 'Sleep On It', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 100 },
+      [ACH.calmed_rest_100]: { id: ACH.calmed_rest_100, name: 'Sleep On It', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 100, branchOf: ACH_HEADS.calmed },
       [ACH.calmed_rest_1000]: { id: ACH.calmed_rest_1000, name: 'Rested Nerves', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 1000, after: ACH.calmed_rest_100 },
       [ACH.calmed_rest_10000]: { id: ACH.calmed_rest_10000, name: 'Peace of Mind', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 10000, after: ACH.calmed_rest_1000 },
-      [ACH.calmed_natural_50]: { id: ACH.calmed_natural_50, name: 'Catch Your Breath', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 50 },
+      [ACH.calmed_natural_50]: { id: ACH.calmed_natural_50, name: 'Catch Your Breath', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 50, branchOf: ACH_HEADS.calmed },
       [ACH.calmed_natural_500]: { id: ACH.calmed_natural_500, name: 'Shakes It Off', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 500, after: ACH.calmed_natural_50 },
       [ACH.calmed_natural_2500]: { id: ACH.calmed_natural_2500, name: 'The Mind Remembers', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 2500, after: ACH.calmed_natural_500 },
-      [ACH.calmed_perk_50]: { id: ACH.calmed_perk_50, name: 'Borrowed Courage', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 50 },
+      [ACH.calmed_perk_50]: { id: ACH.calmed_perk_50, name: 'Borrowed Courage', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 50, branchOf: ACH_HEADS.calmed },
       [ACH.calmed_perk_500]: { id: ACH.calmed_perk_500, name: 'Tricks of the Mind', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 500, after: ACH.calmed_perk_50 },
       [ACH.calmed_perk_2500]: { id: ACH.calmed_perk_2500, name: 'Unshakable by Habit', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 2500, after: ACH.calmed_perk_500 },
       // flat HP and morale points lost, from any cause; counts are placeholders
@@ -1062,10 +1062,10 @@ export function prototypeLibrary(): Library {
       [ACH.class_max_3]: { id: ACH.class_max_3, name: 'Thrice Mastered', level: 'ii', rule: 'class_max', tags: ['progression'], count: 3, after: ACH.class_max_1 },
       [ACH.class_max_5]: { id: ACH.class_max_5, name: 'Master of Many Paths', level: 'iii', rule: 'class_max', tags: ['progression'], count: 5, after: ACH.class_max_3 },
       [ACH.class_max_10]: { id: ACH.class_max_10, name: 'The Thousand-Faced', level: 'iv', rule: 'class_max', tags: ['progression'], count: 10, after: ACH.class_max_5 },
-      [ACH.class_max_tier_1]: { id: ACH.class_max_tier_1, name: 'Peak of the {tier}', level: 'i', rule: 'class_max', tags: ['progression'], count: 1, by: 'class_tier' },
+      [ACH.class_max_tier_1]: { id: ACH.class_max_tier_1, name: 'Peak of the {tier}', level: 'i', rule: 'class_max', tags: ['progression'], count: 1, by: 'class_tier', branchOf: ACH.class_max_1 },
       [ACH.class_max_tier_2]: { id: ACH.class_max_tier_2, name: 'Twin Peaks of the {tier}', level: 'ii', rule: 'class_max', tags: ['progression'], count: 2, by: 'class_tier', after: ACH.class_max_tier_1 },
       [ACH.class_max_tier_3]: { id: ACH.class_max_tier_3, name: 'Crown of the {tier}', level: 'iii', rule: 'class_max', tags: ['progression'], count: 3, by: 'class_tier', after: ACH.class_max_tier_2 },
-      [ACH.class_tiers_2]: { id: ACH.class_tiers_2, name: 'Across Two Heights', level: 'ii', rule: 'class_max_tiers', tags: ['progression'], count: 2, freeLevels: 1 },
+      [ACH.class_tiers_2]: { id: ACH.class_tiers_2, name: 'Across Two Heights', level: 'ii', rule: 'class_max_tiers', tags: ['progression'], count: 2, freeLevels: 1, branchOf: ACH.class_max_1 },
       [ACH.class_tiers_3]: { id: ACH.class_tiers_3, name: 'Across Three Heights', level: 'iii', rule: 'class_max_tiers', tags: ['progression'], count: 3, after: ACH.class_tiers_2, freeLevels: 2 },
       [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across Four Heights', level: 'iv', rule: 'class_max_tiers', tags: ['progression'], count: 4, after: ACH.class_tiers_3, freeLevels: 3 },
       [ACH.class_tiers_5]: { id: ACH.class_tiers_5, name: 'Across Five Heights', level: 'v', rule: 'class_max_tiers', tags: ['progression'], count: 5, after: ACH.class_tiers_4, freeLevels: 4 },

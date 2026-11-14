@@ -396,6 +396,10 @@ export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHeal
  * switches the lower level off, and its Bane bonus is the lower level's bonus plus its own. scar: a negative achievement,
  * listed under Scars instead of Achievements. */
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
+  /** TB1: on the lowest row of a branch, the chain it branches from: the trunk's lowest row, or a head of ACH_HEADS for
+   * branches with no trunk. A branch counts one slice of the trunk's act; it never switches the trunk off and carries rewards
+   * up only along itself (`after`). Display only. */
+  branchOf?: string;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
   perk?: string; // granted when earned, kept for good
