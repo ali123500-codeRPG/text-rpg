@@ -99,7 +99,7 @@ const rankNo = (r: string) => Number(r.slice(5));
 export function templateRank(t: NpcTemplate): RankKey | undefined {
   if (!t.rank) return undefined;
   const kind = t.roleId ? getLibrary().npcRoles?.[t.roleId]?.kind : undefined;
-  const floor = kind && kind !== 'beast' ? CONFIG.RANK_FLOOR[kind] : undefined;
+  const floor = kind ? CONFIG.RANK_FLOOR[kind] : undefined;
   return floor && rankNo(floor) > rankNo(t.rank) ? floor : t.rank;
 }
 /** NG7: a template's level: its rank's (a preset), or its saved sheet's (a unique) */
@@ -288,11 +288,12 @@ export const presetAgeFloor = (t: NpcTemplate, talent: TalentKey): number | unde
   return rank ? ageFloor(t.raceId, rankRow(rank).training, talent) : undefined;
 };
 
-/** AG13, AG14: drawn once from the Weaver's stage or the template's stages, seeded by the actor's ID, never under its rank's
- * youngest age (AG12), and saved with the talent that set that age (AG25) */
+/** AG13, AG14: drawn once from the Weaver's stage, else the template's stages, else its role's (a Child role: Child), seeded
+ * by the actor's ID, never under its rank's youngest age (AG12), and saved with the talent that set that age (AG25) */
 function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?: LifeStageKey, own?: TalentKey): { bornDay?: number; talent?: TalentKey } {
   const talent = presetTalent(t, own);
-  const d = rollBornDay(state, t.raceId, stage ? [stage] : t.ageStages, createRng(templateSeed(id)), presetAgeFloor(t, talent));
+  const stages = stage ? [stage] : t.ageStages ?? (t.roleId ? getLibrary().npcRoles?.[t.roleId]?.ageStages?.slice() : undefined);
+  const d = rollBornDay(state, t.raceId, stages, createRng(templateSeed(id)), presetAgeFloor(t, talent));
   return d === undefined ? {} : { bornDay: d, ...(templateRank(t) ? { talent } : {}) };
 }
 

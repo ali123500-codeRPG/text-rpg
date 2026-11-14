@@ -413,8 +413,8 @@ const ap = (steps: Record<string, number>): Record<string, number> => Object.fro
 
 /** NG2, NG21: NPC roles: the skills each kind of work trains, by band (CONFIG.ROLE_BAND_SHARE of the rank's anchor); its kind
  * (NG13 rank floor), personality lean (NG14) and rank-trait pool (NG12). Leans and pools are placeholders. */
-const role = (id: string, name: string, kind: NpcRoleDef['kind'], bands: Record<string, readonly string[]>, leans?: NpcRoleDef['leans'], traits?: readonly string[], gear?: readonly string[]): NpcRoleDef =>
-  ({ id, name, kind, bands, ...(leans ? { leans } : {}), ...(traits ? { traits } : {}), ...(gear ? { gear } : {}) });
+const role = (id: string, name: string, kind: NpcRoleDef['kind'], bands: Record<string, readonly string[]>, leans?: NpcRoleDef['leans'], traits?: readonly string[], gear?: readonly string[], ageStages?: NpcRoleDef['ageStages']): NpcRoleDef =>
+  ({ id, name, kind, bands, ...(leans ? { leans } : {}), ...(traits ? { traits } : {}), ...(gear ? { gear } : {}), ...(ageStages ? { ageStages } : {}) });
 export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.soldier, 'Soldier', 'combat', { high: [SK.melee_medium, SK.block], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }, { traits: { [PA.discipline]: 40 } }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_medium]), // Block is their defense
   role(RO.skirmisher, 'Skirmisher', 'combat', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
@@ -425,6 +425,8 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.talker, 'Talker', 'civilian', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
   role(RO.worker, 'Worker', 'civilian', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
   role(RO.beast, 'Beast', 'beast', { high: [SK.unarmed_natural], low: [SK.dodge] }),
+  // children: no rank floor, drawn from the Child stage; bands are placeholders (sharp senses, quick feet)
+  role(RO.child, 'Child', 'child', { moderate: [SK.eyesight, SK.earshot], low: [SK.sneaking, SK.dodge] }, { traits: { [PA.curiosity]: 40 } }, undefined, undefined, ['stage_0']),
 ].map((r) => [r.id, r]));
 
 /** NG21: NPC themes: what their world adds; per-theme rank titles come from the lore thread */
@@ -466,6 +468,10 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     id: TP.patron, raceId: RC.human, generation: 'copy',
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, roleId: RO.worker, themeId: TH.village_folk, rank: 'rank_1',
     resolve: 30, personality: { values: [VL.pleasure] }, control: 'code', label: 'a tavern patron', chase: 'post',
+  },
+  [TP.child]: {
+    id: TP.child, raceId: RC.human, generation: 'copy', minimums: {}, roleId: RO.child, themeId: TH.village_folk, rank: 'rank_0', // a village child: Untrained, no floor
+    resolve: 20, personality: {}, control: 'code', label: 'a village child', chase: 'post',
   },
 };
 

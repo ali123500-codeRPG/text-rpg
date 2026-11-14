@@ -382,7 +382,7 @@ const DEFAULTS = {
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
   NPC_BAND_MULT: 1,
   /** NG13: the lowest rank of a combat role (fighting experience) and of a civilian role; beasts have none */
-  RANK_FLOOR: { combat: 'rank_2', civilian: 'rank_1' } as Record<'combat' | 'civilian', `rank_${number}`>,
+  RANK_FLOOR: { combat: 'rank_2', civilian: 'rank_1' } as Partial<Record<'combat' | 'civilian' | 'beast' | 'child', `rank_${number}`>>, // beasts and children have none
   /** NG12: traits drawn from the theme's and role's pools, by rank (rank_0 first); past the last row, +RANK_TRAITS_BEYOND per step */
   RANK_TRAITS: [0, 0, 0, 1, 1, 2, 2, 3, 3],
   RANK_TRAITS_BEYOND: 1,
@@ -396,7 +396,8 @@ const DEFAULTS = {
     combat: { resolve: 50, control: 'agent', chase: 'ground' },
     civilian: { resolve: 30, control: 'code', chase: 'post' },
     beast: { resolve: 50, control: 'code', chase: 'far' },
-  } as Record<'combat' | 'civilian' | 'beast', { resolve: number; control: 'agent' | 'code'; chase: import('./scales').ChaseRange }>,
+    child: { resolve: 20, control: 'code', chase: 'post' },
+  } as Record<'combat' | 'civilian' | 'beast' | 'child', { resolve: number; control: 'agent' | 'code'; chase: import('./scales').ChaseRange }>,
   /** NG9: each skill moves by up to this share of its band value, seeded by the actor's ID */
   COPY_SPREAD: 0.1,
   /** NG8: skills every NPC has at least at this band when its body can use them: the senses. Dodge is left to roles: at Low it
