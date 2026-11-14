@@ -1,4 +1,5 @@
 import { TP } from '../../src/library/templateIds';
+import { PK } from '../../src/library/perkIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage, actor, place, createRng, forcedRng } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -134,6 +135,9 @@ describe('fallback list', () => {
     expect(nerveHolds(o({ type: 'flee', target: 'street_door' })).order.type).toBe('idle');
     expect(nerveHolds(o({ type: 'talk', perkMove: { perk: 'PK1', target: null } })).order).toEqual(o({ type: 'talk' }));
     expect(nerveHolds(o({ type: 'filch', target: 'player' })).blocked).toBe(true);
+    // Battle Cry is the one perk move a broken nerve keeps
+    expect(nerveHolds(o({ type: 'attack', target: 'player', perkMove: { perk: PK.battle_cry, target: null } })).order).toMatchObject({ activity: 'cowering', perkMove: { perk: PK.battle_cry } });
+    expect(nerveHolds(o({ type: 'talk', perkMove: { perk: PK.battle_cry, target: null } }))).toEqual({ order: o({ type: 'talk', perkMove: { perk: PK.battle_cry, target: null } }), blocked: false });
     expect(nerveHolds(o({ type: 'use_item', item: 'bandage_1' }))).toEqual({ order: o({ type: 'use_item', item: 'bandage_1' }), blocked: false });
   });
 });
