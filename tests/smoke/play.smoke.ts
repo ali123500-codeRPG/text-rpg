@@ -75,7 +75,7 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  it('an essence offer pops up after the turn; Take it puts it in a slot on the Character page', async () => {
+  it('an essence offer pops up after the turn; Take it puts it in a slot, shown in the Character page\'s Essences pop-up', async () => {
     await page.evaluate(() => {
       const s = (globalThis as unknown as { __GAME_API__: { state: () => { turn: number; player: { progression?: { essenceOffers?: unknown[] } } } } }).__GAME_API__.state();
       s.player.progression!.essenceOffers = [{ essence: 'ES3', grade: 'common', points: { SK11: 1, SK32: 1 }, turn: s.turn, source: 'foe', untilMin: 1e9 }];
@@ -86,7 +86,10 @@ describe('play page smoke (TQ7)', () => {
     expect(await pop.innerText()).toMatch(/Street Instinct[\s\S]*\+1 Dodge[\s\S]*\+1 Insight/);
     await pop.getByRole('button', { name: 'Take it' }).click();
     await nav('Character');
-    const sec = page.locator('#essences');
+    const tile = page.locator('[data-tile="essences"]');
+    await expect.poll(() => tile.innerText()).toMatch(/1 of \d+/);
+    await tile.click();
+    const sec = page.locator('.ess-all');
     await expect.poll(() => sec.innerText()).toMatch(/1 of \d+ slots? used[\s\S]*Street Instinct/);
     expect(await sec.getByText('On offer').count()).toBe(0);
     expect(errors).toEqual([]);
