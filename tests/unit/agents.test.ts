@@ -28,6 +28,9 @@ describe('prompts', () => {
     expect(FIXED.parser.startsWith(PARSER_INSTRUCTIONS)).toBe(true);
     expect(PARSER_INSTRUCTIONS).toContain('8. If the player names a body part of the target, put it in "targetPart". Set "aimed": true only when the player says they aim at that part or go for it');
   });
+  it('the Weaver is told a barrier never goes on a drop or a way to a frontier, as the plan check rules (BG-204)', () => {
+    expect(FIXED.weaver).toContain('A barrier goes only on a way between two zones, never on a drop or on a way to a frontier');
+  });
 });
 
 describe('schemas', () => {

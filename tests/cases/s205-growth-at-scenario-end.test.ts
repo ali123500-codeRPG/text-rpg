@@ -1,13 +1,13 @@
 // 205 Growth at the scenario's end (D-226, LF3): while a scenario runs, the player's achievements and All-XXX steps wait and are
 // granted together when it ends, with one gains summary for the ending moment (skills, milestone unlocks, All-XXX,
-// achievements, XP bar, levels). In free roam they come at once.
+// achievements, XP bar, levels). In free roam they wait for the next scenario's end (BG-217).
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { makeVillage } from '../harness';
 import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
 import { TR } from '../../src/library/treeIds';
-import { grantAchievement } from '../../src/engine/xp';
+import { awardXp, charLevel, grantAchievement, xpToNext } from '../../src/engine/xp';
 import { closeScenario, endScenario, frameOf } from '../../src/engine/scenarioEnd';
 import { noteGains, scenarioGainsNow } from '../../src/engine/growth';
 import { play } from './w4-kit';
@@ -19,7 +19,7 @@ const has = (s: GameState, key: string) => (s.player.progression!.achievements ?
 const firstSlime = (s: GameState) => grantAchievement(s, ACH.first_defeat_body_type, 'slime');
 
 describe('205 growth lands at the scenario end', () => {
-  it('in free roam an achievement is granted at once', () => {
+  it('with no scenario and no free roam (nothing has started one) an achievement is granted at once', () => {
     const s = makeVillage();
     firstSlime(s);
     expect(has(s, ACH.first_defeat_body_type)).toBe(true);
@@ -51,6 +51,32 @@ describe('205 growth lands at the scenario end', () => {
     expect(g.xp.toLevel * 100 + g.xp.toPct).toBeGreaterThan(g.xp.fromLevel * 100 + g.xp.fromPct);
     s.turn += 1;
     expect(scenarioGainsNow(s)).toBeUndefined(); // only on the turn that ended it
+  });
+
+  it('BG-217: growth earned in free roam waits for the next scenario\'s end, and its gains moment counts the roam\'s XP', () => {
+    const s = makeVillage();
+    frame(s);
+    expect(end(s)).toBe('roam');
+    const lvl = charLevel(s.player), from = s.player.progression!.xpLog?.length ?? 0;
+    s.turn += 1;
+    firstSlime(s);
+    awardXp(s, xpToNext(s.player) + 5, 'quest:q1'); // enough for a level
+    expect(has(s, ACH.first_defeat_body_type)).toBe(false);
+    expect(s.player.progression!.pendingAchievements).toHaveLength(1);
+    expect(charLevel(s.player)).toBe(lvl); // the level waits too
+    s.turn += 1;
+    delete s.stage.roam; // a scenario starts (beginScenario ends free roam)
+    frame(s);
+    expect(s.stage.roamGrowth).toBeUndefined();
+    s.turn += 1;
+    end(s);
+    expect(has(s, ACH.first_defeat_body_type)).toBe(true);
+    expect(charLevel(s.player)).toBeGreaterThan(lvl);
+    const g = scenarioGainsNow(s)!;
+    expect(g.achievements).toHaveLength(1);
+    expect(g.xp.gained).toBe(s.player.progression!.xpLog!.slice(from).reduce((n, x) => n + x.amount, 0)); // the roam's quest XP and the achievement's
+    expect(g.xp.parts?.some((p) => p.kind === 'quest')).toBe(true);
+    expect(g.levelUps.length).toBeGreaterThan(0);
   });
 
   it('the player\'s All-XXX waits for the end too; mastery achievements come with it', () => {

@@ -23,7 +23,7 @@ import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES,
 import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
-import { cap, r1 } from '../words';
+import { cap, r1, theName } from '../words';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -105,7 +105,7 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
   const atk = attackOf(s, p);
   return h('div', { class: 'cs-card' },
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
-      h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In the ${place}` : ''].filter(Boolean).join(' · ')))), // AG16
+      h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In ${theName(place)}` : ''].filter(Boolean).join(' · ')))), // AG16
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${HEALTH_LEVELS.name(level)} · ${whole(hp)} HP`)),
       // each level named at its segment, alternating one above the bar and one below

@@ -377,8 +377,9 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
     tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
 }
 
-/** D-226: the player's growth waits for the running scenario's end (CONFIG.GROWTH_AT_SCENARIO_END); in free roam it doesn't */
-export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && !!state.stage.scenario && !flushing;
+/** D-226: the player's growth waits for the running scenario's end (CONFIG.GROWTH_AT_SCENARIO_END); in free roam, for the next
+ * scenario's end (BG-217) */
+export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && (!!state.stage.scenario || !!state.stage.roam) && !flushing;
 let flushing = 0;
 /** runs `fn` as the scenario's ending moment: growth granted inside it lands at once (flushGrowth) */
 export function atScenarioEnd<T>(fn: () => T): T { flushing++; try { return fn(); } finally { flushing--; } }

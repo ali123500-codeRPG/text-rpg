@@ -406,6 +406,8 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .ct-story { font-style: italic; color: var(--muted); }
 .ct-now { color: var(--scenario-mark); font-weight: 700; }
 @media (max-width: 760px) { .ct { padding: 20px var(--space-4); } .ct-node { min-width: 0; } .ct-tier { padding-inline: var(--space-2); } }
+.pe-signs { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.pe-sign { width: 100%; resize: vertical; font: 14px/1.5 var(--font-ui, inherit); padding: 8px 10px; }
 /* CP2: the full-screen pop-up, for a board too big for a panel; partial pop-ups and the perk card open over it */
 .fpop { position: fixed; inset: 0; z-index: 30; overflow: auto; background: var(--bg); }
 .fpop-x { position: fixed; top: 20px; right: var(--space-6); z-index: 1; }

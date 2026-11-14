@@ -184,7 +184,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'You were never meant for one path, so no road is closed to you.',
     rules: { kind: 'passive', trigger: 'any check of whether the owner can use a skill tree or skill', conditions: [], effect: 'the access rules (Must, Either of, Blocked by) do not apply: every tree and skill is open, and its skills can be used, marked and raised', lasts: 'always' },
   },
-  // DX1-DX5: essence extraction, a blessing of Imbra, goddess of essence manipulation (D-311; the blessed Start grants it), and the quirk it leaves.
+  // DX1-DX5: essence extraction, a blessing of Imbra, minor goddess of essence manipulation (D-311; the blessed Start grants it), and the quirk it leaves.
   // NM2: the blessing works on the essence, a small foreign addition to someone's Thread; no god touches the Thread itself.
   [PK.extract_essence]: {
     id: PK.extract_essence, name: 'Extract Essence', built: true, blessing: { god: GD.essences, tier: 'tier_5' },
@@ -334,7 +334,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
-  { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
+  { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth, stamped with the coin of Varo, minor god of extreme fortunes', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
     threadbound: { rank: 'rank_4', grants: [
       { perk: PK.loose_odds, achievement: ACH.event_crit_1 }, { perk: PK.twin_abyss, achievement: ACH.event_crit_fail_1 },
       { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
@@ -656,12 +656,12 @@ export function prototypeLibrary(): Library {
       [ST.threadbound]: { id: ST.threadbound, name: 'The Threadbound', classId: CL.threadbounded, points: 50, level: 1 },
       // DX1: a random god's Tier V blessing, in that god's Blessed class; points and level [Proposed], as the other 50-point starts
       [ST.blessed]: { id: ST.blessed, name: 'The Blessed', points: 50, level: 1, blessing: { tier: 'tier_5' },
-        story: 'A god looked your way once, and part of that look stayed with you. Which god it was, you will know when your story starts.' },
+        story: 'A minor god looked your way once, and part of that look stayed with you. Which one it was, you will know when your story starts.' },
     },
-    // DX1: the gods, each with a narrow field. Varo and Imbra: minor gods, grand to the average person, the minimum for the divine; lore belongs to the lore thread
+    // DX1: the gods, each with a narrow field. Varo and Imbra are minor gods (GOD_RANKS): grand to the average person, the minimum for the divine; lore belongs to the lore thread
     gods: {
-      [GD.varo]: { id: GD.varo, name: 'Varo', field: 'extreme fortunes' },
-      [GD.essences]: { id: GD.essences, name: 'Imbra', field: 'essence manipulation' },
+      [GD.varo]: { id: GD.varo, name: 'Varo', rank: 'minor', field: 'extreme fortunes' },
+      [GD.essences]: { id: GD.essences, name: 'Imbra', rank: 'minor', field: 'essence manipulation' },
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

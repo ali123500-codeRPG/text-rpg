@@ -114,10 +114,17 @@ export function personalityText(state: GameState, a: Actor, morale: string): str
   return [
     `Nerve: ${nerveTier(a, p)} (${NERVE_HINTS[line]}; ${morale} right now).`,
     ...(t?.signatures ?? []),
+    ...(a.core.signatures ?? []),
     `${arch.name} at heart (${arch.hint})${buts.length ? `, but ${listWords(buts)}` : ''}.`,
     ...(drives.length ? [`Drives: ${drives.map((v, i) => `${lib.values![v].name}${i === 0 && drives.length > 1 ? ' first' : ''} (${lib.values![v].hint})`).join(', then ')}.`] : []),
     ...(tensions.length ? [`Tensions: ${tensions.map((x) => `${x.name} (${x.hint})`).join('; ')}.`] : []),
   ].join(' ');
+}
+
+/** the character's own signatures, one per line: trimmed, blank lines dropped, at most SIGNATURES_MAX of SIGNATURE_MAX_CHARS each */
+export function setSignatures(a: Actor, lines: string[]): void {
+  const keep = lines.map((x) => x.replace(/\s+/g, ' ').trim().slice(0, CONFIG.SIGNATURE_MAX_CHARS)).filter(Boolean).slice(0, CONFIG.SIGNATURES_MAX);
+  if (keep.length) a.core.signatures = keep; else delete a.core.signatures;
 }
 
 /** BG-183: each pick as a table id, by its id or its name (any case); unknown ones dropped */

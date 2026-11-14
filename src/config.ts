@@ -44,7 +44,7 @@ const DEFAULTS = {
   TIER_EXTRA_BAND: 50,
   /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human
    * body can do (CR4); they are challenge rows only (CR12): no gain, lock or Weaver use until D-219 says when they apply */
-  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 300 } as Record<GradeLevel, number>,
+  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 400 } as Record<GradeLevel, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
   /** RN2 b: stacking within one modifier type (ruleset/stacking.ts powerStack): n equal modifiers total n^MOD_STACK_EXP, so the
@@ -252,6 +252,9 @@ const DEFAULTS = {
   DRIVES_SHOWN: 3,
   /** tensions given to the agent, in table order */
   TENSIONS_SHOWN: 2,
+  /** signatures a character may hold (set on the Character page), and the longest one in characters [placeholder] */
+  SIGNATURES_MAX: 5,
+  SIGNATURE_MAX_CHARS: 120,
   /** PL12: the Nerve points a named line sets (− for cautious, + for daring) */
   NERVE_LINE_POINTS: 40,
   /** AP2: personality points one achievement step is worth; rows write steps (+1, −1), so this one number scales them all */
@@ -380,7 +383,7 @@ const DEFAULTS = {
   // ---- Part 4 ----
   // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
   /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, the same for every race */
-  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_8: { anchor: 300, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_8: { anchor: 400, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
   /** NG3: past the last rank row, each step adds this */
   RANK_BEYOND_STEP: { anchor: 100, level: 20, training: 10 },
   /** NG2: a role's bands as shares of the rank's anchor */

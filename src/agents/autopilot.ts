@@ -8,7 +8,9 @@ import { moraleLevel } from '../ruleset/morale';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { coinWords, coins } from '../engine/trade';
 import { buildPlayerView } from '../views';
+import { personalityText } from '../ruleset/personality';
 import type { WayView } from '../types/views';
+import { theName } from '../words';
 
 /** playstyles: the playtest script's --persona and the autopilot's persona picker (eager: an over-enthusiastic adventurer
  * who drives the story forward on their own, the P7 pacing test) */
@@ -91,9 +93,16 @@ your recent lines: draw on the whole spoken language (e.g. uso!, maji de?, kowai
 ganbare, dame!, yokatta, ara ara, mou!, sasuga, osoi!, shimatta, iku yo!), never one fixed set. Never call the watcher by
 a name or an honorific. You are in the scenario with them, never a narrator describing it.`;
 
+/** In character: the agent speaks as the character, from its personality line (given each move with its signatures) */
+const IN_CHARACTER = `You ARE the player character, never a companion or a narrator. "say" is the character's own voice, what
+they say or mutter as it happens, worded the way this person talks, so the watcher hears who they are. Anything your command
+has them say to someone is worded the same way. Let who they are (below) set the words, the tone and what they notice; never
+name their traits or explain them. Any if-then line or saying in it is a signature: keep to it.`;
+
 /** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the bar's Speaker */
 export const VOICE_STYLES: [string, string, string][] = [
   ['plain', 'Plain', ''],
+  ['character', 'In character', IN_CHARACTER],
   ['companion', 'AI companion', COMPANION],
   ['japanese', 'Speaks Japanese', `${COMPANION} Also add "ja" to your JSON: the same commentary in natural spoken Japanese.`],
 ];
@@ -111,17 +120,18 @@ export function surroundings(s: GameState): string {
   const ways = v.zone.links.map((l) => {
     const w = l.way as WayView | undefined, to = v.zones.find((z) => z.id === l.to)?.name;
     const shut = [w?.locked && 'locked', w?.barred && 'barred', w?.blocked && 'blocked'].filter(Boolean).join(', ');
-    return `${l.label}${to && to !== l.label ? ` (to the ${to})` : ''}${shut ? ` [${shut}]` : ''}`;
+    return `${l.label}${to && to !== l.label ? ` (to ${theName(to)})` : ''}${shut ? ` [${shut}]` : ''}`;
   });
   const known = (v.known ?? []).filter((k) => k.id !== v.zone.id && !here.has(k.id)).map((k) => k.name);
-  return `Where you are: the ${v.zone.name}. Ways out you can see from here: ${ways.join('; ') || 'none'}.${known.length ? ` Other places you know, which a move can name: ${known.join('; ')}.` : ''} To leave, use only these: never head for a door, stair or path that isn't listed, however likely one seems (a tavern may have no cellar door you know of).`;
+  return `Where you are: ${theName(v.zone.name)}. Ways out you can see from here: ${ways.join('; ') || 'none'}.${known.length ? ` Other places you know, which a move can name: ${known.join('; ')}.` : ''} To leave, use only these: never head for a door, stair or path that isn't listed, however likely one seems (a tavern may have no cellar door you know of).`;
 }
 
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
  *  own recent commentary, so it doesn't keep repeating itself */
 export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }, me?: GameState | null): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
-  const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
+  const base = VOICE_STYLES.find(([id]) => id === style)?.[2];
+  const voice = base && style === 'character' && me ? `${base}\nWho you are: ${personalityText(me, me.player, MORALE_LEVELS.name(moraleLevel(me.player)))}` : base;
   return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
 }
 
