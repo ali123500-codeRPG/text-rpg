@@ -53,10 +53,11 @@ describe('template essences', () => {
     for (const t of Object.values(lib.templates)) for (const id of ids(t.id)) if (lib.essences![id].from.echo) expect(t.essences).toContain(id);
   });
 
-  it('EN4: a beaten notable foe rolls on its own template\'s list', () => {
+  it('EN4: a notable foe the player killed rolls on its own template\'s list', () => {
     const s = makeVillage();
     const thief = spawnNpc(s, TP.thief, { id: 'thief_x', zone: s.player.zone, placeId: s.player.placeId, bandId: 'tavern_folk' });
     s.actors.push(thief);
+    thief.core.condition.hpLostPct = 200; thief.mind!.hitByPlayer = true; // BG-199: an essence comes only from a death
     const t = getLibrary().templates[thief.core.templateId!];
     getLibrary().templates[t.id] = { ...t, notable: true };
     let i = 0; const dice: Rng = { state: 1, next: () => 0, int: (lo) => lo, d100: () => [1, 100][Math.min(i++, 1)] }; // appears on 1, quality 100

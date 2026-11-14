@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import { buildPlayerView, distText, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
 import { questFocus } from './pages';
-import { tierGap } from '../agents/game';
+import { tierGap, xpSourceWords } from '../agents/game';
 import { isDownLevel, othersHealthWord, TAG_MARK, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
@@ -448,12 +448,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   /** a roll line: whose roll (the player's own skill, or who rolled against the player), both tiers, the gap and the result */
   const checkLine = (c: NonNullable<LogLine['check']>, by?: string) => h('p', { class: 'check' + (by ? ' in' : '') }, checkIcon(c.kind),
     h('span', { class: 'sk' }, by ? cap(by) : skillName(c.skill)), tierChip(c),
-    c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against), h('span', { class: 'gap' }, tierGap(c, c.against))] : null,
+    c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against), h('span', { class: 'gap' }, [tierGap(c, c.against), ...(c.shifts ?? [])].join(' · '))] : null,
     h('span', { class: 'res' }, '→ ', ((o) => h('b', { class: o && struck(o) ? 'hit' : '', 'data-o': o ? String(OUTCOME_BEAT[o]) : '0' }, c.result))(outcomeOf(c.result))));
 
   function results(l: LogLine, s: GameState | null): HTMLElement | null {
     const lib = getLibrary();
-    const xp = (s?.player.progression?.xpLog ?? []).filter((a) => a.turn === l.turn).reduce((a, x) => a + x.amount, 0);
+    const xp = (s?.player.progression?.xpLog ?? []).filter((a) => a.turn === l.turn && !a.levelUp && a.amount); // BG-199: each award with its source
     const gains = Object.entries(l.gains ?? {}).filter(([, n]) => n);
     const gear = l.gear ?? [];
     const row = (k: string, ...v: (Node | string)[]) => h('p', { class: 'rrow' }, h('span', { class: 'hs-label' }, k), h('span', {}, ...v));
@@ -476,7 +476,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.ways ?? []).map((w) => row('Way', w)),
       // a skill that went up this turn: "Strike +1" in gold, the same mark as the sheet's ▲ (playtest run 33)
       gains.length ? row('Skills', ...gains.flatMap(([k, n], i) => [i ? ' · ' : '', h('b', { class: 'skill-up', title: 'Went up this turn' }, `▲ ${skillName(k)} +${n}`)])) : null,
-      xp ? row('XP', `+${xp}`) : null,
+      xp.length && s ? row('XP', xp.map((x) => `${x.amount > 0 ? '+' : '−'}${Math.round(Math.abs(x.amount))} ${xpSourceWords(s, x)}`).join(' · ')) : null,
       ...(l.heals ?? []).map(healCard),
       ...(l.wounds ?? []).filter((w) => !working(w.to)).map(woundCard),
       // MB12: the turn the player's nerve broke says what that stops, how it passes and what still works

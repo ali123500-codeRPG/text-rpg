@@ -26,15 +26,16 @@ const fail = (error: ClaudeErrorCode) => ({ ok: false as const, error });
 describe('prompts', () => {
   it('fixed part is the instruction text, then the shape', () => {
     expect(FIXED.parser.startsWith(PARSER_INSTRUCTIONS)).toBe(true);
-    expect(PARSER_INSTRUCTIONS).toContain('8. If the player names a body part of the target, put it in "targetPart". Never decide whether the attack is aimed.');
+    expect(PARSER_INSTRUCTIONS).toContain('8. If the player names a body part of the target, put it in "targetPart". Set "aimed": true only when the player says they aim at that part or go for it');
   });
 });
 
 describe('schemas', () => {
-  it('intent: unknown keys (aimed) are stripped, nullable fields default', () => {
+  it('intent: unknown keys (a top-level aimed) are stripped, nullable fields default; the action keeps its aimed (BG-200)', () => {
     const r = checkIntent({ action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', aimed: true }, aimed: true });
     expect(r.errors).toEqual([]);
-    expect(JSON.stringify(r.value)).not.toContain('aimed');
+    expect(r.value).not.toHaveProperty('aimed');
+    expect(r.value.action?.aimed).toBe(true);
     expect(r.value.move).toBeNull();
     expect(r.value.deferred).toEqual([]);
   });

@@ -64,6 +64,7 @@ const intent = obj<Intent>({
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
     target: nul(str),
     targetPart: nul(str),
+    aimed: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
     item: nul(str),
     qty: num,
     for: nul(str),
@@ -73,7 +74,7 @@ const intent = obj<Intent>({
     improvised: (v, p, e) => (v === null || v === undefined ? null
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
     demand: (v, p, e) => (v === null || v === undefined ? null : oneOf(['yield'] as const)(v, p, e)),
-  }, ['qty', 'for', 'demand'])),
+  }, ['qty', 'for', 'demand', 'aimed'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const) })),
   gear: GEAR,

@@ -18,6 +18,9 @@ import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
 import type { Actor, GameState, StagePlan } from '../../src/types';
 
+/** BG-199: an essence comes only from a death: the player hurt this foe and it lies dead */
+const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { hitByPlayer?: boolean } }>(a: T): T => { a.core.condition.hpLostPct = 200; a.mind!.hitByPlayer = true; return a; };
+
 const LOOP = 'loop_1';
 const earn = (a: Actor, ...keys: string[]) => keys.forEach((key) => ((a.progression ??= {} as never).achievements ??= []).push({ key, turn: 0 } as never));
 const has = (a: Actor, perk: string) => a.core.perks.some((p) => p.perkId === perk && p.source === 'item');
@@ -113,7 +116,7 @@ describe('191 the Varo\'s Loop', () => {
     const s = worn([ACH.event_crit_2]);
     const foe = s.actors.find((a) => a.id === 'slime_1')!;
     foe.core.generation = 'rolled';
-    offersFromDefeats(s, [foe], forcedRng([CONFIG.ESSENCE_APPEAR_CHANCE.foe + 1]));
+    offersFromDefeats(s, [slain(foe)], forcedRng([CONFIG.ESSENCE_APPEAR_CHANCE.foe + 1]));
     expect(s.log.some((l) => l.code === 'essence_roll_auto')).toBe(false);
     expect(qualityRoll(forcedRng([55, 99]), 60, { state: s, actor: s.player })).toEqual({ grade: 'rare', past: 0 }); // still ready
   });

@@ -31,6 +31,7 @@ export type Intent = {
     skill: string;
     target: string | null;
     targetPart: string | null;
+    aimed?: boolean; // BG-200 (BF26): the player's words aim at targetPart ("aim at his leg"), as the Aim button does
     item: string | null;
     qty?: number | null; // give: how many of a stack (null: all of it); buy: how many (null: one)
     for?: string | null; // buy: who gets it (null: the buyer)

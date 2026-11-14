@@ -5,7 +5,7 @@ import { gripWord } from '../ruleset/gear';
 import { coinWords, coins, countWords } from '../engine/trade';
 import { moraleLevel } from '../ruleset/morale';
 import { IT } from '../library/itemIds';
-import type { AgentName, StoryOwner, TierRoll,
+import type { AgentName, StoryOwner, TierRoll, DefeatWhy, XpAward, TierShift,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor, WayDid,
 } from '../types';
@@ -1170,6 +1170,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       check = {
         kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
         ...(a.defense && a.defenseType ? { against: { what: `${views.callName(s, 'player', a.targetId)}’s ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
+        ...shiftsPart(s, a.gapShifts, 'player', a.targetId),
         result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}`,
         strike: { target: pk?.target ?? views.callName(s, 'player', a.targetId), weapon: pk?.weapon ?? null, changes: pk?.changes ?? [] },
       };
@@ -1192,6 +1193,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       const loc = pk?.location?.part ?? '';
       incoming.push({ by: pk?.actor ?? 'someone', kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
         ...(a.defense && a.defenseType ? { against: { what: `your ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
+        ...shiftsPart(s, a.gapShifts, a.attackerId, 'player'),
         result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}` });
     } else if (e.contest && e.actorId !== 'player' && e.id !== checkEv) {
       const c = e.contest;
@@ -1227,8 +1229,31 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       changes.push({ kind: own && c.startsWith('player is ') ? 'health' : 'condition', text: own ? c.replace(/^player is /, 'You are ').replace(/^player's /, 'Your ') : who(c, true) });
     }
   }
+  // BG-199: a foe who broke or surrendered to the player this turn (defeat XP paid) says so
+  for (const l of s.log) {
+    if (l.turn !== s.turn || l.code !== 'yielded_to_player') continue;
+    const d = l.detail as { actorId: string; why: DefeatWhy };
+    changes.push({ kind: 'condition', text: `${who(views.callName(s, 'player', d.actorId), true)} ${d.why === 'surrendered' ? 'surrenders' : 'breaks and yields'} to you` });
+  }
   if (changes.length) out.changes = changes;
   return out;
+}
+/** BG-200: what moved an attack's gap besides the two tiers, each as "cover: 1 tier his way", toward whoever it helped
+ * (a shift up helps the defender) */
+function shiftsPart(s: GameState, shifts: TierShift[] | undefined, attackerId: string, defenderId: string): Pick<LineCheck, 'shifts'> {
+  const whose = (id: string) => id === 'player' ? 'your' : ({ he: 'his', she: 'her', it: 'its' } as Record<string, string>)[actorById(s, id)?.pronouns ?? ''] ?? 'their';
+  const out = (shifts ?? []).filter((x) => x.value).map((x) => `${x.source}: ${Math.abs(x.value)} tier${Math.abs(x.value) === 1 ? '' : 's'} ${whose(x.value > 0 ? defenderId : attackerId)} way`);
+  return out.length ? { shifts: out } : {};
+}
+/** BG-199: what an XP award was for, in words: "Wren Tallow defeated (broke)", "job done: find the charm",
+ * "achievement: First Blood"; the one wording for the mechanics panel and the turn's XP row */
+export function xpSourceWords(s: GameState, x: XpAward): string {
+  const [kind, id] = x.source.split(/:(.*)/);
+  if (kind === 'defeat') return `${cap(views.callName(s, s.player.id, id))} defeated${x.why ? ` (${({ down: 'down', broken: 'broke', surrendered: 'surrendered' } as const)[x.why]})` : ''}`;
+  if (kind === 'achievement') return `achievement: ${engine.achievementName(s, s.player.progression?.achievements?.find((a) => a.id === id) ?? { id })}`;
+  if (kind === 'quest') return `job done: ${s.quests.find((q) => q.id === id)?.text ?? 'a job'}`;
+  if (kind === 'essence removed') return `essence given up: ${getLibrary().essences?.[id]?.name ?? id}`;
+  return x.source;
 }
 /** how far apart two tiers are, in words ("1 tier ahead") */
 export function tierGap(mine: TierRoll, theirs: TierRoll): string {
@@ -1282,13 +1307,10 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   }
   // X9: XP awards and level-ups this turn
   const turn = events[0]?.turn ?? s.turn;
-  const ach = s.player.progression?.achievements ?? [];
   for (const x of s.player.progression?.xpLog ?? []) {
     if (x.turn !== turn) continue;
     if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId ? getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId : 'bonus level'})`); continue; }
-    const [kind, id] = x.source.split(/:(.*)/);
-    const what = kind === 'defeat' ? name(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
-    out.push(`+${num(x.amount)} XP (${what})`);
+    out.push(`+${num(x.amount)} XP (${xpSourceWords(s, x)})`);
   }
   // H11: healing; the look is the designer's (plain text for now)
   for (const l of s.log) {
