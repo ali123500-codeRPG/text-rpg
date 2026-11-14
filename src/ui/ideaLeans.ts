@@ -3,7 +3,7 @@ import { PA, VL } from '../library/tableIds';
 import type { Personality } from '../types';
 
 /** what an idea is, as a stable key: the Ideas panel orders by these and never by its wording */
-export const IDEA_KINDS = ['attack', 'steady', 'yield', 'flee', 'hide', 'sneak', 'vanish', 'talk', 'go', 'go_new', 'stow', 'draw',
+export const IDEA_KINDS = ['attack', 'steady', 'yield', 'flee', 'sneak', 'vanish', 'talk', 'go', 'go_new', 'stow', 'draw',
   'pick_up', 'summon', 'look', 'search', 'perk'] as const;
 export type IdeaKind = (typeof IDEA_KINDS)[number];
 export const IDEA_GROUPS = ['getaway', 'fight', 'talk', 'move', 'stealth', 'use', 'perks'] as const;
@@ -24,7 +24,6 @@ export const IDEA_PULLS: Partial<Record<IdeaKind | IdeaGroup, Pull[]>> = {
   move: [{ on: PA.curiosity, w: 1 }, { on: VL.adventure, w: 1 }],
   go_new: [{ on: PA.curiosity, w: 1 }, { on: VL.adventure, w: 1 }],
   stealth: [{ on: 'nerve', w: -1 }],
-  hide: [{ on: 'nerve', w: -1 }],
   sneak: [{ on: 'nerve', w: -1 }],
   vanish: [{ on: 'nerve', w: -1 }],
   pick_up: [{ on: VL.wealth, w: 1 }],

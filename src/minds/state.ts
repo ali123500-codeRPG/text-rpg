@@ -213,13 +213,13 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
 export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? SK.combat_stealth : SK.sneaking);
 
 type Sense = typeof FN.sight | typeof FN.hearing;
-/** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; a Hide adds the hide
- * tag and ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
+/** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
+ * (a Vanish in place, or hiding from a search) adds the hide tag and ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
-function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, hide: boolean) {
+function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean) {
   const zone = zoneById(state, s.zone);
   const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {};
-  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}), ...hushed };
+  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, add: still ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */
 function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined) {
@@ -239,17 +239,17 @@ const pairKey = (s: Actor, a: Actor) => (s.kind === 'player' ? a.id : `${s.id}>$
  * like any other (NS3); NPCs contest each other too (NS5). Observer wins: aware. Tie: an unaware observer turns suspicious. A Vanish (a move) is contested
  * with Vanishing by everyone, those who see the actor included: one who loses it drops to suspicious at the zone the actor
  * left (ST15); for the rest it counts as a passed stealth check (ST16). A shot's target that loses still turns suspicious,
- * at the shooter's zone (ST19). Light and cover reach the rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); a hide
- * ignores leg wounds (ST10). With Unblinking, an observer who loses a Vanish must also lose a Sneaking or Combat Stealth
+ * at the shooter's zone (ST19). Light and cover reach the rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); a Vanish
+ * in place ignores leg wounds (ST10). With Unblinking, an observer who loses a Vanish must also lose a Sneaking or Combat Stealth
  * contest (ST23). */
 export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
   const s = actorById(state, event.actorId);
   if (!s) return;
-  const hide = event.kind === 'hide';
+  const still = event.kind === 'vanish'; // a Vanish in place; a Vanish by a link is a move
   const vanish = !!event.vanish;
   const zone = zoneById(state, s.zone);
   const skill = vanish ? SK.vanishing : stealthSkill(s, event);
-  const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, hide);
+  const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, still);
   const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone);
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const done = contestedThisTurn(state);
@@ -259,7 +259,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a) || done.ids.includes(key)) continue;
     const cur = beliefStatus(state, a, s);
     const sees = atLeast(cur, 'aware');
-    if (sees && !vanish) continue; // ST12: Hide and Sneak never shake off someone who sees you
+    if (sees && !vanish) continue; // ST12: Sneak never shakes off someone who sees you
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
     const sense = seen.cue === 'sound' ? FN.hearing : FN.sight;

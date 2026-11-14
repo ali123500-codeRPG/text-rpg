@@ -78,7 +78,7 @@ describe('127 20 perks for the new skills', () => {
       const i = intent({ action: { type: 'vanish' } });
       const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
       const ev = play(s, { intent: i });
-      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'hide' && e.vanish), zone: s.player.zone };
+      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish), zone: s.player.zone };
     };
     expect(run(false).legal).toContain('action.vanish');
     expect(run(false).vanished).toBe(false);

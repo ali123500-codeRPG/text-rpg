@@ -101,7 +101,7 @@ describe('118 40/80/120 perks', () => {
 });
 
 describe('118 darkness and hearing (P14)', () => {
-  it('darkness helps a hide against a watcher but not against a listener', () => {
+  it('darkness helps a sneak against a watcher but not against a listener', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_cellar');
     place(s, 'trader', 'tav_cellar');
@@ -109,7 +109,7 @@ describe('118 darkness and hearing (P14)', () => {
     const real = ruleset.contested;
     vi.spyOn(ruleset, 'contested').mockImplementation((a, b, st, rng) => { calls.push([a, b]); return { ...real(a, b, st, rng), gap: -1 } as ContestResult; });
     const i: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-      action: { type: 'hide', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } };
+      action: { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } };
     s.turn += 1;
     resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
     const [mine, theirs] = calls.find(([, b]) => b.actorId === 'trader')!;

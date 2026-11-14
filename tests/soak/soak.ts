@@ -43,7 +43,7 @@ export function randomIntent(v: PlayerView, r: Rng): Intent {
     () => base({ action: act('give', { target: who, item: pick(r, own)?.id ?? null, qty: 1 }) }),
     () => base({ action: act('buy', { target: seller?.id ?? null, item: seller ? pick(r, seller.wares!)?.id ?? null : null }) }),
     () => base({ action: act('open', { target: box?.id ?? null }) }),
-    () => base({ action: act(pick(r, ['search', 'hide', 'sneak', 'rest'] as const)!) }),
+    () => base({ action: act(pick(r, ['search', 'sneak', 'rest'] as const)!) }),
     () => base({ move: { toZone: pick(r, ways) ?? v.zone.id }, action: act('attack', { target: who, skill }) }),
     // every Parser action (new ones too), on someone, something or a way out, with an item of one's own
     () => base({ action: act(pick(r, [...PARSER_ACTIONS])!, { target: pick(r, [who, box?.id ?? null, pick(r, ways) ?? null]) ?? null, item: pick(r, own)?.id ?? null, skill, targetPart: pick(r, [null, 'head', 'left_arm', 'right_leg']) ?? null }), spoken: pick(r, [null, pick(r, LINES)!]) ?? null }),

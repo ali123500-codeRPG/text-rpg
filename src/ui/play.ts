@@ -195,7 +195,7 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
   const groups: { group: string; key: IdeaGroup; items: { text: string; note?: string; kind?: IdeaKind }[]; all?: true }[] = [
     // MB12/BF37: with a broken nerve no walk and no attack can come (fleeing too, for now): you cower, and words still work
     broken ? { group: 'Your nerve is broken · you cower', key: 'getaway', items: [{ text: 'Yield', note: 'ends the fight if they take it', kind: 'yield' },
-      { text: 'Hide', note: 'your action', kind: 'hide' }], all: true }
+      { text: 'Sneak', note: 'free', kind: 'sneak' }], all: true }
       : { group: 'Fight', key: 'fight', items: [...people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health), kind: 'attack' as const })),
         // SY1: in a fight, above Broken and not within its cooldown: one morale roll as your action
         ...(canSteady ? [{ text: 'Steady yourself', note: 'your action · a morale roll', kind: 'steady' as const }] : [])], all: true },
@@ -210,11 +210,11 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
         // TF19: a surrender asks more than a stand-down, and counts as beating them
         ...(a.demandYield ? [{ text: `Demand ${names[i]} surrender`, note: 'your action · Persuasion; needs a bigger win; easier once they are hurt, scared, broken or crippled', kind: 'talk' as const }] : [])])], all: true },
     { group: 'Move', key: 'move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined, kind: l.frontier ? 'go_new' as const : 'go' as const })) },
-    // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
+    // ST3: sneaking is free; ST13: a Vanish slips away by a link, out of sight of those who see you
     { group: 'Stealth', key: 'stealth', items: [
       ...(pv.player.posture === 'stealthy'
-        ? [{ text: 'Hide', note: 'your action', kind: 'hide' as const }, ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Sneak ${l.label}`, kind: 'sneak' as const }))]
-        : [{ text: 'Sneak', note: 'free', kind: 'sneak' as const }, { text: 'Hide', note: 'your action', kind: 'hide' as const }]),
+        ? pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Sneak ${l.label}`, kind: 'sneak' as const }))
+        : [{ text: 'Sneak', note: 'free', kind: 'sneak' as const }]),
       ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Vanish ${l.label}`, note: 'breaks sight', kind: 'vanish' as const }))] },
     { group: 'Use', key: 'use', items: [
       // BF34: something held out to you is yours once you take it
@@ -311,7 +311,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const helpPanel = h('div', { class: 'helps', hidden: true });
   // MB12/BF37: while the player's nerve is broken, Yield comes forward and Aim steps back (no attack can come); no Flee, for now
   const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
-  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.hide, st.vanish, lootBtn, healBtn));
+  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.vanish, lootBtn, healBtn));
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the chips
   let doingHtml = '';
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, doingSlot, tools);

@@ -63,7 +63,7 @@ describe('BG-231: wait until someone appears', () => {
     expect(stopped(s)?.by ?? []).not.toContain('patron_1');
     expect(now(s) - t).toBeGreaterThan(1);
   });
-  it('the Parser may name "someone" as a wait\'s target; its rules send watching with no end there, not to Hide', () => {
+  it('the Parser may name "someone" as a wait\'s target; its rules send watching with no end there, not to Sneak', () => {
     const s = alone();
     const pv = buildPlayerView(s);
     const leg = checkParserLegality(waitFor('someone'), pv);

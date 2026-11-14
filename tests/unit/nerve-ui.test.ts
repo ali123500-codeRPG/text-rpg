@@ -26,7 +26,7 @@ describe('morale stakes and a broken nerve on the play screen', () => {
     const out = ideas(pv, true);
     expect(out.some((g) => g.group === 'Fight')).toBe(false);
     const away = out.find((g) => g.group.startsWith('Your nerve is broken'))!;
-    expect(away.items.map((i) => i.text)).toEqual(['Yield', 'Hide']);
+    expect(away.items.map((i) => i.text)).toEqual(['Yield', 'Sneak']);
     expect(away.items.some((i) => /^Attack /.test(i.text))).toBe(false);
   });
 });
