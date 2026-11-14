@@ -1,6 +1,7 @@
 // Wires W6's ScenarioDirector (scenario setup, stage extension) into the pipeline's ScenarioDirector surface,
 // with the real Agent Weaver. Each Weaver call is one agent-log entry, so replay can feed the outputs back in order.
 import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, StagePlan, WindowAnswer } from '../types';
+import type { PlanError } from '../scenario';
 import { ScenarioDirector as Director } from '../scenario/director';
 import { openingEvents } from '../scenario';
 import { applyCheckinPlan, checkinPlanErrors } from '../scenario/checkin';
@@ -8,15 +9,18 @@ import type { AgentCtx } from './call';
 import type { ScenarioDirector } from './game';
 import { runAgent } from './call';
 import { FIXED } from './prompts';
-import { checkCheckin, checkRegionBrief, checkStagePlan, checkWindow } from './schema';
+import { checkCheckin, checkRegionBrief, checkStagePlan, checkWorldPlan, checkWindow } from './schema';
 import { applyCheckin } from '../engine/scenarioEnd';
 import { applyWindow } from '../engine/chase';
-import { formatWeaverView } from './format';
+import { formatWeaverView, formatWorldView } from './format';
 import { computePerception } from '../perception';
 
 /** V11 switch: send the rejected plan back with the repair (set by the V11 test) */
 export let REPAIR_WITH_PLAN = true;
 export function setRepairWithPlan(on: boolean): void { REPAIR_WITH_PLAN = on; }
+/** the validator's errors for a repair call, with the rejected plan (V11) */
+const repairNote = (errors?: PlanError[], rejected?: StagePlan) => (errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.filter((e) => !e.repaired).map((e) => `- ${e.code}: ${e.message}`).join('\n')}` +
+  (REPAIR_WITH_PLAN && rejected ? `\n\nREJECTED_PLAN:\n${JSON.stringify(rejected)}\n\nReturn the whole plan again with only these errors fixed; keep everything else as it is.` : '') : '');
 export function createDirector(clock: Clock): ScenarioDirector {
   let ctx: AgentCtx | null = null; // the context of the turn that owns the next Weaver call
   const ctxOf = new WeakMap<object, AgentCtx>();
@@ -33,19 +37,26 @@ export function createDirector(clock: Clock): ScenarioDirector {
       // a plan that failed validation went outside the options it was given (catalogs, scales, ids): a numbered bug,
       // even when the repair call fixes it
       if (errors?.length) own.reportBug?.('weaver_off_catalog', { errors: errors.filter((e) => !e.repaired).map((e) => ({ code: e.code, message: e.message })) });
-      const note = errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.filter((e) => !e.repaired).map((e) => `- ${e.code}: ${e.message}`).join('\n')}` +
-        (REPAIR_WITH_PLAN && rejected ? `\n\nREJECTED_PLAN:\n${JSON.stringify(rejected)}\n\nReturn the whole plan again with only these errors fixed; keep everything else as it is.` : '') : '';
-      const run = await runAgent<StagePlan>(own, { agent: 'weaver', fixed: FIXED.weaver, data: formatWeaverView(view) + note, schema: checkStagePlan });
+      const run = await runAgent<StagePlan>(own, { agent: 'weaver', fixed: FIXED.weaver, data: formatWeaverView(view) + repairNote(errors, rejected), schema: checkStagePlan });
       // SC7: an ending code cannot check is numbered as a bug, so we can look at making it checkable
       const judged = Array.isArray(run.value?.scenario?.endings) ? run.value!.scenario!.endings.filter((e) => e?.when?.kind === 'judged') : [];
       if (judged.length && !errors?.length) own.reportBug?.('scenario_ending_judged', { question: run.value!.scenario!.question, endings: judged.map((e) => ({ as: e.as, text: e.text })) });
       return run.value;
     },
-    // WZ2: the region brief, once per region, logged under the turn that needed the land
+    // WB1: the World builder builds the ground beyond a frontier, with no tier; repairs as for the Weaver
+    build: async (view, errors, rejected) => {
+      const own = ctxOf.get(view) ?? ctx;
+      if (!own) return null;
+      ctxOf.set(view, own);
+      if (errors?.length) own.reportBug?.('weaver_off_catalog', { agent: 'world', errors: errors.filter((e) => !e.repaired).map((e) => ({ code: e.code, message: e.message })) });
+      const run = await runAgent<StagePlan>(own, { agent: 'world', fixed: FIXED.world, data: formatWorldView(view) + repairNote(errors, rejected), schema: checkWorldPlan });
+      return run.value;
+    },
+    // WZ2/WB8: the region brief, the World builder's first call, once per region, logged under the turn that needed the land
     region: async (view) => {
       const own = ctx;
       if (!own) return null;
-      const run = await runAgent<Record<string, unknown>>(own, { agent: 'weaver', fixed: FIXED.region, data: `REGION_VIEW:\n${JSON.stringify(view)}`, schema: checkRegionBrief });
+      const run = await runAgent<Record<string, unknown>>(own, { agent: 'world', fixed: FIXED.region, data: `REGION_VIEW:\n${JSON.stringify(view)}`, schema: checkRegionBrief });
       return run.value;
     },
     // SC8: a background check-in, logged under the turn whose save started it

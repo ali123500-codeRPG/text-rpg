@@ -5,7 +5,7 @@ import type { DefenseKind } from './actor';
 import type { TimeOfDay } from '../scales';
 import type { Plan, Secret, Trigger } from './hidden';
 
-export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver' | 'autopilot';
+export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver' | 'world' | 'autopilot';
 
 export type Volume = 'whisper' | 'normal' | 'shout';
 /** every action the Parser can give (schema and completeness tests read this list) */
@@ -183,7 +183,8 @@ export type StagePlan = {
     furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
     links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];
   }[];
-  frontiers: { key: string; label: string }[];
+  /** brief (WB3): one short line for the World builder on what lies beyond */
+  frontiers: { key: string; label: string; brief?: string }[];
   bands: {
     key: string; name: string; goals: string; temperament: string;
     tactics: Tactics; lethal: boolean; relations: Record<string, Stance>;

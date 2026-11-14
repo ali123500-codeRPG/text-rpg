@@ -1,6 +1,6 @@
 // Per-turn data (the second user turn) for each agent. Built only from the view handed in, never from GameState.
 import { TACTICS } from '../scales';
-import type { DialogueInput, DialogueView, NarrationView, OppositionView, PlayerView, WeaverView } from '../types';
+import type { DialogueInput, DialogueView, NarrationView, OppositionView, PlayerView, WeaverView, WorldView } from '../types';
 
 const block = (name: string, v: unknown) => `${name}:\n${typeof v === 'string' ? v : JSON.stringify(v)}`;
 const join = (...parts: string[]) => parts.join('\n\n');
@@ -59,4 +59,9 @@ export function formatNarrationView(view: NarrationView): string {
 export function formatWeaverView(view: WeaverView): string {
   const { catalogs, ...rest } = view;
   return join(block('CATALOGS', catalogs), block('WEAVER_VIEW', rest));
+}
+/** WB1: the World builder's view, catalogs first as for the Weaver */
+export function formatWorldView(view: WorldView): string {
+  const { catalogs, ...rest } = view;
+  return join(block('CATALOGS', catalogs), block('WORLD_VIEW', rest));
 }
