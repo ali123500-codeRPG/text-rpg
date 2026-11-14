@@ -8,7 +8,7 @@ import { SK } from '../../src/library/skillIds';
 import { ES } from '../../src/library/essenceIds';
 import { ACH } from '../../src/library/achievementIds';
 import { trueSkill } from '../../src/ruleset/perks';
-import { essenceSlots, expireOffers, offerAtEnding, qualityRoll, offersFromDefeats, passEssence, removeEssence, takeEssence } from '../../src/engine/essence';
+import { essenceSlots, expireOffers, notable, offerAtEnding, qualityRoll, offersFromDefeats, passEssence, removeEssence, takeEssence } from '../../src/engine/essence';
 import { frameOf } from '../../src/engine/scenarioEnd';
 import { xpToNext } from '../../src/engine/xp';
 import { now } from '../../src/time';
@@ -107,9 +107,9 @@ describe('207 essences', () => {
 
   it('appearance and quality are separate rolls: no appearance, nothing; an essence that appears and fails its quality roll fades', () => {
     const s = makeVillage(), foe = slime(s);
-    foe.core.generation = 'rolled';
+    expect(notable(s, foe)).toBe(false); // D-274: a mob's essence appears only at ESSENCE_APPEAR_CHANCE.mob
     const codes = () => s.log.filter((l) => l.code.startsWith('essence_')).map((l) => l.code);
-    offersFromDefeats(s, [foe], dice(CONFIG.ESSENCE_APPEAR_CHANCE.foe + 1, 100)); // the appearance roll misses
+    offersFromDefeats(s, [foe], dice(CONFIG.ESSENCE_APPEAR_CHANCE.mob + 1, 100)); // the appearance roll misses
     expect(offers(s)).toHaveLength(0);
     expect(codes()).toEqual([]);
     const other = makeVillage(), foe2 = slime(other);

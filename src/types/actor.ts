@@ -122,7 +122,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link' | 'item'; // 'item': granted by a worn Threadbound item (D-218) // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
+  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link' | 'item' | 'essence'; // 'essence': a held essence's trait or quirk (D-229), once however many carry it (FP8) // 'item': granted by a worn Threadbound item (D-218) // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
