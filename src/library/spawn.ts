@@ -15,6 +15,7 @@ import { SK, DEFENSE_SKILL } from './skillIds';
 import { skillName } from './skillNames';
 import { CL } from './classIds';
 import { IT } from './itemIds';
+import { perkPointsUpTo } from '../ruleset/levels';
 
 /** a fixed seed per template id, so every copy of a template spends its level points the same way */
 const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
@@ -159,7 +160,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     // GAP: rolled NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'rolled' ? { progression: {
       startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
-      potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: Math.floor(t.level / 2), marks: [],
+      potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(t.level), marks: [],
     } } : {}),
     mind: {
       control: t.control,
@@ -361,7 +362,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),
-      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: Math.floor(startLevel(build.classId) / 2), marks: [], // a perk point per even level passed (xp.ts)
+      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(startLevel(build.classId)), marks: [],
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };

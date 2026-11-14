@@ -363,11 +363,11 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
   log(state, 'search_items', { actorId: a.id, tier: r.tier, hidden: hidden.length, found: found.length });
   return { r, found, hint: !found.length && hidden.some((i) => tierLevel(r) === tierLevel(i.hiddenAt!)) };
 }
-/** SE11: someone who can't stop hands going through their things: down, dead, asleep, yielded, or held by `a` */
-export const openToHands = (state: GameState, a: Actor, t: Actor): boolean => !isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id
+/** SE11: someone who can't stop a grip going through their things: down, dead, asleep, yielded, or held by `a` */
+export const openToGrip = (state: GameState, a: Actor, t: Actor): boolean => !isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id
   || (t.letsSearch?.by === a.id && t.letsSearch.until >= state.turn); // BF16: or they let `a` search them
-/** SE11: patting someone down needs their consent or force: within grip reach of someone open to hands (above) */
-export const handsOn = (state: GameState, a: Actor, t: Actor): boolean => withinGrip(state, a, t) && openToHands(state, a, t);
+/** SE11: patting someone down needs their consent or force: within grip reach of someone open to a grip (above) */
+export const gripOn = (state: GameState, a: Actor, t: Actor): boolean => withinGrip(state, a, t) && openToGrip(state, a, t);
 /** BF16: letting someone search you hands-on, this turn and the next */
 export function letSearch(state: GameState, a: Actor, by: string | null | undefined): void {
   if (by && by !== a.id && actorById(state, by)) a.letsSearch = { by, until: state.turn + 1 };
@@ -392,7 +392,7 @@ export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { 
   // BG-178: what one found before and is still there is found again; only new finds need hands on or a roll
   const hiddenGear = (i: ItemInstance) => !!i.equippedIn?.length && !!itemDef(state, i.itemId).hiddenAt;
   const again = t.core.inventory.filter((i) => known.includes(`item:${i.id}`) && (hiddenGear(i) || !i.equippedIn?.length));
-  if (handsOn(state, a, t)) found = unknown.filter((i) => itemDef(state, i.itemId).concealed || !i.equippedIn?.length);
+  if (gripOn(state, a, t)) found = unknown.filter((i) => itemDef(state, i.itemId).concealed || !i.equippedIn?.length);
   else {
     const hidden = unknown.filter(hiddenGear);
     const roll = hidden.length ? (r = sightRoll(state, a, zoneById(state, t.zone), rng)) : undefined;

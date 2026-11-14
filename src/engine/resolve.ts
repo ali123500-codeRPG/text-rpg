@@ -28,7 +28,7 @@ import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, handsOn, openToHands, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, blindSpotNow, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
@@ -50,7 +50,7 @@ import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName, r1 } from '../words';
 import { gutFeelings } from './hunches';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, speechSkill as speechSkillOf } from './speech';
 import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
@@ -597,7 +597,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   // BG-50: a speak with no words (a code-run beat, or a call that gave no line) carries no line at all, never an empty one
   const line = o.line?.text?.trim() ? o.line : undefined;
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, ...(line ? { line } : {}), noise: VOLUME_NOISE[line?.volume ?? 'normal'] });
-  if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? SK.persuasion, addressees: o.addressees ?? [] };
+  if (a.kind === 'player') ev.speech = { skill: speechSkillOf(o.type), addressees: o.addressees ?? [] };
   // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers.
   // NL1/NL2: a lie at another NPC rolls the same way (D-155: other speech at NPCs stays banked)
   const p = state.player;
@@ -1218,7 +1218,7 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push({ kind: 'found_secret', actorId: t!.id, data: { by: a.id, secrets: secrets.found } });
   }
   // BG-142: a search always ends in an outcome; nothing found reads the same whether nothing was there or it was missed (SE6)
-  if (!ev.effects.length && !tied) ev.effects.push({ kind: 'found_nothing', actorId: t?.id ?? a.id, data: { by: a.id, ...(t ? { on: true, held: handsOn(state, a, t) } : {}) } });
+  if (!ev.effects.length && !tied) ev.effects.push({ kind: 'found_nothing', actorId: t?.id ?? a.id, data: { by: a.id, ...(t ? { on: true, held: gripOn(state, a, t) } : {}) } });
   emit(ctx, ev);
 }
 
@@ -1805,7 +1805,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
-  if (o.type === 'search' && t && t !== a && openToHands(state, a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
+  if (o.type === 'search' && t && t !== a && openToGrip(state, a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
   if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);

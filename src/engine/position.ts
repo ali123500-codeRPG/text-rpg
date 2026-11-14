@@ -9,7 +9,7 @@ import { compassOf, doorway, edgeToward } from '../scenario/geometry';
 import { furnitureById, furniturePos } from './furniture';
 import { heightOf } from '../scenario/heights';
 import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
-import { barrierOn, handsPass, passage, type Passage } from './barriers';
+import { barrierOn, gripPasses, passage, type Passage } from './barriers';
 import { gripReachM } from '../ruleset/body';
 import type { Actor, Barrier, GameState, MoveSpot, Zone } from '../types';
 
@@ -37,7 +37,7 @@ export function spotOf(state: GameState, a: Located): Located {
 /** ZR8: the point where it stands (spotOf); a zone without a rectangle has none, and that is a bug, never a zone link */
 function pointOf(state: GameState, a: Located): Pos {
   const p = spotOf(state, a).pos;
-  if (!p) throw new Error(`zone ${a.zone} has no rectangle: distances are metres between points`);
+  if (!p) throw noRect({ id: a.zone });
   return p;
 }
 
@@ -86,10 +86,14 @@ function crossing(a: Zone, b: Zone): { out: Pos; at: Pos } {
 
 /** the walking route from A to B: the zones after A, each with the points where the walk leaves the zone before and enters
  * it (none without rectangles) */
-function route(state: GameState, A: Located, B: Located, walker?: Actor): { zone: Zone; at?: Pos; out?: Pos }[] | null {
+function route(state: GameState, A: Located, B: Located, walker?: Actor): Leg[] | null {
   const path = walker ? wayPath(state, A.zone, B.zone, walker) : shortestPath(state, A.zone, B.zone);
-  if (!path) return null;
-  let prev = zoneById(state, A.zone)!;
+  return path ? legs(state, A.zone, path) : null;
+}
+type Leg = { zone: Zone; at?: Pos; out?: Pos };
+/** a path's zones (the ids after `from`), each with where the walk leaves the zone before and enters it */
+function legs(state: GameState, from: string, path: string[]): Leg[] {
+  let prev = zoneById(state, from)!;
   return path.map((id) => {
     const z = zoneById(state, id)!;
     const c = prev.rect && z.rect ? crossing(prev, z) : undefined;
@@ -97,6 +101,8 @@ function route(state: GameState, A: Located, B: Located, walker?: Actor): { zone
     return { zone: z, ...(c ? { at: c.at, out: c.out } : {}) };
   });
 }
+/** ZR8: a zone without a rectangle is a world-building bug */
+const noRect = (z: { id: string }) => new Error(`zone ${z.id} has no rectangle: distances are metres between points`);
 
 /** metres between two people with sight between their zones (the same zone, or a path of sight links): the straight
  * line; Infinity without sight. What an attack reaches across (a blow or a shot never goes round a wall). */
@@ -132,15 +138,9 @@ export function distOrNull(state: GameState, a: Located, b: Located): number | n
 export function pathM(state: GameState, a: Located, b: Located, path: string[]): number {
   const A = pointOf(state, a), B = pointOf(state, b);
   if (!path.length) return flat(A, B);
-  let prev = zoneById(state, a.zone)!;
-  const r = path.map((id) => {
-    const z = zoneById(state, id)!;
-    const c = prev.rect && z.rect ? crossing(prev, z) : undefined;
-    prev = z;
-    return { zone: z, ...(c ? { at: c.at, out: c.out } : {}) };
-  });
+  const r = legs(state, a.zone, path);
   const gap = r.find((s) => !s.at);
-  if (gap) throw new Error(`zone ${gap.zone.id} has no rectangle: distances are metres between points`);
+  if (gap) throw noRect(gap.zone);
   let m = 0, cur = A, h = heightOf(zoneById(state, a.zone));
   for (const s of r) { m += flat(cur, s.out!) + Math.abs(heightOf(s.zone) - h); cur = s.at!; h = heightOf(s.zone); }
   return m + flat(cur, B);
@@ -181,7 +181,7 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   const r = route(state, A, goal, walker);
   if (!r?.length) return null;
   const next = r[0];
-  if (!next.at) throw new Error(`zone ${next.zone.id} has no rectangle: distances are metres between points`);
+  if (!next.at) throw noRect(next.zone);
   const enter = (at: Pos) => {
     a.zone = next.zone.id;
     a.placeId = next.zone.placeId;
@@ -243,11 +243,6 @@ export function frontierPoint(z: Zone, label: string, from: Pos): Pos {
   return ends.sort((p, q) => Math.hypot(q.x - from.x, q.y - from.y) - Math.hypot(p.x - from.x, p.y - from.y))[0];
 }
 
-/** BG-12: the point a move spot names in zone `zoneId`, as seen from `from`: beside someone there (`near` an actor:
- * stopShort keeps PLACE_GAP_M from them) or at a way out (`near` a link's zone: its doorway, a frontier's side); the far
- * edge straight across from someone or a way out (`awayFrom`); or the middle of the side a compass word names (`side`).
- * Points stand ENTER_M (a step) inside the edge. null: the zone has no rectangle, or the spot names nothing there. `toward` is the
- * actor walked to; `words` says the spot for the story ("to the north side", "away from the cellar steps"). */
 /** BG-81: a spot's words (said as reached: "at the gate", "away from the door", "on the north side") for a walk that
  * stopped before it: "toward the gate", "heading away from the door", "toward the north side" */
 export function spotOnTheWay(words: string): string {
@@ -263,6 +258,11 @@ export function wayPoint(state: GameState, zoneId: string, to: string, from: Loc
   return there?.rect ? crossing(z, there).out : frontierPoint(z, link.label, spotOf(state, from).pos ?? centre(z)!); // BG-153: where the walk leaves, as route() has it
 }
 
+/** BG-12: the point a move spot names in zone `zoneId`, as seen from `from`: beside someone there (`near` an actor:
+ * stopShort keeps PLACE_GAP_M from them) or at a way out (`near` a link's zone: its doorway, a frontier's side); the far
+ * edge straight across from someone or a way out (`awayFrom`); or the middle of the side a compass word names (`side`).
+ * Points stand ENTER_M (a step) inside the edge. null: the zone has no rectangle, or the spot names nothing there. `toward` is the
+ * actor walked to; `words` says the spot for the story ("to the north side", "away from the cellar steps"). */
 export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {
   const z = zoneById(state, zoneId);
   if (!z?.rect) return null;
@@ -315,15 +315,15 @@ export function gateAhead(state: GameState, a: Actor, goal: string): { b: Barrie
 /** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */
 export function withinGrip(state: GameState, actor: Actor, at: Located, extra = 0): boolean {
   const r = gripReachM(state, actor);
-  return r > 0 && withinM(distM(state, actor, at), r + extra) && handsReach(state, actor.zone, at.zone);
+  return r > 0 && withinM(distM(state, actor, at), r + extra) && gripReaches(state, actor.zone, at.zone);
 }
-/** BF12: hands reach from zone a into zone b: the same zone, or every way between them lets hands through (handsPass) */
-function handsReach(state: GameState, a: string, b: string): boolean {
+/** BF12: a grip reaches from zone a into zone b: the same zone, or every way between them lets a grip through (gripPasses) */
+function gripReaches(state: GameState, a: string, b: string): boolean {
   if (a === b) return true;
   const path = shortestPath(state, a, b);
   let from = a;
   for (const z of path ?? []) {
-    if (!handsPass(barrierOn(state, zoneById(state, from)?.links.find((l) => l.to === z)))) return false;
+    if (!gripPasses(barrierOn(state, zoneById(state, from)?.links.find((l) => l.to === z)))) return false;
     from = z;
   }
   return true;
