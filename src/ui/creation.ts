@@ -16,7 +16,7 @@ import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
 import { SK } from '../library/skillIds';
 import { ST } from '../library/startIds';
-import { BLESSING_TIERS, CLASS_TIERS } from '../scales';
+import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
 export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.stamina]: 'sets stamina', [SK.riposte]: 'adds to Parry', [SK.blade_dance]: 'adds to Dodge' };
@@ -49,9 +49,10 @@ function startFacts(startId: string): { tier: string; classes: string[]; perks: 
   const classes = b && !s.classId ? blessingGods(b.tier).map(blessedClass).filter((c): c is string => !!c) : [startGives(startId).classId].filter((c): c is string => !!c);
   const perks = classes.length === 1 ? [...Object.values(lib.classes[classes[0]]?.levelPerks ?? {}).flat(), ...(lib.classes[classes[0]]?.capstone ?? [])].map((p) => lib.perks[p]?.name ?? p) : [];
   return {
-    tier: b ? `${BLESSING_TIERS.name(b.tier)} blessing` : classes[0] ? CLASS_TIERS.name(lib.classes[classes[0]].tier) : classlessStart(startId) ? 'no class' : '',
-    classes, perks: b ? [`a random god’s ${BLESSING_TIERS.name(b.tier)} blessing`, ...perks] : perks,
-    blocked: b && !blessingGods(b.tier).length ? `no god gives a ${BLESSING_TIERS.name(b.tier)} blessing yet.` : '',
+    // the card shows the class tier for every start; a blessing's tier is a game-side number and stays off the screen
+    tier: classes[0] ? CLASS_TIERS.name(lib.classes[classes[0]].tier) : classlessStart(startId) ? 'no class' : '',
+    classes, perks: b ? ['a random god’s blessing', ...perks] : perks,
+    blocked: b && !blessingGods(b.tier).length ? 'no god gives this blessing yet.' : '',
   };
 }
 
