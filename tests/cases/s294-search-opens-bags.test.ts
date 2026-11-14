@@ -5,6 +5,7 @@ import { expect, it } from 'vitest';
 import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
+import { buildNarrationView } from '../../src/views';
 
 const downedWithSack = (locked = false) => {
   const s = makeVillage({ playerZone: 'field_mid', without: ['slime_2', 'guard_1', 'trader', 'patron_1'] });
@@ -27,7 +28,8 @@ it('a hands-on search finds what is inside the bags a downed man carries, and th
 
 it('a locked bag keeps what it holds shut', () => {
   const { s, t } = downedWithSack(true);
-  play(s, { intent: intent({ action: { type: 'search', target: t.id } }) });
+  const ev = play(s, { intent: intent({ action: { type: 'search', target: t.id } }) });
   expect(s.player.journal!.revealed).toContain('item:sack_1');
+  expect(buildNarrationView(s, ev).events.flatMap((e) => e.changes ?? []).join(' ')).toMatch(/sack \(locked\)/i); // named as locked
   expect(s.player.journal!.revealed).not.toContain('item:charm_1');
 });

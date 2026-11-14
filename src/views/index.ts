@@ -328,7 +328,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     const by = f.data.by ? callName(state, viewerId, String(f.data.by)) : '';
     if (f.kind === 'found') out.push(`${by} finds ${who} hiding`); // SE3: a search won
     if (f.kind === 'found_items') { // SE8/SE11
-      const names = (f.data.items as string[]).map((id) => itemName(state, id) ?? 'something').join(', ');
+      // BF29: a locked bag found on someone is named as locked: what it holds stays shut
+      const names = (f.data.items as string[]).map((id) => `${itemName(state, id) ?? 'something'}${findContainer(state, id)?.inst.lock?.locked ? ' (locked)' : ''}`).join(', ');
       out.push(f.data.on ? `${by} finds ${names} on ${who}, left there for now` : `${who} finds ${names} hidden here, left there for now`); // BG-178: found is not taken
     }
     if (f.kind === 'found_nothing') out.push(!f.data.on ? `${by} finds nothing here` : f.data.held ? `${by} finds nothing on ${who}` : `${by} sees nothing on ${who}; going through their things needs a hold on them or their leave`); // BG-142, BF16
