@@ -25,14 +25,11 @@ const trackRow = (a: Actor) => { const pct = debtPct(a) + 1e-9; return [...CONFI
 export const fatigueLevel = (a: Actor): FatigueLevel => trackRow(a)[0];
 /** FT19/FT22: the short line holds the level's band of the bar (× Deep Lungs, SS4) */
 export const lineMax = (a: Actor): number => (barMax(a) * trackRow(a)[3] * (hasPerk(a, PK.deep_lungs) ? CONFIG.DEEP_LUNGS_LINE : 1)) / 100;
-/** SS14: the owner's perks' sleepNeed or sleepClear multipliers, stacked by the same-type rule on their distance from ×1 */
+/** SS14, RN5 c: the owner's perks' sleepNeed or sleepClear multipliers, multiplied together in full, as the spot, armour and
+ * body type multipliers combine (Insomniac ×0.75 with Short Sleeper ×1.33 is ×0.9975) */
 export function perkSleepMult(a: Actor, field: 'sleepNeed' | 'sleepClear'): number {
   const perks = getLibrary().perks;
-  const ms = a.core.perks.filter((p) => !p.dormant).map((p) => (perks[p.perkId] as PerkDef | undefined)?.[field]).filter((m): m is number => m !== undefined);
-  // the same-type rule (stackType in src/ruleset/index.ts, not imported: that index re-exports this file), on each one's distance from ×1
-  const part = (xs: number[]) => xs.reduce((n, x, i) => n + x * CONFIG.STACK_RATIO ** i, 0);
-  const d = ms.map((m) => m - 1);
-  return Math.max(0, 1 + part(d.filter((x) => x > 0).sort((x, y) => y - x)) + part(d.filter((x) => x < 0).sort((x, y) => x - y)));
+  return a.core.perks.filter((p) => !p.dormant).reduce((m, p) => m * ((perks[p.perkId] as PerkDef | undefined)?.[field] ?? 1), 1);
 }
 /** SS3: the tier a run (a dash) pays: Forced March makes it Moderate */
 export const runEffort = (a: Actor) => (hasPerk(a, PK.forced_march) ? CONFIG.FORCED_MARCH_RUN_EFFORT : CONFIG.RUN_EFFORT);

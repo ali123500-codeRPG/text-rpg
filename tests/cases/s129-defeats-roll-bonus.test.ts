@@ -1,4 +1,6 @@
 // 129 D-119: total-defeats achievements add +1 per tier (I = +1, II = +2, III = +3) to every attack and
+import { CONFIG } from '../../src/config';
+import { stackWeight } from '../../src/ruleset/stacking';
 import { RC } from '../../src/library/raceIds';
 import { SK } from '../../src/library/skillIds';
 // defense roll. Only the highest earned level counts; it stacks with Bane bonuses as one modifier type.
@@ -42,10 +44,10 @@ describe('129 total-defeats roll bonus', () => {
     const look = ruleset.roll({ actorId: 'player', skill: SK.eyesight, modifiers: [], tierShifts: [], rollKind: 'perception' }, s, forcedRng([50]));
     expect(look.modifiers.filter((x) => x.type === 'achievement')).toEqual([]);
   });
-  it('stacks with a Bane bonus as one modifier type: the weaker counts at half', () => {
+  it('stacks with a Bane bonus as one modifier type: the weaker counts by the stacking rule', () => {
     const s = makeVillage();
     grantAchievement(s, ACH.defeats_10); // +1
     grantAchievement(s, ACH.first_defeat_race, RC.human); // +5 skill = +2.5 on the roll
-    expect(modTotal(fight(s).atk)).toBe(2.5 + 1 * 0.5);
+    expect(modTotal(fight(s).atk)).toBeCloseTo(2.5 + 1 * stackWeight(2, CONFIG.MOD_STACK_EXP));
   });
 });

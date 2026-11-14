@@ -9,6 +9,7 @@ import { PK } from './perkIds';
 import { CONFIG } from '../config';
 import { PA } from './tableIds';
 import { FN } from './functionIds';
+import { payoffShare } from '../ruleset/stacking';
 
 // numbers in the rules text come from config, so the text can't drift from the code
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
@@ -620,7 +621,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       conditions: ["The owner's short-term line is more than half full before the roll."],
       effect: `The roll adds ${CONFIG.OVERDRIVE_SHARE * 100}% of the owner's Stamina (the augment equation: true skill × CONFIG.OVERDRIVE_SHARE × Stamina's tier, placeholder) and costs ${CONFIG.OVERDRIVE_STRAIN} strain more (CONFIG.OVERDRIVE_STRAIN, with worn armour and Bottomless; it counts toward Stamina's marks like any strain).`,
       lasts: "Each roll, while the line stays above half." } },
-  // ---- Payoff perks that count pieces (CN1-CN7, D-260): one share per piece, each further piece at STACK_RATIO ----
+  // ---- Payoff perks that count pieces (CN1-CN7, D-260): PAYOFF_SHARE × pieces^PAYOFF_EXP (RN4) ----
   { id: PK.patient_knife, ref: "CN6", name: "Patient Knife", skill: SK.combat_stealth, place: "very_high",
     ladder: { skill: SK.combat_stealth, milestone: 100 }, effect: "attack",
     augments: [{ from: SK.combat_stealth, rollKinds: ["hit"], when: "from_hiding", payoff: "ambush" }],
@@ -628,7 +629,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on (augment)",
       trigger: "An attack roll the owner makes while stealthy.",
       conditions: ["Patient Knife is an ambush perk itself, so it always counts at least one piece (perks tagged ambush: src/library/perkThemes.ts)."],
-      effect: `Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is ${CONFIG.PAYOFF_SHARE * 100}% for the first ambush perk, and each further one adds half what the one before added (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders): 3 pieces (Patient Knife and two more) give 8.75%, and no count passes ${CONFIG.PAYOFF_SHARE * 200}%.`,
+      effect: `Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is ${CONFIG.PAYOFF_SHARE * 100}% × ambush pieces^${CONFIG.PAYOFF_EXP} (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): Patient Knife alone gives ${+(payoffShare(1) * 100).toFixed(1)}%, with two more ${+(payoffShare(3) * 100).toFixed(1)}%, with no ceiling.`,
       lasts: "Always." } },
   { id: PK.protagonist_mentality, ref: "CN7", name: "Protagonist Mentality", skill: SK.resolve, place: "very_high",
     ladder: { skill: SK.resolve, milestone: 140 }, effect: "speech",
@@ -637,7 +638,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on (augment)",
       trigger: "A Resolve roll by the owner.",
       conditions: ["The owner has at least one quirk."],
-      effect: `Resolve adds to its own rolls its true skill × the payoff share × its tier, the share counting quirks owned: ${CONFIG.PAYOFF_SHARE * 100}% for the first, each further one half the one before (CONFIG.PAYOFF_SHARE, STACK_RATIO, placeholders).`,
+      effect: `Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being ${CONFIG.PAYOFF_SHARE * 100}% × quirks owned^${CONFIG.PAYOFF_EXP} (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): ${+(payoffShare(1) * 100).toFixed(1)}% for one quirk, ${+(payoffShare(2) * 100).toFixed(1)}% for two.`,
       lasts: "Always.",
       open: "Placed on Resolve 140 because Overwhelm holds Resolve 100." } },
   { id: PK.short_sleeper, ref: "SS13", name: "Short Sleeper", skill: SK.stamina, place: "banked", bankedAs: "other",

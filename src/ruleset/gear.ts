@@ -183,8 +183,7 @@ export function augmentK(actor: Actor, g: AugmentEntry, from: string, to: string
 
 /** every augment entry the actor has toward `skill` (SkillDef.augments of every open skill, PerkDef.augments of owned
  * perks: All-50 Grit, essence traits), on a roll of this kind, each with its factor k on the giver's true skill.
- * Percentage augments on one skill stack: the largest in full, the next at STACK_RATIO, and so on (SY4); plain and
- * trade augments add in full, and different kinds never halve each other. Givers at 0 are listed (they can learn). */
+ * Every augment adds in full, percentage ones included (RN3 c). Givers at 0 are listed (they can learn). */
 function augmentRows(actor: Actor, skill: string, rollKind?: RollKind, when: AugmentWhen[] = []): { from: string; k: number; kind: AugmentKind; perk?: string }[] {
   const rows: { from: string; k: number; kind: AugmentKind; perk?: string }[] = [];
   for (const d of Object.values(getLibrary().skills)) for (const g of d.augments ?? []) {
@@ -200,8 +199,6 @@ function augmentRows(actor: Actor, skill: string, rollKind?: RollKind, when: Aug
       if (k || !g.payoff) rows.push({ from: g.from, k, kind: g.kind ?? 'plain', perk: def.name }); // a payoff with no pieces is no augment
     }
   }
-  const pct = rows.filter((r) => r.kind === 'percent').sort((a, b) => trueSkill(actor, b.from) * b.k - trueSkill(actor, a.from) * a.k);
-  pct.forEach((r, i) => { r.k *= CONFIG.STACK_RATIO ** i; });
   return rows;
 }
 

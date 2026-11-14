@@ -676,21 +676,22 @@ export function prototypeLibrary(): Library {
       [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: HL.clinic },
     },
     // growth proposal 2.2: essences. Placeholder rows for the engine; the content round (one table per race and body type,
-    // with traits) belongs to the lore and loot threads (D-228). EG11 b: the story may name the thread; never numbers.
+    // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition
+    // that sits on someone's Thread, never a strand of it, so stories say it came with you or sits beside you, never that it knots in.
     essences: {
       [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.unarmed_natural, weight: 2 }, { skill: SK.tremor, weight: 1 }], // EN5: slimes have no Endurance
-        story: 'A strand of the slime\'s slow patience knots into yours. Footsteps reach you through the floor before your ears catch them, and your body starts to feel like the weapon.' },
+        story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Footsteps reach you through the floor before your ears catch them, and your body starts to feel like the weapon.' },
       [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
-        story: 'You catch yourself turning a shoulder toward the door before you decide to, as if someone else\'s long watches were knotted into yours.' },
+        story: 'You catch yourself turning a shoulder toward the door before you decide to, as if you had brought someone else\'s long watches home with you.' },
       [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
       // EN6: placeholder rows so the barkeep and the tavern patron each carry one
       [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
-        story: 'A haggler\'s ear has knotted into yours. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
+        story: 'A haggler\'s ear sits beside your own now. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
       [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
-        story: 'Someone\'s long nights of tavern brawls have tied into your own. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
+        story: 'Someone\'s long nights of tavern brawls came along with you. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
       [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
-        story: 'What you did again and again here has pulled tight and held. Something in you will remember it.' },
+        story: 'What you did again and again here has grown on you like a callus. Something in you will remember it.' },
     },
     roles: { [RL.sense]: { name: 'sense', shared: true }, [RL.grip]: { name: 'grip', shared: false }, [RL.move]: { name: 'move', shared: true }, [RL.fly]: { name: 'fly', shared: true }, [RL.strike]: { name: 'strike', shared: false }, [RL.speech]: { name: 'speech', shared: true } },
     bodyTypes: BODY_TYPES,

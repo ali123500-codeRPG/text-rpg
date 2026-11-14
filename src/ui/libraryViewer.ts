@@ -12,6 +12,7 @@ import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { branchLabel, branchRoots, chainHead, chainRows, chainTag, isBareHead } from '../ruleset/achChains';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
+import { stackWeight } from '../ruleset/stacking';
 import { equations } from '../ruleset/equations';
 import { benefits, itemValue } from '../ruleset/value';
 import { fnSkills, kitBonus, modeName, modeReach, standInShare, standInTable } from '../ruleset/gear';
@@ -798,14 +799,14 @@ function standIns(): HTMLElement[] {
 // ---------- Stacking ----------
 const FEED_SEC: Record<string, string> = { perks: 'perks', items: 'gear', achievements: 'achievements' };
 function stacking(): HTMLElement[] {
-  const r = CONFIG.STACK_RATIO;
+  const p = CONFIG.MOD_STACK_EXP;
   const x = (n: number) => `${+n.toFixed(3)}`;
-  const shares = [0, 1, 2, 3].map((i) => `×${x(r ** i)}`).join(', ');
+  const shares = [1, 2, 3, 4].map((k) => `×${x(stackWeight(k, p))}`).join(', ');
   const ex1 = [10, 10, 10], ex2 = [{ type: 'achievement', value: 10 }, { type: 'gear', value: 10 }];
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How modifiers stack'), chip('modTotal · stackType · src/ruleset/index.ts')),
     h('ol', { class: 'lv-steps' },
       h('li', {}, 'Every modifier on a roll has a type (ModType in src/types/ruleset.ts). The sections below list what feeds each type.'),
-      h('li', {}, `Within one type, the biggest counts in full and each next one at CONFIG.STACK_RATIO = ${x(r)} to the power of its place: ${shares} …`),
+      h('li', {}, `Within one type, n equal modifiers total n^${x(p)} (CONFIG.MOD_STACK_EXP), so the k-th largest counts k^${x(p)} − (k−1)^${x(p)}: ${shares} … with no ceiling (powerStack, src/ruleset/stacking.ts).`),
       h('li', {}, 'Bonuses and penalties of a type stack apart: the biggest bonus counts in full, and so does the biggest penalty.'),
       h('li', {}, 'The types then add together in full.'),
       h('li', {}, `A source given in skill points counts at CONFIG.SKILL_WEIGHT = ${x(CONFIG.SKILL_WEIGHT)} as a roll modifier, like skill itself (a +5 skill Bane is +${x(5 * CONFIG.SKILL_WEIGHT)} on the roll).`)),

@@ -53,7 +53,7 @@ export const hollowedMult = (a: Actor, skill: string): number => {
 };
 
 /** the actor's true skill: flat parts (raw, perks, achievements, essences) plus the 120 perks' shares (SH1, SH4), which read
- * flat true skill only, so they never feed each other; several shares on one skill stack by STACK_RATIO (SH7 b); Hollowed (DX5) scales the whole */
+ * flat true skill only, so they never feed each other; several shares on one skill add in full (RN3 c); Hollowed (DX5) scales the whole */
 export function trueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant || !skillOpen(a, skill)) return 0;
@@ -67,7 +67,7 @@ export function trueSkill(a: Actor, skill: string): number {
     return [own === skill ? (d.shareOwn ?? 0) * base : 0,
       d.shareGroup && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g))) ? d.shareGroup * base : 0].filter((v) => v);
   });
-  return (flat + shares.sort((x, y) => y - x).reduce((s, x, i) => s + x * CONFIG.STACK_RATIO ** i, 0)) * hollowedMult(a, skill);
+  return (flat + shares.reduce((s, x) => s + x, 0)) * hollowedMult(a, skill);
 }
 function flatTrueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
@@ -173,6 +173,4 @@ export function themeCount(a: Actor, what: PayoffCount): number {
   const perks = getLibrary().perks;
   return new Set(a.core.perks.map((p) => p.perkId).filter((id) => what === 'quirk' ? perks[id]?.quirk : PERK_THEMES[what].includes(id))).size;
 }
-/** CN4 a: a payoff perk's share for this many pieces: PAYOFF_SHARE for the first, each further one STACK_RATIO of the one
- * before (5%, 2.5%, 1.25% …, never past twice PAYOFF_SHARE) */
-export const payoffShare = (pieces: number): number => Array.from({ length: pieces }, (_, i) => CONFIG.PAYOFF_SHARE * CONFIG.STACK_RATIO ** i).reduce((n, x) => n + x, 0);
+export { payoffShare } from './stacking';

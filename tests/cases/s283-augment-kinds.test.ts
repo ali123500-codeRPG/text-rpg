@@ -1,7 +1,7 @@
 // 283 D-276 (Barbarian novel study, round 8, AK1 to AK4): two more kinds of augment on the one augment entry.
 // Trade: the receiving skill gains the giving skill's true skill × share (CONFIG.AUGMENT_TRADE_SHARE) × its tier, and the
 // giving skill's own rolls lose the same, always (points moved, never made). Percentage: the receiving skill gains the giving
-// true skill ÷ 100 × rate (CONFIG.AUGMENT_PERCENT_RATE) × its own true skill; two on one skill stack at STACK_RATIO, and a
+// true skill ÷ 100 × rate (CONFIG.AUGMENT_PERCENT_RATE) × its own true skill; two on one skill add in full (RN3 c), and a
 // plain augment never halves a percentage one. First use of trade: the Tavern Brawler essence's trait, Fists Do the Talking.
 import { expect, it } from 'vitest';
 import type { Actor, GameState, PerkDef } from '../../src/types';
@@ -77,7 +77,7 @@ it('percentage: giving true skill ÷ 100 × rate × the receiving true skill; bo
   });
 });
 
-it('percentage: two on one skill stack, the largest in full and the next at STACK_RATIO; a plain one adds in full beside them', () => {
+it('percentage: two on one skill both add in full (RN3 c); a plain one adds in full beside them', () => {
   const s = makeVillage(), p = s.player;
   withPerks({
     [PK.fists_do_the_talking]: { augments: [{ from: SK.endurance, skill: SK.resolve, kind: 'percent' }, { from: SK.dodge, skill: SK.resolve, kind: 'percent' }] },
@@ -90,8 +90,8 @@ it('percentage: two on one skill stack, the largest in full and the next at STAC
     set(p, SK.dodge, 50);
     set(p, SK.block, 40);
     const by = (name: string) => augmentsOf(p, SK.resolve).find((a) => a.source.startsWith(name))!.value;
-    expect(by('Endurance')).toBeCloseTo(100 / 100 * CONFIG.AUGMENT_PERCENT_RATE * 100 * tierMult(SK.endurance)); // the largest, in full
-    expect(by('Dodge')).toBeCloseTo(50 / 100 * CONFIG.AUGMENT_PERCENT_RATE * 100 * tierMult(SK.dodge) * CONFIG.STACK_RATIO);
+    expect(by('Endurance')).toBeCloseTo(100 / 100 * CONFIG.AUGMENT_PERCENT_RATE * 100 * tierMult(SK.endurance));
+    expect(by('Dodge')).toBeCloseTo(50 / 100 * CONFIG.AUGMENT_PERCENT_RATE * 100 * tierMult(SK.dodge));
     expect(by('Block')).toBeCloseTo(40 * 0.25 * tierMult(SK.block)); // plain: never halved by the percentage ones
   });
 });
