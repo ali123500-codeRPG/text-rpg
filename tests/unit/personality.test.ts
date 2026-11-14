@@ -51,6 +51,14 @@ describe('personality', () => {
     // no lean at all is Ordinary, the first row (ties go to the earlier row)
     expect(archetypeOf({ nerve: 0, traits: {}, values: [] }).id).toBe(PY.ordinary);
   });
+  it('NX1, NX2: Assertiveness is an axis like the rest; no archetype aims at it, so it shows as a "but" and never moves the pick', () => {
+    expect(getLibrary().personalityAxes?.[PA.assertiveness]).toMatchObject({ low: 'meek', high: 'assertive' });
+    const corin = { nerve: -10, traits: { [PA.honesty]: 50, [PA.pride]: -40, [PA.temper]: -40, [PA.discipline]: 70 }, values: [VL.loyalty, VL.duty, VL.family] };
+    const pushy = { ...corin, traits: { ...corin.traits, [PA.assertiveness]: 60 } };
+    expect(archetypeOf(pushy).id).toBe(archetypeOf(corin).id);
+    expect(butsOf(pushy, archetypeOf(pushy))).toContainEqual({ axis: PA.assertiveness, v: 60 });
+    expect(Object.values(getLibrary().personalityTypes ?? {}).some((y) => y.target[PA.assertiveness] !== undefined)).toBe(false);
+  });
   it('tensions read Nerve, Resolve, the best skills and drives, in table order', () => {
     const s = makeVillage(), a = s.player;
     a.core.classes = []; a.core.perks = [];
