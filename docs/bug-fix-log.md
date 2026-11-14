@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-254
+
+**What was wrong:** The playtest script (scripts/playtest.ts) still began every run as the Swordsman class (CL1). Starter classes became Starts, so CL1 is no longer one and every run crashed on its first turn with "CL1 is not a Start".
+
+**What was done:** With no --class given, the script picks a random Start from the library and prints which one (Ali's NV8 b); --class ST… still picks one.
+
+**Fixed by:** [PR #859](https://github.com/ali123500-codeRPG/text-rpg/pull/859)
+
 ## BG-252
 
 **What was wrong:** After the make-out roll (PR #840) succeeded, the story named the person, but Who's here, the Narrator's list of people present and name learning still showed them as "someone": all three come from one function (seenActors) that went by distance alone. The Narrator was told both that the event's actor was "a village guard" and that the same person was an unknown "someone". The "stays put" rule (Q17) only reached 25 m and, in Who's here, only dark rooms.

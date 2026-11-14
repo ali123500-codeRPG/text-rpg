@@ -359,6 +359,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     }
     if (f.kind === 'found_secret') out.push(`${by} catches something ${who} would rather keep hidden`); // SE17: the secret itself shows once known
     if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
+    if (f.kind === 'not_understood') out.push(`${who} does not understand words`); // NV5: a slime or a beast spoken to
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_off') out.push(`${who} ${own ? 'are' : 'is'} broken off ${(actionRow(String(f.data.row))?.name ?? 'what they were doing').toLowerCase()}${f.data.then === 'kept' ? ', the work so far kept' : ', the work lost'}`); // AT6/AT25
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
