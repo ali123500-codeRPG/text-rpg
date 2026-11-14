@@ -23,6 +23,7 @@ import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
 import { wornPack } from '../engine/containers';
+import { fitsPocket, freePocket, pocketSlots } from '../engine/pockets';
 import { gripParts } from '../engine/gear';
 import { coins, coinWords, countWords } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
@@ -197,6 +198,33 @@ function showTip(s: GameState, it: InvItem, at: HTMLElement) {
 }
 const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
+/** PO1: the player's pockets as the Inventory shows them: its own ("Pockets"), then one group per worn piece that adds
+ *  pockets, named for it ("Belt with pouches"); each slot with what is in it */
+export function pocketGroups(s: GameState): { id: string; title: string; slots: { id: string; it?: InvItem }[] }[] {
+  const p = s.player, out: { id: string; title: string; slots: { id: string; it?: InvItem }[] }[] = [];
+  for (const sl of pocketSlots(s, p)) {
+    const owner = sl.startsWith('pocket:') ? 'pocket' : sl.slice(0, sl.lastIndexOf(':'));
+    let g = out.find((x) => x.id === owner);
+    if (!g) {
+      const piece = p.core.inventory.find((i) => i.id === owner);
+      g = { id: owner, title: piece ? cap(safe(() => itemDef(s, piece.itemId).name) ?? 'pockets') : 'Pockets', slots: [] };
+      out.push(g);
+    }
+    g.slots.push({ id: sl, it: p.core.inventory.find((i) => i.pocket === sl) });
+  }
+  return out;
+}
+
+/** PO3: the words moving a stowed item sends (a drag, or its button): into a free pocket, or back into the pack. A pocket
+ *  isn't chosen: the engine takes the first free one (your own, then a worn piece's). Null: the move can't happen */
+export function pocketWords(s: GameState, itemId: string, to: 'pocket' | 'pack'): string | null {
+  const p = s.player, it = p.core.inventory.find((i) => i.id === itemId);
+  if (!it || it.equippedIn?.length || it.itemId === IT.coin) return null;
+  const name = (safe(() => itemDef(s, it.itemId).name) ?? it.itemId).toLowerCase();
+  if (to === 'pack') return it.pocket ? `I put my ${name} back in my pack` : null;
+  return !it.pocket && safe(() => fitsPocket(s, it)) && freePocket(s, p) ? `I put my ${name} in a pocket` : null;
+}
+
 function equipment(api: GameApi, s: GameState): HTMLElement {
   hideTip(); // the panel is rebuilt on every change, so a card left open would point at nothing
   const p = s.player, inv = p.core.inventory.filter((i) => i.itemId !== IT.coin);
@@ -237,22 +265,75 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   });
   // like an MMO bag, plain stacks of the same item show as one tile; worn or damaged pieces (pools) keep their own
   const pack: InvItem[] = [];
-  for (const i of inv.filter((x) => !x.equippedIn?.length)) {
+  for (const i of inv.filter((x) => !x.equippedIn?.length && !x.pocket)) {
     const same = !i.pools && pack.find((x) => x.itemId === i.itemId && !x.pools);
     if (same) same.qty = (same.qty ?? 1) + (i.qty ?? 1); else pack.push(i.pools ? i : { ...i });
   }
-  const packTiles = pack.map((it) => {
-    const w = gearWords(s, it);
-    return hover(h('div', { class: 'eq-item', tabindex: '0' },
+  // PO2: in a fight, moving between pack and pocket takes the turn's action
+  const fight = s.mode === 'tactical';
+  const move = (text: string, label: string) => h('button', {
+    type: 'button', class: 'hs-btn-text eq-move', disabled: locked, title: `Sends “${text}” as your turn${fight ? ': in a fight this takes your action' : ''}`,
+    onclick: async () => { hideTip(); status.textContent = `${text}…`; await api.submit(text, { aimed: false }); },
+  }, label);
+  const tile = (it: InvItem, to: 'pocket' | 'pack') => {
+    const w = gearWords(s, it), mv = pocketWords(s, it.id, to);
+    return hover(h('div', { class: 'eq-item', tabindex: '0', draggable: String(!locked && !!pocketWords(s, it.id, to)), 'data-item': it.id },
       h('span', { class: 'eq-ico' }, icon(it), it.qty && it.qty > 1 ? h('b', { class: 'eq-qty' }, `×${it.qty}`) : ''),
-      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w) : h('span', { class: 'eq-cant' }, 'Carried')), it);
-  });
-  return h('section', { class: 'eq', 'aria-label': 'Equipment' },
+      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w) : mv ? '' : h('span', { class: 'eq-cant' }, 'Carried'),
+      mv ? move(mv, to === 'pocket' ? 'To a pocket' : 'To the pack') : ''), it);
+  };
+  const packTiles = pack.map((it) => tile(it, 'pocket'));
+  const groups = pocketGroups(s);
+  const pocketCols = groups.map((g) => h('div', { class: 'eq-pockets', 'data-drop': 'pocket', 'aria-label': g.title },
+    h('h2', { class: 'hs-section' }, g.title, h('span', { class: 'eq-count' }, ` ${g.slots.filter((x) => x.it).length} of ${g.slots.length} used`)),
+    h('div', { class: 'eq-pack eq-pocket-row' }, ...g.slots.map((sl) => sl.it ? tile(sl.it, 'pack')
+      : h('div', { class: 'eq-item empty' }, blank('pouch'), h('span', { class: 'eq-none' }, 'Empty'))))));
+  const section = h('section', { class: 'eq', 'aria-label': 'Equipment' },
     h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'Equipped'), h('div', { class: 'eq-slots' }, ...slotCards)),
-    h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'In your pack'),
-      pack.length ? h('div', { class: 'eq-pack' }, ...packTiles) : h('p', { class: 'empty' }, 'Everything you carry is equipped.')),
-    h('p', { class: 'hs-note eq-foot' }, locked ? 'Wait for the turn to finish before changing gear.' : 'Hover an item for its stats. Equip and Unequip take your turn, as if you typed them: drawing and putting away are free, putting armor on or off is your action.'),
+    h('div', { class: 'eq-col' },
+      ...pocketCols,
+      h('div', { class: 'eq-col eq-packbox', 'data-drop': 'pack' }, h('h2', { class: 'hs-section' }, 'In your pack'),
+        pack.length ? h('div', { class: 'eq-pack' }, ...packTiles) : h('p', { class: 'empty' }, 'Nothing in your pack: what you carry is equipped or in a pocket.'))),
+    h('p', { class: 'hs-note eq-foot' }, locked ? 'Wait for the turn to finish before changing gear.'
+      : `Hover an item for its stats. Every button and drag takes your turn, as if you typed it: drawing and putting away are free, putting armor on or off is your action. Drag a small thing from the pack onto your pockets, or back; it goes into the first free pocket, your own before a belt's.${fight ? ' In a fight, moving between pack and pocket takes your action.' : ''}`),
     status);
+  dragPockets(api, section, locked);
+  return section;
+}
+
+/** PO3: drag a tile between the pack and the pockets; a drop sends the same words as the tile's To a pocket or To the pack */
+function dragPockets(api: GameApi, el: HTMLElement, locked: boolean): void {
+  if (locked) return;
+  let dragId: string | null = null;
+  const at = (e: Event) => (e.target as Element | null)?.closest?.('[data-drop]') as HTMLElement | null;
+  const order = (zone: HTMLElement | null) => { const s = api.state(); return s && dragId && zone ? pocketWords(s, dragId, zone.dataset.drop === 'pack' ? 'pack' : 'pocket') : null; };
+  const clear = () => el.querySelectorAll('.drop-ok, .dragging').forEach((x) => x.classList.remove('drop-ok', 'dragging'));
+  el.addEventListener('dragstart', (e) => {
+    const t = (e.target as Element).closest?.('[data-item]') as HTMLElement | null;
+    if (!t || t.getAttribute('draggable') !== 'true') return;
+    hideTip(); dragId = t.dataset.item ?? null;
+    e.dataTransfer?.setData('text/plain', dragId ?? '');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    t.classList.add('dragging');
+  });
+  el.addEventListener('dragend', () => { dragId = null; clear(); });
+  el.addEventListener('dragover', (e) => {
+    const z = at(e);
+    el.querySelectorAll('.drop-ok').forEach((x) => x !== z && x.classList.remove('drop-ok'));
+    if (!order(z)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    z!.classList.add('drop-ok');
+  });
+  el.addEventListener('drop', async (e) => {
+    const text = order(at(e));
+    clear(); dragId = null;
+    if (!text) return;
+    e.preventDefault();
+    const st = el.querySelector('.eq-status');
+    if (st) st.textContent = `${text}…`;
+    await api.submit(text, { aimed: false });
+  });
 }
 
 /** the Inventory page's coin, in words as the play sheet and the Coin row say it: "Coin: 1 silver and 6 copper", never a bare count */
@@ -331,7 +412,7 @@ const holdsText = (b: ItemInstance) => (b.contents?.length ? `Holds ${plural(b.c
 
 export function inventoryPage(api: GameApi) {
   const page = listPage(api, {
-    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats; drag one onto a sack to put it in, or out of a sack to take it out.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
+    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear and your pockets are above, the rest of your pack below. Click an item for its stats; drag one onto a sack to put it in, or out of a sack to take it out.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
     focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
     lead: (s) => equipment(api, s),
     detail: (s, id) => {
@@ -375,7 +456,7 @@ export function inventoryPage(api: GameApi) {
     groups: (s) => {
       const p = s.player, groups = new Map<string, TGroup & { sub: string; value: string; unit: string; how: string }>();
       // worn and held gear shows in the Equipped panel above, so the table lists only what is in the pack
-      p.core.inventory.filter((i) => i.itemId !== IT.coin && !i.equippedIn?.length).forEach((it, n) => {
+      p.core.inventory.filter((i) => i.itemId !== IT.coin && !i.equippedIn?.length && !i.pocket).forEach((it, n) => {
         const d = safe(() => itemDef(s, it.itemId));
         const [id, title, color] = KIND_GROUP[d?.kind ?? ''] ?? ['other', 'Other', 'c3'];
         const g = groups.get(id) ?? { id, title, color, rows: [], combined: {}, value: '', unit: 'items', sub: '', how: `Everything of this kind you carry.` };
@@ -393,6 +474,15 @@ export function inventoryPage(api: GameApi) {
           rows: insideOf(s, b).map((x, n) => ({ id: x.it.id, sortKey: n, drag: true, cells: { name: x.path, needs: '', qty: String(x.it.qty ?? 1),
             cond: safe(() => itemDef(s, x.it.itemId).container) ? holdsText(x.it) : x.it.pools ? Object.entries(x.it.pools).map(([k2, v]) => `${k2} ${v}%`).join(', ') : 'Whole' } })) };
       });
+      // PO1: what is in a pocket is out of the pack: one group for your own pockets, one per worn piece with pockets
+      const inPockets = pocketGroups(s).filter((g) => g.slots.some((x) => x.it)).map((g) => {
+        const where = g.id === 'pocket' ? 'in a pocket' : `in your ${g.title.toLowerCase()}`;
+        const rows = g.slots.flatMap((x, n) => x.it ? [{ id: x.it.id, sortKey: n, cells: { name: `${safe(() => itemDef(s, x.it!.itemId).name) ?? x.it.itemId}, ${where}`, needs: '', qty: String(x.it.qty ?? 1),
+          cond: x.it.pools ? Object.entries(x.it.pools).map(([k2, v]) => `${k2} ${v}%`).join(', ') : 'Whole' } }] : []);
+        const qty = rows.reduce((t, r) => t + +r.cells.qty, 0), title = g.id === 'pocket' ? 'In your pockets' : `In your ${g.title.toLowerCase()}`;
+        return { id: `pk:${g.id}`, title, color: 'c5', rows, combined: { qty: String(qty), cond: '', needs: '' }, value: String(qty), unit: unitOf(qty, 'item'),
+          sub: `${rows.length} of ${g.slots.length} pockets`, how: 'Out of the pack, quick to reach in a fight. Drag between the pack and your pockets in the panel above.' };
+      });
       const inBoxes = boxes.map((g) => {
         const qty = g.rows.reduce((a, r) => a + +r.cells.qty, 0);
         return { id: g.id, title: g.title, color: g.color, rows: g.rows, combined: { qty: String(qty), cond: '', needs: '' }, value: String(qty), unit: unitOf(qty, 'item'), sub: 'inside', how: g.how };
@@ -403,7 +493,7 @@ export function inventoryPage(api: GameApi) {
         const ns = [...new Set(g.rows.map((r) => r.cells.needs))], ts = [...new Set(g.rows.map((r) => r.tones?.needs))];
         return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: 'in your pack', combined: { qty: String(qty), cond: cs.length === 1 ? cs[0] : 'Mixed', needs: ns.length === 1 ? ns[0] : '' },
           ...(ns.length === 1 && ts.length === 1 && ts[0] ? { combinedTones: { needs: ts[0] } } : {}) };
-      }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title)), ...inBoxes];
+      }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title)), ...inPockets, ...inBoxes];
     },
     line: coinLine, noTiles: true,
   });

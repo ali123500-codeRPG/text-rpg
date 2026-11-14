@@ -247,6 +247,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     // a Street Instinct essence waiting on offer, to show the offer pop-up and the Character page's Essences section
     if (player.progression) player.progression.essenceOffers = [{ essence: ES.street_instinct, grade: 'common', points: { [SK.dodge]: 1, [SK.insight]: 1 }, turn: 2, source: 'foe', untilMin: now(state) + 240 }];
     player.core.inventory.push({ id: 'player_loop', itemId: IT.varos_loop, qty: 1, equippedIn: ['acc:0'], boundTo: player.id });
+    // a belt with pouches worn, a draught in one of its pouches and a bandage in an own pocket, to show pockets on the Inventory (PO1)
+    player.core.inventory.push({ id: 'player_belt', itemId: IT.belt_pouches, qty: 1, equippedIn: ['acc:1'] });
+    player.core.inventory.push({ id: 'player_pocket_bandage', itemId: IT.bandage, qty: 1, pocket: 'pocket:1' }, { id: 'player_belt_draught', itemId: IT.healing_draught, qty: 1, pocket: 'player_belt:1' });
     if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     player.core.condition.fatigue = { debt: 6, line: 8 }; // a long day's walk and the fight with the slime (FT20)
