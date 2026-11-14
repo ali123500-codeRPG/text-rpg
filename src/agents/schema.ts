@@ -85,11 +85,12 @@ const intent = obj<Intent>({
   addressees: nul(arr(str)),
   deferred: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
   clarify: nul(str),
+  answers: (v, p, e) => (v === undefined || v === null ? undefined : arr(str)(v, p, e)) as string[], // BG-228: replies to the clarify, shown as buttons
   yields: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
   letsSearch: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null,
   standDown: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null, // TF11
   look: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(['stats', 'inv'] as const)(v, p, e)) as 'stats' | 'inv',
-}, ['perkMove', 'yields', 'letsSearch', 'standDown', 'way', 'volume', 'look']);
+}, ['perkMove', 'yields', 'letsSearch', 'standDown', 'way', 'volume', 'look', 'answers']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(NPC_ACTIONS),

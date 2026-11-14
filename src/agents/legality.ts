@@ -2,7 +2,7 @@
 // Parser: against PlayerView. Planner / Responder / Voice: against the actor's own view.
 import type { ActorView, ContainerView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
 import { SPEECH_ACTIONS, WAY_ORDERS } from '../types';
-import { TIME_OF_DAY } from '../scales';
+import { TIME_OF_DAY, WAIT_SOMEONE } from '../scales';
 import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { modeIdOf } from '../ruleset/gear';
@@ -24,7 +24,7 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   if (first.startsWith('action.ware')) { const ws = view.actors.find((x) => x.id === first.split(' ')[1])?.wares ?? []; return `Which do you want to buy${ws.length ? `: ${listWords(ws.map((w) => w.name), 'or')}` : ''}?`; }
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
-  if (first.startsWith('action.time')) return `Until when? You can wait until ${listWords(TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()), 'or')}.`;
+  if (first.startsWith('action.time')) return `Until when? You can wait until ${listWords([...TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()), 'someone appears'], 'or')}.`;
   if (first.startsWith('action.skill')) return 'How do you want to do that?';
   if (first.startsWith('action.vanish')) return `Where do you slip away to? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   return null;
@@ -86,7 +86,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     if (a.type === 'wait' || a.type === 'sleep') {
       if (a.type === 'sleep') a.target = null;
       else if (a.target !== null) {
-        const k = TIME_OF_DAY.keyOf(a.target);
+        const k = a.target === WAIT_SOMEONE ? WAIT_SOMEONE : TIME_OF_DAY.keyOf(a.target); // BG-231: or until someone appears
         if (k) a.target = k;
         else illegal.push(`action.time ${a.target}`);
       }

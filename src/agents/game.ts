@@ -341,7 +341,7 @@ export function createGame(deps: GameDeps): Game {
       : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean) });
     if (parsed.clarify !== null || !parsed.intent) {
       // the turn stops: no resolution, turn unchanged, Planner outputs kept for this same turn
-      lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?' });
+      lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?', ...('answers' in parsed && parsed.answers?.length ? { answers: parsed.answers } : {}) });
       lastLog = [...turnLog]; // the GM view (and playtests) can see why the Parser asked
       return;
     }
@@ -1371,7 +1371,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (l.turn !== turn || l.code !== 'stretch_stopped') continue;
     const d = l.detail as { actorId: string; kind: string; why: string; seconds: number; row?: string };
     if (d.actorId !== s.player.id) continue;
-    const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
+    const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing', appeared: 'someone came into sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
     const what = (d.row && getLibrary().durations?.[d.row]?.name) || ({ rest: 'Rest', wait: 'Wait', walk: 'Walk' } as Record<string, string>)[d.kind] || d.kind; // AT45: a long action by its row's name
     out.push(`${what} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
   }

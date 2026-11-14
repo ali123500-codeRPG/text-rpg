@@ -134,6 +134,8 @@ export type TalentKey = `talent_${number}`;
 /** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['morning', 'Morning'], ['afternoon', 'Afternoon'], ['dusk', 'Dusk'], ['evening', 'Evening'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
+/** BG-231: a wait's target besides a time of day: until anyone new comes into the player's senses (CONFIG.WAIT_SOMEONE_MAX_H at most) */
+export const WAIT_SOMEONE = 'someone';
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
 export type PartStateKey = (typeof PART_STATES.keys)[number];

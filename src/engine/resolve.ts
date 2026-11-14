@@ -65,12 +65,12 @@ import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYiel
 import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, truceBars, type StoodDown, type TalkedYield } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
 import { advanceAging } from '../ruleset/age';
-import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
+import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
 import type { ExchangeSpeech, TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
-import { busyCheck, checkNear, contact, startWatch, stepS, type NearStop } from './comingNear';
+import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 
@@ -241,7 +241,7 @@ type Ctx = {
 };
 /** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
  * soon the player is ready, AT67), and the event its outcome goes on */
-type Stretch = { kind: 'rest' | 'wait' | 'walk' | 'busy'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order; order?: Order };
+type Stretch = { kind: 'rest' | 'wait' | 'walk' | 'busy'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop; walk?: Order; order?: Order; someone?: true /* BG-231: stops when anyone new comes into the senses */ };
 type StretchStop = NearStop | { why: 'fight'; by: string[] };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -881,6 +881,11 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     logCode(state, 'wait_blocked', { actorId: a.id, reason: 'fight' });
   } else {
     const t = now(state);
+    // BG-231: until someone appears: a wait that stops when anyone new comes into the senses, or after WAIT_SOMEONE_MAX_H
+    if (o.type === 'wait' && o.target === WAIT_SOMEONE) {
+      ctx.stretch = { kind: 'wait', seconds: CONFIG.WAIT_SOMEONE_MAX_H * 3600, pose: 'standing', ev, someone: true };
+      return emit(ctx, ev);
+    }
     const named = TIME_OF_DAY.keyOf(o.target);
     // Q2: waiting until the time of day it already is does nothing, rather than skipping a day
     if (o.type === 'wait' && named && named === timeOfDay(t)) {
@@ -1011,6 +1016,14 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   const partner = st.kind === 'busy' ? st.order?.target : undefined;
   const touched = (events: GameEvent[]): StretchStop | null => { const c = contact(p, events), by = c?.by.filter((id) => id !== partner); return c && by?.length ? { ...c, by } : null; };
   let stop: StretchStop | null = touched(ctx.events) ?? fightStop();
+  // BG-231: a wait until someone appears: anyone the player comes to perceive who was not in their senses the step before
+  let sensed = st.someone ? inSenses(state, p) : null;
+  const appeared = (): StretchStop | null => {
+    if (!sensed) return null;
+    const now = inSenses(state, p), by = [...now].filter((id) => !sensed!.has(id));
+    sensed = now;
+    return by.length ? { why: 'appeared', by } : null;
+  };
   let ran = 0;
   let fighting = false, walkEnd: 'there' | 'blocked' | null = null, firstS = 0;
   for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
@@ -1025,7 +1038,9 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     fighting = hunt.fighting;
     headArrivals(state); runSteps(state); // UG16: queued steps run on through a long turn, with no call
     ran += step;
-    stop = touched(ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
+    const near = touched(ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
+    const came = appeared(); // run each step, so the senses stay current
+    stop = near ?? came;
   }
   (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
   noteMeanwhile(state, ran - firstS);

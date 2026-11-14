@@ -544,7 +544,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // a command's reply (/stats) marks tagged skills with ✦; on screen it is the sheet's mark, which says Tagged on hover
     else if (l.kind === 'command') e = h('p', { class: 'ln-command' }, ...l.text.split(TAG_MARK).flatMap((x, i) => (i ? [tag(), x] : [x])));
     // a clarifying question: the people, places and things it names can be tapped, to answer with the order again plus that
-    else if (l.kind === 'clarify') e = h('p', { class: 'ln-clarify' }, ...clarifyParts(l));
+    else if (l.kind === 'clarify') e = h('p', { class: 'ln-clarify' }, ...clarifyParts(l),
+      // BG-228: the Parser's replies to its own question: a tap fills the box with that order, nothing is sent until Send
+      l.answers?.length ? h('span', { class: 'clar-answers' }, ...l.answers.map((a) => h('button', { type: 'button', class: 'clar-ans', 'data-chip': 'clarify-answer',
+        title: 'Answer with this: fills the box. Nothing is sent until Send', onclick: () => pick(a) }, a))) : null);
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
       // SD1: a turn that ended a scenario: the old scenario's closing line, then the ending's rule, then the new scenario's opening

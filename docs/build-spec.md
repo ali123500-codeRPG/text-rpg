@@ -3449,6 +3449,11 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-224 | Ali's report, turn 44: the clarifying question's ways out to unbuilt places (east road, mill stream) couldn't be clicked | 14/11/2026 | fixed (Ali OK'd the fix, BF52) | Ways out of the player's zone are tappable by their labels. PR #806 |
 | BG-225 | Map thread (Ali's map comment), turn 44: the east road was placed apart from the square it links to | 14/11/2026 | fixed (Ali OK'd the fix, BF53) | The frontier is joined to the new zone before zones are placed. PR #806 |
 | BG-226 | Map thread, turn 44: crossing onto the 2 km east road put the player at its middle | 14/11/2026 | fixed (Ali OK'd the fix, BF54) | Crossing into a new zone stands the player a step inside the way in. PR #806 |
+| BG-227 | Playtest turn 39: an ending on holding Corwin's sword named the plain sword | 14/11/2026 | fixed (Ali OK'd the fix, BF55) | Endings naming the base of an item the plan makes mean the made item; filed as a bug report. PR #PRNUM |
+| BG-228 | Playtest turn 59: a yes-or-no clarify had nothing to click | 14/11/2026 | fixed (Ali OK'd the fix, BF56) | The Parser's answers show as buttons that fill the box. PR #PRNUM |
+| BG-229 | Playtest turns 57-59: "shoot the first one who appears" asked about or dropped | 14/11/2026 | fixed (Ali OK'd the fix, BF57) | Becomes a wait until someone appears, with the shot deferred. PR #PRNUM |
+| BG-230 | Playtest turns 53-56: watching from hiding passed 2 seconds a turn | 14/11/2026 | fixed (Ali OK'd the fix, BF58) | Staying hidden and watching is the wait until someone appears. PR #PRNUM |
+| BG-231 | Playtest turns 57-60: no way to wait until someone appears | 14/11/2026 | fixed (Ali OK'd the fix, BF58) | New wait until someone appears, up to 8 hours. PR #PRNUM |
 
 ## Check on release
 
