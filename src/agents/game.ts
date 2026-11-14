@@ -48,7 +48,7 @@ import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
 import { TURN_CHECK, checkTurn, snapTurn } from '../save/turnCheck';
-import { cap, r1 } from '../words';
+import { cap, listWords, r1 } from '../words';
 
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
@@ -985,7 +985,7 @@ function seenName(pv: ReturnType<typeof views.buildPlayerView>, id: string): str
   const zone = pv.zones.find((z) => z.id === a.zone)?.name ?? (pv.zone.id === a.zone ? pv.zone.name : undefined);
   return twin && zone ? `${base} at ${zone}` : base;
 }
-const orList = (xs: string[]) => (xs.length < 3 ? xs.join(' or ') : `${xs.slice(0, -1).join(', ')} or ${xs.at(-1)}`);
+const orList = (xs: string[]) => listWords(xs, 'or');
 
 /**
  * Events kept for NPC views (spec: OppositionView holds the events it perceived, incl. the last few exchanges heard):

@@ -3100,7 +3100,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-85 | Initiative as a gear target | 5 | Deferred | Heavy armor slowing initiative, and similar |
 | D-86 | Conditional and granted effects | 5 | Deferred | Effects that apply only vs a body type or in darkness; gear that grants statuses, perks or actions; movement and flight modifiers |
 | D-87 | Dual wielding and versatile grips | 5 | Deferred | Off-hand attacks and penalties; weapons usable one- or two-handed with a bonus for two |
-| D-88 | Armor depth | 5 | Deferred | Layers, armor-piercing weapons, damage types (already excluded for now). Armor noise settled (AN1–AN4, Ali, 08/11/2026); quieter-armor perks later (AN5) |
+| D-88 | Armor depth | 5 | Deferred | Layers, armor-piercing weapons, damage types (already excluded for now). Armor noise settled (AN1–AN4, Ali, 08/11/2026); the quieter-armor perk is built as Quiet Mail (AN5, D-117) |
 | D-89 | Durability and repair | 5 | Deferred | Wear on items other than pools; refilling shield and armor pools |
 | D-90 | Containers, charges, keys, crafting | 5 | Deferred | Bags inside bags, items with uses, keys bound to doors, making items. Crafting plan (Ali, 07/11/2026, loot L4): a recipe consumes inputs and makes a check; outcome tier ID sets the quality (−1 plain base, 0 → 1, 1 → 2, 2 → 3, 3 → 4); failure tiers lose the inputs |
 | D-91 | Consumable effects | 5 | Deferred | Healing and timed buffs; waits for Healing and Status effects |

@@ -7,6 +7,7 @@ import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { modeIdOf } from '../ruleset/gear';
 import { compassOf } from '../scenario/geometry';
+import { listWords } from '../words';
 
 // ---------------- Parser ----------------
 
@@ -16,14 +17,14 @@ export type ParserLegality = { illegal: string[]; gearErrors: string[]; intent: 
 export function illegalClarify(illegal: string[], view: PlayerView): string | null {
   const first = illegal[0] ?? '';
   const names = view.actors.filter((a) => a.health !== 'dead').map((a) => a.name || a.label).filter(Boolean);
-  const who = names.length ? ` I can see ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]}.` : '';
+  const who = names.length ? ` I can see ${listWords(names)}.` : '';
   if (first.startsWith('action.target_dead')) return `That one is already dead. Who do you mean?${who}`;
   if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
   if (first.startsWith('move.spot')) return `Where in ${view.zone.name} do you want to go? You can go to someone, to a way out (${view.zone.links.map((l) => l.label).join(', ') || 'none'})${view.zone.furniture?.length ? `, to something there (${view.zone.furniture.map((f) => f.name).join(', ')})` : ''}, away from one, or to one side, such as the north side.`;
-  if (first.startsWith('action.ware')) { const ws = view.actors.find((x) => x.id === first.split(' ')[1])?.wares ?? []; return `Which do you want to buy${ws.length ? `: ${ws.map((w) => w.name).join(', ').replace(/, ([^,]*)$/, ' or $1')}` : ''}?`; }
+  if (first.startsWith('action.ware')) { const ws = view.actors.find((x) => x.id === first.split(' ')[1])?.wares ?? []; return `Which do you want to buy${ws.length ? `: ${listWords(ws.map((w) => w.name), 'or')}` : ''}?`; }
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
-  if (first.startsWith('action.time')) return `Until when? You can wait until ${TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
+  if (first.startsWith('action.time')) return `Until when? You can wait until ${listWords(TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()), 'or')}.`;
   if (first.startsWith('action.skill')) return 'How do you want to do that?';
   if (first.startsWith('action.vanish')) return `Where do you slip away to? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   return null;

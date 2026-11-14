@@ -219,7 +219,7 @@ const DEFAULTS = {
   MORALE_PER_RESOLVE: 1,
   /** PL3, PL20: raw Resolve where each Nerve tier starts (one per NERVE_LINES row); 100 and up is superhuman */
   NERVE_TIER_FROM: [0, 20, 40, 60, 80, 100],
-  /** PL20 [Proposed]: past the last tier, every this much more Resolve adds a + to its name */
+  /** PL20: past the last tier, every this much more Resolve adds a + to its name */
   NERVE_BEYOND_STEP: 50,
   /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
   PERSONALITY_LEAN: 20,
@@ -408,8 +408,8 @@ const DEFAULTS = {
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
   EQUIP_SHORT_STEP: 10,
   ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,
-  // GAP (placeholders, AN1–AN4): worn armor makes body-moving events this many NOISE steps louder, per
-  // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
+  // AN1–AN4 (values are placeholders): worn armor makes body-moving events this many NOISE steps louder, per
+  // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quiet Mail (AN5) takes one step off.
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
     tool: { quality_1: 5, quality_2: 10, quality_3: 15, quality_4: 20 } as Record<QualityKey, number>,
