@@ -249,10 +249,14 @@ export type NpcTemplate = {
    * character: `unique` holds its sheet, spawned exactly as saved, at most once per world) */
   generation: 'rolled' | 'copy' | 'unique';
   unique?: UniqueSheet;
+  /** hand-set floors a preset's story needs (loadout requirements, a search skill); class floors are added in code */
   minimums: Record<LibraryRef, number>;
-  level: number;
-  bonusPoints: number;
-  focus: { treeId: LibraryRef; skill: LibraryRef }[];
+  /** NG1, NG7: a preset's layers; the rank sets its level and, with the role and theme, its skills */
+  roleId?: LibraryRef;
+  themeId?: LibraryRef;
+  rank?: import('../scales').RankKey;
+  /** a unique's level, from its saved sheet; presets never set one (NG7) */
+  level?: number;
   resolve: number; // starting Resolve (MB30)
   personality: Personality; // PL11: Nerve, trait and value points
   /** a rolled NPC's title ("the Butler"), given with its name in CHARACTER */

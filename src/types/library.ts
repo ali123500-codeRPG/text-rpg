@@ -1,4 +1,5 @@
 // Library content shapes (Part 1 §3 skills, Part 3 body type database, Part 4 classes/templates, Part 5 items, routine bank).
+import type { LibraryRef } from './core';
 import type { IntelligenceKey } from '../scales';
 import type { AttackMode, ItemDef, RollKind } from './items';
 import type { NpcTemplate } from './actor';
@@ -49,6 +50,13 @@ export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy
 export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess;
   /** TREE_RATINGS key (default normal): how many skills at a step earn the tree's All-XXX (CONFIG.ALL_STEP_SKILLS) */
   rating?: import('../scales').TreeRatingKey };
+/** NG2: which skills a role or theme raises, by band (a share of the rank's anchor, CONFIG.ROLE_BAND_SHARE) */
+export type SkillBands = { high?: readonly LibraryRef[]; moderate?: readonly LibraryRef[]; low?: readonly LibraryRef[] };
+/** NG1: an NPC role (RO): the skills its work trains; nothing else rises (NG8) */
+export type NpcRoleDef = { id: LibraryRef; name: string; bands: SkillBands };
+/** NG1: an NPC theme (TH): skills its world adds, and its own rank titles (display only) */
+export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; rankNames?: Partial<Record<import('../scales').RankKey, string>> };
+
 /** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 export type EssenceDef = {
@@ -151,6 +159,8 @@ export type Library = {
   personalityTypes?: Record<string, PersonalityTypeDef>; // PL10: PY…, archetypes; the nearest is the character's
   tensions?: Record<string, TensionDef>; // TN…, shown in row order
   essences?: Record<string, EssenceDef>; // growth proposal: ES…, packages a beaten foe or a scenario's deeds can offer
+  npcRoles?: Record<string, NpcRoleDef>; // NG1: RO…, what an NPC does for a living
+  themes?: Record<string, ThemeDef>; // NG1: TH…, the world an NPC belongs to
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks

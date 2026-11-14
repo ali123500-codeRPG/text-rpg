@@ -2,6 +2,7 @@
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
+import { RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
 import { CONFIG } from '../config';
@@ -15,7 +16,7 @@ import { openAirReachM } from '../perception/noise';
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -412,37 +413,56 @@ export const BODY_TYPES: Record<string, BodyType> = {
 const ap = (steps: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(steps).map(([k, n]) => [k, n * CONFIG.ACH_PERSONALITY_STEP]));
 const pers = (nerve: number, traits: Record<string, number> = {}, values: string[] = []): Personality => ({ nerve, traits, values });
 
+/** NG2, NG21: NPC roles: the skills each kind of work trains, by band (CONFIG.ROLE_BAND_SHARE of the rank's anchor) */
+export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries(([
+  [RO.soldier, 'Soldier', { high: [SK.melee_medium, SK.block], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }], // Block is their defense
+  [RO.skirmisher, 'Skirmisher', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light], low: [SK.sneaking, SK.endurance] }],
+  [RO.brute, 'Brute', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }],
+  [RO.shooter, 'Shooter', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }],
+  [RO.sneak, 'Sneak', { high: [SK.sneaking, SK.melee_light], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.lying, SK.filching, SK.lockpicking] }],
+  [RO.watcher, 'Watcher', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }],
+  [RO.talker, 'Talker', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }],
+  [RO.worker, 'Worker', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }],
+  [RO.beast, 'Beast', { high: [SK.unarmed_natural], low: [SK.dodge] }],
+] as const).map(([id, name, bands]) => [id, { id, name, bands: bands as unknown as NpcRoleDef['bands'] }]));
+
+/** NG21: NPC themes: what their world adds; per-theme rank titles come from the lore thread */
+export const THEMES: Record<string, ThemeDef> = {
+  [TH.village_folk]: { id: TH.village_folk, name: 'Village folk', bands: { low: [SK.persuasion] } },
+  [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] } },
+  [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', bands: { moderate: [SK.intimidation], low: [SK.sneaking] } },
+  [TH.wild_beasts]: { id: TH.wild_beasts, name: 'Wild beasts' },
+};
+
+/** NG1, NG21: today's five templates as presets (same TP IDs): race, role, theme and rank, at the ranks they played at.
+ * minimums are hand-set floors the story needs; class floors are added in code. */
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
-    level: 0, bonusPoints: 0, focus: [], resolve: 50, personality: pers(0), control: 'code', label: 'a slime', chase: 'far', // CH5: monsters hunt anywhere
+    roleId: RO.beast, themeId: TH.wild_beasts, rank: 'rank_0', resolve: 50, personality: pers(0), control: 'code', label: 'a slime', chase: 'far', // CH5: monsters hunt anywhere
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {
     id: TP.guard, raceId: RC.human, classId: CL.guard, generation: 'copy', // its class floors (the Guard unlock) raise its minimums
     minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.block]: 30, [SK.dodge]: 20, [SK.eyesight]: 40, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements; BF17: Eyesight 40, a search's skill, above a thief's
-    // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
-    level: 4, bonusPoints: 10, perks: [PK.keen_ear],
-    focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.block }, { treeId: TR.perception, skill: SK.eyesight }],
+    // Anyone with fighting experience is at least level 4 (Trained); any patrolling template has Keen Ear
+    roleId: RO.soldier, themeId: TH.town_watch, rank: 'rank_2', perks: [PK.keen_ear],
     resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk, IT.round_shield], control: 'agent', label: 'a village guard', chase: 'ground', // a gate warden's shield: Block, not Parry; CH5: guards keep to the scenario's ground
   },
   [TP.trader]: {
     id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',
-    minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
-    focus: [{ treeId: TR.perception, skill: SK.earshot }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
+    minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, roleId: RO.talker, themeId: TH.village_folk, rank: 'rank_1', // Villagers are at least level 2 (Novice)
     resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.wealth]), control: 'code', label: 'the barkeep', chase: 'post', // CH5: townsfolk never leave their own place
   },
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
-    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
-    focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
+    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, roleId: RO.sneak, themeId: TH.village_folk, rank: 'rank_2', // fighting experience: level 4 (Trained)
     resolve: 30, personality: pers(-40, { [PA.honesty]: -40 }, [VL.wealth]), loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager', chase: 'post',
   },
   [TP.patron]: {
     id: TP.patron, raceId: RC.human, generation: 'copy',
-    minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0,
-    focus: [{ treeId: TR.unarmed, skill: SK.unarmed_strike }, { treeId: TR.defense, skill: SK.dodge }, { treeId: TR.perception, skill: SK.eyesight }],
+    minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, roleId: RO.worker, themeId: TH.village_folk, rank: 'rank_1',
     resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.pleasure]), control: 'code', label: 'a tavern patron', chase: 'post',
   },
 };
@@ -860,6 +880,8 @@ export function prototypeLibrary(): Library {
     layouts: LAYOUTS,
     items: { ...ITEMS, ...Object.fromEntries(Object.values(UNIQUES).flatMap((t) => t.unique?.itemDefs ?? []).map((d) => [d.id, d])) },
     templates: { ...TEMPLATES, ...UNIQUES }, // HF34 a: Hall of fame heroes are unique templates in their own file
+    npcRoles: NPC_ROLES,
+    themes: THEMES,
     activities: ACTIVITIES,
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,

@@ -7,7 +7,7 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, type LifeStageKey } from '../scales';
+import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, RANKS, type LifeStageKey, type RankKey } from '../scales';
 import { rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng } from '../rng';
@@ -17,7 +17,7 @@ import { CL } from './classIds';
 import { IT } from './itemIds';
 import { perkPointsUpTo } from '../ruleset/levels';
 
-/** a fixed seed per template id, so every copy of a template spends its level points the same way */
+/** a fixed seed from a string (a template's ID, or a template and an actor's ID) */
 const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
 
 let seq = 0;
@@ -76,34 +76,58 @@ export function templateMinimums(t: NpcTemplate): Record<string, number> {
   return min;
 }
 
-/** Rolled generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
-export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
-  const raw: Record<string, number> = { [SK.resolve]: t.resolve, ...templateMinimums(t) }; // class floors included // MB30: the template sets starting Resolve
-  let points = t.level * CONFIG.POINTS_PER_LEVEL + t.bonusPoints;
-  const tagged = new Set(t.focus.map((f) => f.skill));
-  const stateOf = (k: string) => (tagged.has(k) ? 'tagged' as const : 'normal' as const);
-  while (points > 0 && t.focus.length) {
-    const chunk = Math.min(5, points); // GAP: a remainder under 5 goes out as the last, smaller chunk
-    points -= chunk;
-    const pick = t.focus[rng.int(1, t.focus.length) - 1]; // d3 over the three picks
-    // GAP: a preferred skill at its cap (SKILL_CAP; a focus skill is tagged, so +TAG_CAP_BONUS, CS14) spills into the rest of its
-    // tree (tree order); points with nowhere to go are lost
-    const tree = getLibrary().trees[pick.treeId]?.skills ?? [];
-    let left = chunk;
-    for (const sk of [pick.skill, ...tree.filter((x) => x !== pick.skill)]) {
-      const add = Math.min(left, skillCap({ state: stateOf(sk) }) - (raw[sk] ?? 0));
-      if (add > 0) { raw[sk] = (raw[sk] ?? 0) + add; left -= add; }
-      if (!left) break;
-    }
-  }
-  if (raw[SK.endurance] && raw[SK.stamina] === undefined) raw[SK.stamina] = raw[SK.endurance]; // FB7: Stamina copies Endurance
-  return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, { raw: v, state: stateOf(k) }]));
+/** NG3: a rank's anchor skill and level; past the last row each step adds CONFIG.RANK_BEYOND_STEP */
+export function rankRow(rank: RankKey): { anchor: number; level: number } {
+  const n = Number(rank.slice(5)), last = RANKS.keys.length - 1, top = CONFIG.RANK_ROWS[RANKS.keys[last]];
+  if (n <= last) return CONFIG.RANK_ROWS[rank];
+  return { anchor: top.anchor + (n - last) * CONFIG.RANK_BEYOND_STEP.anchor, level: top.level + (n - last) * CONFIG.RANK_BEYOND_STEP.level };
+}
+/** NG3: a rank's name, a theme's own title first; past the last row the last name gains a + per step (Divine+, Divine++) */
+export function rankName(rank: RankKey, themeId?: string): string {
+  const own = themeId ? getLibrary().themes?.[themeId]?.rankNames?.[rank] : undefined;
+  if (own) return own;
+  const n = Number(rank.slice(5)), last = RANKS.keys.length - 1;
+  return n <= last ? RANKS.name(rank as (typeof RANKS.keys)[number]) : RANKS.name(RANKS.keys[last]) + '+'.repeat(n - last);
+}
+/** NG7: a template's level: its rank's (a preset), or its saved sheet's (a unique) */
+export const templateLevel = (t: NpcTemplate): number => (t.rank ? rankRow(t.rank).level : t.level ?? 0);
+
+type Band = keyof typeof CONFIG.ROLE_BAND_SHARE;
+/** NG2, NG8: the band each skill sits in for this preset: its role's and theme's, the higher wins; then the skills every
+ * NPC whose body can use them has (CONFIG.NPC_COMMON_SKILLS). Nothing else rises. */
+function presetBands(t: NpcTemplate): Record<string, Band> {
+  const lib = getLibrary(), out: Record<string, Band> = {};
+  const order: Band[] = ['low', 'moderate', 'high'];
+  const put = (id: string, b: Band) => { if (!out[id] || order.indexOf(b) > order.indexOf(out[id])) out[id] = b; };
+  for (const bands of [t.roleId ? lib.npcRoles?.[t.roleId]?.bands : undefined, t.themeId ? lib.themes?.[t.themeId]?.bands : undefined])
+    for (const b of order) for (const id of bands?.[b] ?? []) put(id, b);
+  const body = { core: { raceId: t.raceId, bodyTypeId: race(t.raceId).bodyTypeId, classes: [], perks: [], skills: {} } } as unknown as Actor;
+  for (const [id, b] of Object.entries(CONFIG.NPC_COMMON_SKILLS)) if (skillOpen(body, id)) put(id, b);
+  return out;
 }
 
-/** Copy NPC: minimums plus level points spent with the template's fixed seed (alike for every copy). Unique: rolled once, frozen. */
+/** NG2, NG5, NG8, NG9: a preset's skills: each banded skill at rank anchor × band share × NPC_BAND_MULT, moved by up to
+ * ± COPY_SPREAD (seeded: an actor's ID, or none for the preset itself), capped as the player's are (SKILL_CAP, tagged + TAG_CAP_BONUS);
+ * then the preset's minimums and class floors. High-band skills are tagged. Resolve comes from the preset (MB30). */
+export function presetSkills(t: NpcTemplate, rng?: Rng): Record<string, SkillEntry> {
+  const raw: Record<string, number> = {}, state: Record<string, 'tagged' | 'normal'> = {};
+  const anchor = t.rank ? rankRow(t.rank).anchor * CONFIG.NPC_BAND_MULT : 0;
+  for (const [id, b] of Object.entries(presetBands(t)).sort(([x], [y]) => (x < y ? -1 : 1))) {
+    state[id] = b === 'high' ? 'tagged' : 'normal';
+    const spread = rng ? 1 + (rng.next() * 2 - 1) * CONFIG.COPY_SPREAD : 1;
+    raw[id] = Math.min(skillCap({ state: state[id] }), Math.round(anchor * CONFIG.ROLE_BAND_SHARE[b] * spread));
+  }
+  for (const [id, v] of Object.entries({ [SK.resolve]: t.resolve, ...templateMinimums(t) })) raw[id] = Math.max(raw[id] ?? 0, v); // class floors included
+  if (raw[SK.endurance] && raw[SK.stamina] === undefined) raw[SK.stamina] = raw[SK.endurance]; // FB7: Stamina copies Endurance
+  return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, { raw: v, state: state[k] ?? 'normal' }]));
+}
+
+/** a copy's skills: its preset's, spread by its own ID (NG9; the same copy always rebuilds the same way); with no ID, the
+ * preset's centre values, which its essence list reads. A unique's are its saved sheet. */
+export const templateSkills = (t: NpcTemplate, actorId?: string): Record<string, SkillEntry> =>
+  t.unique ? t.unique.skills : presetSkills(t, actorId ? createRng(templateSeed(`${t.id}:${actorId}`)) : undefined);
+
 /** the perks a member of this race is born with: its innate perks and innate quirks */
-/** a copy's (or a rolled template's fixed-seed) skills: what copies spawn and rebuild with, and what its essence list reads */
-export const templateSkills = (t: NpcTemplate): Record<string, SkillEntry> => t.unique ? t.unique.skills : rollUniqueSkills(t, createRng(templateSeed(t.id)));
 
 export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
   const r = raceId ? getLibrary().races?.[raceId] : undefined;
@@ -129,10 +153,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   const t = npcTemplate(state, templateId);
   if (t.generation === 'unique') return spawnUnique(state, t, opts);
   if (t.generation === 'rolled' && !rng) throw new Error(`rolled template ${t.id} needs the seeded rng`);
-  const skills = t.generation === 'rolled'
-    ? rollUniqueSkills(t, rng!)
-    // Q3: copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
-    : templateSkills(t);
+  const skills = t.generation === 'rolled' ? presetSkills(t, rng!) : templateSkills(t, opts.id); // NG9: a copy's spread is seeded by its ID
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
   return {
     id: opts.id,
@@ -149,7 +170,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       templateId: t.id,
       generation: t.generation,
       skills,
-      classes: t.classId ? [{ classId: t.classId, state: 'current', level: t.level }] : [],
+      classes: t.classId ? [{ classId: t.classId, state: 'current', level: Math.min(templateLevel(t), classMaxLevel(t.classId)) }] : [], // NG7: capped by the class's top level
       perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 })), ...tagQuirks(t, opts.id, state?.turn ?? 0)],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
@@ -160,7 +181,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     // GAP: rolled NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'rolled' ? { progression: {
       startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
-      potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(t.level), marks: [],
+      potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(templateLevel(t)), marks: [],
     } } : {}),
     mind: {
       control: t.control,
@@ -372,7 +393,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   return p;
 }
 
-/** Copy NPCs follow their template live (the level × POINTS_PER_LEVEL lever must reach existing
+/** Copy NPCs follow their template live (the rank table and NPC_BAND_MULT must reach existing
  * templates and NPCs). On load, each copy's skills are rebuilt from its template with the current CONFIG, and the
  * template's perks are added if missing. Unique NPCs keep what they rolled. */
 export function refreshCopies(state: GameState): void {
@@ -380,7 +401,7 @@ export function refreshCopies(state: GameState): void {
     if (a.kind !== 'npc' || a.core.generation !== 'copy' || !a.core.templateId) continue;
     if (!hasTemplate(state, a.core.templateId)) continue;
     const t = npcTemplate(state, a.core.templateId);
-    a.core.skills = templateSkills(t);
+    a.core.skills = templateSkills(t, a.id); // NG9: its own spread, the same every load
     for (const perkId of t.perks ?? []) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
   }
   // AG2: a save from before ages gets them on load, as a new spawn would; a birth day once set is never re-rolled (AG13)

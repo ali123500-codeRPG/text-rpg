@@ -369,7 +369,20 @@ const DEFAULTS = {
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
-  POINTS_PER_LEVEL: 10, // 10 × level (was 3)
+  // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
+  /** NG3: each rank's anchor skill and level */
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1 }, rank_1: { anchor: 30, level: 2 }, rank_2: { anchor: 50, level: 4 }, rank_3: { anchor: 65, level: 8 }, rank_4: { anchor: 75, level: 12 }, rank_5: { anchor: 100, level: 20 }, rank_6: { anchor: 150, level: 30 }, rank_7: { anchor: 200, level: 40 }, rank_8: { anchor: 300, level: 60 } } as Record<string, { anchor: number; level: number }>,
+  /** NG3: past the last rank row, each step adds this */
+  RANK_BEYOND_STEP: { anchor: 100, level: 20 },
+  /** NG2: a role's bands as shares of the rank's anchor */
+  ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
+  /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
+  NPC_BAND_MULT: 1,
+  /** NG9: each skill moves by up to this share of its band value, seeded by the actor's ID */
+  COPY_SPREAD: 0.1,
+  /** NG8: skills every NPC has at least at this band when its body can use them: the senses. Dodge is left to roles: at Low it
+   * would put the thief's essence (Dodge 2, Insight 1) on every NPC's list (fit 0.6 × 2/3 = ESSENCE_FIT_SHARE) */
+  NPC_COMMON_SKILLS: { [SK.eyesight]: 'low', [SK.earshot]: 'low' } as Record<string, 'high' | 'moderate' | 'low'>,
   CREATION_POINTS: 250,
   START_LEVEL: 4, // EQ13: the player starts at level 4
   CREATION_MAX_SKILL: 60,

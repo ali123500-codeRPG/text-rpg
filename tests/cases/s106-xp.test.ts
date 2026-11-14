@@ -6,7 +6,7 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, skillRating, gearRating, defeatXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, skillRating, gearRating, defeatXp, payDefeats, rating, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
@@ -23,8 +23,12 @@ describe('106 XP and levels', () => {
   it('rating: categories ranked 1, ½, ¼, weighted; weak foes taper (X18–X23)', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
-    // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed), plus steady Resolve 50 (Will)
-    expect(rating(slime)).toBeCloseTo(skillRating(30) + xpGroupFactor(GR.notice) * skillRating(25) + xpGroupFactor(GR.will) * skillRating(50), 5);
+    // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed), Dodge (the beast role's
+    // Low band: rank_0 anchor 15 × 0.6 = 9) at the defense weight, plus steady Resolve 50 (Will), plus level 1 (rank_0's row). No Hearing:
+    // a slime's body can't
+    expect(slime.core.skills[SK.dodge].raw).toBe(9);
+    expect(slime.core.skills[SK.earshot]).toBeUndefined();
+    expect(rating(slime)).toBeCloseTo(levelRating(slime) + skillRating(30) + xpGroupFactor(GR.notice) * skillRating(25) + xpGroupFactor(GR.defense) * skillRating(9) + xpGroupFactor(GR.will) * skillRating(50), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
     const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too

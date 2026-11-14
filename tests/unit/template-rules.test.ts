@@ -4,6 +4,7 @@ import { TP } from '../../src/library/templateIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, actor } from '../harness';
 import { getLibrary } from '../../src/library';
+import { templateLevel } from '../../src/library/spawn';
 import { hasPerk } from '../../src/ruleset/perks';
 import { PK } from '../../src/library/perkIds';
 
@@ -11,8 +12,8 @@ describe('template rules', () => {
   it('levels: fighters 4 or more, humanoid villagers 2 or more', () => {
     makeVillage();
     const t = getLibrary().templates;
-    for (const id of [TP.guard, TP.thief]) expect(t[id].level).toBeGreaterThanOrEqual(4);
-    for (const id of [TP.trader, TP.patron]) expect(t[id].level).toBeGreaterThanOrEqual(2);
+    for (const id of [TP.guard, TP.thief]) expect(templateLevel(t[id])).toBeGreaterThanOrEqual(4);
+    for (const id of [TP.trader, TP.patron]) expect(templateLevel(t[id])).toBeGreaterThanOrEqual(2);
   });
   it('every template whose role has a routine set with a patrol routine lists Keen Ear', () => {
     makeVillage();

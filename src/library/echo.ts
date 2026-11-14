@@ -61,7 +61,7 @@ export function uniqueTemplate(id: string, raceId: string, label: string, sheet:
   const cur = sheet.classes.find((c) => c.state === 'current') ?? sheet.classes[0];
   return {
     id, raceId, ...(cur ? { classId: cur.classId } : {}), generation: 'unique', unique: sheet,
-    minimums: {}, level: sheet.classes.reduce((n, c) => n + c.level, 0), bonusPoints: 0, focus: [],
+    minimums: {}, level: sheet.classes.reduce((n, c) => n + c.level, 0),
     resolve: 0, personality: sheet.personality, control: 'agent', label, notable: true,
   };
 }

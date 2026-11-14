@@ -39,6 +39,11 @@ export function scale<const K extends string>(rows: readonly (readonly [K, strin
   };
 }
 
+/** NG3: how good one person is, lowest first. Display names live only here; a theme may give its own titles (ThemeDef.rankNames).
+ * Past the last row a key goes on (rank_9, rank_10 …): CONFIG.RANK_BEYOND_STEP per step, and the name gains a + each step. */
+export const RANKS = scale([['rank_0', 'Untrained'], ['rank_1', 'Novice'], ['rank_2', 'Trained'], ['rank_3', 'Veteran'], ['rank_4', 'Elite'], ['rank_5', 'Paragon'], ['rank_6', 'Beyond'], ['rank_7', 'Mythic'], ['rank_8', 'Divine']]);
+export type RankKey = `rank_${number}`;
+
 /** check tiers, worst first (Part 1 §4) */
 export const TIERS = scale([
   ['critical_failure', 'Critical Failure'], ['failure', 'Failure'], ['near_miss', 'Near Miss'],
