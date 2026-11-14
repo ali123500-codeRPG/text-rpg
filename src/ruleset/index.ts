@@ -13,7 +13,7 @@ import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations
 import { sightDistM, withinM } from '../engine/position';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
-import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
+import { boostAdd, boostMult, boostRollMods, hasPerk, trueSkill } from './perks';
 import { baneMods, defeatsMods } from './bane';
 import { pressureMods } from './pressure';
 import { achievementAimEase, bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
@@ -23,7 +23,9 @@ import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
 import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
-import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
+import { lineMax, lineUsed } from './fatigue';
+import { payStrain } from '../engine/fatigue';
+import { augmentK, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -146,6 +148,15 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
   return out;
 }
 
+const OVERDRIVE = 'Overdrive';
+/** SS15 Overdrive (Stamina 140): while the short-term line is more than half full, a roll adds Stamina's true skill × the
+ * augment equation's factor at OVERDRIVE_SHARE (roll() then pays OVERDRIVE_STRAIN) */
+function overdrive(actor: Actor, skill: string): Mod[] {
+  if (!hasPerk(actor, PK.overdrive) || lineUsed(actor) * 2 >= lineMax(actor)) return [];
+  const value = trueSkill(actor, SK.stamina) * augmentK(actor, { share: CONFIG.OVERDRIVE_SHARE }, SK.stamina, skill);
+  return value ? [{ source: OVERDRIVE, type: 'roll_perk', value }] : [];
+}
+
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
   const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? rollFnSkills(actor, req.fn) : [])], standInFns: req.standInFns, rollKind: req.rollKind };
@@ -159,6 +170,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     modifiers.push(...defeatsMods(actor, req.rollKind)); // D-119 total-defeats achievements
     modifiers.push(...pressureMods(actor, req.against)); // OQ-29 Shaken and Swayed
     modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
+    modifiers.push(...overdrive(actor, eff.skill)); // SS15 Overdrive: Stamina 140
   }
   const d = rng.d100();
   const margin = rollMargin(d, eff.value, modifiers);
@@ -167,6 +179,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   let level = tierOf(d, eff.value, modifiers, shifts, tierReach(actor, req.rollKind, !!req.contest)); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
   const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
+  if (modifiers.some((m) => m.source === OVERDRIVE)) payStrain(state, actor, 'light', CONFIG.OVERDRIVE_STRAIN / CONFIG.STRAIN_COST.light); // its strain
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
   return out;
 }

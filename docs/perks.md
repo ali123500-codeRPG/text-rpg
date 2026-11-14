@@ -747,6 +747,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The sleep debt hours awake add is ×0.2 (sleepNeed, CONFIG.SLEEPLESS_NEED, placeholder), with the body type's sleepNeed. Strain that spills past an empty line still fills the bar as usual, and every point of strain still counts toward Stamina's marks.
 - **Lasts:** Always.
 
+### Overdrive (Stamina) · SS15
+
+*Story:* While you still have breath to burn, you burn it. With your wind above half, every roll you make draws on your stamina, at the price of a little more strain each time.
+
+- **Kind:** Always on
+- **Trigger:** Any roll by the owner.
+- **Conditions:** The owner's short-term line is more than half full before the roll.
+- **Effect:** The roll adds 10% of the owner's Stamina (the augment equation: true skill × CONFIG.OVERDRIVE_SHARE × Stamina's tier, placeholder) and costs 1 strain more (CONFIG.OVERDRIVE_STRAIN, with worn armour and Bottomless; it counts toward Stamina's marks like any strain).
+- **Lasts:** Each roll, while the line stays above half.
+
 ## Banked, no milestone yet
 
 ### Go to Ground (Sneaking) · D9
