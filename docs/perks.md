@@ -643,6 +643,17 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner is told plainly that the speaker is lying, instead of the hint that something doesn't sit right.
 - **Lasts:** Each lie seen through.
 
+### Protagonist Mentality (Resolve) · CN7
+
+*Story:* Every flaw is one more thing the story has to get past, and it never does. Your Resolve grows with every quirk you carry.
+
+- **Kind:** Always on (augment)
+- **Trigger:** A Resolve roll by the owner.
+- **Conditions:** The owner has at least one quirk.
+- **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being 5% × quirks owned^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): 5% for one quirk, 8.7% for two.
+- **Lasts:** Always.
+- **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
+
 ## Very high milestone
 
 ### Never Surprised (Earshot) · C1
@@ -743,17 +754,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** Patient Knife is an ambush perk itself, so it always counts at least one piece (perks tagged ambush: src/library/perkThemes.ts).
 - **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% × ambush pieces^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): Patient Knife alone gives 5%, with two more 12%, with no ceiling.
 - **Lasts:** Always.
-
-### Protagonist Mentality (Resolve) · CN7
-
-*Story:* Every flaw is one more thing the story has to get past, and it never does. Your Resolve grows with every quirk you carry.
-
-- **Kind:** Always on (augment)
-- **Trigger:** A Resolve roll by the owner.
-- **Conditions:** The owner has at least one quirk.
-- **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being 5% × quirks owned^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): 5% for one quirk, 8.7% for two.
-- **Lasts:** Always.
-- **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
 
 ## Banked, no milestone yet
 
