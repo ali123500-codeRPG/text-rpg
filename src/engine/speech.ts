@@ -182,7 +182,7 @@ function meetsReveal(s: Secret, sp: string, skills: string[], contest: ContestRe
     contest.winner === 'a' && tierAtLeast(contest.a, w.minTier);
 }
 
-/** check_passed secrets of `sp` that this speech contest meets [Proposed]. GAP: "meets" = the player wins the contest with that skill at minTier or better. */
+/** check_passed secrets of `sp` that this speech contest meets: the player wins the contest with that skill at minTier or better (SLIPS). */
 export function slipsFor(state: GameState, sp: string, skills: string[], contest: ContestResult): string[] {
   const known = state.player.journal?.secretsKnown ?? [];
   return state.hidden.secrets.filter((s) => !known.includes(s.id) && meetsReveal(s, sp, skills, contest)).map((s) => s.id);

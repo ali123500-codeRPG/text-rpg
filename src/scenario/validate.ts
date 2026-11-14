@@ -515,8 +515,9 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
   const actorIds = new Set(state.actors.map((a) => a.id));
   const stageZones = new Set(state.stage.zoneIds);
   const terms = [...arr(plan.hiddenTerms), ...arr(plan.seeds?.secrets).flatMap((s) => arr(s.leakTerms))]
-    .filter((t) => typeof t === 'string' && t.trim()).map((t) => t.toLowerCase());
-  const badText = (v: unknown) => typeof v !== 'string' || v.length > CONFIG.TEXT_CAP || terms.some((t) => v.toLowerCase().includes(t));
+    .filter((t) => typeof t === 'string' && t.trim());
+  // BG-212: hidden terms as whole words, as every other public text in the plan is checked (V10)
+  const badText = (v: unknown) => typeof v !== 'string' || v.length > CONFIG.TEXT_CAP || terms.some((t) => mentions(v, t));
   const gain = plan.event?.gain;
   const maxQ = GRADES.includes(gain) ? CONFIG.GAIN_MAX_QUALITY[gain] ?? null : null;
   let mintLeft = CONFIG.SCENARIO_CAPS.minted - state.scenarioCaps.minted;

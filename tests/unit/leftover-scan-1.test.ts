@@ -40,7 +40,7 @@ const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts'];
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -228,5 +228,18 @@ describe('leftover scan round 6', () => {
   it('grips, not hands, in code names: a grip passes bars, reaches into a zone, searches someone open to it', () => {
     const offenders = files('src').filter((f) => /\b(handsPass|handsReach|openToHands|handsOn)\b/.test(readFileSync(f, 'utf8') as string));
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('answers CS18 and CS19', () => {
+  it('CS18: secret slips are settled as built; the spec says the contest must be won', () => {
+    const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+    expect(spec).not.toMatch(/SLIPS[^\n]*\\\[Proposed\\\]/);
+    expect(spec).not.toMatch(/Secret slips \\\[Proposed\\\]/);
+    expect(spec).toMatch(/wins a speech contest against a spokesperson/);
+    expect(readFileSync('src/engine/speech.ts', 'utf8') as string).not.toMatch(/\[Proposed\]/);
+  });
+  it('CS19: a minted reward is checked for hidden terms as whole words, like every other public text', () => {
+    expect(readFileSync('src/scenario/validate.ts', 'utf8') as string).not.toMatch(/toLowerCase\(\)\.includes\(t\)/);
   });
 });

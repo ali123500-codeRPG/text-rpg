@@ -808,7 +808,7 @@ Decided on the "Goal-driven uniques" questions page (UG1–UG17, https://claude.
 
 Agent Responder plays one addressed spokesperson that has an agenda (it holds a secret, has a plan, has memory entries or is in an agreement). It runs after the Parser, on the same model as the Planner, and decides that actor's one action for the turn: a reply or something else.
 
-Input: CHARACTER (name, role, band, band goals, temperament); OPPOSITION\_VIEW; DIALOGUE\_INPUT (the spoken words and the impression); COMMITTED (a turn-start trigger's order, or none); SLIPS (a secret that comes out this turn whatever it intends, or none) **\[Proposed\]**.
+Input: CHARACTER (name, role, band, band goals, temperament); OPPOSITION\_VIEW; DIALOGUE\_INPUT (the spoken words and the impression); COMMITTED (a turn-start trigger's order, or none); SLIPS (a secret that comes out this turn whatever it intends, or none).
 
 Output shape:
 
@@ -1079,7 +1079,7 @@ Per turn:
    - PM8: an agent-controlled NPC in an open deal gets a Planner call each turn even when not engaged, so a companion can act on the deal instead of only following.
    - PM6: when events an NPC perceived fall out of its RECENT\_EVENTS window, code writes one short line for each into Mind.earlier (no Claude call): "turn 12: player attack you (hit)". A line that repeats the one before it becomes a count (turn 12–14: … ×3). Only the last CONFIG.EARLIER\_LINES (6, a placeholder) stay. Every NPC view shows them as earlier.
    - Deferred (PM7): the Voice writing memory entries.
-6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier is a tier key and the check must reach at least that tier (the Weaver writes the tier's name; code keeps the key), and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player's speech check against a spokesperson meets one of its check\_passed reveals, its Responder is told so (SLIPS) before it answers **\[Proposed\]**. A search aimed at the holder reveals check\_passed secrets of a sight or hearing skill when its roll reaches minTier (SE17, Searching). A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
+6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier is a tier key and the check must reach at least that tier (the Weaver writes the tier's name; code keeps the key), and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player wins a speech contest against a spokesperson with one of its check\_passed reveals' skills, at that reveal's minTier or better, its Responder is told so (SLIPS) before it answers. A search aimed at the holder reveals check\_passed secrets of a sight or hearing skill when its roll reaches minTier (SE17, Searching). A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
 7. **Save.** After resolution, the story is saved as described in Part 4 §10. Hidden fields are saved but shown only in the GM debug view.
 
 **onAlert** is not a trigger. Code fires a routine's onAlert order once, when its owner first leaves unaware of a wary actor or first perceives an attack or alarm: this turn if the owner hasn't acted and has no agent order, otherwise next turn unless an agent order exists by then. An armed flag resets when the owner is calm again: unaware of every wary actor, and DECAY\_TURNS turns with no attack or alarm perceived.
@@ -1699,7 +1699,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 57 | Inert when down | An incapacitated guard gets no order, its ambush trigger doesn't fire, it isn't engaged, and addressing it makes no dialogue call |
 | 58 | Derived agenda | An NPC voiced by the Voice gains a plan; next turn the Responder voices it; no save field holds hasAgenda |
 | 59 | Place facts stay player-side | No OppositionView, DialogueView or ActorView contains a place fact or headline |
-| 60 | Secret slips \[Proposed\] | A persuade check that meets a check\_passed reveal sets SLIPS; the secret is revealed and the Narrator's leak scan passes |
+| 60 | Secret slips | A persuade check that meets a check\_passed reveal sets SLIPS; the secret is revealed and the Narrator's leak scan passes |
 | 61 | Bands from the plan | A plan creates a smugglers band hostile to the guards' band and sets the guards suspicious of it; each guard gets a suspicious belief about every smuggler on the stage, written through updateBeliefs, and one guard's personal stance overrides its band's relation |
 | 62 | Slots per actor | A gate guard's default routine and its alert variant both read its one post binding; the plan binds post once |
 | 63 | Route expands | A patrol bound to a three-zone route desires each zone in order, each for the step's duration, then loops |
@@ -3369,6 +3369,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-209 | Found by the Threadbound end-to-end test (s281): an achievement earned during a scenario is granted when the scenario ends, but the Threadbound item ability (or linked perk) it opens only arrived at the end of the next turn. The end-of-turn perk sync ran before the scenario closed. | 13/11/2026 | fixed (Ali OK'd the fix) | PR #707 |
 | BG-210 | Code scan (leftover rules, round 1): a Trader the Weaver brings back in a later scenario with wares again gets a second 50-coin purse and a second lot of the same stock on top of what it still has (test village: Mags 55 → 105 coin, 4 → 8 bandages), so coin and goods pile up every scenario | 13/11/2026 | fixed | Ali chose purse once, goods top up: the purse comes the first time someone sells, listed goods top up to the listed count. PR #710 |
 | BG-211 | Code scan (leftover rules, round 2): a stash was quiet and plainly visible instead of hushed and low (SE9), because PR #660 put the filch entry and its note on the line before the stash entry in the SENSE table, so the stash entry sat inside the note | 14/11/2026 | fixed (Ali OK'd the fix) | Stash and filch each on their own line again (CS4). PR #731 |
+| BG-212 | Code scan (leftover rules, round 6): a minted reward whose name or look held a hidden term inside a longer word ("rat" in "a pirate's sword") was placed as a plain item, because the reward check matched parts of words while every other leak check matches whole words (V10) | 14/11/2026 | fixed (Ali OK'd the fix) | The reward check uses the whole-word helper (mentions), like the rest of the plan (CS19). PR #746 |
 
 ## Check on release
 
