@@ -29,7 +29,8 @@ import { moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
-import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, later, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
+import { answering } from '../agents/answering';
+import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
@@ -144,6 +145,24 @@ export function clarifyPicks(text: string, pv: PlayerView): { start: number; end
   }
   return out.sort((a, b) => a.start - b.start);
 }
+
+/** BF72: the order with a tapped name in place of the person, place or thing it named ("I attack hob" + "Osric Fell" →
+ * "I attack Osric Fell"): a name the view knows, whole or by one of its words. With no single such name in the order, the
+ * name follows it ("I attack him, I mean Osric Fell"). Built from the player's first order, so taps never pile up. */
+export function answerWith(order: string, phrase: string, pv: PlayerView): string {
+  let spans = clarifyPicks(order, pv);
+  if (!spans.length) {
+    const words = new Set([...pv.actors.flatMap((a) => [a.name, a.label]), ...(pv.lastSeen ?? []).map((x) => x.name), ...pv.zones.map((z) => z.name), ...(pv.known ?? []).map((z) => z.name)]
+      .filter((x): x is string => !!x).flatMap((n) => n.toLowerCase().split(/[^a-z'’-]+/)).filter((w) => w.length >= 3 && !NAME_FILLER.has(w)));
+    spans = [...order.matchAll(/[A-Za-z'’-]+/g)].filter((m) => words.has(m[0].toLowerCase())).map((m) => ({ start: m.index!, end: m.index! + m[0].length, phrase: m[0] }));
+    // words of one name side by side ("the tall man") are one span
+    spans = spans.reduce<typeof spans>((acc, x) => { const last = acc.at(-1); if (last && /^\s*(?:(?:a|an|the)\s+)?$/i.test(order.slice(last.end, x.start))) last.end = x.end; else acc.push({ ...x }); return acc; }, []);
+  }
+  if (spans.length !== 1) return `${order.replace(/[.!?\s]+$/, '')}, I mean ${phrase}`;
+  const sp = spans[0], lead = order.slice(0, sp.start).replace(/\b(?:a|an|the)\s+$/i, '');
+  return `${lead}${phrase}${order.slice(sp.end)}`;
+}
+const NAME_FILLER = new Set(['the', 'and', 'with', 'from', 'one', 'who', 'his', 'her', 'its', 'room', 'side']);
 
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
@@ -271,9 +290,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
   // SD1: while a turn that ended a scenario is still running, the ending's rule is drawn here, under the player's line
-  const endNow = h('div', { class: 'end-now' });
-  let endKey = '', endDrawn = false; // the ending shown in endNow; whether its rule was drawn there, so the turn doesn't draw it again
-  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, endNow, waiting));
+  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, waiting));
   const notices = h('div', { class: 'notices' });
   const aimBtn = h('button', { type: 'button', class: 'aim' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'What do you do', 'aria-describedby': 'cmd-hint' });
@@ -523,18 +540,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return h('p', { class: 'pbreak end', 'data-end': end.as }, h('b', {}, cap(end.name)), place ? h('span', {}, ` · ${place}`) : null);
   }
 
-  /** the clarify text with its tappable phrases; a tap fills the box with the order it asks about plus the phrase */
+  /** the clarify text with its tappable phrases; a tap fills the box with the order it asks about, the phrase in place of
+   * what the question was about (BF72). A question that came with its own answers has none: those are the way to answer. */
   function clarifyParts(l: LogLine): (Node | string)[] {
     const st = api.state();
-    const picks = st ? clarifyPicks(l.text, buildPlayerView(st)) : [];
+    if (l.answers?.length || !st) return [l.text];
+    const pv = buildPlayerView(st);
+    const picks = clarifyPicks(l.text, pv);
     const out: (Node | string)[] = [];
     let at = 0;
     for (const p of picks) {
       out.push(l.text.slice(at, p.start), h('button', { type: 'button', class: 'clar-pick', 'data-chip': 'clarify', title: 'Answer with this: fills the box with your order and this. Nothing is sent until Send',
         onclick: () => {
           const all = api.lines(), i = all.indexOf(l);
-          const asked = all.slice(0, i < 0 ? all.length : i).reverse().find((x) => x.kind === 'player')?.text ?? '';
-          pick(asked ? `${asked} (${p.phrase})` : p.phrase);
+          const asked = answering(all.slice(0, i < 0 ? all.length : i + 1), l.turn)?.order ?? '';
+          pick(asked ? answerWith(asked, p.phrase, pv) : p.phrase);
         } }, p.phrase));
       at = p.end;
     }
@@ -711,22 +731,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (!busy) { delete waiting.dataset.since; waiting.replaceChildren(); }
     waiting.hidden = !busy;
-    // SD1: the ending moment starts as soon as the engine knows the scenario ended, while the next scenario is still being
-    // made: the rule draws across, without the outcome. The closing line and the opening come with the turn's prose.
-    const ending = busy ? api.scenarioEnding?.() ?? null : null;
-    const key = ending ? `${ending.as}|${ending.name}` : '';
-    if (key !== endKey) {
-      endKey = key;
-      if (!ending) endNow.replaceChildren();
-      else {
-        // how it ended (Resolved, Lost…) is the gains moment's reveal, so while the turn runs the rule names no outcome;
-        // the turn's own break (or the pop-up) names it when the turn lands
-        const r = h('p', { class: 'pbreak end-wait' }, h('b', {}, 'The scenario draws to a close'));
-        endNow.replaceChildren(r);
-        drawBreak(r, 0);
-        endDrawn = false;
-      }
-    }
+    // BF64: while the turn runs nothing says a scenario ended: the gains pop-up (or the turn's own rule) is the first word of it
 
     helpPanel.hidden = !open;
     cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
@@ -875,17 +880,20 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     let t = 0;
     // a turn with a gains panel opens it at once: the panel carries the ending and its closing line itself
     if (on && !gainsLine) {
-      // SD1: the old scenario's closing line comes first; the ending's rule was already drawn while the turn ran, so it stays put
+      // SD1: the old scenario's closing line comes first
       const closing = e.querySelector('.ln-closing');
       if (closing) { play(closing, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') }); t += ms('--m-state'); }
       // M-40/M-42: a scenario or place break draws across first, outward from its name
       const brk = e.querySelector('.pbreak');
-      if (brk && !(brk.classList.contains('end') && endDrawn)) t += drawBreak(brk, t);
+      if (brk) t += drawBreak(brk, t);
     }
-    endDrawn = false;
+    // BF66: the player's own blow that landed shows its strike card as the turn lands, before the prose, motion on or off
+    const c = lineOf.get(e)?.check;
+    const strike = (d: number) => { if (c?.strike) strikeCard(c, d); };
     // D-226 (M-39): a scenario that gave something opens its gains panel between the old scenario's close and the new one's
     // opening; the rest of the turn plays when the panel closes
-    if (gainsLine) { openGains(gainsLine, t, on, () => { if (motionOn()) turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
+    if (gainsLine) { openGains(gainsLine, t, on, () => { strike(0); if (motionOn()) turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
+    strike(t);
     if (on) turnRest(e, b, a, ab, aa, t);
   }
 
@@ -919,12 +927,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   /** the strike card: when the player's own blow lands, a card rises over the story
    * with the outcome, the weapon and where it struck, and what the player saw it change ("The slime is Wounded"). Tiers by
    * outcome (game-feel GF-01): a graze only arrives; a full hit draws the slash; a heavy or crushing hit adds the
-   * hit-stop on the word and a short shake of the card (never the story text, never the input). One fixed life,
-   * --m-strike, whatever the turn held (M-03); any skip (M-12) ends it at once with the card gone, the state a skip leaves
-   * (M-73). It repeats the results row, so it is hidden from screen readers (the row carries the words, M-34). */
+   * hit-stop on the word and a short shake of the card (never the story text, never the input). BF66: it shows as the
+   * turn lands, before the prose, and lives --m-strike whatever happens: a skip (M-12) only lands its motion, it never takes
+   * the card away, and with motion off it shows still for the same time (M-72). It repeats the results row, so it is
+   * hidden from screen readers (the row carries the words, M-34). */
+  let strikeTimer: ReturnType<typeof setTimeout> | undefined;
   function strikeCard(c: NonNullable<LogLine['check']>, d: number) {
     const o = outcomeOf(c.result), k = c.strike;
-    if (!o || !struck(o) || !k || !motionOn()) return;
+    if (!o || !struck(o) || !k) return;
     const beat = OUTCOME_BEAT[o], where = c.result.split(', ').slice(1).join(', ');
     const target = theOf(k.target);
     const card = h('div', { class: `strike t${beat}`, 'aria-hidden': 'true', 'data-o': o },
@@ -932,18 +942,23 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('p', { class: 'sk-out' }, cap(outcomeText(o))),
       h('p', { class: 'sk-where' }, [k.weapon ? `Your ${k.weapon.toLowerCase()}` : 'Your blow', `${target}${where ? `’s ${where}` : ''}`].join(' · ')),
       k.changes.length ? h('p', { class: 'sk-chg' }, k.changes.map(cap).join(' · ')) : null);
-    later(() => {
-      body.querySelectorAll('.strike').forEach((x) => x.remove());
+    body.querySelectorAll('.strike').forEach((x) => x.remove());
+    clearTimeout(strikeTimer);
+    const life = ms('--m-strike');
+    // the card's own clock, apart from the turn's motion, so a skip can't end it early
+    strikeTimer = setTimeout(() => {
       body.append(card);
-      const life = ms('--m-strike'), enter = ms('--m-state') / life, leave = 1 - ms('--m-feedback') * 2 / life;
+      strikeTimer = setTimeout(() => card.remove(), life);
+      if (!motionOn()) return;
+      const enter = ms('--m-state') / life, leave = 1 - ms('--m-feedback') * 2 / life;
       play(card, [{ opacity: 0, transform: 'translateY(10px) scale(.96)' }, { opacity: 1, transform: 'none', offset: enter, easing: 'linear' }, { opacity: 1, transform: 'none', offset: leave, easing: 'cubic-bezier(0.4, 0, 1, 1)' }, { opacity: 0, transform: 'translateY(-6px)' }],
-        { dur: life, done: () => card.remove() });
+        { dur: life });
       const slash = card.querySelector('.sk-slash');
       if (slash) play(slash, [{ transform: 'rotate(-14deg) scaleX(0)', opacity: 1 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 1, offset: 0.35 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 0 }], { dur: ms('--m-trail'), delay: ms('--m-feedback') });
       const word = card.querySelector('.sk-out');
       if (beat >= 3) { impact(word, ms('--m-feedback')); shake([card], beat >= 4 ? 1 : 0.6, ms('--m-feedback') + ms('--m-hold')); }
       else if (beat === 2) pulse(word, ms('--m-feedback'), 2);
-    }, d);
+    }, Math.max(0, d));
   }
 
   /** the turn after its opening: the prose, its results, the sheet and the gold cards, from t */
@@ -967,8 +982,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       arrive(r, d);
       // M-20: the outcome word's beat, by severity
       const w = r.querySelector('.res b'), o = Number(w?.getAttribute('data-o') ?? 0);
-      // the player's own blow that landed: the strike card over the story, at this row's beat
-      if (r.classList.contains('check') && !r.classList.contains('in')) { const c = lineOf.get(e)?.check; if (c?.strike) strikeCard(c, d + fade); }
       if (w && o === 1) play(w, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-beat'), delay: d + fade });
       else if (w && o === 4 && r.classList.contains('in')) {
         // a crushing hit on the player (game-feel T3): the word holds its struck pose, then the story and the sheet

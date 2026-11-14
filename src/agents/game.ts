@@ -49,6 +49,7 @@ import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { setSignatures } from '../ruleset/personality';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
+import { answering } from './answering';
 import { TURN_CHECK, checkTurn, snapTurn } from '../save/turnCheck';
 import { cap, listWords, r1 } from '../words';
 
@@ -325,6 +326,7 @@ export function createGame(deps: GameDeps): Game {
     const s = state!;
     const submitAt = clock.now();
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
+    const answer = answering(lines, s.turn); // BF72: read before this order joins the story
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
     const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player), brokenBefore = moraleLevel(s.player) === 'broken';
     const partsBefore = partStates(s, s.player);
@@ -338,7 +340,7 @@ export function createGame(deps: GameDeps): Game {
     const doingBefore = doingSnap(pv);
     // NW18: asleep, the turn passes with you doing nothing; nothing you type is read
     const parsed = s.player.asleep || s.mercy ? { clarify: null, intent: ASLEEP_INTENT } // D-239: down, likewise
-      : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean) });
+      : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean), answering: answer });
     if (parsed.clarify !== null || !parsed.intent) {
       // the turn stops: no resolution, turn unchanged, Planner outputs kept for this same turn
       lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?', ...('answers' in parsed && parsed.answers?.length ? { answers: parsed.answers } : {}) });

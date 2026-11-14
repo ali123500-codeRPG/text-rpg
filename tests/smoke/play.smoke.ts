@@ -143,8 +143,39 @@ describe('play page smoke (TQ7)', () => {
     await ans.first().click();
     expect(await page.locator('.inbar .hs-input').inputValue()).toBe('I hold my place and wait to see who appears');
     expect(await page.getByText(/^Turn 1\b/).count()).toBe(0); // nothing was sent
+    expect(await page.locator('.ln-clarify .clar-pick').count()).toBe(0); // BF72: the answers are the one way to answer
     expect(errors).toEqual([]);
   });
+
+  // BF66: the strike card shows as the turn lands and lives its full time: a click on the story doesn't take it away, and with
+  // motion off it still shows. BF64: no "draws to a close" line ever shows while a turn runs.
+  for (const motion of ['on', 'off'] as const) {
+    it(`BF66: a landed blow shows the strike card at once, with motion ${motion}, and a click on the story keeps it`, async () => {
+      if (motion === 'off') await page.evaluate(() => localStorage.setItem('motion', 'off')); // read on every turn
+      // someone to hit, half a metre away: the smoke world's opening has no one beside the player
+      const id = await page.evaluate(() => {
+        type A = { id: string; kind: string; name?: string; zone: string; pos: { x: number; y: number } };
+        const s = (globalThis as unknown as { __GAME_API__: { state(): { player: A; actors: A[] } } }).__GAME_API__.state();
+        const d = { ...structuredClone(s.player), id: 'dummy', kind: 'npc', name: 'Straw Dummy', pos: { x: s.player.pos.x + 0.5, y: s.player.pos.y }, mind: { control: 'code', knowledge: {}, knows: [] } };
+        s.actors.push(d);
+        return d.id;
+      });
+      await page.evaluate(() => { (window as unknown as { endWait: number }).endWait = 0; new MutationObserver(() => { if (document.querySelector('.end-wait')) (window as unknown as { endWait: number }).endWait++; }).observe(document.body, { childList: true, subtree: true }); });
+      let seen = false;
+      for (let n = 1; n <= 8 && !seen; n++) {
+        await page.getByPlaceholder(/What do you do/).fill(`hit ${id} SK2`);
+        await page.getByRole('button', { name: 'Send' }).click();
+        await page.getByText(new RegExp(`^Turn ${n}\\b`)).first().waitFor(); // a fight adds its own "Turn n" label
+        for (let i = 0; i < 10 && !seen; i++) { seen = await page.locator('.strike').count() > 0; if (!seen) await page.waitForTimeout(100); }
+      }
+      expect(seen).toBe(true);
+      await page.locator('.story').click({ position: { x: 20, y: 20 } }); // a skip (M-12)
+      await page.waitForTimeout(200);
+      expect(await page.locator('.strike').count()).toBe(1);
+      expect(await page.evaluate(() => (window as unknown as { endWait: number }).endWait)).toBe(0);
+      expect(errors).toEqual([]);
+    }, 60_000);
+  }
 
   it('BG-220: Back closes the full-screen Perks pop-up and stays on the Character page; closing it with ✕ leaves Back as it was', async () => {
     await nav('Character');

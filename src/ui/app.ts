@@ -96,10 +96,13 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   }
 
   // the rail is rebuilt only when what it shows changes, so a redraw never cuts short the perk badge's beat (M-74)
-  let railKey = '';
+  let railKey = '', railPoints = 0;
   function drawRail(page: string) {
     const started = !!api.state();
-    const key = [page, started, gmOn, api.state()?.player.progression?.unspentPerkPoints ?? 0].join('|');
+    // BF64: while a turn runs the badge keeps the count it had, so a new point never gives away an ending or a level-up
+    // before the gains pop-up or the level-up card shows it
+    if (!api.busy()) railPoints = api.state()?.player.progression?.unspentPerkPoints ?? 0;
+    const key = [page, started, gmOn, railPoints].join('|');
     if (key === railKey) return;
     railKey = key;
     // icons only: the name is kept for screen readers and shown in a tip on hover or focus
@@ -109,7 +112,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     }, icon(id), h('span', { class: 'rail-label' }, label), id === 'stats' ? pointsBadge() : null);
     // V2b: perk points waiting to be spent; after a turn the Play screen holds a new count back until its level-up lands (M-38)
     function pointsBadge() {
-      const n = api.state()?.player.progression?.unspentPerkPoints ?? 0;
+      const n = railPoints;
       return n > 0 ? h('span', { class: 'hs-badge', 'data-m': 'points', title: `${n} perk point${n === 1 ? '' : 's'} to spend` }, `✦${n}`) : null;
     }
     rail.replaceChildren(

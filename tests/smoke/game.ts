@@ -14,6 +14,7 @@ function parse(req: ClaudeRequest): Intent {
   const text = req.input.at(-1)?.content ?? '';
   const said = /PLAYER_INPUT:\n"?([^"\n]*)/.exec(text)?.[1] ?? '';
   if (/^say /i.test(said)) return intent({ spoken: said.slice(4), addressees: ['everyone'] });
+  { const m = /^hit (\S+) (SK\d+)$/i.exec(said); if (m) return intent({ action: { ...observe, type: 'attack' as never, skill: m[2], target: m[1] } }); } // BF66
   if (/^ask me$/i.test(said)) return intent({ clarify: 'Do you want to hold your place?', answers: ['I hold my place and wait to see who appears', 'I go back inside'] }); // BG-228
   if (/ then /i.test(said)) return intent({ action: observe, deferred: [said.split(/ then /i).slice(1).join(' then ')] }); // Q16: the rest is put off
   return intent({ action: observe });
