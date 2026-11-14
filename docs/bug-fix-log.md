@@ -6,6 +6,30 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-218
+
+**What was wrong:** The Character card read "In the the Crooked Kettle": it always wrote "In the" before the place's name, though place names carry their own article or are proper names (it would have said "In the Thornbury"). The agent player's where-you-are line had the same gap ("Where you are: the the village square").
+
+**What was done:** Ali approved the fix (BF46). One rule, theName in src/words.ts, puts "the" only before a plain common name; a name that starts with an article, a capital letter or a place word like "behind" stays as it is. The card and the agent player's line both use it. Test tests/unit/bg218-place-article.test.ts.
+
+**Fixed by:** [PR #791](https://github.com/ali123500-codeRPG/text-rpg/pull/791)
+
+## BG-217
+
+**What was wrong:** Ali's report (story mwf2lt7l, turn 37): after scenario 1 ended at turn 34 he was in free roam, and achievements (Set Foot in a Tavern, Set Foot in a Village, Job Done, For Nothing) and level 6 landed at once, one by one. Growth only waited while a scenario ran.
+
+**What was done:** Ali approved the fix (BF44). Free roam now counts toward the next scenario for growth: achievements queue, levels and All-XXX steps wait, and the next scenario's end grants them in its gains moment, whose XP line and sources start where the roam started. Test in tests/cases/s205-growth-at-scenario-end.test.ts.
+
+**Fixed by:** [PR #791](https://github.com/ali123500-codeRPG/text-rpg/pull/791)
+
+## BG-204
+
+**What was wrong:** Story mwf2lt7l, turn 27: the Weaver put the village's barred north gate straight on the way to the north road, a frontier. The plan check refuses a barrier there, but the Weaver's instructions never said so, so it cost a second Weaver call to repair the plan.
+
+**What was done:** Ali approved the fix (BF43). The Weaver's barrier instructions now say a barrier goes only on a way between two zones, never on a drop or a way to a frontier; for a gate out of a place it adds the zone beyond the gate and gives that zone the frontier. Test in tests/unit/agents.test.ts.
+
+**Fixed by:** [PR #791](https://github.com/ali123500-codeRPG/text-rpg/pull/791)
+
 ## BG-192
 
 **What was wrong:** In story mwf2lt7l (turns 22 to 27) Wren kept trying to hand Happi the lucky charm from his sack, and each time the game dropped the charm from his action (invalid_gear). The check on what an NPC may name knew only what hung on his body, not what was inside his own sack, so his give, and his try to take the charm out first, both pointed at an item he "didn't have". It was filed four times, once per try: BG-192, BG-196, BG-198 and BG-205.
