@@ -145,6 +145,8 @@ export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = 
   const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
   const lost = !!(f.down || f.broke || yieldTaken(state) || !isActive(state.player));
   strongerFoe(state, f, won && !lost);
+  // your nerve broke and the fight was won all the same; it still counts as a lost fight below (MB12), as going Down does
+  if (won && f.broke && f.foes.length && isActive(state.player) && !yieldTaken(state)) tally(state, 'won_broken');
   if (f.down || f.broke || yieldTaken(state) || !isActive(state.player)) return tally(state, 'defeated');
   if (f.brink) tally(state, 'brink');
   if (!won) {
