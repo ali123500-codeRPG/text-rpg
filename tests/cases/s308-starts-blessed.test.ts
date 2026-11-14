@@ -8,6 +8,7 @@ import { unlockClasses } from '../../src/engine/xp';
 import { CL } from '../../src/library/classIds';
 import { GD } from '../../src/library/godIds';
 import { ST } from '../../src/library/startIds';
+import { PK } from '../../src/library/perkIds';
 import { makeVillage } from '../harness';
 
 const FIXTURE = 'PK_test_blessing'; // a stand-in tier V blessing until the essence god's extraction perk is tagged
@@ -38,6 +39,12 @@ describe('308 Starts and the blessed start', () => {
     expect(b && { god: getLibrary().perks[b.perkId].blessing!.god, tier: getLibrary().perks[b.perkId].blessing!.tier, source: b.source })
       .toEqual({ god: GD.essences, tier: 'tier_5', source: 'start' });
     expect(createPlayer(recommendedBuild(ST.blessed), 's1').core.perks).toEqual(p.core.perks);
+  });
+
+  it('today the only Tier V blessing is the god of essences\' Pull the Thread', () => {
+    const p = createPlayer(recommendedBuild(ST.blessed), 's2');
+    expect(p.core.perks).toContainEqual({ perkId: PK.pull_the_thread, source: 'start', gainedTurn: 0 });
+    expect(p.core.classes[0].classId).toBe(CL.blessed_essences);
   });
 
   it('a god\'s Blessed class opens for a character that god blesses, and not before', () => {

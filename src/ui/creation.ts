@@ -245,7 +245,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
-      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), whoRow(), starts, worldRow(), worldNote,
+      h('div', {}, h('h1', {}, `Create your ${(!start?.blessing && cls?.name) || 'character'}`), whoRow(), starts, worldRow(), worldNote,
         start?.story ?? cls?.story ? h('p', { class: 'story-line' }, start?.story ?? cls?.story) : null,
         start?.blessing ? h('p', {}, `You begin with ${facts.perks[0]}, in that god’s Blessed class${facts.classes.length ? `: ${facts.classes.map((c) => `${lib.classes[c].name} (${CLASS_TIERS.name(lib.classes[c].tier)})`).join(' or ')}` : ''}.`)
           : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null,
