@@ -6,6 +6,46 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-192
+
+**What was wrong:** In story mwf2lt7l (turns 22 to 27) Wren kept trying to hand Happi the lucky charm from his sack, and each time the game dropped the charm from his action (invalid_gear). The check on what an NPC may name knew only what hung on his body, not what was inside his own sack, so his give, and his try to take the charm out first, both pointed at an item he "didn't have". It was filed four times, once per try: BG-192, BG-196, BG-198 and BG-205.
+
+**What was done:** Nothing new was needed; Ali OK'd closing it (BF42). PR #698 (putting things into containers) had already taught the check that what is in your own sack is yours to name, give or take out. It merged about half an hour after the last of these turns. BF34 (PR #764) made a give from a sack actually hand it over. A test replays Wren's turn 23 answer and expects nothing dropped (tests/cases/s280-put-into-containers.test.ts).
+
+**Fixed by:** [PR #698](https://github.com/ali123500-codeRPG/text-rpg/pull/698), [PR #764](https://github.com/ali123500-codeRPG/text-rpg/pull/764)
+
+## BG-196
+
+**What was wrong:** Another of Wren's tries to give the charm from his own sack, dropped as invalid_gear. The same bug as BG-192.
+
+**What was done:** Closed as BG-192 (BF42): already fixed by PR #698 and PR #764.
+
+**Fixed by:** [PR #698](https://github.com/ali123500-codeRPG/text-rpg/pull/698), [PR #764](https://github.com/ali123500-codeRPG/text-rpg/pull/764)
+
+## BG-198
+
+**What was wrong:** Another of Wren's tries to give the charm from his own sack, dropped as invalid_gear. The same bug as BG-192.
+
+**What was done:** Closed as BG-192 (BF42): already fixed by PR #698 and PR #764.
+
+**Fixed by:** [PR #698](https://github.com/ali123500-codeRPG/text-rpg/pull/698), [PR #764](https://github.com/ali123500-codeRPG/text-rpg/pull/764)
+
+## BG-205
+
+**What was wrong:** Another of Wren's tries to give the charm from his own sack, dropped as invalid_gear. The same bug as BG-192.
+
+**What was done:** Closed as BG-192 (BF42): already fixed by PR #698 and PR #764.
+
+**Fixed by:** [PR #698](https://github.com/ali123500-codeRPG/text-rpg/pull/698), [PR #764](https://github.com/ali123500-codeRPG/text-rpg/pull/764)
+
+## BG-197
+
+**What was wrong:** Following Wren into the kitchen (story mwf2lt7l, turn 21) walked Happi onto the exact spot Wren stood on, so they ended 0 m apart: nothing stopped two people ending on one spot, and a follow had no distance of its own.
+
+**What was done:** Already fixed by BF35 (PR #759): a walk stops about a metre short of anyone standing at its end, and a follow keeps the distance you say (about 2 m by default, more when sneaking). Ali OK'd closing the number (BF42). Test tests/cases/s304-follow-distance.test.ts.
+
+**Fixed by:** [PR #759](https://github.com/ali123500-codeRPG/text-rpg/pull/759)
+
 ## BG-215
 
 **What was wrong:** On the Achievements page "No Match for You" showed "↻4" beside its name although the chain has only two levels. The ↻N counted every row in the chain, its branch rows included (Influence I, Sight I), and it sat glued to the name. Next also ignored the branches once the trunk was finished, so the chain said nothing was left while two branches were part-way.

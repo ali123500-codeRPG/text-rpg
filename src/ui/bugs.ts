@@ -1,10 +1,10 @@
-// Bugs: report a bug from play, see the open bugs (the game's own filings and the threads'), and send them to Claude.
-// Reports are numbered from the same counter as every other bug (src/save/bugs.ts). "Report bug" saves the report and
+// Bugs: report a bug from play, see the new reports and open bugs (the game's own filings and the threads'), and send them
+// to Claude. The game's reports are new, with no number, until Claude numbers them at triage (BF45, src/save/bugs.ts). "Report bug" saves the report and
 // then sends every open bug to Claude (BG-27: pressing it sends them), the same as "Send open bugs to
 // Claude": a comment sent to Claude (the comments capability), which wakes the thread that triages them. The send
 // button stays for sending again; it is hidden, and a report is only saved, when the page can't send to Claude.
 import type { GameApi } from '../types';
-import type { FiledBug } from '../save/bugs';
+import { isNewReport, type FiledBug } from '../save/bugs';
 import { h } from './kit';
 
 const REFRESH_MS = 5000;
@@ -29,8 +29,10 @@ export function bugsPage(api: GameApi) {
   /** sends the open bugs to Claude; true when sent */
   async function sendOpen(open: FiledBug[], anchorEl: Element): Promise<boolean> {
     if (!comments || !open.length) return false;
-    const list = open.map((b) => `${b.id} (${b.code}, turn ${b.turn})`).join(', ');
-    await comments.sendToClaude({ anchor: await comments.anchorFor(anchorEl), text: `Open bugs to triage and hand to the right threads (read them from the db bugs collection): ${list}` });
+    const list = (bs: FiledBug[]) => bs.map((b) => `${b.id} (${b.code}, turn ${b.turn})`).join(', ');
+    const fresh = open.filter(isNewReport), numbered = open.filter((b) => !isNewReport(b));
+    const parts = [fresh.length ? `new reports to number: ${list(fresh)}` : '', numbered.length ? `open bugs: ${list(numbered)}` : ''].filter(Boolean);
+    await comments.sendToClaude({ anchor: await comments.anchorFor(anchorEl), text: `Bugs to triage and hand to the right threads (read them from the db bugs collection). ${parts.join('; ')}` });
     return true;
   }
   report.onclick = async () => {
@@ -40,13 +42,13 @@ export function bugsPage(api: GameApi) {
     const id = await api.reportBug(text).catch(() => null);
     if (!id) { report.disabled = false; sendNote.textContent = 'The report couldn’t be saved. Try again.'; return; }
     note.value = '';
-    sendNote.textContent = `Saved as ${id}. Sending the open bugs to Claude…`;
+    sendNote.textContent = 'Saved. Sending it to Claude with the open bugs…';
     // BG-27: a report goes to Claude with every open bug, without a second press
     const open = await api.openBugs().catch(() => rows ?? []);
     rows = open; fetchedAt = Date.now();
     const sent = await sendOpen(open, report).catch(() => false);
-    sendNote.textContent = sent ? `Saved as ${id} and sent to Claude with ${open.length} open bug${open.length === 1 ? '' : 's'}.`
-      : `Saved as ${id}, but it couldn’t be sent to Claude from here. Leave a comment on this page and send it to Claude.`;
+    sendNote.textContent = sent ? 'Saved and sent to Claude, who gives it a bug number once it has been looked at.'
+      : 'Saved, but it couldn’t be sent to Claude from here. Leave a comment on this page and send it to Claude.';
     report.disabled = false;
     draw();
   };
@@ -57,30 +59,30 @@ export function bugsPage(api: GameApi) {
     toClaude.hidden = false;
     toClaude.onclick = async () => {
       const open = rows ?? [];
-      if (!open.length) { claudeNote.textContent = 'No open bugs to send.'; return; }
+      if (!open.length) { claudeNote.textContent = 'No bugs to send.'; return; }
       toClaude.disabled = true;
       claudeNote.textContent = 'Sending…';
       const sent = await sendOpen(open, toClaude).catch(() => false);
-      claudeNote.textContent = sent ? `Sent ${open.length} open bug${open.length === 1 ? '' : 's'} to Claude.` : 'Couldn’t reach Claude from here. Leave a comment and send it to Claude instead.';
+      claudeNote.textContent = sent ? `Sent ${open.length} bug${open.length === 1 ? '' : 's'} to Claude.` : 'Couldn’t reach Claude from here. Leave a comment and send it to Claude instead.';
       toClaude.disabled = false;
     };
   }).catch(() => undefined);
 
   const row = (b: FiledBug) => h('tr', {},
-    h('td', { class: 'bug-id' }, b.id),
+    h('td', { class: 'bug-id' }, isNewReport(b) ? 'New' : b.id),
     h('td', {}, h('span', { class: 'hs-tg' }, b.code === 'player_report' ? 'your report' : b.code)),
     h('td', { class: 'num' }, String(b.turn ?? '')),
     h('td', {}, bugSummary(b)),
     h('td', { class: 'hs-note' }, b.at ? new Date(b.at).toLocaleString() : ''));
   function draw() {
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Bugs'), h('p', {}, 'Report what went wrong. Open bugs are listed below, newest first, until a fix marks them done.'))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Bugs'), h('p', {}, 'Report what went wrong. New reports get a bug number once Claude has looked at them. New reports and open bugs are listed below, newest first, until a fix marks them done.'))),
       h('section', { class: 'bug-report' }, note, h('div', { class: 'bug-actions' }, report, sendNote)),
-      h('div', { class: 'bug-bar' }, h('h2', {}, rows ? `Open bugs (${rows.length})` : 'Open bugs'), toClaude, claudeNote),
+      h('div', { class: 'bug-bar' }, h('h2', {}, rows ? `New and open bugs (${rows.length})` : 'New and open bugs'), toClaude, claudeNote),
       rows === null ? h('p', { class: 'empty', role: 'status' }, failed ? 'The bug list couldn’t be read from the save.' : 'Reading the save…')
         : rows.length ? h('table', { class: 'bug-table' }, h('thead', {}, h('tr', {}, ['Bug', 'Kind', 'Turn', 'What went wrong', 'Filed'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rows.map(row)))
-          : h('p', { class: 'empty' }, 'No open bugs.'));
+          : h('p', { class: 'empty' }, 'No new or open bugs.'));
   }
   function update() {
     draw();
