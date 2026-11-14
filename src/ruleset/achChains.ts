@@ -72,3 +72,9 @@ export function heldChains(s: GameState, scars: boolean): Map<string, HeldChain[
   }
   return out;
 }
+/** a branch's kind in words: by body type, by race, per source … */
+export function branchLabel(d: AchievementDef | undefined): string {
+  if (!d) return '';
+  if (d.only) return d.rule === 'calmed' ? getLibrary().composure?.[d.only]?.name ?? d.only : getLibrary().healing?.[d.only]?.name ?? d.only;
+  return d.by ? `by ${d.by.replace(/_/g, ' ')}` : d.name;
+}

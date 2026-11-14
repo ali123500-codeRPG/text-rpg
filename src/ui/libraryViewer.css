@@ -270,3 +270,9 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .hs-rail button.lv-railgroup::after { content: ' \25BE'; }
 .hs-rail button.lv-railgroup[aria-expanded="false"]::after { content: ' \25B8'; }
 .hs-rail a.lv-railfold:not([aria-current]) { display: none; }
+/* TB4 chain lines: one folded line per achievement chain, unfolding into its levels and branch tracks */
+.lv-chainline { margin: 0; border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--space-2) var(--space-3); }
+.lv-chainline > header > h3 { margin: 0; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: baseline; gap: var(--space-2); }
+.lv-chainline > header > h3 .lv-chainmeta { font-size: 13px; font-weight: 500; color: var(--muted); }
+.lv-chainline .lv-rep { margin-left: auto; font-size: 12px; color: var(--muted); }
+.lv-chainline > .lv-track { margin-top: var(--space-2); }

@@ -9,7 +9,7 @@ import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
 import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
 import { rewardName, rewardPos } from '../ruleset/achRewards';
-import { chainRows, chainTag, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
+import { branchLabel, chainRows, chainTag, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
@@ -572,12 +572,6 @@ export function chainDetail(s: GameState, id: string, scars: boolean): PanelRow[
   const earned = chains.flatMap((c) => earnedOf(s, c));
   rows.push({ k: 'Chain XP', v: `${earned.reduce((n, m) => n + achXp(lib[m.key!], m.of), 0)} XP from ${plural(earned.length, 'row', 'rows')}` });
   return rows;
-}
-/** a branch's kind in words: by body type, by race, per source … */
-function branchLabel(d: AchievementDef | undefined): string {
-  if (!d) return '';
-  if (d.only) return d.rule === 'calmed' ? getLibrary().composure?.[d.only]?.name ?? d.only : getLibrary().healing?.[d.only]?.name ?? d.only;
-  return d.by ? `by ${d.by.replace(/_/g, ' ')}` : d.name;
 }
 
 /** the side panel for an earned achievement: how it is earned, when you earned it, what it pays, and every level of its chain
