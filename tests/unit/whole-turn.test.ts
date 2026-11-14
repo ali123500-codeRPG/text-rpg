@@ -29,8 +29,8 @@ describe('wholeTurn (TQ5)', () => {
       t.state.actors.find((a) => a.id === 'patron_1')!.bandId = 'nobody'; // links_real breaks
       const { narration } = await t.turn(intent());
       expect(narration).not.toBe('');
-      const bugs = await t.game.openBugs();
-      expect(bugs.some((b) => b.code === 'turn_check' && JSON.stringify(b).includes('links_real'))).toBe(true);
+      // filing is queued behind any other reports of the turn (here: achievements granted with no scenario running)
+      await expect.poll(async () => (await t.game.openBugs()).some((b) => b.code === 'turn_check' && JSON.stringify(b).includes('links_real'))).toBe(true);
     } finally {
       TURN_CHECK.strict = true;
     }

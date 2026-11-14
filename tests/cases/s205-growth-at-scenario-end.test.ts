@@ -1,6 +1,7 @@
 // 205 Growth at the scenario's end (D-226, LF3): while a scenario runs, the player's achievements and All-XXX steps wait and are
 // granted together when it ends, with one gains summary for the ending moment (skills, milestone unlocks, All-XXX,
-// achievements, XP bar, levels). In free roam they wait for the next scenario's end (BG-217).
+// achievements, XP bar, levels). In free roam they wait for the next scenario's end (BG-217). One granted anywhere else is
+// flagged (achievement_outside_end) and filed as a bug report.
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { makeVillage } from '../harness';
@@ -12,6 +13,7 @@ import { closeScenario, endScenario, frameOf } from '../../src/engine/scenarioEn
 import { noteGains, scenarioGainsNow } from '../../src/engine/growth';
 import { play } from './w4-kit';
 import { getLibrary } from '../../src/library';
+import { isBugCode } from '../../src/save/bugs';
 
 const frame = (s: GameState) => (s.stage.scenario = frameOf(s, { question: 'q', scale: 'situation', endings: [] }, 'success', (_k, r) => r));
 const end = (s: GameState) => { endScenario(s, 'resolved', ''); s.stage.breakCause = 'scenario_end' as never; return closeScenario(s); };
@@ -23,6 +25,9 @@ describe('205 growth lands at the scenario end', () => {
     const s = makeVillage();
     firstSlime(s);
     expect(has(s, ACH.first_defeat_body_type)).toBe(true);
+    // granted outside a scenario's end: flagged, and the game files it as a bug report
+    expect(s.log.find((l) => l.code === 'achievement_outside_end')?.detail).toMatchObject({ why: 'no_scenario' });
+    expect(isBugCode('achievement_outside_end')).toBe(true);
   });
 
   it('while a scenario runs it waits, then the end grants it with its XP and leaves the gains summary', () => {
@@ -42,6 +47,7 @@ describe('205 growth lands at the scenario end', () => {
     end(s); // the ending turn's own raises count even when nothing noted them yet
     expect(has(s, ACH.first_defeat_body_type)).toBe(true);
     expect(s.player.progression!.pendingAchievements).toBeUndefined();
+    expect(s.log.some((l) => l.code === 'achievement_outside_end')).toBe(false); // granted at the end: no flag
     const g = scenarioGainsNow(s)!;
     expect(g.achievements.map((a) => a.id)).toEqual([`${getLibrary().achievements![ACH.first_defeat_body_type].id}:slime`]);
     expect(g.skills).toEqual([{ skill: SK.dodge, from: 25, to: 30 }]);
