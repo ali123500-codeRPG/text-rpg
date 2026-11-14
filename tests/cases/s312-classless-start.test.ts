@@ -3,7 +3,7 @@
 // is classless today, so a stand-in Start is added for the test.
 import { afterEach, describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
-import { classlessStart, createPlayer, defaultClass, recommendedBuild, startLevel, validateBuild } from '../../src/library/spawn';
+import { classlessStart, createPlayer, defaultClass, playableRaces, raceStartBlock, recommendedBuild, startLevel, validateBuild } from '../../src/library/spawn';
 import { awardXp, charLevel, levelTarget, spendXp, xpToNext } from '../../src/engine/xp';
 import { CL } from '../../src/library/classIds';
 import { ST } from '../../src/library/startIds';
@@ -33,6 +33,14 @@ describe('312 classless start', () => {
     expect(charLevel(p)).toBe(0);
     expect(p.progression!.unspentPerkPoints).toBe(perkPointsUpTo(0));
     expect(p.core.perks.filter((x) => x.source === 'class')).toEqual([]);
+  });
+
+  it('Commoner is open from the start for every Start and race (unlocked, level 0)', () => {
+    for (const st of Object.keys(getLibrary().starts)) for (const r of playableRaces()) {
+      if (raceStartBlock(st, r)) continue;
+      const p = createPlayer(recommendedBuild(st, r), 's1', { preview: true });
+      expect(p.core.classes, `${st} ${r}`).toContainEqual({ classId: CL.commoner, state: 'unlocked', level: 0 });
+    }
   });
 
   it('levels bank until a class is picked; picking takes them all', () => {

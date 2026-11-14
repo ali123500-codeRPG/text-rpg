@@ -22,7 +22,7 @@ describe('308 Starts and the blessed start', () => {
     expect(Object.values(lib.starts).map((s) => [s.name, s.classId, s.points, s.level])).toEqual([
       ['Swordsman', CL.swordsman, undefined, undefined], ['Unwritten Legend', CL.late_bloomer, 50, 1],
       ['The Threadbound', CL.threadbounded, 50, 1], ['The Blessed', undefined, 50, 1]]);
-    expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }]);
+    expect(createPlayer(recommendedBuild(ST.late_bloomer), 's1').core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
   });
 
   it('blessing tiers count up with no end: Tier I is the weakest, the start\'s Tier V is mid-ladder (CC1 b)', () => {
@@ -40,7 +40,7 @@ describe('308 Starts and the blessed start', () => {
     expect(validateBuild(recommendedBuild(ST.blessed))).toEqual([]);
     expect(startGives(ST.blessed).classId).toBeUndefined(); // the screen has no story id yet, so no roll
     const p = createPlayer(recommendedBuild(ST.blessed), 's1');
-    expect(p.core.classes).toEqual([{ classId: CL.blessed_essences, state: 'current', level: 1 }]);
+    expect(p.core.classes).toEqual([{ classId: CL.blessed_essences, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]);
     const b = p.core.perks.find((x) => getLibrary().perks[x.perkId]?.blessing);
     expect(b && { god: getLibrary().perks[b.perkId].blessing!.god, tier: getLibrary().perks[b.perkId].blessing!.tier, source: b.source })
       .toEqual({ god: GD.essences, tier: 'tier_5', source: 'start' });

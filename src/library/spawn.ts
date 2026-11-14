@@ -440,7 +440,9 @@ export function newPlayer(startId = PLAYER_START, storyId?: string, raceId: stri
   return {
     bodyTypeId: getLibrary().races?.[raceId]?.bodyTypeId ?? BT.humanoid, // BR5: the body type comes from the race
     raceId, // CC7 a: picked on the creation screen
-    classes: classId ? [{ classId, state: 'current', level }] : classlessStart(startId) && defaultClass() ? [{ classId: defaultClass()!, state: 'unlocked', level: 0 }] : [],
+    // Commoner (the default class) is open from the start for everyone, unless it is the start's own class
+    classes: [...(classId ? [{ classId, state: 'current' as const, level }] : []),
+      ...(defaultClass() && defaultClass() !== classId && (classId || classlessStart(startId)) ? [{ classId: defaultClass()!, state: 'unlocked' as const, level: 0 }] : [])],
     perks: [...racePerks(raceId), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
   };
 }
