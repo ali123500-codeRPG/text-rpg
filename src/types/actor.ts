@@ -194,13 +194,15 @@ export type Progression = {
   /** growth proposal 2.5: essences held (at most essenceSlots), and essences on offer (each until its turn, or a new scenario) */
   essences?: HeldEssence[];
   essenceOffers?: EssenceOffer[];
+  essenceChanges?: number; // EB3: essences let go or swapped out so far (the first ESSENCE_FREE_CHANGES cost no XP)
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };
 
 /** an essence: its row, the grade its quality roll gave, and the true skill it adds (its points, split by the row's weights) */
 export type HeldEssence = { essence: LibraryRef; grade: import('../scales').EssenceGradeKey; points: Record<LibraryRef, number>; turn: Turn; from?: string };
 /** an essence on offer: where it came from (a beaten foe's name, or the scenario's ending) and the last turn it can be taken */
-export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; /** AT75: game minutes it waits until */ untilMin: number };
+export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; /** AT75: game minutes it waits until */ untilMin: number;
+  /** EB1: one of an ending's two offers; taking (or giving or selling) one lets the other go */ pair?: string };
 export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number }; why?: DefeatWhy }; // why: BG-199, how a defeat came
 /** BG-199: how a foe was beaten: down, or still up but broken or surrendered to the player */
 export type DefeatWhy = 'down' | 'broken' | 'surrendered';
@@ -214,6 +216,7 @@ export type Mind = {
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware
   xpPaid?: true; // its defeat has paid XP (B4)
   essenceRolled?: true; // growth proposal 2.3: its defeat has rolled for an essence (one offer per foe, ever)
+  bested?: true; // BS3 a: the player has bested it (once per person, ever)
   knowledge: Record<ActorId, Belief>;
   /** GD3: a guard's suspicions: whom it suspects, over which locked container, since when (src/engine/suspicion.ts) */
   suspects?: Record<ActorId, { box: string; turn: number; asked?: number }>; // asked: the turn a code-run guard last asked to see inside

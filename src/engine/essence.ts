@@ -55,14 +55,18 @@ export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; act
   return { grade: ESSENCE_GRADES.keys[Math.min(step, last)], past: Math.max(0, step - last) };
 }
 
-/** an essence appears from `row` (logged: the Narrator tells it), then its quality roll decides: held as an offer, or it fades */
+/** an essence appears from `row` (logged: the Narrator tells it), then its quality roll decides: held as an offer, or it fades.
+ * `pair`: one of an ending's two offers (EB1) */
 function appearAndRoll(state: GameState, rng: Rng, row: EssenceDef, base: number, source: EssenceOffer['source'], from: string,
-  skills: { skill: string; weight: number }[], measure: (skill: string) => number, echo = false): void {
+  skills: { skill: string; weight: number }[], measure: (skill: string) => number, echo = false, pair?: string): void {
   logCode(state, 'essence_appeared', { essence: row.id, source, from });
   const roll = qualityRoll(rng, base, { state, actor: state.player }, echo);
-  if (roll) return offer(state, row, skills, roll, source, from, measure);
+  if (roll) return offer(state, row, skills, roll, source, from, measure, pair);
   logCode(state, 'essence_faded', { essence: row.id, source, from });
 }
+
+/** a person's skill as an essence measures it: raw × tier (2.2), at its death, at an ending (EB1 b) or when extracted */
+export const measureOf = (who: Actor) => (sk: string): number => (who.core.skills[sk]?.raw ?? 0) * tierMult(sk);
 
 /** EG9 a: the rows a source offers, picked by weight (the kind is fixed by the source; chance only decides if and how good) */
 function pick(rows: EssenceDef[], rng: Rng): EssenceDef | undefined {
@@ -97,7 +101,7 @@ export function templateEssences(t: NpcTemplate): { row: EssenceDef; fit?: numbe
 }
 
 /** EN4: the rows a foe offers: its template's list, or with no template the same rule on its own sheet */
-const rowsFor = (state: GameState, who: Actor): EssenceDef[] => {
+export const rowsFor = (state: GameState, who: Actor): EssenceDef[] => {
   const id = who.core.templateId;
   return (id && hasTemplate(state, id) ? templateEssences(npcTemplate(state, id)) : fittingEssences(who.core.raceId, who.core.skills)).map((x) => x.row);
 };
@@ -112,10 +116,11 @@ function points(skills: { skill: string; weight: number }[], grade: EssenceGrade
 }
 
 function offer(state: GameState, row: EssenceDef, skills: { skill: string; weight: number }[], roll: { grade: EssenceGradeKey; past: number },
-  source: EssenceOffer['source'], from: string, measure: (skill: string) => number): void {
+  source: EssenceOffer['source'], from: string, measure: (skill: string) => number, pair?: string): void {
   const pr = state.player.progression;
   if (!pr || !skills.length) return;
-  const o: EssenceOffer = { essence: row.id, grade: roll.grade, points: points(skills, roll.grade, roll.past, measure), turn: state.turn, from, source, untilMin: now(state) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 };
+  const o: EssenceOffer = { essence: row.id, grade: roll.grade, points: points(skills, roll.grade, roll.past, measure), turn: state.turn, from, source,
+    untilMin: now(state) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60, ...(pair ? { pair } : {}) };
   (pr.essenceOffers ??= []).push(o);
   logCode(state, 'essence_offered', { essence: row.id, grade: roll.grade, source, from });
 }
@@ -127,34 +132,42 @@ export function notable(state: GameState, foe: Actor): boolean {
   return !!t?.notable || foe.core.generation === 'rolled' || foe.core.generation === 'unique' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
 }
 
-/** 2.3: each foe the player beat this turn (payDefeats) goes on the running scenario's list (its ending's table). An essence
- * comes only from a death, never a defeat (BG-199): a foe the player hurt who now lies dead rolls once, ever, for an essence
- * on its list (EN4), on the turn it dies, however long after its defeat. D-274: a notable foe's essence always appears and a
- * mob's at ESSENCE_APPEAR_CHANCE.mob, so the quality roll alone decides whether a notable foe's fades. */
-export function offersFromDefeats(state: GameState, defeated: Actor[], rng: Rng): void {
-  const f = state.stage.scenario;
-  if (f) for (const foe of defeated) (f.beaten ??= []).push(foe.id);
+/** 2.3: an essence comes only from a death, never a defeat (BG-199): a foe the player hurt who now lies dead rolls once,
+ * ever, for an essence on its list (EN4), on the turn it dies, however long after its defeat. D-274: a notable foe's
+ * essence always appears and a mob's at ESSENCE_APPEAR_CHANCE.mob, so the quality roll alone decides whether a notable
+ * foe's fades. (The scenario's bested list, for its ending, is kept by bested() in xp.ts; `_defeated` is this turn's.) */
+export function offersFromDefeats(state: GameState, _defeated: Actor[], rng: Rng): void {
   for (const foe of state.actors) {
     if (!foe.mind?.hitByPlayer || foe.mind.essenceRolled || healthLevel(foe) !== 'dead') continue;
     foe.mind.essenceRolled = true;
     const rows = rowsFor(state, foe);
     if (!rows.length || (!isEcho(foe) && !appearRoll(rng, notable(state, foe) ? 'foe' : 'mob'))) continue; // HF29 a: an echo always offers one
     const row = pick(rows, rng)!;
-    appearAndRoll(state, rng, row, CONFIG.ESSENCE_ROLL_BASE.foe, 'foe', foe.names.current, row.skills, (sk) => (foe.core.skills[sk]?.raw ?? 0) * tierMult(sk), isEcho(foe));
+    appearAndRoll(state, rng, row, CONFIG.ESSENCE_ROLL_BASE.foe, 'foe', foe.names.current, row.skills, measureOf(foe), isEcho(foe));
   }
 }
 
-/** 2.3: a scenario resolved at Great Success or better may offer: from the foes beaten in it, or with none a deed essence on the
- * skill the player marked most (`owed`: its owed rolls by skill, before the payout) */
+/** 2.3, TF20 b, EB1: a scenario resolved at Great Success or better may offer (one appearance roll). With anyone bested in
+ * it (dead or not), two offers, of which the player takes one: one from anyone bested, at random; the other from one of
+ * the ESSENCE_TOP_BESTED bested with the highest power. Each comes from that person's list, is measured from their skill
+ * (EB1 b) and has its own quality roll, so either can fade. With nobody bested, a deed essence on the skill the player
+ * marked most (`owed`: its owed rolls by skill, before the payout), measured from the player's own true skill. */
 export function offerAtEnding(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng: Rng, owed: [string, number][]): void {
   const base = CONFIG.ESSENCE_ROLL_BASE[f.tier];
   if (as !== 'resolved' || base === undefined) return;
-  const foes = (f.beaten ?? []).map((id) => state.actors.find((a) => a.id === id)).filter((a): a is Actor => !!a);
-  const rows = [...new Set(foes.flatMap((x) => rowsFor(state, x)))];
+  const bestedOnes = (f.bested ?? []).map((id) => state.actors.find((a) => a.id === id)).filter((a): a is Actor => !!a && rowsFor(state, a).length > 0);
   const deed = Object.values(getLibrary().essences ?? {}).filter((r) => r.from.deed);
   if (!appearRoll(rng, f.tier)) return;
   const p = state.player;
-  if (rows.length) { const row = pick(rows, rng)!; return appearAndRoll(state, rng, row, base, 'ending', 'ending', row.skills, (sk) => trueSkill(p, sk)); }
+  if (bestedOnes.length) {
+    const top = [...bestedOnes].sort((a, b) => power(state, b) - power(state, a)).slice(0, CONFIG.ESSENCE_TOP_BESTED);
+    const pair = `ending:${state.turn}`;
+    for (const pool of [bestedOnes, top]) {
+      const who = pool[Math.floor(rng.next() * pool.length)], row = pick(rowsFor(state, who), rng)!;
+      appearAndRoll(state, rng, row, base, 'ending', who.names.current, row.skills, measureOf(who), false, pair);
+    }
+    return;
+  }
   const top = [...owed].sort((a, b) => b[1] - a[1])[0];
   const row = top && pick(deed, rng);
   if (row) appearAndRoll(state, rng, row, base, 'ending', 'ending', [{ skill: top[0], weight: 1 }], (sk) => trueSkill(p, sk));
@@ -171,16 +184,26 @@ export function expireOffers(state: GameState, newScenario = false): void {
 /** EG3 b: removal and swaps happen at rest: out of any fight, with no hostile in the zone (what a rest needs) */
 export const playerAtRest = (state: GameState): boolean => !isEngaged(state, state.player) && !threatHere(state, state.player);
 
+/** EB3: essence changes left that cost no XP (the first ESSENCE_FREE_CHANGES) */
+export const freeEssenceChanges = (a: Actor): number => Math.max(0, CONFIG.ESSENCE_FREE_CHANGES - (a.progression?.essenceChanges ?? 0));
+/** what letting a held essence go costs now, in words for the screen and /essence */
+export const removeCostText = (a: Actor): string => {
+  const n = freeEssenceChanges(a);
+  return n ? `free (${n} free change${n === 1 ? '' : 's'} left)` : `${CONFIG.ESSENCE_REMOVE_LEVELS} level's worth of XP`;
+};
+
 /** EG3 b + EG15 b: give up a held essence (lost for good): costs ESSENCE_REMOVE_LEVELS × the current level's XP, into debt if
- * need be. Returns an error message, or null when done. */
+ * need be; EB3: the first ESSENCE_FREE_CHANGES changes are free. Returns an error message, or null when done. */
 export function removeEssence(state: GameState, index: number, atRest: boolean): string | null {
   const pr = state.player.progression, held = pr?.essences ?? [];
   if (!pr || !held[index]) return 'There is no such essence.';
   if (!atRest) return 'You can only let an essence go at rest: out of any fight, with no one hostile nearby.';
+  const free = freeEssenceChanges(state.player) > 0;
   const [e] = held.splice(index, 1);
-  const cost = CONFIG.ESSENCE_REMOVE_LEVELS * xpToNext(state.player);
+  pr.essenceChanges = (pr.essenceChanges ?? 0) + 1;
+  const cost = free ? 0 : CONFIG.ESSENCE_REMOVE_LEVELS * xpToNext(state.player);
   pr.xp -= cost;
-  (pr.xpLog ??= []).push({ source: `essence removed:${e.essence}`, amount: -cost, turn: state.turn });
+  if (cost) (pr.xpLog ??= []).push({ source: `essence removed:${e.essence}`, amount: -cost, turn: state.turn });
   if (!held.length) delete pr.essences;
   syncEssenceTraits(state, state.player);
   logCode(state, 'essence_removed', { essence: e.essence, cost });
@@ -196,11 +219,13 @@ export function syncEssenceTraits(state: GameState, a: Actor): void {
   for (const id of want) if (!a.core.perks.some((p) => p.perkId === id)) a.core.perks.push({ perkId: id, source: 'essence', gainedTurn: state.turn });
 }
 
-/** takes offer `i` off the player's list and returns it as a held essence, made this turn */
-function takeOffer(state: GameState, i: number): { o: EssenceOffer; held: HeldEssence } {
+/** takes offer `i` off the player's list and returns it as a held essence, made this turn. EB1: taking, giving or selling
+ * one of a pair lets the other go (`passing` keeps it) */
+function takeOffer(state: GameState, i: number, passing = false): { o: EssenceOffer; held: HeldEssence } {
   const pr = state.player.progression!, [o] = pr.essenceOffers!.splice(i, 1);
+  if (o.pair && !passing) pr.essenceOffers = pr.essenceOffers!.filter((x) => x.pair !== o.pair);
   if (!pr.essenceOffers!.length) delete pr.essenceOffers;
-  const { source: _s, untilMin: _u, ...e } = o;
+  const { source: _s, untilMin: _u, pair: _p, ...e } = o;
   return { o, held: { ...e, turn: state.turn } as HeldEssence };
 }
 
@@ -226,7 +251,7 @@ export function takeEssence(state: GameState, offerIndex: number, atRest: boolea
 export function passEssence(state: GameState, offerIndex: number): string | null {
   const o = state.player.progression?.essenceOffers?.[offerIndex];
   if (!o) return 'There is no such offer.';
-  takeOffer(state, offerIndex);
+  takeOffer(state, offerIndex, true);
   logCode(state, 'essence_declined', { essence: o.essence });
   return null;
 }

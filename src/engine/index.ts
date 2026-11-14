@@ -11,4 +11,4 @@ export { checkSecrets } from './secrets';
 export { applyHealing, healingName } from './heal';
 export { updateEngagements, usableThisEngagement, useThisEngagement, engagedThisTurn } from './engagement';
 export { endScenario } from './scenarioEnd';
-export { essenceSlots, essenceText, essenceValue, giveEssence, passEssence, playerAtRest, removeEssence, sellEssence, takeEssence } from './essence';
+export { essenceSlots, essenceText, essenceValue, giveEssence, passEssence, playerAtRest, removeCostText, removeEssence, sellEssence, takeEssence } from './essence';

@@ -318,7 +318,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
-  { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth, stamped with the coin of Varo, god of fortune', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
+  { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
     threadbound: { rank: 'rank_4', grants: [
       { perk: PK.loose_odds, achievement: ACH.event_crit_1 }, { perk: PK.twin_abyss, achievement: ACH.event_crit_fail_1 },
       { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
@@ -1065,6 +1065,12 @@ export function prototypeLibrary(): Library {
       // BK4: forcing locked containers open; each level moves every fragility line one tier worse (names: placeholders for the lore thread)
       [ACH.broke_open_1]: { id: ACH.broke_open_1, name: 'Forced Entry', level: 'zero', rule: 'broke_open', tags: ['skill'], count: 1, safeBreak: 1 },
       [ACH.broke_open_10]: { id: ACH.broke_open_10, name: 'Steady Crowbar', level: 'i', rule: 'broke_open', tags: ['skill'], count: 10, after: ACH.broke_open_1, safeBreak: 1 },
+      // BS2 b: bested (defeated, or talked or bribed out of a fight with you), each person once; from reward level −2
+      [ACH.bested_1]: { id: ACH.bested_1, name: 'Bested', level: 'minus_2', rule: 'bested', tags: ['social'], count: 1 },
+      [ACH.bested_10]: { id: ACH.bested_10, name: 'The Better of Ten', level: 'minus_1', rule: 'bested', tags: ['social'], count: 10, after: ACH.bested_1 },
+      [ACH.bested_100]: { id: ACH.bested_100, name: 'The Better of a Hundred', level: 'zero', rule: 'bested', tags: ['social'], count: 100, after: ACH.bested_10 },
+      [ACH.bested_250]: { id: ACH.bested_250, name: 'Few Stand Long Against You', level: 'i', rule: 'bested', tags: ['social'], count: 250, after: ACH.bested_100 },
+      [ACH.bested_1000]: { id: ACH.bested_1000, name: 'Better Than a Thousand', level: 'ii', rule: 'bested', tags: ['social'], count: 1000, after: ACH.bested_250 },
       [ACH.broke_open_50]: { id: ACH.broke_open_50, name: 'Nothing Spilled', level: 'ii', rule: 'broke_open', tags: ['skill'], count: 50, after: ACH.broke_open_10, safeBreak: 1 },
       // D-174: HP healed (a flat number) from one healing row each; counts are placeholders
       [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100, branchOf: ACH_HEADS.healed },

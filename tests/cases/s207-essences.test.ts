@@ -71,6 +71,7 @@ describe('207 essences', () => {
     expect((pr.achievements ?? []).some((a) => a.key === ACH.first_knot)).toBe(true);
     expect(takeEssence(s, 0, true)).toMatch(/no room/);
     expect(takeEssence(s, 0, false, 0)).toMatch(/at rest/);
+    pr.essenceChanges = CONFIG.ESSENCE_FREE_CHANGES; // EB3: past the free changes
     const xp = pr.xp, cost = xpToNext(p);
     expect(takeEssence(s, 0, true, 0)).toBeNull();
     expect(pr.essences!.map((e) => e.essence)).toEqual([ES.gate_habit]);
@@ -88,12 +89,12 @@ describe('207 essences', () => {
     offerAtEnding(s, f, 'resolved', dice(1, 100), [[SK.block, 1], [SK.dodge, 3]]);
     expect(offers(s)[0]).toMatchObject({ essence: ES.hard_won_habit, source: 'ending' });
     expect(Object.keys(offers(s)[0].points)).toEqual([SK.dodge]);
-    f.beaten = ['slime_1'];
-    offerAtEnding(s, f, 'resolved', dice(1, 100), []);
-    expect(offers(s)[1].essence).toBe(ES.gel_patience);
+    f.bested = ['slime_1'];
+    offerAtEnding(s, f, 'resolved', dice(1, 100), []); // EB1: two offers from the bested, one appearance roll
+    expect(offers(s).slice(1).map((o) => [o.essence, !!o.pair])).toEqual([[ES.gel_patience, true], [ES.gel_patience, true]]);
     const success = frameOf(s, { question: 'q', scale: 'situation', endings: [] }, 'success', (_k, r) => r);
     offerAtEnding(s, success, 'resolved', dice(1, 100), [[SK.dodge, 1]]);
-    expect(offers(s)).toHaveLength(2); // Success endings don't offer
+    expect(offers(s)).toHaveLength(3); // Success endings don't offer
   });
 
   it('offers lapse after their time, or when a new scenario starts; passing drops one', () => {

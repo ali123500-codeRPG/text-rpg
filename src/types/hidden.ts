@@ -70,8 +70,9 @@ export type ScenarioFrame = {
   gains?: Pick<import('./game').ScenarioGains, 'skills' | 'perks' | 'allPerks'>;
   /** D-226: the player's XP log length, level and XP bar fill when it began (the summary's XP and levels count from there) */
   xpFrom?: number; xpStart?: { level: number; pct: number };
-  /** growth proposal 2.3: the foes the player beat in it (their races and body types make its ending's essence table) */
-  beaten?: string[];
+  /** TF20 b, BS1-BS3: everyone the player bested in it (defeated, or talked or bribed out of a fight), whose essence lists
+   * make its ending's offers (EB1) */
+  bested?: string[];
   /** EG13: steps past Critical Success on its event roll (each pays GROWTH_ROLLS_PAST_CRIT more rolls at its end) */
   beyond?: number;
   /** SC4/EG13: while an inner scenario runs, the player's owed rolls and waiting achievements from this (outer) one, kept

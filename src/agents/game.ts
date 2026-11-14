@@ -584,7 +584,7 @@ export function createGame(deps: GameDeps): Game {
         const atRest = engine.playerAtRest(s);
         if (verb === 'take') return kept((x) => engine.takeEssence(x, n(a1), atRest, a3 !== undefined ? n(a3) : undefined), 'Taken. It is part of you now.');
         if (verb === 'pass') return kept((x) => engine.passEssence(x, n(a1)), 'You let it go.');
-        if (verb === 'remove') return kept((x) => engine.removeEssence(x, n(a1), atRest), 'Gone, and it cost you: one level\'s worth of XP.');
+        if (verb === 'remove') { const cost = engine.removeCostText(s.player); return kept((x) => engine.removeEssence(x, n(a1), atRest), cost.startsWith('free') ? 'Gone. That change was free.' : `Gone, and it cost you: ${cost}.`); }
         // ES1–ES6: give or sell an offer to someone you can see, by name ("/essence give 1 to Marta", "/essence sell 1 Mags")
         if (verb === 'give' || verb === 'sell') {
           const pv = views.buildPlayerView(s);
@@ -602,8 +602,8 @@ export function createGame(deps: GameDeps): Game {
         return say([
           `Essences: ${held.length} of ${engine.essenceSlots(s.player)} slots.`,
           ...held.map((e, i) => `${i + 1}. ${engine.essenceText(e, skillName)}`),
-          ...(offers.length ? ['On offer:', ...offers.map((o, i) => `${i + 1}. ${engine.essenceText(o, skillName)}, for ${durationText(Math.max(0, o.untilMin - now(s)))} more`)] : ['Nothing on offer.']),
-          'Type /essence take 1 (with every slot full: /essence take 1 give 2), /essence pass 1, /essence give 1 to a name, /essence sell 1 to a name, or /essence remove 1 (at rest; costs one level of XP).',
+          ...(offers.length ? ['On offer:', ...offers.map((o, i) => `${i + 1}. ${engine.essenceText(o, skillName)}, for ${durationText(Math.max(0, o.untilMin - now(s)))} more${o.pair ? ' (one of two from the ending: taking one lets the other go)' : ''}`)] : ['Nothing on offer.']),
+          `Type /essence take 1 (with every slot full: /essence take 1 give 2), /essence pass 1, /essence give 1 to a name, /essence sell 1 to a name, or /essence remove 1 (at rest; ${engine.removeCostText(s.player)}).`,
         ].join('\n'));
       }
       case 'yield':

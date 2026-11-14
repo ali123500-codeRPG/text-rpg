@@ -67,7 +67,7 @@ export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];
 /** how much one actor knows of another, least first (Belief.status; decays one step at a time) */
 export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicious'], ['aware', 'Aware'], ['tracking', 'Tracking'], ['hunting', 'Hunting'], ['engaged', 'Engaged']]);
 /** XP reward levels for achievements; XP per level is rewardXp (the REWARD_XP_CURVE equation) */
-export const REWARD_LEVELS = scale([['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
+export const REWARD_LEVELS = scale([['minus_2', '−2'], ['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
   ['vii', 'VII'], ['viii', 'VIII'], ['ix', 'IX'], ['x', 'X'], ['xi', 'XI'], ['xii', 'XII'], ['xiii', 'XIII'], ['xiv', 'XIV'], ['xv', 'XV']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** QT28: the reward levels a quest may have, 0 to IV: rows of REWARD_LEVELS (keys and names from there); XP per level is
