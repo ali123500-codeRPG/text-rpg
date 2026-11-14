@@ -669,6 +669,7 @@ function dropped(ctx: Ctx, a: Actor, o: Order): void {
     const f = fallbackOrder(buildActorView(state, a.id), ctx.rng);
     const near = reachOf(state, a, f); // TP2: the move time left closes in on the new target, as any blow's would (ZP3)
     if (near && !near.ok()) closeInOn(ctx, a, f, near);
+    if (f.type === 'attack' && near && !near.ok() && runOn(ctx, a, f, near)) { const line = f.line ?? o.line; if (line) hold(ctx, a, { ...f, line }); return; } // BG-255: words said where the run ends
     return doMain(ctx, a, { ...f, line: f.line ?? o.line });
   }
   hold(ctx, a, o);
@@ -1825,6 +1826,8 @@ function step(ctx: Ctx, id: string): void {
   }
   ctx.at = (ctx.clock.get(id) ?? 0) + Math.min(cost?.seconds ?? pools.main, pools.main);
   const before = { main: pools.main, move: pools.move, clock: ctx.clock.get(id) ?? 0 }, evFrom = ctx.events.length;
+  // BG-255 (NV9 b): a blow the close-in walk left out of reach runs on at the target instead (runOn), and comes next turn
+  if (o.type === 'attack' && !ctx.spoke.has(id) && closeIn && !o.way && near && !near.ok() && runOn(ctx, a, o, near, behind)) { if (o.line) emit(ctx, bark(mk(ctx, a, 'hold'), o)); if (o.moveAfter && !turned) move(false); return; }
   if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && !o.line && (moved || ctx.events.some((e) => e.actorId === id && e.kind === 'hold' && !!e.line)))) { doMain(ctx, a, o); giveBack(ctx, a, before, evFrom); }
   if (o.moveAfter && !turned) move(false); // AE3: act, then move
 }
@@ -2067,12 +2070,30 @@ const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUp
 
 /** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
  * from the actor's zone it is reached over from the actor's side of it (BG-62), unless the actor goes behind it (BG-183) */
-function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false): void {
+function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false, dash = false): void {
   const { state } = ctx;
   const over = !behind && near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
   const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
   const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
-  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
+  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, dash) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
+}
+
+/** BG-255 (NV9 b): a melee blow still out of reach after the close-in walk is not swung at nothing: the actor runs on at
+ * the target on its main time exactly as a dash does (AE2, useMoveSlot: same pools, same clock), and strikes next turn.
+ * Only the seconds run are spent (AT19), and nothing more is done this turn. False when the run gets no nearer (no way there): the blow is
+ * then lost as before (doAttack says why). */
+function runOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false): boolean {
+  const { state } = ctx;
+  const t = o.target ? actorById(state, o.target) : undefined;
+  if (!t || slotsOf(ctx, a).main <= T_EPS) return false;
+  const from = sightDistM(state, a, t);
+  closeInOn(ctx, a, o, near, behind, true); // the move slot is spent, so this runs on the main time
+  const ran = sightDistM(state, a, t) < from - M_EPS;
+  if (!ran) return false;
+  ctx.clock.set(a.id, Math.max(ctx.clock.get(a.id) ?? 0, slotsOf(ctx, a).walkedS));
+  ctx.stopped.add(a.id); // no second blow this turn (repeatAttacks)
+  logCode(state, 'ran_on', { actorId: a.id, target: t.id });
+  return true;
 }
 
 /** BF12: handing something across a way (bars, a grate, a doorway): the giver holds it out there, and the one it is for, if
