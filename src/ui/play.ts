@@ -188,6 +188,8 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
         : [{ text: 'Sneak', note: 'free', kind: 'sneak' as const }, { text: 'Hide', note: 'your action', kind: 'hide' as const }]),
       ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Vanish ${l.label}`, note: 'breaks sight', kind: 'vanish' as const }))] },
     { group: 'Use', key: 'use', items: [
+      // BF34: something held out to you is yours once you take it
+      ...people.flatMap((a, i) => (a.holdsOut ? [{ text: `Take ${the(a.holdsOut.name)} from ${names[i]}`, note: 'held out to you', kind: 'pick_up' as const }] : [])),
       ...heldN.map((n) => ({ text: `Stow ${the(n)}`, note: 'free', kind: 'stow' as const })), ...stowedN.map((n) => ({ text: `Draw ${the(n)}`, note: 'free', kind: 'draw' as const })),
       ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free', kind: 'pick_up' as const })), ...(pv.player.summonable ?? []).map((x) => ({ text: `Summon ${x.name}`, note: 'free', kind: 'summon' as const })),
       { text: 'Look around', kind: 'look' }, { text: 'Search', note: 'your action', kind: 'search' }] },

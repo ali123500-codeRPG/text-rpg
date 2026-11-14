@@ -30,6 +30,7 @@ import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barr
 import { contentsOf, findContainer, wornPack } from '../engine/containers';
 import { pocketName, pocketSlots } from '../engine/pockets';
 import { followGap } from '../engine/follow';
+import { offerTo } from '../engine/handover';
 import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
@@ -261,6 +262,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       gear: seenGear(state, a, revealedTo(viewer, a.id), viewer.id),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
+      ...(level === 'full' && offerTo(state, a, viewer.id) ? { holdsOut: { item: a.offer!.item, name: itemName(state, a.offer!.item) ?? 'something' } } : {}), // BF34
       ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
       ...(viewer === state.player && level === 'full' && canDemand(state, viewer, a) && (fightingWith(state, a, viewer) || a.mind?.moraleState === 'broken') ? { demandYield: true as const } : {}), // TF19
     });

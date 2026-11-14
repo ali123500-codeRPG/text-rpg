@@ -82,7 +82,7 @@ function firstNameSaid(text: string, n: string): boolean {
 }
 
 const POSITION = new Set(['move', 'arrival', 'flee', 'sneak']);
-const INVENTORY = new Set(['give', 'buy', 'buy_refused', 'sell', 'sell_refused', 'pick_up', 'summon', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen', 'open', 'break_open', 'filch', 'set_down', 'put_in']);
+const INVENTORY = new Set(['give', 'offer', 'take', 'take_refused', 'buy', 'buy_refused', 'sell', 'sell_refused', 'pick_up', 'summon', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen', 'open', 'break_open', 'filch', 'set_down', 'put_in']);
 
 /** full events that must be narrated: presence, and anything changing the player's condition, inventory or position */
 export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {

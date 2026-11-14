@@ -55,6 +55,9 @@ export type Actor = {
   walking?: NonNullable<import('./agents').Intent['move']>;
   /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */
   followLost?: { who: string; why: 'down' | 'slipped_away' | 'out_of_sight'; zone: string };
+  /** BF34: something it holds out to `to` (an item instance, from hand, pack or its own bag): it changes hands only when
+   * `to` takes it; withdrawn after the turn after `turn` */
+  offer?: { item: string; qty?: number; to: string; turn: number };
   letsSearch?: { by: string; until: number }; // BF16: lets `by` search it hands-on, until that turn
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-grip modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
