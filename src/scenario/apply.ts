@@ -3,7 +3,7 @@ import { endSuspicions } from '../engine/suspicion';
 import { expireOffers } from '../engine/essence';
 import { frameOf } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
-import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
+import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, NpcTemplate, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { LIFE_STAGES, TALENTS, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
 import { SIDES } from '../types';
@@ -13,13 +13,14 @@ import { ZK } from '../library/tableIds';
 import { placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { presetPersonality, spawnNpc } from '../library/spawn';
+import { composeTemplate, presetPersonality, spawnNpc } from '../library/spawn';
 import { personalityFrom } from '../ruleset/personality';
 import { installRoutines, desiredState, detectPlayer, headTo, knownFromTheStart } from '../minds';
 import { perceivesNow } from '../engine/yield';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
-import { actorById, atLeast, isActive, zoneById } from '../engine/relations';
+import { actorById, atLeast, isActive, stance, zoneById } from '../engine/relations';
+import { power } from '../engine/xp';
 import { startSpar } from '../engine/spar';
 import { seedGoals } from '../engine/goals';
 import type { PlanContext, PlanError } from './index';
@@ -30,6 +31,25 @@ import { requirement } from '../ruleset/requirements';
 import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
+
+/** NG15: a composition's template, kept as a story blueprint (one per composition), so its copies rebuild on load and the GM
+ * view lists it under "Made this story" with Send to library */
+function composedBlueprint(state: GameState, c: NonNullable<StagePlan['cast'][number]['compose']>, label: string): NpcTemplate {
+  const t = composeTemplate(c, label);
+  if (!state.blueprints.some((b) => b.kind === 'npcTemplate' && b.id === t.id))
+    state.blueprints.push({ storyId: state.storyId, id: t.id, kind: 'npcTemplate', data: { ...t, name: label } as unknown as Record<string, unknown> });
+  return t;
+}
+
+/** NG16 b: the hostile cast's power (those hostile or opposed to the player) over the player's, against the challenge
+ * grade's band (CONFIG.CAST_POWER_BANDS). Logged only: nothing is refused and no NPC changes. */
+function logCastPower(state: GameState, challenge: string, cast: Actor[]): void {
+  const hostile = cast.filter((a) => ['hostile', 'opposed'].includes(stance(state, a, state.player))).reduce((n, a) => n + power(state, a), 0);
+  const player = power(state, state.player), ratio = player > 0 ? hostile / player : 0, band = CONFIG.CAST_POWER_BANDS[challenge];
+  const off = !!band && (ratio < band[0] || ratio > band[1]);
+  (state.hidden.castPower ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, challenge, hostile: Math.round(hostile), player: Math.round(player), ratio: Math.round(ratio * 100) / 100, ...(band ? { band } : {}), off });
+  if (off) state.log.push({ turn: state.turn, code: 'cast_power_off_band', detail: { challenge, ratio: Math.round(ratio * 100) / 100, band } });
+}
 
 export function freshId(key: string, taken: Set<string>): string {
   let id = key;
@@ -291,9 +311,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       a.label = c.label;
       // someone brought back keeps their names; the plan's name is ignored (CS2)
     } else {
-      const t = npcTemplate(state, c.template!);
+      const t = c.compose ? composedBlueprint(state, c.compose, c.label) : npcTemplate(state, c.template!); // NG15
       const personality = c.personality ? personalityFrom(presetPersonality(t, id), c.personality) : undefined; // PL12 on the NG14 layers
-      a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}), ...(TALENTS.keyOf(c.talent) ? { talent: TALENTS.keyOf(c.talent) } : {}) }, rng);
+      a = spawnNpc(state, t.id, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}), ...(TALENTS.keyOf(c.talent) ? { talent: TALENTS.keyOf(c.talent) } : {}) }, rng);
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);
@@ -450,7 +470,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     Object.assign(state.stage.scenario, { question: f.question, scale: f.scale, endings: f.endings });
   }
   state.hidden.castNotes ??= {};
-  plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}) }));
+  plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}), ...(c.templateGap ? { templateGap: c.templateGap } : {}) }));
+  // NG15: who the Weaver wanted and couldn't field, kept for the GM view so a template can be made
+  plan.cast.forEach((c, i) => { if (c.templateGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.templateGap, template: castActors[i].core.templateId ?? '' }); });
+  if (ctx.kind === 'scenario') logCastPower(state, plan.event.challenge, castActors); // NG16 b
   // UG3: goal holders: the template's standing goal, then the Weaver's goals, their keys read as ids
   const aboutRef = (r: string) => castMap.get(r) ?? placeMap.get(r) ?? zoneMap.get(r) ?? r;
   plan.cast.forEach((c, i) => {

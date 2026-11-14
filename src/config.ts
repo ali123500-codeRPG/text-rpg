@@ -387,6 +387,15 @@ const DEFAULTS = {
   RANK_TRAITS_BEYOND: 1,
   /** NG14: each personality trait of a copy moves by up to this many points, seeded by its ID */
   PERSONALITY_SPREAD: 20,
+  /** NG16 b: a scenario's hostile cast power over the player's power, by challenge grade; outside the band is logged in the
+   * GM view only, while playtests tune the bands */
+  CAST_POWER_BANDS: { minor: [0.25, 0.75], moderate: [0.5, 1.25], major: [1, 2], extreme: [1.75, 4] } as Record<string, [number, number]>,
+  /** NG15: a composed NPC's starting Resolve, control and chase range by its role's kind (presets set their own) */
+  COMPOSED_NPC: {
+    combat: { resolve: 50, control: 'agent', chase: 'ground' },
+    civilian: { resolve: 30, control: 'code', chase: 'post' },
+    beast: { resolve: 50, control: 'code', chase: 'far' },
+  } as Record<'combat' | 'civilian' | 'beast', { resolve: number; control: 'agent' | 'code'; chase: import('./scales').ChaseRange }>,
   /** NG9: each skill moves by up to this share of its band value, seeded by the actor's ID */
   COPY_SPREAD: 0.1,
   /** NG8: skills every NPC has at least at this band when its body can use them: the senses. Dodge is left to roles: at Low it

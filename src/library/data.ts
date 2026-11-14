@@ -413,15 +413,15 @@ const ap = (steps: Record<string, number>): Record<string, number> => Object.fro
 
 /** NG2, NG21: NPC roles: the skills each kind of work trains, by band (CONFIG.ROLE_BAND_SHARE of the rank's anchor); its kind
  * (NG13 rank floor), personality lean (NG14) and rank-trait pool (NG12). Leans and pools are placeholders. */
-const role = (id: string, name: string, kind: NpcRoleDef['kind'], bands: Record<string, readonly string[]>, leans?: NpcRoleDef['leans'], traits?: readonly string[]): NpcRoleDef =>
-  ({ id, name, kind, bands, ...(leans ? { leans } : {}), ...(traits ? { traits } : {}) });
+const role = (id: string, name: string, kind: NpcRoleDef['kind'], bands: Record<string, readonly string[]>, leans?: NpcRoleDef['leans'], traits?: readonly string[], gear?: readonly string[]): NpcRoleDef =>
+  ({ id, name, kind, bands, ...(leans ? { leans } : {}), ...(traits ? { traits } : {}), ...(gear ? { gear } : {}) });
 export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
-  role(RO.soldier, 'Soldier', 'combat', { high: [SK.melee_medium, SK.block], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }, { traits: { [PA.discipline]: 40 } }, [PK.second_wind]), // Block is their defense
-  role(RO.skirmisher, 'Skirmisher', 'combat', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind]),
-  role(RO.brute, 'Brute', 'combat', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }, { traits: { [PA.temper]: 40 } }, [PK.second_wind, PK.heavy_sleeper]),
-  role(RO.shooter, 'Shooter', 'combat', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }, { traits: { [PA.discipline]: 20 } }),
-  role(RO.sneak, 'Sneak', 'combat', { high: [SK.sneaking, SK.melee_light], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.lying, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac]),
-  role(RO.watcher, 'Watcher', 'combat', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac]),
+  role(RO.soldier, 'Soldier', 'combat', { high: [SK.melee_medium, SK.block], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }, { traits: { [PA.discipline]: 40 } }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_medium]), // Block is their defense
+  role(RO.skirmisher, 'Skirmisher', 'combat', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
+  role(RO.brute, 'Brute', 'combat', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }, { traits: { [PA.temper]: 40 } }, [PK.second_wind, PK.heavy_sleeper], [GC.melee_heavy, GC.armor_heavy]),
+  role(RO.shooter, 'Shooter', 'combat', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }, { traits: { [PA.discipline]: 20 } }, undefined, [GC.ranged_medium, GC.armor_light]),
+  role(RO.sneak, 'Sneak', 'combat', { high: [SK.sneaking, SK.melee_light], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.lying, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
+  role(RO.watcher, 'Watcher', 'combat', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
   role(RO.talker, 'Talker', 'civilian', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
   role(RO.worker, 'Worker', 'civilian', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
   role(RO.beast, 'Beast', 'beast', { high: [SK.unarmed_natural], low: [SK.dodge] }),
@@ -429,9 +429,9 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
 
 /** NG21: NPC themes: what their world adds; per-theme rank titles come from the lore thread */
 export const THEMES: Record<string, ThemeDef> = {
-  [TH.village_folk]: { id: TH.village_folk, name: 'Village folk', bands: { low: [SK.persuasion] }, leans: { nerve: -40, values: [VL.family] }, traits: [PK.heavy_sleeper, PK.insomniac] }, // townsfolk keep out of danger
-  [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] }, leans: { values: [VL.duty] }, traits: [PK.insomniac] },
-  [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', bands: { moderate: [SK.intimidation], low: [SK.sneaking] }, leans: { values: [VL.wealth, VL.freedom] }, traits: [PK.heavy_sleeper] },
+  [TH.village_folk]: { id: TH.village_folk, name: 'Village folk', bands: { low: [SK.persuasion] }, leans: { nerve: -40, values: [VL.family] }, traits: [PK.heavy_sleeper, PK.insomniac], wealth: 'common' }, // townsfolk keep out of danger
+  [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] }, leans: { values: [VL.duty] }, traits: [PK.insomniac], wealth: 'fine' },
+  [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', bands: { moderate: [SK.intimidation], low: [SK.sneaking] }, leans: { values: [VL.wealth, VL.freedom] }, traits: [PK.heavy_sleeper], wealth: 'common' },
   [TH.wild_beasts]: { id: TH.wild_beasts, name: 'Wild beasts' },
 };
 
@@ -460,7 +460,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, roleId: RO.sneak, themeId: TH.village_folk, rank: 'rank_2',
-    resolve: 30, loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager', chase: 'post',
+    resolve: 30, control: 'agent', label: 'a shifty villager', // its dagger and gambeson are picked by role and wealth (NG10) chase: 'post',
   },
   [TP.patron]: {
     id: TP.patron, raceId: RC.human, generation: 'copy',

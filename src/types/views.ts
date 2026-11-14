@@ -358,6 +358,8 @@ export type WeaverView = {
     bodyTypes: { id: string; name: string }[]; // BT… id and name, plus story body types
     races: { id: string; name: string }[]; // RC… id and name: what a template's raceId names
     classes: { id: string; name: string }[]; // CL… id and name: what a template's classId names
+    /** NG15: what a cast entry's compose names: roles (RO…, with their main skills), themes (TH…) and ranks (key, name, level) */
+    compose: { roles: { id: string; name: string; skills: string[] }[]; themes: { id: string; name: string }[]; ranks: { key: string; name: string; level: number }[] };
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number; container?: string }[]; // boon: worth as a reward (loot V8); container: CT2, worn, fixed or carried
     skills: { id: string; name: string }[];
