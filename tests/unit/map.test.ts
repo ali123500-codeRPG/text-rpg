@@ -78,19 +78,22 @@ describe('map', () => {
     const m = knownMap(s);
     const ash = m.places.find((p) => p.id === 'ashford')!;
     expect(ash.parentId).toBeNull();
-    const road = m.places.flatMap((p) => p.zones).find((z) => z.id === 'v_square')!.links.find((l) => l.to === 'ash_gate')!;
+    const zone = (id: string) => m.places.flatMap((p) => p.zones).find((z) => z.id === id)!;
+    const road = zone('v_square').links.find((l) => l.to === 'w_road')!;
     expect(road.known).toBe(true);
-    expect(road.otherPlace).toBe('Ashford');
+    expect(road.otherPlace).toBe('the west road');
+    expect(zone('w_road').links.find((l) => l.to === 'ash_gate')!.otherPlace).toBe('Ashford');
   });
 
   it('the World view has one tile per top-level place, joined by the roads between them', async () => {
     const s = await game();
     const w = worldTiles(knownMap(s));
-    expect(w.map((t) => t.id).sort()).toEqual(['ashford', 'village']);
+    expect(w.map((t) => t.id).sort()).toEqual(['ashford', 'village', 'west_road']);
     expect(w.find((t) => t.id === 'village')!.here).toBe(true);
     expect(w.find((t) => t.id === 'village')!.look).toBe('7 zones known');
-    expect(w.find((t) => t.id === 'village')!.links.map((l) => l.to)).toEqual(['ashford']);
-    expect(w.find((t) => t.id === 'ashford')!.links.map((l) => l.to)).toEqual(['village']);
+    expect(w.find((t) => t.id === 'village')!.links.map((l) => l.to)).toEqual(['west_road']);
+    expect(w.find((t) => t.id === 'ashford')!.links.map((l) => l.to)).toEqual(['west_road']);
+    expect(w.find((t) => t.id === 'west_road')!.links.map((l) => l.to).sort()).toEqual(['ashford', 'village']);
   });
 
   it('places a zone on the side its exit names', async () => {

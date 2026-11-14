@@ -23,10 +23,16 @@ describe('the Map at real coordinates', () => {
       const a = edges(z.rect!), b = edges(village.rect!);
       expect(a.w >= b.w - 1e-9 && a.e <= b.e + 1e-9 && a.s >= b.s - 1e-9 && a.n <= b.n + 1e-9).toBe(true);
     }
-    // Ashford sits against Millbrook's west side: they share an edge along x, overlapping along y
-    const a = edges(ash.rect!), v = edges(village.rect!);
-    expect(a.e).toBeCloseTo(v.w, 6);
-    expect(Math.min(a.n, v.n) - Math.max(a.s, v.s)).toBeGreaterThan(0);
+    // a day's walk apart: the 30 km west road leaves the square's west side and Ashford sits at its far end,
+    // so no place's box overlaps another's
+    const road = w.find((t) => t.id === 'west_road')!, sq = edges(m.places.flatMap((p) => p.zones).find((z) => z.id === 'v_square')!.rect!);
+    const a = edges(ash.rect!), r = edges(road.rect!), v = edges(village.rect!);
+    expect(r.e).toBeCloseTo(sq.w, 6);
+    expect(r.e - r.w).toBeCloseTo(30_000, 0);
+    expect(a.e).toBeCloseTo(r.w, 6);
+    expect(v.w - a.e).toBeGreaterThan(29_000);
+    const tiles = [ash, road, village].map((t) => edges(t.rect!));
+    for (const x of tiles) for (const y of tiles) if (x !== y) expect(Math.min(x.e, y.e) - Math.max(x.w, y.w) <= 1e-6 || Math.min(x.n, y.n) - Math.max(x.s, y.s) <= 1e-6).toBe(true);
   });
 
   it('a place with a zone code has not placed has no extent, so the map keeps the exit diagram for it', () => {
@@ -34,7 +40,16 @@ describe('the Map at real coordinates', () => {
     expect(extentOf([] as never)).toBeUndefined();
   });
 
-  it('the height slider has one stop per height, lowest first', () => {
+  it('the height slider has one stop per height, lowest first, below ground included', async () => {
     expect(mapHeights([{ height: 3 }, { height: 0 }, { height: -3 }, { height: 0 }])).toEqual([-3, 0, 3]);
+    const g = createFakeGame({ autoStart: true });
+    await g.submit('I look around', { aimed: false });
+    const m = knownMap(g.state()!);
+    // the tavern's cellar (3 m down) is a stop once it is known, as the landing above is
+    const village = () => m.places.filter((p) => p.id === 'village' || p.parentId === 'village').flatMap((p) => p.zones);
+    expect(mapHeights(village())).toEqual([0, 3]);
+    g.state()!.player.journal!.zonesSeen?.push('tav_cellar');
+    const m2 = knownMap(g.state()!);
+    expect(mapHeights(m2.places.filter((p) => p.id === 'village' || p.parentId === 'village').flatMap((p) => p.zones))).toEqual([-3, 0, 3]);
   });
 });

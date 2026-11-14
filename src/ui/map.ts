@@ -175,7 +175,7 @@ export function mapPage(api: GameApi) {
   // to scale, the World's place names sit on their own layer at a fixed size, at each place's north-west corner, so they
   // stay readable when kilometres of road zoom the map far out
   const nameLayer = s('g', { class: 'map-world-names' }) as SVGGElement;
-  let worldNames: { x: number; y: number; name: string; sub: string; here: boolean }[] = [];
+  let worldNames: { x: number; y: number; name: string; sub: string; here: boolean; mid?: true }[] = [];
   svg.append(defs, vp, nameLayer, youLayer);
   const stage = h('div', { class: 'map-stage' });
   const side = h('aside', { class: 'map-side', 'aria-label': 'Map details' });
@@ -205,14 +205,27 @@ export function mapPage(api: GameApi) {
 
   // ---------- pan and zoom
   const view = () => views.get(world) ?? { x: 0, y: 0, k: 1 };
-  /** how far out the map zooms: to scale the World can span kilometres, so it may zoom much further out */
-  const minK = () => (planned() && world === WORLD ? 0.005 : 0.2);
+  /** how far out the map zooms: to scale the World can span kilometres (a day's road is 30 km), so it may zoom out until
+   *  the whole World fits */
+  const minK = () => {
+    if (!(planned() && world === WORLD)) return 0.2;
+    const b = bounds(WORLD), r = svg.getBoundingClientRect();
+    return b && r.width ? Math.min(0.005, fitK(b, r) * 0.8) : 0.005;
+  };
+  /** to scale, the World's names run right from each place's north-west corner at a fixed size: room kept for them */
+  const nameRoom = () => (planned() && world === WORLD ? 160 : 0);
+  /** the zoom that fits a box in the stage, below the crumbs */
+  const fitK = (b: { x0: number; y0: number; x1: number; y1: number }, r: DOMRect) => Math.min((r.width - 48 - nameRoom()) / (b.x1 - b.x0), (r.height - 130) / (b.y1 - b.y0));
   const apply = () => {
     const v = view();
     vp.setAttribute('transform', `translate(${v.x} ${v.y}) scale(${v.k})`);
-    nameLayer.replaceChildren(...worldNames.map((n) => s('g', { class: `map-world-name${n.here ? ' here' : ''}` },
-      s('text', { x: v.x + n.x * v.k + 8, y: v.y + n.y * v.k + 18, class: 'map-tile-name' }, n.name),
-      s('text', { x: v.x + n.x * v.k + 8, y: v.y + n.y * v.k + 34, class: 'map-tile-sub' }, n.sub))));
+    // a place's name sits inside its north-west corner; a road's name centred above its middle, so it never sits on the
+    // place at its end
+    nameLayer.replaceChildren(...worldNames.map((n) => {
+      const x = v.x + n.x * v.k + (n.mid ? 0 : 8), y = v.y + n.y * v.k + (n.mid ? -26 : 18), anchor: Record<string, string> = n.mid ? { 'text-anchor': 'middle' } : {};
+      return s('g', { class: `map-world-name${n.here ? ' here' : ''}${n.mid ? ' road' : ''}` },
+        s('text', { x, y, class: 'map-tile-name', ...anchor }, n.name), s('text', { x, y: y + 16, class: 'map-tile-sub', ...anchor }, n.sub));
+    }));
     youLayer.replaceChildren(...(youAt ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title)] : []));
   };
   const setView = (v: { x: number; y: number; k: number }) => { views.set(world, v); apply(); };
@@ -234,8 +247,8 @@ export function mapPage(api: GameApi) {
   function fit(placeId: string) {
     const b = bounds(placeId), r = svg.getBoundingClientRect();
     if (!b || !r.width) return;
-    const top = 60, pad = 24; // the crumbs sit over the top edge
-    const k = Math.max(minK(), Math.min(1.1, Math.min((r.width - 2 * pad) / (b.x1 - b.x0), (r.height - top - 70) / (b.y1 - b.y0))));
+    const top = 60; // the crumbs sit over the top edge
+    const k = Math.max(minK(), Math.min(1.1, fitK(b, r)));
     // a narrow screen keeps tiles readable: a floor on the scale, centred on you when you are in this place
     const me = cur ? spots.get(world)?.get(cur.zoneId) : undefined;
     if (k < NARROW_MIN_K && r.width < NARROW_W) {
@@ -245,7 +258,7 @@ export function mapPage(api: GameApi) {
     }
     // to scale on a road (kilometres long), the whole map can't fit: centre on where you stand instead (TV7)
     const c = youAt && hereZone()?.along && inside(cur!.placeId, placeId) ? youAt : { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
-    setView({ k, x: r.width / 2 - c.x * k, y: top + (r.height - top - 70) / 2 - c.y * k });
+    setView({ k, x: (r.width - nameRoom()) / 2 - c.x * k, y: top + (r.height - top - 70) / 2 - c.y * k });
   }
   const hereZone = () => allZones().find((z) => z.id === cur?.zoneId);
   function centre(zoneId: string) {
@@ -495,10 +508,11 @@ export function mapPage(api: GameApi) {
   /** CO9, World to scale: a place as its real extent; its name goes on the fixed-size name layer */
   function worldPlanTile(z: MapZone, p: Pt, sub: string) {
     const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
-    const cls = ['map-tile', 'world-place', 'plan', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : ''].filter(Boolean).join(' ');
-    worldNames.push({ x, y, name: z.name, sub, here: z.here });
+    const road = placeOf(z.id)?.kind === 'road';
+    const cls = ['map-tile', 'world-place', 'plan', road ? 'road' : '', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : ''].filter(Boolean).join(' ');
+    worldNames.push(road ? { x: p.x, y, name: z.name, sub: z.rect ? distText(Math.max(z.rect.w, z.rect.d)) : sub, here: z.here, mid: true } : { x, y, name: z.name, sub, here: z.here });
     return s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${sub}, about ${distText(z.rect!.w)} by ${distText(z.rect!.d)}` },
-      s('rect', { x, y, width: w, height: hh, class: 'map-tile-box' }), s('title', {}, `${z.name}: about ${distText(z.rect!.w)} × ${distText(z.rect!.d)}`));
+      s('rect', { x, y, width: w, height: hh, class: 'map-tile-box', 'vector-effect': 'non-scaling-stroke' }), s('title', {}, `${z.name}: about ${distText(z.rect!.w)} × ${distText(z.rect!.d)}`));
   }
   /** the "you are here" pin */
   function pin(cx: number, cy: number, title?: string) {
@@ -529,13 +543,19 @@ export function mapPage(api: GameApi) {
     const climb = (from: MapZone, to: string) => { const t = all.find((x) => x.id === to); const d = t ? t.height - from.height : 0; return d ? `, ${Math.abs(d)} m ${d > 0 ? 'up' : 'down'}` : ''; };
     const pl = placeOf(focus)!;
     const worldCard = () => {
-      const roads = tilesOfWorld.flatMap((a) => a.links.filter((l) => a.id < l.to || !tilesOfWorld.find((b) => b.id === l.to)?.links.some((m) => m.to === a.id))
-        .map((l) => ({ label: l.label, a: a.name, b: placeOf(l.to)?.name ?? l.to, to: l.to })));
+      // a road that is a place of its own (kind road) is one road between the places at its ends; other places joined
+      // straight to each other list each link once
+      const isRoad = (id: string) => placeOf(id)?.kind === 'road';
+      const roads = [
+        ...tilesOfWorld.filter((a) => isRoad(a.id)).map((a) => ({ label: a.name, a: a.links.map((l) => placeOf(l.to)?.name ?? l.to).join(' ↔ ') || 'nowhere known', b: a.name, to: a.id })),
+        ...tilesOfWorld.filter((a) => !isRoad(a.id)).flatMap((a) => a.links.filter((l) => !isRoad(l.to) && (a.id < l.to || !tilesOfWorld.find((b) => b.id === l.to)?.links.some((m) => m.to === a.id))))
+          .map((l) => ({ label: l.label, a: placeOf(tilesOfWorld.find((t) => t.links.includes(l))!.id)?.name ?? '', b: placeOf(l.to)?.name ?? l.to, to: l.to })),
+      ];
       return h('section', { class: 'map-card' },
         h('div', { class: 'map-card-h' }, h('h2', {}, 'The world'), h('span', { class: 'hs-tg' }, `${tilesOfWorld.length} place${tilesOfWorld.length === 1 ? '' : 's'}`)),
         h('p', { class: 'hs-note' }, 'Every place you know and the roads you know between them. Click a place to open its map.'),
         h('p', { class: 'hs-label' }, 'Roads'),
-        roads.length ? h('ul', { class: 'map-exits' }, roads.map((r) => h('li', {}, h('span', {}, r.label), h('span', { class: 'to' }, `${r.a} ↔ ${r.b}`),
+        roads.length ? h('ul', { class: 'map-exits' }, roads.map((r) => h('li', {}, h('span', {}, r.label), h('span', { class: 'to' }, isRoad(r.to) ? r.a : `${r.a} ↔ ${r.b}`),
           h('button', { type: 'button', class: 'map-go', title: `Open ${r.b}`, 'aria-label': `Open ${r.b}`, onclick: () => show(r.to) }, '›'))))
           : h('p', { class: 'hs-note' }, 'No roads between places yet. Leave this place by a road to find the next one.'));
     };
