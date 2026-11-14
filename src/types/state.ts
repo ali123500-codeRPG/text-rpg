@@ -35,15 +35,19 @@ export type StageInfo = {
   /** D-226: the gains of the scenario that ended on `turn` (the ending moment's summary; GameApi scenarioEnding().gains) */
   gains?: import('./game').ScenarioGains & { number: number; turn: number };
   closed?: { as: import('./hidden').ScenarioEnding; turn: number };
-  /** SD2 a: free roam, since this turn: no scenario runs until something starts one (CH2), or an unbuilt frontier (CH3 a) */
+  /** SD2 a: free roam, since this turn: no scenario runs until danger starts one or a window opens (WB5, WB6) */
   roam?: { since: number;
-    /** SW6 a: the turn the player took a job or made a deal in this free roam: it starts a scenario once ROAM_MIN_TURNS have passed */
-    job?: number;
+    /** WB6/WB7: the game minute free roam began, the rest after the scenario that ended (ROAM_REST_MIN by its challenge), and
+     * the minute the Weaver last declined a window */
+    sinceMin?: number; rest?: number; declinedAt?: number;
     /** SW3 a: what happened in this free roam, one short hidden line per notable thing (as a scenario's `happened`, plus attacks) */
     happened?: { turn: number; text: string }[] };
-  /** SW3 a: why free roam is ending in a scenario (roamStart's reason), what happened in the roam and who saw the player that
-   * turn; set with breakCause 'roam', read by the next scenario's Weaver view, cleared once that plan is applied */
+  /** SW3 a: why free roam is ending in a scenario (danger, or a window the Weaver took), what happened in the roam and who saw
+   * the player that turn; read by the window's and the next scenario's Weaver views, cleared once that plan is applied */
   cause?: { why: string; happened: { turn: number; text: string }[]; seenBy: string[] };
+  /** WB6: a scenario window is open (cause holds why): due, the Weaver is asked after the save; asked, its answer is awaited (a
+   * reload asks again). No other window opens meanwhile; the Weaver may decline */
+  window?: 'due' | 'asked';
   /** BG-217: growth earned in free roam waits for the next scenario's end: where the XP stood when the roam began, taken by
    * the next scenario's frame so its gains moment counts the roam's XP too */
   roamGrowth?: { xpFrom: number; xpStart: { level: number; pct: number } };

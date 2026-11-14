@@ -13,7 +13,7 @@ export const BUG_COUNTER = 'bugs_meta/counter';
 export const BUG_CODES = new Set([
   'view_leak', 'invalid_target', 'unlisted_reveal', 'planner_late', 'agent_fallback', 'call_failed', 'refused', 'invalid_json',
   'weaver_off_catalog', 'weaver_fallback', 'weaver_timeout', 'routine_fallback', 'routine_skip', 'reward_repaired', 'quest_goal_gap',
-  'scenario_overrun', 'scenario_stalled', 'checkin_failed', // SC12/SC14: code ended a scenario, or a Weaver check-in failed
+  'scenario_overrun', 'scenario_stalled', 'checkin_failed', 'window_failed', // SC12/SC14: code ended a scenario, or a Weaver check-in failed; WB6: a window call failed (the scenario starts anyway)
   'turn_check', // TQ1: a world rule broke after a turn (src/save/turnCheck.ts)
   'achievement_outside_end', // an achievement granted anywhere but a scenario's end (engine/xp.ts grantAchievement)
   'ending_item_remapped', // BF55: a scenario ending named the base of an item its own plan made

@@ -295,7 +295,7 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
   delete st.scenario;
   if (roam) {
     delete st.breakCause;
-    st.roam = { since: state.turn };
+    st.roam = { since: state.turn, sinceMin: now(state), rest: CONFIG.ROAM_REST_MIN[state.hidden.stage?.challenge] ?? 0 }; // WB7
     st.roamGrowth = { xpFrom: state.player.progression?.xpLog?.length ?? 0, xpStart: xpBar(state) }; // BG-217
     logCode(state, 'free_roam', { as });
     return 'roam';
