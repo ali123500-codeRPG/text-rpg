@@ -12,7 +12,7 @@ import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap } from '../words';
-import { PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
+import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
 
 /** CSS class of each edge kind's line on the To scale view */
@@ -254,10 +254,12 @@ export function mapPage(api: GameApi) {
     } else { planLayer.replaceChildren(); scene = null; }
   };
   const setView = (v: { x: number; y: number; k: number }) => { views.set(world, v); apply(); };
+  // names are sized from measured text: once the map's own font has loaded, measure and lay the plan out again
+  document.fonts?.ready.then(() => { if (planMap() && scene) { scene = null; apply(); } });
   function zoomBy(f: number, at?: Pt) {
     const v = view(), r = svg.getBoundingClientRect();
     const c = at ?? { x: r.width / 2, y: r.height / 2 };
-    const k = Math.max(minK(), Math.min(2.5, v.k * f));
+    const k = Math.max(minK(), Math.min(MAX_K, v.k * f));
     setView({ k, x: c.x - (c.x - v.x) * (k / v.k), y: c.y - (c.y - v.y) * (k / v.k) });
   }
   /** the box around a place's zones (and the places inside it), stubs included */
@@ -470,7 +472,9 @@ export function mapPage(api: GameApi) {
     if (measureCtx === undefined) measureCtx = document.createElement('canvas').getContext('2d');
     if (!measureCtx) return roughMeasure(t, kind);
     const st = TEXT[kind];
-    measureCtx.font = `${st.weight} ${st.size}px ${getComputedStyle(svg).fontFamily || 'sans-serif'}`;
+    // zone names are drawn in the rounded face (.map-name), the rest in the map's own
+    const face = kind === 'label' ? getComputedStyle(svg).getPropertyValue('--font-round').trim() : '';
+    measureCtx.font = `${st.weight} ${st.size}px ${face || getComputedStyle(svg).fontFamily || 'sans-serif'}`;
     return measureCtx.measureText(t).width + (kind === 'title' ? t.length * st.size * 0.06 : 0); // titles: .06em tracking
   };
   const innerPlaces = (zones: MapZone[]) => (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth)
@@ -486,7 +490,7 @@ export function mapPage(api: GameApi) {
     const zs = floorZones().filter((z) => inside(z.placeId, placeId));
     const zb = (zs.length ? zs : floorZones()).map((z) => z.rect!);
     const w = Math.max(...zb.map((q) => q.x + q.w / 2)) - Math.min(...zb.map((q) => q.x - q.w / 2)), d = Math.max(...zb.map((q) => q.y + q.d / 2)) - Math.min(...zb.map((q) => q.y - q.d / 2));
-    let k = Math.max(minK(), Math.min(2.5, aw / (w * PX_PER_M), ah / (d * PX_PER_M)));
+    let k = Math.max(minK(), Math.min(MAX_K, aw / (w * PX_PER_M), ah / (d * PX_PER_M)));
     let sc = sceneAt(k);
     // the marks around the zones (labels outside, exit notes, titles) take room too: shrink until all of it fits
     for (let i = 0; i < 8; i++) {
@@ -512,7 +516,13 @@ export function mapPage(api: GameApi) {
     });
     for (const x of sc.zones) zoneG.append(planZone(x.z, x.box, x.state));
     const links = sc.connectors.map((c) => s('line', { x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, class: `map-link${c.sight ? '' : ' hidden-view'}${c.a === selected || c.b === selected ? ' hot' : ''}` }, s('title', {}, c.title)));
-    const leaders = sc.labels.filter((l) => l.leader).map((l) => s('line', { x1: l.leader![0], y1: l.leader![1], x2: l.leader![2], y2: l.leader![3], class: 'map-leader' }));
+    // MZ2: each zone's name behind every mark, in bold letters sized to its box (data-layer back: marks may sit on it)
+    const names = s('g', { class: 'map-names', 'aria-hidden': 'true' }, ...sc.labels.map((l) => {
+      const x = (l.x0 + l.x1) / 2, first = (l.y0 + l.y1) / 2 - ((l.lines.length - 1) * l.line) / 2 + l.size * 0.36; // centred on the box
+      return s('text', { class: `map-name${zoneById.get(l.zoneId)?.z.here ? ' here' : ''}`, x, y: first, 'text-anchor': 'middle', 'font-size': l.size,
+        'data-role': 'label', 'data-layer': 'back', 'data-id': `label:${l.zoneId}`, 'data-for': l.zoneId, 'data-placement': 'inside' },
+      ...l.lines.map((line, i) => s('tspan', { x, y: first + i * l.line }, line)));
+    }));
     const textMark = (b: { x0: number; y0: number; x1: number; y1: number; full: string; cut: boolean; lines: string[] }, cls: string, attrs: Record<string, string | number>, kind: 'label' | 'title' | 'note') => {
       const st = TEXT[kind], first = (b.y0 + b.y1) / 2 - ((b.lines.length - 1) * st.line) / 2 + st.size * 0.36, x = (b.x0 + b.x1) / 2;
       return s('g', { class: cls, ...attrs, ...(b.cut ? { 'aria-label': b.full } : {}) },
@@ -521,7 +531,6 @@ export function mapPage(api: GameApi) {
         ...(b.cut ? [s('title', {}, b.full)] : []));
     };
     for (const d of sc.doors) marks.append(doorMark(d));
-    for (const l of sc.labels) marks.append(textMark(l, `map-label ${l.placement}${zoneById.get(l.zoneId)?.z.here ? ' here' : ''}`, { 'data-role': 'label', 'data-id': `label:${l.zoneId}`, 'data-for': l.zoneId, 'data-placement': l.placement, 'data-zone': l.zoneId }, 'label'));
     for (const p of sc.places) marks.append(textMark(p.title, `map-place-title${p.id === focus ? ' on' : ''}`, { 'data-role': 'label', 'data-id': `place:${p.id}`, 'data-for': p.id, 'data-placement': 'outside', 'data-area': p.id }, 'title'));
     for (const e of sc.exits) {
       marks.append(s('g', { class: `map-exit${e.goto ? ' away' : ''}${e.zoneId === selected ? ' hot' : ''}`, 'data-role': 'exit', 'data-id': e.id, 'data-target': e.target, ...(e.goto ? { 'data-goto': e.goto } : {}) },
@@ -541,7 +550,7 @@ export function mapPage(api: GameApi) {
     const bar = barOf(sc, k);
     const scale = s('g', { class: 'map-scale' }, s('line', { x1: bar.x, y1: bar.y, x2: bar.x + bar.len, y2: bar.y }), s('line', { x1: bar.x, y1: bar.y - 5, x2: bar.x, y2: bar.y + 5 }),
       s('line', { x1: bar.x + bar.len, y1: bar.y - 5, x2: bar.x + bar.len, y2: bar.y + 5 }), s('text', { x: bar.x + bar.len + 8, y: bar.y + 4 }, `${distText(10)} · ${Math.round(10 / CONFIG.PACE_M)} paces`));
-    planLayer.replaceChildren(...areas, zoneG, ...links, ...leaders, marks, scale);
+    planLayer.replaceChildren(...areas, zoneG, names, ...links, marks, scale);
     drawLegend();
     scheduleCheck();
   }
@@ -610,7 +619,7 @@ export function mapPage(api: GameApi) {
       const pairs = worldZones().flatMap((z) => z.links.filter((l) => have.has(l.to)).map((l) => [z.id, l.to] as [string, string]));
       const start = have.has(cur.zoneId) ? cur.zoneId : ids[0];
       const findings = [...checkMap(svg), ...checkReach(ids, pairs, start), ...checkStage(floorZones(), innerPlaces(floorZones())), ...(scene?.lost ?? []).map((id) => `MAP-32 exit ${id} found no room for its arrow and note`)];
-      if (scene?.dropped.length) console.info('[map-check] furniture left off for room (listed in its zone card):', scene.dropped.join(', '));
+      if (scene?.dropped.length) console.info('[map-check] marks hidden in place for room at this zoom (listed in the zone card):', scene.dropped.join(', '));
       (window as unknown as { __mapFindings?: unknown }).__mapFindings = { place: placeOf(world)?.name, floor: floor(), k: view().k, findings };
       if (findings.length) for (const f of findings) console.warn('[map-check]', f);
       else console.info('[map-check] 0 findings');
