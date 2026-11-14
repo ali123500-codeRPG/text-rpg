@@ -20,9 +20,9 @@ describe('the Action times table', () => {
       for (const b of r.onBreak ?? []) expect(b.upTo).toBeLessThanOrEqual(1);
     }
   });
-  it('AT72: an engagement ends after the slowest attack cycle (span a stirrup crossbow and shoot it) plus one round', () => {
-    expect(engagementEndS()).toBe(actionRow(DU.span_stirrup)!.seconds + actionRow(DU.crossbow_shot)!.seconds + CONFIG.ROUND_S);
-    expect(engagementEndS()).toBe(13); // 33 s until the heavy crossbow's 28 s spanning went (TP6 f)
+  it('AT72: an engagement ends after the slowest attack cycle (a medium bow shot, now that crossbows span at once) plus one round', () => {
+    expect(engagementEndS()).toBe(actionRow(DU.bow_medium)!.seconds + CONFIG.ROUND_S);
+    expect(engagementEndS()).toBe(9); // 33 s until the crossbow spans went (TP6 f, TP8 a)
   });
   it('D-248: a row naming a speed function halves every N points above 50; one naming none ignores skill', () => {
     const pick = actionRow(DU.pick_lock)!;

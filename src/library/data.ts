@@ -859,8 +859,8 @@ export function prototypeLibrary(): Library {
     // The Action times table (T1, AT1, AT11, AT12): seconds at a time factor of 1, for a skill-50 professional, from the real
     // references on the Action Time pages (action-time/action-time-research.md). FT24/FT25: each row's effort tier pays its
     // strain ([Proposed] placement: Base free actions, words, a drawn weapon, a door, rest, sleep, waiting; Light a look round,
-    // handing over; Moderate bandaging, picking, hiding, armour; Hard a blow, a throw, a shot, a span; All-out a heavy span,
-    // Battle Cry). Unset: no movement lock, focus reflex, stop
+    // handing over; Moderate bandaging, picking, hiding, armour; Hard a blow, a throw, a bow shot; All-out a Battle Cry;
+    // crossbow spans are instant at Base, TP8 a). Unset: no movement lock, focus reflex, stop
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
       [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 30 }, // an out-of-fight turn's own time (EXPLORE_TURN_S)
@@ -874,10 +874,10 @@ export function prototypeLibrary(): Library {
       [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', effort: 'hard', seconds: 5, attack: true, locksMove: true, focus: 'steady' },
       [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', effort: 'hard', seconds: 6, attack: true, locksMove: true, focus: 'steady' },
       [DU.crossbow_shot]: { id: DU.crossbow_shot, name: 'Crossbow shot', effort: 'light', seconds: 2, attack: true, locksMove: true, focus: 'steady' },
-      // spanning stays done when broken off: a spanned crossbow stays loaded (AT11c b)
-      [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', effort: 'hard', seconds: 4, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
-      [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', effort: 'hard', seconds: 8, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
-      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot }, // less realism: the heavy crossbow spans at once
+      // spanning is instant for every crossbow (less realism, TP6 f, TP8 a); the rows stay so a crossbow names its spanning
+      [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },
+      [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },
+      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },
       // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
       [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
       [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },

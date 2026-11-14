@@ -154,7 +154,7 @@ describe('140 sparring', () => {
   it('SP7: a spar ends on a scenario break, or when no blow lands between sides for a while', () => {
     const s = village();
     startSpar(s, [['player'], ['patron_1']], false, 'test');
-    tick(s, engagementEndS());
+    tick(s, engagementEndS() + 1);
     updateSpars(s, []);
     expect(s.log.find((l) => l.code === 'spar_ended')?.detail).toMatchObject({ cause: 'quiet' });
     startSpar(s, [['player'], ['patron_1']], false, 'test');
