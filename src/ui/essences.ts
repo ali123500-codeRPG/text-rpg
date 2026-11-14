@@ -1,5 +1,5 @@
 // Essences on screen (growth proposal 2.5, 2.7): a pop-up the moment one is offered, with what it is, what it gives, and
-// Take it / Let it go; and the Essences section on the Character page, with the slots, what is held and what still waits.
+// Take it / Let it go; and the Essences pop-up on the Character page, with the slots, what is held and what still waits.
 // Both run the same /essence commands a player can type, so the rules stay in one place (src/engine/essence.ts).
 import type { Actor, EssenceOffer, GameApi, GameState, HeldEssence } from '../types';
 import { essenceSlots, removeCostText } from '../engine/essence';
@@ -42,7 +42,7 @@ function offerButtons(s: GameState, p: Actor, i: number, run: (cmd: string) => v
     later ? h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'essence-later', onclick: later }, 'Decide later') : null);
 }
 
-const waitText = (s: GameState, o: EssenceOffer) => `Waits ${durationText(Math.max(0, o.untilMin - now(s)))} more${o.pair ? ' · one of two: taking one lets the other go' : ''}`;
+const waitText = (s: GameState, o: EssenceOffer, paired = false) => `Waits ${durationText(Math.max(0, o.untilMin - now(s)))} more${o.pair && !paired ? ' · one of two: taking one lets the other go' : ''}`;
 const slotsText = (p: Actor) => `${(p.progression?.essences ?? []).length} of ${essenceSlots(p)} slots used`;
 
 /** the offer pop-up: one per new offer, shown once; Decide later closes it, and the offer stays on the Character page */
@@ -77,16 +77,34 @@ export function openEssencePop(api: GameApi, s: GameState, i: number, after: () 
   pop = openPop({ title: 'An essence is offered', tone: 'essence', cls: 'ess-pop', opener, body: essenceOfferBody(s, o, i, run, close) });
 }
 
-/** the Character page's Essences section: slots (held ones, then the empty ones), then the offers still waiting */
-export function essencesSection(api: GameApi, s: GameState, after: () => void): HTMLElement {
+/** the Character page's Essences pop-up (CP4): slots (held ones, then the empty ones), then the offers still waiting. Two
+ * offers of a pair (EssenceOffer.pair) sit side by side as one choice: taking one lets the other go. */
+export function essencesBody(api: GameApi, s: GameState, after: () => void): (Node | string | null)[] {
   const p = s.player, held = p.progression?.essences ?? [], offers = p.progression?.essenceOffers ?? [], slots = essenceSlots(p);
   const run = (cmd: string) => { void api.submit(cmd, { aimed: false }).then(after); };
-  return h('section', { class: 'ess-sec', id: 'essences', 'aria-labelledby': 'ess-h' },
-    h('div', { class: 'ess-head' }, h('h2', { id: 'ess-h' }, 'Essences'), h('span', { class: 'ess-meta' }, slotsText(p))),
+  const offer = (o: EssenceOffer, i: number) => tile(o, [h('p', { class: 'ess-meta' }, waitText(s, o, true)), offerButtons(s, p, i, run)]);
+  // each pair once, where its first offer stands; lone offers on their own
+  const seen = new Set<string>();
+  const groups = offers.flatMap((o, i) => {
+    if (!o.pair) return [offer(o, i)];
+    if (seen.has(o.pair)) return [];
+    seen.add(o.pair);
+    const both = offers.map((x, k) => [x, k] as const).filter(([x]) => x.pair === o.pair);
+    return [h('div', { class: 'ess-pair', 'data-pair': o.pair }, h('p', { class: 'ess-pair-h' }, 'Take one: the other goes'),
+      h('div', { class: 'ess-pair-row' }, both.map(([x, k]) => offer(x, k))))];
+  });
+  return [
+    h('p', { class: 'ess-meta' }, slotsText(p)),
     h('p', { class: 'hs-note' }, 'An essence is a package of true skill points you take into a slot. They are offered by beaten foes and by scenarios you end well. You get one more slot every few character levels.'),
     h('div', { class: 'ess-grid' },
       ...held.map((e) => tile(e)),
       ...Array.from({ length: Math.max(0, slots - held.length) }, () => h('div', { class: 'ess-tile ess-empty' }, h('span', {}, 'Empty slot')))),
     offers.length ? h('div', { class: 'ess-offers' }, h('p', { class: 'hs-label' }, offers.length === 1 ? 'On offer' : `On offer · ${offers.length}`),
-      h('div', { class: 'ess-grid' }, offers.map((o, i) => tile(o, [h('p', { class: 'ess-meta' }, waitText(s, o)), offerButtons(s, p, i, run)])))) : null);
+      h('div', { class: 'ess-grid' }, groups)) : null,
+  ];
+}
+
+/** the Essences tile's line: slots used, and how many offers wait */
+export function essencesSummary(p: Actor): { used: string; waiting: number } {
+  return { used: `${(p.progression?.essences ?? []).length} of ${essenceSlots(p)}`, waiting: (p.progression?.essenceOffers ?? []).length };
 }

@@ -52,29 +52,35 @@ export const hollowedMult = (a: Actor, skill: string): number => {
   return h ? (1 - (h.skills[skill] ?? 0)) * (1 - h.all) : 1;
 };
 
+/** one part of a true skill, for the sheet's skill pop-up: what it is and what it adds */
+export type SkillPart = { label: string; adds: number };
+
 /** the actor's true skill: flat parts (raw, perks, achievements, essences) plus the 120 perks' shares (SH1, SH4), which read
- * flat true skill only, so they never feed each other; several shares on one skill add in full (RN3 c); Hollowed (DX5) scales the whole */
-export function trueSkill(a: Actor, skill: string): number {
+ * flat true skill only, so they never feed each other; several shares on one skill add in full (RN3 c); Hollowed (DX5) scales the whole.
+ * With `out`, every part that adds something is listed in it, so the sheet shows the same sum it is made of. */
+export function trueSkill(a: Actor, skill: string, out?: SkillPart[]): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant || !skillOpen(a, skill)) return 0;
-  const flat = flatTrueSkill(a, skill);
+  const flat = flatTrueSkill(a, skill, out);
   const { perks, skills } = getLibrary();
   const groups = groupsOf(skills[skill]);
   const shares = owned(a).flatMap((p) => {
     const d = perks[p.perkId], own = d?.ladder?.skill;
     if (!d || !own || (!d.shareOwn && !d.shareGroup)) return [];
     const base = own === skill ? flat : flatTrueSkill(a, own);
-    return [own === skill ? (d.shareOwn ?? 0) * base : 0,
+    const rows = [own === skill ? (d.shareOwn ?? 0) * base : 0,
       d.shareGroup && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g))) ? d.shareGroup * base : 0].filter((v) => v);
+    for (const v of rows) out?.push({ label: d.name, adds: v });
+    return rows;
   });
   return (flat + shares.reduce((s, x) => s + x, 0)) * hollowedMult(a, skill);
 }
-function flatTrueSkill(a: Actor, skill: string): number {
+function flatTrueSkill(a: Actor, skill: string, out?: SkillPart[]): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant || !skillOpen(a, skill)) return 0; // a closed tree counts as 0 (TA4)
   const { perks, skills } = getLibrary();
   const groups = groupsOf(skills[skill]);
-  return e.raw + owned(a).reduce((n, p) => {
+  const fromPerks = owned(a).reduce((n, p) => {
     const d = perks[p.perkId];
     const own = d?.ladder?.skill;
     if (!d) return n;
@@ -85,8 +91,13 @@ function flatTrueSkill(a: Actor, skill: string): number {
     // 40/80/120 perks: +functionBoost to the ladder skill itself and every other skill sharing a group with it
     // (docs/skill-tags.md: "+1 function (including itself)"; F1: the broad group)
     if (d.functionBoost && own && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g)))) v += d.functionBoost;
+    if (v) out?.push({ label: d.name, adds: v });
     return n + v;
-  }, 0) + achievementSkill(a, skill) + essenceSkill(a, skill);
+  }, 0);
+  const ach = achievementSkill(a, skill);
+  if (ach) out?.push({ label: 'Achievements', adds: ach });
+  if (out) for (const x of a.progression?.essences ?? []) if (x.points[skill]) out.push({ label: `${getLibrary().essences?.[x.essence]?.name ?? x.essence} essence`, adds: x.points[skill] });
+  return e.raw + fromPerks + ach + essenceSkill(a, skill);
 }
 /** growth proposal 2.2/EG4 a: the true skill the actor's held essences add (thread, not body: it counts everywhere true skill does) */
 export const essenceSkill = (a: Actor, skill: string): number => (a.progression?.essences ?? []).reduce((n, e) => n + (e.points[skill] ?? 0), 0);

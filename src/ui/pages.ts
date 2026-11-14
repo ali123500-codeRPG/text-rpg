@@ -12,14 +12,17 @@ import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, t
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
-import { accSlot, gripSlot, gripWord, kitBonus, modeName } from '../ruleset/gear';
+import { accSlot, gripSlot, gripWord, isHeld, kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
-import { essencesSection } from './essences';
+import { essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
 import { closePanel, groupedTable, playDraft, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
-import { charCard, invFocus, treeBars } from './charsheet';
+import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
+import { closePop, fullOpen, openFull, openPop } from './pop';
+import { personalityBlock } from './personality';
+import { archetypeOf, nerveLine, nerveTier, personalityOf } from '../ruleset/personality';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
@@ -96,23 +99,81 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 
+/** CP1: the Character page fits one screen: the hero card on the left, the skill trees on the right, and a strip of tiles
+ * under them, one per big section, each opening it in a pop-up: Essences and Gear and Personality partial (they float and
+ * the page stays usable), Perks full screen (its board needs the room; a perk's card opens on top of it, CP3) */
 export function characterPage(api: GameApi) {
-  const el = h('main');
+  const el = h('main', { class: 'cs-page' });
   const perks = perksSection(api);
+  const tileOf = (k: string) => el.querySelector<HTMLElement>(`[data-tile="${k}"]`);
+  const openEss = (opener?: HTMLElement | null) => {
+    const s = api.state();
+    if (!s) return;
+    // after Take it or Let it go the page redraws, and the pop-up opens again on what is left
+    const again = () => { update(); if (api.state()?.player.progression?.essences?.length || api.state()?.player.progression?.essenceOffers?.length) openEss(tileOf('essences')); };
+    openPop({ title: 'Essences', tone: 'essence', cls: 'ess-pop ess-all', opener, body: essencesBody(api, s, () => { closePop(); again(); }) });
+  };
+  const openPerks = (opener?: HTMLElement | null) => { openFull({ label: 'Perks', cls: 'pk-full', opener, body: [perks] }); refreshPerks(); };
   function update() {
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
+    const p = s.player;
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
-      h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s.player)),
-      essencesSection(api, s, update),
-      h('p', { class: 'hs-note' }, `The ${HEALTH_LEVELS.keys.length - 1} health segments are the health track, ${HEALTH_LEVELS.name('unhurt')} to ${HEALTH_LEVELS.name('incapacitated')}. ✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`),
-      perks);
-    refreshPerks();
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats. Click a skill, the body or a tile for more.'))),
+      h('div', { class: 'cs-split' }, charCard(s, p), h('div', { class: 'cs-right' }, treeBars(p),
+        h('p', { class: 'hs-note cs-foot' }, `✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`))),
+      charTiles(s, { essences: openEss, perks: openPerks }));
+    if (fullOpen()?.contains(perks)) refreshPerks();
+    const go = charFocus.open;
+    charFocus.open = null;
+    if (go) setTimeout(() => (go === 'perks' ? openPerks(tileOf('perks')) : openEss(tileOf('essences'))));
   }
   return { el, update };
 }
 
+/** CP5: what the character holds and wears, each a button that opens the piece's stats in the same pop-up */
+function openGearPop(s: GameState, opener?: HTMLElement | null): void {
+  const on = s.player.core.inventory.filter((i) => i.equippedIn?.length);
+  const name = (i: ItemInstance) => cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId);
+  openPop({ title: 'Gear', cls: 'gear-pop', opener, body: on.length ? [
+    h('p', { class: 'hs-note' }, 'What you hold and wear. Click a piece for its stats.'),
+    h('div', { class: 'gp-list' }, on.map((i) => {
+      const n = gearNote(s, i);
+      return h('button', { type: 'button', class: 'gp-row', 'data-gear': i.id, onclick: () => openItemPop(s, i, opener) },
+        h('b', {}, name(i)), h('span', {}, isHeld(i) ? 'held' : 'worn'), n ? h('span', { class: `cs-gn ${n.cls}` }, n.text) : null);
+    }))] : [h('p', { class: 'empty' }, 'Nothing held or worn.')] });
+}
+
+/** one piece of gear: its exact stats (the Inventory's rows), a way back to the list, and a link to it in the Inventory */
+function openItemPop(s: GameState, i: ItemInstance, opener?: HTMLElement | null): void {
+  openPop({ title: cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId), cls: 'gear-pop', opener, body: [
+    h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
+    h('div', { class: 'actions' },
+      h('button', { type: 'button', class: 'hs-btn-text', onclick: () => openGearPop(s, opener) }, '‹ All gear'),
+      h('a', { href: '#inv', class: 'hs-btn-text', onclick: () => { invFocus.id = i.id; closePop(); } }, 'Open in Inventory')),
+  ] });
+}
+
+/** the strip of tiles under the Character page: one line on each section, a click opens it */
+function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; perks: (b: HTMLElement) => void }): HTMLElement {
+  const p = s.player;
+  const ess = essencesSummary(p);
+  const pts = p.progression?.unspentPerkPoints ?? 0;
+  const owned = p.core.perks.filter((x) => !x.dormant && x.source !== 'race' && x.source !== 'essence').length;
+  const gear = p.core.inventory.filter((i) => i.equippedIn?.length);
+  const pe = personalityOf(p);
+  const tile = (key: string, label: string, value: Node | string, sub: string, onclick: (b: HTMLElement) => void, full = false) => {
+    const b: HTMLElement = h('button', { type: 'button', class: 'cs-tile', 'data-tile': key, 'aria-haspopup': 'dialog', title: full ? `Open ${label} full screen` : `Open ${label}`, onclick: () => onclick(b) },
+      h('span', { class: 'hs-label' }, label), h('b', {}, value), h('span', { class: 'cs-tile-sub' }, sub));
+    return b;
+  };
+  return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },
+    tile('essences', 'Essences', ess.used, ess.waiting ? '' : 'slots used', open.essences),
+    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : `perk${owned === 1 ? '' : 's'} taken`, open.perks, true),
+    tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
+    tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p)] })),
+  );
+}
 const KIND_GROUP: Record<string, [string, string, string]> = {
   weapon: ['weapons', 'Weapons', 'c10'], shield: ['shields', 'Shields', 'c1'], armor: ['armor', 'Armor', 'c12'],
   accessory: ['accessories', 'Accessories', 'c5'], consumable: ['consumables', 'Consumables', 'c6'], tool: ['tools', 'Tools', 'c4'],

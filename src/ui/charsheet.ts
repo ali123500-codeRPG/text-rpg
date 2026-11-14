@@ -5,14 +5,15 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { defenseItem, isHeld } from '../ruleset/gear';
+import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
+import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpFill, xpToNext } from '../engine/xp';
 import { essenceSlots } from '../engine/essence';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
-import { personalityBlock } from './personality';
+import { openPop } from './pop';
 import { powerFigure } from './power';
 import { ageText } from '../ruleset/age';
 import { callName, staminaOf } from '../views';
@@ -27,6 +28,8 @@ import { cap, r1 } from '../words';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
+/** Set by a link from another page; the Character page opens that pop-up once on arrival (CP1: its big sections live in pop-ups) */
+export const charFocus: { open: 'essences' | 'perks' | null } = { open: null };
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const BAR_SCALE = CONFIG.SKILL_CAP; // display only: the bar fills at the mortal limit; true skill can pass it
@@ -100,8 +103,6 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
   const cls = p.core.classes.find((c) => c.state === 'current')?.classId ?? '';
   const def = standing(s, p);
   const atk = attackOf(s, p);
-  const gear = p.core.inventory.filter((i) => i.equippedIn?.length).map((i) =>
-    h('span', {}, h('a', { href: '#inv', class: 'cs-item', title: 'Open in Inventory for its full stats', onclick: () => { invFocus.id = i.id; } }, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${isHeld(i) ? 'held' : 'worn'}`));
   return h('div', { class: 'cs-card' },
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In the ${place}` : ''].filter(Boolean).join(' · ')))), // AG16
@@ -110,17 +111,47 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       // each level named at its segment, alternating one above the bar and one below
       steps(boxes, level, 0),
       h('div', { class: 'cs-hp', title: `Health track: ${levels.map(HEALTH_LEVELS.name).join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: HEALTH_LEVELS.name(l), 'aria-label': HEALTH_LEVELS.name(l) }))),
-      steps(boxes, level, 1),
-      bodyFigure(s, p)),
+      steps(boxes, level, 1)),
     xpTrack(s, p),
     capstoneChoice(s, p),
-    h('div', { class: 'cs-figs' },
-      powerFigure(s, p),
-      h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
-      h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
-    gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
-    // earned achievements live on their own page (Achievements in the rail), not on the card
-    personalityBlock(p));
+    // the body figure beside the figures (CP5: a click opens each part in a pop-up); gear and personality are tiles under the page
+    h('div', { class: 'cs-bodyrow' }, bodyButton(s, p),
+      h('div', { class: 'cs-figs' },
+        powerFigure(s, p),
+        h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
+        h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`)))));
+}
+
+/** the card's body figure as one button: a click (on a part, or anywhere on it) opens every part's state in a pop-up */
+function bodyButton(s: GameState, p: Actor): HTMLElement | null {
+  const fig = bodyFigure(s, p);
+  if (!fig) return null;
+  const svg = fig.querySelector('.bf-svg')!;
+  const btn: HTMLElement = h('button', { type: 'button', class: 'cs-bfbtn', 'aria-haspopup': 'dialog', title: 'Each body part and its state', 'aria-label': 'Body parts: open each part and its state' }, svg);
+  btn.addEventListener('click', (e) => openBodyPop(s, p, btn, (e.target as Element).closest('[data-part]')?.getAttribute('data-part') ?? undefined));
+  return btn;
+}
+
+/** CP5: the body parts pop-up: total health, then each part with its state word and what is left of its pool */
+export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null, part?: string): void {
+  const ct = safe(() => actorBody(s, p));
+  if (!ct) return;
+  const { hp, total } = hpLeft(s, p);
+  const row = (id: string, name: string, pct: number, amount: string) => {
+    const st = poolState(pct);
+    return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, 'aria-hidden': 'true' }), h('b', {}, name),
+      h('span', { class: 'bp-st' }, PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
+  };
+  openPop({ title: 'Body', cls: 'bp-pop', opener, body: [
+    h('div', { class: 'bp-list' },
+      row('general', cap(ct.general.name), 100 - p.core.condition.hpLostPct, `${whole(hp)} of ${whole(total)} HP`),
+      ...ct.parts.map((d) => {
+        const pct = p.core.condition.parts[d.id] ?? 100;
+        const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
+        return row(d.id, partName(d.id), pct, pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}`);
+      })),
+    h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st)))),
+  ] });
 }
 
 /** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. A class at
@@ -149,14 +180,14 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   return el;
 }
 
-/** 2.7 on the play sheet: the essences held by name, and any offer still waiting, both opening the Character page's section */
+/** 2.7 on the play sheet: the essences held by name, and any offer still waiting, both opening the Character page's Essences pop-up */
 function essenceRow(p: Actor): HTMLElement | null {
   const pr = p.progression, held = pr?.essences ?? [], offers = pr?.essenceOffers ?? [];
   if (!pr || (!held.length && !offers.length && charLevel(p) < 2)) return null;
   return h('div', { class: 'cs-row' }, h('span', {}, 'Essences'), h('b', {},
-    h('a', { href: '#stats', class: 'cs-item', title: 'Open the Essences section on the Character page', onclick: () => setTimeout(() => document.getElementById('essences')?.scrollIntoView({ block: 'start' })) },
+    h('a', { href: '#stats', class: 'cs-item', title: 'Open Essences on the Character page', onclick: () => { charFocus.open = 'essences'; } },
       held.length ? held.map((e) => getLibrary().essences?.[e.essence]?.name ?? e.essence).join(' · ') : `None · ${essenceSlots(p)} slot${essenceSlots(p) === 1 ? '' : 's'} free`),
-    offers.length ? h('a', { href: '#stats', class: 'ess-waiting', 'data-chip': 'essence-waiting', onclick: () => setTimeout(() => document.getElementById('essences')?.scrollIntoView({ block: 'start' })) }, ` ◆ ${offers.length} on offer`) : null));
+    offers.length ? h('a', { href: '#stats', class: 'ess-waiting', 'data-chip': 'essence-waiting', onclick: () => { charFocus.open = 'essences'; } }, ` ◆ ${offers.length} on offer`) : null));
 }
 
 /** alternate capstones on offer: the default is inactive until the player keeps it or picks an alternate (final) */
@@ -183,9 +214,51 @@ export function treeBars(p: Actor): HTMLElement {
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
       h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
       t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
-      t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
+      t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
+        title: 'What makes up this skill', onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
+        onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
         bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
+}
+
+const signed = (n: number) => `${n < 0 ? '−' : '+'}${whole(Math.abs(n))}`;
+
+/** CP5: what makes up a skill, read from the same sums the rules use (trueSkill lists its parts; augmentsOf and tradesOut
+ * are what its rolls get): raw, each part that adds to it, its rolls' augments, what it adds to, its learning range and
+ * its next perk milestone */
+export function skillFacts(p: Actor, id: string) {
+  const parts: SkillPart[] = [];
+  const value = trueSkill(p, id, parts);
+  const raw = p.core.skills[id]?.raw ?? 0;
+  const lib = getLibrary();
+  const every = CONFIG.PERK_MILESTONE_EVERY;
+  const next = (Math.floor(value / every) + 1) * every;
+  return {
+    value, raw, parts, mult: hollowedMult(p, id),
+    rolls: [...augmentsOf(p, id), ...tradesOut(p, id)].filter((x) => x.value),
+    gives: (lib.skills[id]?.augments ?? []).map((g) => skillName(g.skill)),
+    window: windowOf(p, id), next, toNext: next - value,
+  };
+}
+
+export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null): void {
+  const f = skillFacts(p, id);
+  const line = (label: string, v: string, cls = '') => h('div', { class: 'sk-line ' + cls }, h('span', {}, label), h('b', {}, v));
+  const tagged = p.core.skills[id]?.state === 'tagged';
+  openPop({ title: skillName(id), cls: 'sk-pop', opener, body: [
+    h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), h('span', {}, f.value === f.raw ? 'Skill' : `True skill · raw ${f.raw}`),
+      tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
+    SKILL_SUB[id] ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
+    h('div', { class: 'sk-list', 'aria-label': 'What adds to it' },
+      line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
+      f.mult !== 1 ? line('Hollowed', `×${whole(f.mult)}`, 'sk-bad') : null,
+      line('True skill', whole(f.value), 'sk-sum')),
+    f.rolls.length ? h('div', { class: 'sk-list' }, h('p', { class: 'hs-label' }, 'On its rolls'), ...f.rolls.map((x) => line(cap(x.source), signed(x.value), x.value < 0 ? 'sk-bad' : ''))) : null,
+    f.gives.length ? h('p', {}, `Adds to ${f.gives.join(' and ')} rolls.`) : null,
+    h('div', { class: 'sk-list' },
+      line('Learns from', winText(f.window)),
+      line('Next perk milestone', `${f.next} · ${whole(f.toNext)} to go`)),
+  ] });
 }
 
 /** the skill's true value; when raw differs it shows only on hover or keyboard focus, as a small card beside the number */

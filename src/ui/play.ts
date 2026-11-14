@@ -24,7 +24,7 @@ import { perkSeries } from './perks';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
@@ -400,8 +400,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     await api.submit(text, { aimed: wasAimed });
   }
 
-  /** opens the Character page at its Perks section */
-  const seePerks = () => { nav('stats'); setTimeout(() => document.querySelector('.pk')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
+  /** opens the Character page with its Perks board up */
+  const seePerks = () => { charFocus.open = 'perks'; nav('stats'); };
   const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false, series?: string) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined, 'data-series': series }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
     h('div', {}, title, h('small', {}, sub)), action ? h('button', { type: 'button', class: 'hs-btn-text', onclick: action[1] }, action[0]) : null);
 
