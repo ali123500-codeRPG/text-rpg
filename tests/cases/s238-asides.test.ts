@@ -33,14 +33,15 @@ it('238a a question said while buying is answered this turn, and the buy still h
   expect(ev.filter((e) => e.bark).length).toBe(0); // the line is said once, not again as a bark on the buy
 });
 
-it('238b an attack\'s words stay a bark; in a fight a line beside a deed still needs Quick Word', () => {
+it('238b an attack\'s words stay a bark outside a fight; in a fight a one-sentence line beside a deed is free (Quick Word, everyone\'s rule)', () => {
   const s = makeVillage();
   const hit = intent({ action: { type: 'attack', skill: SK.unarmed_strike, target: 'patron_1' }, spoken: 'Take that!', addressees: ['patron_1'] });
   expect(quickWord(s, hit)).toBe(false);
   const give = intent({ action: { type: 'give', target: 'patron_1', item: 'x' }, spoken: 'Here, for the trouble.', addressees: ['patron_1'] });
   expect(quickWord(s, give)).toBe(true);
   s.mode = 'tactical';
-  expect(quickWord(s, give)).toBe(false); // no Quick Word perk
+  expect(quickWord(s, give)).toBe(true);
+  expect(quickWord(s, { ...give, spoken: 'Here. For the trouble.' })).toBe(false); // one sentence only
 });
 
 it('238c walking in to ask someone last seen there is legal; calling out to them without going is too (BG-147: whoever hears it answers)', () => {

@@ -68,7 +68,6 @@ export const BUILT_PERKS = new Set<string>([
   PK.set_them_up, // B15 (strike 60): src/engine/perkMarks.ts markShifts() and afterAttack()
   PK.one_two, // B16 (improvisation 60): src/engine/resolve.ts doAttack()
   PK.unblinking, // B14 (sight 60, ST23): src/minds/state.ts stealthDetect()
-  PK.quick_word, // A15 (trial): src/engine/speech.ts quickWord(), the exchange slot in resolveTurn()
   // 40/80/120 perks (40 milestone): src/library/boostPerks.ts; trueSkill() and boostMult()/boostAdd() in src/ruleset/perks.ts
   PK.keen_edge, PK.steady_draw, PK.iron_grip, PK.light_feet, PK.guard_drill, PK.heavy_hand, PK.sharp_eyes, PK.armor_piercer, PK.street_fighter, PK.brawlers_eye, PK.braced,
   PK.quick_mend, PK.marksmans_eye, PK.soft_step,

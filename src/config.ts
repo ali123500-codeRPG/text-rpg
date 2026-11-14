@@ -310,8 +310,6 @@ const DEFAULTS = {
   RUN_EFFORT: 'hard' as EffortKey,
   /** FT5: a dodge, block or parry (no Action times row of its own) */
   DEFENSE_EFFORT: 'light' as EffortKey,
-  /** FT5: worn armour multiplies all strain, by weight */
-  STRAIN_ARMOR_MULT: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** FT23: strain past an empty short line spills into the long-term bar at this share */
   SPILL_SHARE: 0.5,
   /** FT27/FB6: one Stamina mark per this many points of strain paid, any effort, armour included */

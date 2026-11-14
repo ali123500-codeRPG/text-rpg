@@ -152,18 +152,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner hears 10 dB quieter (hearingDb): every sound counts 10 dB louder for the owner, so it carries about three times as far (a normal voice is clear to about 56 m in the open instead of about 18 m). A Silent sound stays unheard.
 - **Lasts:** Always.
 
-### Quick Word (Persuasion) · A15
-
-*Story:* Blades clash, and you still have time for the last word. Once a turn, a one-sentence remark is spoken without using up your action, and the answer it gets costs the other side nothing either.
-
-- **Kind:** Always on
-- **Trigger:** A tactical turn in which the owner both speaks and acts.
-- **Conditions:** The line is short (one sentence).
-- **Effect:** The line resolves as talk without using the owner's action. An NPC's spoken reply to that line is also free: it doesn't use the NPC's action.
-- **Lasts:** That line.
-- **Cooldown:** Once per turn.
-- **Open:** Trial perk: test in play how NPCs answer. It is dropped if the free exchange doesn't work.
-
 ### Threaten for Answers (Intimidation) · A16
 
 *Story:* Charm is a request. Fear is an answer. Asking an unfriendly or hostile person for information, your intimidation counts at its full value instead of half.

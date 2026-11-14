@@ -33,9 +33,9 @@ describe('111 game clock', () => {
     turn(s, act('observe'));
     expect(now(s) - t0).toBeCloseTo(3 / 60, 6); // a look around
     turn(s, act('barter'));
-    expect(now(s) - t0).toBeCloseTo(3 / 60 + CONFIG.EXPLORE_TURN_S / 60, 6); // the haggling is words: capped
+    expect(now(s) - t0).toBeCloseTo(3 / 60 + actionRow(DU.trade)!.seconds / 60, 6); // a trade: its row (3 s, TP5)
     turn(s, act('other'));
-    expect(now(s) - t0).toBeCloseTo(3 / 60 + CONFIG.EXPLORE_TURN_S / 60 + actionRow(DU.action)!.seconds / 60, 6); // no time of its own: the action row
+    expect(now(s) - t0).toBeCloseTo(3 / 60 + actionRow(DU.trade)!.seconds / 60 + actionRow(DU.action)!.seconds / 60, 6); // no time of its own: the action row
   });
   it('waiting until dawn moves the clock to dawn and shows a line, never ending the scenario (SC9); a foe in the player\'s senses stops it at once', () => {
     const s = makeVillage();

@@ -200,6 +200,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
     }
     default:
+      // TP6 c: in a fight plain talk is no action (its time stays and carries); words that use a skill (persuade, lie,
+      // threaten, haggle) take their words' time
+      if (o.type === 'talk' && state.mode === 'tactical') return { row: actionRow(DU.talk)!, seconds: 0 };
       if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row) * o.line.text.trim().split(/\s+/).length }; }
       return undefined;
   }

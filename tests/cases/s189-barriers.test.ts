@@ -47,18 +47,18 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     const s = quiet();
     s.player.core.skills[SK.lockpicking] = { raw: 40, state: 'normal' };
     expect(fnRoller(s, s.player, FN.lockpicking)).toBe(SK.lockpicking);
-    expect(pickSeconds(50)).toBe(60);
-    expect(pickSeconds(75)).toBe(30);
-    expect(pickSeconds(25)).toBe(120);
+    expect(pickSeconds(50)).toBe(30);
+    expect(pickSeconds(75)).toBe(15);
+    expect(pickSeconds(25)).toBe(60);
   });
   it('scaling: picking time keeps halving per 25 points past 100, and a cap would stop it', () => {
     makeVillage();
-    expect(pickSeconds(100)).toBe(15);
-    expect(pickSeconds(150)).toBe(3.75);
-    expect(pickSeconds(200)).toBe(0.9375);
+    expect(pickSeconds(100)).toBe(7.5);
+    expect(pickSeconds(150)).toBe(1.875);
+    expect(pickSeconds(200)).toBe(0.46875);
     const speed = getLibrary().durations![DU.pick_lock].speed!; // the row's speed function carries the cap
     speed.fastCap = 100;
-    expect(pickSeconds(200)).toBe(15);
+    expect(pickSeconds(200)).toBe(7.5);
     speed.fastCap = null;
   });
   it('a locked door stops a walker without its key: trying it shows it locked', () => {
