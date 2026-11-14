@@ -88,25 +88,28 @@ export function templateMinimums(t: NpcTemplate): Record<string, number> {
 
 /** NG3: a rank's anchor skill, level and training years (AG12); past the last row each step adds CONFIG.RANK_BEYOND_STEP */
 export function rankRow(rank: RankKey): { anchor: number; level: number; training: number } {
-  const n = Number(rank.slice(5)), last = RANKS.keys.length - 1, top = CONFIG.RANK_ROWS[RANKS.keys[last]], step = CONFIG.RANK_BEYOND_STEP;
-  if (n <= last) return CONFIG.RANK_ROWS[rank];
-  return { anchor: top.anchor + (n - last) * step.anchor, level: top.level + (n - last) * step.level, training: top.training + (n - last) * step.training };
+  if (RANKS.has(rank)) return CONFIG.RANK_ROWS[rank];
+  const n = stepsPast(rank), top = CONFIG.RANK_ROWS[LAST_RANK], step = CONFIG.RANK_BEYOND_STEP;
+  return { anchor: top.anchor + n * step.anchor, level: top.level + n * step.level, training: top.training + n * step.training };
 }
 /** NG3: a rank's name, a theme's own title first; past the last row the last name gains a + per step (Divine+, Divine++) */
 export function rankName(rank: RankKey, themeId?: string): string {
   const own = themeId ? getLibrary().themes?.[themeId]?.rankNames?.[rank] : undefined;
   if (own) return own;
-  const n = Number(rank.slice(5)), last = RANKS.keys.length - 1;
-  return n <= last ? RANKS.name(rank as (typeof RANKS.keys)[number]) : RANKS.name(RANKS.keys[last]) + '+'.repeat(n - last);
+  return RANKS.has(rank) ? RANKS.name(rank) : RANKS.name(LAST_RANK) + '+'.repeat(stepsPast(rank));
 }
-const rankNo = (r: string) => Number(r.slice(5));
+const LAST_RANK = RANKS.keys[RANKS.keys.length - 1];
+/** a key past the last row (rank_9, rank_10 …): how many steps past it, counted from the last row's own number (Divine, rank_8) */
+const stepsPast = (r: string) => Number(r.slice(5)) - Number(LAST_RANK.slice(5));
+/** a rank's position, lowest first: its row in RANKS, or past the last row by its steps (keys are stable, order is the table's) */
+export const rankPos = (r: RankKey): number => (RANKS.has(r) ? RANKS.pos(r) : RANKS.keys.length - 1 + stepsPast(r));
 /** NG13: a preset's rank, raised to its role's floor (CONFIG.RANK_FLOOR: a combat role is never under Trained, a civilian
  * under Novice; a beast has none) */
 export function templateRank(t: NpcTemplate): RankKey | undefined {
   if (!t.rank) return undefined;
   const kind = t.roleId ? getLibrary().npcRoles?.[t.roleId]?.kind : undefined;
   const floor = kind && kind !== 'beast' ? CONFIG.RANK_FLOOR[kind] : undefined;
-  return floor && rankNo(floor) > rankNo(t.rank) ? floor : t.rank;
+  return floor && rankPos(floor) > rankPos(t.rank) ? floor : t.rank;
 }
 /** NG7: a template's level: its rank's (a preset), or its saved sheet's (a unique) */
 export const templateLevel = (t: NpcTemplate): number => { const r = templateRank(t); return r ? rankRow(r).level : t.level ?? 0; };
@@ -127,15 +130,17 @@ function presetBands(t: NpcTemplate): Record<string, Band> {
 }
 
 /** NG2, NG5, NG8, NG9: a preset's skills: each banded skill at rank anchor × band share × NPC_BAND_MULT, moved by up to
- * ± COPY_SPREAD (seeded: an actor's ID, or none for the preset itself), capped as the player's are (SKILL_CAP, tagged + TAG_CAP_BONUS);
- * then the preset's minimums and class floors. High-band skills are tagged. Resolve comes from the preset (MB30). */
+ * ± COPY_SPREAD (seeded: an actor's ID, or none for the preset itself), capped as the player's are (SKILL_CAP, tagged + TAG_CAP_BONUS)
+ * below CONFIG.NPC_UNCAPPED_FROM (D-314 c placeholder: Beyond and up skip the cap); then the preset's minimums and class floors. High-band skills are tagged. Resolve comes from the preset (MB30). */
 export function presetSkills(t: NpcTemplate, rng?: Rng): Record<string, SkillEntry> {
   const raw: Record<string, number> = {}, state: Record<string, 'tagged' | 'normal'> = {};
   const rank = templateRank(t), anchor = rank ? rankRow(rank).anchor * CONFIG.NPC_BAND_MULT : 0;
+  const uncapped = !!rank && rankPos(rank) >= rankPos(CONFIG.NPC_UNCAPPED_FROM);
   for (const [id, b] of Object.entries(presetBands(t)).sort(([x], [y]) => (x < y ? -1 : 1))) {
     state[id] = b === 'high' ? 'tagged' : 'normal';
     const spread = rng ? 1 + (rng.next() * 2 - 1) * CONFIG.COPY_SPREAD : 1;
-    raw[id] = Math.min(skillCap({ state: state[id] }), Math.round(anchor * CONFIG.ROLE_BAND_SHARE[b] * spread));
+    const v = Math.round(anchor * CONFIG.ROLE_BAND_SHARE[b] * spread);
+    raw[id] = uncapped ? v : Math.min(skillCap({ state: state[id] }), v);
   }
   for (const [id, v] of Object.entries({ [SK.resolve]: t.resolve, ...templateMinimums(t) })) raw[id] = Math.max(raw[id] ?? 0, v); // class floors included
   if (raw[SK.endurance] && raw[SK.stamina] === undefined) raw[SK.stamina] = raw[SK.endurance]; // FB7: Stamina copies Endurance
@@ -154,11 +159,10 @@ export function patrols(t: NpcTemplate): boolean {
   return Object.values(lib.routineSets ?? {}).some((r) => r.tags.role.some((x) => x === t.id || x === key) && r.routines.some((id) => id === 'patrol' || lib.routines?.[id]?.id === 'patrol'));
 }
 
-/** NG12: how many traits a rank draws (CONFIG.RANK_TRAITS; past the last row, + RANK_TRAITS_BEYOND per step) */
+/** NG12: how many traits a rank draws (CONFIG.RANK_TRAITS by key; past the last row, + RANK_TRAITS_BEYOND per step) */
 export function rankTraitCount(rank: RankKey | undefined): number {
   if (!rank) return 0;
-  const n = rankNo(rank), last = CONFIG.RANK_TRAITS.length - 1;
-  return n <= last ? CONFIG.RANK_TRAITS[n] : CONFIG.RANK_TRAITS[last] + (n - last) * CONFIG.RANK_TRAITS_BEYOND;
+  return RANKS.has(rank) ? CONFIG.RANK_TRAITS[rank] : CONFIG.RANK_TRAITS[LAST_RANK] + stepsPast(rank) * CONFIG.RANK_TRAITS_BEYOND;
 }
 
 /** A preset's own perks: those it lists, the generator's rules (NG13: a patrolling preset has Keen Ear) and its rank traits
@@ -249,11 +253,11 @@ export function composeTemplate(c: { race: string; role: string; theme: string; 
 /** NG15: a rank as the Weaver may write it: its key (rank_3, rank_10), or its name (Veteran, Divine++) */
 export function rankKeyOf(w: unknown): RankKey | undefined {
   if (typeof w !== 'string') return undefined;
-  if (/^rank_\d+$/.test(w)) return w as RankKey;
   const k = RANKS.keyOf(w);
   if (k) return k;
-  const last = RANKS.keys.length - 1, m = w.trim().match(/^(.*?)(\++)$/);
-  return m && RANKS.keyOf(m[1]) === RANKS.keys[last] ? (`rank_${last + m[2].length}` as RankKey) : undefined;
+  if (/^rank_\d+$/.test(w)) return w as RankKey; // a key past the last row
+  const m = w.trim().match(/^(.*?)(\++)$/);
+  return m && RANKS.keyOf(m[1]) === LAST_RANK ? (`rank_${Number(LAST_RANK.slice(5)) + m[2].length}` as RankKey) : undefined;
 }
 
 /** NG15: what is wrong with a composition, or undefined: every part an ID from the catalog, the rank a rank */
