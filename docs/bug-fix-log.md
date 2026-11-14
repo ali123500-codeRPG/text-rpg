@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-249
+
+**What was wrong:** A Light Sleeper's hearing roll when someone came near (src/engine/sleep.ts wakeCheck) never marked anything: not the sleeper's Earshot, on either the contest against a sneaker or the check against open steps, and not the sneaker's stealth skill. Every other sense contest (someone sneaking near you, an ambush, a filch) marks both sides. Found while checking passive Eyesight and Earshot growth.
+
+**What was done:** Ali approved the fix (PG1 a on the "Passive Eyesight and Earshot growth" page). The contest now marks both sides (markUse), and the open hearing check is recorded like any check against its difficulty (ruleset.recordUse). Tests in tests/cases/s301-sleep-near-by-sound.test.ts.
+
+**Fixed by:** [PR #TBD](https://github.com/ali123500-codeRPG/text-rpg/pull/TBD)
+
 ## BG-238
 
 **What was wrong:** Turn 75 ("I shoot at the small girl with the stick") took about 53 seconds. The player was in free roam; an attack there starts a new scenario at once, and the turn waited for the Weaver to plan it (50.5 seconds) before showing anything.
