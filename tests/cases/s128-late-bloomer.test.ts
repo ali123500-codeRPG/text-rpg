@@ -1,4 +1,4 @@
-// 128 Starting classes and class-level perks: Swordsman floors are Medium Weapons 40 and Block 40, which
+// 128 Starts and class-level perks: Swordsman floors are Medium Weapons 40 and Block 40, which
 // also unlock the class; the late bloomer starts as an Unwritten Legend with 50 points at level 1 and the class's level 1
 // perk Quick Study (two improvement rolls for a skill below 15). Classes can grant perks at any level.
 import { describe, expect, it } from 'vitest';
@@ -9,12 +9,13 @@ import { improveMarked } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
+import { ST } from '../../src/library/startIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 
 describe('128 Late bloomer and class-level perks', () => {
   it('the late bloomer: 50 points, no floors, level 1, Quick Study, no Swordsman tree', () => {
-    const b = recommendedBuild(CL.late_bloomer);
+    const b = recommendedBuild(ST.late_bloomer);
     expect(validateBuild(b)).toEqual([]);
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.dodge]: 10 } })).toEqual(['Spend exactly 50 points (55 spent)']);
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.riposte]: 5, [SK.dodge]: 0 } })).toEqual(['Riposte is not open to the point-buy']);
@@ -29,7 +30,7 @@ describe('128 Late bloomer and class-level perks', () => {
 
   it('Quick Study: a marked skill below 15 gets two improvement rolls, each with its own gain', () => {
     const s = makeVillage();
-    s.player = { ...createPlayer(recommendedBuild(CL.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
+    s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     const p = s.player;
     p.progression!.marks = [SK.dodge, SK.melee_medium]; // dodge 5 (below 15), medium weapons 15 (not below)
     const gains = improveMarked(s, forcedRng([90, 90, 90])); // each margin 75 or more: Critical Success, +4
@@ -57,7 +58,7 @@ describe('128 Late bloomer and class-level perks', () => {
 
   it('Swordsman unlocks at Medium Weapons 40 and Parry 40', () => {
     const s = makeVillage();
-    s.player = { ...createPlayer(recommendedBuild(CL.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
+    s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     unlockClasses(s);
     expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer]);
     s.player.core.skills[SK.melee_medium].raw = 40;
@@ -69,7 +70,7 @@ describe('128 Late bloomer and class-level perks', () => {
 
   it('Sword-dancer unlocks at Dodge 40 and either Light or Medium Weapons 40', () => {
     const s = makeVillage();
-    s.player = { ...createPlayer(recommendedBuild(CL.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
+    s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     s.player.core.skills[SK.dodge].raw = 40;
     unlockClasses(s);
     expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer]); // Dodge alone is not enough

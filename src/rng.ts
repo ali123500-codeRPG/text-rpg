@@ -1,6 +1,9 @@
 // Seeded RNG with saved state (mulberry32). Replay is exact given rngState.
 import type { Rng } from './types';
 
+/** a seed from text (a story or actor id): the same text always gives the same seed */
+export const textSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
+
 export function createRng(state: number): Rng & { state: number } {
   let s = state >>> 0;
   const rng = {

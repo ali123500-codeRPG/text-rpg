@@ -20,7 +20,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, BLESSING_TIERS, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -39,7 +39,8 @@ import { classFloors, presetPersonality, rankName, templateLevel, templateLoadou
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
-import { classMaxLevel } from '../library/spawn';
+import { classMaxLevel, creationPoints, startLevel } from '../library/spawn';
+import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { cap } from '../words';
 /** D-276: an augment's share as the viewer shows it: ×share, or a percentage augment's rate of the receiving skill */
 const augmentShareText = (a: { share?: number; kind?: string }): string => a.kind === 'percent'
@@ -660,11 +661,13 @@ function floorsRow(c: ClassDef): HTMLElement | null {
     ...f.any.map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])])];
   return lines.length ? row('Skill floors', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
 }
+/** DX1: the Starts that begin in this class: by name, or a blessed start whose god's blessing opens it */
+const startsOf = (c: ClassDef) => Object.values(lib.starts ?? {}).filter((s) => s.classId === c.id || (!s.classId && !!s.blessing && !!c.blessedBy));
 function classes(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, `Lowest tier first. Tiers (CLASS_TIERS in src/scales.ts): ${CLASS_TIERS.keys.map((k) => CLASS_TIERS.name(k)).join(', ')}.`),
     h('div', { class: 'lv-grid' }, byTier().map((c) => card('classes', c.id, c, c.name,
-      [chip(CLASS_TIERS.name(c.tier), toneFor('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', toneFor('Kind', 'default class')) : null, c.creation ? chip('starting class', toneFor('Kind', 'starting class')) : null],
+      [chip(CLASS_TIERS.name(c.tier), toneFor('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', toneFor('Kind', 'default class')) : null, ...startsOf(c).map((s) => chip(`Start: ${s.name}`, toneFor('Kind', 'class of a Start')))],
       c.story ? h('p', { class: 'lv-story' }, c.story) : null,
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
       unlockRow(c), floorsRow(c),
@@ -672,6 +675,23 @@ function classes(): HTMLElement[] {
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
         ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate'), ' ', ...access(x.needs))))) : null))),
+  ];
+}
+
+// ---------- Starts (DX1) ----------
+function startsView(): HTMLElement[] {
+  return [
+    h('p', { class: 'hs-note' }, 'The ways to begin on the creation screen, in the order it shows them. Points and level left out of a Start use CONFIG.CREATION_POINTS and START_LEVEL.'),
+    h('div', { class: 'lv-grid' }, Object.values(lib.starts ?? {}).map((s) => {
+      const gods = s.blessing ? blessingGods(s.blessing.tier) : [];
+      return card('starts', s.id, s, s.name, [s.blessing ? chip(`${BLESSING_TIERS.name(s.blessing.tier)} blessing`, toneFor('Kind', 'blessing')) : null],
+        s.story ? h('p', { class: 'lv-story' }, s.story) : null,
+        row('Class', ...(s.classId ? [link('classes', s.classId, className(s.classId))]
+          : gods.length ? gods.flatMap((g, i) => [i ? ' or ' : '', ((c) => (c ? link('classes', c, className(c)) : `none for ${lib.gods?.[g]?.name ?? g}`))(blessedClass(g))]) : ['the blessing god’s Blessed class'])),
+        row('Points', String(creationPoints(s.id))), row('Level', String(startLevel(s.id))),
+        s.blessing ? row('Blessing', `a random god’s ${BLESSING_TIERS.name(s.blessing.tier)} blessing; gods who give one: `, gods.map((g) => lib.gods?.[g]?.name ?? g).join(', ') || 'none yet, so it can’t begin') : null,
+        ...fields(s as unknown as Entry, ['id', 'name', 'story', 'classId', 'points', 'level', 'blessing']));
+    })),
   ];
 }
 
@@ -1019,6 +1039,7 @@ const CUSTOM: Section[] = [
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'classes', title: 'Classes', table: 'classes', view: classes },
+  { key: 'starts', title: 'Starts', table: 'starts', view: startsView },
   { key: 'healing', title: 'Healing', table: 'healing', view: healing },
   { key: 'composure', title: 'Composure', table: 'composure', view: composure },
   { key: 'fears', title: 'Fears', table: 'fears', view: fears },
@@ -1045,7 +1066,8 @@ const FACETS: Record<string, Facets> = {
   healing: (d: HealingDef) => [['Reach', d.reach], ['Restores', d.hourly ? 'health hourly' : undefined],
     ...(['hpPct', 'partPct', 'composure'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', composure: 'morale' }[k]])],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
-  classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
+  starts: (s: { blessing?: unknown }) => [['Kind', s.blessing ? 'blessing' : 'class']],
+  classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : startsOf(c).length ? 'class of a Start' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
     ['Fed by', e.type ? (e.feeds ? 'library entries' : 'a fixed number') : undefined]],
   standIns: (e: { id?: string; functions?: string[]; own?: boolean }) => [['Rule', e.id ? (e.own ? 'own table' : 'flat share') : undefined], ['Tree', treeOf(e.id)],
@@ -1079,7 +1101,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 // the rail in groups; a table not named here (a new one) lands in More
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'essences', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
+  ['Library', ['gear', 'threadbound', 'gearClasses', 'perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
   ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'npcRoles', 'themes', 'roles', 'activities', 'routines', 'routineSets', 'services']],

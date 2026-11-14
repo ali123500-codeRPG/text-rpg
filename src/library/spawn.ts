@@ -1,5 +1,6 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import { BT, RC } from './raceIds';
+import type { StartDef } from '../types/library';
 import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Personality, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
@@ -7,22 +8,23 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
+import { BLESSING_TIERS, CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
 import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
-import { createRng } from '../rng';
+import { createRng, textSeed } from '../rng';
 import { SK, DEFENSE_SKILL } from './skillIds';
 import { skillName } from './skillNames';
-import { CL } from './classIds';
 import { IT } from './itemIds';
 import { perkPointsUpTo } from '../ruleset/levels';
 import { milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { PK } from './perkIds';
 import { TP } from './templateIds';
+import { ST } from './startIds';
+import { blessedClass, blessingGods, rollBlessing } from '../ruleset/blessings';
 
 /** a fixed seed from a string (a template's ID, or a template and an actor's ID) */
-const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
+const templateSeed = textSeed;
 
 let seq = 0;
 export function newInstanceId(prefix = 'it'): string {
@@ -388,16 +390,25 @@ function spawnUnique(state: GameState | null, t: NpcTemplate, opts: SpawnOpts): 
 }
 
 // ---------- player creation (Part 4 §4) ----------
-const PLAYER_CLASS: string = CL.swordsman; // the default starting class
-/** a starting class's creation points and starting level (ClassDef.creation, else CONFIG) */
-export const creationPoints = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.points ?? CONFIG.CREATION_POINTS;
+const PLAYER_START: string = ST.swordsman; // the default Start
+const startDef = (startId: string): StartDef | undefined => getLibrary().starts[startId];
+/** a Start's creation points and starting level (StartDef, else CONFIG) */
+export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.points ?? CONFIG.CREATION_POINTS;
 /** AG15: the age picker: from the race's Youth start to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
-export const creationAge = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.age ?? CONFIG.CREATION_AGE_DEFAULT;
+export const creationAge = (startId = PLAYER_START) => startDef(startId)?.age ?? CONFIG.CREATION_AGE_DEFAULT;
 export function creationAgeRange(raceId: string = RC.human): { min: number; max: number } | undefined {
   const st = getLibrary().races?.[raceId]?.ageStages;
   return st ? { min: st[LIFE_STAGES.at(1)] ?? 0, max: st[LIFE_STAGES.at(5)] ?? 0 } : undefined;
 }
-export const startLevel = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.level ?? CONFIG.START_LEVEL;
+export const startLevel = (startId = PLAYER_START) => startDef(startId)?.level ?? CONFIG.START_LEVEL;
+/** what a Start gives at creation: its class (a blessed start: its god's Blessed class, none before the roll) and the
+ * blessing it rolls (DX1). The roll needs the story id, so the creation screen, which has none yet, sees no class */
+export function startGives(startId = PLAYER_START, storyId?: string): { classId?: string; blessing?: string } {
+  const s = startDef(startId);
+  if (!s?.blessing) return { classId: s?.classId };
+  const roll = storyId === undefined ? undefined : rollBlessing(s.blessing.tier, storyId);
+  return { classId: s.classId ?? (roll && blessedClass(roll.god)), blessing: roll?.perk };
+}
 /** a class's top level: set by its tier (CLASS_TIER0_MAX_LEVEL + CLASS_LEVELS_PER_TIER × tier), at most CLASS_MAX_LEVEL */
 export function classMaxLevel(classId: string): number {
   const c = getLibrary().classes[classId];
@@ -410,13 +421,16 @@ export function classPerks(classId: string, from: number, to: number, turn = 0):
   if (c?.capstone) lv[top] = [...(lv[top] ?? []), ...c.capstone];
   return Object.entries(lv).filter(([n]) => +n > from && +n <= to).flatMap(([, ids]) => ids.map((perkId) => ({ perkId, source: 'class' as const, gainedTurn: turn })));
 }
-/** who a new player is: body type, race, class and its perks. Tree access (TA1) reads these before the sheet exists. */
-export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> => ({
-  bodyTypeId: BT.humanoid,
-  raceId: RC.human, // GAP: no race choice at creation yet
-  classes: [{ classId, state: 'current', level: startLevel(classId) }],
-  perks: [...racePerks(RC.human), ...classPerks(classId, 0, startLevel(classId))],
-});
+/** who a new player is: body type, race, the Start's class and perks. Tree access (TA1) reads these before the sheet exists. */
+export function newPlayer(startId = PLAYER_START, storyId?: string): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> {
+  const { classId, blessing } = startGives(startId, storyId), level = startLevel(startId);
+  return {
+    bodyTypeId: BT.humanoid,
+    raceId: RC.human, // GAP: no race choice at creation yet
+    classes: classId ? [{ classId, state: 'current', level }] : [],
+    perks: [...racePerks(RC.human), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
+  };
+}
 
 /** The starter kit: after creation the player gets, for each gear class, the highest-level item tagged 'starter'
  * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
@@ -457,9 +471,9 @@ function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKin
 
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, parry, endurance). */
-export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
-  if (classId === CL.late_bloomer || classId === CL.a_nobody || classId === CL.threadbounded) return { // 50 points; the same kit, so its gear is short at the start
-    name: 'Aldric', classId,
+export function recommendedBuild(startId = PLAYER_START): CreationBuild {
+  if (startId !== PLAYER_START) return { // the 50-point starts; the same kit, so its gear is short at the start
+    name: 'Aldric', startId,
     skills: { [SK.melee_medium]: 15, [SK.parry]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
@@ -474,9 +488,10 @@ export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
 export function validateBuild(build: CreationBuild): string[] {
   const lib = getLibrary();
   const errs: string[] = [];
-  const cls = build.classId ?? PLAYER_CLASS;
-  if (!lib.classes[cls]?.creation && cls !== PLAYER_CLASS) errs.push(`${cls} is not a starting class`);
-  const who = { core: newPlayer(cls) } as Actor;
+  const st = build.startId ?? PLAYER_START;
+  if (!lib.starts[st]) errs.push(`${st} is not a Start`);
+  else if (lib.starts[st].blessing && !blessingGods(lib.starts[st].blessing.tier).length) errs.push(`No god gives a ${BLESSING_TIERS.name(lib.starts[st].blessing.tier)} blessing yet`);
+  const who = { core: newPlayer(st) } as Actor, cls = startGives(st).classId;
   if (!build.name?.trim()) errs.push('Name the character');
   let spent = 0;
   for (const [id, v] of Object.entries(build.skills)) {
@@ -490,12 +505,12 @@ export function validateBuild(build: CreationBuild): string[] {
     if ((build.skills[id] ?? 0) < min) errs.push(`${skillName(id)} must be at least ${min} (class floor)`);
   for (const g of floors.any)
     if (!Object.entries(g).some(([id, min]) => (build.skills[id] ?? 0) >= min)) errs.push(`One of ${Object.entries(g).map(([id, min]) => `${skillName(id)} ${min}`).join(', ')} (class floor)`);
-  if (spent !== creationPoints(cls)) errs.push(`Spend exactly ${creationPoints(cls)} points (${spent} spent)`);
+  if (spent !== creationPoints(st)) errs.push(`Spend exactly ${creationPoints(st)} points (${spent} spent)`);
   const tags = new Set(build.tagged);
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
   if (tags.size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills (${tags.size} tagged)`);
   for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} cannot be tagged`);
-  const range = creationAgeRange(newPlayer(cls).raceId);
+  const range = creationAgeRange(who.core.raceId);
   if (build.age !== undefined && range && (!Number.isInteger(build.age) || build.age < range.min || build.age > range.max)) errs.push(`Age must be a whole number from ${range.min} to ${range.max}`);
   const pe = build.personality; // PL14: points run −100 to +100; up to two values from the library
   if (pe) {
@@ -520,25 +535,26 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     .map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }]));
   const p: Actor = {
     id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, ...(build.pronouns ? { pronouns: build.pronouns } : {}),
-    label: getLibrary().classes[build.classId ?? PLAYER_CLASS]?.label ?? 'a stranger', // the starting class's stranger label
+    label: 'a stranger', // the start class's stranger label, set below
     placeId: '', zone: '', // GAP: set by story-start scenario setup (the village tavern, Part 2 Scenario setup)
     posture: 'open', bandId: 'player_band',
     core: {
-      ...newPlayer(build.classId ?? PLAYER_CLASS),
+      ...newPlayer(build.startId ?? PLAYER_START, storyId),
       skills,
       condition: { hpLostPct: 0, parts: fullParts(null, BT.humanoid), status: [] },
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
       standingDefense: rawDefense((id) => build.skills[id] ?? 0),
       personality: structuredClone(build.personality ?? { nerve: 0, traits: {}, values: [] }), // PL14
-      bornDay: -Math.round((build.age ?? creationAge(build.classId)) * CONFIG.YEAR_DAYS), // AG2, AG15: the story starts on day 1
+      bornDay: -Math.round((build.age ?? creationAge(build.startId)) * CONFIG.YEAR_DAYS), // AG2, AG15: the story starts on day 1
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),
-      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(startLevel(build.classId)), marks: [],
+      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(startLevel(build.startId)), marks: [],
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
+  p.label = getLibrary().classes[p.core.classes[0]?.classId]?.label ?? p.label;
   p.core.inventory.unshift(...starterKit(p)); // the starter kit reads the finished sheet's skills
   grantThreadboundItem(p, opts.world); // TB7: the Threadbound start's level 1 perk
   syncThreadboundItemPerks(p, 0);
@@ -561,7 +577,7 @@ export function refreshCopies(state: GameState): void {
   // AG2: a save from before ages gets them on load, as a new spawn would; a birth day once set is never re-rolled (AG13)
   for (const a of [state.player, ...state.actors]) {
     if (a.core.bornDay !== undefined) continue;
-    if (a.kind === 'player') { if (creationAgeRange(a.core.raceId)) a.core.bornDay = Math.floor(now(state) / DAY_MINUTES - creationAge(a.core.classes[0]?.classId) * CONFIG.YEAR_DAYS); }
+    if (a.kind === 'player') { if (creationAgeRange(a.core.raceId)) a.core.bornDay = Math.floor(now(state) / DAY_MINUTES - creationAge(Object.values(getLibrary().starts).find((s) => s.classId === a.core.classes[0]?.classId)?.id) * CONFIG.YEAR_DAYS); }
     else if (a.core.templateId && hasTemplate(state, a.core.templateId)) Object.assign(a.core, npcBornDay(state, npcTemplate(state, a.core.templateId), a.id));
   }
 }

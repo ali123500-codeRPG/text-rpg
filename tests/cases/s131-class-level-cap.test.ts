@@ -1,6 +1,6 @@
 // 131 Class level cap: a class's top level is set by its tier (tier 0 → 5, +5 a tier, at most CLASS_MAX_LEVEL 20).
 // XP past it banks until a class with room is picked, then every banked level is taken at once. The default class
-// (Commoner, tier 0) opens at the top level; its capstone at 5 unlocks A Nobody, a starting class with Quick Study at
+// (Commoner, tier 0) opens at the top level; its capstone at 5 unlocks A Nobody, the class of a Start, with Quick Study at
 // level 1 and the capstone Every Fall a Lesson at its top level (15, tier 2). Capstones come at the top level.
 import { RC } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
@@ -10,6 +10,7 @@ import { getLibrary } from '../../src/library';
 import { classMaxLevel, createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
 import { CL } from '../../src/library/classIds';
+import { ST } from '../../src/library/startIds';
 import { CLASS_TIERS } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { markUse } from '../../src/ruleset/improve';
@@ -51,8 +52,8 @@ describe('131 Class level cap', () => {
     for (const c of Object.values(lib.classes)) for (const id of c.capstone ?? []) expect(lib.perks[id]?.classLevel, id).toEqual({ classId: c.id, level: classMaxLevel(c.id) });
   });
 
-  it('A Nobody: a starting class with Quick Study at level 1', () => {
-    const p = createPlayer(recommendedBuild(CL.a_nobody), 's1');
+  it('A Nobody: the class of a Start, with Quick Study at level 1', () => {
+    const p = createPlayer(recommendedBuild(ST.a_nobody), 's1');
     expect(getLibrary().classes[CL.a_nobody].name).toBe('A Nobody');
     expect(p.core.classes).toEqual([{ classId: CL.a_nobody, state: 'current', level: 1 }]);
     expect(p.core.perks.map((x) => x.perkId)).toEqual([PK.quick_study]);

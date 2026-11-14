@@ -27,6 +27,8 @@ import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
+import { GD } from './godIds';
+import { ST } from './startIds';
 import { ES } from './essenceIds';
 import { PK } from './perkIds';
 import { IT } from './itemIds';
@@ -185,7 +187,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   // DX1-DX5: essence extraction, a blessing of the god of essences (D-311; the blessed Start grants it), and the quirk it leaves.
   // Names are placeholders until NM1/NM2.
   [PK.pull_the_thread]: {
-    id: PK.pull_the_thread, name: 'Pull the Thread', built: true,
+    id: PK.pull_the_thread, name: 'Pull the Thread', built: true, blessing: { god: GD.essences, tier: 'tier_5' },
     story: 'A god who works in threads has shown you where another life is knotted. With them beaten and helpless before you, you can pull a strand of it loose and keep it.',
     rules: { kind: 'Active (your action)', trigger: 'You take the action against someone within arm\'s reach.', conditions: ['They are Down and have broken or surrendered.', 'Their essence is still theirs: it has not been rolled for, at a death or by an earlier pull.'],
       effect: 'No roll: their essence is offered to you, from their own list. Its grade comes from a quality roll that never fades it (below Success it is Common). They are left Hollowed.', lasts: 'once per person' },
@@ -622,19 +624,22 @@ export function prototypeLibrary(): Library {
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
       [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 40 }, unlockAny: [{ [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
-      // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
+      // the class of the late bloomer start (ST2): a unique class with a level 1 perk
+      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
-      // TB7: the Threadbounded class, used only by The Threadbound start (50 points, level 1); its level 1 perk gives a random Threadbound item. No unlock
-      [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, creation: { points: 50, level: 1, name: 'The Threadbound' }, levelPerks: { 1: [PK.always_yours] } },
+      // TB7: the Threadbounded class, used only by The Threadbound start (ST4); its level 1 perk gives a random Threadbound item. No unlock
+      [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, levelPerks: { 1: [PK.always_yours] } },
+      // DX1: Blessed by X, a variant per god; unlocks on being blessed by that god, and the blessed start (ST5) begins in it.
+      // Class perk and capstone to come (about earning a higher blessing from the god); name and story placeholders
+      [CL.blessed_essences]: { id: CL.blessed_essences, name: 'Blessed by the god of essences', tier: 'tier_2', label: 'a young stranger', story: 'A god who works the threads of essence looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.essences },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
-      // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
-      [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
+      // the class of the A Nobody start (ST3); others unlock it through Commoner 5's perk
+      [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockPerk: PK.nobody_special,
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
@@ -644,6 +649,22 @@ export function prototypeLibrary(): Library {
         unlockPerkWith: { hearingDb: 1 } },
       [CL.trader]: { id: CL.trader, personality: { [PA.sociability]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
       [CL.merchant]: { id: CL.merchant, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
+    },
+    // DX1: the Starts, the ways to begin on the creation screen, in the order the screen shows them. points/level left out =
+    // CONFIG.CREATION_POINTS / START_LEVEL
+    starts: {
+      [ST.swordsman]: { id: ST.swordsman, name: 'Swordsman', classId: CL.swordsman },
+      [ST.late_bloomer]: { id: ST.late_bloomer, name: 'Unwritten Legend', classId: CL.late_bloomer, points: 50, level: 1 },
+      [ST.a_nobody]: { id: ST.a_nobody, name: 'A Nobody', classId: CL.a_nobody, points: 50, level: 1 },
+      [ST.threadbound]: { id: ST.threadbound, name: 'The Threadbound', classId: CL.threadbounded, points: 50, level: 1 },
+      // DX1: a random god's Tier V blessing, in that god's Blessed class; points and level [Proposed], as the other 50-point starts
+      [ST.blessed]: { id: ST.blessed, name: 'The Blessed', points: 50, level: 1, blessing: { tier: 'tier_5' },
+        story: 'A god looked your way once, and part of that look stayed with you. Which god it was, you will know when your story starts.' },
+    },
+    // DX1: the gods, each with a narrow field. The essence god's name is a placeholder (NM1); lore belongs to the lore thread
+    gods: {
+      [GD.varo]: { id: GD.varo, name: 'Varo', field: 'extreme fortunes' },
+      [GD.essences]: { id: GD.essences, name: 'the god of essences', field: 'essence manipulation' },
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

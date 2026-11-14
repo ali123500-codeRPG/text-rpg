@@ -201,6 +201,10 @@ export type ClassTierKey = (typeof CLASS_TIERS.keys)[number];
 /** TB11: a Threadbound item's Rank, weakest first. Adding a rank means adding a row here */
 export const THREADBOUND_RANKS = scale([['rank_1', 'Rank I'], ['rank_2', 'Rank II'], ['rank_3', 'Rank III'], ['rank_4', 'Rank IV'], ['rank_5', 'Rank V'], ['rank_6', 'Rank VI']]);
 export type ThreadboundRankKey = (typeof THREADBOUND_RANKS.keys)[number];
+/** a blessing's tier, weakest first [Proposed]: the blessed start gives Tier V; the class perk and capstone reach higher
+ * tiers (DX1). Names are placeholders. Adding a tier means adding a row here */
+export const BLESSING_TIERS = scale([['tier_5', 'Tier V'], ['tier_4', 'Tier IV'], ['tier_3', 'Tier III'], ['tier_2', 'Tier II'], ['tier_1', 'Tier I']]);
+export type BlessingTierKey = (typeof BLESSING_TIERS.keys)[number];
 /** a skill tree's rating, weakest first: sets how many of its skills at a step earn its All-XXX (CONFIG.ALL_STEP_SKILLS) */
 export const TREE_RATINGS = scale([['inferior', 'Inferior'], ['normal', 'Normal'], ['superior', 'Superior'], ['legendary', 'Legendary']]);
 export type TreeRatingKey = (typeof TREE_RATINGS.keys)[number];

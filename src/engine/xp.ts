@@ -5,6 +5,7 @@ import { bodyType, getLibrary, hasTemplate, itemDef, npcTemplate } from '../libr
 import { templateLevel } from '../library/spawn';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
+import { blessedBy } from '../ruleset/blessings';
 import { isActive, stance } from './relations';
 import { logCode } from './effects';
 import { callName } from '../views';
@@ -180,7 +181,8 @@ export function unlockClasses(state: GameState): void {
   const p = state.player;
   openEveryClass(state);
   for (const c of Object.values(getLibrary().classes)) {
-    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockPerkWith || c.unlockClass) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockPerkWith || c.unlockClass || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (c.blessedBy && !blessedBy(p, c.blessedBy)) continue; // DX1: a god's Blessed class opens on being blessed by that god
     if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     if (!Object.entries(c.unlock ?? {}).every(met)) continue;

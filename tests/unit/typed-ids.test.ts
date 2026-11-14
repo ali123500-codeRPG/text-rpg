@@ -7,6 +7,8 @@ import { FN, GR } from '../../src/library/functionIds';
 import { CL } from '../../src/library/classIds';
 import { ACH } from '../../src/library/achievementIds';
 import { SV } from '../../src/library/serviceIds';
+import { GD } from '../../src/library/godIds';
+import { ST } from '../../src/library/startIds';
 import { PK } from '../../src/library/perkIds';
 import { PERK_WRITEUPS } from '../../src/library/perks';
 import { IT } from '../../src/library/itemIds';
@@ -29,7 +31,7 @@ const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?
 
 /** a table: its library key, its prefix and its constants */
 const TABLES: [string, string, Record<string, string>][] = [
-  ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['perks', 'PK', PK], ['items', 'IT', IT], ['trees', 'TR', TR], ['npcRoles', 'RO', RO], ['themes', 'TH', TH],
+  ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['gods', 'GD', GD], ['starts', 'ST', ST], ['perks', 'PK', PK], ['items', 'IT', IT], ['trees', 'TR', TR], ['npcRoles', 'RO', RO], ['themes', 'TH', TH],
   ['races', 'RC', RC], ['bodyTypes', 'BT', BT], ['templates', 'TP', TP],
   ['roles', 'RL', RL], ['healing', 'HL', HL], ['durations', 'DU', DU], ['zoneKinds', 'ZK', ZK], ['attackModes', 'AM', AM], ['gearClasses', 'GC', GC],
   ['personalityAxes', 'PA', PA], ['values', 'VL', VL], ['personalityTypes', 'PY', PY], ['tensions', 'TN', TN],
@@ -51,6 +53,18 @@ describe('typed IDs', () => {
   it('functions and groups use FN and GR', () => {
     for (const id of Object.values(FN)) expect(id).toMatch(/^FN\d+$/);
     for (const id of Object.values(GR)) expect(id).toMatch(/^GR\d+$/);
+  });
+
+  it('every blessing names a library god, and every Blessed class a god', () => {
+    for (const p of Object.values(getLibrary().perks)) if (p.blessing) expect(getLibrary().gods?.[p.blessing.god], p.id).toBeDefined();
+    for (const c of Object.values(getLibrary().classes)) if (c.blessedBy) expect(getLibrary().gods?.[c.blessedBy], c.id).toBeDefined();
+  });
+
+  it('every Start names a library class, or takes one from its blessing (no classless start until one is decided)', () => {
+    for (const s of Object.values(getLibrary().starts)) {
+      if (s.classId) expect(getLibrary().classes[s.classId], s.id).toBeDefined();
+      else expect(s.blessing, `${s.id} has no class and no blessing`).toBeDefined();
+    }
   });
 
   it('every perk reference names a library perk', () => {
