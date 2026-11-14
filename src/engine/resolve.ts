@@ -345,23 +345,26 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
     // BG-64: whoever just spotted the stealthy actor perceives the very deed they spotted it by (a filch has its own contest)
     if (ev.kind !== 'filch') for (const [id, p] of Object.entries(computePerception(ev, state, rng))) ev.perception[id] ??= p;
   }
-  if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
+  // SP1: a sparring blow changes no stance; DX6 a: pulling out an essence is an attack on its target
+  if (ev.target && (ev.kind === 'attack' ? !ev.spar : ev.kind === 'extract')) setAttackOverrides(state, ev);
   ctx.events.push(ev);
   learnNames(state, ev, ctx.events);
   afterEvent(ctx, ev);
 }
 
 /** a perceives an attack on itself or a bandmate: override toward the attacker becomes hostile. RS6: only if a knows who
- * did it: a bandmate must see the attack fully; the target must see it fully or be aware of the attacker after it. */
+ * did it: a bandmate must see the attack fully; the target must see it fully or be aware of the attacker after it.
+ * DX6 a: an essence extraction counts as an attack, and its target, though Down, always knows who did it. No fear here:
+ * bandmates paid "A bandmate goes down" when it fell, and a blow on someone already Down downs no one. */
 function setAttackOverrides(state: GameState, ev: GameEvent): void {
   const target = actorById(state, ev.target!);
   if (!target) return;
   for (const p of state.actors) {
-    if (p.id === ev.actorId || !p.mind || !isActive(p)) continue;
-    const self = p.id === target.id;
+    const self = p.id === target.id, felt = self && ev.kind === 'extract';
+    if (p.id === ev.actorId || !p.mind || !(isActive(p) || felt)) continue;
     // CS5: a bandmate must perceive the attack fully (a partial event names no attacker)
     const saw = ev.perception[p.id]?.level === 'full';
-    if (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : p.bandId !== target.bandId || !saw) continue;
+    if (!felt && (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : p.bandId !== target.bandId || !saw)) continue;
     p.mind.overrides = { ...(p.mind.overrides ?? {}), [ev.actorId]: 'hostile' };
   }
 }

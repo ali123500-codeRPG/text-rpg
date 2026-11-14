@@ -41,9 +41,9 @@ describe('308 Starts and the blessed start', () => {
     expect(createPlayer(recommendedBuild(ST.blessed), 's1').core.perks).toEqual(p.core.perks);
   });
 
-  it('today the only Tier V blessing is the god of essences\' Pull the Thread', () => {
+  it('today the only Tier V blessing is the god of essences\' Extract Essence', () => {
     const p = createPlayer(recommendedBuild(ST.blessed), 's2');
-    expect(p.core.perks).toContainEqual({ perkId: PK.pull_the_thread, source: 'start', gainedTurn: 0 });
+    expect(p.core.perks).toContainEqual({ perkId: PK.extract_essence, source: 'start', gainedTurn: 0 });
     expect(p.core.classes[0].classId).toBe(CL.blessed_essences);
   });
 

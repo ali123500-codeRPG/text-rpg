@@ -1,7 +1,7 @@
-// 303 DX1-DX5 ("Essences: bested foes, extraction, balance"): the blessing Pull the Thread lets the player, as their action
+// 303 DX1-DX6 ("Essences: bested foes, extraction, balance"): the blessing Extract Essence lets the player, as their action
 // and within arm's reach, take the essence of someone Down who has broken or surrendered. No roll: it always appears and never
 // fades, comes from the target's own list, is measured from its skills before the quirk, and uses up its one essence roll.
-// The target is left Hollowed: double the essence's share lost in its skills, 10% off every skill, for good.
+// The target is left Hollowed: double the essence's share lost in its skills, 10% off every skill, for good. DX6 a: it counts as an attack on the target.
 import { expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
 import { beside, makeVillage } from '../harness';
@@ -16,7 +16,7 @@ const down = (a: Actor) => { a.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.fi
 const setup = () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
   const g = beside(s, 'guard_1', 'player', 0.5);
-  s.player.core.perks.push({ perkId: PK.pull_the_thread, source: 'class', gainedTurn: 0 });
+  s.player.core.perks.push({ perkId: PK.extract_essence, source: 'class', gainedTurn: 0 });
   return { s, g };
 };
 const pull = (s: GameState) => play(s, { intent: intent({ action: { type: 'extract', target: 'guard_1' } }) });
@@ -28,7 +28,7 @@ it('DX2 c: only someone Down who has broken or surrendered; only with the blessi
   expect(cantExtract(s, s.player, g)).toBe('not_helpless'); // Down but not broken
   g.mind!.moraleState = 'surrendered';
   expect(cantExtract(s, s.player, g)).toBeNull();
-  s.player.core.perks = s.player.core.perks.filter((p) => p.perkId !== PK.pull_the_thread);
+  s.player.core.perks = s.player.core.perks.filter((p) => p.perkId !== PK.extract_essence);
   expect(cantExtract(s, s.player, g)).toBe('no_power');
 });
 
@@ -48,4 +48,20 @@ it('DX3-DX5: the essence is offered with no roll and never fades; the target is 
   expect(trueSkill(g, sk)).toBeCloseTo(before * (1 - share) * (1 - CONFIG.HOLLOWED_ALL_LOSS));
   expect(trueSkill(g, other)).toBeCloseTo(otherBefore * (1 - CONFIG.HOLLOWED_ALL_LOSS));
   expect(cantExtract(s, s.player, g)).toBe('no_essence'); // one essence, ever
+});
+
+it('DX6 a: extraction is an attack: the target and bandmates who see it turn hostile, with no second fear', () => {
+  const { s, g } = setup();
+  const mate = s.actors.find((x) => x.id === 'patron_1')!;
+  g.bandId = mate.bandId; // a bandmate in the same room, watching the player
+  mate.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
+  down(g);
+  g.mind!.moraleState = 'surrendered';
+  g.mind!.overrides = { player: 'yielded' };
+  const lost = mate.core.condition.moraleLost ?? 0;
+  const ev = pull(s).find((e) => e.kind === 'extract')!;
+  expect(ev.perception[mate.id]?.level).toBe('full');
+  expect(g.mind!.overrides!.player).toBe('hostile'); // Down, but it knows who did it
+  expect(mate.mind!.overrides!.player).toBe('hostile');
+  expect(mate.core.condition.moraleLost ?? 0).toBe(lost); // it already fell: "A bandmate goes down" is not paid again
 });
