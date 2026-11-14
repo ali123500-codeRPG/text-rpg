@@ -16,7 +16,8 @@ import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
 import { ACH } from '../library/achievementIds';
 import { barMax, lineMax } from '../ruleset/fatigue';
-import { achievementInfo, grantAchievement } from '../engine/xp';
+import { achievementInfo, grantAchievement, tally } from '../engine/xp';
+import { FN } from '../library/functionIds';
 import { actionNotes, doingSnap, NERVE_REFUSED, placeName } from '../agents/game';
 import { buildPlayerView } from '../views';
 import { passEssence, takeEssence } from '../engine/essence';
@@ -31,6 +32,27 @@ const NARRATION = [
   'You step out past the gate. The field is streaked with silver trails, and something low and glistening shifts in the long grass by the trees.',
   'The slime lurches at you. You bring the round shield across, and the blow slaps wetly against the boards; your counter cuts a long furrow through its body.',
 ];
+
+/** ?fake=achievements: chains with branches for the Achievements page (BG-215), the tallies of the save it was reported on
+ * plus a few more chains, so trunks, branches, every-N rows and scars all show */
+function seedAchievements(st: GameState) {
+  const fn = (of: string, n: number) => { for (let i = 0; i < n; i++) tally(st, 'outmatched', { by: 'function', of }); };
+  for (let i = 0; i < 11; i++) tally(st, 'outmatched');
+  fn(FN.influence, 8); fn(FN.sight, 2);
+  tally(st, 'spotted'); tally(st, 'spotted', { by: 'function', of: FN.sight });
+  for (let i = 0; i < 62; i++) tally(st, 'defeats');
+  for (let i = 0; i < 14; i++) tally(st, 'defeats', { by: 'race', of: 'RC1' });
+  for (let i = 0; i < 3; i++) tally(st, 'defeats', { by: 'race', of: 'RC2' });
+  for (let i = 0; i < 17; i++) tally(st, 'defeats', { by: 'body_type', of: 'BT1' });
+  for (let i = 0; i < 6; i++) tally(st, 'speech_won', { by: 'skill', of: SK.persuasion });
+  tally(st, 'zones', { to: 31 });
+  tally(st, 'deals'); tally(st, 'essences_taken'); tally(st, 'char_level', { to: 20 });
+  tally(st, 'defeated', { to: 6 });
+  tally(st, 'achievements', { to: 12 });
+  const pr = st.player.progression!;
+  for (const q of pr.pendingAchievements ?? []) grantAchievement(st, q.key, q.of, q.reached, true);
+  pr.pendingAchievements = [];
+}
 
 /** a canned exchange of blows on the fake page: the player loses health and the right arm, and gains Block, XP and coin */
 function fightTurn(st: GameState, out = 'heavy hit'): Partial<LogLine> {
@@ -198,7 +220,7 @@ function useStage(st: GameState, stage: FakeStage): void {
   }
 }
 
-export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean; stage?: string } = {}): GameApi {
+export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean; stage?: string; achievements?: boolean } = {}): GameApi {
   let state: GameState | null = null;
   let lines: LogLine[] = [];
   const KETTLE = { id: 'tavern', name: 'The Crooked Kettle' };
@@ -233,6 +255,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     fakeBarriers(state);
+    if (opts.achievements) seedAchievements(state);
     const stage = opts.stage ? FAKE_STAGES[opts.stage] : undefined;
     if (stage) useStage(state, stage());
     // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point

@@ -1265,3 +1265,66 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .ach-chain { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); color: var(--muted); }
 .ach-chain .got { color: var(--text); }
 .ach-chain .got::marker { color: var(--ok); }
+/* ---------- Achievements as threads (achievementThreads.ts): a gold thread per chain, a knot per level; branches hang
+   from the trunk and fold away. Held knots are tied (filled), the next is loose (a ring) with the thread filled as far as
+   the tally has come, later levels are left out, a short fading tail says more follow. Scars use the same shape in red. ---------- */
+.th-tag { display: grid; gap: var(--space-3); margin-top: var(--space-4); }
+.th-tagname { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.th-tagname span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--faint); }
+.th-tagfold { all: unset; display: inline-flex; align-items: center; gap: var(--space-2); min-height: 32px; cursor: pointer; }
+.th-tagfold:hover { color: var(--text); }
+.th-tagfold:focus-visible { outline: 2px solid var(--scenario-mark); outline-offset: 3px; border-radius: var(--r-sm); }
+.th-tagfold[aria-expanded="true"] .th-chev { transform: rotate(45deg) translate(-2px, -2px); }
+.th-tagbody { display: grid; gap: var(--space-3); }
+.th-tagbody[hidden] { display: none; }
+.th-chain { --thread: var(--scenario-mark); --thread-dim: color-mix(in oklch, var(--thread) 22%, var(--border));
+  display: grid; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-4); border-radius: var(--r-lg);
+  background: color-mix(in oklch, var(--surface) 35%, transparent); border: 1px solid color-mix(in oklch, var(--border) 45%, transparent);
+  transition: border-color var(--m-state) var(--m-ease), background-color var(--m-state) var(--m-ease); }
+/* the card lights up in its thread colour under the pointer: a brighter edge and a warmer tint, no shadow (depth is borders and tints) */
+.th-chain:hover { border-color: color-mix(in oklch, var(--thread) 60%, transparent); background-color: color-mix(in oklch, var(--thread) 7%, color-mix(in oklch, var(--surface) 35%, transparent)); }
+.th-chain.scar { --thread: var(--danger); }
+.th-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr); align-items: center; gap: var(--space-2); }
+.th-title { grid-column: 2; display: grid; justify-items: center; gap: 2px; text-align: center; }
+.th-sub { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: var(--space-1) var(--space-3); }
+.th-name { all: unset; cursor: pointer; font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -.005em; }
+.th-name:hover { color: var(--thread); }
+.th-name:focus-visible, .th-knot:focus-visible, .th-fold:focus-visible { outline: 2px solid var(--thread); outline-offset: 3px; border-radius: var(--r-sm); }
+.th-place { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--thread); }
+.th-meta { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.th-fold { grid-column: 3; justify-self: end; display: inline-flex; align-items: center; gap: var(--space-2); min-height: 32px; padding: 0 var(--space-2);
+  border: 0; border-radius: var(--r-md); background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.th-fold:hover { color: var(--text); background: color-mix(in oklch, var(--thread) 10%, transparent); }
+.th-chev { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg);
+  transition: transform var(--m-state) var(--m-ease); }
+.th-fold[aria-expanded="true"] .th-chev { transform: rotate(45deg) translate(-2px, -2px); }
+/* a thread: knots on one line, centred in its card; each stretch of thread before a knot fills to --fill */
+.th-thread { display: grid; grid-template-columns: minmax(0, max-content); gap: var(--space-1); justify-self: center; width: fit-content; max-width: 100%; }
+.th-line { display: flex; align-items: flex-start; min-width: 0; }
+.th-seg { flex: 0 0 120px; height: 2px; margin-top: 12px; border-radius: 1px;
+  background: linear-gradient(90deg, var(--thread) var(--fill, 0%), var(--thread-dim) var(--fill, 0%)); }
+.th-knot { all: unset; display: grid; justify-items: center; gap: 2px; min-width: 44px; cursor: pointer; text-align: center; }
+.th-bead { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; box-sizing: border-box; font-size: 10px; font-weight: 800; letter-spacing: .02em; line-height: 1; }
+.th-knot.held .th-bead { background: var(--thread); color: var(--on-pill); }
+.th-knot.next .th-bead { border: 2px solid var(--thread); background: color-mix(in oklch, var(--thread) 12%, transparent); color: var(--thread); }
+.th-knot.held:hover .th-bead, .th-knot.next:hover .th-bead { outline: 3px solid color-mix(in oklch, var(--thread) 30%, transparent); outline-offset: 0; }
+/* more levels follow: a short stretch of bare thread fading out after the next knot */
+.th-tail { flex: 0 0 40px; height: 2px; margin-top: 12px; border-radius: 1px; background: linear-gradient(90deg, var(--thread-dim), transparent); }
+.th-branch .th-tail { flex-basis: 28px; margin-top: 9px; }
+.th-at { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.th-knot.next .th-at { color: var(--text); }
+/* branches sit under the trunk, each centred with its heading over the middle of its thread; no joining line */
+.th-branches { display: grid; gap: var(--space-3); justify-items: center; padding-top: var(--space-1); }
+.th-branches[hidden] { display: none; }
+.th-branch { display: grid; gap: var(--space-2); width: fit-content; max-width: 100%; }
+.th-blabel { margin: 0; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.th-bkind { color: var(--muted); }
+/* branch threads are a size down from the trunk, so the trunk leads */
+.th-branch .th-knot { min-width: 36px; }
+.th-branch .th-bead { width: 20px; height: 20px; font-size: 8px; }
+.th-branch .th-branch .th-seg { flex-basis: 80px; margin-top: 9px; }
+.th-branch .th-at { font-size: 10px; }
+.th-all { min-height: 0; }
+@media (max-width: 560px) { .th-knot { min-width: 36px; } .th-seg, .th-branch .th-seg { flex: 0 1 28px; min-width: 12px; }
+  .th-head { grid-template-columns: minmax(0, 1fr); } .th-title, .th-fold { grid-column: 1; justify-self: center; } }
+@media (prefers-reduced-motion: reduce) { .th-chev, .th-chain { transition: none; } }

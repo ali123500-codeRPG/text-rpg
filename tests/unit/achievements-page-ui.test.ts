@@ -25,8 +25,8 @@ describe('Achievements page', () => {
     ]);
   });
 
-  it('the page opens its level groups, and the character card has no Achievements list', () => {
-    expect(readFileSync('src/ui/pages.ts', 'utf8')).toMatch(/startOpen: true,\n\s+cols: \[\{ key: 'name', title: 'Name' \}, \{ key: 'state'/);
+  it('the page draws each chain as a thread card (not a table), and the character card has no Achievements list', () => {
+    expect(readFileSync('src/ui/pages.ts', 'utf8')).toMatch(/chainCard\(s, v, scars, update/);
     expect(readFileSync('src/ui/charsheet.ts', 'utf8')).not.toMatch(/hs-label' }, 'Achievements'\)/);
   });
 });
