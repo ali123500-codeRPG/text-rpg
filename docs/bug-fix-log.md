@@ -6,6 +6,13 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-255
+
+**What was wrong:** In the NPC value study, code-run fighters swung at foes they could not reach, again and again: slimes walked their 3 m and lunged from 1.1 to 9.3 m short (39 lost swings), the code-run gate guard lost 5 to 7. The combat list orders a blow at any foe in the same zone however far, and the walk before a blow used only the move time (ZP3), so a foe across a wide zone was never reached that turn. An agent's blow that went stale fell back to the same order and was lost the same way.
+
+**What was done:** A blow still out of reach after the close-in walk is no longer swung at nothing: the striker runs on at the target on its main time, exactly as a dash (same pools and clock, so the turn timer is unchanged), and strikes next turn (Ali's NV9 b: for everyone, the player and agents too). A run that gets no nearer still loses the blow.
+
+**Fixed by:** [PR #861](https://github.com/ali123500-codeRPG/text-rpg/pull/861)
 ## BG-253
 
 **What was wrong:** An NPC picks its deed and its words at the start of the turn, but words said beside a deed were only spoken at the NPC's place in the turn order. Anyone earlier in the order could already have changed what they were about: in the NPC value study the gate guard shouted "That one's near done, finish it" after the player's axe had already killed that slime, and the judges flagged the same slip in other runs.

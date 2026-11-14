@@ -107,12 +107,19 @@ describe('171 positions', () => {
     expect(ev.find((e) => e.actorId === 'player' && e.kind === 'attack')?.target).toBe('patron_1');
   });
 
-  it('ZP3: still out of reach after closing in, the blow is lost', () => {
+  it('BG-255: still out of reach after closing in, the blow becomes a run at them, as far as a dash', () => {
     const s = mapped('field_edge');
     s.player.pos = { x: zoneOf(s, 'field_edge').rect!.x, y: zoneOf(s, 'field_edge').rect!.y };
+    const dash = structuredClone(s);
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1', skill: SK.melee_medium } }) });
-    expect(ev.find((e) => e.actorId === 'player' && e.kind === 'move')).toMatchObject({ metres: 8.4 });
-    expect(ev.find((e) => e.actorId === 'player' && e.target === 'slime_1' && e.kind !== 'move')?.kind).toBe('wasted');
+    const moves = ev.filter((e) => e.actorId === 'player' && e.kind === 'move');
+    expect(moves[0]).toMatchObject({ metres: 8.4 });
+    expect(ev.find((e) => e.actorId === 'player' && e.target === 'slime_1' && e.kind !== 'move')).toBeUndefined();
+    // the turn timer: the run covers what a dash at them would (AE2), no more
+    const ran = moves.reduce((n, e) => n + (e.metres ?? 0), 0);
+    const ev2 = play(dash, { intent: intent({ move: { toZone: 'field_mid', spot: { near: 'slime_1' } } }) });
+    const dashed = ev2.filter((e) => e.actorId === 'player' && e.kind === 'move').reduce((n, e) => n + (e.metres ?? 0), 0);
+    expect(r(ran)).toBe(r(dashed));
   });
 
   it('a spear reaches across the doorway into the next zone without stepping in', () => {
