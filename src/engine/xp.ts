@@ -206,8 +206,7 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
     const m = t.mind;
     if (!m || m.xpPaid) continue;
     // a foe that surrendered or broke while fighting the player has yielded to it (Q1, Q4); untouched: nothing
-    // TF16: a foe that stood down from the player's offer is beaten too
-    if (isActive(t) ? !m.stoodDown && (!m.moraleState || stance(state, t, state.player) !== 'yielded') : !m.hitByPlayer) continue;
+    if (isActive(t) ? (!m.moraleState || stance(state, t, state.player) !== 'yielded') : !m.hitByPlayer) continue;
     m.xpPaid = true;
     awardXp(state, defeatXp(state, t), `defeat:${t.id}`);
     defeatAchievements(state, t);

@@ -202,7 +202,6 @@ export type Mind = {
   earlier?: { upTo: string; lines: string[] };
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
-  stoodDown?: true; // TF16: it stood down from the player's side (talked out of the fight): it counts as beaten
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware
   xpPaid?: true; // its defeat has paid XP (B4)
   essenceRolled?: true; // growth proposal 2.3: its defeat has rolled for an essence (one offer per foe, ever)

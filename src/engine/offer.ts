@@ -154,7 +154,7 @@ function sideOf(state: GameState, x: Actor, among?: string[]): Actor[] {
 /** TF16/TF5/TF6: `who` stands down from `from`: a truce between who's side (its bandmates together with it that heard the
  * offer) and from's side, as both stand now, for the rest of the scenario. A bribe is paid first; with too little coin
  * left, nothing comes of it (TF10: the trade must be completed). A foe talked down by the player before any blow from
- * them is tallied (N4b); one that stands down from the player's side counts as beaten (payDefeats). */
+ * them is tallied (N4b). A stand-down beats no one (TF18): it is not a defeat for either side. */
 export function standDown(state: GameState, who: Actor, from: Actor, heard: string[], coin = 0): StoodDown | undefined {
   const payer = who.kind === 'player' ? who : from, payee = payer === who ? from : who;
   if (coin) {
@@ -174,9 +174,8 @@ export function standDown(state: GameState, who: Actor, from: Actor, heard: stri
       const b = m.mind?.knowledge?.[x.id]; // as after a taken yield (YD3): the hunt for them is over
       if (b && atLeast(b.status, 'hunting')) b.status = 'tracking';
     }
-    if (foes !== mine || !m.mind) continue; // talked down by the player's side, not taking an offer the foe made
-    m.mind.stoodDown = true;
-    if (!m.mind.hitByPlayer) tally(state, 'talked_down');
+    // TF18: a stand-down is its own outcome, never a defeat for either side; the player's talk-downs have their own tally
+    if (foes === mine && !m.mind?.hitByPlayer) tally(state, 'talked_down');
   }
   const withIds = mine.filter((m) => m !== who).map((m) => m.id);
   logCode(state, 'stood_down', { actorId: who.id, from: from.id, with: withIds, ...(coin ? { coin } : {}) });
