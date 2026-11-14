@@ -378,7 +378,7 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
   | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
   | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct' | 'event_crits' | 'event_crit_fails'
-  | 'essences_taken' | 'essence_room';
+  | 'essences_taken' | 'essence_room' | 'kills' | 'survival_rolls';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
@@ -387,7 +387,7 @@ export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | '
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
   | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
-  | 'searchArea' | 'searchReach';
+  | 'searchArea' | 'searchReach' | 'maxMorale';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -401,6 +401,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   /** AP12: extra points while current, only when earned for this kind (`of`, e.g. a skill id on a by-skill row): Lying wins add Honesty −1 step */
   personalityByKind?: Record<string, PersonalityAdd>;
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
+  maxMorale?: number; // flat points added to the owner's max morale (ordeals pay nerve, never the skill used)
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
   standIn?: number; // + this share for stand-ins on rolls of a skill in the achievement's group

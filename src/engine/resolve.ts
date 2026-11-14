@@ -2135,7 +2135,7 @@ function playerDown(state: GameState, rng: Rng): void {
   }
   const r = survivalRoll(rng);
   logCode(state, 'survival_roll', { d100: r.d100, tier: r.tier, survived: r.survived });
-  if (r.survived) wakeUp(state);
+  if (r.survived) { tally(state, 'survival_rolls'); wakeUp(state); }
 }
 
 /** D-54/D-239: the downed player lives: wakes somewhere safe at Critical, in the next scenario */

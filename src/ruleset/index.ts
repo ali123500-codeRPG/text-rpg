@@ -461,6 +461,8 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   // achievements count the player's HP lost as a flat number (the health % lost of total HP)
   if (T === state.player && T.core.condition.hpLostPct > lostBefore) tally(state, 'hp_lost', { add: ((T.core.condition.hpLostPct - lostBefore) / 100) * hp });
   const levelAfter = healthLevel(T);
+  // a kill is counted apart from a defeat: the player's blow took someone else to Dead
+  if (levelAfter === 'dead' && levelBefore !== 'dead' && T !== state.player && result.attackerId === state.player.id) tally(state, 'kills');
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;
 }

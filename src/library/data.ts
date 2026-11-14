@@ -852,6 +852,11 @@ export function prototypeLibrary(): Library {
       [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_10 },
       [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iii', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
       [ACH.defeats_1000]: { id: ACH.defeats_1000, name: 'Thousand-Slayer, Herald of Ruin', level: 'iv', rule: 'defeats', tags: ['combat'], count: 1000, after: ACH.defeats_250 },
+      // kills are counted apart from defeats (a kill is the defeat where the foe died, so both tallies move); ordeal rows pay
+      // max morale, never the skill used
+      [ACH.kills_1]: { id: ACH.kills_1, name: 'A Life Taken', level: 'zero', rule: 'kills', tags: ['combat'], count: 1, maxMorale: 1 },
+      [ACH.kills_10]: { id: ACH.kills_10, name: 'Gravefiller', level: 'i', rule: 'kills', tags: ['combat'], count: 10, after: ACH.kills_1, maxMorale: 1 },
+      [ACH.kills_50]: { id: ACH.kills_50, name: 'Death Walks Beside You', level: 'ii', rule: 'kills', tags: ['combat'], count: 50, after: ACH.kills_10, maxMorale: 1 },
       // one per tree and mastery step, id <id>:<tree>; each tree rating has its own line (MASTERY_ACH), grander the higher the rating
       [ACH.mastery_50]: { id: ACH.mastery_50, name: 'Adept of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
       [ACH.mastery_100]: { id: ACH.mastery_100, name: 'Master of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_50 },
@@ -934,6 +939,8 @@ export function prototypeLibrary(): Library {
       [ACH.mended_10]: { id: ACH.mended_10, name: 'Patched and Stitched', level: 'i', rule: 'mended', tags: ['survival'], count: 10, after: ACH.mended_1 },
       [ACH.mended_50]: { id: ACH.mended_50, name: 'Hard to Keep Down', level: 'ii', rule: 'mended', tags: ['survival'], count: 50, after: ACH.mended_10 },
       [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1 },
+      // the deepest of the near-death depths (Critical, Down and back, the survival roll): depth pays more than count
+      [ACH.survival_roll_1]: { id: ACH.survival_roll_1, name: 'Woke Up Anyway', level: 'ii', rule: 'survival_rolls', tags: ['combat', 'survival'], count: 1, maxMorale: 10 },
       [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10 },
       [ACH.holds_100]: { id: ACH.holds_100, name: 'No Getting Loose', level: 'ii', rule: 'holds', tags: ['combat', 'skill'], count: 100, after: ACH.holds_10 },
       [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10 },
