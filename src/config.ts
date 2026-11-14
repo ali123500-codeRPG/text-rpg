@@ -72,9 +72,9 @@ const DEFAULTS = {
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
-  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (2: marks 1, 3, 5...).
-   * Infinity: one roll per skill per engagement. */
-  MARK_STACK_EVERY: 2,
+  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (1: every mark;
+   * 2: marks 1, 3, 5...). Infinity: one roll per skill per engagement. */
+  MARK_STACK_EVERY: 1,
   /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
   SKILL_CAP: 100,
   /** EG16: a tagged skill's cap is SKILL_CAP plus this */
