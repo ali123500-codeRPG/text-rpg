@@ -8,7 +8,7 @@ import { getLibrary, itemDef } from '../library';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
 import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
-import { rewardName, rewardPos } from '../ruleset/achRewards';
+import { rewardName, rewardPos, rewardXp } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
@@ -127,7 +127,7 @@ export function itemRows(s: GameState, it: { itemId: string; boundTo?: string })
   if (!d) return [];
   const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
   const rows: PanelRow[] = [{ k: 'Look', v: d.look }, { k: 'Kind', v: d.kind }];
-  if (d.hands) rows.push({ k: 'Hands', v: String(d.hands) });
+  if (d.grips) rows.push({ k: 'Grips', v: String(d.grips) });
   for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach} m, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
   if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
   if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
@@ -178,8 +178,8 @@ export function gearWords(s: GameState, it: InvItem): { label: string; text: str
   const on = !!it.equippedIn?.length;
   if (d.slot === 'armor' || d.slot === 'accessory') return on ? { label: 'Unequip', text: `I take off my ${d.name}` } : { label: 'Equip', text: `I put on my ${d.name}` };
   // anything held can be put away; only weapons and shields offer Equip, so a draught or a bandage stays a pack item
-  if (d.hands && on) return { label: 'Unequip', text: `I put away my ${d.name}` };
-  if (d.hands && (d.kind === 'weapon' || d.kind === 'shield')) return { label: 'Equip', text: `I draw my ${d.name}` };
+  if (d.grips && on) return { label: 'Unequip', text: `I put away my ${d.name}` };
+  if (d.grips && (d.kind === 'weapon' || d.kind === 'shield')) return { label: 'Equip', text: `I draw my ${d.name}` };
   return null;
 }
 
@@ -223,10 +223,10 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const blank = (n: IconName) => { const el = h('span', { class: 'iico blank' }); el.innerHTML = ICONS[n]; return el; };
 
   // slots: one per grip part (an arm's hand, a dragon's head), then armor, then the accessory slots
-  const hands = gripParts(s, p).map((part) => ({ id: `grip:${part}`, label: cap(gripWord(part)), empty: 'sword' as IconName }));
-  const slots = [...hands, { id: 'armor', label: 'Body', empty: 'tunic' as IconName },
+  const gripSlots = gripParts(s, p).map((part) => ({ id: `grip:${part}`, label: cap(gripWord(part)), empty: 'sword' as IconName }));
+  const slots = [...gripSlots, { id: 'armor', label: 'Body', empty: 'tunic' as IconName },
     ...Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => ({ id: `acc:${n}`, label: `Accessory ${n + 1}`, empty: 'ring' as IconName }))];
-  const firstSlot = new Map<string, string>(); // a two-handed item shows once, in its first hand
+  const firstSlot = new Map<string, string>(); // a two-grip item shows once, in its first grip
   const slotCards = slots.map((sl) => {
     const it = inv.find((i) => i.equippedIn?.includes(sl.id));
     if (!it) return h('div', { class: 'eq-slot empty' }, blank(sl.empty), h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-none' }, 'Empty')));
@@ -234,7 +234,7 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
     if (!again) firstSlot.set(it.id, sl.id);
     const w = gearWords(s, it);
     return hover(h('div', { class: `eq-slot${again ? ' again' : ''}`, tabindex: '0' }, icon(it),
-      h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both hands)` : nameOf(it))),
+      h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both grips)` : nameOf(it))),
       w && !again ? act(w, it) : ''), it);
   });
   // like an MMO bag, plain stacks of the same item show as one tile; worn or damaged pieces (pools) keep their own
@@ -441,7 +441,7 @@ export function questsPage(api: GameApi) {
       for (const q of s.quests) { const root = questChain(s, q)[0].id; chains.set(root, [...(chains.get(root) ?? []), q]); }
       const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
         text: q.text, giver: titleCase(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
-        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${CONFIG.QUEST_REWARD_XP[q.level] ?? 0} XP`, pay: payText(s, q),
+        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${rewardXp(q.level)} XP`, pay: payText(s, q),
         due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: QUEST_STATE_NAME[q.state] },
         ...(q.unpaid || !isOpen(q) ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(!isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
       return [...chains.values()].map((qs) => {
@@ -480,7 +480,7 @@ export function questsPage(api: GameApi) {
     },
     line: (s) => {
       const done = s.quests.filter((q) => q.state === 'done');
-      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + (CONFIG.QUEST_REWARD_XP[q.level] ?? 0), 0)} XP from quests`;
+      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + rewardXp(q.level), 0)} XP from quests`;
     },
   });
 }

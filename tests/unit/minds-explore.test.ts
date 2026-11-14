@@ -21,7 +21,7 @@ vi.mock('../../src/ruleset', async (orig) => {
   return {
     ...real,
     usableModes: () => [],
-    defaultMode: () => ({ itemId: `player_${IT.arming_sword}_1`, mode: { id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 } }),
+    defaultMode: () => ({ itemId: `player_${IT.arming_sword}_1`, mode: { id: AM.cut, tree: 'melee', class: 'medium', reach: 0, grips: 1 } }),
     modeSkill: () => SK.melee_medium,
     ruleset: { ...real.ruleset, roll: vi.fn((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, tier: tiers[req.actorId] ?? 'near_miss' })) },
   };

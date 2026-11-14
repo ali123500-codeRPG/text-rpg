@@ -9,6 +9,7 @@ import { actor } from '../harness/village';
 import { ACH } from '../../src/library/achievementIds';
 import type { GameState } from '../../src/types';
 import { CONFIG } from '../../src/config';
+import { rewardXp } from '../../src/ruleset/achRewards';
 
 const keys = (s: GameState) => (s.player.progression?.achievements ?? []).map((a) => a.key);
 const spar = (s: GameState, cruel: boolean, playerWins: boolean) => {
@@ -56,7 +57,6 @@ describe('141 lost fights and the first spar lost', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
     slime.mind!.overrides = { [s.player.id]: 'hostile' };
-    const xp = s.player.progression!.xp;
     fightEnded(s, { hp: 0, foes: [slime.id], most: 1, down: true }); // went Down (and woke)
     for (let i = 0; i < 3; i++) fightEnded(s, { hp: 0, foes: [slime.id], most: 1 }); // got away
     expect(keys(s)).not.toContain(ACH.defeated_5);
@@ -66,16 +66,16 @@ describe('141 lost fights and the first spar lost', () => {
     delete slime.mind!.moraleState;
     fightEnded(s, { hp: 0, foes: [slime.id], most: 1 });
     expect(keys(s)).toContain(ACH.defeated_5);
-    expect(s.player.progression!.xp).toBe(xp + CONFIG.REWARD_XP.zero); // a level I scar pays level 0's XP
+    expect(s.player.progression!.xpLog!.find((x) => x.source === `achievement:${ACH.defeated_5}`)!.amount).toBe(rewardXp('zero')); // a level I scar pays level 0's XP
   });
 });
 
 describe('141 scars pay one reward level lower', () => {
   it('a scar pays the XP of the level below its own; a level 0 scar pays level −1 (25)', () => {
-    expect(achXp({ level: 'zero', scar: true })).toBe(CONFIG.REWARD_XP.minus_1);
-    expect(CONFIG.REWARD_XP.minus_1).toBe(25);
-    expect(achXp({ level: 'i', scar: true })).toBe(CONFIG.REWARD_XP.zero);
-    expect(achXp({ level: 'v', scar: true })).toBe(CONFIG.REWARD_XP.iv);
-    expect(achXp({ level: 'ii' })).toBe(CONFIG.REWARD_XP.ii);
+    expect(achXp({ level: 'zero', scar: true })).toBe(rewardXp('minus_1'));
+    expect(rewardXp('minus_1')).toBe(6);
+    expect(achXp({ level: 'i', scar: true })).toBe(rewardXp('zero'));
+    expect(achXp({ level: 'v', scar: true })).toBe(rewardXp('iv'));
+    expect(achXp({ level: 'ii' })).toBe(rewardXp('ii'));
   });
 });

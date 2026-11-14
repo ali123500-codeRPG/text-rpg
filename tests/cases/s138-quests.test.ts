@@ -18,6 +18,7 @@ import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameEvent, GameState, JobOffer, ResponderOutput } from '../../src/types';
 import { act, intent, play } from './w4-kit';
+import { rewardXp } from '../../src/ruleset/achRewards';
 
 const SLIMES: JobOffer = { line: 'Clear the slimes from the field', goal: { kind: 'defeat', target: 'slimes', count: 2 }, pay: { coin: 10 } };
 const codes = (s: GameState, code: string) => s.log.filter((l) => l.code === code);
@@ -93,7 +94,7 @@ describe('138 quests', () => {
     const s = shop();
     talk(s, offer(SLIMES));
     const q = s.quests[0];
-    const full = CONFIG.QUEST_REWARD_XP[q.level];
+    const full = rewardXp(q.level);
     updateQuests(s, [], [actor(s, 'slime_1'), actor(s, 'slime_2')]);
     const avg = (power(s, actor(s, 'slime_1')) + power(s, actor(s, 'slime_2'))) / 2;
     expect(q.foePower).toBeCloseTo(avg * 2);

@@ -194,7 +194,13 @@ const TOP = () => REWARD_LEVELS.keys.length - 1;
 export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);
 export const rewardKeyAt = (pos: number): string => REWARD_LEVELS.at(Math.min(TOP(), Math.max(0, pos)));
 export const rewardName = (key: string): string => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : key);
-export const rewardXp = (key: string): number => CONFIG.REWARD_XP[key] ?? 0;
+/** the XP of the reward level at place p (0 = level 0, I = 1, −1 = −1): the one reward-XP equation (REWARD_XP_CURVE) */
+export function rewardXpAt(p: number): number {
+  const c = CONFIG.REWARD_XP_CURVE;
+  return Math.round(c.base * Math.max(0, (p + c.shift) / c.div) ** c.power);
+}
+/** a reward level's XP, for achievements and quests alike (quest levels are REWARD_LEVELS keys too) */
+export const rewardXp = (key: string): number => (REWARD_LEVELS.has(key) ? rewardXpAt(REWARD_LEVELS.pos(key as 'i') - REWARD_LEVELS.pos('zero')) : 0);
 
 /** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
  * step past its first count (an every-N row climbs as it is earned again), capped at the top level (XV). */

@@ -270,11 +270,11 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
   }
   if (!best) return { itemId: null, stowed: null };
   if (isHeld(best)) return { itemId: best.id, stowed: null };
-  const hands = usableGrips(state, actor);
-  if (!hands.length) return { itemId: null, stowed: null }; // GAP: no usable hand, so no tool
+  const grips = usableGrips(state, actor);
+  if (!grips.length) return { itemId: null, stowed: null }; // GAP: no usable grip, so no tool
   const holder = (h: string) => actor.core.inventory.find((i) => i.equippedIn?.includes(`grip:${h}`));
-  if (hands.some((h) => !holder(h))) return { itemId: best.id, stowed: null };
-  const items = hands.map(holder) as ItemInstance[];
+  if (grips.some((h) => !holder(h))) return { itemId: best.id, stowed: null };
+  const items = grips.map(holder) as ItemInstance[];
   // off-hand: a held non-weapon (shield, torch), else the last hand's item
   const off = items.find((i) => itemDef(state, i.itemId).kind !== 'weapon') ?? items[items.length - 1];
   return { itemId: best.id, stowed: off.id };
@@ -290,17 +290,17 @@ export function modeIdOf(word: string): string {
   return Object.values(getLibrary().attackModes ?? {}).find((m) => m.id.toLowerCase() === w || m.name.toLowerCase() === w)?.id ?? word;
 }
 
-export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, hands: 0, name: 'fists' };
+export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {
   const grips = usableGrips(state, actor);
-  const maxHands = heldBy(state, actor) ? 1 : grips.length; // A8 Hold: a held actor can't use a two-handed mode
+  const maxGrips = heldBy(state, actor) ? 1 : grips.length; // A8 Hold: a held actor can't use a two-grip mode
   const out: { itemId: string; mode: AttackMode }[] = [];
   for (const inst of actor.core.inventory) {
     if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
     const def = itemDef(state, inst.itemId);
-    for (const mode of def.weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode: withRow(actor, def, mode) });
+    for (const mode of def.weapon?.modes ?? []) if (mode.grips <= maxGrips) out.push({ itemId: inst.id, mode: withRow(actor, def, mode) });
   }
   const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {

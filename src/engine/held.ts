@@ -1,5 +1,5 @@
 // A8 Hold (rules in src/library/perks.ts): a grapple that lands with a Great Success or better holds
-// the target. A held actor can't leave the holder's zone or use a two-handed mode; trying to leave is its break-free
+// the target. A held actor can't leave the holder's zone or use a two-grip mode; trying to leave is its break-free
 // move, a grapple contest it wins on a tie or better. The hold ends when the target breaks free, the holder is downed or
 // the holder leaves the zone (relations.ts heldBy() checks the last two each time it is read).
 import type { Actor, AttackResult, Effect, GameState, Rng } from '../types';
