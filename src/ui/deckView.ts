@@ -21,7 +21,8 @@ const STANCES: [Stance, string][] = [['careful', 'Careful'], ['normal', 'Normal'
 /** the order with the move planned on the minimap first (a way op takes the move itself, so it plays alone) */
 export function withPlanned(o: Order, p: MinimapPoint | null): Order {
   if (!p || o.intent.move || o.intent.way) return o;
-  return { line: o.line ? `Move to ${p.label}, then ${o.line.charAt(0).toLowerCase()}${o.line.slice(1)}` : `Move to ${p.label}`,
+  const to = p.label.replace(/, [\d.,]+ k?m$/, ''); // the place without its distance
+  return { line: o.line ? `Move to ${to}, then ${o.line.charAt(0).toLowerCase()}${o.line.slice(1)}` : `Move to ${to}`,
     intent: { ...o.intent, move: { toZone: p.zone, spot: { at: { x: p.x, y: p.y } } } } };
 }
 
@@ -61,7 +62,7 @@ export function deckView(api: GameApi, o: {
     if (a.kind === 'loot') { const s = api.state(), pv = ctx?.pv; if (s && pv) openLoot(pv, opener, (line, gear) => void play({ line, intent: { ...NO_ORDER, gear } }, false), (id) => instanceIcon(s, id, 'iico lico')); return; }
     const next = a.steps.find((st) => !(st.key in c));
     if (!next) { closePop(); void play(a.play(c), !!c.part); return; }
-    if (next.key === 'words') { closePop(); setSay({ action: a, choice: c, to: pickLabel(a, c) ?? '' }); return; }
+    if (next.key === 'words') { closePop(); setSay({ action: a, choice: c, to: (pickLabel(a, c) ?? '').replace(/^(A|An|The) /, (x) => x.toLowerCase()) }); return; }
     const picks = next.picks(c);
     // a step with one choice is taken for you, except whom: that is always asked (AD10)
     if (picks.length === 1 && next.key !== 'target') { run(a, { ...c, [next.key]: picks[0].id }, opener); return; }
@@ -99,7 +100,7 @@ export function deckView(api: GameApi, o: {
   }
 
   const aimBtn = h('button', { type: 'button', class: 'dk-tog', 'aria-pressed': 'false', title: 'When on, an attack asks which body part to aim at', onclick: () => { aim = !aim; repaint(); } }, 'Aim');
-  const stanceBtns = STANCES.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, onclick: () => { stance = k; repaint(); } }, name));
+  const stanceBtns = STANCES.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, 'aria-pressed': String(k === stance), onclick: () => { stance = k; repaint(); } }, name));
   const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label' }, 'Stance'), h('span', { class: 'dk-seg', role: 'group', 'aria-label': 'Stance' }, ...stanceBtns));
   const cols = h('div', { class: 'dk-groups' });
   const el = h('div', { class: 'deck' }, mods, cols);

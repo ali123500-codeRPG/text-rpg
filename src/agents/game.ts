@@ -102,9 +102,9 @@ function nerveBlocksAll(i: Intent): boolean {
 }
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
-/** NW18: a turn played while the player sleeps */
 /** the bands of the people the player can see (the Parser's legality reads them) */
 const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
+/** NW18: a turn played while the player sleeps */
 const ASLEEP_INTENT = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 
 export function createGame(deps: GameDeps): Game {

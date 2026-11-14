@@ -7,6 +7,7 @@ import type { PlayerView } from '../types';
 import { HEALTH_LEVELS, MORALE_LEVELS } from '../scales';
 import { isDownLevel, othersHealthWord } from '../ruleset';
 import { pullOf, type IdeaKind } from './ideaLeans';
+import { cap } from '../words';
 import type { Choice, DeckAction, DeckCtx, deck } from './deck';
 
 export type Suggestion = { action: DeckAction; choice: Choice; reason: string; score: number };
@@ -60,5 +61,3 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
   for (const x of out) if (p && LEAN[x.action.kind]) x.score += pullOf(LEAN[x.action.kind]!, p) * W.leanShare;
   return out.sort((a, b) => b.score - a.score);
 }
-
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);

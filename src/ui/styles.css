@@ -1509,7 +1509,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 /* ---- the action deck (AD1–AD16): suggestion, Say box, Aim and Stance, every action in its group. Only colour and
    opacity change on hover; nothing moves while a turn runs (M-06) ---- */
 .inbar { gap: var(--space-3); }
-.inrow { grid-template-columns: auto minmax(0, 1fr) auto; }
+.inrow { display: flex; align-items: center; }
+.inrow .hs-input { flex: 1 1 auto; min-width: 0; }
 .say-for { align-self: center; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: var(--r-pill);
   padding: 0 var(--space-3); min-height: 30px; font: 700 13px var(--font-round); cursor: pointer; white-space: nowrap; }
 .say-for[hidden] { display: none; }
@@ -1517,7 +1518,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border); }
 .dk-sug[hidden] { display: none; }
 .dk-sug .dk-sl { grid-column: 1 / -1; color: var(--scenario-mark); margin: 0; }
-.dk-go { min-height: var(--touch); padding: 0 var(--space-4); border: 0; border-radius: var(--r-md); background: var(--btn-fill); color: var(--on-btn);
+.dk-go { justify-self: start; max-width: 100%; min-height: var(--touch); padding: 0 var(--space-4); border: 0; border-radius: var(--r-md); background: var(--btn-fill); color: var(--on-btn);
   font: 800 17px var(--font-round); text-align: left; cursor: pointer; transition: opacity var(--m-feedback) var(--m-ease); }
 .dk-go:hover { opacity: .9; } .dk-go:disabled { opacity: .5; cursor: default; }
 .dk-alt[hidden] { display: none; }
@@ -1565,17 +1566,18 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .here { display: flex; flex-direction: column; min-height: 120px; flex: 1 1 0; }
 .here > .hs-label { margin: 0 0 var(--space-2); }
 .who { display: grid; gap: 2px; overflow-y: auto; min-height: 0; align-content: start; }
-.who .pp { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 0 var(--space-2); align-items: center; padding: 5px var(--space-2); border-radius: var(--r-md);
+.who .pp { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 0 var(--space-2); align-items: center; padding: 5px var(--space-2); border-radius: var(--r-md);
   cursor: pointer; font-size: 13px; transition: background-color var(--m-feedback) var(--m-ease); }
 .who .pp:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .who .pp:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .who .pp .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
 .who .pp.foe .dot { background: var(--danger); }
 .who .pp b { font: 700 14px var(--font-round); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.who .pp .ds { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+.who .pp .ds { grid-column: 2 / -1; grid-row: 2; font-size: 12px; color: var(--muted); }
+.who .pp .ds:empty { display: none; }
 .who .pp .pin { background: none; border: 0; color: var(--faint); cursor: pointer; font-size: 14px; padding: 0 2px; }
 .who .pp .pin[aria-pressed="true"] { color: var(--scenario-mark); }
-.who .pp .sts { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 0 var(--space-2); font-size: 12px; }
+.who .pp .sts { grid-column: 2 / -1; grid-row: 3; display: flex; flex-wrap: wrap; gap: 0 var(--space-2); font-size: 12px; }
 .who .pp .sts:empty { display: none; }
 .short-wrap { flex: none; display: grid; gap: var(--space-2); border-top: 1px solid var(--border); padding-top: var(--space-3); font-size: 13px; }
 .short { display: grid; gap: var(--space-1); }

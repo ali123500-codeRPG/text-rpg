@@ -1,5 +1,6 @@
 // AD8/AD10: the action deck lists every action the game knows (a Parser action, a gear order or a door order), each as one
 // entry; AD9: the suggestion is scored by code with a reason; AD12: a move planned on the minimap rides along with an action.
+// @ts-expect-error Node types are not installed; vitest runs in Node
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -17,7 +18,7 @@ const WAY_OPS = ['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const;
 const gearAll: Exclude<GearOp['op'], (typeof GEAR_OPS)[number]> extends never ? true : false = true;
 const wayAll: Exclude<WayOp, (typeof WAY_OPS)[number]> extends never ? true : false = true;
 
-const src = readFileSync(new URL('../../src/ui/deck.ts', import.meta.url), 'utf8');
+const src = readFileSync('src/ui/deck.ts', 'utf8') as string;
 const fight = (s: GameState = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] })) => {
   const m = actorById(s, 'patron_1')!.mind!;
   m.overrides = { player: 'hostile' };
@@ -106,7 +107,7 @@ describe('a move planned on the minimap (AD12)', () => {
   it('rides along with an action, the move first in the line', () => {
     const o = withPlanned({ line: 'Look around', intent: { move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null } }, p);
     expect(o.intent.move).toEqual({ toZone: 'tav_common', spot: { at: { x: 3, y: 4 } } });
-    expect(o.line).toBe('Move to the common room, 5 m, then look around');
+    expect(o.line).toBe('Move to the common room, then look around');
   });
   it('an order that already moves keeps its own move; Just go is a move alone', () => {
     const own = { line: 'Go', intent: { move: { toZone: 'x' }, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null } };
