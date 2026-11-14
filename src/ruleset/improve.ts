@@ -37,9 +37,10 @@ export function clearMarkCounts(actor: Actor): void {
 /** SP2: does `opposition` teach this skill? From MARK_WINDOW below raw skill up to MARK_WINDOW above true skill; a won
  * contest has no top (a win against a stronger side teaches). A skill not on the sheet counts as raw 0. */
 function close(actor: Actor, skill: string, opposition: number, won = false): boolean {
-  const [lo, hi] = learningWindow(actor.core.skills[skill]?.raw ?? 0, trueSkill(actor, skill));
-  return opposition >= lo && (won || opposition <= hi);
+  return inWindow(learningWindow(actor.core.skills[skill]?.raw ?? 0, trueSkill(actor, skill)), opposition, won);
 }
+/** the opposition is inside a learning window; a won contest has no top */
+const inWindow = ([lo, hi]: [number, number], opposition: number, won: boolean): boolean => opposition >= lo && (won || opposition <= hi);
 /** SP2: the opposition range that teaches a skill at `raw` and `trueValue`: raw − MARK_WINDOW to max(raw, true) + MARK_WINDOW */
 export const learningWindow = (raw: number, trueValue: number): [number, number] => [raw - CONFIG.MARK_WINDOW, Math.max(raw, trueValue) + CONFIG.MARK_WINDOW];
 
@@ -49,9 +50,6 @@ export function markIfClose(state: GameState, actor: Actor | undefined, skill: s
   if (tied || close(actor, skill, opposition, won)) mark(actor, skill); // close calls teach: a tier gap of exactly 0 marks whatever the skills
 }
 
-/** the skills that augment `skill` on a roll of this kind, each with its factor (augmentK: share × tier, a percentage
- * augment's also × the receiver's true skill ÷ 100). On the sheet or not: an augment at 0 can learn once its tree opens. */
-const augmenters = (actor: Actor, skill: string, rollKind?: RollKind): { id: string; k: number }[] => augmentFactors(actor, skill, rollKind);
 /** a side's level on a roll for augment learning: its true skill plus what its augments added (AU2) */
 const rollLevel = (actor: Actor, r: { skill: string; asked?: string; rollKind?: RollKind }) =>
   trueSkill(actor, r.skill) + [...augmentsOf(actor, r.asked ?? r.skill, r.rollKind), ...tradesOut(actor, r.skill)].reduce((n, a) => n + a.value, 0);
@@ -65,7 +63,7 @@ function rollWindow(actor: Actor, skill: string, augs: { id: string; k: number }
 export function augmentWindow(actor: Actor, skill: string): { via: string; window: [number, number] } | null {
   const g = getLibrary().skills[skill]?.augments?.[0];
   if (!g) return null;
-  return { via: g.skill, window: rollWindow(actor, g.skill, augmenters(actor, g.skill, g.rollKinds?.[0])) };
+  return { via: g.skill, window: rollWindow(actor, g.skill, augmentFactors(actor, g.skill, g.rollKinds?.[0])) };
 }
 /** Augmenting skills learn at the level the roll was made at (AU1 option B): one window for the whole roll, built like any
  * skill's window from the roll's sums. Low end: the rolled skill's raw + each augment's raw × share × tier. High end: the
@@ -73,10 +71,9 @@ export function augmentWindow(actor: Actor, skill: string): { via: string; windo
  * when the opposition (the other side's level, augments included) is inside it, or on a close call (AU4). */
 function markAugments(state: GameState, actor: Actor | undefined, r: { skill: string; asked?: string; rollKind?: RollKind }, opposition: number | undefined, force = false, won = false): void {
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
-  const augs = augmenters(actor, r.asked ?? r.skill, r.rollKind);
+  const augs = augmentFactors(actor, r.asked ?? r.skill, r.rollKind); // on the sheet or not: an augment at 0 learns once its tree opens
   if (!augs.length) return;
-  const [lo, hi] = rollWindow(actor, r.skill, augs);
-  if (force || (opposition >= lo && (won || opposition <= hi))) for (const a of augs) mark(actor, a.id);
+  if (force || inWindow(rollWindow(actor, r.skill, augs), opposition, won)) for (const a of augs) mark(actor, a.id);
 }
 
 /** AR5: a hit on a part your worn armor covers marks the armor skill for its weight, when the

@@ -10,7 +10,7 @@ import { healthLevel, partStates, working } from '../ruleset/body';
 import { trueSkill } from '../ruleset/perks';
 import { actorBody, getLibrary } from '../library';
 import { dayOf, now } from '../time';
-import { actorById, allActors, atLeast, hostile, isActive, stance, warm } from './relations';
+import { actorById, allActors, atLeast, countsInFight, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
 import { power, tally } from './xp';
 import { HEALTH_LEVELS, TIERS } from '../scales';
@@ -29,7 +29,6 @@ export function turnFeats(state: GameState, events: GameEvent[]): void {
   eventFeats(state, events);
   stateFeats(state, events);
 }
-
 
 /** TM14: every place the player stands in, and the places holding it (a tavern, its settlement …), counted once per
  * place, per kind of place */
@@ -179,15 +178,15 @@ export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = 
   noteBlows(state, f, events);
   // a lost fight (the Loser scars): you went Down, or it ended with a foe still up and fighting you (you got away).
   // a morale break counts too (MB12), and a yield a foe took (MB42)
-  const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
+  const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !countsInFight(x); });
   const lost = !!(f.down || f.broke || yieldTaken(state) || !isActive(state.player));
   strongerFoe(state, f, won && !lost);
   // your nerve broke and the fight was won all the same; it still counts as a lost fight below (MB12), as going Down does
   if (won && f.broke && f.foes.length && isActive(state.player) && !yieldTaken(state)) tally(state, 'won_broken');
-  if (f.down || f.broke || yieldTaken(state) || !isActive(state.player)) return tally(state, 'defeated');
+  if (lost) return tally(state, 'defeated');
   if (f.brink) tally(state, 'brink');
   if (!won) {
-    if (f.foes.some((id) => { const x = actorById(state, id); return !!x && isActive(x) && !x.mind?.moraleState && hostile(state, x, state.player); })) tally(state, 'defeated');
+    if (f.foes.some((id) => { const x = actorById(state, id); return !!x && countsInFight(x) && hostile(state, x, state.player); })) tally(state, 'defeated');
     return;
   }
   if (moraleLevel(state.player) === 'panicking') tally(state, 'won_panicking'); // D-160

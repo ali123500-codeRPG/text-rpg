@@ -24,6 +24,10 @@ export type HiddenStore = {
 /** SC10: how a scenario ended. An unordered category, so the names are the IDs (display names: SCENARIO_ENDING_NAMES). */
 export const SCENARIO_ENDINGS = ['resolved', 'lost', 'left', 'escaped', 'interrupted', 'worn_out', 'broken_off'] as const;
 export type ScenarioEnding = (typeof SCENARIO_ENDINGS)[number];
+/** SC10: the endings code alone sets (a scenario overrunning its time, a knock-out); a plan or a check-in names the rest */
+export const CODE_ENDINGS = ['worn_out', 'broken_off'] as const;
+/** SC10: the endings a plan or a check-in may name */
+export const PLAN_ENDINGS = SCENARIO_ENDINGS.filter((e) => !(CODE_ENDINGS as readonly string[]).includes(e)) as Exclude<ScenarioEnding, (typeof CODE_ENDINGS)[number]>[];
 export const SCENARIO_ENDING_NAMES: Record<ScenarioEnding, string> = {
   resolved: 'resolved', lost: 'lost', left: 'left', escaped: 'escaped', interrupted: 'interrupted', worn_out: 'worn out', broken_off: 'broken off',
 };
@@ -40,7 +44,7 @@ export type EndCheck =
   | { kind: 'time'; at: string }
   | { kind: 'judged' };
 /** one way the scenario can end: what code checks, which ending it is, and a hidden line saying what it means */
-export type PlanEnding = { when: EndCheck; as: Exclude<ScenarioEnding, 'worn_out' | 'broken_off'>; text: string };
+export type PlanEnding = { when: EndCheck; as: (typeof PLAN_ENDINGS)[number]; text: string };
 /** SC1/SC2/SC7: the scenario's hidden question, its scale and its endings */
 export type ScenarioFrame = {
   question: string; scale: ScenarioScale; endings: PlanEnding[];

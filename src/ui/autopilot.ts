@@ -42,9 +42,11 @@ type Run = { open: boolean; playing: boolean; owner: 'player' | 'agent' };
 function readRun(): Run | null { try { return JSON.parse(sessionStorage.getItem(RUN) ?? 'null'); } catch { return null; } }
 const writeRun = (r: Run) => { try { sessionStorage.setItem(RUN, JSON.stringify(r)); } catch { /* per-tab convenience only */ } };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** a step still running after this long shows how long it has taken */
+const SLOW_MS = 5000;
 
-/** el: the bar under Who's here (empty while closed); opener: the header switch beside Show rolls */
-/** asking: a question waits for the watcher (the action box is theirs then); playedTurn: they played a turn themselves */
+/** el: the bar under Who's here (empty while closed); opener: the header switch beside Show rolls; asking: a question
+ * waits for the watcher (the action box is theirs then); playedTurn: they played a turn themselves */
 export type Autopilot = { el: HTMLElement; opener: HTMLElement; update: () => void; playing: () => boolean; asking: () => boolean; playedTurn: () => void };
 
 /** `typeAndSend` types the command into the action box, then sends it like the Send button (resolves when the turn is done) */
@@ -53,7 +55,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   let restore = readRun(); // carried on once the story has loaded
   let open = !!restore?.open, playing = false, stepping = false, switching = false;
   let status = '', said = '', saidJa = '', voiceNote = '';
-  let tts: Tts | null = null, talking = false, claudeVoices = CLAUDE_VOICES, jaOk = true;
+  let tts: Tts | null = null, claudeVoices = CLAUDE_VOICES, jaOk = true;
   // the RPG Voice (the page's mcp capability): the line playing, which speak() is current, and whether it has failed for good
   let mcp: Mcp | null = null, audio: HTMLAudioElement | null = null, speakSeq = 0, rpgDown = false, voices = RPG_VOICES, listed = false;
   // guided mode (GA1–GA17)
@@ -63,7 +65,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   const baseTitle = document.title;
   void (async () => {
     try { tts = ((await (globalThis as { claude?: { use(n: string): Promise<unknown> } }).claude?.use('tts')) ?? null) as Tts | null; } catch { tts = null; }
-    tts?.onState?.((s) => { talking = s.state !== 'idle' || !!audio; update(); });
+    tts?.onState?.(() => update());
     // the voices Claude offers pages right now (four today), so a new one shows up without a change here
     // a platform that says it can't read Japanese gets the English line instead
     try { const l = await tts?.languages?.(); if (Array.isArray(l) && l.length && !l.some((x) => typeof x === 'string' && /^ja\b/i.test(x))) jaOk = false; } catch { /* try Japanese and fall back */ }
@@ -87,10 +89,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     speakSeq++;
     if (audio) { audio.pause(); audio = null; }
     void tts?.stop();
-    talking = false;
   }
-  /** acted out by the RPG Voice (its tags and the acting note), else read in the chosen Claude voice (Japanese as Japanese);
-   *  where neither can speak, the line is only shown */
   /** acted out by the RPG Voice (its tags and the acting note), else read in the chosen Claude voice (Japanese as Japanese);
    *  where neither can speak, the line is only shown. Resolves once the voice has started (or won't): the RPG Voice makes
    *  the whole clip before it plays, so its first sentence is asked for on its own beside the rest and starts sooner. */
@@ -99,7 +98,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     hush();
     const seq = speakSeq, line = ja || text, v = rpgVoice();
     if (!v || rpgDown) { claudeSpeak(plainLine(line), !!ja, plainLine(text)); return Promise.resolve(); }
-    talking = true; update();
+    update();
     const chunks = splitLine(line), clips = chunks.map((c) => rpgSpeak(mcp!, c, direction, v));
     clips.forEach((c) => c.catch(() => undefined)); // each failure is handled when its turn to play comes
     return new Promise<void>((started) => {
@@ -112,15 +111,15 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
           if (audio !== a) return;
           audio = null;
           if (i + 1 < clips.length && seq === speakSeq) void play(i + 1);
-          else { talking = false; update(); }
+          else update();
         };
         a.onended = done; a.onerror = done;
-        a.play().then(() => started(), () => { audio = null; talking = false; voiceNote = 'The browser held the voice back: click anywhere on the page, and the next line is heard.'; update(); started(); });
+        a.play().then(() => started(), () => { audio = null; voiceNote = 'The browser held the voice back: click anywhere on the page, and the next line is heard.'; update(); started(); });
         if (!listed) { listed = true; void rpgVoices(mcp!).then((l) => { if (l) { voices = l; update(); } }, () => undefined); }
       }, (e: McpError) => {
         if (seq !== speakSeq) return started();
         const f = rpgFailure(e);
-        rpgDown = f.down; talking = false;
+        rpgDown = f.down;
         claudeSpeak(plainLine(chunks.slice(i).join(' ')), !!ja, plainLine(text));
         voiceNote = f.note; update(); started();
       });
@@ -150,7 +149,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   // the status line counts the seconds of a long wait, so a slow Claude call or a stuck turn shows as such, never as nothing
   let statusAt = 0;
   const set = (s: string) => { status = s; statusAt = Date.now(); update(); };
-  const ticking = setInterval(() => { if (!el.isConnected && !open) return; if (playing && status.endsWith('…') && Date.now() - statusAt >= 5000) update(); }, 1000);
+  const ticking = setInterval(() => { if (!el.isConnected && !open) return; if (playing && status.endsWith('…') && Date.now() - statusAt >= SLOW_MS) update(); }, 1000);
   void ticking;
   function pause(why = '') { playing = false; stepping = false; answer?.(null); set(why); redraw(); }
 
@@ -351,7 +350,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), saidJa ? h('span', {}, `“${plainLine(saidJa)}”`, h('span', { class: 'auto-en' }, plainLine(said))) : `“${plainLine(said)}”`) : ''),
       !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
       !q && prefs.mode === 'guided' && lastCall ? h('p', { class: 'hs-note' }, `Last call: ${lastCall}`) : '',
-      status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status ? `${status}${playing && status.endsWith('…') && Date.now() - statusAt >= 5000 ? ` ${Math.floor((Date.now() - statusAt) / 1000)} s` : ''}` : mine!.textContent) : '',
+      status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status ? `${status}${playing && status.endsWith('…') && Date.now() - statusAt >= SLOW_MS ? ` ${Math.floor((Date.now() - statusAt) / 1000)} s` : ''}` : mine!.textContent) : '',
       noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : '');
   }
   update();

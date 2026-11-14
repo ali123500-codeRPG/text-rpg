@@ -1,6 +1,5 @@
 // W1 — Save, load, undo, backups (Part 4 §6–8, §10–11).
-import type { CreationBuild, Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, StoryOwner, TurnRecord, FameEntry } from '../types';
-import type { Library } from '../types';
+import type { CreationBuild, Bookmark, EnginePage, GameState, Head, Library, LogLine, PageRef, StoryMeta, StoryOwner, TurnRecord, FameEntry } from '../types';
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
 import { checkInvariants, checkShape, migrate, newReport, reconcile, repairReferences, type CheckReport } from './checks';
@@ -45,6 +44,10 @@ const backupPath = (id: string, t: number) => `${story(id)}/backups/${t}`;
 const historyPath = (id: string, n: number) => `${story(id)}/history/${n}`;
 const tail = (p: string) => p.slice(p.lastIndexOf('/') + 1);
 const bookmarkOf = (h: Head): Bookmark => ({ turn: h.turn, pages: h.pages });
+/** the bookmarks whose pages must not be overwritten: the head, its undo and its safety (or the one given) */
+const liveOf = (h: Head | null, safety = h?.safety): Bookmark[] => (h ? [bookmarkOf(h), ...(h.undo ? [h.undo] : []), ...(safety ? [safety] : [])] : []);
+/** the page limit as the save's messages say it */
+const LIMIT_TEXT = `${PAGE_LIMIT / 1024} KiB`;
 
 async function guard<T>(fn: () => Promise<T>, committed = false): Promise<T> {
   try {
@@ -60,7 +63,7 @@ async function guard<T>(fn: () => Promise<T>, committed = false): Promise<T> {
 // ---------- page versions ----------
 /** A path some live bookmark points to is never overwritten with other content: bump the version instead. */
 function pickVersion(key: string, base: number, hash: string, live: Bookmark[]): { v: number; reuse: boolean } {
-  // GAP: versions are turns; a clash (undo engine page, a redo after restore) gets a fractional version like 40.001.
+  // versions are turns; a clash (undo engine page, a redo after restore) gets a fractional version like 40.001.
   for (let v = base; ; v = Math.round((v + 0.001) * 1000) / 1000) {
     const refs = live.map((b) => b.pages[key]).filter((r) => r && r.version === v);
     if (!refs.length) return { v, reuse: false };
@@ -75,7 +78,7 @@ async function commitPages(store: Store, id: string, pages: Pages, base: number,
   const writes: Promise<void>[] = [];
   for (const [key, page] of Object.entries(pages)) {
     const bytes = byteLength(page);
-    if (bytes > PAGE_LIMIT) throw new SaveError('page_too_large', `page ${key} is ${bytes} bytes, over 256 KiB`);
+    if (bytes > PAGE_LIMIT) throw new SaveError('page_too_large', `page ${key} is ${bytes} bytes, over ${LIMIT_TEXT}`);
     const hash = hashPage(page);
     if (prev?.[key]?.hash === hash) { refs[key] = prev[key]; continue; }
     const { v, reuse } = pickVersion(key, base, hash, live);
@@ -118,9 +121,9 @@ const refuse = (r: CheckReport, h: Head | null): never => {
 /** Turn records past the budget lose their call inputs (views are rebuilt from the save); outputs stay for replay. */
 function fitRecord(record: TurnRecord): TurnRecord {
   if (byteLength(record) <= PAGE_LIMIT) return record;
-  // GAP: the spec sets no per-record budget beyond the page limit; inputs are dropped first
-  const slim = { ...record, agentLog: record.agentLog.map(({ rawOutputs: _r, ...l }) => ({ ...l, input: '[trimmed: over 256 KiB]' })) };
-  if (byteLength(slim) > PAGE_LIMIT) throw new SaveError('page_too_large', `turn record ${record.turn} is over 256 KiB`);
+  // no per-record budget beyond the page limit: inputs are dropped first
+  const slim = { ...record, agentLog: record.agentLog.map(({ rawOutputs: _r, ...l }) => ({ ...l, input: `[trimmed: over ${LIMIT_TEXT}]` })) };
+  if (byteLength(slim) > PAGE_LIMIT) throw new SaveError('page_too_large', `turn record ${record.turn} is over ${LIMIT_TEXT}`);
   return slim;
 }
 
@@ -131,7 +134,7 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
   const pages = toPages(state);
   const head = await guard(async () => {
     const [prev, stored] = await Promise.all([store.get<Head>(headPath(id)), store.get(story(id))]);
-    const live = prev ? [bookmarkOf(prev), ...(prev.undo ? [prev.undo] : []), ...(prev.safety ? [prev.safety] : [])] : [];
+    const live = liveOf(prev);
     const meta: StoryMeta = { ...state.meta, settings: state.settings };
     // pages, the turn record and the story meta are written together; the head (the commit) goes last
     const [refs] = await Promise.all([
@@ -168,7 +171,7 @@ export async function amendHead(store: Store, storyId: string, library: Library,
   await guard(async () => {
     const prev = await store.get<Head>(headPath(storyId));
     if (!prev) throw new SaveError('no_head', `story ${storyId} has no saved turn to amend`);
-    const live = [bookmarkOf(prev), ...(prev.undo ? [prev.undo] : []), ...(prev.safety ? [prev.safety] : [])];
+    const live = liveOf(prev);
     const refs = await commitPages(store, storyId, pages, prev.turn, live, prev.pages);
     await store.set(headPath(storyId), { ...prev, pages: refs } satisfies Head);
   });
@@ -192,7 +195,7 @@ export async function loadStory(store: Store, storyId: string, library: Library)
     if (r.errors.length) return refuse(r, head);
     let next = head;
     if (r.changed.size || head.libraryVersion !== library.version || safety !== head.safety) {
-      const live = [bookmarkOf(head), ...(head.undo ? [head.undo] : []), ...(safety ? [safety] : [])];
+      const live = liveOf(head, safety);
       const refs = await commitPages(store, storyId, pages, head.turn, live, head.pages);
       // after a migration the undo bookmark holds old-schema pages: the safety bookmark replaces it
       const undo = head.schemaVersion < CONFIG.SCHEMA_VERSION ? null : head.undo;
@@ -253,14 +256,14 @@ export const historyChunk = (turn: number) => Math.floor(Math.max(0, turn) / CON
 /**
  * Save the story column: every chunk that the new lines touch is rewritten whole from `lines` (chunk n holds turns
  * n×HISTORY_CHUNK_TURNS onward). Not part of the turn commit: a failure loses only text, never game state.
- * A chunk over 256 KiB drops its lines' code-built extras (mechanics, speech, changes), keeping the text.
+ * A chunk over the page limit drops its lines' code-built extras (mechanics, speech, changes), keeping the text.
  */
 export async function saveHistory(store: Store, storyId: string, lines: LogLine[], fromIndex: number): Promise<void> {
   const chunks = [...new Set(lines.slice(fromIndex).map((l) => historyChunk(l.turn)))];
   for (const n of chunks) {
     let doc: HistoryDoc = { storyId, chunk: n, lines: lines.filter((l) => historyChunk(l.turn) === n) };
     if (byteLength(doc) > PAGE_LIMIT) doc = { ...doc, lines: doc.lines.map(({ turn, kind, text }) => ({ turn, kind, text })) };
-    if (byteLength(doc) > PAGE_LIMIT) throw new SaveError('page_too_large', `story text for chunk ${n} is over 256 KiB`, true);
+    if (byteLength(doc) > PAGE_LIMIT) throw new SaveError('page_too_large', `story text for chunk ${n} is over ${LIMIT_TEXT}`, true);
     await guard(() => store.set(historyPath(storyId, n), doc), true);
   }
 }
@@ -290,14 +293,13 @@ export const acquireTurnLock = (store: Store, storyId: string, owner: string) =>
 export const releaseTurnLock = (store: Store, storyId: string, owner: string) => store.releaseLease(lockPath(storyId), owner);
 
 // ---------- stories ----------
+const allMetas = async (store: Store) => (await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)))).filter((m): m is StoryMeta => !!m);
 /** Every story's meta, newest first. A confirmed reset starts a new story id and archives the old story's pages under its own id (D-73). */
 export async function listStories(store: Store): Promise<StoryMeta[]> {
-  const metas = await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)));
-  // GAP: no "current story" pointer in the spec's paths; the newest createdAt is the one that runs
-  return metas.filter((m): m is StoryMeta => !!m && !m.archivedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
+  // no "current story" pointer: the newest createdAt is the one that runs
+  return (await allMetas(store)).filter((m) => !m.archivedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
 }
 
-const allMetas = async (store: Store) => (await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)))).filter((m): m is StoryMeta => !!m);
 export const worldOf = (m: StoryMeta): string => m.worldId ?? m.storyId;
 
 /** HF31: a world a new character can carry on: every story in it is archived, so no one lives there (WP1 b: a character
@@ -321,7 +323,7 @@ async function freeWorlds(store: Store, owner: StoryOwner): Promise<(FreeWorld &
 }
 /** WP5: a world's title, given in the game; an empty one goes back to the default */
 export const titleWorld = (store: Store, worldId: string, name: string) =>
-  guard(() => (name.trim() ? store.set(worldTitle(worldId), { name: name.trim().slice(0, 60) }) : store.delete(worldTitle(worldId))));
+  guard(() => (name.trim() ? store.set(worldTitle(worldId), { name: name.trim().slice(0, CONFIG.WORLD_TITLE_CAP) }) : store.delete(worldTitle(worldId))));
 /** the creation screen's list, newest fall first; a world a character is already arriving in is left out */
 export async function listWorlds(store: Store, owner: StoryOwner = 'player'): Promise<FreeWorld[]> {
   const arriving = (await store.get<PendingStart>(pendingPath(owner)))?.worldId;
@@ -412,7 +414,7 @@ export async function restoreBackup(store: Store, storyId: string, turn: number,
     }
     if (!r.errors.length) prepare(pages, storyId, doc.schemaVersion, library, r);
     if (r.errors.length) return refuse(r, head);
-    const live = head ? [bookmarkOf(head), ...(head.undo ? [head.undo] : []), ...(head.safety ? [head.safety] : [])] : [];
+    const live = liveOf(head);
     const refs = await commitPages(store, storyId, pages, turn, live);
     await store.set(headPath(storyId), {
       storyId, turn, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: library.version, undo: null,

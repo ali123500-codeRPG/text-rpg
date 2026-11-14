@@ -199,7 +199,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       const btn = (id: string | undefined, text: string, title: string) => h('button', { class: world.id === id ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(world.id === id), title,
         onclick: () => { world.id = id; paint(); paintStarts(); } }, text);
       const picked = ws.find((w) => w.worldId === world.id);
-      const input = h('input', { class: 'hs-input', type: 'text', maxLength: 60, value: picked?.name ?? '', 'aria-label': 'World title', autocomplete: 'off' }) as HTMLInputElement;
+      const input = h('input', { class: 'hs-input', type: 'text', maxLength: CONFIG.WORLD_TITLE_CAP, value: picked?.name ?? '', 'aria-label': 'World title', autocomplete: 'off' }) as HTMLInputElement;
       const save = async () => { await api.titleWorld(picked!.worldId, input.value).catch(() => {}); world.list = await api.worlds().catch(() => world.list); paint(); paintStarts(); };
       row.replaceChildren(h('span', { class: 'hs-label' }, 'World'),
         btn(undefined, 'New world', 'A world no one has lived in, starting the day after the furthest day any world has reached'),

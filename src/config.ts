@@ -716,6 +716,7 @@ const DEFAULTS = {
   MAX_ROUTE_ZONES: 4, // Q2
   PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, knows: 5 }, // Q2
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
+  WORLD_TITLE_CAP: 60, // WP5: the most characters a world's title keeps
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<DurationId, number>, // NW10: game minutes a routine step lasts (placeholders)
