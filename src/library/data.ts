@@ -157,6 +157,11 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
 const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });
+/** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
+const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });
+/** AX4 c: a charmed ring's skill weights by tree (placeholders): fighting and senses most, other common trees next, the rest 1 */
+const RING_WEIGHTS: Record<string, number> = { [TR.melee]: 3, [TR.ranged]: 3, [TR.unarmed]: 3, [TR.defense]: 3, [TR.perception]: 3,
+  [TR.fortitude]: 2, [TR.armor]: 2, [TR.stealth]: 2, [TR.speech]: 2, [TR.trickery]: 2, [TR.tools]: 2 };
 
 /** class-level perks (ClassDef.levelPerks), granted by a class at a level */
 const CLASS_PERKS: Record<string, PerkDef> = {
@@ -352,11 +357,17 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
       { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
     ] } },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
-  // accessories (placeholders): spectacles sharpen sight; a charmed ring boosts one skill, rolled for each ring (ROLLED_SKILL)
-  { id: IT.spectacles, kind: 'accessory', fragility: 'fragile', name: 'spectacles', look: 'a pair of round glass lenses in a thin wire frame', bulk: 0, value: 10, slot: 'accessory', visible: true,
-    effects: [{ kind: 'skill', skill: SK.eyesight, value: 10, active: 'worn', scope: 'any' }] },
-  { id: IT.charmed_ring, kind: 'accessory', name: 'charmed ring', look: 'a thin band of worn brass, faintly warm to the touch', bulk: 0, value: 5, slot: 'accessory', visible: true,
-    effects: [{ kind: 'skill', skill: ROLLED_SKILL, value: 5, active: 'worn', scope: 'any' }] },
+  // accessories: each gives a flat skill bonus while worn, sized by its equipment level (ACC: ACCESSORY_FACTOR × EQUIP_NEED, AX1/AX2)
+  { id: IT.spectacles, level: 'common', kind: 'accessory', fragility: 'fragile', name: 'spectacles', look: 'a pair of round glass lenses in a thin wire frame', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.eyesight)] },
+  { id: IT.charmed_ring, level: 'common', kind: 'accessory', name: 'charmed ring', look: 'a thin band of worn brass, faintly warm to the touch', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [{ ...ACC(ROLLED_SKILL), weights: RING_WEIGHTS }] },
+  { id: IT.ear_cup, level: 'common', kind: 'accessory', name: 'ear cup', look: 'a small carved horn cup that hooks over the ear', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.earshot)] },
+  { id: IT.amulet, level: 'common', kind: 'accessory', name: 'amulet', look: 'a smooth stone amulet on a leather cord', bulk: 0, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.resolve)] },
+  { id: IT.hooded_cloak, level: 'common', kind: 'accessory', fragility: 'sturdy', name: 'dark hooded cloak', look: 'a long dark wool cloak with a deep hood', bulk: 1, value: 5, slot: 'accessory', visible: true,
+    effects: [ACC(SK.sneaking)] },
   { id: IT.lucky_charm, kind: 'misc', fragility: 'delicate', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, grips: 1,

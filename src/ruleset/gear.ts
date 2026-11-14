@@ -13,7 +13,7 @@ import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL, ROLLED_SKILL } from '../library/skillIds';
 import { createRng, textSeed } from '../rng';
-import { requirement, requiredSkill } from './requirements';
+import { itemLevel, requirement, requiredSkill } from './requirements';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 import { skillName } from '../library/skillNames';
@@ -34,15 +34,35 @@ type Active = { inst: ItemInstance; def: ItemDef; e: ItemEffect; source: string 
 
 /** the skills a rolled effect (ROLLED_SKILL: a charmed ring) can land on: every skill at the default tier, by id */
 export const rolledPool = (): string[] => Object.values(getLibrary().skills).filter((k) => k.tier === 'tier_2').map((k) => k.id).sort();
-/** the skill a piece's rolled effect boosts: fixed for that piece from the moment it exists, seeded by its story and its
- * id, so it never changes as it is worn, taken off, traded or saved */
-export function rolledSkill(state: GameState | null | undefined, inst: { id: string }): string {
-  const pool = rolledPool();
-  return pool[createRng(textSeed(`${state?.storyId ?? ''}:${inst.id}`)).int(0, pool.length - 1)];
+/** AX4 c: a pool skill's weight for a rolled effect: its tree's weight in the effect's table (1 when unlisted) */
+export const rolledWeight = (e: Pick<ItemEffect, 'weights'>, skill: string): number => e.weights?.[getLibrary().skills[skill]?.treeId ?? ''] ?? 1;
+/** the skill a piece's rolled effect boosts (AX3 a): fixed for that piece from the moment it exists, seeded by its story
+ * and its id, so it never changes as it is worn, taken off, traded or saved; common trees weigh more (AX4 c) */
+export function rolledSkill(state: GameState | null | undefined, inst: { id: string }, e?: Pick<ItemEffect, 'weights'>): string {
+  const pool = rolledPool(), w = pool.map((k) => (e ? rolledWeight(e, k) : 1)), total = w.reduce((n, x) => n + x, 0);
+  let r = createRng(textSeed(`${state?.storyId ?? ''}:${inst.id}`)).next() * total;
+  for (let i = 0; i < pool.length; i++) if ((r -= w[i]) < 0) return pool[i];
+  return pool[pool.length - 1];
+}
+/** a piece's rolled skill, if any of its effects is rolled */
+export function pieceRolledSkill(state: GameState | null | undefined, inst: { id: string; itemId: string }): string | undefined {
+  const e = (itemDef(state, inst.itemId).effects ?? []).find((x) => x.skill === ROLLED_SKILL);
+  return e ? rolledSkill(state, inst, e) : undefined;
+}
+/** AX3 c: a piece's name as shown: a rolled piece names its skill ("charmed ring (Dodge)") */
+export function pieceName(state: GameState | null | undefined, inst: { id: string; itemId: string }): string {
+  const name = itemDef(state, inst.itemId).name, k = pieceRolledSkill(state, inst);
+  return k ? `${name} (${skillName(k)})` : name;
+}
+/** an effect's size: a kit piece's EQUIP_FACTOR × need, an accessory's ACCESSORY_FACTOR × its level's need (AX1/AX2), else its own value */
+export function effectValue(def: ItemDef, e: ItemEffect): number {
+  if (e.kit) return kitBonus(def, e);
+  if (e.byLevel) { const lv = itemLevel(def); return lv ? CONFIG.ACCESSORY_FACTOR * (CONFIG.EQUIP_NEED[lv] ?? 0) : 0; }
+  return e.value;
 }
 /** an effect's skill for this piece: a rolled one names the piece's own (rolledSkill) */
 export const effectSkill = (state: GameState | null | undefined, e: ItemEffect, inst?: { id: string }): string | undefined =>
-  e.skill === ROLLED_SKILL ? (inst ? rolledSkill(state, inst) : undefined) : e.skill;
+  e.skill === ROLLED_SKILL ? (inst ? rolledSkill(state, inst, e) : undefined) : e.skill;
 
 /** active effects; one copy counts: each effect of an item id counts once however many instances apply it */
 function activeEffects(state: GameState, actor: Actor, itemId?: string): Active[] {
@@ -51,7 +71,7 @@ function activeEffects(state: GameState, actor: Actor, itemId?: string): Active[
   for (const inst of actor.core.inventory) {
     const def = itemDef(state, inst.itemId);
     (def.effects ?? []).forEach((e, idx) => {
-      const key = `${inst.itemId}#${idx}${e.skill === ROLLED_SKILL ? `#${rolledSkill(state, inst)}` : ''}`; // two rings on different skills both count
+      const key = def.slot === 'accessory' ? `${inst.id}#${idx}` : `${inst.itemId}#${idx}`; // AX5 c: every accessory worn counts in full; other gear, one copy
       if (seen.has(key)) return;
       if (e.scope === 'withItem' && inst.id !== itemId) return;
       const on = e.active === 'worn' ? isWorn(inst) : e.active === 'held' ? isHeld(inst) : e.active === 'inUse' ? inst.id === itemId : true;
@@ -104,7 +124,7 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
       (e.skill === '$mode' && (def.weapon?.modes ?? []).some((m) => (!ctx.modeId || m.id === ctx.modeId) && modeSkill(withRow(actor, def, m)) === skill));
     if (!fits) continue;
     if (e.kit) { const v = kitBonus(def, e); if (!kit || v > kit.value) kit = { source, value: v }; }
-    else out.push({ source, value: e.value });
+    else out.push({ source, value: effectValue(def, e) });
   }
   if (kit) out.push(kit);
   return out;
