@@ -505,6 +505,12 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-in p, .pk-in dl { flex-basis: 100%; margin: 0; font-size: 13px; }
 .pk-tag { font-size: 11px; font-weight: 700; border-radius: var(--r-pill); padding: 1px 8px; color: var(--scenario-mark); border: 1px solid color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
 .pk-in.quirk .pk-tag { color: var(--danger); border-color: color-mix(in oklch, var(--danger) 50%, transparent); }
+/* LR5: linked perks, the set they come from, and a merged set asleep */
+.pk-link .pk-tag { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 50%, transparent); }
+.pk-link-from { color: var(--muted); }
+.pk-link-from b { color: var(--text); font-weight: 700; }
+.pk-link-from .asleep b { color: var(--muted); text-decoration: line-through; }
+.pk-link-note { margin: 0; font-size: 13px; color: var(--accent); }
 .pk-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--space-3) 0 var(--space-4); border-bottom: 1px solid var(--border); }
 .pk-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 6px 10px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
 .pk-tabs button[aria-selected="true"] { color: var(--scenario-mark); border-color: var(--scenario-mark); font-weight: 700; }
