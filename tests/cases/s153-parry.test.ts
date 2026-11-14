@@ -98,24 +98,48 @@ describe('153 Parry', () => {
     expect(strikesAt(true, IT.dagger)).toBe(CONFIG.PARRY_STRIKE_GAP);
   });
 
-  it('a strike back is a free melee attack with the parrying weapon, once per round (AT50)', () => {
+  it('a strike back is a free melee attack with the parrying weapon, and every parry at the strike gap brings one (D-336)', () => {
     const s = setup();
     const p = npc(s, 'patron_1');
     hold(p, [IT.arming_sword]);
     p.core.skills[SK.parry] = { raw: 30, state: 'normal' };
     p.core.standingDefense = 'parry';
+    hold(s.player, []); // Flurry: every unarmed strike brings a free strike at once, in the same round
+    give(s.player, PK.flurry);
     const calls: { by: string; at: string; weapon: string }[] = [];
     const real = ruleset.attack;
     vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
       calls.push({ by: req.attackerId, at: req.targetId, weapon: req.weaponId });
       const r = real(req, st, forcedRng([50, 50, 50, 50]));
-      // every attack on the patron is parried cleanly; it may strike back only once this turn
+      // every attack on the patron is parried cleanly
       return req.targetId === 'patron_1' ? { ...r, defenseType: 'parry', gap: 3, outcome: 'parried', multiplier: 0, damage: 0, location: null, strikeBack: true } as AttackResult : r;
     });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
+    const blows = calls.filter((c) => c.by === 'player');
+    expect(blows.length).toBeGreaterThanOrEqual(2); // a strike and Flurry's free strike, in one round
+    // each parried blow, the free one too, is answered at once by a strike back with the patron's sword
+    // each parried blow, the free one too, is answered by a strike back with the patron's sword (once per round before D-336)
+    expect(calls.filter((c) => c.by === 'patron_1')).toEqual(blows.map(() => ({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' })));
+  });
+
+  it('a strike back earns no strike back of its own, so two parriers never trade them forever (D-336)', () => {
+    const s = setup();
+    const p = npc(s, 'patron_1');
+    hold(p, [IT.arming_sword]);
+    p.core.skills[SK.parry] = { raw: 30, state: 'normal' };
+    p.core.standingDefense = 'parry';
+    const calls: { by: string; at: string }[] = [];
+    const real = ruleset.attack;
+    vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
+      calls.push({ by: req.attackerId, at: req.targetId });
+      const r = real(req, st, forcedRng([50, 50, 50, 50]));
+      // both sides parry every blow cleanly
+      return { ...r, defenseType: 'parry', gap: 3, outcome: 'parried', multiplier: 0, damage: 0, location: null, strikeBack: true } as AttackResult;
+    });
     play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'player_h0' } }) });
-    expect(calls[1]).toEqual({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' });
-    // AT78/AT50: the player's two blows fall in two rounds, so each parry may strike back once
-    expect(calls.filter((c, i) => i > 0 && calls[i - 1].by === 'player' && c.by === 'patron_1' && calls[i - 1].at === 'patron_1').length).toBeLessThanOrEqual(2);
+    expect(calls[0].by).toBe('player');
+    expect(calls[1]).toEqual({ by: 'patron_1', at: 'player' }); // the patron's strike back ...
+    expect(calls.length).toBeLessThan(12); // ... is parried and ends there: no endless exchange
   });
 
   it('Riposte adds its full value to Parry rolls, and Blade Dance to Dodge rolls', () => {

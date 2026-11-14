@@ -231,10 +231,8 @@ type Ctx = {
   surprised: Set<string>;
   defenses: Map<string, number>;
   exchangeEvents: GameEvent[];
-  counters: Set<string>; // All-50 Counter: once per round (AT50), keyed by roundKey
   /** LR2: the attack about to resolve is One-Two's free Strike (read and cleared at the start of doAttack) */
   oneTwo?: boolean;
-  parryStrikes: Set<string>; // PA4: a parry's free strike back, once per round (AT50), keyed by roundKey
   /** AT56: the player's rest, wait, walk or long action outside a fight: the world clock runs it at the end of the turn (runStretch) */
   stretch?: Stretch;
   /** TV1: the player's move this turn was a trip along a road (its own stops: nightfall, an encounter) */
@@ -859,21 +857,21 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a).length >= 2
     && withinM(sightDistM(state, a, t), m.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: m.itemId, mode: m.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, followUp, true);
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
-  parryStrike(ctx, a, t, res);
+  if (o.intent !== PARRY_STRIKE) parryStrike(ctx, a, t, res); // a strike back earns none: a parried one ends the exchange
 }
 
+const PARRY_STRIKE = 'parry strike';
 /** PA4: a parry at the strike gap or better gives the defender one free melee attack back at the attacker, with the
- * parrying weapon (a fist after a barehanded parry), once per turn. A free attack can earn one too: once per turn ends the chain. */
+ * parrying weapon (a fist after a barehanded parry), every time. Any free attack can earn one, except a strike back itself. */
 function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   const { state } = ctx;
-  if (!res.strikeBack || !isActive(t) || !isActive(a) || ctx.parryStrikes.has(roundKey(ctx, t.id))) return;
+  if (!res.strikeBack || !isActive(t) || !isActive(a)) return;
   const weapon = parryItem(state, t);
   const modes = usableModes(state, t);
   const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
     : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
   if (!back || !withinM(sightDistM(state, t, a), back.mode.reach)) return; // the blow back reaches only as far as its weapon (metres)
-  ctx.parryStrikes.add(roundKey(ctx, t.id));
-  doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: 'parry strike' }, true);
+  doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: PARRY_STRIKE }, true);
 }
 
 /** an order the engine makes for a free attack (All-50 Counter and Volley) */
@@ -916,14 +914,10 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
     emit(ctx, mk(ctx, t, 'perk_move', { effects: [{ kind: PK.second_wind, actorId: t.id, data: { from: L[i][0], to: L[i - 1][0] } }] }));
   }
   if (followUp) return;
-  // T1c Counter: a melee attack on the owner that ends in Critical Failure or worse earns a free melee attack back, once per turn
-  if (!ranged && tierLevel(res.attack) <= TIERS.pos('critical_failure') && hasPerk(t, PK.counter) && isActive(t) && isActive(a)
-    && !ctx.counters.has(roundKey(ctx, t.id))) {
+  // T1c Counter: a melee attack on the owner that ends in Critical Failure or worse earns a free melee attack back, every time
+  if (!ranged && tierLevel(res.attack) <= TIERS.pos('critical_failure') && hasPerk(t, PK.counter) && isActive(t) && isActive(a)) {
     const back = defaultMode(state, t, sightDistM(state, t, a));
-    if (back && back.mode.tree !== 'ranged') {
-      ctx.counters.add(roundKey(ctx, t.id));
-      doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id }, true);
-    }
+    if (back && back.mode.tree !== 'ranged') doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id }, true);
   }
   // T2b Volley: once per engagement, after a ranged hit, a free shot at a foe already fighting the owner (hostile, or sparring) that it sees
   if (ranged && met(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {
@@ -2284,7 +2278,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
+    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), defenses: new Map(), exchangeEvents: [],
     turnS: state.mode === 'tactical' ? turnSeconds(state, playerOrder) : CONFIG.FIGHT_TURN_S, clock: new Map(), at: 0, finished: new Set(), stopped: new Set(), spoke: new Set(),
   };
   // Dreaded on Sight: whoever first sees the owner pays its fear and turns colder, before anyone acts

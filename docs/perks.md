@@ -602,7 +602,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner parries a melee attack with a medium melee weapon.
-- **Effect:** The parry's free strike back comes at a gap 2 lower (ANSWER_THE_BLOW_DROP): +1 instead of +3. The damage the parry lets through is unchanged. The strike is still once per turn.
+- **Effect:** The parry's free strike back comes at a gap 2 lower (ANSWER_THE_BLOW_DROP): +1 instead of +3. The damage the parry lets through is unchanged. A strike back earns no strike back of its own.
 - **Lasts:** Each parry.
 
 ### Step and Cut (Blade Dance) · B18b
@@ -611,7 +611,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges a melee attack while holding a light or medium melee weapon.
-- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Once per turn.
+- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack.
 - **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 
@@ -932,7 +932,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 - **Kind:** Always on
 - **Trigger:** A melee attack on the owner is resolved.
-- **Conditions:** The attack roll ends in Critical Failure or worse. The attack was not itself a free attack. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed. Once per turn.
+- **Conditions:** The attack roll ends in Critical Failure or worse. The attack was not itself a free attack. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed.
 - **Effect:** The owner makes one attack at the attacker at once, with that mode. It does not use the owner's action.
 - **Lasts:** That attack.
 - **Built:** yes
