@@ -952,7 +952,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}), ...(target.brief ? { brief: target.brief } : {}),
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
       ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}),
-      ...(target.kind === 'scenario' && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
+      ...((target.kind === 'scenario' || target.kind === 'window') && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const r = zoneById(state, state.player.zone)?.rect; return r ? { x: r.x, y: r.y } : undefined; })())),
     places: weaverPlaces(state, onStage),

@@ -24,25 +24,25 @@ describe('player creation', () => {
   });
   it('rejects builds that break the rules', () => {
     const b = recommendedBuild();
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.earshot]: 20 } })).toEqual(['Spend exactly 250 points (240 spent)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.melee_medium]: 61, [SK.earshot]: 19 } })).toEqual(['Medium weapons is above 60']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.parry]: 35, [SK.earshot]: 35 } })).toEqual(['Parry must be at least 40 (class floor)']); // floors 40/40
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.tremor]: 10, [SK.earshot]: 20 } })).toEqual(['Tremor is not open to the point-buy']);
-    expect(validateBuild({ ...b, tagged: [SK.parry, SK.dodge] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.earshot]: 0 } })).toEqual(['Spend exactly 100 points (95 spent)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.melee_medium]: 41, [SK.earshot]: 4 } })).toEqual(['Medium weapons is above 40 (tagged)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.dodge]: 31, [SK.earshot]: 0, [SK.eyesight]: 0, [SK.endurance]: 4 } })).toEqual(['Dodge is above 30 (untagged; tagged skills take up to 40)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.tremor]: 10, [SK.earshot]: 0, [SK.eyesight]: 0 } })).toEqual(['Tremor is not open to the point-buy']);
+    expect(validateBuild({ ...b, tagged: [SK.melee_medium, SK.parry] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
     expect(validateBuild({ ...b, name: ' ' })).toEqual(['Name the character']);
   });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 50);
-    expect(p.core.skills[SK.parry]).toEqual({ raw: 40, state: 'tagged' });
+    expect(p.progression!.startingTotal).toBe(100 - 40 - 25 - 15);
+    expect(p.core.skills[SK.parry]).toEqual({ raw: 25, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
-      // the starter kit: per gear class the highest 'starter' item met (the spear ties the sword and is not given; the gambeson beats the clothes;
-      // the recommended swordsman parries, so with Block 0 it gets no shield)
-      [IT.arming_sword, 'grip:right_arm', undefined], [IT.gambeson, 'armor', undefined], [IT.pack, 'pack', undefined], // CT7: a worn pack
+      // the starter kit: per gear class the highest 'starter' item met (Medium Weapons 40: the Common hand axe; no Light Armor: the
+      // crude clothes; the recommended build parries, so with Block 0 it gets no shield)
+      [IT.crude_clothes, 'armor', undefined], [IT.hand_axe, 'grip:right_arm', undefined], [IT.pack, 'pack', undefined], // CT7: a worn pack
       [IT.coin, undefined, CONFIG.STARTING_COIN], [IT.bandage, undefined, CONFIG.STARTING_BANDAGES],
     ]);
-    expect(p.core.classes).toEqual([{ classId: CL.swordsman, state: 'current', level: 4 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]); // Commoner open from the start; EQ13: the player starts at level 4
-    expect(p.progression!.unspentPerkPoints).toBe(2); // the perk points of levels 2 and 4
+    expect(p.core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]); // the first Start; Commoner open from the start
+    expect(p.progression!.unspentPerkPoints).toBe(0); // level 1: no perk point yet
     for (const i of p.core.inventory) expect(shortBy(p, itemDef(null, i.itemId))).toBe(0); // EQ13: the build meets its starting gear
     expect(() => createPlayer({ ...recommendedBuild(), tagged: [] }, 's1')).toThrow(/invalid build/);
   });
@@ -190,7 +190,7 @@ describe('race innate perks and quirks', () => {
     setLibrary({ ...lib, perks: { ...lib.perks, keen_nose: perk, tall: perk2, sun_shy: quirk } as typeof lib.perks,
       races: { ...lib.races, [RC.human]: { ...lib.races![RC.human], innatePerks: ['keen_nose', 'tall'], innateQuirks: ['sun_shy'] } } });
     const want = ['keen_nose', 'tall', 'sun_shy'].map((perkId) => ({ perkId, source: 'race', gainedTurn: 0 }));
-    expect(createPlayer(recommendedBuild(), 's1').core.perks).toEqual(want);
+    expect(createPlayer(recommendedBuild(), 's1').core.perks.filter((p) => p.source === 'race')).toEqual(want);
     expect(spawnNpc(null, TP.patron, { id: 'p1', zone: 'tav_common', placeId: 'tavern', bandId: 'tavern_folk' }).core.perks.filter((p) => p.source === 'race')).toEqual(want);
   });
 });

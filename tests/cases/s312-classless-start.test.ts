@@ -11,7 +11,7 @@ import { perkPointsUpTo } from '../../src/ruleset/levels';
 import { makeVillage } from '../harness';
 
 const FIXTURE = 'ST_test_classless';
-const addStart = () => { getLibrary().starts[FIXTURE] = { id: FIXTURE, name: 'Test Classless', points: 50, level: 3 }; };
+const addStart = () => { getLibrary().starts[FIXTURE] = { id: FIXTURE, name: 'Test Classless', level: 3 }; };
 afterEach(() => { delete getLibrary().starts[FIXTURE]; });
 
 describe('312 classless start', () => {

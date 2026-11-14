@@ -195,7 +195,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: `XP to go from level n to n + 1 = ${CONFIG.LEVEL_XP} × n`,
         terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level, plus bonus levels, less the free and bonus levels taken (at least 1); free and bonus levels never make the next level dearer']],
         table: { head: ['From level', 'To level', 'XP needed', 'Total from level 1'], rows: [1, 2, 3, 4, 5, 10, 15, 19].map((l) => [String(l), String(l + 1), String(levelCost(l)), String(xpToReach(l + 1) - xpToReach(1))]) },
-        notes: [`The XP is spent and the level goes into the current class, or the class picked for the next level. The player starts at level ${CONFIG.START_LEVEL}.`,
+        notes: [`The XP is spent and the level goes into the current class, or the class picked for the next level. The player starts at their Start's level (level 1 today).`,
           'One gain can take several levels in a row. When the class has no room left (at its top level), the XP stays banked until a class with room is picked.',
           'Free levels (from achievements or perks with free levels) are taken first and cost no XP; they bank the same way when no class has room.'] },
       { name: 'Class top level', at: 'classMaxLevel · src/library/spawn.ts',

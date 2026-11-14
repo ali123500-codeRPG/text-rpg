@@ -5,7 +5,7 @@ import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, classlessStart, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
+import { classFloors, classlessStart, creationCap, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { lifeStage, stageName } from '../ruleset/age';
 import { personalityPicker } from './personality';
@@ -35,7 +35,7 @@ const SWINGS = { start: 400, min: 50, max: 5000 };
 
 /** The creation screen. Switching the Start swaps the screen inside one wrapper, so the app's
  * reference to this element stays valid and a later redraw never brings back the old Start's screen. */
-export function creationScreen(api: GameApi, onStarted: () => void, startId: string = ST.swordsman): HTMLElement {
+export function creationScreen(api: GameApi, onStarted: () => void, startId: string = Object.keys(getLibrary().starts)[0] ?? ST.late_bloomer): HTMLElement {
   const host = h('div', { class: 'creation-host' });
   // CC8: a start whose class the picked race can't learn (a Slime can't hold a sword) gives way to the first one it can begin
   const fits = (id: string) => !raceStartBlock(id, identity.raceId);
@@ -75,13 +75,13 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: SWINGS.start };
-  const total = () => creationPoints(startId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
+  const total = () => creationPoints(startId), cap = (k?: string) => creationCap(!!k && st.tags.has(k)), maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
   const recommended = () => { const r = recommendedBuild(startId, identity.raceId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
   const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, startId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(startId), raceId: identity.raceId });
   const picker = personalityPicker(persona, () => createPlayer(build(), 'preview', { preview: true }));
-  const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
+  const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(k), st.v[k] + left(), Math.round(n))); render(); };
 
   const tilesHost = h('div');
   const how = h('p', { class: 'how', hidden: true });
@@ -102,7 +102,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,
         h('div', { class: 'bar' }, h('div', { class: 'tr' }, h('i', { class: 's' }), h('i', { class: 'f' })),
-          h('span', { class: 'tk', style: 'left:50%' }), h('span', { class: 'tk cap', style: `left:${cap()}%` }), range),
+          h('span', { class: 'tk', style: 'left:50%' }), h('span', { class: 'tk cap', style: `left:${cap(k)}%` }), range),
         h('div', { class: 'step' },
           h('button', { class: 'hs-icon-btn mi', type: 'button', title: `Lower by ${STEP}`, 'aria-label': `Lower ${skillName(k)}`, onclick: () => setVal(k, st.v[k] - STEP) }, '−'),
           h('span', { class: 'val hs-num' }),
@@ -110,7 +110,8 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         h('div', { class: 'tagc', onclick: (e: Event) => {
           const b = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null;
           if (!b || b.disabled) return;
-          st.tags.has(k) ? st.tags.delete(k) : st.tags.add(k); render();
+          if (st.tags.has(k)) { st.tags.delete(k); st.v[k] = Math.max(floors[k] ?? 0, Math.min(st.v[k], cap(k))); } else st.tags.add(k); // untagged: back down to its cap
+          render();
         } }));
       rows.set(k, row);
       sec.append(row);
@@ -134,7 +135,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     const dash = (n: number | null, d = 0) => (n === null ? '—' : n.toFixed(d));
     const tiles: Readout[] = [
       { label: 'Points left', value: String(L), unit: `of ${total()}`, sub: L ? 'Spend them all to begin' : 'All spent', tone: L ? 'warn' : 'ok',
-        how: `You have ${total()} points for the open skills. No skill goes above ${cap()} at creation, and the class floors are the minimums.` },
+        how: `You have ${total()} points for the open skills. An untagged skill goes up to ${CONFIG.CREATION_MAX_UNTAGGED} at creation and a tagged one up to ${CONFIG.CREATION_MAX_TAGGED}, and the class floors are the minimums.` },
       { label: 'HP', value: dash(p.hp), unit: 'HP', sub: `${CONFIG.HP_BASE} + endurance`, how: 'Total HP from the ruleset: the base plus endurance, times the body’s HP multiplier.' },
       { label: 'Attack', value: dash(p.attack), unit: 'skill', sub: p.weapon ? `${p.weapon.skill} · ${p.weapon.name}` : '—',
         how: 'Effective skill of your starting attack: the first weapon in your starting kit, or bare hands when the kit has none (raw skill plus gear).' },
@@ -158,7 +159,8 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       (row.querySelector('.s') as HTMLElement).style.width = v + '%';
       (row.querySelector('.f') as HTMLElement).style.width = f + '%';
       (row.querySelector('.mi') as HTMLButtonElement).disabled = v <= f;
-      (row.querySelector('.pl') as HTMLButtonElement).disabled = v >= cap() || L <= 0;
+      (row.querySelector('.pl') as HTMLButtonElement).disabled = v >= cap(k) || L <= 0;
+      (row.querySelector('.tk.cap') as HTMLElement).style.left = cap(k) + '%'; // a tagged skill's cap is higher
       row.querySelector('.tagc')!.replaceChildren(on
         ? h('button', { class: 'hs-tg cap', style: '--tg:var(--c15)', title: 'Untag', type: 'button' }, 'Tagged')
         : h('button', { class: 'hs-btn-text', type: 'button', disabled: st.tags.size >= maxTags(), title: st.tags.size >= maxTags() ? `${maxTags()} skills are tagged already` : 'Tag this skill' }, 'Tag'));
@@ -271,7 +273,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         start?.blessing ? h('p', {}, `You begin with ${facts.perks[0]}, in that god’s Blessed class${facts.classes.length ? `: ${facts.classes.map((c) => `${lib.classes[c].name} (${CLASS_TIERS.name(lib.classes[c].tier)})`).join(' or ')}` : ''}.`)
           : classlessStart(startId) ? h('p', {}, `You begin with no class, at level 0. ${lib.classes[defaultClass() ?? '']?.name ?? 'The default class'} is open to pick, and your levels wait until you pick a class.`)
           : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null,
-        h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
+        h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED} and a tagged one ${CONFIG.CREATION_MAX_TAGGED}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { recommended(); render(); } }, 'Use recommended build'),
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { reset(); render(); } }, 'Reset'),
@@ -282,12 +284,12 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       h('span', {}, h('i', { class: 'sw', style: 'background:var(--accent)' }), 'Points you spent'),
       h('span', {}, h('i', { class: 'sw', style: 'background:var(--faint)' }), 'Class floor'),
       h('span', {}, h('i', { class: 'tick' }), '50 = average fighter'),
-      h('span', {}, h('i', { class: 'tick cap' }), `Creation cap ${cap()}`),
+      h('span', {}, h('i', { class: 'tick cap' }), `Creation cap ${CONFIG.CREATION_MAX_UNTAGGED}, tagged ${CONFIG.CREATION_MAX_TAGGED}`),
       h('span', {}, h('span', { class: 'hs-tg cap', style: '--tg:var(--c15)' }, 'Tagged'), ' tagged skill'),
       h('span', {}, h('i', { class: 'hs-sq', style: 'background:var(--c5)' }), 'Class tree')),
     picker.el,
     h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
-      `${total()} points, cap ${cap()}, floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
+      `${total()} points, cap ${CONFIG.CREATION_MAX_UNTAGGED} (tagged ${CONFIG.CREATION_MAX_TAGGED}), floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
       + `Figures use the starting kit this build gets. Odds use the game’s attack rules against the library’s slime.`)));
   return root;
 }

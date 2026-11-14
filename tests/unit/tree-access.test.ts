@@ -21,6 +21,9 @@ afterEach(() => resetLibrary());
 const opts = { id: 'n1', zone: 'z', placeId: 'p', bandId: 'b' };
 const open = (a: Actor) => Object.keys(getLibrary().trees).filter((t) => treeOpen(a, t)).sort();
 
+/** a new character in the Swordsman class (its Start is gone; the class is unlocked in play) */
+const swordsman = () => { const p = createPlayer(recommendedBuild(), 's1'); p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 4 }]; return p; };
+
 describe('skill tree access', () => {
   it('every rule names a real source, and every skill sits in exactly one tree', () => {
     const lib = getLibrary();
@@ -34,8 +37,8 @@ describe('skill tree access', () => {
     expect(placed.sort()).toEqual(Object.keys(lib.skills).sort());
   });
 
-  it('a new swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
-    const p = createPlayer(recommendedBuild(), 's1');
+  it('a swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
+    const p = swordsman();
     expect(open(p)).toEqual([TR.armor, TR.defense, TR.fortitude, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.trickery, TR.unarmed].sort());
     expect(treeBlock(p, TR.natural)).toBe('Needs one of: Amorphous, Dragon');
     const slime = spawnNpc(null, TP.slime, opts);
@@ -56,7 +59,7 @@ describe('skill tree access', () => {
     const lib = prototypeLibrary();
     lib.trees[TR.swordsman].access = { must: [{ kind: 'class', id: CL.swordsman }], either: [{ kind: 'race', id: RC.human }, { kind: 'race', id: RC.elf }], blockedBy: [{ kind: 'perk', id: PK.leg_bolt }] };
     setLibrary(lib);
-    const p = createPlayer(recommendedBuild(), 's1');
+    const p = swordsman();
     expect(treeOpen(p, TR.swordsman)).toBe(true);
     p.core.perks.push({ perkId: PK.leg_bolt, source: 'level', gainedTurn: 0 });
     expect(treeBlock(p, TR.swordsman)).toBe(`Blocked by: ${lib.perks[PK.leg_bolt].name}`);

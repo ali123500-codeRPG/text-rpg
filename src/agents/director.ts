@@ -1,6 +1,6 @@
 // Wires W6's ScenarioDirector (scenario setup, stage extension) into the pipeline's ScenarioDirector surface,
 // with the real Agent Weaver. Each Weaver call is one agent-log entry, so replay can feed the outputs back in order.
-import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, StagePlan } from '../types';
+import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, StagePlan, WindowAnswer } from '../types';
 import type { PlanError } from '../scenario';
 import { ScenarioDirector as Director } from '../scenario/director';
 import { openingEvents } from '../scenario';
@@ -9,8 +9,9 @@ import type { AgentCtx } from './call';
 import type { ScenarioDirector } from './game';
 import { runAgent } from './call';
 import { FIXED } from './prompts';
-import { checkCheckin, checkRegionBrief, checkStagePlan, checkWorldPlan } from './schema';
+import { checkCheckin, checkRegionBrief, checkStagePlan, checkWorldPlan, checkWindow } from './schema';
 import { applyCheckin } from '../engine/scenarioEnd';
+import { applyWindow } from '../engine/chase';
 import { formatWeaverView, formatWorldView } from './format';
 import { computePerception } from '../perception';
 
@@ -65,6 +66,13 @@ export function createDirector(clock: Clock): ScenarioDirector {
       const run = await runAgent<CheckinAnswer>(own, { agent: 'weaver', fixed: FIXED.checkin, data: formatWeaverView(view), schema: checkCheckin });
       return run.value;
     },
+    // WB6: a background window call, logged under the turn whose save started it
+    window: async (view) => {
+      const own = ctx;
+      if (!own) return null;
+      const run = await runAgent<WindowAnswer>(own, { agent: 'weaver', fixed: FIXED.window, data: formatWeaverView(view), schema: checkWindow });
+      return run.value;
+    },
   });
   return {
     async startStory(state: GameState, rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
@@ -81,6 +89,8 @@ export function createDirector(clock: Clock): ScenarioDirector {
         // SC8: a check-in that came back since the last turn: applied now, to the scenario it was about
         const ci = d.takeCheckin();
         if (ci) applyCheckin(state, ci.number, ci.answer, events, { errors: (a) => checkinPlanErrors(state, a), apply: (a) => applyCheckinPlan(state, a, rng) });
+        const w = d.takeWindow(); // WB6: the Weaver's answer to the last window: start now, or not now
+        if (w !== undefined) applyWindow(state, w);
         // scenarioBreak (P7, D-30): rest, a beat that ends the scenario, or a stall. A frontier crossing goes first; the break waits a turn.
         if (!state.stage.breakCause) return [];
         ctx = c;
@@ -103,7 +113,7 @@ export function createDirector(clock: Clock): ScenarioDirector {
         return ev;
       });
       if (!r.eventRoll) return follows;
-      // CH3 a: free roam crossed an unbuilt frontier, which started a scenario there
+      // a crossing that also started a scenario (none does now: WB5), kept so one could
       (state.scratch ??= {}).eventRoll = r.eventRoll;
       return [...follows, ...openingEvents(state, rng)];
     },

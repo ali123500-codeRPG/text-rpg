@@ -9,6 +9,9 @@ import { BT, RC } from '../../src/library/raceIds';
 import { ST } from '../../src/library/startIds';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { CL } from '../../src/library/classIds';
+
+const SWORD = 'ST_test_sword';
 
 describe('313 race choice at creation', () => {
   it('every race is playable (CC8 b)', () => {
@@ -19,7 +22,7 @@ describe('313 race choice at creation', () => {
     expect(createPlayer(recommendedBuild(), 's1').core.raceId).toBe(RC.human);
     const elf = createPlayer({ ...recommendedBuild(), raceId: RC.elf }, 's1');
     expect([elf.core.raceId, elf.core.bodyTypeId]).toEqual([RC.elf, BT.humanoid]);
-    const dragon = createPlayer(recommendedBuild(ST.swordsman, RC.dragon), 's1');
+    const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1');
     expect([dragon.core.raceId, dragon.core.bodyTypeId]).toEqual([RC.dragon, BT.winged_quadruped]);
   });
 
@@ -42,18 +45,21 @@ describe('313 race choice at creation', () => {
     }
   });
 
-  it('a Slime can\'t begin as a Swordsman: the class needs skills its body can\'t learn', () => {
-    expect(raceStartBlock(ST.swordsman, RC.slime)).toMatch(/^a Slime can't learn .*Medium weapons.*, which Swordsman needs\.$/i);
-    expect(raceStartBlock(ST.swordsman, RC.human)).toBe('');
-    expect(validateBuild(recommendedBuild(ST.swordsman, RC.slime)).some((e) => e.startsWith("This start can't begin"))).toBe(true);
+  it('a Slime can\'t begin in a class whose floors need hands (a stand-in Swordsman start)', () => {
+    getLibrary().starts[SWORD] = { id: SWORD, name: 'Test Swordsman', classId: CL.swordsman, level: 1 };
+    try {
+      expect(raceStartBlock(SWORD, RC.slime)).toMatch(/^a Slime can't learn .*Medium weapons.*, which Swordsman needs\.$/i);
+      expect(raceStartBlock(SWORD, RC.human)).toBe('');
+      expect(validateBuild(recommendedBuild(SWORD, RC.slime)).some((e) => e.startsWith("This start can't begin"))).toBe(true);
+    } finally { delete getLibrary().starts[SWORD]; }
   });
 
   it('starter gear goes in the body\'s own grips; only a humanoid wears the starter armor', () => {
     const human = createPlayer(recommendedBuild(), 's1').core.inventory.filter((i) => i.equippedIn);
     expect(human.flatMap((i) => i.equippedIn!).sort()).toEqual(['armor', 'grip:right_arm', 'pack']);
-    const b = recommendedBuild(); b.skills[SK.block] = 40; b.skills[SK.earshot] -= 30; b.skills[SK.eyesight] -= 10; // a shield is met
+    const b = recommendedBuild(); b.skills[SK.block] = 25; b.skills[SK.earshot] -= 5; b.skills[SK.eyesight] -= 5; b.skills[SK.dodge] -= 10; b.skills[SK.endurance] -= 5; // a shield is met
     expect(createPlayer(b, 's1').core.inventory.flatMap((i) => i.equippedIn ?? []).sort()).toEqual(['armor', 'grip:left_arm', 'grip:right_arm', 'pack']);
-    const dragon = createPlayer(recommendedBuild(ST.swordsman, RC.dragon), 's1').core.inventory.filter((i) => i.equippedIn);
+    const dragon = createPlayer(recommendedBuild(ST.late_bloomer, RC.dragon), 's1').core.inventory.filter((i) => i.equippedIn);
     expect(dragon.flatMap((i) => i.equippedIn!).sort()).toEqual(['grip:head', 'pack']); // jaws hold the weapon; no shield, no armor
     const slime = createPlayer(recommendedBuild(ST.late_bloomer, RC.slime), 's1').core.inventory.filter((i) => i.equippedIn);
     expect(slime.flatMap((i) => i.equippedIn!)).toEqual(['pack']);

@@ -36,7 +36,7 @@ describe('158 autopilot saves', () => {
     const clock = new VirtualClock(), store = memoryStore();
     await saveTurn(store, story('mine', '2026-11-10T10:00:00Z'), rec(story('mine', '2026-11-10T10:00:00Z')));
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
-    const build = { name: 'Wren', skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
+    const build = { name: 'Wren', skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
     void g.newStory(build, { owner: 'agent' }).catch(() => {});
     await new Promise((r) => setTimeout(r, 0));
     expect(g.busy()).toBe(true);

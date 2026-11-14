@@ -1,7 +1,7 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // A missing nullable field reads as null; only a missing required field fails the answer (CS9).
-import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
@@ -278,6 +278,8 @@ const checkin = obj<CheckinAnswer>({
   frontiers: arr(obj<NonNullable<CheckinAnswer['frontiers']>[number]>({ zone: str, key: str, label: str, brief: str }, ['brief'])),
 }, ['as', 'text', 'beats', 'note', 'change', 'arrivals', 'frontiers']);
 export const checkCheckin = run(checkin);
+/** WB6: the Weaver's answer to a scenario window */
+export const checkWindow = run(obj<WindowAnswer>({ start: bool, note: str }, ['note']));
 /** WZ2 the region brief: only its shape is checked here; src/land/brief.ts tidyBrief drops unknown words */
 export const checkRegionBrief = run(obj<Record<string, unknown>>({ kind: str, name: str, look: str, settlements: arr(any), features: arr(any), river: any, exits: any, beyond: any, danger: any },
   ['river', 'exits', 'beyond', 'danger', 'features']));

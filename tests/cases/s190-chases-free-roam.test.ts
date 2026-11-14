@@ -55,7 +55,7 @@ describe('190 chases and free roam', () => {
     expect(closeScenario(s)).toBe('roam');
     expect(s.stage.breakCause).toBeUndefined();
     expect(s.stage.scenario).toBeUndefined();
-    expect(s.stage.roam).toEqual({ since: s.turn });
+    expect(s.stage.roam).toMatchObject({ since: s.turn });
     expect(s.hidden.scenarios!.at(-1)).toMatchObject({ ending: 'left' });
     expect(pendingEnding(s)).toBe('left'); // SD1: the ending moment still shows it
   });
@@ -185,67 +185,49 @@ describe('190 chases and free roam', () => {
     expect(slime.mind!.knowledge.player!.lastKnownZone).toBe('grove');
   });
 
-  it('CH2: in free roam talk, trade, a fight, a hostile spotting you or a quest goal starts a new scenario; dawn or dusk does not', () => {
+  it('WB5: in free roam only a fight with the player or a hostile spotting them starts a scenario at once; talk and trade do not', () => {
     const s = makeVillage({ playerZone: 'street_square' });
-    s.stage.roam = { since: s.turn - CONFIG.ROAM_MIN_TURNS };
+    s.stage.roam = { since: s.turn - 1 };
     expect(roamStart(s, [])).toBeNull();
-    expect(roamStart(s, [ev(s, { kind: 'speak', speech: { skill: 'x', addressees: ['trader'] } })])).toBe('talk');
-    expect(roamStart(s, [ev(s, { kind: 'speak', actorId: 'trader', target: 'player' })])).toBe('talk');
-    expect(roamStart(s, [ev(s, { kind: 'speak', actorId: 'trader', target: 'player', bark: true })])).toBeNull();
-    expect(roamStart(s, [ev(s, { kind: 'buy', target: 'trader' })])).toBe('trade');
+    expect(roamStart(s, [ev(s, { kind: 'speak', speech: { skill: 'x', addressees: ['trader'] } })])).toBeNull();
+    expect(roamStart(s, [ev(s, { kind: 'buy', target: 'trader' })])).toBeNull();
     expect(roamStart(s, [ev(s, { kind: 'attack', target: 'slime_1' })])).toBe('attack');
+    expect(roamStart(s, [ev(s, { kind: 'attack', actorId: 'slime_1', target: 'player' })])).toBe('attack');
     const slime = actor(s, 'slime_1');
     slime.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'street_square', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
     expect(roamStart(s, [])).toBe('spotted');
-    delete slime.mind!.knowledge.player;
-    s.quests.push({ id: 'q1', state: 'ready', text: 'go to the gate', giver: 'trader', dealId: 'd1', goal: { kind: 'reach', place: 'gate' }, progress: 1, level: 'i', startTurn: 1 } as never);
-    s.log.push({ turn: s.turn, code: 'quest_ready', detail: { id: 'q1' } });
-    expect(roamStart(s, [])).toBe('quest');
     checkRoam(s, []);
-    expect(s.stage.breakCause).toBe('roam');
-    expect(s.log.at(-1)).toMatchObject({ code: 'roam_scenario', detail: { why: 'quest' } });
+    expect(s.stage.breakCause).toBe('roam'); // danger: at once, even the turn after a scenario ended
+    expect(s.log.at(-1)).toMatchObject({ code: 'roam_scenario', detail: { why: 'spotted' } });
   });
 
-  it('FR1 b: a calm start waits ROAM_MIN_TURNS turns of free roam; danger never waits', () => {
-    const s = makeVillage({ playerZone: 'street_square' });
-    s.stage.roam = { since: s.turn - 1 };
-    checkRoam(s, [ev(s, { kind: 'speak', speech: { skill: 'x', addressees: ['trader'] } })]);
-    expect(s.stage.breakCause).toBeUndefined(); // too soon after the last scenario
-    checkRoam(s, [ev(s, { kind: 'attack', target: 'slime_1' })]);
-    expect(s.stage.breakCause).toBe('roam'); // danger: at once
-    delete s.stage.breakCause;
-    s.stage.roam = { since: s.turn - CONFIG.ROAM_MIN_TURNS };
-    checkRoam(s, [ev(s, { kind: 'buy', target: 'trader' })]);
-    expect(s.stage.breakCause).toBe('roam');
-    expect(s.log.at(-1)).toMatchObject({ code: 'roam_scenario', detail: { why: 'trade' } });
-  });
-
-  it('SD2 a: free roam runs no beats and never stalls; a turn of talk starts a scenario after it', () => {
+  it('SD2 a / WB5: free roam runs no beats and never stalls; a turn of talk starts nothing', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    s.stage.roam = { since: s.pending.turn - CONFIG.ROAM_MIN_TURNS };
+    s.stage.roam = { since: s.pending.turn - 5 };
     s.stage.quiet = 50;
     expect(triggerHolds(s, { id: 'b', ownerId: 'trader', when: { type: 'quiet_turns', turns: 1 }, then: { type: 'idle', target: null, skill: null, intent: '' }, once: true }, actor(s, 'trader'), [], 'start', s.turn)).toBe(false);
     play(s);
     expect(s.stage.breakCause).toBeUndefined();
     expect(s.log.some((l) => l.code === 'scenario_stalled')).toBe(false);
     play(s, { intent: { move: null, gear: null, spoken: 'evening', addressees: ['trader'], deferred: [], clarify: null, action: { type: 'talk', skill: '', target: 'trader', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }, spokespeople: ['trader'] });
-    expect(s.stage.breakCause).toBe('roam');
+    expect(s.stage.breakCause).toBeUndefined();
+    expect(s.stage.window).toBeUndefined();
   });
 
-  it('CH3 a: in free roam an unbuilt frontier starts a scenario there with its own event roll; no extension is fetched ahead', async () => {
+  it('WB5 (reverses CH3 a): in free roam crossing an unbuilt frontier only builds the ground beyond, with no event roll; it is fetched ahead', async () => {
     const s = makeVillage({ playerZone: 'field_far' });
     s.stage.roam = { since: s.turn };
     const weave = vi.fn(async (v: WeaverView) => grovePlan(TIERS.keyOf(v.tier)!));
     const d = new ScenarioDirector({ weave, clock: new VirtualClock() });
-    expect(d.afterSave(s)).toEqual([]);
+    expect(d.afterSave(s)).toEqual(['woods']);
     const before = s.stage.scenarioNumber;
     const r = await d.cross(s, 'woods', createRng(s.rngState));
-    expect(r.eventRoll).toBeDefined();
-    expect(weave.mock.calls[0][0].target).toMatchObject({ kind: 'scenario', frontierKey: 'woods', label: 'into the woods' });
+    expect(r.eventRoll).toBeUndefined();
+    expect(weave.mock.calls[0][0].target).toMatchObject({ kind: 'frontier', frontierKey: 'woods', label: 'into the woods' });
     expect(s.player.zone).toBe('grove');
-    expect(s.stage.scenarioNumber).toBe(before + 1);
-    expect(s.stage.roam).toBeUndefined();
-    expect(s.stage.scenario!.ground).toEqual(expect.arrayContaining(['field_far', 'grove']));
+    expect(s.stage.scenarioNumber).toBe(before);
+    expect(s.stage.roam).toBeDefined();
+    expect(s.stage.scenario).toBeUndefined();
     expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.to === 'grove')?.frontier).toBeUndefined();
   });
 

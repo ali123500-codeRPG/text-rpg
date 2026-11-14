@@ -16,9 +16,9 @@ describe('ui helpers', () => {
     expect(fmtDate('2026-11-07T12:00:00')).toBe('07/11/2026');
   });
   it('the recommended build is valid and a short build is not', () => {
-    const skills = { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20 };
+    const skills = { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 };
     expect(validateBuildLocal({ name: 'A', skills, tagged: [SK.melee_medium, SK.parry, SK.endurance] })).toEqual([]);
-    expect(validateBuildLocal({ name: 'A', skills: { ...skills, [SK.riposte]: 0 }, tagged: [SK.parry] }).length).toBe(2);
+    expect(validateBuildLocal({ name: 'A', skills: { ...skills, [SK.earshot]: 0 }, tagged: [SK.melee_medium] }).length).toBe(2);
   });
 });
 
