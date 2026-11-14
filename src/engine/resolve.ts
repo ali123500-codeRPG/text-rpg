@@ -618,11 +618,16 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
   }
 }
 
+/** TP2: why a planned deed can no longer happen (its target is gone or out of reach), as against a choice that holds it back */
+const STALE_REASONS = ['no_target', 'already_dead', 'out_of_reach', 'no_room'];
+
 function dropped(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   logCode(state, 'order_dropped', { actorId: a.id, type: o.type, target: o.target });
   if (a.kind === 'npc' && o.source !== 'fallback' && isEngaged(state, a)) {
     const f = fallbackOrder(buildActorView(state, a.id), ctx.rng);
+    const near = reachOf(state, a, f); // TP2: the move time left closes in on the new target, as any blow's would (ZP3)
+    if (near && !near.ok()) closeInOn(ctx, a, f, near);
     return doMain(ctx, a, { ...f, line: f.line ?? o.line });
   }
   hold(ctx, a, o);
@@ -700,7 +705,12 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   ctx.oneTwo = false;
   let t = o.target ? actorById(state, o.target) : undefined;
   // BG-25: a wasted attack says why, so the story tells that and not a miss it made up
-  const wasted = (reason: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason }), o));
+  // TP2: an engaged NPC whose blow can no longer happen (target gone, dead, or out of reach after closing in) does its combat-list
+  // action from what it sees now, as an unwalkable walk does (dropped); a yield, a truce or a held spar blow still holds it back
+  const wasted = (reason: string) => {
+    if (!followUp && !flurry && a.kind === 'npc' && o.source !== 'fallback' && STALE_REASONS.includes(reason) && isEngaged(state, a)) { ctx.stopped.add(a.id); return dropped(ctx, a, o); }
+    emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason }), o));
+  };
   // BG-25: someone down (Incapacitated) can still be struck: HP lost keeps counting while down, to Dead. Only the dead can't.
   if (!t || t === a) return wasted('no_target'); // BG-149: always a reason
   if (healthLevel(t) === 'dead') return wasted('already_dead');
