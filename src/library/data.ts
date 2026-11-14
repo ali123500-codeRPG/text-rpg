@@ -635,7 +635,7 @@ export function prototypeLibrary(): Library {
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
-      // the class of the A Nobody start (ST3); others unlock it through Commoner 5's perk
+      // unlocked through Commoner 5's perk (its Start, ST3, was removed: CC3)
       [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockPerk: PK.nobody_special,
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
@@ -652,7 +652,6 @@ export function prototypeLibrary(): Library {
     starts: {
       [ST.swordsman]: { id: ST.swordsman, name: 'Swordsman', classId: CL.swordsman },
       [ST.late_bloomer]: { id: ST.late_bloomer, name: 'Unwritten Legend', classId: CL.late_bloomer, points: 50, level: 1 },
-      [ST.a_nobody]: { id: ST.a_nobody, name: 'A Nobody', classId: CL.a_nobody, points: 50, level: 1 },
       [ST.threadbound]: { id: ST.threadbound, name: 'The Threadbound', classId: CL.threadbounded, points: 50, level: 1 },
       // DX1: a random god's Tier V blessing, in that god's Blessed class; points and level [Proposed], as the other 50-point starts
       [ST.blessed]: { id: ST.blessed, name: 'The Blessed', points: 50, level: 1, blessing: { tier: 'tier_5' },
