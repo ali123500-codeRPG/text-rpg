@@ -952,7 +952,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-card-h h2 { margin: 0; font-size: 20px; }
 .map-look { font: 15px/1.55 var(--font-story); }
 .map-exits, .map-places ul, .map-facts, .map-legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.map-exits li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-3); align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.map-exits li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-3); row-gap: 2px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.map-exits li > :first-child, .map-exits .to { grid-column: 1; overflow-wrap: anywhere; }
+.map-exits li > .map-go { grid-column: 2; grid-row: 1 / span 2; }
 .map-exits .to { color: var(--muted); font-size: 13px; }
 .map-go { border: 0; background: none; color: var(--accent); font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; padding: 0 4px; }
 .hs-tg.faded { opacity: .65; }
@@ -980,6 +982,45 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
 .k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }
 .k-who.last { background: none; border: 1.5px dashed var(--c4); }
+/* The stage map to scale (rpg-map, mapPlan.ts): code places every mark in screen pixels at the zoom shown. Names sit
+   inside their zone or outside on a plate with a leader; exit notes name where an arrow goes; doors sit on shared walls. */
+.map-plan .map-area { cursor: pointer; }
+.map-plan .map-area rect { fill: none; stroke: color-mix(in srgb, var(--c15) 55%, transparent); stroke-width: 1.5; stroke-dasharray: 8 5; }
+.map-plan .map-area.on rect, .map-plan .map-area:hover rect { stroke: var(--scenario-mark); }
+.map-tile.plan.here .map-tile-box { stroke-width: 3; }
+.map-tile-hatch { fill: url(#map-hatch); pointer-events: none; }
+.map-hatch-line { stroke: color-mix(in srgb, var(--text) 20%, transparent); stroke-width: 1.2; }
+.map-label { cursor: pointer; }
+.map-label rect { fill: none; }
+.map-label text, .map-place-title text, .map-note text { pointer-events: none; }
+.map-label text { fill: var(--text); font: 700 12px var(--font-round); }
+.map-label.outside rect { fill: var(--bg); stroke: var(--border); stroke-width: 1; }
+.map-label.here text { fill: var(--accent); }
+.map-leader { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 2; }
+.map-place-title { cursor: pointer; }
+.map-place-title rect { fill: color-mix(in srgb, var(--bg) 70%, transparent); }
+.map-place-title text { fill: var(--c15); font: 800 11px var(--font-round); letter-spacing: .06em; }
+.map-place-title.on text { fill: var(--scenario-mark); }
+.map-exit line { stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 3 3; }
+.map-exit.away, .map-note.away { cursor: pointer; }
+.map-exit.away line { stroke: var(--accent); stroke-dasharray: 6 4; }
+.map-exit.hot line { stroke: var(--scenario-mark); }
+.map-note rect { fill: var(--bg); stroke: var(--rule); stroke-dasharray: 3 3; }
+.map-note text { fill: var(--muted); font: 600 11px var(--font-round); }
+.map-note.away rect { stroke: var(--accent); stroke-dasharray: none; }
+.map-note.away text { fill: var(--text); }
+.map-door .gap { fill: var(--bg); stroke: none; }
+.map-door.group circle { fill: var(--bg); stroke: var(--text); stroke-width: 1.5; }
+.map-door .leaf { fill: var(--muted); stroke: none; }
+.map-door.opening line { stroke: var(--text); stroke-width: 2.5; stroke-linecap: square; }
+.map-door.group text { fill: var(--text); font: 800 11px var(--font-round); }
+.map-who.plan-who .map-who-label { display: none; }
+.map-who.plan-who:hover .map-who-label { display: inline; opacity: 1; }
+.k-svg { flex: none; overflow: visible; }
+.k-tile.here { border: 3px solid var(--accent); }
+.k-tile.explored { background: var(--surface); }
+.k-tile.seen { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--text) 20%, transparent) 0 1.2px, var(--surface) 1.2px 5px); }
+.k-tile.faded { opacity: .62; }
 @media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } .map-crumbs { pointer-events: auto; } }
 
 /* a skill rolled but not on the sheet yet (fists: Strike), and the tagged mark's hover */

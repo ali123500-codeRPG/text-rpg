@@ -24,6 +24,7 @@ import { ES } from '../library/essenceIds';
 import { now } from '../time';
 import { DU, FU } from '../library/tableIds';
 import { makeFurniture } from '../engine/furniture';
+import { FAKE_STAGES, type FakeStage } from './fakeStages';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -171,7 +172,33 @@ function fakeBarriers(st: GameState): void {
   st.player.core.inventory.push({ id: 'fake_key', itemId: IT.key, qty: 1, opens: ['fb_front'] } as typeof st.player.core.inventory[number]);
 }
 
-export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
+/** MAP-52: swap the fake world for a map test stage: its places, where you stand, what you know and who is about */
+function useStage(st: GameState, stage: FakeStage): void {
+  const p = st.player;
+  st.places = stage.places;
+  st.mode = 'explore';
+  st.pending = { ...st.pending!, mode: 'explore', engaged: [] };
+  p.zone = stage.zone; p.placeId = stage.placeId;
+  p.journal = { ...p.journal!, zonesSeen: stage.seen, trail: stage.trail.map((zone, i) => ({ zone, left: st.turn - 1 - i })), clearSight: {} };
+  const rectOf = (id: string) => st.places.flatMap((x) => x.zones).find((z) => z.id === id)?.rect;
+  const at = (id: string, d: [number, number]) => { const r = rectOf(id); return r ? { x: r.x + d[0], y: r.y + d[1] } : undefined; };
+  p.pos = at(stage.zone, stage.you);
+  st.actors = stage.people.map((x) => {
+    const zone = st.places.flatMap((q) => q.zones).find((z) => z.id === x.zone)!;
+    const a = spawnNpc(null, TP.patron, { id: x.id, zone: x.zone, placeId: zone.placeId, bandId: `band_${x.id}`, storyId: 'fake', label: x.label });
+    const pos = x.at ? at(x.zone, x.at) : undefined;
+    if (pos) a.pos = pos;
+    return a;
+  });
+  st.hidden.plans = {}; st.hidden.agreements = []; st.quests = [];
+  st.barriers = {};
+  for (const b of stage.barriers) {
+    st.barriers[b.id] = { id: b.id, ...b.rec, ...(b.rec.tried ? { tried: [p.id] } : {}) };
+    for (const z of st.places.flatMap((q) => q.zones)) for (const l of z.links) if ((z.id === b.a && l.to === b.b) || (z.id === b.b && l.to === b.a)) l.barrier = b.id;
+  }
+}
+
+export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean; stage?: string } = {}): GameApi {
   let state: GameState | null = null;
   let lines: LogLine[] = [];
   const KETTLE = { id: 'tavern', name: 'The Crooked Kettle' };
@@ -206,6 +233,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     fakeBarriers(state);
+    const stage = opts.stage ? FAKE_STAGES[opts.stage] : undefined;
+    if (stage) useStage(state, stage());
     // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point
     const common = state.places.flatMap((x) => x.zones).find((z) => z.id === 'tav_common')?.rect;
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }

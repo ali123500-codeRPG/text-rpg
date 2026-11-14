@@ -12,6 +12,8 @@ import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap } from '../words';
+import { PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
+import { checkMap } from './mapCheck';
 
 /** CSS class of each edge kind's line on the To scale view */
 const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
@@ -24,8 +26,6 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
   return e;
 };
 
-/** To scale: screen pixels per metre before zoom */
-const PX_PER_M = 12;
 const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
@@ -56,6 +56,15 @@ function wayGlyph(x: number, y: number, shut: NonNullable<MapWay['shut']>): SVGE
   return shut === 'locked' ? [s('rect', { x: x - 4.5, y: y - 1, width: 9, height: 7, rx: 1.5 }), s('path', { d: `M${x - 2.75} ${y - 1}v-2.5a2.75 2.75 0 0 1 5.5 0v2.5`, fill: 'none' })]
     : shut === 'barred' ? [s('rect', { x: x - 4, y: y - 5.5, width: 8, height: 11, rx: 1, fill: 'none' }), s('line', { x1: x - 6.5, y1: y, x2: x + 6.5, y2: y })]
     : [s('line', { x1: x - 4, y1: y - 4, x2: x + 4, y2: y + 4 }), s('line', { x1: x + 4, y1: y - 4, x2: x - 4, y2: y + 4 })];
+}
+/** a door as a floor plan draws one: a 12 px gap across its wall, filled with a leaf (a door) or left open between two
+ *  posts (a way through with no door); `dir` is the wall's run, h (east-west) or v */
+function doorGlyph(x: number, y: number, kind: 'door' | 'opening', dir: 'h' | 'v' = 'h'): SVGElement[] {
+  const [w, hh] = dir === 'h' ? [12, 6] : [6, 12];
+  const gap = s('rect', { x: x - w / 2, y: y - hh / 2, width: w, height: hh, class: 'gap' });
+  if (kind === 'door') return [gap, s('rect', { x: x - w / 2 + (dir === 'h' ? 1.5 : 1.5), y: y - hh / 2 + 1.5, width: w - 3, height: hh - 3, rx: 0.5, class: 'leaf' })];
+  return dir === 'h' ? [gap, s('line', { x1: x - 6, y1: y - 3, x2: x - 6, y2: y + 3 }), s('line', { x1: x + 6, y1: y - 3, x2: x + 6, y2: y + 3 })]
+    : [gap, s('line', { x1: x - 3, y1: y - 6, x2: x + 3, y2: y - 6 }), s('line', { x1: x - 3, y1: y + 6, x2: x + 3, y2: y + 6 })];
 }
 /** a barrier badge for the map's key */
 const wayKey = (cls: string) => s('svg', { class: `k-way map-way ${cls}`, width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' },
@@ -165,6 +174,8 @@ export function mapPage(api: GameApi) {
   let plan = true;
   const plannedLast = new Set<string>(); // worlds whose spots are the to-scale ones
   const planned = () => plan && worldZones().length > 0 && worldZones().every((z) => z.rect);
+  /** a place's own map drawn to scale: the rpg-map stage map */
+  const planMap = () => world !== WORLD && planned();
   const tw = (z: MapZone) => (planned() && z.rect ? z.rect.w * PX_PER_M : tileW(z));
   const th = (z: MapZone) => (planned() && z.rect ? z.rect.d * PX_PER_M : tileH(z));
 
@@ -172,6 +183,7 @@ export function mapPage(api: GameApi) {
   const vp = s('g', { class: 'map-vp' }) as SVGGElement;
   const defs = s('defs', {},
     s('pattern', { id: 'map-dots', width: 28, height: 28, patternUnits: 'userSpaceOnUse' }, s('circle', { cx: 2, cy: 2, r: 1.2, class: 'map-dot' })),
+    s('pattern', { id: 'map-hatch', width: 7, height: 7, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, s('line', { x1: 0, y1: 0, x2: 0, y2: 7, class: 'map-hatch-line' })),
     s('marker', { id: 'map-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' })));
   const bg = s('rect', { x: -6000, y: -6000, width: 12000, height: 12000, fill: 'url(#map-dots)', class: 'map-bg' });
   // to scale, your pin sits on its own layer at a fixed size, so it stays visible however far out a long road zooms (TV7)
@@ -181,7 +193,11 @@ export function mapPage(api: GameApi) {
   // stay readable when kilometres of road zoom the map far out
   const nameLayer = s('g', { class: 'map-world-names' }) as SVGGElement;
   let worldNames: { x: number; y: number; name: string; sub: string; here: boolean; mid?: true }[] = [];
-  svg.append(defs, vp, nameLayer, youLayer);
+  // to scale, a place's map is laid out by code at the zoom shown (mapPlan, rpg-map): zones, doors, labels, people and exit
+  // notes on one layer in screen pixels, so no label or mark covers another at any zoom; panning only moves it
+  const planLayer = s('g', { class: 'map-plan' }) as SVGGElement;
+  let scene: Scene | null = null, sceneK = 0;
+  svg.append(defs, vp, planLayer, nameLayer, youLayer);
   const stage = h('div', { class: 'map-stage' });
   const side = h('aside', { class: 'map-side', 'aria-label': 'Map details' });
   const crumbs = h('nav', { class: 'map-crumbs', 'aria-label': 'Place' });
@@ -231,7 +247,11 @@ export function mapPage(api: GameApi) {
       return s('g', { class: `map-world-name${n.here ? ' here' : ''}${n.mid ? ' road' : ''}` },
         s('text', { x, y, class: 'map-tile-name', ...anchor }, n.name), s('text', { x, y: y + 16, class: 'map-tile-sub', ...anchor }, n.sub));
     }));
-    youLayer.replaceChildren(...(youAt ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title)] : []));
+    youLayer.replaceChildren(...(youAt && !planMap() ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title)] : []));
+    if (planMap()) {
+      if (!scene || Math.abs(v.k - sceneK) > 1e-9) renderPlan(v.k);
+      planLayer.setAttribute('transform', `translate(${v.x} ${v.y})`);
+    } else { planLayer.replaceChildren(); scene = null; }
   };
   const setView = (v: { x: number; y: number; k: number }) => { views.set(world, v); apply(); };
   function zoomBy(f: number, at?: Pt) {
@@ -250,6 +270,7 @@ export function mapPage(api: GameApi) {
     return { x0, y0, x1, y1 };
   }
   function fit(placeId: string) {
+    if (planMap()) { fitPlan(placeId); return; }
     const b = bounds(placeId), r = svg.getBoundingClientRect();
     if (!b || !r.width) return;
     const top = 60; // the crumbs sit over the top edge
@@ -348,6 +369,16 @@ export function mapPage(api: GameApi) {
     else if ([...prev.keys()].sort().join('|') !== every.map((z) => z.id).sort().join('|') || plannedLast.has(world)) { sp = layout(every, world === WORLD ? rootOf(cur!.placeId) : cur!.zoneId, plannedLast.has(world) ? new Map() : prev); spots.set(world, sp); }
     if (planned()) plannedLast.add(world); else plannedLast.delete(world);
     if (!planned() && world !== WORLD && !separated.has(sp)) { separate(sp, every); separated.add(sp); }
+    if (planMap()) {
+      // to scale, the layer above draws it all at the zoom shown (apply → renderPlan)
+      vp.replaceChildren(bg); scene = null;
+      drawFloors();
+      compass.hidden = !zones.some((z) => z.links.some((l) => compassOf(l.label)));
+      const here = zones.find((z) => z.here && z.you);
+      youAt = here ? { x: here.you!.x * PX_PER_M, y: -here.you!.y * PX_PER_M, title: here.along ? alongText(here.along) : 'You are here' } : null;
+      svg.setAttribute('aria-label', `Map of ${placeOf(world)?.name ?? 'this place'}: ${zones.length} zone${zones.length === 1 ? '' : 's'} known`);
+      return;
+    }
     const byId = new Map(zones.map((z) => [z.id, z]));
     const centroid = zones.reduce((a, z) => ({ x: a.x + sp.get(z.id)!.x / zones.length, y: a.y + sp.get(z.id)!.y / zones.length }), { x: 0, y: 0 });
     const areas = s('g', { class: 'map-areas' }), links = s('g', { class: 'map-links' }), tiles = s('g', { class: 'map-tiles' }), labels = s('g', { class: 'map-labels' });
@@ -431,6 +462,159 @@ export function mapPage(api: GameApi) {
     if (planned()) labels.append(scaleBar(zones, sp));
     vp.replaceChildren(bg, areas, links, tiles, labels);
     svg.setAttribute('aria-label', world === WORLD ? `The world as you know it: ${zones.length} place${zones.length === 1 ? '' : 's'}` : `Map of ${placeOf(world)?.name ?? 'this place'}: ${zones.length} zone${zones.length === 1 ? '' : 's'} known`);
+  }
+  // ---------- the stage map to scale (rpg-map): code lays out every mark (mapPlan), then this draws it, then dev views check it
+  let measureCtx: CanvasRenderingContext2D | null | undefined;
+  /** the browser's width of a text in a map style (MAP-51: real sizes, so the layout and the check agree) */
+  const measure: Measure = (t, kind) => {
+    if (measureCtx === undefined) measureCtx = document.createElement('canvas').getContext('2d');
+    if (!measureCtx) return roughMeasure(t, kind);
+    const st = TEXT[kind];
+    measureCtx.font = `${st.weight} ${st.size}px ${getComputedStyle(svg).fontFamily || 'sans-serif'}`;
+    return measureCtx.measureText(t).width + (kind === 'title' ? t.length * st.size * 0.06 : 0); // titles: .06em tracking
+  };
+  const innerPlaces = (zones: MapZone[]) => (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth)
+    .map((p) => ({ id: p.id, name: p.name, depth: p.depth, zones: zones.filter((z) => inside(z.placeId, p.id)) })).filter((p) => p.zones.length);
+  const sceneAt = (k: number) => planScene({ zones: floorZones(), every: worldZones(), places: innerPlaces(floorZones()), k, measure,
+    awayName: (id) => { const z = allZones().find((x) => x.id === id); return z ? placeOf(rootOf(z.placeId))?.name : undefined; } });
+  /** the scale bar under the map, in screen pixels: 10 m and its paces */
+  const barOf = (sc: Scene, k: number) => ({ x: sc.bounds.x0, y: sc.bounds.y1 + 22, len: 10 * PX_PER_M * k });
+  function fitPlan(placeId: string) {
+    const r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    const top = 60, bottom = 64, edge = 20, aw = r.width - 2 * edge, ah = r.height - top - bottom;
+    const zs = floorZones().filter((z) => inside(z.placeId, placeId));
+    const zb = (zs.length ? zs : floorZones()).map((z) => z.rect!);
+    const w = Math.max(...zb.map((q) => q.x + q.w / 2)) - Math.min(...zb.map((q) => q.x - q.w / 2)), d = Math.max(...zb.map((q) => q.y + q.d / 2)) - Math.min(...zb.map((q) => q.y - q.d / 2));
+    let k = Math.max(minK(), Math.min(2.5, aw / (w * PX_PER_M), ah / (d * PX_PER_M)));
+    let sc = sceneAt(k);
+    // the marks around the zones (labels outside, exit notes, titles) take room too: shrink until all of it fits
+    for (let i = 0; i < 8; i++) {
+      const bw = sc.bounds.x1 - sc.bounds.x0, bh = sc.bounds.y1 - sc.bounds.y0 + 34;
+      if (bw <= aw && bh <= ah) break;
+      k = Math.max(minK(), k * Math.min(aw / bw, ah / bh) * 0.96);
+      sc = sceneAt(k);
+    }
+    const bw = sc.bounds.x1 - sc.bounds.x0, bh = sc.bounds.y1 - sc.bounds.y0 + 34;
+    const onRoad = youAt && hereZone()?.along && cur && inside(cur.placeId, placeId);
+    if (onRoad) { setView({ k, x: r.width / 2 - youAt!.x * k, y: top + ah / 2 - youAt!.y * k }); return; }
+    setView({ k, x: edge + (aw - bw) / 2 - sc.bounds.x0, y: top + Math.max(0, (ah - bh) / 2) - sc.bounds.y0 });
+  }
+  function renderPlan(k: number) {
+    const sc = sceneAt(k);
+    scene = sc; sceneK = k;
+    const zoneG = s('g', { class: 'map-zones' }), marks = s('g', { class: 'map-marks' });
+    const zoneById = new Map(sc.zones.map((x) => [x.z.id, x]));
+    const areas = sc.places.map((p) => {
+      const on = p.id === focus, mine = !!cur && inside(cur.placeId, p.id);
+      return s('g', { class: `map-area real${on ? ' on' : ''}${mine ? ' mine' : ''}`, 'data-area': p.id, tabindex: 0, role: 'button', 'aria-label': `${p.name}: a place on this map` },
+        s('rect', { x: p.box.x0, y: p.box.y0, width: p.box.x1 - p.box.x0, height: p.box.y1 - p.box.y0, 'data-role': 'place', 'data-id': p.id }));
+    });
+    for (const x of sc.zones) zoneG.append(planZone(x.z, x.box, x.state));
+    const links = sc.connectors.map((c) => s('line', { x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, class: `map-link${c.sight ? '' : ' hidden-view'}${c.a === selected || c.b === selected ? ' hot' : ''}` }, s('title', {}, c.title)));
+    const leaders = sc.labels.filter((l) => l.leader).map((l) => s('line', { x1: l.leader![0], y1: l.leader![1], x2: l.leader![2], y2: l.leader![3], class: 'map-leader' }));
+    const textMark = (b: { x0: number; y0: number; x1: number; y1: number; full: string; cut: boolean; lines: string[] }, cls: string, attrs: Record<string, string | number>, kind: 'label' | 'title' | 'note') => {
+      const st = TEXT[kind], first = (b.y0 + b.y1) / 2 - ((b.lines.length - 1) * st.line) / 2 + st.size * 0.36, x = (b.x0 + b.x1) / 2;
+      return s('g', { class: cls, ...attrs, ...(b.cut ? { 'aria-label': b.full } : {}) },
+        s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, rx: kind === 'note' ? 9 : 4 }),
+        s('text', { x, y: first, 'text-anchor': 'middle' }, ...b.lines.map((line, i) => s('tspan', { x, y: first + i * st.line }, line))),
+        ...(b.cut ? [s('title', {}, b.full)] : []));
+    };
+    for (const d of sc.doors) marks.append(doorMark(d));
+    for (const l of sc.labels) marks.append(textMark(l, `map-label ${l.placement}${zoneById.get(l.zoneId)?.z.here ? ' here' : ''}`, { 'data-role': 'label', 'data-id': `label:${l.zoneId}`, 'data-for': l.zoneId, 'data-placement': l.placement, 'data-zone': l.zoneId }, 'label'));
+    for (const p of sc.places) marks.append(textMark(p.title, `map-place-title${p.id === focus ? ' on' : ''}`, { 'data-role': 'label', 'data-id': `place:${p.id}`, 'data-for': p.id, 'data-placement': 'outside', 'data-area': p.id }, 'title'));
+    for (const e of sc.exits) {
+      marks.append(s('g', { class: `map-exit${e.goto ? ' away' : ''}${e.zoneId === selected ? ' hot' : ''}`, 'data-role': 'exit', 'data-id': e.id, 'data-target': e.target, ...(e.goto ? { 'data-goto': e.goto } : {}) },
+        s('line', { x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, 'marker-end': 'url(#map-arrow)' }), s('title', {}, e.title)));
+      marks.append(textMark(e.note, `map-note${e.goto ? ' away' : ''}${e.way?.shut ? ` ${e.way.shut}` : ''}`, { 'data-role': 'label', 'data-id': `note:${e.id}`, 'data-for': e.zoneId, 'data-placement': 'outside', ...(e.goto ? { 'data-goto': e.goto, tabindex: 0, role: 'button', 'aria-label': `${e.title}: open it` } : {}) }, 'note'));
+    }
+    for (const st of sc.stairs) marks.append(s('g', { class: `map-stair${st.goto ? '' : ' unknown'}${st.zoneId === selected ? ' hot' : ''}`, 'data-role': 'icon', 'data-id': st.id, ...(st.goto ? { 'data-goto': st.goto, tabindex: 0, role: 'button' } : {}), 'aria-label': st.title },
+      s('circle', { cx: st.cx, cy: st.cy, r: st.x1 - st.cx }), s('text', { x: st.cx, y: st.cy + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, st.title)));
+    for (const f of sc.furniture) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); marks.append(g); }
+    for (const t of sc.tokens) {
+      if (t.you) { const g = pin(t.cx, t.cy, youAt?.title ?? 'You are here'); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); marks.append(g); continue; }
+      const who = t.who!;
+      marks.append(s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-who': who.id },
+        s('g', { 'data-role': 'token', 'data-id': t.id }, s('circle', { cx: t.cx, cy: t.cy, r: t.r }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
+        s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title)));
+    }
+    const bar = barOf(sc, k);
+    const scale = s('g', { class: 'map-scale' }, s('line', { x1: bar.x, y1: bar.y, x2: bar.x + bar.len, y2: bar.y }), s('line', { x1: bar.x, y1: bar.y - 5, x2: bar.x, y2: bar.y + 5 }),
+      s('line', { x1: bar.x + bar.len, y1: bar.y - 5, x2: bar.x + bar.len, y2: bar.y + 5 }), s('text', { x: bar.x + bar.len + 8, y: bar.y + 4 }, `${distText(10)} · ${Math.round(10 / CONFIG.PACE_M)} paces`));
+    planLayer.replaceChildren(...areas, zoneG, ...links, ...leaders, marks, scale);
+    drawLegend();
+    scheduleCheck();
+  }
+  /** a zone to scale: its floor at its real size, each side drawn as its edge kind; a zone only seen, never stood in, is
+   *  hatched (MAP-33, MAP-34: the state reads without colour) */
+  function planZone(z: MapZone, b: { x0: number; y0: number; x1: number; y1: number }, state: string) {
+    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', state, z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
+    const m2 = Math.round(z.rect!.w * z.rect!.d);
+    const said = state === 'current' ? 'you are here' : state === 'explored' ? 'you have been here' : 'seen, not been in';
+    const w = b.x1 - b.x0, hh = b.y1 - b.y0;
+    // the drawn floor sits a hair inside its walls, so zones that share a wall never measure as overlapping (MAP-11)
+    const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${m2} m², ${said}${z.id === walk?.toZone ? ', you are heading here' : ''}` },
+      s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: 'map-tile-box', 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId }));
+    if (state === 'seen') g.append(s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: 'map-tile-hatch' }));
+    const sides: Record<string, [number, number, number, number]> = { n: [b.x0, b.y0, b.x1, b.y0], s: [b.x0, b.y1, b.x1, b.y1], w: [b.x0, b.y0, b.x0, b.y1], e: [b.x1, b.y0, b.x1, b.y1] };
+    for (const [side, [x1, y1, x2, y2]] of Object.entries(sides)) {
+      const kind = (z.edges as Record<string, string> | undefined)?.[side] ?? (z.outdoor ? EK.open : EK.wall);
+      g.append(s('line', { x1, y1, x2, y2, class: `map-edge ${EDGE_CLASS[kind] ?? 'wall'}` }));
+    }
+    g.append(s('title', {}, `${z.name}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²), ${said}`));
+    return g;
+  }
+  /** a door on the wall two zones share: plain, an opening between two outdoor zones, or its barrier's mark (locked, barred,
+   *  blocked: MAP-33 shows locked on the door, not the zone); several on one wall as one badge with their count */
+  function doorMark(d: Scene['doors'][number]) {
+    const r = d.x1 - d.cx, attrs = { 'data-role': 'icon', 'data-id': d.id, role: 'img', 'aria-label': d.title };
+    if (d.way?.shut) return s('g', { class: `map-way ${d.way.shut}${d.way.key ? ' key' : ''}`, ...attrs }, s('circle', { cx: d.cx, cy: d.cy, r }), ...wayGlyph(d.cx, d.cy, d.way.shut), s('title', {}, d.title));
+    if (d.kind === 'group') return s('g', { class: 'map-door group', ...attrs }, s('circle', { cx: d.cx, cy: d.cy, r }), s('text', { x: d.cx, y: d.cy + 4, 'text-anchor': 'middle' }, String(d.count)), s('title', {}, d.title));
+    return s('g', { class: `map-door ${d.kind}`, ...attrs }, ...doorGlyph(d.cx, d.cy, d.kind, d.dir), s('title', {}, d.title));
+  }
+  /** the key (MAP-30): every mark the map shows now, and nothing it doesn't */
+  const legendSlot = h('section', { class: 'map-legend' });
+  function drawLegend() {
+    const u = scene?.used ?? new Set<string>();
+    const sw = (cls: string) => h('i', { class: `k-tile ${cls}` });
+    const item = (key: string, mark: Node, text: string) => (u.has(key) ? [h('li', {}, mark, text)] : []);
+    const svgKey = (...kids: SVGElement[]) => s('svg', { class: 'k-svg', width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' }, ...kids);
+    const edge = (id: string, cls: string, text: string) => item(`edge:${id}`, h('i', { class: `k-edge ${cls}` }), text);
+    legendSlot.replaceChildren(h('p', { class: 'hs-label' }, 'Key'), h('ul', {},
+      ...item('state:current', sw('here'), 'Where you are'), ...item('you', h('i', { class: 'k-pin' }), 'You'),
+      ...item('state:explored', sw('explored'), 'Been there'), ...item('state:seen', sw('seen'), 'Seen, not been in'),
+      ...item('remembered', sw('faded'), 'Out of sight now'),
+      ...item('outdoor', sw('outdoor'), 'Outdoors'), ...item('indoor', sw('indoor'), 'Indoors'),
+      ...edge(EK.wall, 'wall', 'Wall'), ...edge(EK.low, 'low', 'Counter or fence'), ...edge(EK.window, 'window', 'Window'), ...edge(EK.open, 'open', 'Open side'),
+      ...item('place', h('i', { class: 'k-area' }), 'A building or place inside this one'),
+      ...item('door', svgKey(s('line', { x1: -10, y1: 0, x2: 10, y2: 0, class: 'map-edge wall' }), s('g', { class: 'map-door door' }, ...doorGlyph(0, 0, 'door'))), 'Door in a wall'),
+      ...item('opening', svgKey(s('g', { class: 'map-door opening' }, ...doorGlyph(0, 0, 'opening'))), 'Way through, no door'),
+      ...item('group', svgKey(s('g', { class: 'map-door group' }, s('circle', { cx: 0, cy: 0, r: 9 }), s('text', { x: 0, y: 4, 'text-anchor': 'middle' }, '4'))), 'Several doors on one wall'),
+      ...item('way:locked', wayKey('locked'), 'Locked'), ...item('way:locked-key', wayKey('locked key'), 'Locked, you hold its key'),
+      ...item('way:barred', wayKey('barred'), 'Barred'), ...item('way:blocked', wayKey('blocked'), 'Blocked'),
+      ...item('link', h('i', { class: 'k-line' }), 'Way between zones apart, you can see across'), ...item('link-hidden', h('i', { class: 'k-line dashed' }), 'Way between zones apart, far side hidden'),
+      ...item('exit', h('i', { class: 'k-line stub' }), 'Exit you have not taken, and where it goes'), ...item('exit-away', h('i', { class: 'k-line away' }), 'Way to another map: click to open it'),
+      ...item('stairs-up', h('i', { class: 'k-stair' }, '▲'), 'Stairs up: click to change floor'), ...item('stairs-down', h('i', { class: 'k-stair' }, '▼'), 'Stairs down: click to change floor'),
+      ...item('furniture', furnKey(), 'Furniture: point at one for its name'),
+      ...item('who', h('i', { class: 'k-who' }), 'Someone there now: point for who'), ...item('who-last', h('i', { class: 'k-who last' }), 'Last seen there')));
+  }
+  // MAP-51: in dev views (?fake= or ?mapcheck) the checker runs on every to-scale render, once the browser has laid it out
+  const devCheck = typeof location !== 'undefined' && /[?&](fake|mapcheck)\b/.test(location.search);
+  let checkTimer = 0;
+  function scheduleCheck() {
+    if (!devCheck) return;
+    clearTimeout(checkTimer);
+    checkTimer = window.setTimeout(() => requestAnimationFrame(() => {
+      if (!planMap() || !cur) return;
+      const ids = worldZones().map((z) => z.id), have = new Set(ids);
+      const pairs = worldZones().flatMap((z) => z.links.filter((l) => have.has(l.to)).map((l) => [z.id, l.to] as [string, string]));
+      const start = have.has(cur.zoneId) ? cur.zoneId : ids[0];
+      const findings = [...checkMap(svg), ...checkReach(ids, pairs, start), ...checkStage(floorZones(), innerPlaces(floorZones())), ...(scene?.lost ?? []).map((id) => `MAP-32 exit ${id} found no room for its arrow and note`)];
+      if (scene?.dropped.length) console.info('[map-check] furniture left off for room (listed in its zone card):', scene.dropped.join(', '));
+      (window as unknown as { __mapFindings?: unknown }).__mapFindings = { place: placeOf(world)?.name, floor: floor(), k: view().k, findings };
+      if (findings.length) for (const f of findings) console.warn('[map-check]', f);
+      else console.info('[map-check] 0 findings');
+    }), 120);
   }
   /** To scale: the zone's floor, each side drawn as its edge kind (wall solid, low dashed, window double, open faint) */
   function planTile(z: MapZone, p: Pt) {
@@ -605,7 +789,7 @@ export function mapPage(api: GameApi) {
         ...(anyShut() ? [h('li', {}, wayKey('locked'), 'Locked'), h('li', {}, wayKey('locked key'), 'Locked, you hold its key'), h('li', {}, wayKey('barred'), 'Barred'), h('li', {}, wayKey('blocked'), 'Blocked')] : []),
         ...(anyFurniture() ? [h('li', {}, furnKey(), 'Furniture: point at one for its name')] : []),
         h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there')));
-    side.replaceChildren(card, facts, placeList, legend);
+    side.replaceChildren(card, planMap() ? legendSlot : legend, facts, placeList);
   }
 
   function goTo(zoneId: string) {
@@ -679,7 +863,7 @@ export function mapPage(api: GameApi) {
     if (moved) { lastHere = cur.zoneId; world = rootOf(cur.placeId); focus = cur.placeId; selected = cur.zoneId; setFloorOf(cur.zoneId); }
     const fresh = !views.has(world);
     draw();
-    if (fresh) requestAnimationFrame(() => fit(focus));
+    if (fresh) requestAnimationFrame(() => fit(planMap() ? world : focus)); // to scale, the whole map first: nothing past its edge (MAP-50)
     else if (moved) requestAnimationFrame(() => centre(cur!.zoneId));
   }
   return { el, update };
