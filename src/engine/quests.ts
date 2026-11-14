@@ -79,7 +79,8 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
   const leaks = leakScan(text, '', buildLeakContext(state));
   if (leaks.length) return refuse('leak', { leaks });
   const goal = readGoal(state, job.goal);
-  if (goal.kind === 'other') logCode(state, 'quest_goal_gap', { text, giver: giver.id, asked: job.goal }); // QT27
+  // QT27, BF61: a job code cannot check (a chore, or a target that isn't in the world) is refused, and filed as a gap
+  if (goal.kind === 'other') { logCode(state, 'quest_goal_gap', { text, giver: giver.id, asked: job.goal }); return refuse('unchecked_goal'); }
   let id = `quest_${state.turn}_${giver.id}`;
   for (let i = 2; state.quests.some((q) => q.id === id); i++) id = `quest_${state.turn}_${giver.id}_${i}`;
   // QT24: the quest it follows, as named; else the giver's own job handed in during this talk

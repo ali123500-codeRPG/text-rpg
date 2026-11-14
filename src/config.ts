@@ -372,6 +372,7 @@ const DEFAULTS = {
   WAKE_CONTACT: ['attack'] as string[], // NW14: a blow wakes the one it is aimed at, hit or miss
   /** NW19: the difficulty of a light sleeper's hearing check against someone moving openly, by their noise (louder is easier) */
   WAKE_GRADE: { faint: 'extreme', hushed: 'major', quiet: 'moderate', murmur: 'minor', normal: 'none', raised: 'none', loud: 'none', blaring: 'none', deafening: 'none' } as Record<string, import('./scales').GradeLevel>,
+  BED_NEAR_HOPS: 2, // BF68: a real bed this many zone links or fewer from one's own spots is one's bed when none was given (placeholder)
   FALL_ASLEEP_MIN: 30, // NW20: an NPC woken falls asleep again by its routine no sooner than this
   NIGHT_MAX_MIN: 12 * 60, // NW22 b: a night shared out in watches lasts at most 12 hours
   SLEEP_STEP_MIN: 10, // NW12: a sleep is stepped this many minutes at a time, to stop when someone hostile arrives
@@ -658,7 +659,9 @@ const DEFAULTS = {
   ENCOUNTER_M: 20,
   /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
    * personal distance (Hall's proxemics, 0.45–1.2 m) */
-  PLACE_GAP_M: 1,
+  PLACE_SPACING_M: 1, // BF71: arm's length: the grid code places people on, how far a walk up to someone stops, and a step in from a door
+  PLACE_GAP_M: 0.2, // BF71: the room a walk's end keeps from everyone but the one it closes in on
+  RING_STEPS: 24, // BF71: the spots round someone a walk closing in on them tries when the straight-line spot is taken
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
    * wall or a way out stops this far inside it */
   ENTER_M: 1,

@@ -3,13 +3,15 @@
 // the item is held out to them, or the owner yielded or surrendered, is down or asleep; anyone else refuses. BG-195: Wren
 // gave the charm from his sack and nothing happened.
 import { expect, it } from 'vitest';
+import { CONFIG } from '../../src/config';
 import { beside, makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { buildPlayerView } from '../../src/views';
 import { ideas } from '../../src/ui/play';
 
-const tavern = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
+// BF68: the patron sleeps through the morning; in the evening it drinks at its seat
+const tavern = () => { const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] }); s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening; return s; };
 const has = (a: { core: { inventory: { id: string; contents?: { id: string }[] }[] } }, id: string): boolean =>
   a.core.inventory.some((i) => i.id === id || has({ core: { inventory: i.contents ?? [] } }, id));
 

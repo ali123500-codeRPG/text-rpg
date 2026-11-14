@@ -6,6 +6,86 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-238
+
+**What was wrong:** Turn 75 ("I shoot at the small girl with the stick") took about 53 seconds. The player was in free roam; an attack there starts a new scenario at once, and the turn waited for the Weaver to plan it (50.5 seconds) before showing anything.
+
+**What was done:** Ali approved the fix (BF63). Danger in free roam no longer holds the turn: the event roll is made and saved (stage.starting), the turn is shown at once, and the Weaver plans the scenario in the background after the save (src/scenario/director.ts holdStart, startPlanning). Free roam goes on for one more turn and the scenario opens after it from that plan, checked again against the stage; a reload plans it then with the saved roll, and a knock-out or road encounter first drops it. A frontier crossing still waits.
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-241
+
+**What was wrong:** The player shot the girl from hiding, then killed the keeper a step from her, and she never reacted; hours later she walked past his body as if nothing had happened, and the story kept calling her asleep. A hidden striker's attack reached no one, not even what it did; nobody ever noticed a body; only those already fighting got to think; and someone woken on a sleep step still showed as sleeping.
+
+**What was done:** Ali approved the fix (BF65). A blow that hurts or downs someone is felt by them and seen by anyone who sees them as a struck event, while the striker stays as hidden as the stealth rolls say (src/engine/resolve.ts struckSeen). Someone who first sees a body it did not see fall finds it once (findBodies, Mind.bodiesFound). Both raise the alarm (src/minds/state.ts updateAlarms) and the existing fears, and startle the NPC so it gets a Planner call to react even outside a fight (src/agents/game.ts plannerActors). Awake on a sleep step reads as lying awake.
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-237
+
+**What was wrong:** "Take the hinge pins from the trough" only walked the player to the trough, three times: the Parser could not pick up something not in view and its rules said nothing for that case, so it kept just the walk, and it put the rest off as "interact them", which nobody would type.
+
+**What was done:** Ali approved the fix (BF62). The Parser's rule now reads taking something not in view from a named place or thing as a search there (move plus search). A put-off line is never an action name with a stand-in: the Parser is told so, an action waiting for arrival with no line the player would type waits as nothing (src/agents/wrappers.ts actionWords), and any placeholder put-off line is dropped and logged (placeholderLine, deferred_placeholder).
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-236
+
+**What was wrong:** Ennis gave a job to rehang the pen gate and split the woodpile, and named hinge pins, a mallet and an axe that did not exist: the chore was kind "other", which nothing could do or check, and his reply described things freely.
+
+**What was done:** Ali approved the fix (BF61). Givers may offer only jobs code can check (defeat, deliver, reach, find): "other" is gone from the job schema, the job rule tells them never to offer a chore and never to say a tool or thing is somewhere their view doesn't show, and a job code still can't read is refused (src/engine/quests.ts makeQuest, unchecked_goal) and filed as a gap. Doable chores went to the features thread.
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-247
+
+**What was wrong:** From turn 104 to 112 Hob's punches were all lost as out of reach about 1 m short: a walk never ended within 1 m of anyone, the target included, and only went in a straight line, so with Osric beside his line in he stopped 1.7 m away; the drover ended on Hob's very spot because anyone near a walk's start was let off.
+
+**What was done:** Ali approved the fix (BF71), with the gap cut to 0.2 m. Closing in keeps no gap from its target and stops at the action's reach; a taken straight-line spot makes the walker step round to the nearest free spot at that reach within its walk (src/engine/position.ts walkLeg, ringSpots). Hemmed in on every side, the blow or grab is lost with no_room (roomAround). A walk's end keeps PLACE_GAP_M (0.2 m) from everyone, no one let off; placing people and walking up to someone keep PLACE_SPACING_M (1 m). The code-run opening move closes to the blow's reach.
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-246
+
+**What was wrong:** A roll line read "d100 49 → Critical Failure−−−−−− [weapon +9, light −5, Shaken −5]" with nothing to say how a 49 got there: the eight outcome steps lost for an old sword far beyond Corwin's skill were never shown, and his own view never told him the sword was beyond him, so he kept swinging it.
+
+**What was done:** Ali approved the fix (BF70). Every roll line shows the outcome before its whole steps, the steps with their sources, and the outcome after (src/agents/game.ts tiered), for attacks, defenses, contests and checks. An NPC's own gear in its view says when it is beyond its skill and by how many steps (OwnGearView.beyondYou, src/views/index.ts beyond).
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-245
+
+**What was wrong:** Woken by every shout in a fight, an exhausted Bettany fell straight back asleep the same moment, six turns running, and never fled: collapsing from exhaustion checked none of the guards that falling asleep by routine checks.
+
+**What was done:** Ali approved the fix (BF69). Collapse uses the same guards as routine sleep (src/engine/sleep.ts mayDropOff): not within FALL_ASLEEP_MIN of waking, nor while alarmed, broken, engaged or held. Once those lift, exhaustion takes the actor again.
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-244
+
+**What was wrong:** Bettany, Osric and Tam were never given a bed, and a routine step whose place is missing was skipped, so they never slept; Bettany keeled over in the square after three days.
+
+**What was done:** Ali approved the fix (BF68). When the cast is placed, anyone whose set has a bed slot and none given gets a real bed within BED_NEAR_HOPS links of its own spots, else its refuge, else its work spot (src/scenario/apply.ts withBed). A sleep step with no bed in play runs where the NPC stands, and the gap is filed once as a bug (bed_missing).
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-243
+
+**What was wrong:** Osric opened almost every turn with the same shout: words said beside a deed (a bark) were left out of every NPC view, so his mind never saw what he had said and the people around him never got his words.
+
+**What was done:** Ali approved the fix (BF67). A bark is real speech: those who hear it get its words, the speaker's said list includes it (src/views/index.ts), and the shared line rule tells every speaker never to say a line from its said list again, or the same thing in other words (src/agents/prompts.ts LINE_RULE). Barks still copy no beliefs.
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-233
+
+**What was wrong:** An achievement held for a scenario's end was stamped with the turn it was handed over, so its line named the wrong turn.
+
+**What was done:** Ali approved the fix (BF60). A queued achievement keeps the turn it was reached on (pendingAchievements[].turn), and the grant uses it (src/engine/xp.ts grantAchievement, src/engine/growth.ts flushGrowth).
+
+**Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
 ## BG-248
 
 **What was wrong:** Tapping a name inside a clarifying question filled the box with the last order plus the name in brackets ("I attack hob (Osric Fell)"); the Parser never saw its own question, so it asked again, and each tap added another bracket.

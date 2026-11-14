@@ -185,7 +185,7 @@ export function roamWindow(state: GameState): string | null {
  * Weaver is told why, what happened in the roam, and who saw the player this turn. */
 export function checkRoam(state: GameState, events: GameEvent[]): void {
   const st = state.stage;
-  if (!st.roam || st.roam.since >= state.turn || st.scenario || st.breakCause) return;
+  if (!st.roam || st.roam.since >= state.turn || st.scenario || st.breakCause || st.starting) return; // BG-238: one is on its way
   const danger = roamStart(state, events), why = danger ?? (st.window ? null : roamWindow(state));
   if (!why) return;
   const seenBy = state.actors.filter((a) => a !== state.player && isActive(a) && a.mind?.knowledge[state.player.id]?.lastSeenTurn === state.turn).map((a) => a.id);
@@ -200,7 +200,7 @@ export function checkRoam(state: GameState, events: GameEvent[]): void {
 export function applyWindow(state: GameState, answer: WindowAnswer | null): void {
   const st = state.stage, open = st.window;
   delete st.window;
-  if (!open || !st.roam || st.scenario || st.breakCause || !st.cause) return;
+  if (!open || !st.roam || st.scenario || st.breakCause || st.starting || !st.cause) return;
   if (answer && !answer.start) {
     st.roam.declinedAt = now(state);
     logCode(state, 'window_declined', { why: st.cause.why, ...(answer.note ? { note: answer.note } : {}) });

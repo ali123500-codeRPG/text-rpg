@@ -33,7 +33,7 @@ export function installRoutines(actor: Actor, setId: string, slots: Record<strin
   mind.routines = [...set.routines];
   mind.slots = { ...slots };
   const r = getRoutine(set.routines[0]);
-  const stops = r.kind === 'schedule' ? expandSteps(r, mind.slots, timeOfDay(at)) : [];
+  const stops = r.kind === 'schedule' ? expandSteps(r, mind.slots, timeOfDay(at), actor.zone) : [];
   const total = stops.reduce((n, s) => n + s.minutes, 0);
   // NW10: started back in time so it stands at its startAt step, or (a loop) somewhere along it at random
   let back = 0;
@@ -138,7 +138,9 @@ export function isCalm(state: GameState, a: Actor): boolean {
   return !isEngaged(state, a) && !alarm?.armed && secondsSince(state, last) >= CONFIG.DECAY_AWARE_S;
 }
 
-const ALARM_KINDS = new Set(['attack', 'alarm']);
+const ALARM_KINDS = new Set(['attack', 'alarm', 'struck', 'found_body']);
+/** BF65: kinds that alarm their own actor too: the one struck unseen, the one who finds a body */
+const SELF_ALARM = new Set(['struck', 'found_body']);
 
 /** onAlert once (queued as onAlertDue), switch to the alert variant anchored now, save returnTo. */
 export function raiseAlarm(state: GameState, a: Actor): void {
@@ -172,7 +174,7 @@ export function knownFromTheStart(state: GameState, actors: Actor[]): void {
 export function updateAlarms(state: GameState, events: GameEvent[]): void {
   for (const a of state.actors) {
     if (!a.mind || !isActive(a)) continue;
-    const perceivedAlarm = events.some((e) => e.actorId !== a.id && ALARM_KINDS.has(e.kind) && !e.spar && !!e.perception[a.id]); // SP11: a spar raises no alarm
+    const perceivedAlarm = events.some((e) => (e.actorId !== a.id || SELF_ALARM.has(e.kind)) && ALARM_KINDS.has(e.kind) && !e.spar && !!e.perception[a.id]); // SP11: a spar raises no alarm
     const leftUnaware = knowsWary(state, a);
     if (perceivedAlarm || (leftUnaware && !a.mind.alarm?.armed)) {
       raiseAlarm(state, a);

@@ -18,6 +18,7 @@ export const BUG_CODES = new Set([
   'achievement_outside_end', // an achievement granted anywhere but a scenario's end (engine/xp.ts grantAchievement)
   'ending_item_remapped', // BF55: a scenario ending named the base of an item its own plan made
   'agent_repeat', // BG-232: the watch-an-agent player said a line word for word that it said within its last few moves
+  'bed_missing', // BF68: an NPC's routine sent it to sleep with no bed given; it slept where it stood
   'code_error', // a throw the game caught so play could go on (a background Planner, the story text save)
 ]);
 export const isBugCode = (code: string): boolean => code.startsWith('invalid_') || BUG_CODES.has(code);

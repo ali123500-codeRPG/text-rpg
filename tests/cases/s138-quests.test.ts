@@ -49,7 +49,7 @@ describe('138 quests', () => {
     expect(codes(s, 'quest_deal_locked')).toHaveLength(1);
   });
 
-  it('QT3/QT4/QT5/QT27: unheard, leaking or second jobs make no quest; "other" logs a goal gap', () => {
+  it('QT3/QT4/QT5/QT27: unheard, leaking or second jobs make no quest; "other" is refused and logs a goal gap (BF61)', () => {
     const s = shop();
     // no words from the player this turn: the deal stands, the quest does not
     play(s, { agentOutputs: [{ agent: 'planner', actorId: 'trader', output: { action: act('hold'), dialogue: { line: 'Clear the field for me.', volume: 'normal' },
@@ -60,8 +60,10 @@ describe('138 quests', () => {
     talk(s, offer({ ...SLIMES, line: 'Scare off the smugglers' }));
     expect(codes(s, 'quest_refused')[0].detail).toMatchObject({ reason: 'leak' });
     talk(s, offer({ line: 'Cheer up my sister', goal: { kind: 'other' } }));
-    expect(s.quests[0].goal).toEqual({ kind: 'other' });
+    expect(s.quests).toEqual([]); // BF61: a job code cannot check is never made
     expect(codes(s, 'quest_goal_gap')[0].detail).toMatchObject({ text: 'Cheer up my sister', giver: 'trader' });
+    expect(codes(s, 'quest_refused')[0].detail).toMatchObject({ reason: 'unchecked_goal' });
+    talk(s, offer(SLIMES));
     talk(s, offer(SLIMES));
     expect(s.quests).toHaveLength(1);
     expect(codes(s, 'quest_refused')[0].detail).toMatchObject({ reason: 'open_quest' });
@@ -158,11 +160,12 @@ describe('138 quests', () => {
     expect(s.quests[0].state).toBe('abandoned');
     expect(stance(s, actor(s, 'trader'), s.player)).not.toBe(before);
     expect(s.hidden.memory.trader.at(-1)!.text).toContain('gave up the job');
-    talk(s, offer({ line: 'Cheer up my sister', goal: { kind: 'other' } }));
+    talk(s, offer({ line: 'Go see the far field', goal: { kind: 'reach', target: 'field_far' } }));
     const q2 = s.quests[1];
     talk(s, { questEnd: { id: q2.id, outcome: 'called_off' } }, 'Any news?');
     expect(q2.state).toBe('called_off');
-    talk(s, offer({ line: 'Find my lost cat', goal: { kind: 'other' } }));
+    talk(s, offer({ line: 'Find my lost cat', goal: { kind: 'reach', target: 'field_far' } }));
+    s.quests[2].goal = { kind: 'other' }; // a job made before BF61, which only its giver can judge
     talk(s, { questEnd: { id: s.quests[2].id, outcome: 'done' } }, 'I found your cat.');
     expect(s.quests[2].state).toBe('done');
     talk(s, offer(SLIMES));
@@ -173,7 +176,8 @@ describe('138 quests', () => {
 
   it('QT24: a follow-up from the giver in the same talk links to the job just handed in; pins are one at a time', () => {
     const s = shop();
-    talk(s, offer({ line: 'Find my lost cat', goal: { kind: 'other' } }));
+    talk(s, offer({ line: 'Find my lost cat', goal: { kind: 'reach', target: 'field_far' } }));
+    s.quests[0].goal = { kind: 'other' }; // a job made before BF61, which only its giver can judge
     talk(s, { questEnd: { id: s.quests[0].id, outcome: 'done' } }, 'Here is your cat.');
     talk(s, offer(SLIMES), 'What else?');
     expect(s.quests[1].after).toBe(s.quests[0].id);
@@ -189,5 +193,9 @@ describe('138 quests', () => {
       questEnd: { id: 'quest_1_trader', outcome: 'called_off' } });
     expect(r.errors).toEqual([]);
     expect(r.value.agreement?.job?.due).toEqual({ days: 2, by: 'dusk' });
+    // BF61: a job code cannot check is a broken rule
+    const o = checkResponder({ action: act('talk', 'player'), dialogue: null, gear: null, stance: null, planUpdate: null, reveals: [],
+      agreement: { with: 'player', text: 'a deal', job: { line: 'Mend the gate', goal: { kind: 'other' } } } });
+    expect(o.errors.join(' ')).toContain('kind');
   });
 });

@@ -56,7 +56,7 @@ function seedAchievements(st: GameState) {
   tally(st, 'defeated', { to: 6 });
   tally(st, 'achievements', { to: 12 });
   const pr = st.player.progression!;
-  for (const q of pr.pendingAchievements ?? []) grantAchievement(st, q.key, q.of, q.reached, true);
+  for (const q of pr.pendingAchievements ?? []) grantAchievement(st, q.key, q.of, q.reached, true, q.turn);
   pr.pendingAchievements = [];
 }
 

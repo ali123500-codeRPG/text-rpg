@@ -38,7 +38,7 @@ import { perkMoveBlock } from '../engine/perkMoves';
 import { blindSpotNow } from '../engine/perkMarks';
 import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
-import { barkOnly, beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
+import { beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
 import { skillName } from '../library/skillNames';
 import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -54,6 +54,7 @@ import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, usableModes } from '.
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
+import { shortShifts } from '../ruleset/requirements';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUsed } from '../ruleset/fatigue';
 import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
@@ -146,6 +147,15 @@ export function callName(state: GameState, viewerId: string, id: string): string
 /** whoever `viewer` sees clearly right now (BG-95: a name heard is put to this face) */
 export const seesClearlyNow = (state: GameState, viewer: Actor, id: string): boolean => seenActors(state, viewer).some((x) => x.id === id && x.level === 'full');
 
+/** BF70 (EQ12 c): gear the holder falls short on says so, with the outcome steps it costs every roll made with it, so an NPC
+ * can pick its fists or another weapon (worn armor costs Dodge and stealth rolls) */
+function beyond(state: GameState, a: Actor, i: ItemInstance): { beyondYou?: string } {
+  const n = -shortShifts(state, a, 'hit', i.id).reduce((t, x) => t + x.value, 0);
+  if (n <= 0) return {};
+  const what = itemDef(state, i.itemId).armor ? 'Dodge and stealth roll while you wear it' : 'roll with it';
+  return { beyondYou: `beyond your skill: every ${what} is ${n} outcome step${n === 1 ? '' : 's'} worse` };
+}
+
 function ownGear(state: GameState, a: Actor): OwnGearView[] {
   return a.core.inventory.map((i) => {
     const d = itemDef(state, i.itemId);
@@ -157,6 +167,7 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
       ...(d.stackable ? { qty: i.qty ?? 1 } : {}),
       ...(d.container && !wornPack(i) ? containerOf(state, { ...i, open: true }, a) : {}), // CT3: one's own sack is always open to one
+      ...beyond(state, a, i),
     };
   });
 }
@@ -308,7 +319,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
     ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
-    ...(e.line && !e.bark && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
+    ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
@@ -518,11 +529,12 @@ function baseView(state: GameState, actorId: string): BaseView {
   const m = a.mind;
   const ct = actorBody(state, a);
   const attackSkill = (a.core.templateId ? npcTemplate(state, a.core.templateId).fallback?.attackSkill : undefined) ?? ct.fallback.attackSkill;
-  // never copy bark events into an NPC view (Leak prevention)
+  // BF67: a line said beside a deed (a bark) is real speech: those who hear it get its words, and the one who said it sees it in
+  // what it said. It still copies no belief (perception's updateBeliefs).
   const history = [...(state.recentEvents ?? []), ...state.events];
-  const perceived = history.filter((e) => e.perception[a.id] && !barkOnly(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
+  const perceived = history.filter((e) => e.perception[a.id]).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const told = history.filter((e) => hearsWords(e.perception[a.id]) && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
-  const said = history.filter((e) => e.actorId === a.id && e.line?.text && !e.bark).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
+  const said = history.filter((e) => e.actorId === a.id && e.line?.text).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
   const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && met(e.attack.outcome));
   const scratchHits = state.scratch?.[a.id];
   const lastHitBy = hit?.actorId ?? (Array.isArray(scratchHits) ? (scratchHits.at(-1) as string | undefined) : undefined);
@@ -653,6 +665,9 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
   if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
+  // BF65: struck by someone unseen; a body come upon
+  if (e.kind === 'struck') return `${who} ${who === 'you' ? 'were' : 'was'} struck by someone unseen`;
+  if (e.kind === 'found_body' && e.target) return `${who} found ${name(e.target)} lying ${actorById(state, e.target) && healthLevel(actorById(state, e.target)!) === 'dead' ? 'dead' : 'down'}`;
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
   const moving = e.kind === 'move' || e.kind === 'flee';
   const where = moving && (e.fromZone || !v.target) ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';

@@ -131,9 +131,18 @@ export function settleSleepers(state: GameState): void {
     if (!m?.routine || !isActive(a)) continue;
     const d = desiredState(buildActorView(state, a.id));
     const sleepy = d?.activity === 'sleep' && d.zone === a.zone;
+    // BF68: a sleep step with nowhere given runs where it stands; the gap is filed once as a bug
+    if (sleepy && d.unbound && !state.log.some((l) => l.code === 'bed_missing' && l.detail?.actorId === a.id)) logCode(state, 'bed_missing', { actorId: a.id, routineId: m.routine.id });
     if (a.asleep && !sleepy) wake(state, a, 'rested');
-    else if (!a.asleep && sleepy && !isEngaged(state, a) && !m.alarm?.armed && !m.moraleState && !a.heldBy && (a.wokeAt === undefined || t - a.wokeAt >= CONFIG.FALL_ASLEEP_MIN)) fallAsleep(state, a);
+    else if (!a.asleep && sleepy && mayDropOff(state, a)) fallAsleep(state, a);
   }
+}
+
+/** NW20, BF69: the guards on falling asleep, by routine or by exhaustion (fatigue.ts collapse): not while engaged, alarmed,
+ * broken or held, and no sooner than FALL_ASLEEP_MIN after it last woke */
+export function mayDropOff(state: GameState, a: Actor): boolean {
+  const m = a.mind;
+  return !isEngaged(state, a) && !m?.alarm?.armed && !m?.moraleState && !a.heldBy && (a.wokeAt === undefined || now(state) - a.wokeAt >= CONFIG.FALL_ASLEEP_MIN);
 }
 
 /** NW15/NW22: the night the player starts by sleeping. Alone, it lasts the sleep row. With companions in the zone (those

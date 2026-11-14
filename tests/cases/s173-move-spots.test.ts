@@ -73,7 +73,7 @@ describe('173 move spots (BG-12)', () => {
     expect(s.player.pos!.x).toBeCloseTo(room.x, 1);
     const ev: string[] = [];
     for (let n = 0; n < 3; n++) ev.push(...play(s, { intent: intent({ move: { toZone: 'tav_common', spot: { near: 'patron_1' } } }) }).filter((e) => e.kind === 'move').map((e) => e.target ?? ''));
-    expect(distM(s, s.player, wim)).toBeLessThan(CONFIG.PLACE_GAP_M + 0.01);
+    expect(distM(s, s.player, wim)).toBeLessThan(CONFIG.PLACE_SPACING_M + 0.01);
     expect(ev).toContain('patron_1');
   });
 

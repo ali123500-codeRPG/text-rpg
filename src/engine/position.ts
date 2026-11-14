@@ -44,9 +44,9 @@ function pointOf(state: GameState, a: Located): Pos {
 }
 
 /** ZP1: gives everyone on stage whose point is missing or outside its zone a free spot in it: the zone's centre, else the
- * nearest point on a PLACE_GAP_M grid around it that keeps PLACE_GAP_M from everyone already standing there */
+ * nearest point on a PLACE_SPACING_M grid around it that keeps PLACE_SPACING_M from everyone already standing there */
 export function placeAll(state: GameState): void {
-  const gap = CONFIG.PLACE_GAP_M;
+  const gap = CONFIG.PLACE_SPACING_M;
   const people = allActors(state);
   for (const a of people) {
     const z = zoneById(state, a.zone);
@@ -166,21 +166,49 @@ export function sideFrom(viewer: { pos?: Pos; facing?: [number, number] }, at: P
   return Math.abs(ahead) >= Math.abs(left) ? (ahead >= 0 ? 'ahead' : 'behind') : left > 0 ? 'left' : 'right';
 }
 
+/** BF35/BF71: everyone else in the walker's zone whose spot a walk's end keeps PLACE_GAP_M from: all of them (none is let
+ * off for standing near the start), but never the one it closes in on (`toward`), whom it stops at reach from */
+const othersFor = (state: GameState, walker: Actor, toward?: string) =>
+  allActors(state).filter((x) => x !== walker && x.id !== toward && x.zone === walker.zone && !!x.pos);
+const free = (others: Actor[], p: Pos) => !others.some((x) => flat(x.pos!, p) < CONFIG.PLACE_GAP_M - EPS);
+
 /** BF35: how far along the line from `A` toward `B` (d metres) the walker may go, at most `go`, so that where it stops keeps
- * PLACE_GAP_M from everyone else in its zone (someone already within that of the start does not hold it back) */
-function roomAt(state: GameState, walker: Actor, A: Pos, B: Pos, go: number, d: number): number {
-  const gap = CONFIG.PLACE_GAP_M;
-  const others = allActors(state).filter((x) => x !== walker && x.zone === walker.zone && !!x.pos && flat(x.pos, A) > gap);
+ * PLACE_GAP_M from everyone else in its zone */
+function roomAt(state: GameState, walker: Actor, A: Pos, B: Pos, go: number, d: number, toward?: string): number {
+  const others = othersFor(state, walker, toward);
   const at = (t: number): Pos => ({ x: A.x + (B.x - A.x) * t / d, y: A.y + (B.y - A.y) * t / d });
   let t = go;
-  for (let i = 0; i < 200 && t > EPS && others.some((x) => flat(x.pos!, at(t)) < gap - EPS); i++) t = Math.max(0, t - gap / 10);
+  for (let i = 0; i < 400 && t > EPS && !free(others, at(t)); i++) t = Math.max(0, t - CONFIG.PLACE_GAP_M / 10);
   return t;
+}
+
+/** BF71: the free spots, nearest to `from` first, on the ring `r` metres round `B` inside the walker's zone, keeping
+ * PLACE_GAP_M from everyone but `toward` (RING_STEPS points round it) */
+function ringSpots(state: GameState, walker: Actor, B: Pos, r: number, from: Pos, toward?: string): Pos[] {
+  const z = zoneById(state, walker.zone);
+  if (!z?.rect || r <= EPS) return [];
+  const others = othersFor(state, walker, toward);
+  const out: Pos[] = [];
+  for (let i = 0; i < CONFIG.RING_STEPS; i++) {
+    const t = (2 * Math.PI * i) / CONFIG.RING_STEPS, p = { x: B.x + r * Math.cos(t), y: B.y + r * Math.sin(t) };
+    if (inside(z, p) && free(others, p)) out.push(p);
+  }
+  return out.sort((a, b) => flat(a, from) - flat(b, from));
+}
+
+/** BF71: there is a free spot within `r` metres of `target` for `walker` to stand on (where it stands now counts): false when
+ * the target is hemmed in on every side */
+export function roomAround(state: GameState, walker: Actor, target: Actor, r: number): boolean {
+  const A = pointOf(state, walker), B = pointOf(state, target);
+  if (walker.zone !== target.zone || !A || !B) return true;
+  if (flat(A, B) <= r + EPS) return true;
+  return ringSpots(state, walker, B, Math.max(0, r - EPS), A, target.id).length > 0;
 }
 /** ZP2: one leg of a walk toward `goal`: to the doorway of the next zone on the way (entering it), or, inside the goal's
  * zone, straight at the goal's point, stopping `stopShort` metres before it. A goal with no point is the zone itself: the
  * walk ends ENTER_M past its doorway. At most `metres` are walked. Returns the metres walked (0: nothing left to walk), or
  * null when there is no way. */
-export function walkLeg(state: GameState, a: Located & { placeId?: string }, goal: Located, metres: number, stopShort = 0, walker?: Actor, halt = false): number | null {
+export function walkLeg(state: GameState, a: Located & { placeId?: string }, goal: Located, metres: number, stopShort = 0, walker?: Actor, halt = false, toward?: string): number | null {
   const A = { zone: a.zone, pos: pointOf(state, a) };
   if (A.zone === goal.zone) {
     if (!goal.pos) return 0;
@@ -188,7 +216,16 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
     const d = flat(A.pos, B);
     let go = Math.min(metres, Math.max(0, d - stopShort));
     // BF35: a walk never ends on someone: at its end it stops PLACE_GAP_M short of anyone standing there
-    if (walker && go >= d - stopShort - EPS) go = roomAt(state, walker, A.pos, B, go, d);
+    if (walker && go >= d - stopShort - EPS) {
+      const room = roomAt(state, walker, A.pos, B, go, d, toward);
+      // BF71: closing in on someone whose straight-line spot is taken, it steps round to the nearest free spot at that reach
+      // its walk can get to; with none in its walk, it goes as far as the line lets it
+      if (toward && room < go - EPS) {
+        const p = ringSpots(state, walker, B, stopShort, A.pos, toward).find((x) => flat(A.pos, x) <= metres + EPS);
+        if (p) { const m = flat(A.pos, p); if (m <= EPS) return 0; step(a, p); return m; }
+      }
+      go = room;
+    }
     if (go <= EPS) return 0;
     step(a, { x: A.pos.x + (B.x - A.pos.x) * go / d, y: A.pos.y + (B.y - A.pos.y) * go / d });
     return go;
@@ -236,7 +273,7 @@ export function entryPoint(state: GameState, zoneId: string, fromId: string): Po
 }
 
 /** BG-49: at story start outdoors, the player stands at the way from its zone into the building of the scenario's place (`placeId`; else any other
- * place), PLACE_GAP_M back from it toward the zone's centre, as the openings tell it (arriving at the door) */
+ * place), PLACE_SPACING_M back from it toward the zone's centre, as the openings tell it (arriving at the door) */
 export function startAtDoor(state: GameState, placeId?: string): void {
   const p = state.player, z = zoneById(state, p.zone);
   if (!z?.rect || !z.outdoor) return; // starting indoors: already in
@@ -244,7 +281,7 @@ export function startAtDoor(state: GameState, placeId?: string): void {
   const b = others.find((o) => o.placeId === placeId) ?? others[0];
   if (!b) return;
   const out = crossing(z, b).out, c = centre(z)!, d = flat(out, c);
-  const k = d > EPS ? Math.min(1, CONFIG.PLACE_GAP_M / d) : 0;
+  const k = d > EPS ? Math.min(1, CONFIG.PLACE_SPACING_M / d) : 0;
   p.pos = { x: out.x + (c.x - out.x) * k, y: out.y + (c.y - out.y) * k };
 }
 
@@ -283,7 +320,7 @@ export function wayPoint(state: GameState, zoneId: string, to: string, from: Loc
 }
 
 /** BG-12: the point a move spot names in zone `zoneId`, as seen from `from`: beside someone there (`near` an actor:
- * stopShort keeps PLACE_GAP_M from them) or at a way out (`near` a link's zone: its doorway, a frontier's side); the far
+ * stopShort keeps PLACE_SPACING_M from them) or at a way out (`near` a link's zone: its doorway, a frontier's side); the far
  * edge straight across from someone or a way out (`awayFrom`); or the middle of the side a compass word names (`side`).
  * Points stand ENTER_M (a step) inside the edge. null: the zone has no rectangle, or the spot names nothing there. `toward` is the
  * actor walked to; `words` says the spot for the story ("to the north side", "away from the cellar steps"). */
@@ -314,7 +351,7 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     const p = point(spot.near);
     if (!p || (p.actor && !p.here)) return null; // someone elsewhere is a move to their zone, not a spot in this one
     // BF35: a follow keeps its distance (followGap); a walk up to someone stops a step short of them
-    const short = spot.follow && walker ? followGap(state, walker, spot.keep) : CONFIG.PLACE_GAP_M;
+    const short = spot.follow && walker ? followGap(state, walker, spot.keep) : CONFIG.PLACE_SPACING_M;
     return p.actor ? { pos: p.at, stopShort: short, toward: p.actor } : { pos: inset(p.at), stopShort: 0, words: `at ${p.label}` };
   }
   if (spot.awayFrom) {

@@ -65,6 +65,8 @@ export class ScenarioDirector {
   private regionCalls = new Map<string, { gx: number; gy: number; back: boolean; raw?: unknown }>();
   /** WB6: the window call in flight; never saved (a reload drops it and the window stays shut) */
   private window: { done: boolean; answer: WindowAnswer | null } | null = null;
+  /** BG-238: the held scenario start's plan in flight (startPlanning); never saved (a reload plans it again, waiting) */
+  private planning: { ctx: PlanContext; result: Promise<Planned> } | null = null;
 
   constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn; region?: RegionCall; window?: Window; /** WB1: without it the Weave call builds frontiers (tests) */ build?: Build }) {}
 
@@ -128,26 +130,81 @@ export class ScenarioDirector {
     return [...this.held.keys()];
   }
 
-  /** Scenario setup (steps 1–8 minus the save): one event roll, one Weaver call (+ one repair), apply or fallback. */
+  /** Scenario setup (steps 1–8 minus the save): one event roll, one Weaver call (+ one repair), apply or fallback.
+   * BG-238: a start held from free roam uses its saved event roll, and the plan made for it in the background when there is
+   * one for this place (awaited if not back yet; planned now after a reload). */
   async startScenario(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<ScenarioResult> {
     const placeId = state.player.placeId; // step 1
     ensurePlace(state, placeId);
-    const eventRoll = state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng); // step 2; TV4: an encounter's roll was made on the road
+    const ahead = this.planning?.ctx.placeId === placeId && state.stage.starting ? this.planning : null;
+    this.planning = null;
+    const eventRoll = state.stage.starting?.eventRoll ?? state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng); // step 2; TV4: an encounter's roll was made on the road
+    delete state.stage.starting;
     this.lastEventRoll = eventRoll;
     this.held.clear();
+    const w = this.begin(state, eventRoll);
+    // WZ1 + WZ13: the land comes first; the story's first settlement stands on the brief's start site
+    // WEAVER_TIMEOUT bounds the whole scenario-start wait (the region call, the first call and repair together)
+    const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
+    if (this.opening) await this.firstRegion(state, deadline);
+    const { ctx, target } = this.aim(state, eventRoll, w);
+    if (ahead) {
+      const r = await ahead.result;
+      // the stage moved on while it was planned: check it again (no retry, as for a background extension)
+      const planned = r.plan ? { ...r, errors: validateStagePlan(state, r.plan, ahead.ctx) } : r;
+      return { ...finish(state, ahead.ctx, planned, rng, entry), eventRoll };
+    }
+    const planned = await this.plan(state, ctx, target, deadline);
+    return { ...finish(state, ctx, planned, rng, entry), eventRoll };
+  }
+
+  /** the start's first steps: whether the player wakes (D-54) or arrives (HF26), then the scenario begins */
+  private begin(state: GameState, eventRoll: EventRollResult): { wake: boolean; arrive: boolean } {
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
     // HF26: a new character standing nowhere yet, in a world that already has ground
     const arrive = !state.player.zone && state.places.some((p) => p.zones.length);
     beginScenario(state, eventRoll.tier, eventRoll.beyond);
-    // WZ1 + WZ13: the land comes first; the story's first settlement stands on the brief's start site
-    const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    if (this.opening) await this.firstRegion(state, deadline);
+    return { wake, arrive };
+  }
+
+  /** what the start's Weaver call is for */
+  private aim(state: GameState, eventRoll: EventRollResult, w: { wake: boolean; arrive: boolean }): { ctx: PlanContext; target: WeaverTarget } {
+    const placeId = state.player.placeId, { wake, arrive } = w;
     const start = state.regions?.[0]?.sites.find((x) => x.id === state.regions![0].start && !x.placeId);
     const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(start ? { site: start.id } : {}), ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}) };
-    // WEAVER_TIMEOUT bounds the whole scenario-start wait (the region call, the first call and repair together)
     const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(arrive ? { arrive: true as const } : {}) };
-    const planned = await this.plan(state, ctx, target, deadline);
-    return { ...finish(state, ctx, planned, rng, entry), eventRoll };
+    return { ctx, target };
+  }
+
+  /** BG-238: danger in free roam starts a scenario without the turn waiting for the Weaver: the event roll is made now and
+   * saved, free roam goes on for one more turn, and the plan is asked for after the save (startPlanning) */
+  holdStart(state: GameState, rng: Rng): void {
+    const eventRoll = ruleset.eventRoll(state.player, state, rng);
+    state.stage.starting = { turn: state.turn, eventRoll };
+    delete state.stage.breakCause;
+    state.log.push({ turn: state.turn, code: 'scenario_held', detail: { why: state.stage.cause?.why ?? 'roam' } });
+  }
+
+  /** BG-238: after the save, the held start's plan is asked for in the background, on a copy of the state as the start
+   * leaves it (the scenario begun with the saved roll), logged under the next turn, which applies it. Returns whether
+   * one was asked. */
+  startPlanning(state: GameState): boolean {
+    if (!state.stage.starting || this.planning) return false;
+    const copy = structuredClone(state);
+    const eventRoll = copy.stage.starting!.eventRoll;
+    delete copy.stage.starting;
+    ensurePlace(copy, copy.player.placeId);
+    const { ctx, target } = this.aim(copy, eventRoll, this.begin(copy, eventRoll));
+    // nobody may await a background call unguarded: a throw becomes a failed plan (the fallback stage)
+    const result = this.plan(copy, ctx, target, this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS).catch((): Planned => ({ plan: null, errors: [], reason: 'call_failed' }));
+    this.planning = { ctx, result };
+    return true;
+  }
+
+  /** BG-238: something else started the scenario first (a knock-out, a road encounter): the held start and its plan go */
+  dropHeld(state: GameState): void {
+    this.planning = null;
+    delete state.stage.starting;
   }
 
   /** Story start: setup alone, as turn 0; returns the opening events (also pushed to state.events). The pipeline saves turn 0 and makes the one Narrator call. */
@@ -165,6 +222,7 @@ export class ScenarioDirector {
     const started: string[] = [];
     this.startCheckin(state);
     this.startWindow(state);
+    this.startPlanning(state); // BG-238
     this.drawAhead(state);
     started.push(...this.buildAhead(state));
     for (const key of frontiersNearPlayer(state)) {
@@ -379,7 +437,8 @@ function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry:
 export function replayScenarioStart(state: GameState, weaverOutputs: (StagePlan | null)[], rng: Rng, entry: 'open' | 'stealthy' = 'open'): ScenarioResult {
   const placeId = state.player.placeId;
   ensurePlace(state, placeId);
-  const eventRoll = state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng);
+  const eventRoll = state.stage.starting?.eventRoll ?? state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng);
+  delete state.stage.starting; // BG-238
   const wake = state.stage.breakCause === 'knocked_out'; // D-54
   beginScenario(state, eventRoll.tier, eventRoll.beyond);
   const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}) };

@@ -33,7 +33,7 @@ import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
-import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
+import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { echoPast, fameEntry } from './fame';
 import { echoSheet } from '../library/echo';
@@ -948,7 +948,8 @@ export function plannerActors(s: GameState): string[] {
   const dealt = (s.hidden.agreements ?? []).flatMap((g) => g.parties).filter((id) => id !== s.player.id && !s.pending.engaged.includes(id));
   const errand = (a: Actor) => (a.mind?.errandUntil ?? -Infinity) > s.turn; // BG-180: a deed it said it was doing, run by code or not
   const errands = s.actors.filter((a) => errand(a) && isActive(a)).map((a) => a.id);
-  return [...new Set([...(s.mercy?.pending ?? []), ...s.pending.engaged, ...dealt, ...errands])] // D-239: those deciding the player's fate
+  const startled = s.actors.filter((a) => (a.mind?.startled ?? -Infinity) >= s.turn - 1 && isActive(a)).map((a) => a.id); // BF65: struck unseen, saw it, or found a body
+  return [...new Set([...(s.mercy?.pending ?? []), ...s.pending.engaged, ...dealt, ...errands, ...startled])] // D-239: those deciding the player's fate
     .map((id) => s.actors.find((a) => a.id === id))
     .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && (!busyNow(a) || !!a.busy!.alert)) // NW20: a sleeper is not asked; AT47: nor one at a long action, unless its coming-near check fired (AT67)
     .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
@@ -1294,7 +1295,15 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   const whose = (id: string) => (id === me ? 'Your' : `${name(id)}’s`);
   const num = (n: number) => String(r1(n));
   const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${num(x.value)}`).join(', ')}]` : '');
-  const roll = (r: TierRoll & { actorId: string; skill: string; d100: number }) => `${whose(r.actorId)} ${skillName(r.skill).toLowerCase()} d100 ${r.d100} → ${tierName(r)}`;
+  // BF70: a roll moved by outcome steps (short of gear, cover, fear, perks) shows the outcome before them, the steps and what
+  // moved it, then the outcome they made: "Near Miss [weapon +9], 8 steps down [Short of … −8] → Critical Failure−−−−−−"
+  const tiered = (r: TierRoll & { modifiers?: { source: string; value: number }[]; tierShifts?: { source: string; value: number }[] }) => {
+    const sh = (r.tierShifts ?? []).filter((x) => x.value), total = sh.reduce((t, x) => t + x.value, 0);
+    if (!total) return `${tierName(r)}${mods(r.modifiers ?? [])}`;
+    const n = Math.abs(total);
+    return `${tierName(tierAt(tierLevel(r) - total))}${mods(r.modifiers ?? [])}, ${n} step${n === 1 ? '' : 's'} ${total < 0 ? 'down' : 'up'}${mods(sh)} → ${tierName(r)}`;
+  };
+  const roll = (r: TierRoll & { actorId: string; skill: string; d100: number; tierShifts?: { source: string; value: number }[] }) => `${whose(r.actorId)} ${skillName(r.skill).toLowerCase()} d100 ${r.d100} → ${tiered(r)}`;
   const sense = (skill: string) => !!noticeCue(skill);
   const unseen = (id: string | undefined) => !!id && id !== me && s.actors.some((a) => a.id === id) && !seen.has(id);
   const part = (a: { location: string | null; targetId: string }) => {
@@ -1309,9 +1318,9 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;
     if (e.attack) {
       const a = e.attack;
-      const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${tierName(a.defense)}${mods(a.defense.modifiers)}` : '';
+      const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${tiered(a.defense)}` : '';
       const where = part(a);
-      out.push(`${name(a.attackerId)} → ${a.targetId === me ? 'you' : name(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
+      out.push(`${name(a.attackerId)} → ${a.targetId === me ? 'you' : name(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tiered(a.attack)}${def}` +
         `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${outcomeText(a.outcome)}${where ? ` (${where})` : ''}${a.damage ? `, damage ${num(a.damage)}` : ''}`);
     } else if (e.contest) {
       const c = e.contest;
@@ -1320,7 +1329,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
       out.push(`${roll(c.a)} vs ${roll(c.b).replace(/^Your/, 'your')}: ${won}`);
     } else if (e.roll) {
       if (sense(e.roll.asked ?? e.roll.skill) && unseen(e.target)) continue;
-      out.push(`${roll(e.roll)}${mods(e.roll.modifiers)}`);
+      out.push(roll(e.roll));
     } else if (e.check) {
       const k = e.check;
       if (sense(k.asked ?? k.skill) && unseen(e.target)) continue;

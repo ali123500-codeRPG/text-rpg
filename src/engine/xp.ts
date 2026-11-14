@@ -349,9 +349,10 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
 }
 
 /** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names;
- * `reached`: the tally that earned it (shown as why it was earned). Saves keep only key and of, so renaming a row or moving
+ * `reached`: the tally that earned it (shown as why it was earned); `at`: the turn it was reached on, when it was held for a
+ * scenario's end (BF60). Saves keep only key and of, so renaming a row or moving
  * its reward level edits only the table. */
-export function grantAchievement(state: GameState, key: string, of?: string, reached?: number, now = false): void {
+export function grantAchievement(state: GameState, key: string, of?: string, reached?: number, now = false, at?: number): void {
   const pr = state.player.progression;
   const d = getLibrary().achievements?.[key];
   if (!pr || !d) return;
@@ -359,7 +360,8 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
   if (pr.achievements?.some((x) => x.id === id)) return;
   if (!now && growthWaits(state)) { // D-226: while a scenario runs, it is granted at the scenario's end (flushGrowth)
     const q = (pr.pendingAchievements ??= []);
-    if (!q.some((x) => x.key === key && x.of === of)) q.push({ key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}) });
+    // BF60: it keeps the turn it was reached on, which its line names when it is handed over
+    if (!q.some((x) => x.key === key && x.of === of)) q.push({ key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}), turn: state.turn });
     return;
   }
   // growth lands at a scenario's end (D-226): an achievement granted anywhere else is flagged, filed as a bug report
@@ -368,7 +370,7 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
   const lib = getLibrary().achievements ?? {};
   for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
-  (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}), turn: state.turn });
+  (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}), turn: at ?? state.turn });
   if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
   const xp = achXp(d, of);
   logCode(state, 'achievement', { id, xp });

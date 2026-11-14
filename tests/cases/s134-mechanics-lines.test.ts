@@ -51,6 +51,22 @@ describe('134 mechanics lines', () => {
     expect(line).toMatch(/^Someone → you: .+; full hit \(torso\), damage 9\.6$/);
     expect(line).not.toMatch(/general|slime/i);
   });
+  it('BF70 (BG-246): a roll moved by outcome steps shows the outcome before them, the steps and why, then the outcome they made', () => {
+    const s = makeVillage();
+    place(s, 'patron_1', s.player.zone);
+    const short = { ...roll('patron_1', SK.melee_medium, 49, 'critical_failure'), beyond: -6, modifiers: [{ source: 'weapon', type: 'gear', value: 9 }], tierShifts: [{ source: "Short of an old sword's requirement", value: -8 }] } as RollResult;
+    const attack = {
+      attack: short, defense: { ...roll('player', SK.dodge, 30, 'failure'), tierShifts: [{ source: 'cover', value: 1 }] }, defenseType: 'dodge' as const, gap: null, gapShifts: [],
+      outcome: 'missed' as const, location: null, locationHow: 'rolled' as const, multiplier: 1, damage: 0, deciding: { attack: [], defense: [], gap: [] },
+      attackerId: 'patron_1', targetId: 'player', weaponId: '', modeId: '',
+    };
+    const line = mechanicsLines(s, [ev(s, { actorId: 'patron_1', kind: 'attack', target: 'player', attack } as never)])[0];
+    expect(line).toContain("d100 49 → Near Miss [weapon +9], 8 steps down [Short of an old sword's requirement -8] → Critical Failure−−−−−−");
+    expect(line).toContain('dodge d100 30 → Critical Failure, 1 step up [cover +1] → Failure');
+    // with no steps the line reads as before
+    expect(mechanicsLines(s, [ev(s, { roll: roll('player', SK.eyesight, 40, 'success') })])).toEqual(['Your eyesight d100 40 → Success']);
+  });
+
   it('level-ups name the class; level-ups and achievements also land on the story line', () => {
     const s = makeVillage();
     awardXp(s, xpToNext(s.player), 'test');

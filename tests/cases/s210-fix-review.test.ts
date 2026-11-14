@@ -33,6 +33,7 @@ it('BG-83: the player\'s words in a conversation are said, and heard, at the vol
 
 it('BG-84: a named listener answers only if they hear the player from where the words are said; a voice alone moves no one', () => {
   const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
+  s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening; // BF68: the patron sleeps through the morning; in the evening it drinks at its seat
   const room = s.zones.find((x) => x.id === 'tav_common')!;
   room.rect = { x: 0, y: 0, w: 60, d: 8 };
   const p = place(s, 'patron_1', 'tav_common');

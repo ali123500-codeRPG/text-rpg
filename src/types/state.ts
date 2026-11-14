@@ -48,6 +48,9 @@ export type StageInfo = {
   /** WB6: a scenario window is open (cause holds why): due, the Weaver is asked after the save; asked, its answer is awaited (a
    * reload asks again). No other window opens meanwhile; the Weaver may decline */
   window?: 'due' | 'asked';
+  /** BG-238: danger started a scenario in free roam on `turn`: the turn ended without waiting, with this event roll; the Weaver
+   * plans it in the background and it starts after the next turn (free roam goes on meanwhile; nothing else starts one) */
+  starting?: { turn: number; eventRoll: EventRollResult };
   /** BG-217: growth earned in free roam waits for the next scenario's end: where the XP stood when the roam began, taken by
    * the next scenario's frame so its gains moment counts the roam's XP too */
   roamGrowth?: { xpFrom: number; xpStart: { level: number; pct: number } };
@@ -69,6 +72,8 @@ export type Settings = { showMechanics: boolean; tone: string };
 export const QUEST_STATES = ['active', 'ready', 'done', 'failed', 'abandoned', 'called_off'] as const;
 export type QuestState = (typeof QUEST_STATES)[number];
 export const GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find', 'other'] as const;
+/** BF61: the kinds a giver may offer: only those code can check; "other" stays for jobs already made */
+export const OFFERED_GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find'] as const;
 /** QT7: what code checks from events; "other" is judged by the giver's agent at report-back (QT6) */
 export type QuestGoal =
   | { kind: 'defeat'; by: 'body_type' | 'race' | 'actor'; of: string; count: number; noun?: string } // noun: the giver's word for them

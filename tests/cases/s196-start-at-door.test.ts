@@ -17,7 +17,7 @@ it('BG-49: opening in the street, the player starts at the tavern door', () => {
   plan.zones = [street, ...plan.zones.filter((z) => z !== street)];
   applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
   expect(s.player.zone).toBe('street_door');
-  expect(wayLeftM(s, s.player, 'tav_common')).toBeLessThanOrEqual(CONFIG.PLACE_GAP_M + 0.01);
+  expect(wayLeftM(s, s.player, 'tav_common')).toBeLessThanOrEqual(CONFIG.PLACE_SPACING_M + 0.01);
 });
 
 it('BG-49: opening indoors, nothing changes', () => {

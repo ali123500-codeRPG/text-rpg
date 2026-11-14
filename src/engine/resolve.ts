@@ -21,13 +21,13 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { M_EPS, distM, distOrNull, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { M_EPS, distM, distOrNull, gateAhead, placeAll, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
-import { buildActorView } from '../views';
+import { buildActorView, seesClearlyNow } from '../views';
 import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -264,6 +264,7 @@ function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): 
 
 function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {
   if (!id) return ev;
+  if (id === 'sleep' && !isAsleep(a)) id = 'lie_awake'; // BF65: the sleeping look only while really asleep
   try {
     const d = activity(id);
     return { ...ev, activity: id, noise: armorNoise(ctx.state, a, ev.kind, d.noise), visibility: d.visibility };
@@ -380,6 +381,51 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
   }
 }
 
+/** BF65: the one struck always feels a blow that hurt or downed it, and anyone who sees it sees the hit, the fall or the death,
+ * though not who struck from hiding: a 'struck' event by the victim for those the attack itself never reached. They are
+ * startled (a Planner call to react) and, seeing it go down, know of that body. Returns who perceived it. */
+function struckSeen(ctx: Ctx, t: Actor, ev: GameEvent, before: { lost: number; active: boolean }): GameEvent['perception'] {
+  const { state } = ctx;
+  if (t.core.condition.hpLostPct <= before.lost && isActive(t) === before.active) return {};
+  const s = mk(ctx, t, 'struck', { effects: ev.effects.filter((f) => f.actorId === t.id), ...(ev.spar ? { spar: true as const } : {}) }); // SP11: a spar blow raises no alarm
+  s.perception = computePerception(s, state, ctx.rng);
+  if (healthLevel(t) !== 'dead' && !ev.perception[t.id]) s.perception[t.id] = { level: 'full', cue: 'touch' };
+  else delete s.perception[t.id];
+  for (const id of Object.keys(ev.perception)) delete s.perception[id];
+  if (!Object.keys(s.perception).length) return {};
+  emit(ctx, s, undefined, true);
+  for (const id of Object.keys(s.perception)) {
+    const m = actorById(state, id)?.mind;
+    if (!m) continue;
+    m.startled = state.turn;
+    if (!isActive(t)) m.bodiesFound = [...new Set([...(m.bodiesFound ?? []), t.id])];
+  }
+  return s.perception;
+}
+
+/** BF65: someone who comes upon a body it did not see fall finds it, once per body: alarm (updateAlarms), a Planner call
+ * to react, and the bandmate fear when it is one of its own. One that saw it fall already knows of it. */
+function findBodies(ctx: Ctx): void {
+  const { state } = ctx;
+  const bodies = state.actors.filter((b) => !isActive(b));
+  if (!bodies.length) return;
+  for (const x of state.actors) {
+    const m = x.mind;
+    if (!m || !isActive(x) || isAsleep(x)) continue;
+    for (const b of bodies) {
+      if (m.bodiesFound?.includes(b.id) || !seesClearlyNow(state, x, b.id)) continue;
+      m.bodiesFound = [...(m.bodiesFound ?? []), b.id];
+      if (ctx.events.some((e) => (e.target === b.id || e.actorId === b.id) && ['attack', 'struck'].includes(e.kind) && e.perception[x.id])) continue; // saw it fall
+      const ev = mk(ctx, x, 'found_body', { target: b.id });
+      ev.perception = computePerception(ev, state, ctx.rng);
+      ev.perception[x.id] ??= { level: 'full', cue: 'sight' };
+      emit(ctx, ev, undefined, true);
+      m.startled = state.turn;
+      if (!!b.bandId && b.bandId === x.bandId) fear(ctx, x, FR.bandmate_down, {}, ev.perception);
+    }
+  }
+}
+
 /** pays a fear (engine/morale.ts) and applies a break. Rolled fears count only while the actor is engaged, as the
  * morale check did. `seen` = who perceived the event, for the bandmates a break frightens (MB23). */
 function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean; cost?: number } = {}, seen: Record<string, unknown> = {}): void {
@@ -457,7 +503,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   // SD3–SD5: a barrier not open to the walker on the next way: walk up to it, then open it (a key, the bolt's side) or try it
   const gate = gateAhead(state, a, goal.zone);
   const round = roundShut(state, a, goal.zone);
-  const walked = walkLeg(state, a, goal, metres, stopShort, a, !!gate);
+  const walked = walkLeg(state, a, goal, metres, stopShort, a, !!gate, toward);
   if (walked === null) return null;
   if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate, withBark ? o : undefined); // an NPC tries a shut way once
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
@@ -670,7 +716,11 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && withinM(dist, x.mode.reach)) : undefined;
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (metres, with sight); else a wasted action
-  if (!m || !withinM(dist, m.mode.reach)) return wasted('out_of_reach');
+  // BF71: hemmed in on every side, there was no room to get at them; else simply too far
+  if (!m || !withinM(dist, m.mode.reach)) {
+    const r = (m ?? defaultMode(state, a, 0))?.mode.reach;
+    return wasted(r !== undefined && t.zone === a.zone && !roomAround(state, a, t, r) ? 'no_room' : 'out_of_reach');
+  }
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
   const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, PK.in_and_out); // A23 In and Out: only the target sees you
   const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
@@ -728,16 +778,18 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
     ev.effects.push({ kind: 'item_landed', actorId: a.id, data: { itemId: m.itemId, zone: t.zone } });
   }
   emit(ctx, ev, res, true);
+  const seenBy = { ...struckSeen(ctx, t, ev, before), ...ev.perception }; // BF65
   // Destroyed arm drops what it held: ruleset.applyEffects moves the item; each drop is its own perceived event
   for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
   // morale (MB21–MB23): a new health level a health fear covers; bandmates who perceive a fall; the one who downed it
   const after = healthLevel(t);
   const hf = HEALTH_LEVELS.pos(after) > HEALTH_LEVELS.pos(before.level) ? healthFear(t, after) : undefined;
-  if (hf) fear(ctx, t, hf.id, {}, ev.perception);
-  for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, ev.perception); // parts Crippled (or worse) by this hit
+  if (hf) fear(ctx, t, hf.id, {}, seenBy);
+  for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, seenBy); // parts Crippled (or worse) by this hit
   if (!isActive(t) && before.active) { // newly down: a blow on someone already down downs no one
     if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.foe_downed); // TM28: a composure row, so it counts as calmed
-    for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
+    for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && seenBy[p.id]) fear(ctx, p, FR.bandmate_down, {}, seenBy);
+    for (const id of Object.keys(seenBy)) { const m = actorById(state, id)?.mind; if (m) m.bodiesFound = [...new Set([...(m.bodiesFound ?? []), t.id])]; } // BF65: seen to fall, never found later
   }
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
@@ -981,15 +1033,16 @@ function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string
     }
     const o = fallbackOrder(buildActorView(state, x.id), rng);
     const t = o.target ? actorById(state, o.target) : undefined;
-    const walk = (goal: Located, short = 0) => {
+    const walk = (goal: Located, short = 0, toward?: string) => {
       const from: Located = { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) };
-      const m = walkLeg(state, x, goal, moveSpeed(state, x).run * seconds, short, x);
+      const m = walkLeg(state, x, goal, moveSpeed(state, x).run * seconds, short, x, false, toward);
       if (m === null || (m <= 0 && x.zone === from.zone)) return;
       if (onLeg) onLeg(x, from, m, goal.zone);
       else if (x.zone !== from.zone) logCode(state, 'caught_up', { actorId: x.id, from: from.zone, to: x.zone }); // a silent jump (BF2)
     };
     if (o.type === 'attack' && t) {
-      if (!inReach(state, x, o)) walk(t, CONFIG.HOSTILE_NEAR_M / 2);
+      // BF71: it closes to its blow's reach (stepping round anyone in the way), not to a set distance
+      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, m.mode.reach - M_EPS) : CONFIG.HOSTILE_NEAR_M / 2, t.id); }
       if (!inReach(state, x, o)) continue;
       if (t === p) { reached.push(x.id); continue; }
       fighting = true;
@@ -1562,7 +1615,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'restrain': {
       // BF5: a grab to hold someone back, within the grabber's grip reach; no damage, no hostility
       const t = o.target ? actorById(state, o.target) : undefined;
-      const why = !t || t === a ? 'no_target' : !isActive(t) ? 'already_down' : !withinGrip(state, a, t) ? 'out_of_reach' : t.heldBy === a.id ? 'already_holding' : null;
+      const why = !t || t === a ? 'no_target' : !isActive(t) ? 'already_down' : !withinGrip(state, a, t) ? (roomAround(state, a, t, gripReachM(state, a)) ? 'out_of_reach' : 'no_room') : t.heldBy === a.id ? 'already_holding' : null;
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
       return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
     }
@@ -2233,6 +2286,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   applyBeliefDecay(state);
   const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
+  findBodies(ctx); // BF65
   updateAlarms(state, ctx.events);
   headArrivals(state); // NW2: a head_to walk that got there goes back to its routine
   // QT8: talking to a giver hands in its finished job, before its agent's output (so it may offer the next one)
