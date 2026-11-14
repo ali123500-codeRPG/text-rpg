@@ -361,9 +361,6 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.sack, kind: 'misc', name: 'sack', look: 'a tied hemp sack', bulk: 1, value: 1, container: { soft: true } },
   { id: IT.chest, kind: 'misc', name: 'chest', look: 'an iron-bound wooden chest', bulk: 3, value: 20, container: { fixed: true } },
   { id: IT.crate, kind: 'misc', name: 'crate', look: 'a nailed wooden crate', bulk: 3, value: 2, container: { fixed: true } },
-  // belt and bandolier: plain accessories since pockets were removed; whether they stay is asked as PO4
-  { id: IT.belt_pouches, kind: 'accessory', name: 'belt with pouches', look: 'a leather belt hung with small pouches', bulk: 1, value: 3, slot: 'accessory', visible: true },
-  { id: IT.bandolier, kind: 'accessory', name: 'bandolier', look: 'a leather strap across the chest, lined with loops and pockets', bulk: 1, value: 5, slot: 'accessory', visible: true },
   { id: IT.coin, kind: 'misc', fragility: 'unbreakable', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
