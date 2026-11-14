@@ -91,6 +91,7 @@ export type SeenActor = {
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
+  demandYield?: true; // TF19: a foe the player can demand surrender from (as talkDown, or it cowers Broken)
 };
 /** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
 export type DoingView = { what: string; done: number; left: number };
@@ -187,7 +188,7 @@ export type ActorView = {
     spar?: SparView; // SP1: the spar it is a fighter in
     playerYielded?: true; // MB41: the player yielded to self and awaits an answer (acceptYield)
     playerAtMercy?: true; // D-239: the player is down before self, which decides to finish or spare (spare)
-    standDownOffer?: { from: string; landed: string; coin?: string }; // TF15: an offer to stop fighting, and how it landed with self (answer standDown)
+    standDownOffer?: { from: string; landed: string; coin?: string; demand?: 'yield' }; // TF15: an offer to stop fighting, and how it landed with self (answer standDown); demand: TF19, it demands self surrender (answer yields)
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
@@ -259,7 +260,7 @@ export type NarrationEvent = {
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
   steady?: 'calmer' | 'worse' | 'no change'; // SY1: how steadying oneself went, in words
-  offers?: { to: string; landed: string }[]; // TF12: the player's offer to stop fighting, and how it landed with each listener
+  offers?: { to: string; landed: string; demand?: 'yield' }[]; // TF12: the player's offer to stop fighting, and how it landed with each listener; demand: TF19, it asked them to surrender
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
   mentallySteady?: true; // SY1: it left them Mentally steady
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)

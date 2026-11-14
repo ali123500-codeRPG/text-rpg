@@ -56,7 +56,7 @@ import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
-import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, truceBars, type StoodDown } from './offer';
+import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, truceBars, type StoodDown, type TalkedYield } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
@@ -567,6 +567,12 @@ function emitStandDown(ctx: Ctx, d: StoodDown): void {
   emit(ctx, mk(ctx, d.who, 'stand_down', { target: d.from.id, standDown: { with: d.with, ...(d.coin ? { coin: d.coin } : {}) } }));
 }
 
+/** TF19: a surrender talked out of a foe, as an event the people there can see; those who gave up act no more this turn */
+function emitTalkedYield(ctx: Ctx, d: TalkedYield): void {
+  for (const id of [d.who.id, ...d.with]) if (!ctx.acted.has(id) && ctx.orders.has(id)) ctx.orders.set(id, brokenOrder(buildActorView(ctx.state, id)));
+  emit(ctx, mk(ctx, d.who, 'surrender', { target: d.from.id, surrender: { with: d.with } }));
+}
+
 /** TF13/TF17/TF10: the player's persuasion, lie or bribe at foes in a fight is an offer to stop: each listener that made
  * out the words answers it (makeOffer), for its bandmates who heard the words too (TF6) */
 function playerOffers(ctx: Ctx, ev: GameEvent, ex: ExchangeSpeech): void {
@@ -576,9 +582,10 @@ function playerOffers(ctx: Ctx, ev: GameEvent, ex: ExchangeSpeech): void {
     const o = to && playerOffer(state, ctx.input.intent, to);
     if (!to || !o) continue;
     const heard = state.actors.filter((m) => m !== to && m.bandId === to.bandId && hearsWords(ev.perception[m.id])).map((m) => m.id);
-    const res = makeOffer(state, state.player, to, o.type, r.contest, heard, o.coin);
-    (ev.offers ??= []).push({ to: sp, landed: res.landed });
+    const res = makeOffer(state, state.player, to, o.type, r.contest, heard, o.coin, o.kind);
+    (ev.offers ??= []).push({ to: sp, landed: res.landed, ...(o.kind === 'yield' ? { demand: o.kind } : {}) });
     if (res.stood) emitStandDown(ctx, res.stood);
+    if (res.yielded) emitTalkedYield(ctx, res.yielded);
   }
 }
 
