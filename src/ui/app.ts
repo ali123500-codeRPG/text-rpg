@@ -7,6 +7,7 @@ import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage
 import { gmPage } from './gm';
 import { famePage } from './fame';
 import { mapPage } from './map';
+import { openFull } from './pop';
 import { bugsPage } from './bugs';
 import { gainsPage } from './gains';
 
@@ -32,7 +33,7 @@ const icon = (k: string) => {
   return s;
 };
 
-const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['gains', 'Gains'], ['journal', 'Journal'], ['map', 'Map'], ['fame', 'Hall of fame'], ['bugs', 'Bugs']] as const;
+const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['gains', 'Gains'], ['journal', 'Journal'], ['fame', 'Hall of fame'], ['bugs', 'Bugs']] as const;
 const GM_KEY = 'rpg.gmDebug';
 const readGm = () => { try { return localStorage.getItem(GM_KEY) === '1'; } catch { return false; } };
 const writeGm = (on: boolean) => { try { localStorage.setItem(GM_KEY, on ? '1' : '0'); } catch { /* per-PC convenience only */ } };
@@ -65,8 +66,17 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   rail.addEventListener('click', hideTip);
 
   const play = playScreen(api, (p) => go(p));
+  // the map is a big pop-up over the page, not a page of its own: the Map button on Play opens it
+  const map = mapPage(api);
+  let mapOpen = false;
+  const openMap = (opener: HTMLElement | null) => {
+    if (!api.state()) return;
+    mapOpen = true;
+    openFull({ label: 'Map', cls: 'map-full', opener, body: [map.el], onClose: () => { mapOpen = false; } });
+    map.update();
+  };
   const pages: Record<string, { el: HTMLElement; update: () => void }> = {
-    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), achievements: achievementsPage(api), gains: gainsPage(api), journal: journalPage(api), map: mapPage(api), fame: famePage(api), bugs: bugsPage(api), gm: gmPage(api),
+    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), achievements: achievementsPage(api), gains: gainsPage(api), journal: journalPage(api), fame: famePage(api), bugs: bugsPage(api), gm: gmPage(api),
   };
   let creation: HTMLElement | null = null;
 
@@ -79,7 +89,10 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     if (p === 'gm' && !gmOn) return 'play';
     return pages[p] ? p : 'play';
   };
-  function go(p: string) { if (location.hash.slice(1) === p) render(); else location.hash = p; }
+  function go(p: string) {
+    if (p === 'map') { openMap(document.activeElement as HTMLElement | null); return; }
+    if (location.hash.slice(1) === p) render(); else location.hash = p;
+  }
 
   // the rail is rebuilt only when what it shows changes, so a redraw never cuts short the perk badge's beat (M-74)
   let railKey = '';
@@ -111,6 +124,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
 
   let lastPage = '';
   function render() {
+    if (location.hash === '#map' && api.state()) { history.replaceState(null, '', '#play'); queueMicrotask(() => openMap(null)); } // an old link to the map page
     const page = current();
     drawRail(page);
     if (page !== lastPage) closePanel();
@@ -130,6 +144,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
       if (page === 'play' && lastPage !== 'play') play.focus();
     }
     lastPage = page;
+    if (mapOpen) map.update();
   }
 
   window.addEventListener('hashchange', render);
