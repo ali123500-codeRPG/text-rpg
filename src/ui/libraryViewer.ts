@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, RoutineSet, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
@@ -136,6 +136,7 @@ function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   return Object.entries(table).map(([id, e]) => {
     const title = String(e.name ?? e.label ?? e.brief ?? e.look ?? label(id));
     if (sec === 'npcRoles' || sec === 'themes') return layerCard(sec, id, e, title);
+    if (sec === 'routineSets') return routineSetCard(id, e as unknown as RoutineSet, title);
     if (sec !== 'templates') return card(sec, id, e, title, [], ...fields(e, ['id', 'name']));
     const t = e as unknown as NpcTemplate;
     const skills = templateSkills(t);
@@ -152,6 +153,13 @@ const templateHead = (t: NpcTemplate): HTMLElement[] => [
   row('Role', t.roleId ? link('npcRoles', t.roleId, lib.npcRoles?.[t.roleId]?.name ?? t.roleId) : none('none')),
   row('Theme', t.themeId ? link('themes', t.themeId, lib.themes?.[t.themeId]?.name ?? t.themeId) : none('none')),
 ];
+/** RT: a routine set: one line per slot (its hint, then zone or route and whether it may stay unbound), its routines as
+ * links, the first being the default */
+function routineSetCard(id: string, d: RoutineSet, title: string): HTMLElement {
+  const slots = Object.entries(d.slots).map(([k, v]) => row(label(k), `${v.hint} `, h('span', { class: 'lv-none' }, `(${[v.kind, ...(v.optional ? ['optional'] : [])].join(', ')})`)));
+  return card('routineSets', id, d, title, [], ...fields(d as unknown as Entry, ['id', 'name', 'brief', 'slots', 'routines']),
+    ...slots, row('Routines', h('span', {}, ...d.routines.flatMap((r, i) => [i ? ', ' : '', link('routines', r, label(r)), i === 0 ? ' (default)' : '']))));
+}
 /** NG14: a role's or theme's personality lean: only the parts it sets (a later layer wins per axis) */
 const leanText = (l?: PersonalityLean) => {
   const sg = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
