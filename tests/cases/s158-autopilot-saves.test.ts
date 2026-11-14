@@ -58,10 +58,10 @@ describe('158 autopilot saves', () => {
     expect(await g.agentMove('eager')).toEqual({ command: 'I ask the barkeep about work', say: 'Barkeeps hear everything.' });
     expect(claude.callsFor('autopilot')[0].input[1].content).toContain('Your playstyle:');
     expect(readMove({ say: 'no command' })).toBeNull();
-    expect(readMove({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' })).toEqual({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' });
-    expect(autopilotTurn([], '', 'companion')).toContain('Your voice:');
+    expect(readMove({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' })).toEqual({ command: 'I wave', say: 'Hello!' }); // nothing but its own fields
+    expect(autopilotTurn([], '', 'character')).toContain('Your voice:');
     expect(autopilotTurn([], '', 'plain')).not.toContain('Your voice:');
-    expect(autopilotTurn([], '', 'companion', ['Yatta! Got him.'])).toContain('- Yatta! Got him.'); // never repeats itself
+    expect(autopilotTurn([], '', 'plain', ['Yatta! Got him.'])).toContain('- Yatta! Got him.'); // never repeats itself
     const v = makeVillage();
     v.player.core.condition.hpLostPct = 50;
     expect(autopilotTurn([], '', '', [], undefined, v)).toContain('How you are right now (you always know this; never stop to check it): health Wounded'); // BG-26: every move

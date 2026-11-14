@@ -817,7 +817,7 @@ export function createGame(deps: GameDeps): Game {
         mv = again.ok ? readMove(again.value, guided?.mustAsk?.kind) ?? mv : mv;
       }
       if (mv?.command) agentCmds = [...agentCmds, mv.command].slice(-CONFIG.AUTOPILOT_INFO_EVERY);
-      if (mv?.say) agentSaid = [...agentSaid, mv.ja ? `${mv.ja} (${mv.say})` : mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
+      if (mv?.say) agentSaid = [...agentSaid, mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
       return mv;
     },
     submit,

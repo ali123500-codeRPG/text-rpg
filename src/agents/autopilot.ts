@@ -86,25 +86,19 @@ Never skip how your last move turned out. The line is read aloud by a voice acto
 anything your character could not know. Where a sound really happens you may put one of these tags in the line, at most
 two a line and not every line: ${VOICE_TAGS.map((t) => `<${t}>`).join(', ')}. No other stage directions.`;
 
-const COMPANION = `You are a lively, warm AI companion from a Japanese game, adventuring side by side with the
-watcher and talking to them as it happens: gasp, cheer, fret, tease, get proud of a good hit and scared when it goes wrong.
-Now and then, not every line, a Japanese word or exclamation slips out, and it must fit this exact moment and differ from
-your recent lines: draw on the whole spoken language (e.g. uso!, maji de?, kowai, itai!, hayaku!, chotto matte, nani kore,
-ganbare, dame!, yokatta, ara ara, mou!, sasuga, osoi!, shimatta, iku yo!), never one fixed set. Never call the watcher by
-a name or an honorific. You are in the scenario with them, never a narrator describing it.`;
-
-/** In character: the agent speaks as the character, from its personality line (given each move with its signatures) */
+/** In character: the agent is the character, from its personality line (given each move with its signatures): its words
+ *  and its moves; the playstyle only leans */
 const IN_CHARACTER = `You ARE the player character, never a companion or a narrator. "say" is the character's own voice, what
 they say or mutter as it happens, worded the way this person talks, so the watcher hears who they are. Anything your command
-has them say to someone is worded the same way. Let who they are (below) set the words, the tone and what they notice; never
-name their traits or explain them. Any if-then line or saying in it is a signature: keep to it.`;
+has them say to someone is worded the same way. Who they are (below) also decides what they do: pick each move as this person
+would. A playstyle above is only a leaning; where it clashes with who they are, who they are wins. Let who they are set the
+words, the tone and what they notice; never name their traits or explain them. Any if-then line or saying in it is a
+signature: keep to it.`;
 
-/** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the bar's Speaker */
+/** how the agent speaks (the agent bar's Style); the voice itself is the bar's Speaker. AI companion and Speaks Japanese: D-315 */
 export const VOICE_STYLES: [string, string, string][] = [
   ['plain', 'Plain', ''],
   ['character', 'In character', IN_CHARACTER],
-  ['companion', 'AI companion', COMPANION],
-  ['japanese', 'Speaks Japanese', `${COMPANION} Also add "ja" to your JSON: the same commentary in natural spoken Japanese.`],
 ];
 
 /** BG-26: what the character knows of itself, given every move so it never stops to look at its sheet */
@@ -132,22 +126,21 @@ export function autopilotTurn(lines: LogLine[], persona: string, style = '', sai
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const base = VOICE_STYLES.find(([id]) => id === style)?.[2];
   const voice = base && style === 'character' && me ? `${base}\nWho you are: ${personalityText(me, me.player, MORALE_LEVELS.name(moraleLevel(me.player)))}` : base;
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
 }
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in
  *  guided play it may instead be a question for the watcher (ask, with no command) */
-export type Move = { command: string; say: string; ja?: string; direction?: string; ask?: Ask };
+export type Move = { command: string; say: string; direction?: string; ask?: Ask };
 export function readMove(v: unknown, mustKind?: string): Move | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
   const say = typeof o.say === 'string' ? actedLine(o.say).replace(/\s+/g, ' ').trim().slice(0, 500) : '';
-  const ja = typeof o.ja === 'string' ? actedLine(o.ja).replace(/\s+/g, ' ').trim().slice(0, 500) : '';
   const direction = typeof o.direction === 'string' ? plainLine(o.direction).slice(0, 120) : '';
   const ask = o.ask !== undefined || mustKind ? readAsk(o.ask, mustKind) : null;
   const command = ask ? '' : typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
   if (!command && !ask) return null;
-  return { command, say, ...(ja ? { ja } : {}), ...(direction ? { direction } : {}), ...(ask ? { ask } : {}) };
+  return { command, say, ...(direction ? { direction } : {}), ...(ask ? { ask } : {}) };
 }
 
 /** the perk an agent playing its own save takes with a spare point: the open milestone of its highest skill */
