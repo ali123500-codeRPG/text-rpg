@@ -1,4 +1,4 @@
-// 311 Speech in character: the agent bar's "In character" style speaks from the player character's personality line, and
+// 311 Speech in character: the agent bar's "In character" style speaks and plays from the player character's personality line, and
 // signatures set on the Character page join that line (and so reach the narrator, and the Planner and Responder for an NPC).
 import { describe, expect, it, vi } from 'vitest';
 import { ScriptedClaude, makeVillage } from '../harness';
@@ -33,7 +33,7 @@ describe('311 speech in character', () => {
     expect(personalityText(s, npc, 'Steady')).toContain('Never pays first.');
   });
 
-  it('"In character" gives the agent who the character is, signatures included; other styles do not', () => {
+  it('"In character" gives the agent who the character is, signatures included, over the playstyle; Plain does not', () => {
     const s = makeVillage();
     setSignatures(s.player, ['Calls everyone "friend".']);
     expect(VOICE_STYLES.some(([id]) => id === 'character')).toBe(true);
@@ -41,7 +41,8 @@ describe('311 speech in character', () => {
     expect(turn).toContain('You ARE the player character');
     expect(turn).toContain('Who you are: Nerve:');
     expect(turn).toContain('Calls everyone "friend".');
-    expect(autopilotTurn([], '', 'companion', [], undefined, s)).not.toContain('Who you are:');
+    expect(turn).toContain('who they are wins'); // SP2 b: the personality steers moves over the playstyle
+    expect(autopilotTurn([], '', 'plain', [], undefined, s)).not.toContain('Who you are:');
   });
 
   it('set in play, signatures are saved at once and a reload keeps them', async () => {

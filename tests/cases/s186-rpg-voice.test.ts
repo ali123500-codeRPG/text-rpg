@@ -46,11 +46,10 @@ describe('186 RPG Voice', () => {
     expect(splitLine('うそ！本当に当たった。もう一回！')).toEqual(['うそ！本当に当たった。', 'もう一回！']);
   });
 
-  it('every style has its own bank of sample lines, Japanese ones spoken in Japanese, and a pick never repeats the last', () => {
+  it('every style has its own bank of sample lines, and a pick never repeats the last', () => {
+    expect(STYLES.map(([id]) => id)).toEqual(['plain', 'character']); // AI companion and Speaks Japanese parked (D-315)
     for (const [id] of STYLES) expect(VOICE_SAMPLES[id]?.length).toBeGreaterThanOrEqual(8);
-    expect(VOICE_SAMPLES.japanese.every((x) => x.ja && x.say)).toBe(true);
-    expect(VOICE_SAMPLES.plain.some((x) => x.ja)).toBe(false);
-    const first = pickSample('companion', undefined, () => 0);
-    for (let r = 0; r < 1; r += 0.05) expect(pickSample('companion', first, () => r)).not.toBe(first);
+    const first = pickSample('character', undefined, () => 0);
+    for (let r = 0; r < 1; r += 0.05) expect(pickSample('character', first, () => r)).not.toBe(first);
   });
 });
