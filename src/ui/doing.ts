@@ -41,19 +41,21 @@ export function doingNow(d: DoingView | undefined, pick: (text: string) => void,
 export const walkLeft = (w: WalkingView): string =>
   Number.isFinite(w.metres) && Number.isFinite(w.seconds) ? `${distText(w.metres)} · ${secsText(w.seconds)} to go` : 'no open way there';
 
+/** a chip under a walk or follow line: it only fills the box */
+const chip = (key: string, label: string, text: string, title: string, pick: (text: string) => void, disabled: boolean) =>
+  h('button', { type: 'button', class: 'itm wk-' + key, 'data-chip': key, disabled, title, onclick: () => pick(text) }, label);
+
 /** AT49: the player's walk still on its way, with what is left; it carries on by itself while the player only talks, so the
  * chips are a shortcut to keep going in words or to stop (a wait is an action, and any action ends the walk) */
 export function walkingNow(w: WalkingView | undefined, pick: (text: string) => void, disabled: boolean): HTMLElement | null {
   if (!w) return null;
-  const chip = (key: string, label: string, text: string, title: string) =>
-    h('button', { type: 'button', class: 'itm wk-' + key, 'data-chip': key, disabled, title, onclick: () => pick(text) }, label);
   return h('div', { class: 'walking-now', role: 'status', 'data-to': w.toZone },
     h('span', { class: 'wk-i', 'aria-hidden': 'true' }, '➜'),
     h('span', { class: 'dg-t' }, 'Walking to ', h('b', {}, w.to), ' · ', h('b', { class: 'dg-left' }, walkLeft(w))),
     h('span', { class: 'hs-note' }, 'Carries on next turn while you only talk; any other order stops it.'),
     h('div', { class: 'hs-picker dg-pick' },
-      chip('keep-walking', 'Keep walking', `I keep walking to ${w.to}`, 'Fills the box to carry on walking. Nothing is sent until Send'),
-      chip('stop-walking', 'Stop here', 'I stop and wait here', 'Fills the box to stop where you are. Nothing is sent until Send')));
+      chip('keep-walking', 'Keep walking', `I keep walking to ${w.to}`, 'Fills the box to carry on walking. Nothing is sent until Send', pick, disabled),
+      chip('stop-walking', 'Stop here', 'I stop and wait here', 'Fills the box to stop where you are. Nothing is sent until Send', pick, disabled)));
 }
 
 const LOST_WORDS: Record<NonNullable<FollowingView['lost']>, string> = {
@@ -63,7 +65,7 @@ const LOST_WORDS: Record<NonNullable<FollowingView['lost']>, string> = {
 /** BG-190: the following line as plain text, as it reads on screen */
 export function followingText(f: FollowingView, w?: WalkingView): string {
   if (f.lost) return `Lost ${f.name} · ${LOST_WORDS[f.lost]} ${f.zone ?? 'here'}`;
-  return `Following ${f.name}${f.keepM !== undefined ? ` · ${f.keepM} m back` : ''} · ${w ? `in ${w.to} · ${walkLeft(w)}` : 'close behind'}`; // BF35: the distance kept
+  return `Following ${f.name}${f.keepM !== undefined ? ` · ${distText(f.keepM)} back` : ''} · ${w ? `in ${w.to} · ${walkLeft(w)}` : 'close behind'}`; // BF35: the distance kept
 }
 /** BG-190: the chips under the following line, and what each fills the box with */
 export function followingChips(f: FollowingView): { key: string; label: string; text: string }[] {
@@ -76,18 +78,16 @@ export function followingChips(f: FollowingView): { key: string; label: string; 
  * out of sight in the Common room"), with Look for them. The chips only fill the box. */
 export function followingNow(f: FollowingView | undefined, w: WalkingView | undefined, pick: (text: string) => void, disabled: boolean): HTMLElement | null {
   if (!f) return null;
-  const chip = (key: string, label: string, text: string, title: string) =>
-    h('button', { type: 'button', class: 'itm wk-' + key, 'data-chip': key, disabled, title, onclick: () => pick(text) }, label);
   if (f.lost) return h('div', { class: 'walking-now following lost', role: 'status', 'data-who': f.who, 'data-lost': f.lost },
     h('span', { class: 'wk-i', 'aria-hidden': 'true' }, '✕'),
     h('span', { class: 'dg-t' }, 'Lost ', h('b', {}, f.name), ` · ${LOST_WORDS[f.lost]} `, h('b', {}, f.zone ?? 'here')),
     h('span', { class: 'hs-note' }, 'The follow is over.'),
-    h('div', { class: 'hs-picker dg-pick' }, followingChips(f).map((c) => chip(c.key, c.label, c.text, 'Fills the box. Nothing is sent until Send'))));
+    h('div', { class: 'hs-picker dg-pick' }, followingChips(f).map((c) => chip(c.key, c.label, c.text, 'Fills the box. Nothing is sent until Send', pick, disabled))));
   return h('div', { class: 'walking-now following', role: 'status', 'data-who': f.who, ...(w ? { 'data-to': w.toZone } : {}) },
     h('span', { class: 'wk-i', 'aria-hidden': 'true' }, '➜'),
     h('span', { class: 'dg-t' }, 'Following ', h('b', {}, f.name), ...(w ? [' · in ', h('b', {}, w.to), ' · ', h('b', { class: 'dg-left' }, walkLeft(w))] : [' · ', h('b', { class: 'dg-left' }, 'close behind')])),
     h('span', { class: 'hs-note' }, 'Keeps after them each turn while you can see or hear them; any other order stops it.'),
-    h('div', { class: 'hs-picker dg-pick' }, followingChips(f).map((c) => chip(c.key, c.label, c.text, 'Fills the box. Nothing is sent until Send'))));
+    h('div', { class: 'hs-picker dg-pick' }, followingChips(f).map((c) => chip(c.key, c.label, c.text, 'Fills the box. Nothing is sent until Send', pick, disabled))));
 }
 
 const STATE_WORD: Record<ActionNote['state'], string> = { going: '', done: 'done', broken: 'broken off', stopped: 'set aside' };

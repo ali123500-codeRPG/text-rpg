@@ -69,10 +69,10 @@ export function visPass(group: string, picks: Record<string, VisState>): boolean
 
 // ---------- Grouped table ----------
 export type Col = { key: string; title: string; right?: boolean };
-/** tones: a per-cell colour (bad = red, muted = grey), e.g. the inventory's Needs column (EQ7) */
 /** an order another page drafts for the Play box (Take out on the Inventory): Play puts it in the box once and clears it; nothing is sent */
 export const playDraft: { text: string | null } = { text: null };
 
+/** tones: a per-cell colour (bad = red, muted = grey), e.g. the inventory's Needs column (EQ7) */
 export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted'>; drag?: boolean /* the row can be dragged (the Inventory's put in / take out) */ };
 export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: Record<string, 'bad' | 'muted'> };
 
@@ -136,7 +136,6 @@ export function openPanel(title: string, rows: PanelRow[], note?: string, head?:
   );
   (panelHost.querySelector('.edit input') as HTMLInputElement | null)?.focus();
 }
-
 
 /** a scroll box without a visible scrollbar: the wheel scrolls it, and so does dragging it with the mouse.
  *  A drag of more than a few pixels swallows the click that ends it, so buttons inside still work on a plain click. */

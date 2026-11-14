@@ -177,13 +177,13 @@ const grow = (el: Element, pct: number, px: number): number => {
 };
 
 /** one short pulse on an element: scale and back, strength 1–3 (M-20, M-30), capped in pixels; shift adds a small
- * sideways jolt (≤3 px) */
+ * sideways jolt (≤3 px). It runs --m-pulse-step longer per strength, never past --m-pulse-max (M-20: under 300 ms) */
 export function pulse(el: Element | null | undefined, delay: number, strength = 1, shift = false): void {
   if (!canAnimate(el)) return;
   const s = 1 + grow(el, 0.06 * strength, PULSE_PX * strength);
   const x = shift ? Math.min(3, strength) : 0;
   play(el, [{ transform: 'none' }, { transform: `translateX(${x}px) scale(${s})`, offset: 0.35 }, { transform: `translateX(${-x}px) scale(${1 + (s - 1) / 3})`, offset: 0.65 }, { transform: 'none' }],
-    { dur: Math.min(290, ms('--m-beat') + 20 * strength), delay });
+    { dur: Math.min(ms('--m-pulse-max'), ms('--m-beat') + ms('--m-pulse-step') * strength), delay });
 }
 
 /** something new arriving: fade and a small rise (rows, cards, chips) */

@@ -4,7 +4,7 @@
 import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
-import { FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel, type PartStateKey } from '../scales';
+import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, TRAVEL_PACES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey, type TravelPaceKey } from '../scales';
 import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
@@ -12,7 +12,7 @@ import { baneSkill, defeatsRoll, isBane } from './bane';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
 
-/** the types a event roll's modifiers carry (eventRollMods in gear.ts), besides gear */
+/** the types an event roll's modifiers carry (eventRollMods in gear.ts), besides gear */
 export type SituationModType = 'perk' | 'status';
 export type StackedType = ModType | SituationModType;
 /** display names of the modifier types, in the order the viewer lists them */
@@ -95,7 +95,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'wounds', roll: 'skill', source: 'Shield damaged', at: 'src/ruleset/body.ts', when: 'Block rolls with a Damaged shield.', value: sg(CONFIG.ROLE_PENALTY.damaged) },
   // situational
   { type: 'situational', roll: 'skill', source: 'Light', at: 'src/ruleset/gear.ts', when: 'Rolls whose skill has a light tag (sight, stealth …): the tag\'s sign × the light where the action is.',
-    value: list(CONFIG.LIGHT_MODS) },
+    value: Object.entries(CONFIG.LIGHT_MODS).map(([k, v]) => `${LIGHT.name(k as (typeof LIGHT.keys)[number])} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by the distance to the target as a share of the weapon\'s reach (both from real metres).',
     value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile within ${CONFIG.HOSTILE_NEAR_M} m of the shooter, close enough to strike or grab (Point Blank removes it).`,
@@ -106,8 +106,8 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: "Can't defend", at: 'src/ruleset/index.ts', when: 'Defense rolls by someone down, asleep or held in a grip (BG-207): no dice, the defense fails outright as a Critical Failure.', value: 'fails outright' },
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
   { type: 'situational', roll: 'skill', source: 'Waking', at: 'src/engine/sleep.ts', when: 'A light sleeper\'s hearing check against someone hostile moving openly near it (NW19): the grade their noise sets, louder is easier.',
-    value: Object.entries(CONFIG.WAKE_GRADE).map(([k, g]) => `${k} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
-  { type: 'situational', roll: 'skill', source: 'Attention', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): how closely they watch.', value: Object.entries(CONFIG.FILCH_ATTENTION).filter(([k]) => k !== 'asleep').map(([k, v]) => `${k} ${sg(v)}`).join(' · ') },
+    value: Object.entries(CONFIG.WAKE_GRADE).map(([k, g]) => `${NOISE.name(k as NoiseKey)} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'Attention', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): how closely they watch.', value: Object.entries(CONFIG.FILCH_ATTENTION).filter(([k]) => k !== 'asleep').map(([k, v]) => `${ATTENTION.name(k as AttentionKey)} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Item size', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): the item\'s bulk.', value: CONFIG.FILCH_SIZE.map((v, b) => `bulk ${b} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Breaking a container open (BF31): the weapon in hand (bare hands: Improvised) against the lock\'s grade, as for Lockpicking.', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ') },
@@ -116,7 +116,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Coin offered', at: 'src/engine/speech.ts', when: 'A bribe in a fight (TF10): the briber\'s Barter roll, by the coin offered against the listener\'s price (OFFER_BRIBE_PRICE per level).',
     value: `${sg(CONFIG.OFFER_BRIBE_MOD)} per doubling over the price, as much less per halving` },
   { type: 'situational', roll: 'skill', source: 'Travel pace', at: 'src/engine/travel.ts', when: 'The noticing roll on a road trip when something meets you, by pace (TV8).',
-    value: `slow ${sg(CONFIG.TRAVEL_NOTICE_MOD.slow)}, fast ${sg(CONFIG.TRAVEL_NOTICE_MOD.fast)}` },
+    value: Object.entries(CONFIG.TRAVEL_NOTICE_MOD).filter(([, v]) => v).map(([k, v]) => `${TRAVEL_PACES.name(k as TravelPaceKey)} ${sg(v)}`).join(' · ') },
   // status
   { type: 'status', roll: 'skill', source: 'Shaken', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose intimidation beat you, until your engagement ends.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },

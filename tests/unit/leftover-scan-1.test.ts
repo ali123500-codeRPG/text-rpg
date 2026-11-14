@@ -31,6 +31,11 @@ import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { PUSH_TYPES, speechSkill } from '../../src/engine/speech';
 import { SPEECH_ACTIONS } from '../../src/types';
+import { edgeFacing, reachesOver } from '../../src/scenario/geometry';
+import { EK, RV, ZK } from '../../src/library/tableIds';
+import { recoverDebt } from '../../src/engine/fatigue';
+import { MOD_SOURCES } from '../../src/ruleset/modSources';
+import type { Zone } from '../../src/types';
 
 // files the leftover scan has covered (add each round's files)
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
@@ -47,7 +52,10 @@ const ROUND_8 = ['src/save/index.ts', 'src/ruleset/gear.ts', 'src/ui/autopilot.t
   'src/ruleset/improve.ts', 'src/engine/feats.ts', 'src/minds/routines.ts', 'src/engine/sleep.ts'];
 const ROUND_9 = ['src/ui/mapPlan.ts', 'src/save/checks.ts', 'src/scenario/director.ts', 'src/ui/creation.ts', 'src/engine/offer.ts',
   'src/ruleset/body.ts', 'src/engine/chase.ts', 'src/ruleset/perks.ts', 'src/engine/growth.ts', 'src/engine/filch.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7, ...ROUND_8, ...ROUND_9];
+const ROUND_10 = ['src/ui/motion.ts', 'src/scenario/geometry.ts', 'src/ui/gains.ts', 'src/ui/gm.ts', 'src/ui/kit.ts', 'src/agents/call.ts',
+  'src/agents/narration.ts', 'src/save/turnCheck.ts', 'src/agents/autopilot.ts', 'src/ruleset/personality.ts', 'src/engine/fatigue.ts',
+  'src/ruleset/modSources.ts', 'src/engine/yield.ts', 'src/engine/auras.ts', 'src/engine/travel.ts', 'src/ui/doing.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7, ...ROUND_8, ...ROUND_9, ...ROUND_10];
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
@@ -352,5 +360,45 @@ describe('leftover scan round 9', () => {
     const t = readFileSync('src/ui/creation.ts', 'utf8') as string;
     expect(t).not.toMatch(/Swordsman skills have no effects yet|Not chosen yet|'Stealth'/);
     expect(readFileSync('src/ruleset/perks.ts', 'utf8') as string).not.toMatch(/\.pos\([^)]*\)\) >= 1/);
+  });
+});
+
+describe('leftover scan round 10', () => {
+  const read = (f: string) => readFileSync(f, 'utf8') as string;
+  it('one edge rule: an unnamed side is its zone kind\'s default edge, for sound and for reaching over alike', () => {
+    const z = (id: string, x: number, kind: string, edges?: Zone['edges']) => ({ id, kind, rect: { x, y: 0, w: 4, d: 4 }, links: [], ...(edges ? { edges } : {}) }) as unknown as Zone;
+    const room = z('a', 0, ZK.room), yard = z('b', 4, ZK.yard), bar = z('c', 0, ZK.room, { e: EK.low });
+    expect([edgeFacing(room, yard), edgeFacing(yard, room), edgeFacing(bar, yard)]).toEqual([EK.wall, EK.open, EK.low]);
+    const kinds = getLibrary().edgeKinds ?? {};
+    expect([reachesOver(room, yard, kinds), reachesOver(bar, yard, kinds)]).toEqual([false, true]);
+    expect(read('src/perception/noise.ts')).not.toMatch(/zoneKinds\?\.\[z\.kind\]\?\.edge/);
+    expect(read('src/scenario/geometry.ts').match(/const chain = \(id/g)).toBeNull();
+  });
+  it('every long-term clear lowers the hours-awake count in one place', () => {
+    const s = makeVillage(), p = s.player;
+    p.core.condition.fatigue = { debt: 40, line: 0, awake: 40 };
+    const got = recoverDebt(p, RV.sleep, 10);
+    expect(got).toBeGreaterThan(0);
+    expect(p.core.condition.fatigue!.awake).toBeCloseTo(40 - got);
+    expect(read('src/engine/fatigue.ts').match(/awake - got/g)?.length).toBe(1);
+  });
+  it('one contest for engagement auras and Battle Cry; allies by stance position; one each-perceives rule', () => {
+    const a = read('src/engine/auras.ts');
+    expect(a.match(/toContest\(/g)?.length).toBe(1);
+    expect(a).not.toMatch(/'friend', 'loyal'/);
+    expect(read('src/engine/travel.ts')).not.toMatch(/perceivesNow/);
+  });
+  it('the Stacking tab names noise, attention, light and pace by their scale names', () => {
+    const v = (src: string) => MOD_SOURCES.find((m) => m.source === src)!.value;
+    expect(v('Waking')).toMatch(/^Faint /);
+    expect(v('Light')).toMatch(/dim -5/);
+    expect(v('Travel pace')).toMatch(/slow \+10 · fast -10/);
+  });
+  it('no literal durations in motion, one walk chip, one plural, packet words used as they come', () => {
+    expect(read('src/ui/motion.ts')).not.toMatch(/dur: Math\.min\(\d|\+ \d+ \* strength/);
+    expect(read('src/ui/styles.css')).toMatch(/--m-pulse-step: \d+ms; --m-pulse-max: \d+ms/);
+    expect(read('src/ui/doing.ts').match(/const chip =/g)?.length).toBe(1);
+    expect(read('src/ui/gains.ts')).not.toMatch(/const plural =|proposed M-39/);
+    expect(read('src/agents/narration.ts')).not.toMatch(/p\.(action|outcome)\.replace/);
   });
 });

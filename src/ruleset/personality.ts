@@ -103,8 +103,6 @@ export function tensionsOf(state: GameState, a: Actor, p = personalityOf(a)): Te
     && (w.drives ?? []).every((d) => p.values.includes(d)) && (!w.anyDrive || w.anyDrive.some((d) => p.values.includes(d))));
 }
 
-const list = (xs: string[]) => listWords(xs);
-
 /** PL4, PL9: the line the agent reads in CHARACTER: Nerve with its hint and the mood, a rolled NPC's signatures, the
  * archetype with its "but" traits, the top drives and the tensions. The morale level is the mood; the tier never moves with it. */
 export function personalityText(state: GameState, a: Actor, morale: string): string {
@@ -116,7 +114,7 @@ export function personalityText(state: GameState, a: Actor, morale: string): str
   return [
     `Nerve: ${nerveTier(a, p)} (${NERVE_HINTS[line]}; ${morale} right now).`,
     ...(t?.signatures ?? []),
-    `${arch.name} at heart (${arch.hint})${buts.length ? `, but ${list(buts)}` : ''}.`,
+    `${arch.name} at heart (${arch.hint})${buts.length ? `, but ${listWords(buts)}` : ''}.`,
     ...(drives.length ? [`Drives: ${drives.map((v, i) => `${lib.values![v].name}${i === 0 && drives.length > 1 ? ' first' : ''} (${lib.values![v].hint})`).join(', then ')}.`] : []),
     ...(tensions.length ? [`Tensions: ${tensions.map((x) => `${x.name} (${x.hint})`).join('; ')}.`] : []),
   ].join(' ');

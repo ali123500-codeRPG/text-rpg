@@ -1608,7 +1608,7 @@ Decided by Ali, 10/11/2026 (Motion Rules Review, answers Q1–Q4; it replaces th
 
 **Motion tokens**
 
-- **M-50** All durations and easings are named CSS variables in :root; no literal durations in components. Starting values: --m-feedback 120ms, --m-state 200ms, --m-beat 220ms, --m-sentence 180ms, --m-reveal-cap 1500ms, --m-stagger 350ms, --m-results-cap 3500ms, --m-count 600ms, --m-trail 700ms, --m-scenario 650ms, --m-fall 1400ms, --m-honor 900ms, --m-hold 80ms (hit-stop), --m-shake 280ms (a shake runs out within it), --m-ghost-hold 250ms (a bar's ghost waits this long before it drains), --m-gain-gap 300ms (between gains in the scenario-end panel, M-39), --m-gains-pace 2 (the gains moment's durations are this many times the tokens, M-39), --m-ease cubic-bezier(0.16, 1, 0.3, 1), --m-ease-exit cubic-bezier(0.4, 0, 1, 1).
+- **M-50** All durations and easings are named CSS variables in :root; no literal durations in components. Starting values: --m-feedback 120ms, --m-state 200ms, --m-beat 220ms, --m-sentence 180ms, --m-reveal-cap 1500ms, --m-stagger 350ms, --m-results-cap 3500ms, --m-count 600ms, --m-trail 700ms, --m-scenario 650ms, --m-fall 1400ms, --m-honor 900ms, --m-hold 80ms (hit-stop), --m-shake 280ms (a shake runs out within it), --m-pulse-step 20ms and --m-pulse-max 290ms (a pulse runs a step longer per strength, never past the max: M-20's under 300 ms), --m-ghost-hold 250ms (a bar's ghost waits this long before it drains), --m-gain-gap 300ms (between gains in the scenario-end panel, M-39), --m-gains-pace 2 (the gains moment's durations are this many times the tokens, M-39), --m-ease cubic-bezier(0.16, 1, 0.3, 1), --m-ease-exit cubic-bezier(0.4, 0, 1, 1).
 - **M-51** Exits are faster than entrances.
 
 **Replays, undo and loading**

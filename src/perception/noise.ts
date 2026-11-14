@@ -33,7 +33,7 @@ function crossings(state: GameState, z: Zone): { to: string; loss: number }[] {
   for (const id of stage) {
     const o = zoneById(state, id);
     if (!o?.rect || o.id === z.id || z.links.some((l) => l.to === id) || !sameFloor(z, o) || !doorway(z, o)) continue;
-    const edge = edgeFacing(z, o) ?? (z.kind ? getLibrary().zoneKinds?.[z.kind]?.edge : undefined);
+    const edge = edgeFacing(z, o);
     out.push({ to: id, loss: lossDb(edge ? kinds[edge]?.sound ?? 'wall' : 'wall') });
   }
   return out;
