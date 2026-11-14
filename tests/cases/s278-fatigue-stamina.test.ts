@@ -3,6 +3,7 @@
 // drains first by the effort tier every action names (no roll), spills at half, and comes back by catching your breath,
 // resting and sleeping. Sleep lasts until rested. Debt that fills the bar puts you to sleep; spill that fills it leaves you
 // Spent. Stamina is the third Fortitude skill, its own group at quarter XP, marked per 50 strain of any effort (FB6).
+import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
 import { makeVillage } from '../harness';
@@ -121,7 +122,7 @@ describe('278 fatigue and stamina', () => {
     sleepDebtFor(s, 3);
     const t0 = now(s);
     play(s, { intent: intent({ action: { type: 'sleep' } }) });
-    expect(now(s) - t0).toBe(3 * 60 + 1);
+    expect(now(s) - t0).toBe(3 * 60 + actionRow(DU.action)!.seconds / 60);
     expect(fatigueOf(s.player).debt).toBeLessThan(0.1); // only the turn's own awake minute since
     const r = quiet();
     r.player.core.condition.fatigue = { debt: 0, line: 40 };

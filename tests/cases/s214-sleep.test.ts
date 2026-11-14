@@ -4,6 +4,8 @@
 // nothing done. NPCs sleep by their routines under the same rules, and an awake band member who sees someone hostile
 // shouts its sleeping bandmates awake. Sleeping with companions shares the night out in watches, one each, capped at
 // 12 hours, the player taking the middle watch.
+import { DU } from '../../src/library/tableIds';
+import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { Actor, GameEvent, GameState, Intent, ParserActionType } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
@@ -42,7 +44,7 @@ describe('214 sleeping and keeping watch', () => {
     sleepDebtFor(s, 8);
     const t0 = now(s);
     turn(s, act('sleep'));
-    expect(now(s) - t0).toBe(480 + 1);
+    expect(now(s) - t0).toBe(480 + actionRow(DU.action)!.seconds / 60);
     expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toHaveLength(2);
     expect(s.player.asleep).toBeUndefined();
     expect(s.night).toBeUndefined();
@@ -146,7 +148,7 @@ describe('214 sleeping and keeping watch', () => {
     sleepDebtFor(s, 8);
     const t0 = now(s);
     turn(s, act('sleep'));
-    expect(now(s) - t0).toBe(720 + 1);
+    expect(now(s) - t0).toBe(720 + actionRow(DU.action)!.seconds / 60);
     expect(s.log.some((l) => l.code === 'woke' && (l.detail as { actorId: string; why: string }).actorId === s.player.id && (l.detail as { why: string }).why === 'watch')).toBe(true);
     expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toHaveLength(2);
     expect([s.player, one, two].map((a) => !!a.asleep)).toEqual([false, false, false]);

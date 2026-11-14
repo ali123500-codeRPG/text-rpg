@@ -1,7 +1,8 @@
 // 111 Game clock (T1–T11) and natural recovery (H12–H15). Code owns one clock in game minutes;
 // each action's time is a durations row; the time of day lights outdoor zones and picks routine sets; waiting moves
 // the clock and breaks the scenario; natural recovery heals endurance × 0.01 % an hour, never Crippled or worse.
-import { HL } from '../../src/library/tableIds';
+import { DU, HL } from '../../src/library/tableIds';
+import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { sleepDebtFor } from '../harness/sleep';
@@ -34,7 +35,7 @@ describe('111 game clock', () => {
     turn(s, act('barter'));
     expect(now(s) - t0).toBeCloseTo(3 / 60 + CONFIG.EXPLORE_TURN_S / 60, 6); // the haggling is words: capped
     turn(s, act('other'));
-    expect(now(s) - t0).toBeCloseTo(3 / 60 + CONFIG.EXPLORE_TURN_S / 60 + 1, 6); // no time of its own: the action row
+    expect(now(s) - t0).toBeCloseTo(3 / 60 + CONFIG.EXPLORE_TURN_S / 60 + actionRow(DU.action)!.seconds / 60, 6); // no time of its own: the action row
   });
   it('waiting until dawn moves the clock to dawn and shows a line, never ending the scenario (SC9); a foe in the player\'s senses stops it at once', () => {
     const s = makeVillage();
@@ -73,7 +74,7 @@ describe('111 game clock', () => {
     sleepDebtFor(s, 8);
     const t0 = now(s);
     turn(s, act('sleep'));
-    expect(now(s) - t0).toBe(480 + 1);
+    expect(now(s) - t0).toBe(480 + actionRow(DU.action)!.seconds / 60); // the night, then the turn's own action time
     expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toHaveLength(2);
     expect(s.player.core.condition.hpLostPct).toBeLessThan(80 - 2 * CONFIG.REST_HEAL_PCT);
     const w = makeVillage();

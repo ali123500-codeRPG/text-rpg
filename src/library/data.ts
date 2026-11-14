@@ -835,7 +835,7 @@ export function prototypeLibrary(): Library {
     // Battle Cry). Unset: no movement lock, focus reflex, stop
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
-      [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 60 },
+      [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 30 }, // an out-of-fight turn's own time (EXPLORE_TURN_S)
       [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 10 * 60, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
       [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },

@@ -2,6 +2,8 @@
 // and a routine may name other steps for one or more times of day (NW13: dawn, morning, afternoon, dusk, evening, night). The time a turn takes moves every NPC
 // not in a fight toward where its routine puts it at the new time, as far as it could walk in that time at the travel
 // pace, less what its own move already walked: one jump, no Claude calls. A long sleep no longer leaves the world one step on.
+import { DU } from '../../src/library/tableIds';
+import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { GameState, Intent, ParserActionType, Routine } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
@@ -56,18 +58,18 @@ describe('209 routines on the clock (NW10, NW11, NW13)', () => {
     const before = now(s);
     sleepDebtFor(s, 8); // FT9: 8 hours of sleep debt
     turn(s, act('sleep'));
-    expect(now(s) - before).toBe(481); // the sleep, plus the action minute
+    expect(now(s) - before).toBe(480 + actionRow(DU.action)!.seconds / 60); // the sleep, plus the action row's time
     // 481 minutes into a 90-minute loop: 31 minutes in, the second stop
     expect(desiredState(buildActorView(s, g.id))!.zone).toBe('street_square');
     expect(g.zone).toBe('street_square');
   });
-  it('NW11: it goes only as far as it could walk in the time; a turn of an action with no time of its own is a minute of walking', () => {
+  it('NW11: it goes only as far as it could walk in the time; a turn of an action with no time of its own is the action row of walking', () => {
     const s = quiet();
     startClock(s, 'morning');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     // its post is 110 m off, straight east across the field; a minute walks travelSpeed × 60 metres (about 76)
     installRoutines(g, 'gate_guard', { post: 'field_far' }, undefined, s.turn, createRng(1), now(s));
-    const reach = travelSpeed(s, g, CONFIG.CATCH_UP_PACE) * 60;
+    const reach = travelSpeed(s, g, CONFIG.CATCH_UP_PACE) * actionRow(DU.action)!.seconds;
     const from = g.pos!.x;
     turn(s, act('other'));
     expect(g.zone).not.toBe('field_far');

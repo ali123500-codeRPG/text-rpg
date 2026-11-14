@@ -354,9 +354,12 @@ const DEFAULTS = {
   /** AE12/AT13: the most a fight turn lasts, in seconds, and the least (a turn lasts as long as the player's order) */
   FIGHT_TURN_S: 6,
   FIGHT_TURN_MIN_S: 3,
+  /** AT20/TP4: carried time lasts this many turns, and each pool carries at most CARRY_MAX_TURNS fight turns of it */
+  CARRY_TURNS: 2,
+  CARRY_MAX_TURNS: 2,
   /** AT46: the most a turn outside a fight lasts, in seconds (as long as the player's order); longer actions, walks, rests
    * and waits run on the world clock instead (AT45) */
-  EXPLORE_TURN_S: 120,
+  EXPLORE_TURN_S: 30,
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
   // ---- the world clock (AT56, AT65 to AT68; src/engine/comingNear.ts). Placeholders from the Action Time part three page.
