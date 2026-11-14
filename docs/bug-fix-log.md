@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (PG1 a on the "Passive Eyesight and Earshot growth" page). The contest now marks both sides (markUse), and the open hearing check is recorded like any check against its difficulty (ruleset.recordUse). Tests in tests/cases/s301-sleep-near-by-sound.test.ts.
 
-**Fixed by:** [PR #TBD](https://github.com/ali123500-codeRPG/text-rpg/pull/TBD)
+**Fixed by:** [PR #836](https://github.com/ali123500-codeRPG/text-rpg/pull/836)
 
 ## BG-238
 
