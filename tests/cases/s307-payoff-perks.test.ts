@@ -48,13 +48,14 @@ describe('307 payoff perks', () => {
     expect(payoffShare(50)).toBeLessThan(p / (1 - r) + 1e-9);
   });
 
-  it('CN6 Patient Knife: Combat Stealth augments an attack from hiding by its pieces; not in the open, not with no pieces', () => {
+  it('CN6 Patient Knife: Combat Stealth augments an attack from hiding by its pieces, itself included; not in the open', () => {
     const s = makeVillage();
     s.player.core.skills[SK.combat_stealth] = { raw: 100, state: 'normal' };
     give(s.player, PK.patient_knife);
-    expect(knife(s.player, s, 'from_hiding')).toBe(0); // no ambush piece yet
+    const one = trueSkill(s.player, SK.combat_stealth) * payoffShare(1) * tierMult(SK.combat_stealth);
+    expect(knife(s.player, s, 'from_hiding')).toBeCloseTo(one); // it is an ambush piece itself
     give(s.player, PK.hidden_strike); give(s.player, PK.opening_strike);
-    const want = trueSkill(s.player, SK.combat_stealth) * payoffShare(2) * tierMult(SK.combat_stealth);
+    const want = trueSkill(s.player, SK.combat_stealth) * payoffShare(3) * tierMult(SK.combat_stealth);
     expect(knife(s.player, s, 'from_hiding')).toBeCloseTo(want);
     expect(knife(s.player, s)).toBe(0);
   });

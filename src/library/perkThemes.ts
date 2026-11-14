@@ -1,6 +1,6 @@
 // CN1-CN2 (D-260): theme tags on perks. A payoff perk counts the owned perks with its tag (CN3) and grows a share per
 // piece, each further piece at STACK_RATIO (CN4). A perk may carry any number of tags (CN1); one table keyed by theme, so
-// moving a perk is one line.
+// moving a perk is one line. A payoff perk carries its own theme, so it counts itself as a piece.
 import { PK } from './perkIds';
 
 export type ThemeTag = 'ambush' | 'counter' | 'guard' | 'shout' | 'trick' | 'shadow';
@@ -8,7 +8,7 @@ export type ThemeTag = 'ambush' | 'counter' | 'guard' | 'shout' | 'trick' | 'sha
 export type PayoffCount = ThemeTag | 'quirk';
 
 export const PERK_THEMES: Record<ThemeTag, string[]> = {
-  ambush: [PK.hidden_strike, PK.strike_and_fade, PK.in_and_out, PK.opening_strike],
+  ambush: [PK.hidden_strike, PK.strike_and_fade, PK.in_and_out, PK.opening_strike, PK.patient_knife],
   counter: [PK.counter, PK.answer_the_blow, PK.step_and_cut],
   guard: [PK.cover_ally, PK.shield_wall, PK.iron_rim, PK.blade_wall],
   shout: [PK.battle_cry, PK.dread_presence, PK.overwhelm, PK.crushing_presence],
