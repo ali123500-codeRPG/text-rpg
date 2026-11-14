@@ -3531,7 +3531,7 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-247 | Playtest turns 104-116: Hob stood a step away and never landed a punch | 14/11/2026 | fixed (Ali OK'd the fix, BF71) | Closing in stops at reach and steps round a taken spot; the gap between people is 0.2 m; hemmed in gives no_room. PR #832 |
 | BG-248 | Playtest turn 115: a tapped name in a question added brackets and asked again | 14/11/2026 | fixed (Ali OK'd the fix, BF72) | One way to answer; a tapped name replaces the order's name; the Parser sees its question. PR #824 |
 | BG-249 | Light Sleeper wake checks never taught: the sleeper's Earshot and a sneaker's stealth skill got no mark | 14/11/2026 | fixed (Ali OK'd the fix, PG1) | wakeCheck marks both sides of the contest and records the open hearing check like any check. PR #836 |
-| BG-250 | Animal races attack at skill 0: their natural attacks roll Natural Weapons, whose tree is open only to slimes and dragons, so the skill counts as closed | 14/11/2026 | open (fix plan awaiting Ali's OK) | |
+| BG-250 | Animal races attack at skill 0: their natural attacks roll Natural Weapons, whose tree is open only to slimes and dragons, so the skill counts as closed | 14/11/2026 | fixed (Ali OK'd the fix) | A skill one of a being's own natural attacks rolls is always open to it. PR #842 |
 
 ## Check on release
 
