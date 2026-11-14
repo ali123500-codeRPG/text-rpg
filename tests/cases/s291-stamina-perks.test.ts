@@ -1,5 +1,5 @@
 // 291 SS1-SS14 Stamina perks. Catnap (20): a rest also clears an hour of sleep's debt. Iron Lungs (40): +10 Endurance.
-// Forced March (60): a run is Moderate. Deep Lungs (80): line ×1.5. Sleepless (100): hours awake add debt ×0.2. Bottomless
+// Forced March (60) is retired (SR5): the 60 slot is empty. Deep Lungs (80): line ×1.5. Sleepless (100): hours awake add debt ×0.2. Bottomless
 // (120): strain ×0.5. Overdrive (140): above half a line, every roll adds 10% of Stamina for 1 strain. Second Breath (All-50 part): once a fight, an emptying line refills to half with no spill. Quirks
 // Heavy Sleeper (a noise one level louder wakes them) and Insomniac (sleep ×0.75), rolled onto NPCs by template quirk tags.
 import { describe, expect, it } from 'vitest';
@@ -20,7 +20,7 @@ import { RV } from '../../src/library/tableIds';
 import { now, advanceClock } from '../../src/time';
 import { passiveFatigue, payMove, payStrain, restRecover, sleepMult } from '../../src/engine/fatigue';
 import { fallAsleep, wakeByEvent } from '../../src/engine/sleep';
-import { barMax, fatigueOf, lineMax, lineUsed, perkSleepMult, runEffort } from '../../src/ruleset/fatigue';
+import { barMax, fatigueOf, lineMax, lineUsed, perkSleepMult } from '../../src/ruleset/fatigue';
 import { trueSkill } from '../../src/ruleset/perks';
 
 const quiet = () => makeVillage({ playerZone: 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1', 'guard_1', 'trader'] });
@@ -32,7 +32,7 @@ describe('291 stamina perks', () => {
   it('every built one is on the Stamina ladder at its milestone, and Second Breath is Stamina\'s All-50 part', () => {
     makeVillage();
     const perks = getLibrary().perks;
-    for (const [id, m] of [[PK.catnap, 20], [PK.iron_lungs, 40], [PK.forced_march, 60], [PK.deep_lungs, 80], [PK.sleepless, 100], [PK.bottomless, 120], [PK.overdrive, 140]] as const) {
+    for (const [id, m] of [[PK.catnap, 20], [PK.iron_lungs, 40], [PK.deep_lungs, 80], [PK.sleepless, 100], [PK.bottomless, 120], [PK.overdrive, 140]] as const) {
       expect(perks[id]?.ladder, id).toEqual({ skill: SK.stamina, milestone: m });
       expect(BUILT_PERKS.has(id), id).toBe(true);
     }
@@ -71,18 +71,6 @@ describe('291 stamina perks', () => {
     expect(trueSkill(s.player, SK.endurance)).toBe(en + 10);
   });
 
-  it('SS3 Forced March: a run costs Moderate instead of Hard', () => {
-    const s = quiet();
-    expect(runEffort(s.player)).toBe(CONFIG.RUN_EFFORT);
-    payMove(s, s.player, 'main', CONFIG.STRAIN_MOVE_S);
-    const hard = lineUsed(s.player);
-    const f = quiet();
-    give(f.player, PK.forced_march);
-    expect(runEffort(f.player)).toBe('moderate');
-    payMove(f, f.player, 'main', CONFIG.STRAIN_MOVE_S);
-    expect(lineUsed(f.player)).toBeCloseTo(hard * CONFIG.STRAIN_COST.moderate / CONFIG.STRAIN_COST[CONFIG.RUN_EFFORT]);
-  });
-
   it('SS4 Deep Lungs: the short-term line is ×1.5', () => {
     const s = quiet();
     const before = lineMax(s.player);
@@ -99,7 +87,7 @@ describe('291 stamina perks', () => {
     const c = quiet();
     give(c.player, PK.sleepless);
     payStrain(c, c.player, 'hard', 30); // 60 strain on a 50-point line
-    expect(fatigueOf(c.player).debt).toBeCloseTo(10 * CONFIG.SPILL_SHARE);
+    expect(fatigueOf(c.player).debt).toBeCloseTo(10 * CONFIG.SPILL_SHARE + 60 * CONFIG.STRAIN_RESIDUE);
     expect(c.player.core.condition.fatigue!.toMark).toBeCloseTo(60 % CONFIG.STAMINA_MARK_EVERY);
   });
 
@@ -120,12 +108,12 @@ describe('291 stamina perks', () => {
     f.player.engagement = { start: 1, last: 1, kinds: ['fight'] };
     f.player.core.condition.fatigue = { debt: 0, line: lineMax(f.player) - 2 };
     payStrain(f, f.player, 'hard', 3); // 6 strain, 2 left: line empties, refills to half, 4 more paid from it
-    expect(fatigueOf(f.player).debt).toBe(0);
+    expect(fatigueOf(f.player).debt).toBeCloseTo(6 * CONFIG.STRAIN_RESIDUE); // no spill, only the residue (SR4)
     expect(lineUsed(f.player)).toBeCloseTo(lineMax(f.player) * (1 - CONFIG.SECOND_BREATH_PCT / 100) + 4);
     expect(f.log.some((l) => l.code === 'second_breath')).toBe(true);
     f.player.core.condition.fatigue!.line = lineMax(f.player); // once only: the next overflow spills
     payStrain(f, f.player, 'hard', 1);
-    expect(fatigueOf(f.player).debt).toBeCloseTo(2 * CONFIG.SPILL_SHARE);
+    expect(fatigueOf(f.player).debt).toBeCloseTo(8 * CONFIG.STRAIN_RESIDUE + 2 * CONFIG.SPILL_SHARE);
   });
 
   it('SS10 Heavy Sleeper: a shout no longer wakes them, one level louder does; a blow still does', () => {

@@ -388,11 +388,11 @@ describe('leftover scan round 10', () => {
     expect(a).not.toMatch(/'friend', 'loyal'/);
     expect(read('src/engine/travel.ts')).not.toMatch(/perceivesNow/);
   });
-  it('the Stacking tab names noise, attention, light and pace by their scale names', () => {
+  it('the Stacking tab names noise, attention and light by their scale names', () => {
     const v = (src: string) => MOD_SOURCES.find((m) => m.source === src)!.value;
     expect(v('Waking')).toMatch(/^Faint /);
     expect(v('Light')).toMatch(/dim -5/);
-    expect(v('Travel pace')).toMatch(/slow \+10 · fast -10/);
+    expect(MOD_SOURCES.some((m) => m.source === 'Travel pace')).toBe(false); // SR5: one travel pace
   });
   it('no literal durations in motion, one walk chip, one plural, packet words used as they come', () => {
     expect(read('src/ui/motion.ts')).not.toMatch(/dur: Math\.min\(\d|\+ \d+ \* strength/);

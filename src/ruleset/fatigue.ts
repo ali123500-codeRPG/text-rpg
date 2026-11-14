@@ -31,8 +31,6 @@ export function perkSleepMult(a: Actor, field: 'sleepNeed' | 'sleepClear'): numb
   const perks = getLibrary().perks;
   return a.core.perks.filter((p) => !p.dormant).reduce((m, p) => m * ((perks[p.perkId] as PerkDef | undefined)?.[field] ?? 1), 1);
 }
-/** SS3: the tier a run (a dash) pays: Forced March makes it Moderate */
-export const runEffort = (a: Actor) => (hasPerk(a, PK.forced_march) ? CONFIG.FORCED_MARCH_RUN_EFFORT : CONFIG.RUN_EFFORT);
 export const lineUsed = (a: Actor): number => Math.min(fatigueOf(a).line, lineMax(a));
 /** FT10: Spent: the bar is full and the actor awake; no action above Light until it is below full */
 export const isSpent = (a: Actor): boolean => fatigueLevel(a) === 'collapsed' && !a.asleep;

@@ -316,6 +316,8 @@ const DEFAULTS = {
   DEFENSE_EFFORT: 'light' as EffortKey,
   /** FT23: strain past an empty short line spills into the long-term bar at this share */
   SPILL_SHARE: 0.5,
+  /** SR4: every strain point paid also adds this share of itself to the long-term bar */
+  STRAIN_RESIDUE: 0.1,
   /** FT27/FB6: one Stamina mark per this many points of strain paid, any effort, armour included */
   STAMINA_MARK_EVERY: 50,
   /** FT28: catching your breath: in a calm stretch (nothing above Light for BREATH_CALM_S) the line refills BREATH_BASE_PCT
@@ -335,7 +337,6 @@ const DEFAULTS = {
   HIGH_PERK_SPREAD: 0.01,
   /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
   CATNAP_SLEEP_HOURS: 1, // SS1 Catnap: a full rest clears the sleep debt this many hours of sleep would
-  FORCED_MARCH_RUN_EFFORT: 'moderate' as EffortKey, // SS3 Forced March: the owner's run pays this tier instead of RUN_EFFORT
   DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
   SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
@@ -657,13 +658,14 @@ const DEFAULTS = {
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
-  /** TV2 travel paces as shares of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels slow 3, normal
-   * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
-  TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
-  CATCH_UP_PACE: 'normal' as import('./scales').TravelPaceKey, // NW11: the pace NPCs keep while a turn's time moves them on
+  /** TV2/SR5: travel is one pace, a share of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels 4.5 km/h
+   * (US Army FM 21-18: about 4 km/h on a day march); NPCs keep it too while a turn's time moves them on (NW11) */
+  TRAVEL_SPEED_SHARE: 0.9,
+  /** TV5: pressing on in the dark, the travel speed is this share of the walking speed instead (3 km/h) */
+  TRAVEL_DARK_SPEED_SHARE: 0.6,
+  /** SR5: each hour of travel adds this many points of strain straight to the long-term bar, whatever the armour (placeholder) */
+  TRAVEL_STRAIN_PER_HOUR: 1,
   LONG_TURN_LINES: 5, // BF2e4: a long turn's summary names at most this many people; the rest are "others came and went"
-  /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
-  TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
   TRAVEL_LEG_MIN: 60,
   TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn

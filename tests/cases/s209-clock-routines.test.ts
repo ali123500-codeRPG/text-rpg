@@ -69,7 +69,7 @@ describe('209 routines on the clock (NW10, NW11, NW13)', () => {
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     // its post is 110 m off, straight east across the field; a minute walks travelSpeed × 60 metres (about 76)
     installRoutines(g, 'gate_guard', { post: 'field_far' }, undefined, s.turn, createRng(1), now(s));
-    const reach = travelSpeed(s, g, CONFIG.CATCH_UP_PACE) * actionRow(DU.action)!.seconds;
+    const reach = travelSpeed(s, g) * actionRow(DU.action)!.seconds;
     const from = g.pos!.x;
     turn(s, act('other'));
     expect(g.zone).not.toBe('field_far');

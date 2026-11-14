@@ -7,7 +7,6 @@ import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
 import { CP, DU, FR, HL, RL } from '../library/tableIds';
 import { passiveFatigue, payMove, payRow, payStrain, restRecover, sleepMinutes, tooSpent } from './fatigue';
-import { runEffort } from '../ruleset/fatigue';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
@@ -625,7 +624,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
       paid = slot(n++);
       if (!paid) return true;
       if (paid.paid === 'main' && lame(state, a)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' }); return true; }
-      if (paid.paid === 'main' && tooSpent(a, runEffort(a))) { logCode(state, 'dash_blocked', { actorId: a.id, reason: 'spent' }); slotsOf(ctx, a).main += paid.seconds; paid = null; return true; } // FT10: no run, its time kept
+      if (paid.paid === 'main' && tooSpent(a, CONFIG.RUN_EFFORT)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: 'spent' }); slotsOf(ctx, a).main += paid.seconds; paid = null; return true; } // FT10: no run, its time kept
       perS = slotMetres(state, a, paid.paid, 1);
       left = perS * paid.seconds;
       fresh = true;
@@ -1981,7 +1980,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
   const trip = travel(state, a, t.goal, o, ctx.rng);
   for (const id of [a.id, ...trip.companions]) noteWalked(state, { id } as Actor, Infinity); // NW11: they spent the turn on the road
   if (a.zone !== trip.fromZone) noteLeft(state, trip.fromZone);
-  const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), pace: trip.pace, night: trip.night, stop: trip.stop, companions: trip.companions };
+  const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), night: trip.night, stop: trip.stop, companions: trip.companions };
   logCode(state, 'travelled', { actorId: a.id, ...detail });
   if (trip.minutes > 0) logCode(state, 'time_passed', { actorId: a.id, minutes: trip.minutes, travel: true });
   emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
@@ -2181,7 +2180,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
     if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isAsleep(a) || isEngaged(state, a) || a.heldBy || m.moraleState || staying(state, a)) continue;
     const d = desiredState(buildActorView(state, a.id));
     if (!d || d.zone === a.zone) continue;
-    let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
+    let left = travelSpeed(state, a) * minutes * 60 - (walked[a.id] ?? 0);
     const start = a.zone;
     for (let i = 0; i < 100 && left > M_EPS && a.zone !== d.zone; i++) {
       const gate = gateAhead(state, a, d.zone);

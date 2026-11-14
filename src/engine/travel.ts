@@ -1,7 +1,7 @@
 // Travel on the road (TV1–TV9): a walk along a road, which is one long zone, in one turn. Code walks it in legs of up to
-// TRAVEL_LEG_MIN game minutes at the travel pace; each leg on a road rolls for an encounter by the road's danger, and an
+// TRAVEL_LEG_MIN game minutes at the travel speed; each leg on a road rolls for an encounter by the road's danger, and an
 // encounter's event roll sets what it is (the next scenario's tier). The trip stops on arrival, at an encounter, or at dusk
-// (unless the trip set off in the dark: then it presses on, at a slow pace, with a worse event roll and more encounters).
+// (unless the trip set off in the dark: then it presses on, more slowly, with a worse event roll and more encounters).
 import { CONFIG } from '../config';
 import { FN } from '../library/functionIds';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
@@ -13,22 +13,22 @@ import { minutesUntil, now, timeOfDay } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { logCode } from './effects';
 import { passiveHealing } from './heal';
-import { passiveFatigue } from './fatigue';
+import { passiveFatigue, payTravel } from './fatigue';
 import { getLibrary } from '../library';
-import { TIERS, type TravelPaceKey } from '../scales';
+import { TIERS } from '../scales';
 import { fnRoller, ruleset, situational } from '../ruleset';
 import type { Actor, EventRollResult, GameState, Mod, Order, Rng, Zone } from '../types';
 
 export type TripStop = 'arrived' | 'nightfall' | 'encounter';
-export type Trip = { metres: number; minutes: number; legs: number; pace: TravelPaceKey; night: boolean; stop: TripStop; companions: string[]; fromZone: string;
+export type Trip = { metres: number; minutes: number; legs: number; night: boolean; stop: TripStop; companions: string[]; fromZone: string;
   encounter?: { eventRoll: EventRollResult; noticed: boolean; at: Pos } };
 
 export const isRoad = (z: Zone | undefined) => !!z?.kind && !!getLibrary().zoneKinds?.[z.kind]?.road;
 /** dusk and night are dark enough to stop a trip (TV5) */
 export const darkOut = (t: number) => CONFIG.ROAD_DARK.includes(timeOfDay(t));
 
-/** TV2: travel speed in m/s at a pace: a share of the walking speed (body type, armor, speed factor all count) */
-export const travelSpeed = (state: GameState, a: Actor, pace: TravelPaceKey): number => moveSpeed(state, a).walk * CONFIG.TRAVEL_PACE_SHARE[pace];
+/** TV2/SR5: travel speed in m/s: a share of the walking speed (body type, armor, speed factor all count), less in the dark */
+export const travelSpeed = (state: GameState, a: Actor, dark = false): number => moveSpeed(state, a).walk * (dark ? CONFIG.TRAVEL_DARK_SPEED_SHARE : CONFIG.TRAVEL_SPEED_SHARE);
 
 /** TV1: travel mode, or null for normal turns. A move with no main action along a route that uses a road, outside a
  * fight, with nobody hostile engaged with the player or perceiving them. The goal is the move's zone, or for a frontier off
@@ -57,11 +57,10 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
 export const companions = (state: GameState, a: Actor): Actor[] => state.actors.filter((x) => isActive(x) && x !== a && (together(state, a, x)
   || (getLibrary().routines?.[x.mind?.routine?.id ?? '']?.kind === 'follow' && eachPerceives(state, a, x))));
 
-/** TV8: one noticing roll: the sight function at the pace's modifier and the light where the player is */
-function notices(state: GameState, a: Actor, pace: TravelPaceKey, rng: Rng): boolean {
+/** TV8: one noticing roll: the sight function in the light where the player is */
+function notices(state: GameState, a: Actor, rng: Rng): boolean {
   const skill = fnRoller(state, a, FN.sight);
-  const pm = CONFIG.TRAVEL_NOTICE_MOD[pace];
-  const modifiers: Mod[] = [...(pm ? [{ source: 'travel pace', type: 'situational' as const, value: pm }] : []), ...situational(state, skill, { light: zoneById(state, a.zone), actor: a }).modifiers];
+  const modifiers: Mod[] = situational(state, skill, { light: zoneById(state, a.zone), actor: a }).modifiers;
   const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], fn: FN.sight }, state, rng);
   const passed = TIERS.pos(r.tier) >= TIERS.pos('success');
   ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY.moderate, passed, modifiers }, state);
@@ -74,15 +73,14 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
   const fromZone = a.zone;
   const pressOn = darkOut(now(state)); // TV5: setting off in the dark presses on; a trip that reaches dusk stops to ask
   const there = () => (goal.pos ? withinM(distM(state, a, goal), 0) : a.zone === goal.zone);
-  const trip: Trip = { metres: 0, minutes: 0, legs: 0, pace: o.pace ?? 'normal', night: false, stop: 'arrived', companions: group.slice(1).map((x) => x.id), fromZone };
+  const trip: Trip = { metres: 0, minutes: 0, legs: 0, night: false, stop: 'arrived', companions: group.slice(1).map((x) => x.id), fromZone };
   let last: Pos | undefined;
   while (!there() && trip.legs < CONFIG.TRAVEL_MAX_LEGS) {
     const t = now(state);
     const dark = darkOut(t);
     if (dark && !pressOn) { trip.stop = 'nightfall'; break; }
-    const pace: TravelPaceKey = dark ? 'slow' : trip.pace;
     if (dark) trip.night = true;
-    const speed = Math.min(...group.map((x) => travelSpeed(state, x, pace))) * 60; // m per minute: the slowest sets it
+    const speed = Math.min(...group.map((x) => travelSpeed(state, x, dark))) * 60; // m per minute: the slowest sets it
     if (speed <= 0) break;
     let minutes = CONFIG.TRAVEL_LEG_MIN;
     if (!dark) minutes = Math.min(minutes, minutesUntil(t, 'dusk'));
@@ -101,6 +99,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
     passiveHealing(state, minutes);
     passiveFatigue(state, minutes); // FT4/FT28
+    for (const x of group) payTravel(state, x, minutes); // SR5
     // TV4: on a road, a chance per hour by its danger (more in the dark) that something meets you here
     const road = zoneById(state, a.zone);
     if (isRoad(road) && !there()) {
@@ -108,7 +107,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
       if (rng.d100() <= pct) {
         const extra: EventRollResult['modifiers'] = dark ? [{ source: 'night travel', type: 'situational', value: CONFIG.NIGHT_TRAVEL_EVENT_MOD }] : [];
         const eventRoll = ruleset.eventRoll(a, state, rng, extra);
-        trip.encounter = { eventRoll, noticed: notices(state, a, pace, rng), at: ahead(road!, spotOf(state, a).pos!, last) };
+        trip.encounter = { eventRoll, noticed: notices(state, a, rng), at: ahead(road!, spotOf(state, a).pos!, last) };
         trip.stop = 'encounter';
         break;
       }
