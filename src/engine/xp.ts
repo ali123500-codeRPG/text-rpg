@@ -218,9 +218,21 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
     awardXp(state, defeatXp(state, t), `defeat:${t.id}`, why);
     if (why !== 'down') logCode(state, 'yielded_to_player', { actorId: t.id, why }); // BG-199: the turn says they gave up to you
     defeatAchievements(state, t);
+    bested(state, t);
     defeated.push(t);
   }
   return defeated;
+}
+
+/** TF20 b, BS1-BS3: `t` is bested by the player: defeated (payDefeats), or talked or bribed out of a fight with the player
+ * (offer.ts standDown). Once per person, ever. The running scenario lists it for its ending's essence offers (EB1), and
+ * the Bested chain counts it. Being bested is not a defeat: it pays no XP of its own. */
+export function bested(state: GameState, t: Actor): void {
+  if (!t.mind || t.mind.bested || t === state.player) return;
+  t.mind.bested = true;
+  const f = state.stage.scenario;
+  if (f) (f.bested ??= []).push(t.id);
+  tally(state, 'bested');
 }
 
 /** LF15: a skill's worth in the rating, from what it does rather than what it cost to train: SKILL_RATING_AT_50 at 50,

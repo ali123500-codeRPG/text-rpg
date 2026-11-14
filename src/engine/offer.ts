@@ -30,7 +30,7 @@ import { besidePlayer } from './engagement';
 import { together } from './yield';
 import { logCode, loseNerve } from './effects';
 import { coins, payCoin } from './trade';
-import { charLevel, tally } from './xp';
+import { bested, charLevel, tally } from './xp';
 
 /** how an offer landed with its listener (TF15) */
 export type OfferLanded = 'convinced' | 'tempted' | 'unmoved';
@@ -206,6 +206,7 @@ export function standDown(state: GameState, who: Actor, from: Actor, heard: stri
     }
     // TF18: a stand-down is its own outcome, never a defeat for either side; the player's talk-downs have their own tally
     if (foes === mine && !m.mind?.hitByPlayer) tally(state, 'talked_down');
+    if (foes === mine && from === p) bested(state, m); // BS1: talked or bribed out of a fight by the player
   }
   const withIds = mine.filter((m) => m !== who).map((m) => m.id);
   logCode(state, 'stood_down', { actorId: who.id, from: from.id, with: withIds, ...(coin ? { coin } : {}) });

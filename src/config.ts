@@ -570,6 +570,10 @@ const DEFAULTS = {
   ESSENCE_VALUE_MULT: 10,
   /** EG3 b + EG15 b: removing a held essence (at rest) costs this many levels' worth of XP; the bar may go into debt */
   ESSENCE_REMOVE_LEVELS: 1,
+  /** EB3: the first this many essence changes (letting one go, or swapping one out for an offer) cost no XP */
+  ESSENCE_FREE_CHANGES: 3,
+  /** EB1: an ending's second offer comes from one of this many bested people with the highest power (placeholder) */
+  ESSENCE_TOP_BESTED: 3,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18/AT31: a chase is lost when no pursuer has seen or heard the player for this many game seconds (placeholder) */

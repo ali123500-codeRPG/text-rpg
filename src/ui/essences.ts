@@ -2,7 +2,7 @@
 // Take it / Let it go; and the Essences section on the Character page, with the slots, what is held and what still waits.
 // Both run the same /essence commands a player can type, so the rules stay in one place (src/engine/essence.ts).
 import type { Actor, EssenceOffer, GameApi, GameState, HeldEssence } from '../types';
-import { essenceSlots } from '../engine/essence';
+import { essenceSlots, removeCostText } from '../engine/essence';
 import { getLibrary } from '../library';
 import { ESSENCE_GRADES } from '../scales';
 import { durationText, now } from '../time';
@@ -42,7 +42,7 @@ function offerButtons(s: GameState, p: Actor, i: number, run: (cmd: string) => v
     later ? h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'essence-later', onclick: later }, 'Decide later') : null);
 }
 
-const waitText = (s: GameState, o: EssenceOffer) => `Waits ${durationText(Math.max(0, o.untilMin - now(s)))} more`;
+const waitText = (s: GameState, o: EssenceOffer) => `Waits ${durationText(Math.max(0, o.untilMin - now(s)))} more${o.pair ? ' · one of two: taking one lets the other go' : ''}`;
 const slotsText = (p: Actor) => `${(p.progression?.essences ?? []).length} of ${essenceSlots(p)} slots used`;
 
 /** the offer pop-up: one per new offer, shown once; Decide later closes it, and the offer stays on the Character page */
@@ -51,7 +51,7 @@ export function essenceOfferBody(s: GameState, o: EssenceOffer, i: number, run: 
   return [
     tile(o, [storyOf(o) ? h('p', { class: 'ess-story' }, storyOf(o)) : null]),
     h('p', { class: 'ess-meta' }, `${slotsText(p)} · ${waitText(s, o)}`),
-    full ? h('p', { class: 'hs-note' }, 'Every slot is full: taking it means giving one up, which works only at rest and costs one level’s worth of XP.') : '',
+    full ? h('p', { class: 'hs-note' }, `Every slot is full: taking it means giving one up, which works only at rest and costs ${removeCostText(p)}.`) : '',
     offerButtons(s, p, i, run, later),
   ];
 }
