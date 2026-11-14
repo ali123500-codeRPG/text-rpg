@@ -8,7 +8,7 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { BLESSING_TIERS, CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
+import { BLESSING_TIERS, CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, NERVE_LINES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
 import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng, textSeed } from '../rng';
@@ -20,6 +20,8 @@ import { milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { PK } from './perkIds';
 import { TP } from './templateIds';
+import { PLAYER_NAMES } from './names';
+import { personalityFrom } from '../ruleset/personality';
 import { ST } from './startIds';
 import { blessedClass, blessingGods, rollBlessing } from '../ruleset/blessings';
 
@@ -467,6 +469,23 @@ function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKin
   const kinds = (['block', 'parry', 'dodge'] as DefenseKind[]).filter((t) => t === 'dodge'
     || (t === 'block' ? has((d) => !!d.shield) : has((d) => !!d.weapon?.modes.some((m) => m.tree === 'melee' && !m.thrown))));
   return kinds.reduce((best, t) => (raw(DEFENSE_SKILL[t]) > raw(DEFENSE_SKILL[best]) ? t : best), kinds[0]);
+}
+
+/** A new character's name, gender, age and personality, picked at random; the creation screen opens on them and every one
+ * stays editable. Age: whole years from the race's Youth start to just before its Old start, so no one starts in old-age
+ * decline [Proposed]. Personality: a random archetype's targets and values on a random Nerve line */
+export function randomIdentity(rng: Rng, startId = PLAYER_START): { name: string; pronouns: 'he' | 'she' | 'they'; age?: number; personality: Personality } {
+  const pick = <T>(xs: readonly T[]): T => xs[rng.int(0, xs.length - 1)];
+  const pronouns = pick(['he', 'she', 'they'] as const);
+  const st = getLibrary().races?.[newPlayer(startId).raceId ?? RC.human]?.ageStages;
+  const lo = st?.[LIFE_STAGES.at(1)], hi = st?.[LIFE_STAGES.at(4)];
+  const type = pick(Object.values(getLibrary().personalityTypes ?? {}));
+  return {
+    name: pick(pronouns === 'they' ? [...PLAYER_NAMES.he, ...PLAYER_NAMES.she] : PLAYER_NAMES[pronouns]),
+    pronouns,
+    ...(lo !== undefined && hi !== undefined ? { age: rng.int(lo, hi - 1) } : {}),
+    personality: personalityFrom({ nerve: 0, traits: {}, values: [] }, { nerve: pick(Object.keys(NERVE_LINES)), types: type ? [type.id] : [], values: type?.values }),
+  };
 }
 
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
