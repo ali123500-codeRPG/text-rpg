@@ -9,6 +9,8 @@ const KEY = 'motion'; // per viewer: 'on' or 'off'; unset follows the system set
 const sysCalm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const stored = (): string | null => { try { return localStorage.getItem(KEY); } catch { return null; } };
 
+/** BF66: what decides motion in this browser: the Motion switch ('on', 'off', or null: unset) and the system's reduce-motion setting */
+export const motionSettings = () => ({ switch: stored(), systemReduce: sysCalm(), on: motionOn() });
 /** whether motion is on: the viewer's Motion switch, else the system setting */
 export const motionOn = (): boolean => { const v = stored(); return v ? v === 'on' : !sysCalm(); };
 /** the Motion switch; also finishes anything still moving so turning it off never leaves a value half-way */

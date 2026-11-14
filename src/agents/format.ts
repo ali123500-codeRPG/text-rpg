@@ -5,8 +5,10 @@ import type { DialogueInput, DialogueView, NarrationView, OppositionView, Player
 const block = (name: string, v: unknown) => `${name}:\n${typeof v === 'string' ? v : JSON.stringify(v)}`;
 const join = (...parts: string[]) => parts.join('\n\n');
 
-export function formatPlayerView(text: string, view: PlayerView): string {
-  return join(block('PLAYER_INPUT', text), block('PLAYER_VIEW', view));
+/** BF72: the words answer the question the Parser asked about an earlier order: both go beside them */
+export type Answering = { question: string; order: string };
+export function formatPlayerView(text: string, view: PlayerView, answering?: Answering | null): string {
+  return join(block('PLAYER_INPUT', text), ...(answering ? [block('ANSWERING', { yourQuestion: answering.question, earlierOrder: answering.order })] : []), block('PLAYER_VIEW', view));
 }
 
 /** CHARACTER: who the actor is (name, role, personality, band, band goals, temperament, tactics word), from its own view */

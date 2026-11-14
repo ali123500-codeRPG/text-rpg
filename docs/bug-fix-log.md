@@ -6,6 +6,30 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-248
+
+**What was wrong:** Tapping a name inside a clarifying question filled the box with the last order plus the name in brackets ("I attack hob (Osric Fell)"); the Parser never saw its own question, so it asked again, and each tap added another bracket.
+
+**What was done:** Ali approved the fix (BF72). A question with answer buttons has no tappable names. A tapped name replaces the name the first order used ("I attack Osric Fell"), built from the first order of the run so taps never pile up (src/ui/play.ts answerWith). The words sent after a question reach the Parser beside the question and that order (ANSWERING, src/agents/answering.ts), and Parser rule 5 reads them as one order. Test tests/cases/s316-clarify-answer.test.ts.
+
+**Fixed by:** [PR #824](https://github.com/ali123500-codeRPG/text-rpg/pull/824)
+
+## BG-242
+
+**What was wrong:** No hit pop-up showed on turns 75 and 76: the strike card only existed with motion on, came about 2 seconds after the turn landed, and any click on the story in that time threw it away.
+
+**What was done:** Ali approved the fix (BF66). The card shows as the turn lands, before the prose, on its own timer: a skip lands its motion but never removes it, and with motion off it shows still for the same time (src/ui/play.ts strikeCard). The page records the browser's motion settings at db diag/motion. Tests in tests/smoke/play.smoke.ts (motion on and off).
+
+**Fixed by:** [PR #824](https://github.com/ali123500-codeRPG/text-rpg/pull/824)
+
+## BG-239
+
+**What was wrong:** "The scenario draws to a close" showed above the waiting line before the gains pop-up, giving the ending away; the rail's perk-point badge could also change while the turn ran.
+
+**What was done:** Ali approved the fix (BF64). The line is gone, and the rail's badge keeps its count until the turn lands (src/ui/app.ts). Test in tests/smoke/play.smoke.ts (no end-wait rule during a turn).
+
+**Fixed by:** [PR #824](https://github.com/ali123500-codeRPG/text-rpg/pull/824)
+
 ## BG-232
 
 **What was wrong:** The agent playing the character said the player's signature saying on move after move: In character told it to "keep to" each signature, the guided part gave them a second time every move, and words its commands had the character say aloud never went in the list of lines it must not repeat.

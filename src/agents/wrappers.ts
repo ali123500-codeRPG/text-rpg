@@ -5,7 +5,7 @@ import type {
 } from '../types';
 import { FIXED } from './prompts';
 import { checkIntent, checkNarrator, checkPlanner, checkResponder, checkStagePlan, checkVoice } from './schema';
-import { formatDialogueView, formatNarrationView, formatOppositionView, formatPlayerView, formatResponderInput, formatWeaverView } from './format';
+import { formatDialogueView, formatNarrationView, formatOppositionView, formatPlayerView, formatResponderInput, formatWeaverView, type Answering } from './format';
 import { checkNpcLegality, checkParserLegality, spokenOnly, illegalClarify, routineAllowed, type NpcViewBase } from './legality';
 import { fallbackNarration, factCheck, leakScan, mentions, type LeakContext } from './narration';
 import { runAgent, type AgentCtx, type Attempt, type RunResult } from './call';
@@ -34,8 +34,8 @@ export function actionWords(a: NonNullable<Intent['action']>, view: PlayerView):
 export type ParserResult = { intent: Intent | null; clarify: string | null; answers?: string[]; run: RunResult<Intent> };
 
 /** PlayerView only. A clarify, an illegal target/item/skill or a failed call stops the turn with a question. */
-export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, opts: { bandIds?: string[] } = {}): Promise<ParserResult> {
-  const run = await runAgent<Intent>(ctx, { agent: 'parser', fixed: FIXED.parser, data: formatPlayerView(text, view), schema: checkIntent });
+export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, opts: { bandIds?: string[]; answering?: Answering | null } = {}): Promise<ParserResult> {
+  const run = await runAgent<Intent>(ctx, { agent: 'parser', fixed: FIXED.parser, data: formatPlayerView(text, view, opts.answering), schema: checkIntent });
   if (!run.value) return { intent: null, clarify: GENERIC_CLARIFY, run };
   if (run.value.clarify) return { intent: null, clarify: run.value.clarify, ...(run.value.answers?.length ? { answers: run.value.answers.slice(0, 3) } : {}), run }; // BG-228
   const leg = checkParserLegality(run.value, view, opts.bandIds);
