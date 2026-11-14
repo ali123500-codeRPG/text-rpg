@@ -324,6 +324,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point
     const common = state.places.flatMap((x) => x.zones).find((z) => z.id === 'tav_common')?.rect;
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
+    // the minimap's walks (AD16) go through the stage's zones, as in the game; a little move time carried from last turn (TP4)
+    state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
+    if (state.mode === 'tactical') player.carry = [{ main: 0, move: 2.4, turn: state.turn - 1 }];
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
     // a sack carried in the pack, with a dagger, a bandage and a smaller sack inside it, to show containers on the Inventory (CT1)

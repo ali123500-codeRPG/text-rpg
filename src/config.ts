@@ -634,6 +634,12 @@ const DEFAULTS = {
   ARMOR_SPEED: { light: { flat: 0, pct: 0 }, medium: { flat: 0.1, pct: 0.05 }, heavy: { flat: 0.2, pct: 0.15 } } as Record<string, { flat: number; pct: number }>,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
+  /** AD8/AD9 the play screen's minimap: how many metres across it shows at first, the widths its zoom steps through
+   * (closest first; the widest also bounds the reach ring, past it the ring is a note), and the nearest point a click
+   * plans a move to (closer is where you stand) */
+  MINIMAP_VIEW_M: 25,
+  MINIMAP_ZOOM_M: [10, 15, 25, 40, 60, 100],
+  MINIMAP_MIN_M: 0.5,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   // ---- land first (WZ1-WZ12): a region's land, drawn once by code (src/land); placeholders unless a source is given ----
