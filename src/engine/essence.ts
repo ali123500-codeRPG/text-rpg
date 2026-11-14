@@ -37,8 +37,8 @@ export function gradeMult(grade: EssenceGradeKey, past = 0): number {
 export const appearRoll = (rng: Rng, source: string): boolean => rng.d100() <= (CONFIG.ESSENCE_APPEAR_CHANCE[source] ?? 0);
 
 /** the quality roll (2.4), made once an essence has appeared: d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural
- * edges included. Near Miss or worse: the essence fades; Success common, Great Success fine, Critical Success rare; returns the
- * grade and steps past the last grade. `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the
+ * edges included. Near Miss or worse: the essence fades; Success common, Great Success fine, Critical Success rare, and each step past
+ * Critical Success one grade more (CS13); returns the grade and steps past the last grade. `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the
  * Toss, All or Nothing), on this roll only. */
 export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }, echo = false): { grade: EssenceGradeKey; past: number } | null {
   const auto = by && fireEssenceAuto(by.state, by.actor);
@@ -47,7 +47,8 @@ export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; act
   if (auto) logCode(by!.state, 'essence_roll_auto', { perk: auto.perk, roll: d });
   const top = TIERS.keys.length - 1;
   const at = auto?.kind === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(d + base - CONFIG.ESSENCE_ROLL_NEEDED);
-  const level = Math.max(0, Math.min(top, at + naturalEdge(d)));
+  // CS13: a step past Critical Success (a natural high on a Critical Success) counts, one grade up per step, as an echo's does
+  const level = Math.max(0, at + naturalEdge(d));
   // HF29 a: an echo's roll goes ECHO_ESSENCE_TIERS up, past the last grade too, and never fades below ECHO_ESSENCE_FLOOR
   const step = level - TIERS.pos('success') + (echo ? CONFIG.ECHO_ESSENCE_TIERS : 0);
   if (step < 0) return echo ? { grade: CONFIG.ECHO_ESSENCE_FLOOR, past: 0 } : null;

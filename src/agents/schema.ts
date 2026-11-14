@@ -1,6 +1,6 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
-// GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
+// A missing nullable field reads as null; only a missing required field fails the answer (CS9).
 import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';

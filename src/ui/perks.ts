@@ -3,14 +3,14 @@
 // show only their number and nothing hints at what comes next (K4). A small card beside the tapped milestone takes or undoes.
 import type { Actor, GameApi, GameState, PerkDef, PerkEffect } from '../types';
 import { getLibrary } from '../library';
-import { ALL_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
+import { MILESTONES, allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
 import { h } from './kit';
+import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
 import { allStepNeed, skillsAt } from '../ruleset/allSteps';
 
 const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
-const TOP = ALL_STEPS[ALL_STEPS.length - 1]; // the rails reach the last All step
 // Story or Rules: the player picks which write-up the perk card shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
 const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>(),
@@ -20,7 +20,12 @@ type Show = MilestoneState | 'other';
 /** which perk series a milestone belongs to: 20/60/100/140 change what you can do, 40/80/120 raise numbers; each series has its own colour */
 export const perkSeries = (milestone: number): '20' | '40' => (milestone % 40 === 20 ? '20' : '40');
 const seriesList = (series: '20' | '40') => MILESTONES.filter((m) => perkSeries(m) === series).join(', ');
-const pct = (v: number) => `${Math.min(100, (v / TOP) * 100).toFixed(2)}%`;
+/** CS11: the rails reach PERK_RAILS_TO, or the next All step past the actor's highest true skill */
+const railTop = (p: Actor) => {
+  const top = Math.max(CONFIG.PERK_RAILS_TO, ...Object.keys(p.core.skills).map((k) => trueSkill(p, k)));
+  return Math.ceil(top / CONFIG.ALL_STEP_EVERY) * CONFIG.ALL_STEP_EVERY;
+};
+const pctOf = (top: number) => (v: number) => `${Math.min(100, (v / top) * 100).toFixed(2)}%`;
 
 function treesOf(p: Actor) {
   const lib = getLibrary();
@@ -33,7 +38,7 @@ function node(skill: string, milestone: number, st: Show, label: boolean) {
   const sel = ui.sel?.skill === skill && ui.sel.milestone === milestone;
   return h('button', {
     type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, 'data-series': perkSeries(milestone), disabled: st === 'sealed',
-    'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : ''}`,
+    'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : st === 'empty' ? ', no perk yet' : ''}`,
     onclick: () => { ui.sel = sel ? null : { skill, milestone }; redraw(); },
   }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
 }
@@ -45,24 +50,25 @@ function allStepCount(p: Actor, treeId: string, step: number): string {
 }
 
 function ladders(p: Actor, treeId: string, skills: string[]) {
+  const top = railTop(p), pct = pctOf(top);
   return h('div', { class: 'pk-lad' },
-    ALL_STEPS.map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / TOP} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, allStepCount(p, treeId, m)))),
+    allStepsUpTo(top).map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / top} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, allStepCount(p, treeId, m)))),
     skills.map((k) => {
       const v = trueSkill(p, k);
       return h('div', { class: 'pk-col' },
         h('div', { class: 'pk-ch' }, h('b', {}, skillName(k)), h('span', {}, String(v))),
         h('div', { class: 'pk-rail' }, h('i', { class: 'pk-fill', style: `height:${pct(v)}` }),
-          MILESTONES.map((r) => h('div', { class: 'pk-at', style: `bottom:${pct(r)}` }, node(k, r, milestoneState(p, k, r), true)))));
+          milestonesUpTo(top).map((r) => h('div', { class: 'pk-at', style: `bottom:${pct(r)}` }, node(k, r, milestoneState(p, k, r), true)))));
     }));
 }
 
 function track(p: Actor, k: string, show: (r: number, st: MilestoneState) => Show) {
-  const v = trueSkill(p, k);
+  const v = trueSkill(p, k), top = railTop(p), pct = pctOf(top);
   return h('div', { class: 'pk-tr' },
     h('div', { class: 'pk-tl' }, h('b', {}, skillName(k)), h('span', {}, String(v))),
     h('div', { class: 'pk-tt' }, h('i', { class: 'pk-tf', style: `width:${pct(v)}` }),
-      ALL_STEPS.map((m) => h('b', { class: 'pk-tm', style: `left:${pct(m)}` })),
-      MILESTONES.map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)), false)))));
+      allStepsUpTo(top).map((m) => h('b', { class: 'pk-tm', style: `left:${pct(m)}` })),
+      milestonesUpTo(top).map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)), false)))));
 }
 
 function effectView(p: Actor) {

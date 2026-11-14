@@ -24,7 +24,7 @@ function setup() {
 const fail = (error: ClaudeErrorCode) => ({ ok: false as const, error });
 
 describe('prompts', () => {
-  it('fixed part is the verbatim spec text, then the shape', () => {
+  it('fixed part is the instruction text, then the shape', () => {
     expect(FIXED.parser.startsWith(PARSER_INSTRUCTIONS)).toBe(true);
     expect(PARSER_INSTRUCTIONS).toContain('8. If the player names a body part of the target, put it in "targetPart". Never decide whether the attack is aimed.');
   });

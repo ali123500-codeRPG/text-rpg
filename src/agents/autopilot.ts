@@ -2,7 +2,7 @@
 // personas the playtest script shares. Each turn it picks the next command and one short line of commentary, spoken aloud.
 import type { Actor, GameState, LogLine } from '../types';
 import { type Ask, type GuidedCtx, guidedPrompt, readAsk } from './crossroads';
-import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
+import { milestonesUpTo, canTake, milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
 import { healthLevel, partStates } from '../ruleset/body';
 import { moraleLevel } from '../ruleset/morale';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
@@ -142,7 +142,7 @@ export function readMove(v: unknown, mustKind?: string): Move | null {
 
 /** the perk an agent playing its own save takes with a spare point: the open milestone of its highest skill */
 export function autoPerk(p: Actor): string | null {
-  const open = Object.keys(p.core.skills).flatMap((sk) => MILESTONES.filter((m) => milestoneState(p, sk, m) === 'open' && !canTake(p, milestonePerk(sk, m)!.id)).map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
+  const open = Object.keys(p.core.skills).flatMap((sk) => milestonesUpTo(trueSkill(p, sk)).filter((m) => milestoneState(p, sk, m) === 'open' && !canTake(p, milestonePerk(sk, m)!.id)).map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
     .sort((a, b) => trueSkill(p, b.sk) - trueSkill(p, a.sk) || a.m - b.m);
   return open[0]?.id ?? null;
 }

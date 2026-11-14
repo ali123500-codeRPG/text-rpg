@@ -27,10 +27,10 @@ import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 
-export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
+export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
 export { meltAwayHere } from './perks';
-export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
+export { MILESTONES, ALL_STEPS, milestonesUpTo, allStepsUpTo, perksNeeded, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, eventRollMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, modeReach, augmentsOf } from './gear';
 
@@ -109,9 +109,11 @@ function mustActor(state: GameState, id: string): Actor {
   return a;
 }
 
-/** gap ladder (Part 3, Defense); a gap past ±5 uses the ±5 entry */
+/** gap ladder (Part 3, Defense). A gap past GAP_MAX uses that row; past GAP_MIN each further step adds GAP_PAST_STEP to the
+ * GAP_MIN row, with no top (CS10) */
 export function ladder(type: DefenseKind, gap: number): number {
-  return CONFIG.GAP_LADDER[type][Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap))];
+  if (gap < CONFIG.GAP_MIN) return CONFIG.GAP_LADDER[type][CONFIG.GAP_MIN] + (CONFIG.GAP_MIN - gap) * CONFIG.GAP_PAST_STEP;
+  return CONFIG.GAP_LADDER[type][Math.min(CONFIG.GAP_MAX, gap)];
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
 // a dodge's +1 graze never lands on an essential part, like the tie (OQ-17 settled); off the shield, block and parry from +1 up keep the
@@ -125,7 +127,7 @@ function locRule(type: DefenseKind, g: number): LocRule {
 const moveReach = (g: number): 'anywhere' | 'adjacent' | '' =>
   g <= CONFIG.HIT_GAPS.movesAnywhere ? 'anywhere' : g <= CONFIG.HIT_GAPS.movesAdjacent ? 'adjacent' : '';
 function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
-  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
+  const g = Math.min(CONFIG.GAP_MAX, gap);
   return [ladder(type, g), locRule(type, g), moveReach(g), shield && g >= CONFIG.HIT_GAPS.shieldFrom].join('|');
 }
 
@@ -310,7 +312,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
-  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
+  const g = Math.min(CONFIG.GAP_MAX, gap);
   let multiplier = ladder(type, g);
   const shield = type === 'block';
   const deciding = {

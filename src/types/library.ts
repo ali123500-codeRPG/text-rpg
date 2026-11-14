@@ -243,7 +243,7 @@ export type PerkDef = {
    * then on its stance toward the owner reads `colder` steps colder until play gives it a stance of its own */
   onSight?: { colder: number; fear: string };
   /** an All-XXX part (src/library/allPerks.ts): `skill` is the tree skill it belongs to; none = the tree's passive */
-  allStep?: { treeId: string; step: 50 | 100 | 150; skill?: string };
+  allStep?: { treeId: string; step: number; skill?: string };
   /** true skill added to every skill with this function (Hunter's Eye: +10 to the sight function) */
   fnSkill?: { fn: SkillFunction; add: number };
   /** a class-level perk (ClassDef.levelPerks): the class and level that grant it */

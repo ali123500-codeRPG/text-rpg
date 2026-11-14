@@ -4,6 +4,7 @@ import { resolveAlias } from '../library';
 import type { Pages } from './pages';
 import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
 import { tierAt } from '../ruleset';
+import { skillCap } from '../ruleset/skillCap';
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
@@ -232,7 +233,7 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
     const c = a.core;
     if (c.classes.length && c.classes.filter((x) => x.state === 'current').length !== 1) r.errors.push(`invariant: ${a.id} must have exactly one current class`);
     if (zonePlace.get(a.zone) !== a.placeId) r.errors.push(`invariant: ${a.id} placeId ${a.placeId} is not the place of zone ${a.zone}`);
-    for (const [s, e] of Object.entries(c.skills)) if (e.raw > 100) r.warnings.push(`${a.id} raw ${s} ${e.raw} above 100`);
+    for (const [s, e] of Object.entries(c.skills)) if (e.raw > skillCap(e)) r.warnings.push(`${a.id} raw ${s} ${e.raw} above its cap ${skillCap(e)}`);
     const ct = L.bodyType(c.bodyTypeId);
     if (!ct) { r.errors.push(`invariant: ${a.id} body type ${c.bodyTypeId} unknown`); continue; }
     const parts = new Set(ct.parts.map((p) => p.id).filter((p) => !c.condition.destroyed?.includes(p)));

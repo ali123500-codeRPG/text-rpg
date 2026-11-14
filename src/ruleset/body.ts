@@ -44,6 +44,19 @@ export function partStates(state: GameState, actor: Actor): { id: string; state:
   return actorBody(state, actor).parts.map((p) => ({ id: p.id, state: poolState(partPct(actor, p.id)) }));
 }
 
+/** Part 3 shared roles: an on/off effect of a role (no running, can't fly) switches on when the role's Crippled and Destroyed
+ * parts reach SHARED_ROLE_OFF_PCT of its parts, a Destroyed part counting twice (one Crippled leg of two still runs; one
+ * Destroyed leg does not; a spider needs 5 of 8 legs Crippled). An actor with no part in the role is never switched off. */
+export function roleOff(state: GameState, actor: Actor, role: RoleId): boolean {
+  const parts = actorBody(state, actor).parts.filter((p) => p.roles.includes(role));
+  if (!parts.length) return false;
+  const hurt = parts.reduce((n, p) => {
+    const at = PART_STATES.pos(poolState(partPct(actor, p.id)));
+    return n + (at >= PART_STATES.pos('destroyed') ? 2 : at >= PART_STATES.pos('crippled') ? 1 : 0);
+  }, 0);
+  return hurt >= CONFIG.SHARED_ROLE_OFF_PCT * parts.length;
+}
+
 /** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres, from its body
  * type); 0 with none, as an amorphous body */
 export function gripReachM(state: GameState, actor: Actor): number {

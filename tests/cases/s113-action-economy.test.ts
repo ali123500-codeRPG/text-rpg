@@ -53,15 +53,24 @@ describe('113 action economy', () => {
     expect(walked(ev)).toBeGreaterThan(0);
     expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(false);
   });
-  it('a long move with no action is a dash (the main slot runs too); a Crippled leg stops it', () => {
+  it('a long move with no action is a dash (the main slot runs too); no running (60% of the legs, CS8) stops it', () => {
     const s = makeVillage();
     place(s, 'player', 'street_door');
     expect(walked(turn(s, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(s, 1, 1), 0);
-    const c = makeVillage();
-    place(c, 'player', 'street_door');
-    c.player.core.condition.parts.left_leg = -30;
-    expect(walked(turn(c, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(c, 1), 0);
-    expect(c.log.some((l) => l.code === 'dash_blocked')).toBe(true);
+    // one Crippled leg of two is 50%: still runs
+    const one = makeVillage();
+    place(one, 'player', 'street_door');
+    one.player.core.condition.parts.left_leg = -30;
+    expect(walked(turn(one, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(one, 1, 1), 0);
+    expect(one.log.some((l) => l.code === 'dash_blocked')).toBe(false);
+    // both legs Crippled, or one Destroyed (counts twice): no running
+    for (const hurt of [{ left_leg: -30, right_leg: -30 }, { left_leg: -100 }]) {
+      const c = makeVillage();
+      place(c, 'player', 'street_door');
+      Object.assign(c.player.core.condition.parts, hurt);
+      expect(walked(turn(c, intent({ toZone: 'field_far' })))).toBeCloseTo(slots(c, 1), 0);
+      expect(c.log.some((l) => l.code === 'dash_blocked')).toBe(true);
+    }
   });
   it('CO13: a movement spends the move time first, then the main time when no action is planned', () => {
     const t = makeVillage();

@@ -66,8 +66,6 @@ function yieldView(state: GameState): YieldView | undefined {
   return { took: names(y.accepted), waiting: names(y.pending), refused: names(y.refused) };
 }
 
-// GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
-const HEADLINES_PER_PLACE = 3;
 /** others' health shows from CONFIG.HEALTH_SHOWN_FROM down (Voyage C2); Read Wounds (A13) shows it one step earlier on
  * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
 const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
@@ -227,7 +225,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
     const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
     const level = sight === 'partial' || dark ? 'partial' : 'full';
-    // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
+    // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
     const name = nameFor(state, viewer, a);
     const h = healthLevel(a);
@@ -369,7 +367,7 @@ function headlinesFor(state: GameState, placeId: string, includeSelf: boolean): 
   let p = state.places.find((x) => x.id === placeId);
   if (p && !includeSelf) p = state.places.find((x) => x.id === p!.parentId);
   for (let n = 0; p && n < 32; n++) {
-    for (const id of p.headlines.slice(0, HEADLINES_PER_PLACE)) {
+    for (const id of p.headlines.slice(0, CONFIG.HEADLINES_PER_PLACE)) {
       const f = state.facts.find((x) => x.id === id);
       if (f) out.push(factText(state, f.text));
     }

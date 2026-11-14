@@ -1,6 +1,7 @@
-// Fixed instruction texts, verbatim from the spec (Part 2, each agent's "Fixed instructions"), sent as the leading user turn.
-// GAP: the spec says "Return only JSON matching the schema" but gives no schema text; the *_SHAPE texts below are ours,
-// written from the spec's output notation, and appended to the fixed part (still fixed, never per turn).
+// Each agent's fixed instructions, sent as the leading user turn. This file is the one copy: the spec (Part 2, each agent's
+// "Fixed instructions") points here and keeps only a summary (CS6).
+// The spec gives each agent's output in its own notation, not as schema text; the *_SHAPE texts below spell that out for the
+// model and are appended to the fixed part (still fixed, never per turn; CS5).
 
 import { CONFIG } from '../config';
 import { spanText } from '../time';

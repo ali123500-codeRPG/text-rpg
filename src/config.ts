@@ -125,9 +125,11 @@ const DEFAULTS = {
   HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
   PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
-  // the ladder runs GAP_MIN..GAP_MAX; a gap past either end uses the end row. −6..−10 are placeholders (+0.5 a step)
+  // the ladder's rows run GAP_MIN..GAP_MAX; −6..−10 are placeholders (+0.5 a step). A gap past GAP_MAX uses that row; past
+  // GAP_MIN each further step adds GAP_PAST_STEP, with no top (CS10)
   GAP_MIN: -10,
   GAP_MAX: 5,
+  GAP_PAST_STEP: 0.5,
   GAP_LADDER: {
     dodge: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1.375, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
     block: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
@@ -604,6 +606,11 @@ const DEFAULTS = {
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × n
   /** no class levels higher than this; XP past a class's top level banks until a class with room is picked */
   CLASS_MAX_LEVEL: 20,
+  /** CS11: a ladder perk milestone every this many points of true skill, and an All step every ALL_STEP_EVERY, with no top */
+  PERK_MILESTONE_EVERY: 20,
+  ALL_STEP_EVERY: 50,
+  /** the perk page's rails always reach this far (milestones to 140, All steps to 150); a higher skill stretches them */
+  PERK_RAILS_TO: 150,
   /** a class's top level by tier: CLASS_TIER0_MAX_LEVEL + CLASS_LEVELS_PER_TIER × tier, at most CLASS_MAX_LEVEL
    * (tier 0 → 5, tier 1 → 10, tier 2 → 15, tier 3 and up → 20) */
   CLASS_TIER0_MAX_LEVEL: 5,
@@ -688,6 +695,7 @@ const DEFAULTS = {
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<DurationId, number>, // NW10: game minutes a routine step lasts (placeholders)
   RECENT_EVENTS: 8, // compact views: last few relevant events
+  HEADLINES_PER_PLACE: 3, // CS7: the Weaver sees this many top headlines of each ancestor place (placeholder)
   MEMORY_ENTRIES: 8, // PM1: an NPC's memory list holds at most this many entries (placeholder)
   EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself

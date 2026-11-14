@@ -29,7 +29,7 @@ import { cap, r1 } from '../words';
 export const invFocus: { id: string | null } = { id: null };
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
-const BAR_SCALE = 100; // display only: the rules set no skill maximum yet (D-3)
+const BAR_SCALE = CONFIG.SKILL_CAP; // display only: the bar fills at the mortal limit; true skill can pass it
 
 export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: number | null } {
   const total = safe(() => totalHp(s, p));
