@@ -23,6 +23,8 @@ import { TP } from './templateIds';
 import { PLAYER_NAMES } from './names';
 import { personalityFrom } from '../ruleset/personality';
 import { ST } from './startIds';
+import { RL } from './tableIds';
+import { gripSlot } from '../ruleset/slots';
 import { blessedClass, blessingGods, rollBlessing } from '../ruleset/blessings';
 
 /** a fixed seed from a string (a template's ID, or a template and an actor's ID) */
@@ -393,6 +395,9 @@ function spawnUnique(state: GameState | null, t: NpcTemplate, opts: SpawnOpts): 
 
 // ---------- player creation (Part 4 §4) ----------
 const PLAYER_START: string = ST.swordsman; // the default Start
+const PLAYER_RACE: string = RC.human; // the default race when a build names none
+/** CC7 a: the races the player can pick on the creation screen (RaceDef.playable), in library order */
+export const playableRaces = (): string[] => Object.values(getLibrary().races ?? {}).filter((r) => r.playable).map((r) => r.id);
 const startDef = (startId: string): StartDef | undefined => getLibrary().starts[startId];
 /** a Start's creation points and starting level (StartDef, else CONFIG) */
 export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.points ?? CONFIG.CREATION_POINTS;
@@ -430,13 +435,13 @@ export function classPerks(classId: string, from: number, to: number, turn = 0):
 /** who a new player is: body type, race, the Start's class and perks. Tree access (TA1) reads these before the sheet exists.
  * A classless start (CC6 b) has no current class: the default class is open (unlocked, level 0), and levels bank until the
  * player picks a class (levelTarget finds none, so XP waits in spendXp). */
-export function newPlayer(startId = PLAYER_START, storyId?: string): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> {
+export function newPlayer(startId = PLAYER_START, storyId?: string, raceId: string = PLAYER_RACE): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> {
   const { classId, blessing } = startGives(startId, storyId), level = startLevel(startId);
   return {
-    bodyTypeId: BT.humanoid,
-    raceId: RC.human, // GAP: no race choice at creation yet
+    bodyTypeId: getLibrary().races?.[raceId]?.bodyTypeId ?? BT.humanoid, // BR5: the body type comes from the race
+    raceId, // CC7 a: picked on the creation screen
     classes: classId ? [{ classId, state: 'current', level }] : classlessStart(startId) && defaultClass() ? [{ classId: defaultClass()!, state: 'unlocked', level: 0 }] : [],
-    perks: [...racePerks(RC.human), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
+    perks: [...racePerks(raceId), ...(blessing ? [{ perkId: blessing, source: 'start' as const, gainedTurn: 0 }] : []), ...(classId ? classPerks(classId, 0, level) : [])],
   };
 }
 
@@ -454,13 +459,16 @@ export function starterKit(a: Actor): ItemInstance[] {
   const met = [...top.values()];
   const score = (d: ItemDef) => { const r = requirement(d); return (r ? skillToward(a, r.skill) : 0) * 10 + lvl(d); };
   const best = (ds: ItemDef[]) => ds.reduce<ItemDef | undefined>((b, d) => (!b || score(d) > score(b) ? d : b), undefined);
-  const weapon = best(met.filter((d) => d.kind === 'weapon'));
-  const shield = (weapon?.grips ?? 1) < 2 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
-  const armor = met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
+  // CC8: held in the body's grip parts (a Human's arms, right first; a Dragon's jaws; a Slime has none), worn armor only on
+  // a humanoid body [Proposed]
+  const grips = (getLibrary().bodyTypes[a.core.bodyTypeId]?.parts ?? []).filter((p) => p.roles.includes(RL.grip)).map((p) => p.id).reverse();
+  const weapon = best(met.filter((d) => d.kind === 'weapon' && (d.grips ?? 1) <= grips.length));
+  const shield = grips.length - (weapon?.grips ?? (weapon ? 1 : 0)) >= 1 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
+  const armor = a.core.bodyTypeId !== BT.humanoid ? undefined : met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
   return met.map((d, n) => {
     const inst: ItemInstance = { id: `player_${d.id}_${n + 1}`, itemId: d.id };
-    if (d === weapon) inst.equippedIn = (d.grips ?? 1) > 1 ? ['grip:right_arm', 'grip:left_arm'] : ['grip:right_arm'];
-    if (d === shield) inst.equippedIn = ['grip:left_arm'];
+    if (d === weapon) inst.equippedIn = grips.slice(0, d.grips ?? 1).map(gripSlot);
+    if (d === shield) inst.equippedIn = [gripSlot(grips[weapon?.grips ?? (weapon ? 1 : 0)])];
     if (d === armor) inst.equippedIn = ['armor'];
     if (d.shield) inst.pools = { shield: 100 };
     if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
@@ -477,18 +485,19 @@ function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKin
   return kinds.reduce((best, t) => (raw(DEFENSE_SKILL[t]) > raw(DEFENSE_SKILL[best]) ? t : best), kinds[0]);
 }
 
-/** A new character's name, gender, age and personality, picked at random; the creation screen opens on them and every one
+/** A new character's race, name, gender, age and personality, picked at random; the creation screen opens on them and every one
  * stays editable. Age: whole years from the race's Youth start to just before its Old start, so no one starts in old-age
  * decline [Proposed]. Personality: a random archetype's targets and values on a random Nerve line */
-export function randomIdentity(rng: Rng, startId = PLAYER_START): { name: string; pronouns: 'he' | 'she' | 'they'; age?: number; personality: Personality } {
+export function randomIdentity(rng: Rng, raceId?: string): { name: string; pronouns: 'he' | 'she' | 'they'; raceId: string; age?: number; personality: Personality } {
   const pick = <T>(xs: readonly T[]): T => xs[rng.int(0, xs.length - 1)];
   const pronouns = pick(['he', 'she', 'they'] as const);
-  const st = getLibrary().races?.[newPlayer(startId).raceId ?? RC.human]?.ageStages;
+  const race = raceId ?? (playableRaces().length ? pick(playableRaces()) : PLAYER_RACE); // CC7 a: a random playable race unless one is kept
+  const st = getLibrary().races?.[race]?.ageStages;
   const lo = st?.[LIFE_STAGES.at(1)], hi = st?.[LIFE_STAGES.at(4)];
   const type = pick(Object.values(getLibrary().personalityTypes ?? {}));
   return {
     name: pick(pronouns === 'they' ? [...PLAYER_NAMES.he, ...PLAYER_NAMES.she] : PLAYER_NAMES[pronouns]),
-    pronouns,
+    pronouns, raceId: race,
     ...(lo !== undefined && hi !== undefined ? { age: rng.int(lo, hi - 1) } : {}),
     personality: personalityFrom({ nerve: 0, traits: {}, values: [] }, { nerve: pick(Object.keys(NERVE_LINES)), types: type ? [type.id] : [], values: type?.values }),
   };
@@ -496,17 +505,48 @@ export function randomIdentity(rng: Rng, startId = PLAYER_START): { name: string
 
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, parry, endurance). */
-export function recommendedBuild(startId = PLAYER_START): CreationBuild {
-  if (startId !== PLAYER_START) return { // the 50-point starts; the same kit, so its gear is short at the start
+export function recommendedBuild(startId = PLAYER_START, raceId?: string): CreationBuild {
+  const base: CreationBuild = startId !== PLAYER_START ? { // the 50-point starts; the same kit, so its gear is short at the start
     name: 'Aldric', startId,
     skills: { [SK.melee_medium]: 15, [SK.parry]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
-  };
-  return {
+  } : {
     name: 'Aldric',
     skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
+  return raceId === undefined || raceId === PLAYER_RACE ? base : raceBuild(base, startId, raceId);
+}
+
+/** CC8: the recommended build for a race whose body closes some of its skills (a Slime has no hands, eyes or ears): the
+ * closed skills' points go to the open skills of the build, then to the other open skills, in library order, up to the
+ * creation cap; tags move to the highest open skills. Class floors stay. */
+function raceBuild(base: CreationBuild, startId: string, raceId: string): CreationBuild {
+  const who = { core: newPlayer(startId, undefined, raceId) } as Actor;
+  const open = Object.keys(getLibrary().skills).filter((k) => skillOpen(who, k));
+  const floors = classFloors(startGives(startId).classId).all;
+  const skills: Record<string, number> = {};
+  for (const [k, v] of Object.entries(base.skills)) if (open.includes(k)) skills[k] = Math.max(v, floors[k] ?? 0);
+  for (const k of Object.keys(floors)) if (open.includes(k) && !(k in skills)) skills[k] = floors[k];
+  let spare = creationPoints(startId) - Object.values(skills).reduce((n, v) => n + v, 0);
+  for (const k of [...Object.keys(skills), ...open.filter((k) => !(k in skills))]) {
+    if (spare <= 0) break;
+    const add = Math.min(spare, CONFIG.CREATION_MAX_SKILL - (skills[k] ?? 0));
+    if (add > 0) { skills[k] = (skills[k] ?? 0) + add; spare -= add; }
+  }
+  const tagged = base.tagged.filter((k) => open.includes(k));
+  for (const k of Object.keys(skills).sort((a, b) => skills[b] - skills[a])) if (tagged.length < CONFIG.CREATION_TAGS && !tagged.includes(k)) tagged.push(k);
+  return { ...base, skills, tagged, raceId };
+}
+
+/** CC8: why a race can't begin a Start: its class needs a skill that race's body can't learn; '' when it can */
+export function raceStartBlock(startId: string, raceId: string = PLAYER_RACE): string {
+  const who = { core: newPlayer(startId, undefined, raceId) } as Actor, f = classFloors(startGives(startId).classId);
+  const closed = [...Object.keys(f.all).filter((k) => !skillOpen(who, k)),
+    ...f.any.filter((g) => !Object.keys(g).some((k) => skillOpen(who, k))).map((g) => Object.keys(g).map(skillName).join(' or '))];
+  if (!closed.length) return '';
+  const r = getLibrary().races?.[raceId]?.name ?? raceId, c = getLibrary().classes[startGives(startId).classId ?? '']?.name ?? 'its class';
+  return `a ${r} can't learn ${closed.map((k) => getLibrary().skills[k] ? skillName(k) : k).join(', ')}, which ${c} needs.`;
 }
 
 /** Empty = valid. Every point spent, skills in trees open to a new player only (TA1), none above the cap, class floors met, exactly CREATION_TAGS tags. */
@@ -516,7 +556,10 @@ export function validateBuild(build: CreationBuild): string[] {
   const st = build.startId ?? PLAYER_START;
   if (!lib.starts[st]) errs.push(`${st} is not a Start`);
   else if (lib.starts[st].blessing && !blessingGods(lib.starts[st].blessing.tier).length) errs.push(`No god gives a ${BLESSING_TIERS.name(lib.starts[st].blessing.tier)} blessing yet`);
-  const who = { core: newPlayer(st) } as Actor, cls = startGives(st).classId;
+  const raceId = build.raceId ?? PLAYER_RACE;
+  if (!playableRaces().includes(raceId)) errs.push(`${getLibrary().races?.[raceId]?.name ?? raceId} is not a race you can play`);
+  else if (lib.starts[st] && raceStartBlock(st, raceId)) errs.push(`This start can't begin: ${raceStartBlock(st, raceId)}`);
+  const who = { core: newPlayer(st, undefined, raceId) } as Actor, cls = startGives(st).classId;
   if (!build.name?.trim()) errs.push('Name the character');
   let spent = 0;
   for (const [id, v] of Object.entries(build.skills)) {
@@ -564,9 +607,9 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     placeId: '', zone: '', // GAP: set by story-start scenario setup (the village tavern, Part 2 Scenario setup)
     posture: 'open', bandId: 'player_band',
     core: {
-      ...newPlayer(build.startId ?? PLAYER_START, storyId),
+      ...newPlayer(build.startId ?? PLAYER_START, storyId, build.raceId),
       skills,
-      condition: { hpLostPct: 0, parts: fullParts(null, BT.humanoid), status: [] },
+      condition: { hpLostPct: 0, parts: fullParts(null, getLibrary().races?.[build.raceId ?? PLAYER_RACE]?.bodyTypeId ?? BT.humanoid), status: [] },
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
       standingDefense: rawDefense((id) => build.skills[id] ?? 0),
