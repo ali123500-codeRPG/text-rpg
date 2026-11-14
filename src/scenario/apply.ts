@@ -5,7 +5,7 @@ import { frameOf } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
 import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
-import { LIFE_STAGES, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
+import { LIFE_STAGES, TALENTS, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
@@ -293,7 +293,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     } else {
       const t = npcTemplate(state, c.template!);
       const personality = c.personality ? personalityFrom(t.personality, c.personality) : undefined; // PL12
-      a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}) }, rng);
+      a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}), ...(LIFE_STAGES.keyOf(c.age) ? { ageStage: LIFE_STAGES.keyOf(c.age) } : {}), ...(TALENTS.keyOf(c.talent) ? { talent: TALENTS.keyOf(c.talent) } : {}) }, rng);
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);

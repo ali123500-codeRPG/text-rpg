@@ -1,9 +1,9 @@
-// Character age (AG1–AG22). One saved number per actor, the game day it was born (Core.bornDay); age, life stage and the
+// Character age (AG1–AG27). One saved number per actor, the game day it was born (Core.bornDay); age, life stage and the
 // old-age decline are read from it, the clock and the race's life stages (RaceDef.ageStages).
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { groupsOf } from '../library/functionNames';
-import { LIFE_STAGES, type LifeStageKey } from '../scales';
+import { LIFE_STAGES, TALENTS, type LifeStageKey, type TalentKey } from '../scales';
 import { DAY_MINUTES, advanceClock, now } from '../time';
 import type { Actor, GameState, Rng } from '../types';
 
@@ -64,13 +64,46 @@ export function advanceAging(state: GameState, minutes: number, log: (code: stri
   if (is && is !== was) log('stage_changed', { actorId: state.player.id, stage: is, years: Math.floor(ageYears(state, state.player)!) });
 }
 
-/** AG13: a birth day drawn from the stages listed (or CONFIG.NPC_AGE_STAGES): a stage, then a year inside it */
-export function rollBornDay(state: GameState | null, raceId: string | undefined, stages: LifeStageKey[] | undefined, rng: Rng): number | undefined {
+/** the years a stage runs, [start, end); the last stage runs one step (AG7) */
+function span(st: Stages, k: LifeStageKey): [number, number] {
+  const i = LIFE_STAGES.pos(k), lo = startOf(st, k);
+  return [lo, i === LIFE_STAGES.keys.length - 1 ? lo + beyondStep(st) : startOf(st, LIFE_STAGES.at(i + 1))];
+}
+
+/** AG23: a talent's multiplier on training years; past the last row each step multiplies by CONFIG.TALENT_BEYOND_MULT, never zero */
+export function talentMult(k: TalentKey): number {
+  const n = Number(k.slice(7)), last = TALENTS.keys.length - 1;
+  return n <= last ? CONFIG.TALENT_MULT[k] : CONFIG.TALENT_MULT[TALENTS.keys[last]] * CONFIG.TALENT_BEYOND_MULT ** (n - last);
+}
+/** AG23: a talent's name; past the last row the last name gains a + per step (Prodigy+, Prodigy++) */
+export function talentName(k: TalentKey): string {
+  const n = Number(k.slice(7)), last = TALENTS.keys.length - 1;
+  return n <= last ? TALENTS.name(k as (typeof TALENTS.keys)[number]) : TALENTS.name(TALENTS.keys[last]) + '+'.repeat(n - last);
+}
+/** AG12, AG21: the youngest age someone of a race can be after `training` years at a talent: the race's Youth start +
+ * years × the talent's multiplier. Undefined for an ageless race. */
+export function ageFloor(raceId: string | undefined, training: number, talent: TalentKey): number | undefined {
+  const st = stagesOf(raceId);
+  return st ? startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent) : undefined;
+}
+/** AG14: whether a life stage has any year at or past the floor (the last stage always does) */
+export function stageReaches(raceId: string | undefined, k: LifeStageKey, floor: number): boolean {
+  const st = stagesOf(raceId);
+  return !st || LIFE_STAGES.pos(k) === LIFE_STAGES.keys.length - 1 || span(st, k)[1] > floor;
+}
+
+/** AG13: a birth day drawn from the stages listed (or CONFIG.NPC_AGE_STAGES): a stage, then a year inside it. AG12: never
+ * younger than `floor` years; a stage wholly under it rolls inside the stage that holds the floor instead. */
+export function rollBornDay(state: GameState | null, raceId: string | undefined, stages: LifeStageKey[] | undefined, rng: Rng, floor = 0): number | undefined {
   const st = stagesOf(raceId);
   if (!st) return undefined;
-  const pick = (stages?.length ? stages : CONFIG.NPC_AGE_STAGES)[rng.int(1, (stages?.length ? stages : CONFIG.NPC_AGE_STAGES).length) - 1];
-  const i = LIFE_STAGES.pos(pick), lo = startOf(st, pick);
-  const hi = i === LIFE_STAGES.keys.length - 1 ? lo + beyondStep(st) : startOf(st, LIFE_STAGES.at(i + 1));
-  const years = lo + rng.next() * Math.max(0, hi - lo);
+  const from = stages?.length ? stages : CONFIG.NPC_AGE_STAGES;
+  const pick = from[rng.int(1, from.length) - 1];
+  let [lo, hi] = span(st, pick);
+  if (floor > lo) {
+    lo = floor;
+    if (hi <= lo) { const end = span(st, lifeStage(raceId, floor)!.key)[1]; hi = end > lo ? end : lo + beyondStep(st); }
+  }
+  const years = lo + rng.next() * Math.max(0, hi - lo - 1 / CONFIG.YEAR_DAYS); // a day short of the end: the birth day rounds older
   return Math.floor((state ? today(state) : 0) - years * CONFIG.YEAR_DAYS);
 }

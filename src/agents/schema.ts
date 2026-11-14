@@ -223,8 +223,9 @@ const weaver = obj<StagePlan>({
     }),
     personality: obj<NonNullable<Cast['personality']>>({ nerve: str, types: arr(str), values: arr(str) }, ['nerve', 'types', 'values']),
     age: str,
+    talent: str, // AG25
     goals: arr(obj<GoalOps['add'][number]>({ text: str, about: arr(str) }, ['about'])), // UG3
-  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'goals'])),
+  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age', 'talent', 'goals'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
     item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: QualityKey; boosts: string; name: string; look: string; fragility?: FragilityKey }>(

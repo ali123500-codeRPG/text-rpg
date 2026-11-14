@@ -55,7 +55,7 @@ export type SkillBands = { high?: readonly LibraryRef[]; moderate?: readonly Lib
 /** NG1: an NPC role (RO): the skills its work trains; nothing else rises (NG8) */
 export type NpcRoleDef = { id: LibraryRef; name: string; bands: SkillBands };
 /** NG1: an NPC theme (TH): skills its world adds, and its own rank titles (display only) */
-export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; rankNames?: Partial<Record<import('../scales').RankKey, string>> };
+export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; rankNames?: Partial<Record<import('../scales').RankKey, string>>; talent?: import('../scales').TalentKey /* AG25: its presets' talent when they name none */ };
 
 /** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */

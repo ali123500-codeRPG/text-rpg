@@ -126,6 +126,11 @@ export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
  * Past the last row a + per step (AG7, ruleset/age.ts). */
 export const LIFE_STAGES = scale([['stage_0', 'Child'], ['stage_1', 'Youth'], ['stage_2', 'Adult'], ['stage_3', 'Middle-aged'], ['stage_4', 'Old'], ['stage_5', 'Venerable'], ['stage_6', 'Ancient']]);
 export type LifeStageKey = (typeof LIFE_STAGES.keys)[number];
+/** AG23: how fast someone trains, slowest first; each row multiplies the years a rank needs (CONFIG.TALENT_MULT), which sets
+ * the youngest age an NPC of that rank can be. Past the last row a key goes on (talent_5 …): each step halves again and the
+ * name gains a + (ruleset/age.ts talentMult, talentName). */
+export const TALENTS = scale([['talent_0', 'Common'], ['talent_1', 'Steady'], ['talent_2', 'Able'], ['talent_3', 'Talented'], ['talent_4', 'Prodigy']]);
+export type TalentKey = `talent_${number}`;
 /** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['morning', 'Morning'], ['afternoon', 'Afternoon'], ['dusk', 'Dusk'], ['evening', 'Evening'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
