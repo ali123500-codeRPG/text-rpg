@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix plan (leftover scan CS4). The stash entry is back on its own line (hushed, low), and filch has its own line too, so a note can't swallow an entry again. A case test stashes a dagger on the street square and checks that the event is hushed and low.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #731](https://github.com/ali123500-codeRPG/text-rpg/pull/731)
 
 ## BG-210
 
