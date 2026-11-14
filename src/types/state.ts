@@ -87,7 +87,7 @@ export type Spar = { id: string; sides: string[][]; cruel?: true; start: number;
 export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[]; ended?: boolean }; // ended: YD3, the fight already ended on it
 /** TF13–TF16: offers to stand down in a fight this scenario: those an AI-run listener (or the player) has yet to answer,
  * and the stand-down truces, each actor id to those it may no longer attack nor be attacked by (cleared at scenario end) */
-export type StandDownOffer = { from: string; to: string; landed: 'convinced' | 'tempted' | 'unmoved'; turn: number; heard: string[]; coin?: number };
+export type StandDownOffer = { from: string; to: string; landed: 'convinced' | 'tempted' | 'unmoved'; turn: number; heard: string[]; coin?: number; demand?: 'yield' }; // demand: TF19, it asks for surrender (answered by yields)
 export type StandDowns = { pending: StandDownOffer[]; truces: Record<string, string[]> };
 /** D-239: the player is down in a lethal fight and foes decide, in their next output, whether to finish or spare (acceptYield's shape) */
 export type PlayerMercy = { turn: number; pending: string[]; spared: string[]; finish: string[] };

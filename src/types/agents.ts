@@ -37,6 +37,8 @@ export type Intent = {
     mode: string | null;
     approach: string;
     stance: 'careful' | 'normal' | 'reckless';
+    /** TF19: a persuade or deceive at a foe in a fight that demands its surrender, not only that it stop */
+    demand?: 'yield' | null;
     /** a scenario object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */
     improvised?: { base: ImprovisedBase; name: string } | null;
   } | null;

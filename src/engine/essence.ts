@@ -13,13 +13,12 @@ import { tierMult } from '../ruleset/gear';
 import { charLevel, power, tally, xpToNext } from './xp';
 import { logCode } from './effects';
 import { isActive, isEngaged, wary } from './relations';
-import { canSpeak } from '../ruleset/body';
+import { canSpeak, gripReachM } from '../ruleset/body';
 import { threatHere } from './resolve';
 import { dealRolls } from './growth';
 import { fireEssenceAuto } from '../ruleset/threadboundItems';
 import { isEcho } from '../library/echo';
 import { buyingPrice, coins, isSeller, orderReaches, payCoin } from './trade';
-import { gripReachM } from '../ruleset/body';
 import { withinGrip } from './position';
 import { applyMemoryOps } from './memory';
 import { now } from '../time';
@@ -105,7 +104,7 @@ const rowsFor = (state: GameState, who: Actor): EssenceDef[] => {
 
 /** 2.2: points = max(1, round(ESSENCE_SHARE × source skill × grade multiplier)), split over the row's skills by weight.
  * `source` gives the skill each point is measured from (a foe's raw × tier, or the player's own true skill). */
-function points(row: EssenceDef, skills: { skill: string; weight: number }[], grade: EssenceGradeKey, past: number, source: (skill: string) => number): Record<string, number> {
+function points(skills: { skill: string; weight: number }[], grade: EssenceGradeKey, past: number, source: (skill: string) => number): Record<string, number> {
   const w = skills.reduce((n, s) => n + s.weight, 0) || 1;
   const at = skills.reduce((n, s) => n + source(s.skill) * s.weight, 0) / w;
   const total = Math.max(1, Math.round(CONFIG.ESSENCE_SHARE * at * gradeMult(grade, past)));
@@ -116,7 +115,7 @@ function offer(state: GameState, row: EssenceDef, skills: { skill: string; weigh
   source: EssenceOffer['source'], from: string, measure: (skill: string) => number): void {
   const pr = state.player.progression;
   if (!pr || !skills.length) return;
-  const o: EssenceOffer = { essence: row.id, grade: roll.grade, points: points(row, skills, roll.grade, roll.past, measure), turn: state.turn, from, source, untilMin: now(state) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 };
+  const o: EssenceOffer = { essence: row.id, grade: roll.grade, points: points(skills, roll.grade, roll.past, measure), turn: state.turn, from, source, untilMin: now(state) + CONFIG.ESSENCE_OFFER_ROUNDS * CONFIG.ROUND_S / 60 };
   (pr.essenceOffers ??= []).push(o);
   logCode(state, 'essence_offered', { essence: row.id, grade: roll.grade, source, from });
 }
@@ -160,7 +159,7 @@ export function offerAtEnding(state: GameState, f: ScenarioFrame, as: ScenarioEn
   if (row) appearAndRoll(state, rng, row, base, 'ending', 'ending', [{ skill: top[0], weight: 1 }], (sk) => trueSkill(p, sk));
 }
 
-/** offers past their time (untilMin, game minutes) lapse; `before` (a new scenario's start) also drops every offer made on an earlier turn */
+/** offers past their time (untilMin, game minutes) lapse; `newScenario` (a new scenario's start) also drops every offer made on an earlier turn */
 export function expireOffers(state: GameState, newScenario = false): void {
   const pr = state.player.progression;
   if (!pr?.essenceOffers) return;
@@ -196,6 +195,14 @@ export function syncEssenceTraits(state: GameState, a: Actor): void {
   for (const id of want) if (!a.core.perks.some((p) => p.perkId === id)) a.core.perks.push({ perkId: id, source: 'essence', gainedTurn: state.turn });
 }
 
+/** takes offer `i` off the player's list and returns it as a held essence, made this turn */
+function takeOffer(state: GameState, i: number): { o: EssenceOffer; held: HeldEssence } {
+  const pr = state.player.progression!, [o] = pr.essenceOffers!.splice(i, 1);
+  if (!pr.essenceOffers!.length) delete pr.essenceOffers;
+  const { source: _s, untilMin: _u, ...e } = o;
+  return { o, held: { ...e, turn: state.turn } as HeldEssence };
+}
+
 /** 2.5: take an offer into an empty slot; with every slot full, `replace` names the held essence to give up (removal rules) */
 export function takeEssence(state: GameState, offerIndex: number, atRest: boolean, replace?: number): string | null {
   const p = state.player, pr = p.progression, o = pr?.essenceOffers?.[offerIndex];
@@ -206,10 +213,7 @@ export function takeEssence(state: GameState, offerIndex: number, atRest: boolea
     const err = removeEssence(state, replace, atRest);
     if (err) return err;
   }
-  pr.essenceOffers!.splice(offerIndex, 1);
-  if (!pr.essenceOffers!.length) delete pr.essenceOffers;
-  const { source: _s, untilMin: _u, ...e } = o;
-  hold(p, { ...e, turn: state.turn } as HeldEssence);
+  hold(p, takeOffer(state, offerIndex).held);
   syncEssenceTraits(state, p);
   logCode(state, 'essence_taken', { essence: o.essence, grade: o.grade });
   tally(state, 'essences_taken');
@@ -219,10 +223,9 @@ export function takeEssence(state: GameState, offerIndex: number, atRest: boolea
 
 /** 2.5: let an offer go for good */
 export function passEssence(state: GameState, offerIndex: number): string | null {
-  const pr = state.player.progression, o = pr?.essenceOffers?.[offerIndex];
-  if (!pr || !o) return 'There is no such offer.';
-  pr.essenceOffers!.splice(offerIndex, 1);
-  if (!pr.essenceOffers!.length) delete pr.essenceOffers;
+  const o = state.player.progression?.essenceOffers?.[offerIndex];
+  if (!o) return 'There is no such offer.';
+  takeOffer(state, offerIndex);
   logCode(state, 'essence_declined', { essence: o.essence });
   return null;
 }
@@ -248,11 +251,7 @@ const hasRoom = (a: Actor): boolean => !!a.progression && (a.progression.essence
 
 /** ES1 a/ES2 a: an offer leaves the player and goes straight to `to`: into their slots, or (a seller with no room) their stock */
 function handOver(state: GameState, offerIndex: number, to: Actor, how: 'given' | 'sold', price?: number): void {
-  const pr = state.player.progression!, o = pr.essenceOffers![offerIndex];
-  pr.essenceOffers!.splice(offerIndex, 1);
-  if (!pr.essenceOffers!.length) delete pr.essenceOffers;
-  const { source: _s, untilMin: _u, ...e } = o;
-  const held = { ...e, turn: state.turn } as HeldEssence;
+  const { o, held } = takeOffer(state, offerIndex);
   if (hasRoom(to)) { hold(to, held); syncEssenceTraits(state, to); }
   else (to.essenceStock ??= []).push(held);
   const name = getLibrary().essences?.[o.essence]?.name ?? o.essence;

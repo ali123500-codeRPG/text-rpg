@@ -22,7 +22,7 @@ import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
 import { SK, OLD_SKILL_IDS } from './skillIds';
-import { ACH } from './achievementIds';
+import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
@@ -129,15 +129,15 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
 /** an attack mode with its reach in metres (real references) */
-const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'hands'> & { reachM: number }) => ({ ...m, reach: m.reachM });
+const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'> & { reachM: number }) => ({ ...m, reach: m.reachM });
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
 /** Improvised weapons: a melee strike and a throw (like throwing a vase), both rolled with
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
-const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
-  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
-  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
+const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
+  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
+  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, grips, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
 /** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
@@ -195,8 +195,21 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Always on (trait of the Tavern Brawler essence)', trigger: 'The owner makes an Intimidation roll, or a Strike roll.', conditions: ['The owner holds a Tavern Brawler essence.', 'The Unarmed tree is open to the owner.'],
       effect: 'Strike trades into Intimidation: every Intimidation roll adds the owner\'s true Strike × 0.5 (CONFIG.AUGMENT_TRADE_SHARE, placeholder) × its tier, and every Strike roll loses the same amount. Strike learns from the Intimidation rolls the way an augment does.', lasts: 'While a Tavern Brawler essence is held.' },
   },
+  // SS10-SS12: sleep quirks, given by NPC templates through quirkTags (a rolled one per tag)
+  [PK.heavy_sleeper]: {
+    id: PK.heavy_sleeper, name: 'Heavy Sleeper', built: true, quirk: true, tags: ['sleep'],
+    story: 'Once you are out, you are out. Shouting in the next room won\'t reach you; it takes a real racket, or a hand on your shoulder.',
+    rules: { kind: 'Always on (quirk)', trigger: 'A noise reaches the sleeping owner.', conditions: [],
+      effect: `The noise must be ${CONFIG.HEAVY_SLEEPER_STEPS} noise level louder than WAKE_NOISE (a shout) to wake the owner (CONFIG.HEAVY_SLEEPER_STEPS, placeholder). A blow still wakes them.`, lasts: 'Always.' },
+  },
+  [PK.insomniac]: {
+    id: PK.insomniac, name: 'Insomniac', built: true, quirk: true, tags: ['sleep'], sleepClear: CONFIG.INSOMNIAC_CLEAR,
+    story: 'You lie awake long after everyone else is snoring, and wake before you are rested. Sleep pays back your debt a quarter slower.',
+    rules: { kind: 'Always on (quirk)', trigger: 'The owner sleeps.', conditions: [],
+      effect: `Sleep clears sleep debt ×${CONFIG.INSOMNIAC_CLEAR} (sleepClear, CONFIG.INSOMNIAC_CLEAR, placeholder), with the bed and worn armour multipliers.`, lasts: 'Always.' },
+  },
   [PK.quick_study]: {
-    id: PK.quick_study, name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
+    id: PK.quick_study, name: 'Quick Study', built: true, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
@@ -240,60 +253,60 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
-  { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, hands: 1, thrown: true })] } },
-  { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, hands: 1 })] } },
-  { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, hands: 2 })] } },
-  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, hands: 1, thrown: true })] } },
-  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, hands: 2 })] } },
-  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 90, hands: 2 })] } },
-  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, hands: 2 })] } },
+  { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, grips: 1, thrown: true })] } },
+  { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, grips: 1 })] } },
+  { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, grips: 2 })] } },
+  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, grips: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
+  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, grips: 2 })] } },
+  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 90, grips: 2 })] } },
+  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, grips: 2 })] } },
   // SL12 test piece: a medium weapon whose basket hilt gives +5 Parry while held, apart from its requirement's skill
-  { id: IT.basket_hilt_sword, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, hands: 1,
+  { id: IT.basket_hilt_sword, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, grips: 1,
     effects: [KIT(), { kind: 'skill', skill: SK.parry, value: 5, active: 'held', scope: 'any' }],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.7, hands: 1 })] } },
-  { id: IT.hidden_blade, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.7, grips: 1 })] } },
+  { id: IT.hidden_blade, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, grips: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
     effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 0.9, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
   { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
-  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reachM: 1.3, hands: 1 })] } },
-  { id: IT.rusty_knife, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 0.9, hands: 1 })] } },
+  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reachM: 1.3, grips: 1 })] } },
+  { id: IT.rusty_knife, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
   { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'common') } },
   { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
     armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'fine') } },
   { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
-  { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: POOL('common') },
+  { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, grips: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   // Starter pairs: every gear class but improvised has a Common (need 25) and a Fine (need 50) starter piece;
   // creation gives the highest one met per class (starterKit). Superior and Masterwork gear stays out of the kit.
-  { id: IT.short_sword, level: 'fine', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, value: 15, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.3, hands: 1 })] } },
-  { id: IT.hand_axe, level: 'common', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, value: 8, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reachM: 1.2, hands: 1 })] } },
-  { id: IT.woodsman_axe, level: 'common', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, value: 10, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 1.6, hands: 2 })] } },
-  { id: IT.greatsword, level: 'fine', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, hands: 2 })] } },
-  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 70, hands: 2 })] } },
-  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 60, hands: 2 })] } },
-  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 60, hands: 2 })] } },
-  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 70, hands: 2 })] } },
+  { id: IT.short_sword, level: 'fine', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, value: 15, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.3, grips: 1 })] } },
+  { id: IT.hand_axe, level: 'common', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, value: 8, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reachM: 1.2, grips: 1 })] } },
+  { id: IT.woodsman_axe, level: 'common', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, value: 10, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 1.6, grips: 2 })] } },
+  { id: IT.greatsword, level: 'fine', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, grips: 2 })] } },
+  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, value: 35, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 70, grips: 2 })] } },
+  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 60, grips: 2 })] } },
+  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, value: 25, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 60, grips: 2 })] } },
+  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, value: 35, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 70, grips: 2 })] } },
   { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, value: 30, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'fine') } },
   { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, value: 30, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
@@ -302,7 +315,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'common') } },
   { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, value: 120, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
-  { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, hands: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
+  { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth, stamped with the coin of Varo, god of fortune', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
     threadbound: { rank: 'rank_4', grants: [
@@ -313,15 +326,15 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
-  { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
+  { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, grips: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
-  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true, heal: HL.draught },
+  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, grips: 1, stackable: true, consumable: true, heal: HL.draught },
   // generic bases for minted items with no close match, and for scenario objects the player grabs (loot L2, L3)
-  { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, grips: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('light', 1) } },
-  { id: IT.improvised_medium, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_medium, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, grips: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('medium', 1) } },
-  { id: IT.improvised_heavy, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
+  { id: IT.improvised_heavy, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, grips: 2, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
   { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
@@ -338,8 +351,8 @@ export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
     speed: { walk: 1.4, run: 5 }, // an everyday walk about 1.4 m/s; a run in kit about 5 m/s (a sprinter reaches 8–10)
-    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, hands: 0, name: 'fists' },
-      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, hands: 0, name: 'grapple' }],
+    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' },
+      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, grips: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
       // FR2: an adult's arm reaches about 0.7 m from the shoulder to the fingertips (NASA-STD-3000 anthropometry), as fists do
@@ -369,7 +382,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
     speed: { walk: 0.5, run: 1 }, // no real reference: a placeholder for a creeping mass
-    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, hands: 0, name: 'slam' }],
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, grips: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },
@@ -562,29 +575,29 @@ export function prototypeLibrary(): Library {
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
-      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 40 }, unlockAny: [{ [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
+      [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 40 }, unlockAny: [{ [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
+      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // TB7: the Threadbounded class, used only by The Threadbound start (50 points, level 1); its level 1 perk gives a random Threadbound item. No unlock
       [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, creation: { points: 50, level: 1, name: 'The Threadbound' }, levelPerks: { 1: [PK.always_yours] } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
-      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
+      [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
-      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
+      [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
-      [CL.guard]: { id: CL.guard, name: 'Guard', tier: 'tier_1', label: 'a guard', story: 'Stand at the gate and listen for trouble.', floors: {},
+      [CL.guard]: { id: CL.guard, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Guard', tier: 'tier_1', label: 'a guard', story: 'Stand at the gate and listen for trouble.', floors: {},
         unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40, [SK.ranged_light]: 40, [SK.ranged_medium]: 40, [SK.ranged_heavy]: 40 },
           { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30, [SK.parry]: 30 }] as Record<string, number>[],
         unlockPerkWith: { hearingDb: 1 } },
-      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
-      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
+      [CL.trader]: { id: CL.trader, personality: { [PA.sociability]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
+      [CL.merchant]: { id: CL.merchant, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)
@@ -637,6 +650,9 @@ export function prototypeLibrary(): Library {
       // never applied itself: morale restored straight by a perk is counted here for achievements (calmFromPerk)
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
       [CP.steady]: { id: CP.steady, name: 'Steadying yourself', pct: 0, inFight: true }, // SY1: the share comes from the roll's tier (CONFIG.STEADY_PCT)
+      // TM28: moved here from the fears table, so they count toward the Calmed achievements; flat morale points
+      [CP.foe_downed]: { id: CP.foe_downed, name: 'You down a foe', pct: 0, points: 10, inFight: true }, // MB10
+      [CP.rallied]: { id: CP.rallied, name: 'An ally\'s battle cry rallies you', pct: 0, points: 10, inFight: true }, // I9 b
     },
     // FT7/FT8/FT28: what restores stamina, beside healing and composure; every refill goes through engine/fatigue.ts
     recovery: {
@@ -689,10 +705,8 @@ export function prototypeLibrary(): Library {
       [FR.bandmate_down]: { id: FR.bandmate_down, name: 'A bandmate goes down', cost: 25, rolled: true },
       [FR.bandmate_broken]: { id: FR.bandmate_broken, name: 'A bandmate breaks', cost: 25, rolled: true }, // MB23
       [FR.lost_intimidation]: { id: FR.lost_intimidation, name: 'You lose to intimidation', cost: 10, rolled: false, perTier: true }, // MB28, per tier of gap
-      [FR.foe_downed]: { id: FR.foe_downed, name: 'You down a foe', cost: -10, rolled: false }, // MB10
       [FR.dread_presence]: { id: FR.dread_presence, name: 'An aura of dread gets to you', cost: 10, rolled: false, perTier: true }, // MB37: each failed aura check costs its own morale
       [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
-      [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
       // the Dreaded on Sight quirk: paid once per owner, in a fight or out of one
       [FR.steady_slipped]: { id: FR.steady_slipped, name: 'Trying to steady yourself makes it worse', cost: 0, rolled: false }, // SY1: the cost comes from the roll's tier (CONFIG.STEADY_PCT)
       [FR.dreaded_sight]: { id: FR.dreaded_sight, name: 'You set eyes on someone dreaded', cost: 15, rolled: true, unengaged: true },
@@ -848,18 +862,19 @@ export function prototypeLibrary(): Library {
       ...CLASS_PERKS,
     },
     achievements: {
-      // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
+      // XP by reward level (REWARD_LEVELS, rewardXp); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
       // after = the lower level it builds on; earning it switches the lower one off.
-      [ACH.first_defeat_body_type]: { id: ACH.first_defeat_body_type, name: 'First {body_type} Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'body_type' },
+      [ACH.first_defeat_body_type]: { id: ACH.first_defeat_body_type, name: 'First {body_type} Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'body_type', branchOf: ACH.defeats_10 },
       [ACH.defeats_10_body_type]: { id: ACH.defeats_10_body_type, name: '{body_type}bane', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'body_type', after: ACH.first_defeat_body_type, firstSight: 'unintelligent' },
       [ACH.defeats_100_body_type]: { id: ACH.defeats_100_body_type, name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'body_type', after: ACH.defeats_10_body_type, readsHealth: true, firstSight: 'semi', excludes: ['firstSight'] },
-      [ACH.first_defeat_race]: { id: ACH.first_defeat_race, name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'race' },
+      [ACH.first_defeat_race]: { id: ACH.first_defeat_race, name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'race', branchOf: ACH.defeats_10 },
       [ACH.defeats_10_race]: { id: ACH.defeats_10_race, name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'race', after: ACH.first_defeat_race, firstSight: 'unintelligent' },
       [ACH.defeats_100_race]: { id: ACH.defeats_100_race, name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'race', after: ACH.defeats_10_race, firstSight: 'semi', excludes: ['firstSight'] },
       [ACH.defeats_10]: { id: ACH.defeats_10, name: 'Blooded Fighter', level: 'i', rule: 'defeats', tags: ['combat'], count: 10 },
-      [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_10 },
-      [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iii', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
-      [ACH.defeats_1000]: { id: ACH.defeats_1000, name: 'Thousand-Slayer, Herald of Ruin', level: 'iv', rule: 'defeats', tags: ['combat'], count: 1000, after: ACH.defeats_250 },
+      // TM4/TM25: 10 / 50 / 100 / 250; the roll bonus goes by chain position (+1 to +4)
+      [ACH.defeats_50]: { id: ACH.defeats_50, name: 'Carver of Fifty Graves', level: 'ii', rule: 'defeats', tags: ['combat'], count: 50, after: ACH.defeats_10 },
+      [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_50 },
+      [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iv', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
       // kills are counted apart from defeats (a kill is the defeat where the foe died, so both tallies move); ordeal rows pay
       // max morale, never the skill used
       [ACH.kills_1]: { id: ACH.kills_1, name: 'A Life Taken', level: 'zero', rule: 'kills', tags: ['combat'], count: 1, maxMorale: 1 },
@@ -883,13 +898,15 @@ export function prototypeLibrary(): Library {
       [ACH.yielded_1]: { id: ACH.yielded_1, name: 'Yield or Fall', level: 'i', rule: 'yielded', tags: ['combat', 'social'], count: 1, personality: ap({ [PA.pride]: 1 }) },
       [ACH.yielded_10]: { id: ACH.yielded_10, name: 'Breaker of Wills', level: 'ii', rule: 'yielded', tags: ['combat', 'social'], count: 10, after: ACH.yielded_1, skillAdd: { [SK.intimidation]: 5 }, personality: ap({ [PA.pride]: 1 }) },
       [ACH.yielded_50]: { id: ACH.yielded_50, name: 'The Name That Ends Fights', level: 'iii', rule: 'yielded', tags: ['combat', 'social'], count: 50, after: ACH.yielded_10, renown: 10, personality: ap({ [PA.pride]: 1 }) },
-      [ACH.crits_10]: { id: ACH.crits_10, name: 'Sure Hand ({group})', level: 'i', rule: 'crits', tags: ['skill'], count: 10, by: 'group' },
-      [ACH.crits_100]: { id: ACH.crits_100, name: 'Perfect Form ({group})', level: 'ii', rule: 'crits', tags: ['skill'], count: 100, by: 'group', after: ACH.crits_10 },
-      [ACH.crits_1000]: { id: ACH.crits_1000, name: 'Master of the Moment ({group})', level: 'iii', rule: 'crits', tags: ['skill'], count: 1000, by: 'group', after: ACH.crits_100, standIn: 0.2 },
+      // TM9: 1 / 10 / 50 / 100 per group (the first row's name is a placeholder)
+      [ACH.crits_1]: { id: ACH.crits_1, name: 'First Clean Stroke ({group})', level: 'zero', rule: 'crits', tags: ['skill'], count: 1, by: 'group' },
+      [ACH.crits_10]: { id: ACH.crits_10, name: 'Sure Hand ({group})', level: 'i', rule: 'crits', tags: ['skill'], count: 10, by: 'group', after: ACH.crits_1 },
+      [ACH.crits_50]: { id: ACH.crits_50, name: 'Perfect Form ({group})', level: 'ii', rule: 'crits', tags: ['skill'], count: 50, by: 'group', after: ACH.crits_10 },
+      [ACH.crits_100]: { id: ACH.crits_100, name: 'Master of the Moment ({group})', level: 'iii', rule: 'crits', tags: ['skill'], count: 100, by: 'group', after: ACH.crits_50, standIn: 0.2 },
       [ACH.beyond_1]: { id: ACH.beyond_1, name: 'Beyond Perfect', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1 },
       [ACH.beyond_2]: { id: ACH.beyond_2, name: 'Past the Limit', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, after: ACH.beyond_1 },
       [ACH.beyond_3]: { id: ACH.beyond_3, name: 'Touched by Fate', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, after: ACH.beyond_2 },
-      [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group' },
+      [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group', branchOf: ACH.beyond_1 },
       [ACH.beyond_group_2]: { id: ACH.beyond_group_2, name: 'Past the Limit ({group})', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, by: 'group', after: ACH.beyond_group_1 },
       [ACH.beyond_group_3]: { id: ACH.beyond_group_3, name: 'Touched by Fate ({group})', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, by: 'group', after: ACH.beyond_group_2 },
       [ACH.flawless_1]: { id: ACH.flawless_1, name: 'Untouched', level: 'i', rule: 'flawless', tags: ['combat'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
@@ -909,29 +926,35 @@ export function prototypeLibrary(): Library {
       [ACH.quests_10]: { id: ACH.quests_10, name: 'Hand for Hire', level: 'ii', rule: 'quests_done', tags: ['social'], count: 10, after: ACH.quests_5, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_25]: { id: ACH.quests_25, name: 'Sought After', level: 'iii', rule: 'quests_done', tags: ['social'], count: 25, after: ACH.quests_10, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.quests_50]: { id: ACH.quests_50, name: 'The One They Send For', level: 'iv', rule: 'quests_done', tags: ['social'], count: 50, after: ACH.quests_25, personality: ap({ [PA.discipline]: 1 }) },
-      [ACH.quests_abandoned_5]: { id: ACH.quests_abandoned_5, name: 'Word Not Kept', level: 'i', rule: 'quests_abandoned', tags: ['social'], count: 5, scar: true, personality: ap({ [PA.honesty]: -1 }) },
-      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10 },
+      [ACH.quests_abandoned_1]: { id: ACH.quests_abandoned_1, name: 'Left Undone', level: 'zero', rule: 'quests_abandoned', tags: ['social'], count: 1, scar: true }, // TM29: the first one (placeholder name)
+      [ACH.quests_abandoned_5]: { id: ACH.quests_abandoned_5, name: 'Word Not Kept', level: 'i', rule: 'quests_abandoned', tags: ['social'], count: 5, after: ACH.quests_abandoned_1, scar: true, personality: ap({ [PA.honesty]: -1 }) },
+      // TM8: 1 / 10 / 100 / 500 (the first of an act is an achievement; the first row's name is a placeholder)
+      [ACH.clean_1]: { id: ACH.clean_1, name: 'Turned Aside', level: 'zero', rule: 'clean_defense', tags: ['combat'], count: 1 },
+      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10, after: ACH.clean_1 },
       [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10 },
-      [ACH.clean_1000]: { id: ACH.clean_1000, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 1000, after: ACH.clean_100 },
-      [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10 },
+      [ACH.clean_500]: { id: ACH.clean_500, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 500, after: ACH.clean_100 },
+      [ACH.unseen_1]: { id: ACH.unseen_1, name: 'Unnoticed', level: 'zero', rule: 'unseen_moves', tags: ['stealth'], count: 1 }, // TM24 (placeholder name)
+      [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10, after: ACH.unseen_1 },
       [ACH.unseen_50]: { id: ACH.unseen_50, name: 'Slipped Past', level: 'ii', rule: 'unseen_moves', tags: ['stealth'], count: 50, after: ACH.unseen_10 },
       [ACH.unseen_250]: { id: ACH.unseen_250, name: 'Never Was Here', level: 'iii', rule: 'unseen_moves', tags: ['stealth'], count: 250, after: ACH.unseen_50 },
-      [ACH.vanished_5]: { id: ACH.vanished_5, name: 'Now You Don\u2019t', level: 'i', rule: 'vanished', tags: ['stealth'], count: 5 },
+      [ACH.vanished_1]: { id: ACH.vanished_1, name: 'Gone', level: 'zero', rule: 'vanished', tags: ['stealth'], count: 1 }, // TM24 (placeholder name)
+      [ACH.vanished_5]: { id: ACH.vanished_5, name: 'Now You Don\u2019t', level: 'i', rule: 'vanished', tags: ['stealth'], count: 5, after: ACH.vanished_1 },
       [ACH.vanished_25]: { id: ACH.vanished_25, name: 'Smoke on the Wind', level: 'ii', rule: 'vanished', tags: ['stealth'], count: 25, after: ACH.vanished_5 },
       [ACH.spotted_10]: { id: ACH.spotted_10, name: 'Nothing Gets Past', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10 },
       [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10 },
-      [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function' },
+      [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function', branchOf: ACH.spotted_10 },
       [ACH.spotted_fn_10]: { id: ACH.spotted_fn_10, name: '{function} That Never Sleeps', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10, after: ACH.spotted_fn_1, by: 'function' },
       [ACH.spotted_fn_100]: { id: ACH.spotted_fn_100, name: 'Nothing Hides from Your {function}', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_fn_10, by: 'function' },
-      [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.speech_1]: { id: ACH.speech_1, name: 'First Word Won ({skill})', level: 'zero', rule: 'speech_won', tags: ['social'], count: 1, by: 'skill' }, // TM20 (placeholder name)
+      [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', after: ACH.speech_1, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
       [ACH.speech_100]: { id: ACH.speech_100, name: 'Voice That Carries ({skill})', level: 'ii', rule: 'speech_won', tags: ['social'], count: 100, after: ACH.speech_10, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
-      [ACH.speech_500]: { id: ACH.speech_500, name: 'Words That Move Crowds ({skill})', level: 'iii', rule: 'speech_won', tags: ['social'], count: 500, after: ACH.speech_100, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.speech_250]: { id: ACH.speech_250, name: 'Words That Move Crowds ({skill})', level: 'iii', rule: 'speech_won', tags: ['social'], count: 250, after: ACH.speech_100, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
       [ACH.talked_down_1]: { id: ACH.talked_down_1, name: 'Blood Unspilled', level: 'i', rule: 'talked_down', tags: ['social'], count: 1, personality: ap({ [PA.temper]: -1 }) },
       [ACH.talked_down_10]: { id: ACH.talked_down_10, name: 'Peacemaker', level: 'ii', rule: 'talked_down', tags: ['social'], count: 10, after: ACH.talked_down_1, personality: ap({ [PA.temper]: -1 }) },
       [ACH.talked_down_50]: { id: ACH.talked_down_50, name: 'Every Fight Ends in Talk', level: 'iii', rule: 'talked_down', tags: ['social'], count: 50, after: ACH.talked_down_10, personality: ap({ [PA.temper]: -1 }) },
       [ACH.outmatched_1]: { id: ACH.outmatched_1, name: 'Against the Odds', level: 'i', rule: 'outmatched', tags: ['skill'], count: 1 },
       [ACH.outmatched_10]: { id: ACH.outmatched_10, name: 'No Match for You', level: 'ii', rule: 'outmatched', tags: ['skill'], count: 10, after: ACH.outmatched_1 },
-      [ACH.outmatched_fn_1]: { id: ACH.outmatched_fn_1, name: 'Better {function}', level: 'zero', rule: 'outmatched', tags: ['skill'], count: 1, by: 'function' },
+      [ACH.outmatched_fn_1]: { id: ACH.outmatched_fn_1, name: 'Better {function}', level: 'zero', rule: 'outmatched', tags: ['skill'], count: 1, by: 'function', branchOf: ACH.outmatched_1 },
       [ACH.outmatched_fn_10]: { id: ACH.outmatched_fn_10, name: '{function} Without Equal', level: 'i', rule: 'outmatched', tags: ['skill'], count: 10, after: ACH.outmatched_fn_1, by: 'function' },
       [ACH.enemy_friend_1]: { id: ACH.enemy_friend_1, name: 'Enemy to Friend', level: 'i', rule: 'enemy_to_friend', tags: ['social'], count: 1, personality: ap({ [PA.temper]: -1, [PA.sociability]: 1 }) },
       [ACH.enemy_friend_5]: { id: ACH.enemy_friend_5, name: 'Mender of Grudges', level: 'ii', rule: 'enemy_to_friend', tags: ['social'], count: 5, after: ACH.enemy_friend_1, personality: ap({ [PA.temper]: -1, [PA.sociability]: 1 }) },
@@ -951,14 +974,19 @@ export function prototypeLibrary(): Library {
       [ACH.survival_roll_1]: { id: ACH.survival_roll_1, name: 'Woke Up Anyway', level: 'ii', rule: 'survival_rolls', tags: ['combat', 'survival'], count: 1, maxMorale: 10 },
       // D-292: one time; your contest rolls can go one tier past Critical Success (name and reward level are placeholders)
       [ACH.matched_crit_1]: { id: ACH.matched_crit_1, name: 'Perfect Meets Perfect', level: 'i', rule: 'matched_crits', tags: ['skill'], count: 1, tierUnlocks: [{ roll: 'contest', side: 'up', steps: 1 }] },
-      [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10 },
+      [ACH.holds_1]: { id: ACH.holds_1, name: 'Got a Grip', level: 'zero', rule: 'holds', tags: ['combat', 'skill'], count: 1 }, // TM24 (placeholder name)
+      [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10, after: ACH.holds_1 },
       [ACH.holds_100]: { id: ACH.holds_100, name: 'No Getting Loose', level: 'ii', rule: 'holds', tags: ['combat', 'skill'], count: 100, after: ACH.holds_10 },
       [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10 },
-      [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Where I Said', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_10 },
-      [ACH.aimed_1000]: { id: ACH.aimed_1000, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1000, after: ACH.aimed_100 },
-      [ACH.aimed_size_10]: { id: ACH.aimed_size_10, name: '{size} Target', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10, by: 'size', levelUp: SMALLER_PAYS_MORE },
-      [ACH.aimed_size_100]: { id: ACH.aimed_size_100, name: 'Threads the Needle ({size})', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_size_10, by: 'size', levelUp: SMALLER_PAYS_MORE },
-      [ACH.quests_giver_5]: { id: ACH.quests_giver_5, name: 'Go-To for {giver}', level: 'i', rule: 'quests_for_giver', tags: ['social'], count: 5, by: 'giver' },
+      // TM7: 10 / 50 / 100
+      [ACH.aimed_50]: { id: ACH.aimed_50, name: 'Where I Said', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 50, after: ACH.aimed_10 },
+      [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_50 },
+      // TM26/TM27: per part size 1 / 10 / 50; each row takes AIM_EASE_PCT % off that size's aim penalty (carried up: 10 / 20 / 30 %).
+      // The first row's name is a placeholder.
+      [ACH.aimed_size_1]: { id: ACH.aimed_size_1, name: 'Found the {size} Mark', level: 'zero', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT, branchOf: ACH.aimed_10 },
+      [ACH.aimed_size_10]: { id: ACH.aimed_size_10, name: '{size} Target', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10, after: ACH.aimed_size_1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
+      [ACH.aimed_size_50]: { id: ACH.aimed_size_50, name: 'Threads the Needle ({size})', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 50, after: ACH.aimed_size_10, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT },
+      [ACH.quests_giver_5]: { id: ACH.quests_giver_5, name: 'Go-To for {giver}', level: 'i', rule: 'quests_for_giver', tags: ['social'], count: 5, by: 'giver', branchOf: ACH.quests_1 },
       [ACH.quest_givers_10]: { id: ACH.quest_givers_10, name: 'Known in Every House', level: 'ii', rule: 'quest_givers', tags: ['social'], count: 10 },
       [ACH.quest_chain_1]: { id: ACH.quest_chain_1, name: 'Saw It Through', level: 'i', rule: 'quest_chains', tags: ['social'], count: 1 },
       [ACH.quests_early_1]: { id: ACH.quests_early_1, name: 'Early Every Time', level: 'i', rule: 'quests_early', tags: ['social'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
@@ -967,15 +995,14 @@ export function prototypeLibrary(): Library {
       [ACH.spar_10]: { id: ACH.spar_10, name: 'Sparring Partner', level: 'i', rule: 'spar_wins', tags: ['combat'], count: 10, after: ACH.spar_1 },
       [ACH.spar_25]: { id: ACH.spar_25, name: 'Yard Veteran', level: 'i', rule: 'spar_wins', tags: ['combat'], count: 25, after: ACH.spar_10 },
       [ACH.spar_50]: { id: ACH.spar_50, name: 'Regular at the Yard', level: 'ii', rule: 'spar_wins', tags: ['combat'], count: 50, after: ACH.spar_25 },
-      [ACH.spar_200]: { id: ACH.spar_200, name: 'Nobody Wants to Spar You', level: 'ii', rule: 'spar_wins', tags: ['combat'], count: 200, after: ACH.spar_50 },
-      [ACH.cruel_spar_1]: { id: ACH.cruel_spar_1, name: 'Blood on the Practice Sword', level: 'i', rule: 'cruel_spar_wins', tags: ['combat'], count: 1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.cruel_spar_1]: { id: ACH.cruel_spar_1, name: 'Blood on the Practice Sword', level: 'i', rule: 'cruel_spar_wins', tags: ['combat'], count: 1, personality: ap({ [PA.temper]: 1 }), branchOf: ACH.spar_1 },
       [ACH.cruel_spar_10]: { id: ACH.cruel_spar_10, name: 'Cruel Teacher', level: 'ii', rule: 'cruel_spar_wins', tags: ['combat'], count: 10, after: ACH.cruel_spar_1, personality: ap({ [PA.temper]: 1 }) },
       [ACH.cruel_spar_25]: { id: ACH.cruel_spar_25, name: 'No One Spars You Twice', level: 'ii', rule: 'cruel_spar_wins', tags: ['combat'], count: 25, after: ACH.cruel_spar_10, personality: ap({ [PA.temper]: 1 }) },
       [ACH.spar_losses_1]: { id: ACH.spar_losses_1, name: 'Flat on Your Back', level: 'zero', rule: 'spar_losses', tags: ['combat'], count: 1, scar: true, personality: ap({ [PA.pride]: -1 }) },
       [ACH.spar_losses_10]: { id: ACH.spar_losses_10, name: 'Sparring Dummy', level: 'i', rule: 'spar_losses', tags: ['combat'], count: 10, after: ACH.spar_losses_1, scar: true, personality: ap({ [PA.pride]: -1 }) },
-      [ACH.defeated_5]: { id: ACH.defeated_5, name: 'Loser', level: 'i', rule: 'defeated', tags: ['combat'], count: 5, scar: true, personality: ap({ [PA.pride]: -1 }) },
+      [ACH.defeated_1]: { id: ACH.defeated_1, name: 'Humbled', level: 'zero', rule: 'defeated', tags: ['combat'], count: 1, scar: true }, // TM13 (placeholder name)
+      [ACH.defeated_5]: { id: ACH.defeated_5, name: 'Loser', level: 'i', rule: 'defeated', tags: ['combat'], count: 5, after: ACH.defeated_1, scar: true, personality: ap({ [PA.pride]: -1 }) },
       [ACH.defeated_25]: { id: ACH.defeated_25, name: 'Sore Loser', level: 'ii', rule: 'defeated', tags: ['combat'], count: 25, after: ACH.defeated_5, scar: true, personality: ap({ [PA.pride]: -1 }) },
-      [ACH.defeated_100]: { id: ACH.defeated_100, name: 'Born Loser', level: 'iii', rule: 'defeated', tags: ['combat'], count: 100, after: ACH.defeated_25, scar: true, personality: ap({ [PA.pride]: -1 }) },
       // D-160 morale: fights won while Panicking, and the scar for breaking (a break also counts as defeated)
       [ACH.won_panicking_1]: { id: ACH.won_panicking_1, name: 'Hands Still Shaking', level: 'i', rule: 'won_panicking', tags: ['combat'], count: 1, personality: ap({ nerve: 1 }) },
       [ACH.won_panicking_10]: { id: ACH.won_panicking_10, name: 'Fear Rides With Me', level: 'ii', rule: 'won_panicking', tags: ['combat'], count: 10, after: ACH.won_panicking_1, personality: ap({ nerve: 1 }) },
@@ -985,27 +1012,43 @@ export function prototypeLibrary(): Library {
       [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true, personality: ap({ nerve: -1 }) },
       // the mind's twin of the survival roll: the fight was won although your morale broke in it. Extraordinary by nature (Broken
       // stops attacks), so the higher levels are something to chase, not something a build plans on
+      // AS1–AS11: attacking a foe who already gave up. Counted once per foe, hit or miss, when the player sees the foe
+      // surrendered or broken (a visible state) as they strike; surrendered to anyone counts. Temper +5 per level.
+      // Killing a surrendered foe is its branch; cutting down a broken foe as it flees is a branch line of its own. New names are placeholders.
+      [ACH.struck_surrendered_1]: { id: ACH.struck_surrendered_1, name: 'No Quarter', level: 'i', rule: 'struck_surrendered', tags: ['combat'], count: 1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_5]: { id: ACH.struck_surrendered_5, name: 'Mercy Is for Others', level: 'ii', rule: 'struck_surrendered', tags: ['combat'], count: 5, after: ACH.struck_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_10]: { id: ACH.struck_surrendered_10, name: 'Deaf to Begging', level: 'iii', rule: 'struck_surrendered', tags: ['combat'], count: 10, after: ACH.struck_surrendered_5, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_25]: { id: ACH.struck_surrendered_25, name: 'The White Flag Means Nothing', level: 'iv', rule: 'struck_surrendered', tags: ['combat'], count: 25, after: ACH.struck_surrendered_10, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_50]: { id: ACH.struck_surrendered_50, name: 'None Are Spared', level: 'v', rule: 'struck_surrendered', tags: ['combat'], count: 50, after: ACH.struck_surrendered_25, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.killed_surrendered_1]: { id: ACH.killed_surrendered_1, name: 'Surrender Was Not Enough', level: 'i', rule: 'killed_surrendered', tags: ['combat'], count: 1, branchOf: ACH.struck_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.killed_surrendered_5]: { id: ACH.killed_surrendered_5, name: 'Executioner', level: 'ii', rule: 'killed_surrendered', tags: ['combat'], count: 5, after: ACH.killed_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.killed_surrendered_25]: { id: ACH.killed_surrendered_25, name: 'No One Walks Away', level: 'iii', rule: 'killed_surrendered', tags: ['combat'], count: 25, after: ACH.killed_surrendered_5, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_1]: { id: ACH.struck_fleeing_1, name: 'No Running', level: 'i', rule: 'struck_fleeing', tags: ['combat'], count: 1, branchOf: ACH.struck_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_5]: { id: ACH.struck_fleeing_5, name: 'Back Turned, Blade Bared', level: 'ii', rule: 'struck_fleeing', tags: ['combat'], count: 5, after: ACH.struck_fleeing_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_10]: { id: ACH.struck_fleeing_10, name: 'Run Them Down', level: 'iii', rule: 'struck_fleeing', tags: ['combat'], count: 10, after: ACH.struck_fleeing_5, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_25]: { id: ACH.struck_fleeing_25, name: 'The Hunt Ends Here', level: 'iv', rule: 'struck_fleeing', tags: ['combat'], count: 25, after: ACH.struck_fleeing_10, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_50]: { id: ACH.struck_fleeing_50, name: 'None Escape', level: 'v', rule: 'struck_fleeing', tags: ['combat'], count: 50, after: ACH.struck_fleeing_25, personality: ap({ [PA.temper]: 1 }) },
       [ACH.won_broken_1]: { id: ACH.won_broken_1, name: 'Back from the Break', level: 'ii', rule: 'won_broken', tags: ['combat'], count: 1, maxMorale: 5, personality: ap({ nerve: 1 }) },
       [ACH.won_broken_5]: { id: ACH.won_broken_5, name: 'Broken, Not Beaten', level: 'iii', rule: 'won_broken', tags: ['combat'], count: 5, after: ACH.won_broken_1, maxMorale: 5, personality: ap({ nerve: 1 }) },
       [ACH.won_broken_25]: { id: ACH.won_broken_25, name: 'Nothing Left to Fear', level: 'iv', rule: 'won_broken', tags: ['combat'], count: 25, after: ACH.won_broken_5, maxMorale: 5, personality: ap({ nerve: 1 }) },
       // D-174: HP healed (a flat number) from one healing row each; counts are placeholders
-      [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100 },
+      [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100, branchOf: ACH_HEADS.healed },
       [ACH.healed_rest_1000]: { id: ACH.healed_rest_1000, name: 'Sleeps Through Anything', level: 'i', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 1000, after: ACH.healed_rest_100 },
       [ACH.healed_rest_10000]: { id: ACH.healed_rest_10000, name: 'The Long Rest', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 10000, after: ACH.healed_rest_1000 },
-      [ACH.healed_natural_50]: { id: ACH.healed_natural_50, name: 'Knits Back Together', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 50 },
+      [ACH.healed_natural_50]: { id: ACH.healed_natural_50, name: 'Knits Back Together', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 50, branchOf: ACH_HEADS.healed },
       [ACH.healed_natural_500]: { id: ACH.healed_natural_500, name: 'Walks It Off', level: 'i', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 500, after: ACH.healed_natural_50 },
       [ACH.healed_natural_2500]: { id: ACH.healed_natural_2500, name: 'The Body Remembers', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 2500, after: ACH.healed_natural_500 },
-      [ACH.healed_perk_50]: { id: ACH.healed_perk_50, name: 'Borrowed Strength', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 50 },
+      [ACH.healed_perk_50]: { id: ACH.healed_perk_50, name: 'Borrowed Strength', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 50, branchOf: ACH_HEADS.healed },
       [ACH.healed_perk_500]: { id: ACH.healed_perk_500, name: 'Tricks of the Flesh', level: 'i', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 500, after: ACH.healed_perk_50 },
       [ACH.healed_perk_2500]: { id: ACH.healed_perk_2500, name: 'Unkillable by Habit', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 2500, after: ACH.healed_perk_500 },
       // morale restored (flat points) from one composure row each, mirroring healing by source; counts are placeholders
-      [ACH.calmed_rest_100]: { id: ACH.calmed_rest_100, name: 'Sleep On It', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 100 },
+      [ACH.calmed_rest_100]: { id: ACH.calmed_rest_100, name: 'Sleep On It', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 100, branchOf: ACH_HEADS.calmed },
       [ACH.calmed_rest_1000]: { id: ACH.calmed_rest_1000, name: 'Rested Nerves', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 1000, after: ACH.calmed_rest_100 },
       [ACH.calmed_rest_10000]: { id: ACH.calmed_rest_10000, name: 'Peace of Mind', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 10000, after: ACH.calmed_rest_1000 },
-      [ACH.calmed_natural_50]: { id: ACH.calmed_natural_50, name: 'Catch Your Breath', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 50 },
+      [ACH.calmed_natural_50]: { id: ACH.calmed_natural_50, name: 'Catch Your Breath', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 50, branchOf: ACH_HEADS.calmed },
       [ACH.calmed_natural_500]: { id: ACH.calmed_natural_500, name: 'Shakes It Off', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 500, after: ACH.calmed_natural_50 },
       [ACH.calmed_natural_2500]: { id: ACH.calmed_natural_2500, name: 'The Mind Remembers', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 2500, after: ACH.calmed_natural_500 },
-      [ACH.calmed_perk_50]: { id: ACH.calmed_perk_50, name: 'Borrowed Courage', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 50 },
+      [ACH.calmed_perk_50]: { id: ACH.calmed_perk_50, name: 'Borrowed Courage', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 50, branchOf: ACH_HEADS.calmed },
       [ACH.calmed_perk_500]: { id: ACH.calmed_perk_500, name: 'Tricks of the Mind', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 500, after: ACH.calmed_perk_50 },
       [ACH.calmed_perk_2500]: { id: ACH.calmed_perk_2500, name: 'Unshakable by Habit', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 2500, after: ACH.calmed_perk_500 },
       // flat HP and morale points lost, from any cause; counts are placeholders
@@ -1040,9 +1083,24 @@ export function prototypeLibrary(): Library {
       [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },
       [ACH.total_100]: { id: ACH.total_100, name: 'Pattern in the Weave', level: 'iv', rule: 'achievements', tags: ['progression'], count: 100, after: ACH.total_50 },
       [ACH.total_250]: { id: ACH.total_250, name: 'The Tapestry Remembers', level: 'v', rule: 'achievements', tags: ['progression'], count: 250, after: ACH.total_100 },
-      [ACH.zones_50]: { id: ACH.zones_50, name: 'Wanderer', level: 'i', rule: 'zones', tags: ['exploration'], count: 50, personality: ap({ [PA.curiosity]: 1 }) },
-      [ACH.zones_250]: { id: ACH.zones_250, name: 'Pathfinder', level: 'ii', rule: 'zones', tags: ['exploration'], count: 250, after: ACH.zones_50, personality: ap({ [PA.curiosity]: 1 }) },
-      [ACH.zones_1000]: { id: ACH.zones_1000, name: 'Walker of Every Road', level: 'iii', rule: 'zones', tags: ['exploration'], count: 1000, after: ACH.zones_250, personality: ap({ [PA.curiosity]: 1 }) },
+      // TM16: the chain scales with however many achievements the game gains: every 250 past 250, a reward level higher each time
+      [ACH.total_every]: { id: ACH.total_every, name: 'The Weave Goes On ({level})', level: 'v', rule: 'achievements', tags: ['progression'], count: 500, every: 250, levelStep: 1, branchOf: ACH.total_10 },
+      // TM14: areas entered, counted per kind of area under one head: zones 1 / 25 / 50 / 150 / 300, and every kind of place
+      // (a settlement, a place in one, any kind made later) 1 / 5 / 10 / 25 / 50. New names are placeholders.
+      [ACH.zones_1]: { id: ACH.zones_1, name: 'Out the Door', level: 'minus_1', rule: 'zones', tags: ['exploration'], count: 1, branchOf: ACH_HEADS.areas },
+      [ACH.zones_25]: { id: ACH.zones_25, name: 'Finding Your Feet', level: 'zero', rule: 'zones', tags: ['exploration'], count: 25, after: ACH.zones_1, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.zones_50]: { id: ACH.zones_50, name: 'Wanderer', level: 'i', rule: 'zones', tags: ['exploration'], count: 50, after: ACH.zones_25, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.zones_150]: { id: ACH.zones_150, name: 'Pathfinder', level: 'ii', rule: 'zones', tags: ['exploration'], count: 150, after: ACH.zones_50, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.zones_300]: { id: ACH.zones_300, name: 'Walker of Every Road', level: 'iii', rule: 'zones', tags: ['exploration'], count: 300, after: ACH.zones_150, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.places_1]: { id: ACH.places_1, name: 'Set Foot in a {place_kind}', level: 'zero', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 1, branchOf: ACH_HEADS.areas },
+      [ACH.places_5]: { id: ACH.places_5, name: 'Roamer ({place_kind})', level: 'i', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 5, after: ACH.places_1 },
+      [ACH.places_10]: { id: ACH.places_10, name: 'Traveller ({place_kind})', level: 'ii', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 10, after: ACH.places_5, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.places_25]: { id: ACH.places_25, name: 'Seasoned Traveller ({place_kind})', level: 'iii', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 25, after: ACH.places_10, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.places_50]: { id: ACH.places_50, name: 'Known in Every {place_kind}', level: 'iv', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 50, after: ACH.places_25, personality: ap({ [PA.curiosity]: 1 }) },
+      // TM23: the first time your health reaches each wound level; worse levels pay more (names are placeholders)
+      [ACH.health_first]: { id: ACH.health_first, name: 'First Time {health_level}', level: 'zero', rule: 'health_reached', by: 'health_level', tags: ['survival'], count: 1, branchOf: ACH_HEADS.wounds,
+        levelUp: { injured: 1, wounded: 1, mauled: 2, critical: 2, incapacitated: 3 },
+        names: { bruised: 'First Bruise', hurt: 'First Real Hurt', injured: 'First Injury', wounded: 'First Wound', mauled: 'Mauled and Standing', critical: 'At Death\'s Door', incapacitated: 'Back from the Brink of Nothing' } },
       [ACH.deals_1]: { id: ACH.deals_1, name: 'Word Given', level: 'i', rule: 'deals', tags: ['social'], count: 1, personality: ap({ [PA.honesty]: 1 }) },
       [ACH.deals_10]: { id: ACH.deals_10, name: 'Dealmaker', level: 'ii', rule: 'deals', tags: ['social'], count: 10, after: ACH.deals_1, personality: ap({ [PA.honesty]: 1 }) },
       [ACH.deals_100]: { id: ACH.deals_100, name: 'Silver Tongue', level: 'iii', rule: 'deals', tags: ['social'], count: 100, after: ACH.deals_10, pricePct: 5, personality: ap({ [PA.honesty]: 1 }) },
@@ -1055,10 +1113,10 @@ export function prototypeLibrary(): Library {
       [ACH.class_max_3]: { id: ACH.class_max_3, name: 'Thrice Mastered', level: 'ii', rule: 'class_max', tags: ['progression'], count: 3, after: ACH.class_max_1 },
       [ACH.class_max_5]: { id: ACH.class_max_5, name: 'Master of Many Paths', level: 'iii', rule: 'class_max', tags: ['progression'], count: 5, after: ACH.class_max_3 },
       [ACH.class_max_10]: { id: ACH.class_max_10, name: 'The Thousand-Faced', level: 'iv', rule: 'class_max', tags: ['progression'], count: 10, after: ACH.class_max_5 },
-      [ACH.class_max_tier_1]: { id: ACH.class_max_tier_1, name: 'Peak of the {tier}', level: 'i', rule: 'class_max', tags: ['progression'], count: 1, by: 'class_tier' },
+      [ACH.class_max_tier_1]: { id: ACH.class_max_tier_1, name: 'Peak of the {tier}', level: 'i', rule: 'class_max', tags: ['progression'], count: 1, by: 'class_tier', branchOf: ACH.class_max_1 },
       [ACH.class_max_tier_2]: { id: ACH.class_max_tier_2, name: 'Twin Peaks of the {tier}', level: 'ii', rule: 'class_max', tags: ['progression'], count: 2, by: 'class_tier', after: ACH.class_max_tier_1 },
       [ACH.class_max_tier_3]: { id: ACH.class_max_tier_3, name: 'Crown of the {tier}', level: 'iii', rule: 'class_max', tags: ['progression'], count: 3, by: 'class_tier', after: ACH.class_max_tier_2 },
-      [ACH.class_tiers_2]: { id: ACH.class_tiers_2, name: 'Across Two Heights', level: 'ii', rule: 'class_max_tiers', tags: ['progression'], count: 2, freeLevels: 1 },
+      [ACH.class_tiers_2]: { id: ACH.class_tiers_2, name: 'Across Two Heights', level: 'ii', rule: 'class_max_tiers', tags: ['progression'], count: 2, freeLevels: 1, branchOf: ACH.class_max_1 },
       [ACH.class_tiers_3]: { id: ACH.class_tiers_3, name: 'Across Three Heights', level: 'iii', rule: 'class_max_tiers', tags: ['progression'], count: 3, after: ACH.class_tiers_2, freeLevels: 2 },
       [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across Four Heights', level: 'iv', rule: 'class_max_tiers', tags: ['progression'], count: 4, after: ACH.class_tiers_3, freeLevels: 3 },
       [ACH.class_tiers_5]: { id: ACH.class_tiers_5, name: 'Across Five Heights', level: 'v', rule: 'class_max_tiers', tags: ['progression'], count: 5, after: ACH.class_tiers_4, freeLevels: 4 },

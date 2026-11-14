@@ -11,7 +11,8 @@ import { hasPerk, markUse, moraleRoll, ruleset, toContest } from '../ruleset';
 import { FN } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
-import { FR } from '../library/tableIds';
+import { CP, FR } from '../library/tableIds';
+import { calm } from './heal';
 import { allActors, atLeast, isActive, onSightPerks, stance, wary } from './relations';
 import { probe } from './yield';
 import { distM, withinM } from './position';
@@ -99,11 +100,14 @@ export const cryAlly = (state: GameState, t: Actor, owner: Actor): boolean =>
 /** I9/MB27 Battle Cry (Intimidation 140), an offensive aura triggered by its move: the owner's roar (`ev`, a Loud event)
  * reaches everyone who perceives it at any level, however far. Each foe (opposed or hostile to the owner) rolls its
  * morale skill (Resolve) against the owner's Intimidation and pays FR.battle_cry per tier of gap when it loses. Each
- * ally, and the owner, gets FR.rallied (10 morale back) and loses any Shaken. */
+ * ally, and the owner, gets the composure row CP.rallied (10 morale back, TM28) and loses any Shaken. */
+/** TM28: a battle cry's rally restores morale through the composure table (CP.rallied), unless the actor already broke */
+const rally = (state: GameState, a: Actor): void => { if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.rallied); };
+
 export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rng, fear: AuraFear): CryResult[] {
   const out: CryResult[] = [];
   // the roar rallies the one who roars as it rallies their allies
-  fear(owner, FR.rallied);
+  rally(state, owner);
   for (const p of Object.values(owner.pressure ?? {})) delete p.shaken;
   out.push({ target: owner, rallied: true });
   for (const t of allActors(state)) {
@@ -118,7 +122,7 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
       if (took) fear(t, FR.battle_cry, contest.gap, ow);
       out.push({ target: t, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
     } else if (cryAlly(state, t, owner)) {
-      fear(t, FR.rallied);
+      rally(state, t);
       for (const p of Object.values(t.pressure ?? {})) delete p.shaken;
       out.push({ target: t, rallied: true });
     }

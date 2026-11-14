@@ -32,6 +32,7 @@ import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
+import { blindSpotNow } from '../engine/perkMarks';
 import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
 import { barkOnly, beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
@@ -40,7 +41,7 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
-import { canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
+import { canDemand, canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
 import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
@@ -54,6 +55,9 @@ import { barMax, fatigueLevel, fatigueOf, fatigueShows, isSpent, lineMax, lineUs
 import { FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
+/** AS3: the word others see for someone's morale: a foe who surrendered shows Surrendered, a visible state like Broken */
+export const SURRENDERED_WORD = 'Surrendered';
+const seenMoraleWord = (a: Actor): string => (a.mind?.moraleState === 'surrendered' ? SURRENDERED_WORD : moraleWord(a));
 const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
 /** FT20: the player's stamina bar as points left, to a tenth */
 export const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
@@ -243,7 +247,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
-      ...(!isDownLevel(h) && moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
+      ...(!isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}),
       ...(!isDownLevel(h) && fatigueShows(fatigueLevel(a)) ? { fatigue: fatigueWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),
@@ -252,6 +256,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
       ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
+      ...(viewer === state.player && level === 'full' && canDemand(state, viewer, a) && (fightingWith(state, a, viewer) || a.mind?.moraleState === 'broken') ? { demandYield: true as const } : {}), // TF19
     });
   }
   return out;
@@ -455,6 +460,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
+      ...(blindSpotNow(state, p) ? { blindSpot: true as const } : {}),
       ...walkingOf(state, p),
       ...followingOf(state, p),
       ...reachesOf(state, p),
@@ -542,7 +548,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(state.mercy?.pending.includes(a.id) ? { playerAtMercy: true as const } : {}),
-      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}) } } : {})(offersTo(state, a)[0]), // TF15
+      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),

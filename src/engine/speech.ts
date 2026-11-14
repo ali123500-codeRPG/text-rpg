@@ -24,7 +24,9 @@ export const SPEECH_SKILL: Record<string, string> = {
   talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.lying, intimidate: SK.intimidation, barter: SK.barter,
 };
 /** what the listener answers with: the speaker's skill, except a lie, which Insight answers (NT17) */
-export const answerSkill = (type: string): string => type === 'deceive' ? SK.insight : SPEECH_SKILL[type] ?? SK.persuasion;
+export const answerSkill = (type: string): string => type === 'deceive' ? SK.insight : speechSkill(type);
+/** the speaker's skill for a speech type (SPEECH_SKILL), Persuasion for anything else */
+export const speechSkill = (type: string): string => SPEECH_SKILL[type] ?? SK.persuasion;
 
 // Dialogue input table (wording is a placeholder), keyed by tier; a roll past either end uses the end's words.
 const CONVINCING: Record<Tier, string> = {
@@ -60,9 +62,6 @@ export function isSpeech(type: string | undefined | null): boolean {
   return !!type && (SPEECH_ACTIONS as readonly string[]).includes(type);
 }
 
-/** run 24: a speech action the Parser left without words or listeners ("can you do it for one copper?" as a barter with
- * spoken and addressees null) never reached the listener. The player's own line stands in for the words, and the
- * action's target, when it is a character, for the listener. */
 /** BG-55: who the player was just talking with: NPCs whose words at the player reached them last turn, and those the
  * player spoke to, still active */
 export function talkingWith(state: GameState): string[] {
@@ -77,6 +76,9 @@ export function talkingWith(state: GameState): string[] {
   return [...ids].filter((id) => { const a = state.actors.find((x) => x.id === id); return !!a && isActive(a); });
 }
 
+/** run 24: a speech action the Parser left without words or listeners ("can you do it for one copper?" as a barter with
+ * spoken and addressees null) never reached the listener. The player's own line stands in for the words, and the
+ * action's target, when it is a character, for the listener. */
 export function fillSpeech(state: GameState, intent: Intent, text: string): Intent {
   // BG-46: words with no action at all (the Parser kept "Hello? Who's there?" in spoken but gave no action) are a talk to
   // whoever they are for, so they are said instead of lost
@@ -101,11 +103,6 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
   return out;
 }
 
-/**
- * Dialogue turn step 2, with OQ-27 (c): for an addressed band, the sticky partner (state.stage.partner, the NPC the
- * player last spoke with this scenario) answers if it is an active member in reach; else the nearest member.
- * "everyone": those who hear the player's voice clearly where they stand (hearsClearly).
- */
 /** A line said beside a non-speech action that is heard and answered this turn, the action still done (the exchange
  * slot holds it, so it uses no slot of its own).
  * A15 Quick Word: in a fight, only with the perk and only one sentence; it is said where the player stands, before the move.
@@ -118,6 +115,11 @@ export function quickWord(state: GameState, intent: Intent): boolean {
   return hasPerk(state.player, PK.quick_word) && !/[.!?]["”’)]*\s+\S/.test(line);
 }
 
+/**
+ * Dialogue turn step 2, with OQ-27 (c): for an addressed band, the sticky partner (state.stage.partner, the NPC the
+ * player last spoke with this scenario) answers if it is an active member in reach; else the nearest member.
+ * "everyone": those who hear the player's voice clearly where they stand (hearsClearly).
+ */
 export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   if ((!isSpeech(intent.action?.type) && !quickWord(state, intent)) || !intent.addressees?.length) return [];
   const voice = playerVoice(state, intent);
@@ -180,7 +182,7 @@ function meetsReveal(s: Secret, sp: string, skills: string[], contest: ContestRe
     contest.winner === 'a' && tierAtLeast(contest.a, w.minTier);
 }
 
-/** check_passed secrets of `sp` that this speech contest meets [Proposed]. GAP: "meets" = the player wins the contest with that skill at minTier or better. */
+/** check_passed secrets of `sp` that this speech contest meets: the player wins the contest with that skill at minTier or better (SLIPS). */
 export function slipsFor(state: GameState, sp: string, skills: string[], contest: ContestResult): string[] {
   const known = state.player.journal?.secretsKnown ?? [];
   return state.hidden.secrets.filter((s) => !known.includes(s.id) && meetsReveal(s, sp, skills, contest)).map((s) => s.id);
@@ -189,7 +191,7 @@ export function slipsFor(state: GameState, sp: string, skills: string[], contest
 /** Exchange slot part 1: one player roll, contested separately against each spokesperson's roll with the same skill. */
 export function resolveSpeech(state: GameState, intent: Intent, spokespeople: string[], rng: Rng): ExchangeSpeech {
   const type = isSpeech(intent.action?.type) ? intent.action!.type : 'talk'; // A15 Quick Word: the line is talk
-  const named = SPEECH_SKILL[type] ?? SK.persuasion;
+  const named = speechSkill(type);
   // one player roll for every spokesperson: per-listener modifiers (Bane, Shaken, Swayed) count when there is one listener
   const p = state.player;
   const fight = isEngaged(state, p); // TF9 b: no repeat-try penalty in a fight
@@ -234,13 +236,12 @@ const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.
 
 
 /** OQ-29: the speech types that roll when an NPC aims them at the player; plain talk does not */
-export const PUSH_TYPES = ['persuade', 'deceive', 'intimidate', 'barter'];
+export const PUSH_TYPES: string[] = SPEECH_ACTIONS.filter((t) => t !== 'talk');
 /** added to a listener's impression when it saw through a lie */
 export const TELL = 'something about it does not sit right';
 /** LI2a Plain as Day: a lie the listener saw through, said plainly */
 export const PLAIN = 'it is a lie';
-/** what a listener that saw through a lie is told: the hint, or plainly with Plain as Day */
-/** BF8: a lie seen through by CONFIG.LIE_PLAIN_GAP tiers or more, or by any win with Plain as Day, is plainly a lie; a narrower
+/** what a listener that saw through a lie is told. BF8: a lie seen through by CONFIG.LIE_PLAIN_GAP tiers or more, or by any win with Plain as Day, is plainly a lie; a narrower
  * win (and, for the player, a tie: BF10) gives the hint. With no gap given: the hint, or plainly with Plain as Day. */
 export const tellFor = (listener: Actor | undefined, gap?: number): string =>
   gap === undefined ? (hasPerk(listener, PK.plain_as_day) ? PLAIN : TELL) : gap >= CONFIG.LIE_PLAIN_GAP || (gap >= 1 && hasPerk(listener, PK.plain_as_day)) ? PLAIN : TELL;
@@ -254,7 +255,7 @@ export function answerRoll(state: GameState, listener: Actor, skill: string, spe
 
 /** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */
 export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng, listener: Actor = state.player): ContestResult {
-  const skill = SPEECH_SKILL[type] ?? SK.persuasion;
+  const skill = speechSkill(type);
   const fight = isEngaged(state, speaker); // TF9 b: no repeat-try penalty in a fight
   const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: fight ? [] : repeatTryMods(speaker, [listener.id], type), tierShifts: [], against: listener.id, contest: true }, state, rng), answerRoll(state, listener, answerSkill(type), speaker.id, rng));
   if (!fight) countTry(speaker, listener.id, type);
@@ -314,7 +315,7 @@ export function pressedWords(e: GameEvent, listener?: Actor): { how?: string; to
   // BG-137: a lie reads like the truth: no word on how convincing it was, only the tell when the player saw through it
   if (p.type === 'deceive') return p.tell || p.doubt ? { took: tellFor(listener, c.gap) } : undefined;
   const took = p.status === 'shaken' ? 'it shakes you' : p.status === 'swayed' ? 'you find yourself swayed'
-    : p.tell ? tellFor(listener) : p.type === 'deceive' ? undefined : p.landed ? 'the haggling goes their way' : 'you hold firm';
+    : p.tell ? tellFor(listener) : p.landed ? 'the haggling goes their way' : 'you hold firm';
   return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}), ...(p.offer ? { offer: `an offer to stop fighting; it ${OFFER_WORDS[p.offer]}` } : {}) };
 }
 

@@ -110,6 +110,7 @@ const DEFAULTS = {
   PART_SHARE: { tiny: 0.15, extra_small: 0.15, small: 0.2, normal: 0.3, big: 0.5 } as Record<string, number>,
   HIT_WEIGHT: { tiny: 0.25, extra_small: 0.5, small: 1, normal: 2, big: 4 } as Record<string, number>,
   AIM_PENALTY: { tiny: -40, extra_small: -35, small: -30, normal: -20, big: -10, general: 0 } as Record<string, number>,
+  AIM_EASE_PCT: 10, // TM26: each aimed-hits-by-size achievement row takes this % off the aim penalty for its size (carried up the chain)
   GENERAL_MIN_PCT: 30,
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,
@@ -308,6 +309,20 @@ const DEFAULTS = {
   SLEEP_ARMOR_MULT: { light: 1, medium: 0.75, heavy: 0.5 } as Record<string, number>,
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
+  /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
+   * to every skill sharing a group (beside the +1). Placeholders */
+  HIGH_PERK_SHARE: 0.05,
+  HIGH_PERK_SPREAD: 0.01,
+  /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
+  CATNAP_SLEEP_HOURS: 1, // SS1 Catnap: a full rest clears the sleep debt this many hours of sleep would
+  FORCED_MARCH_RUN_EFFORT: 'moderate' as EffortKey, // SS3 Forced March: the owner's run pays this tier instead of RUN_EFFORT
+  DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
+  SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
+  BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
+  SECOND_BREATH_PCT: 50, // SS8 Second Breath: once per engagement an emptied line refills to this % of its size
+  HEAVY_SLEEPER_STEPS: 1, // SS10 Heavy Sleeper: noise levels louder than WAKE_NOISE it takes to wake the owner
+  INSOMNIAC_CLEAR: 0.75, // SS11 Insomniac: sleepClear multiplier
+  SHORT_SLEEPER_CLEAR: 1.33, // SS13 Short Sleeper (banked, D-300): sleepClear multiplier
   SLEEP_MAX_HOURS: 24,
   // ---- game clock (T1-T8); how long each action takes is the library's Action times table (durations) ----
   /** AT35/AT74: the round, one exchange of blows: the one lever for short durations (perk marks, per-round limits). A code
@@ -377,6 +392,9 @@ const DEFAULTS = {
   // TF13–TF16: an offer to stand down in a fight (engine/offer.ts); all placeholders
   OFFER_WIN_TIERS: 3, // TF14: the win in tiers that convinces a code-run foe
   OFFER_WIN_TIERS_SHAKEN: 2, // TF14: the win that convinces it once it is hurt (OFFER_EASIER_HEALTH) or uneasy (OFFER_EASIER_MORALE)
+  OFFER_YIELD_WIN_TIERS: 4, // TF19 (placeholder): the win that talks a foe into surrendering
+  OFFER_YIELD_WIN_TIERS_SHAKEN: 3, // TF19 (placeholder): the same once it is hurt or uneasy
+  OFFER_YIELD_EASIER: 1, // TF19 (placeholder): tiers less for each of: it is Broken, a part of it is Crippled or worse
   OFFER_EASIER_HEALTH: 'hurt' as HealthLevelKey,
   OFFER_EASIER_MORALE: 'uneasy' as MoraleLevel,
   OFFER_OPEN_TURNS: 2, // TF15: turns an AI-run listener (or the player) has to answer an offer; no answer is no
@@ -612,6 +630,7 @@ const DEFAULTS = {
   BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
   // XP and levels (X1–X10). Placeholders, kept small at first (X1).
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × n
+  PERK_POINT_EVERY: 2, // Part 1 §5: a perk point at every character level that is a multiple of this (every even level)
   /** no class levels higher than this; XP past a class's top level banks until a class with room is picked */
   CLASS_MAX_LEVEL: 20,
   /** CS11: a ladder perk milestone every this many points of true skill, and an All step every ALL_STEP_EVERY, with no top */
@@ -660,11 +679,9 @@ const DEFAULTS = {
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Lying that augments Vanishing (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
-  /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
-  REWARD_XP: { minus_1: 25, zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000,
-    vii: 20000, viii: 40000, ix: 80000, x: 160000, xi: 320000, xii: 640000, xiii: 1280000, xiv: 2560000, xv: 5120000 } as Record<string, number>, // VII–XV placeholders
-  /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
-  QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  /** XP per reward level (REWARD_LEVELS in src/scales.ts), one equation for achievements and quests with no top:
+   * XP = base × ((p + shift) ÷ div)^power, p = the level's place (0 = level 0, I = 1, −1 = −1); read through rewardXp */
+  REWARD_XP_CURVE: { base: 50, shift: 2, div: 2, power: 3 },
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
   GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item

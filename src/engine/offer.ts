@@ -12,26 +12,34 @@
 // yield (TF16): for the rest of the scenario neither the foes who stood down nor the speaker's side as it stood may attack
 // the other (TF5). Foes may offer the player a stand-down the same way, and the player accepts by saying so (TF11).
 // There is no repeat-try penalty in a fight (TF9 b, ruleset/pressure).
+// TF19: a persuasion or lie can instead demand the foe's surrender (a yield). It asks more: a bigger win
+// (CONFIG.OFFER_YIELD_WIN_TIERS, less once the foe is shaken, Broken or has a part Crippled or worse). A code-run foe, or one
+// cowering Broken, yields when convinced; an AI-run one is told how it landed and answers "yields". A yield is a defeat
+// (payDefeats), unlike a stand-down (TF18).
 import type { Actor, ContestResult, GameState, Intent } from '../types';
 import type { AcceptedAgentOutput } from './types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { INTELLIGENCE, HEALTH_LEVELS, MORALE_LEVELS } from '../scales';
-import { healthLevel } from '../ruleset/body';
+import { INTELLIGENCE, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
+import { healthLevel, partStates } from '../ruleset/body';
 import { moraleLevel } from '../ruleset/morale';
 import { hasPerk } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
-import { actorById, allActors, atLeast, countsInFight, hostile, isActive, isEngaged } from './relations';
+import { actorById, allActors, atLeast, countsInFight, hostile, isActive, isEngaged, stance } from './relations';
 import { besidePlayer } from './engagement';
 import { together } from './yield';
-import { logCode } from './effects';
+import { logCode, loseNerve } from './effects';
 import { coins, payCoin } from './trade';
 import { tally } from './xp';
 
 /** how an offer landed with its listener (TF15) */
 export type OfferLanded = 'convinced' | 'tempted' | 'unmoved';
+/** what an offer asks: that the listener stand down (TF13), or that it surrender (TF19) */
+export type OfferKind = 'stand_down' | 'yield';
 /** the speech types that can be an offer to stop in a fight (TF13, TF17; TF10 a bribe) */
 export const OFFER_TYPES = ['persuade', 'deceive', 'barter'];
+/** TF19: the speech types that can demand a surrender (words or a lie; not coin) */
+export const DEMAND_TYPES = ['persuade', 'deceive'];
 
 /** TF4: a foe of a speaking race can take an offer, whoever runs it (slimes and beasts can't be talked to) */
 export function speaks(a: Actor): boolean {
@@ -44,18 +52,33 @@ export function canOffer(state: GameState, from: Actor, to: Actor): boolean {
   return from !== to && countsInFight(from) && countsInFight(to) && speaks(to) && hostile(state, to, from) && isEngaged(state, from);
 }
 
+/** TF19: a foe cowering Broken (out of the fight, not yet surrendered) can still be talked into surrendering */
+const cowering = (a: Actor): boolean => isActive(a) && a.mind?.moraleState === 'broken';
+
 /** TF14: the win, in tiers, that convinces a listener: CONFIG.OFFER_WIN_TIERS, or OFFER_WIN_TIERS_SHAKEN once it is
- * at OFFER_EASIER_HEALTH or worse in health, or OFFER_EASIER_MORALE or worse in morale (placeholders) */
-export function tiersToConvince(a: Actor): number {
+ * at OFFER_EASIER_HEALTH or worse in health, or OFFER_EASIER_MORALE or worse in morale (placeholders). TF19: a demand to
+ * yield needs OFFER_YIELD_WIN_TIERS (OFFER_YIELD_WIN_TIERS_SHAKEN when shaken), OFFER_YIELD_EASIER less for each of: the
+ * foe is Broken, a part of it is Crippled or worse; never less than a win by one tier */
+export function tiersToConvince(a: Actor, kind: OfferKind = 'stand_down', state?: GameState): number {
   const hurt = HEALTH_LEVELS.pos(healthLevel(a)) >= HEALTH_LEVELS.pos(CONFIG.OFFER_EASIER_HEALTH);
   const uneasy = MORALE_LEVELS.pos(moraleLevel(a)) >= MORALE_LEVELS.pos(CONFIG.OFFER_EASIER_MORALE);
-  return hurt || uneasy ? CONFIG.OFFER_WIN_TIERS_SHAKEN : CONFIG.OFFER_WIN_TIERS;
+  const shaken = hurt || uneasy;
+  if (kind === 'stand_down') return shaken ? CONFIG.OFFER_WIN_TIERS_SHAKEN : CONFIG.OFFER_WIN_TIERS;
+  const broken = a.mind?.moraleState === 'broken' || moraleLevel(a) === 'broken';
+  const crippled = !!state && partStates(state, a).some((p) => PART_STATES.pos(p.state) >= PART_STATES.pos('crippled'));
+  const base = shaken ? CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN : CONFIG.OFFER_YIELD_WIN_TIERS;
+  return Math.max(1, base - CONFIG.OFFER_YIELD_EASIER * ((broken ? 1 : 0) + (crippled ? 1 : 0)));
 }
 
 /** TF15: how an offer landed, from its contest (the speaker is side a) */
-export function landed(contest: ContestResult, listener: Actor): OfferLanded {
+export function landed(contest: ContestResult, listener: Actor, kind: OfferKind = 'stand_down', state?: GameState): OfferLanded {
   const won = -contest.gap;
-  return won >= tiersToConvince(listener) ? 'convinced' : won >= 0 ? 'tempted' : 'unmoved';
+  return won >= tiersToConvince(listener, kind, state) ? 'convinced' : won >= 0 ? 'tempted' : 'unmoved';
+}
+
+/** TF19: `from` can demand that `to` surrender: as for an offer (canOffer), or `to` cowers Broken before them */
+export function canDemand(state: GameState, from: Actor, to: Actor): boolean {
+  return canOffer(state, from, to) || (from !== to && countsInFight(from) && speaks(to) && cowering(to) && stance(state, to, from) === 'yielded');
 }
 
 /** TF10: Beg for Mercy (the speaker at the last health level before going down, pleading) and Buy Them Off (a bribe) make
@@ -76,14 +99,17 @@ export function bribeMod(coin: number, listener: Actor): number {
 
 /** TF15: how an offer struck its listener, in words (an AI-run listener's prompt; the player's view) */
 export const OFFER_WORDS: Record<OfferLanded, string> = { convinced: 'convinces you', tempted: 'tempts you', unmoved: 'does not move you' };
+/** what an offer asks, in words (an AI-run listener's prompt) */
+const ASKS: Record<OfferKind, string> = { stand_down: 'an offer to stop fighting', yield: 'a demand that you surrender' };
 
 /** TF13/TF17/TF10: the player's words this turn are an offer to stand down to `to`: a persuasion or lie at a foe in a
- * fight, or a bribe (barter naming its coin) */
-export function playerOffer(state: GameState, intent: Intent | null | undefined, to: Actor): { type: string; coin: number } | undefined {
+ * fight, or a bribe (barter naming its coin); TF19: a persuasion or lie the Parser marked demand "yield" asks for surrender */
+export function playerOffer(state: GameState, intent: Intent | null | undefined, to: Actor): { type: string; coin: number; kind: OfferKind } | undefined {
   const type = intent?.action?.type ?? '';
+  if (intent?.action?.demand === 'yield' && DEMAND_TYPES.includes(type)) return canDemand(state, state.player, to) ? { type, coin: 0, kind: 'yield' } : undefined;
   if (!OFFER_TYPES.includes(type) || !canOffer(state, state.player, to)) return undefined;
   const coin = type === 'barter' ? Math.max(0, Math.floor(intent?.action?.qty ?? 0)) : 0;
-  return type === 'barter' && !coin ? undefined : { type, coin };
+  return type === 'barter' && !coin ? undefined : { type, coin, kind: 'stand_down' };
 }
 
 /** TF15: what an AI-run listener hears beside the impression, when the player's words are an offer: how it landed, and
@@ -92,25 +118,30 @@ export function offerNote(state: GameState, intent: Intent | null | undefined, t
   const o = playerOffer(state, intent, to);
   if (!o) return undefined;
   const coin = o.coin ? `, for ${o.coin} coin paid when you agree,` : '';
-  return `it is an offer to stop fighting${coin} and it ${OFFER_WORDS[landed(contest, to)]}${cannotRefuse(state.player, o.type, contest) ? ' (you cannot refuse it)' : ''}`;
+  const forced = o.kind === 'stand_down' && cannotRefuse(state.player, o.type, contest);
+  return `it is ${ASKS[o.kind]}${coin} and it ${OFFER_WORDS[landed(contest, to, o.kind, state)]}${forced ? ' (you cannot refuse it)' : ''}`;
 }
 
 type Offers = NonNullable<GameState['offers']>;
 const offers = (state: GameState): Offers => (state.offers ??= { pending: [], truces: {} });
 /** a stand-down that happened: `who` (with `with`) stood down from `from`; coin paid for it */
 export type StoodDown = { who: Actor; from: Actor; with: string[]; coin?: number };
+/** TF19: a surrender talked out of a foe: `who` (with `with`) yielded to `from` */
+export type TalkedYield = { who: Actor; from: Actor; with: string[] };
 
 /** the offer `from` made to `to` in a fight: code-run listeners settle it now, AI-run ones (and the player) are asked
  * (TF13, TF15, TF11). `heard`: the listener's bandmates who heard it (they go with the listener's answer, TF6). */
-export function makeOffer(state: GameState, from: Actor, to: Actor, type: string, contest: ContestResult, heard: string[], coin = 0): { landed: OfferLanded; stood?: StoodDown } {
-  const how = landed(contest, to);
-  const forced = cannotRefuse(from, type, contest);
-  logCode(state, 'offer_made', { from: from.id, to: to.id, type, landed: how, ...(forced ? { forced: true } : {}), ...(coin ? { coin } : {}) });
-  const asked = to.kind === 'player' || to.mind?.control === 'agent';
+export function makeOffer(state: GameState, from: Actor, to: Actor, type: string, contest: ContestResult, heard: string[], coin = 0, kind: OfferKind = 'stand_down'): { landed: OfferLanded; stood?: StoodDown; yielded?: TalkedYield } {
+  const how = landed(contest, to, kind, state);
+  const forced = kind === 'stand_down' && cannotRefuse(from, type, contest);
+  logCode(state, 'offer_made', { from: from.id, to: to.id, type, landed: how, ...(kind === 'yield' ? { demand: kind } : {}), ...(forced ? { forced: true } : {}), ...(coin ? { coin } : {}) });
+  // an AI-run foe decides (a Broken one is not asked: it cowers, run by code until it recovers)
+  const asked = to.kind === 'player' || (to.mind?.control === 'agent' && !cowering(to));
   if (!forced && asked) {
-    offers(state).pending.push({ from: from.id, to: to.id, landed: how, turn: state.turn, heard, ...(coin ? { coin } : {}) });
+    offers(state).pending.push({ from: from.id, to: to.id, landed: how, turn: state.turn, heard, ...(coin ? { coin } : {}), ...(kind === 'yield' ? { demand: kind } : {}) });
     return { landed: how };
   }
+  if (kind === 'yield') return { landed: how, ...(how === 'convinced' ? { yielded: talkedIntoYield(state, to, from, heard) } : {}) };
   const stood = forced || how === 'convinced' ? standDown(state, to, from, heard, coin) : undefined;
   return { landed: how, ...(stood ? { stood } : {}) };
 }
@@ -124,7 +155,7 @@ export function offersTo(state: GameState, to: Actor): Offers['pending'] {
  * player's, naming the offerer. No answer is no: an unanswered offer lapses after OFFER_OPEN_TURNS. */
 export function answerOffer(state: GameState, to: Actor, yes: boolean | string | null | undefined, sameTurn: boolean): StoodDown | undefined {
   if (yes === undefined || yes === null) return undefined;
-  const o = offersTo(state, to).find((x) => (sameTurn || x.turn < state.turn) && (typeof yes !== 'string' || x.from === yes));
+  const o = offersTo(state, to).find((x) => !x.demand && (sameTurn || x.turn < state.turn) && (typeof yes !== 'string' || x.from === yes));
   if (!o) return undefined;
   offers(state).pending = offers(state).pending.filter((x) => x !== o);
   logCode(state, yes ? 'offer_taken' : 'offer_refused', { actorId: to.id, from: o.from });
@@ -154,7 +185,7 @@ function sideOf(state: GameState, x: Actor, among?: string[]): Actor[] {
 /** TF16/TF5/TF6: `who` stands down from `from`: a truce between who's side (its bandmates together with it that heard the
  * offer) and from's side, as both stand now, for the rest of the scenario. A bribe is paid first; with too little coin
  * left, nothing comes of it (TF10: the trade must be completed). A foe talked down by the player before any blow from
- * them is tallied (N4b); one that stands down from the player's side counts as beaten (payDefeats). */
+ * them is tallied (N4b). A stand-down beats no one (TF18): it is not a defeat for either side. */
 export function standDown(state: GameState, who: Actor, from: Actor, heard: string[], coin = 0): StoodDown | undefined {
   const payer = who.kind === 'player' ? who : from, payee = payer === who ? from : who;
   if (coin) {
@@ -174,13 +205,23 @@ export function standDown(state: GameState, who: Actor, from: Actor, heard: stri
       const b = m.mind?.knowledge?.[x.id]; // as after a taken yield (YD3): the hunt for them is over
       if (b && atLeast(b.status, 'hunting')) b.status = 'tracking';
     }
-    if (foes !== mine || !m.mind) continue; // talked down by the player's side, not taking an offer the foe made
-    m.mind.stoodDown = true;
-    if (!m.mind.hitByPlayer) tally(state, 'talked_down');
+    // TF18: a stand-down is its own outcome, never a defeat for either side; the player's talk-downs have their own tally
+    if (foes === mine && !m.mind?.hitByPlayer) tally(state, 'talked_down');
   }
   const withIds = mine.filter((m) => m !== who).map((m) => m.id);
   logCode(state, 'stood_down', { actorId: who.id, from: from.id, with: withIds, ...(coin ? { coin } : {}) });
   return { who, from, with: withIds, ...(coin ? { coin } : {}) };
+}
+
+/** TF19: `who` is talked into surrendering to `from`, with its bandmates together with it that heard the demand (TF6):
+ * each surrenders as from fear (loseNerve), so the fight's defeat rules count it beaten */
+export function talkedIntoYield(state: GameState, who: Actor, from: Actor, heard: string[]): TalkedYield {
+  const band = [who, ...state.actors.filter((m) => m !== who && heard.includes(m.id) && (countsInFight(m) || cowering(m)) && together(state, who, m))];
+  for (const m of band) loseNerve(state, m, 'surrendered');
+  const withIds = band.filter((m) => m !== who).map((m) => m.id);
+  offers(state).pending = offers(state).pending.filter((o) => !band.some((m) => m.id === o.to || m.id === o.from));
+  logCode(state, 'talked_into_yield', { actorId: who.id, from: from.id, with: withIds });
+  return { who, from, with: withIds };
 }
 
 /** TF16: a stand-down truce bars `a` attacking `t` (either way round), for the rest of the scenario */

@@ -7,6 +7,7 @@ import { getLibrary } from '../../src/library';
 import { HL } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
 import type { GameState } from '../../src/types';
+import { rewardXp } from '../../src/ruleset/achRewards';
 
 const got = (s: GameState, key: string) => s.player.progression!.achievements!.find((a) => a.key === key)!;
 
@@ -16,7 +17,7 @@ describe('163 achievement info', () => {
     s.turn = 7;
     for (let i = 0; i < 10; i++) tally(s, 'won_panicking');
     const info = achievementInfo(s, got(s, ACH.won_panicking_10));
-    expect(info).toMatchObject({ name: 'Fear Rides With Me', level: 'ii', levelName: 'II', xp: CONFIG.REWARD_XP.ii, scar: false });
+    expect(info).toMatchObject({ name: 'Fear Rides With Me', level: 'ii', levelName: 'II', xp: rewardXp('ii'), scar: false });
     expect(info.earnedAt).toBe('10 fights won while your morale is Panicking');
     expect(info.why).toBe('Turn 7: you reached 10 fights won while your morale is Panicking.');
   });
@@ -49,6 +50,6 @@ describe('163 achievement info', () => {
   it('a scar says it is one and pays one level lower', () => {
     const s = makeVillage();
     tally(s, 'morale_breaks');
-    expect(achievementInfo(s, got(s, ACH.morale_breaks_1))).toMatchObject({ scar: true, levelName: '0', xp: CONFIG.REWARD_XP.minus_1 });
+    expect(achievementInfo(s, got(s, ACH.morale_breaks_1))).toMatchObject({ scar: true, levelName: '0', xp: rewardXp('minus_1') });
   });
 });

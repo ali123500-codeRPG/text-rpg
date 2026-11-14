@@ -44,7 +44,24 @@ export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number;
 /** the perk moves an actor owns (shown to the Parser and in Commands) */
 export const ownPerkMoves = (a: Actor): string[] => Object.keys(PERK_MOVES).filter((id) => hasPerk(a, id));
 
+/** the actor's true skill: flat parts (raw, perks, achievements, essences) plus the 120 perks' shares (SH1, SH4), which read
+ * flat true skill only, so they never feed each other; several shares on one skill stack by STACK_RATIO (SH7 b) */
 export function trueSkill(a: Actor, skill: string): number {
+  const e = a.core.skills[skill];
+  if (!e || e.dormant || !skillOpen(a, skill)) return 0;
+  const flat = flatTrueSkill(a, skill);
+  const { perks, skills } = getLibrary();
+  const groups = groupsOf(skills[skill]);
+  const shares = owned(a).flatMap((p) => {
+    const d = perks[p.perkId], own = d?.ladder?.skill;
+    if (!d || !own || (!d.shareOwn && !d.shareGroup)) return [];
+    const base = own === skill ? flat : flatTrueSkill(a, own);
+    return [own === skill ? (d.shareOwn ?? 0) * base : 0,
+      d.shareGroup && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g))) ? d.shareGroup * base : 0].filter((v) => v);
+  });
+  return flat + shares.sort((x, y) => y - x).reduce((s, x, i) => s + x * CONFIG.STACK_RATIO ** i, 0);
+}
+function flatTrueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant || !skillOpen(a, skill)) return 0; // a closed tree counts as 0 (TA4)
   const { perks, skills } = getLibrary();

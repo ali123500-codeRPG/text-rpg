@@ -1,11 +1,11 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
-import type { EndCheck, GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
+import type { EndCheck, GameState, Grade, StagePlan, Tier } from '../types';
 import { GRADES, SCENARIO_ENDINGS } from '../types';
 import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { AWARENESS, CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
@@ -15,13 +15,16 @@ import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
 
-const BELIEFS = ['unaware', 'suspicious', 'aware'];
+/** what the Weaver may say a cast member knows of the player or a band: AWARENESS up to aware (tracking and up are code's) */
+const BELIEFS: string[] = AWARENESS.keys.slice(0, AWARENESS.pos('aware') + 1);
+/** a list field the Weaver may have left out or mistyped, as a list */
+const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
 
 const g = (x: Grade) => GRADE_LEVELS.pos(x);
 
 /** gainVsChallenge: for the middle tiers, the gain's grade minus the challenge's, lowest and highest */
 type Fit = { challenge: [Grade, Grade]; gain: [Grade, Grade]; gainVsChallenge?: [number, number] };
-/** Challenge and gain grades that fit each tier [Proposed scale] (G3: data, not code): lowest and highest grade for each,
+/** Challenge and gain grades that fit each tier (G3: data, not code): lowest and highest grade for each,
  * and for the middle tiers how far the gain sits from the challenge. The Weaver prompt reads this too. The tier sets the
  * balance of gain against challenge, worst to best (ER1, ER2): trouble with little gain; a fair event tilted slightly
  * bad (Near Miss: gain a step below the challenge); a matched one; good fortune (Great Success: major gain, little
@@ -69,7 +72,6 @@ function trimNote(v: unknown): unknown {
   return (sp > cap * 0.6 ? cut.slice(0, sp) : cut).trimEnd();
 }
 
-/** Fill in what a plan may leave out, in place, before validation (V4, V5, V6; missing plan steps). Never fills public text. */
 /** CO17: a place that names a layout gets the layout's zones, keyed `${placeKey}.${zoneKey}`; runs once per plan */
 export function expandLayouts(plan: StagePlan): void {
   const layouts = getLibrary().layouts ?? {};
@@ -90,15 +92,15 @@ export function expandLayouts(plan: StagePlan): void {
   }
 }
 
+/** Fill in what a plan may leave out, in place, before validation (V4, V5, V6; missing plan steps). Never fills public text. */
 export function fillPlanDefaults(plan: StagePlan): void {
   if (!plan || typeof plan !== 'object') return;
   expandLayouts(plan);
-  const list = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
   if (plan.event) plan.event.summary = trimNote(plan.event.summary) as string;
   plan.weaverNote = trimNote(plan.weaverNote) as string;
-  for (const p of list(plan.places)) if (p && (p.parent === undefined || p.parent === null)) p.parent = '';
-  for (const b of list(plan.bands)) if (b) { b.goals = trimNote(b.goals) as string; b.temperament = trimNote(b.temperament) as string; }
-  for (const c of list(plan.cast)) if (c) { c.motive = trimNote(c.motive) as string; c.routineGap = trimNote(c.routineGap) as string | undefined; }
+  for (const p of arr(plan.places)) if (p && (p.parent === undefined || p.parent === null)) p.parent = '';
+  for (const b of arr(plan.bands)) if (b) { b.goals = trimNote(b.goals) as string; b.temperament = trimNote(b.temperament) as string; }
+  for (const c of arr(plan.cast)) if (c) { c.motive = trimNote(c.motive) as string; c.routineGap = trimNote(c.routineGap) as string | undefined; }
   const seeds = plan.seeds;
   if (!seeds) return;
   const trig = (t: StagePlan['seeds']['triggers'][number], owner?: string) => {
@@ -106,14 +108,14 @@ export function fillPlanDefaults(plan: StagePlan): void {
     if (!t.ownerId && owner) t.ownerId = owner;
     if (t.once === undefined || t.once === null) t.once = true;
   };
-  for (const p of list(seeds.plans)) {
+  for (const p of arr(seeds.plans)) {
     if (!p || typeof p !== 'object') continue;
     if (!Array.isArray(p.steps)) p.steps = [];
     p.goal = trimNote(p.goal) as string;
-    for (const t of list(p.triggers)) trig(t, p.ownerId);
+    for (const t of arr(p.triggers)) trig(t, p.ownerId);
   }
-  for (const t of list(seeds.triggers)) trig(t);
-  for (const s of list(seeds.secrets)) {
+  for (const t of arr(seeds.triggers)) trig(t);
+  for (const s of arr(seeds.secrets)) {
     if (!s) continue;
     s.fact = trimNote(s.fact) as string;
     // the Weaver writes a tier name; code keeps the key
@@ -138,7 +140,6 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   if (plan.timeOfDay !== undefined && !TIME_OF_DAY.has(plan.timeOfDay)) err('bad_time', `timeOfDay is ${TIME_OF_DAY.list()}`);
   else if (plan.timeOfDay !== undefined && clockSet(state) && plan.timeOfDay !== current) err('bad_time', `timeOfDay: it is ${TIME_OF_DAY.name(current)} now; leave timeOfDay out`);
   const tod = !clockSet(state) && TIME_OF_DAY.has(plan.timeOfDay) ? plan.timeOfDay : current;
-  const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
   const places = arr(plan.places), zones = arr(plan.zones), frontiers = arr(plan.frontiers), bands = arr(plan.bands);
   const cast = arr(plan.cast);
   const seeds = plan.seeds ?? { plans: [], triggers: [], secrets: [] };
@@ -207,7 +208,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   text('weaverNote', plan.weaverNote, false);
   for (const p of places) {
     text(`place ${p.key} name`, p.name, true);
-    // GAP: a root place may give parent '' (the type has no null); anything else must resolve.
+    // a root place gives parent '' (the type has no null; fillPlanDefaults fills it); anything else must resolve
     if (p.parent && !isPlace(p.parent)) err('unresolved_place', `place ${p.key}: parent ${p.parent} unknown`);
     const lays = getLibrary().layouts ?? {};
     if (p.layout !== undefined && !lays[p.layout]) err('bad_place', `place ${p.key}: layout is a layout id from catalogs.layouts (${Object.values(lays).map((l) => `${l.id} ${l.name}`).join(', ')})`);
@@ -287,8 +288,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   // ---- cast ----
   const lib = getLibrary();
   const playerBand = state.player.bandId;
-  // zone graph for reachability: plan links plus stage links, undirected (apply adds back-links into the stage)
-  // GAP: reachability treats links as two-way; the spec does not say whether a one-way link counts.
+  // zone graph for reachability: plan links plus stage links, undirected (every link runs both ways once applied)
   const adj = new Map<string, Set<string>>();
   const edge = (a: string, b: string) => {
     if (!adj.has(a)) adj.set(a, new Set());
@@ -356,7 +356,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     const tags: string[] = set.tags.time?.length ? set.tags.time : ['any'];
     if (!tags.includes('any') && !tags.some((t) => CONFIG.TIME_TAGS[tod]?.includes(t))) rerr('wrong_time', `cast ${k}: routine set ${c.routineSetId} is for ${tags.join('/')}; it is ${TIME_OF_DAY.name(tod)}`);
     if (c.band === playerBand) {
-      // GAP: a player-band entry with the wrong set or bound slots is read as a routine error (it degrades to idle_here).
+      // a player-band entry with the wrong set or bound slots is a routine error (it degrades to idle_here)
       if (c.routineSetId !== 'companion') rerr('companion_set', `cast ${k}: a player-band entry uses the companion set`);
       if (Object.keys(slots).length) rerr('invalid_slot', `cast ${k}: a player-band entry binds no slots`);
     }
@@ -472,7 +472,6 @@ type PlanContainer = NonNullable<StagePlan['containers']>[number];
 export function tidyContainers(state: GameState, plan: StagePlan): { containers: PlanContainer[]; notes: PlanError[] } {
   const notes: PlanError[] = [];
   const note = (code: string, message: string) => notes.push({ code, message, routineOnly: false, repaired: true });
-  const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
   const who = new Set([...arr(plan.cast).map((c) => c.key), ...state.actors.map((a) => a.id)]);
   const zones = new Set([...arr(plan.zones).map((z) => z.key), ...state.stage.zoneIds]);
   const keys = new Set<string>();
@@ -511,14 +510,14 @@ export function boon(state: GameState, item: Reward['item'], qty = 1): number {
 export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Reward[]; notes: PlanError[] } {
   const notes: PlanError[] = [];
   const note = (code: string, message: string) => notes.push({ code, message, routineOnly: false, repaired: true });
-  const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
   const castKeys = new Set(arr(plan.cast).map((c) => c.key));
   const zoneKeys = new Set(arr(plan.zones).map((z) => z.key));
   const actorIds = new Set(state.actors.map((a) => a.id));
   const stageZones = new Set(state.stage.zoneIds);
   const terms = [...arr(plan.hiddenTerms), ...arr(plan.seeds?.secrets).flatMap((s) => arr(s.leakTerms))]
-    .filter((t) => typeof t === 'string' && t.trim()).map((t) => t.toLowerCase());
-  const badText = (v: unknown) => typeof v !== 'string' || v.length > CONFIG.TEXT_CAP || terms.some((t) => v.toLowerCase().includes(t));
+    .filter((t) => typeof t === 'string' && t.trim());
+  // BG-212: hidden terms as whole words, as every other public text in the plan is checked (V10)
+  const badText = (v: unknown) => typeof v !== 'string' || v.length > CONFIG.TEXT_CAP || terms.some((t) => mentions(v, t));
   const gain = plan.event?.gain;
   const maxQ = GRADES.includes(gain) ? CONFIG.GAIN_MAX_QUALITY[gain] ?? null : null;
   let mintLeft = CONFIG.SCENARIO_CAPS.minted - state.scenarioCaps.minted;

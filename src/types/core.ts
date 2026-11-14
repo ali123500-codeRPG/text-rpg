@@ -183,7 +183,9 @@ export type GameEvent = {
    * through, and whether the speaker saw how it was taken */
   push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; doubt?: true; seen?: true; offer?: 'convinced' | 'tempted' | 'unmoved' }; // offer: TF11, an offer to stand down, how it landed
   /** TF13: the player's words were an offer to stop fighting: how they landed with each listener */
-  offers?: { to: string; landed: 'convinced' | 'tempted' | 'unmoved' }[];
+  offers?: { to: string; landed: 'convinced' | 'tempted' | 'unmoved'; demand?: 'yield' }[]; // demand: TF19, it asked them to surrender
+  /** TF19: a surrender talked out of a foe (kind surrender; actorId gave up to target): bandmates that gave up with it */
+  surrender?: { with: string[] };
   /** TF16: a stand-down (kind stand_down; actorId stood down from target): bandmates that went with it, coin paid for it */
   standDown?: { with: string[]; coin?: number };
   /** LI5a Overheard: owners of Overheard who heard this lie told to someone else and saw through it */

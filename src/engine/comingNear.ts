@@ -4,6 +4,7 @@ import type { Actor, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
 import { NOISE, type BodyPoseKey } from '../scales';
 import { itemDef } from '../library';
+import { isHeld } from '../ruleset/gear';
 import { allActors, atLeast, isActive, isAsleep } from './relations';
 import { perceivesNow } from './yield';
 import { distOrNull, type Located } from './position';
@@ -26,7 +27,7 @@ const outsiders = (state: GameState, w: Actor): Actor[] =>
 const perceived = (state: GameState, w: Actor, x: Actor): boolean => !isAsleep(w) && perceivesNow(state, w, x, 'faint');
 /** weapons held in a Grip part */
 const armed = (state: GameState, x: Actor): number =>
-  x.core.inventory.filter((i) => i.equippedIn?.some((s) => s.startsWith('grip:')) && itemDef(state, i.itemId).kind === 'weapon').length;
+  x.core.inventory.filter((i) => isHeld(i) && itemDef(state, i.itemId).kind === 'weapon').length;
 /** someone whose path ends at the watcher: it is tracking, hunting or engaging them */
 const comingFor = (x: Actor, w: Actor): boolean => atLeast(x.mind?.knowledge?.[w.id]?.status, 'tracking');
 const seen = (state: GameState, x: Actor, closing = false): Seen => ({ sneaking: x.posture === 'stealthy', closing, armed: armed(state, x) });

@@ -69,7 +69,7 @@ export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {
   const byPlayer = isPlayer(e.actor) || isPlayer(e.packet?.actor);
   const onPlayer = isPlayer(e.target) || isPlayer(e.packet?.target);
   if (byPlayer && POSITION.has(e.kind)) return true;
-  if ((byPlayer || onPlayer) && e.kind === 'stand_down') return true; // TF16
+  if ((byPlayer || onPlayer) && (e.kind === 'stand_down' || e.kind === 'surrender')) return true; // TF16, TF19
   if ((byPlayer || onPlayer) && INVENTORY.has(e.kind)) return true;
   if (onPlayer && ((e.changes?.length ?? 0) > 0 || (e.packet?.changes.length ?? 0) > 0)) return true;
   return false;

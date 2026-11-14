@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-212
+
+**What was wrong:** A reward the Weaver minted with a name of its own was placed as a plain item when a hidden term of the plan sat inside a longer word of its name or look ("rat" inside "a pirate's sword"). Nothing leaked, so the player lost the better item for no reason. The reward check matched parts of words; every other leak check in the plan matches whole words (V10).
+
+**What was done:** Ali approved the fix plan (leftover scan CS19). The reward check uses the same whole-word helper (mentions) as the rest of the plan; a whole hidden word ("the rat's blade") still drops the name. A case test (s292) covers both.
+
+**Fixed by:** [PR #746](https://github.com/ali123500-codeRPG/text-rpg/pull/746)
+
 ## BG-211
 
 **What was wrong:** A stash was a quiet sound that anyone nearby could see plainly, instead of the hushed, low-visibility act the rule sets (SE9). More people noticed stashes, and whoever saw one clearly learned where the item was hidden. When filching was added (PR #660), its entry and note in the engine's table of event noise and sight were put on the line just before the stash entry, so the stash entry ended up inside the note and the code stopped reading it. Every stash since then used the default for kinds the table doesn't list (quiet, normal).

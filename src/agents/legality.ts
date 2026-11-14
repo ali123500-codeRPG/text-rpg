@@ -122,7 +122,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   }
   // AE8: a perk move the player doesn't own, or aimed at no one in view, is dropped (the rest of the turn stands)
   // ST13/ST20: a Vanish moves you; with no move it asks where to
-  if (a?.type === 'vanish' && !out.move && !(view.player.perks.some((x) => x.id === PK.melt_away) && meltAwayHere(view.zone.cover, view.zone.light))) illegal.push('action.vanish'); // A19 Melt Away
+  if (a?.type === 'vanish' && !out.move && !(view.player.perks.some((x) => x.id === PK.melt_away) && (view.player.blindSpot || meltAwayHere(view.zone.cover, view.zone.light)))) illegal.push('action.vanish'); // A19 Melt Away, LR3 Blind Spot
   const move = out.perkMove && view.player.perkMoves?.find((m) => m.id === out.perkMove!.perk || m.name.toLowerCase() === out.perkMove!.perk.trim().toLowerCase());
   if (out.perkMove && move) out.perkMove.perk = move.id; // a perk move named instead of given by id is read as its id
   if (out.perkMove && (!move || (out.perkMove.target !== null && (!actors.has(out.perkMove.target) || dead.has(out.perkMove.target))))) {

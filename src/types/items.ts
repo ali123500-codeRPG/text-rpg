@@ -20,7 +20,7 @@ export type ItemDef = {
   hiddenAt?: import('./core').Tier; // SE9: worn concealed, a look over its wearer must beat this outcome tier to spot it (SE11)
   visible?: true;
   slot?: 'armor' | 'accessory';
-  hands?: 1 | 2;
+  grips?: 1 | 2; // how many Grip parts it takes to hold
   effects?: ItemEffect[];
   weapon?: { modes: AttackMode[] };
   armor?: {
@@ -66,7 +66,7 @@ export type AttackMode = {
   reachM: number;
   /** the metres it reaches in use: reachM, plus a thrown weapon's perk metres (ruleset/gear modeReach) */
   reach: number;
-  hands: 0 | 1 | 2;
+  grips: 0 | 1 | 2; // Grip parts it takes (0 for natural attacks)
   thrown?: true;
   /** set at use from the attack mode row (Throw): a combined roll, each skill's effective value (its own stand-ins) × its share, summed */
   blend?: { skill: LibraryRef; share: number }[];

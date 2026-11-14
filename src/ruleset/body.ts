@@ -89,7 +89,7 @@ function rolePenalty(a: Actor, raw: PartState): number {
 
 /**
  * wounds-type roll modifiers for a skill: health-track level plus body-part role penalties.
- * ctx.itemId picks the limb (the hands holding that item, worse arm for two hands; 'natural:<mode>' its Strike part);
+ * ctx.itemId picks the limb (the grips holding that item, worse arm for two grips; 'natural:<mode>' its Strike part);
  * without an item, the best Grip arm is used.
  */
 export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; roles?: RoleId[] } = {}): Mod[] {
@@ -122,9 +122,9 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
       }
     } else if (uses.includes(role)) {
       if (role === RL.grip) {
-        const hands = inst?.equippedIn?.filter((h) => h.startsWith('grip:')).map((h) => h.slice(5)) ?? [];
-        const pens = (hands.length ? hands : parts.map((p) => p.id)).map((id) => pen(id));
-        v = hands.length ? Math.min(...pens) : Math.max(...pens);
+        const held = inst?.equippedIn?.filter((h) => h.startsWith('grip:')).map((h) => h.slice(5)) ?? [];
+        const pens = (held.length ? held : parts.map((p) => p.id)).map((id) => pen(id));
+        v = held.length ? Math.min(...pens) : Math.max(...pens);
       } else if (role === RL.strike && ctx.itemId?.startsWith('natural:')) {
         const partId = ct.naturalAttacks.find((m) => m.id === ctx.itemId!.slice(8))?.partId;
         if (partId) v = pen(partId);

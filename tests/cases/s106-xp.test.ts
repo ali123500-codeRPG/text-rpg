@@ -14,6 +14,7 @@ import type { GameEvent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { GR } from '../../src/library/functionIds';
 import { CL } from '../../src/library/classIds';
+import { rewardXp } from '../../src/ruleset/achRewards';
 
 const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 'quiet', visibility: 'low', perception: {},
   attack: { attackerId: 'player', targetId: target, damage: 5 } as never });
@@ -59,8 +60,8 @@ describe('106 XP and levels', () => {
   it('every achievement pays the XP of its reward level', () => {
     const lib = getLibrary().achievements!;
     for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
-    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([25, 50, 100, 250, 1000, 2000, 5000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000]);
-    expect(CONFIG.REWARD_XP[lib[ACH.mastery_150].level]).toBe(2000);
+    expect(REWARD_LEVELS.keys.map((k) => rewardXp(k))).toEqual([6, 50, 169, 400, 781, 1350, 2144, 3200, 4556, 6250, 8319, 10800, 13731, 17150, 21094, 25600, 30706]);
+    expect(rewardXp(lib[ACH.mastery_150].level)).toBe(1350);
   });
   it('a foe with a race also earns the first race defeat', () => {
     const s = makeVillage();
@@ -83,13 +84,13 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     const pr = s.player.progression!;
     expect(pr.achievements!.map((a) => a.id)).toEqual([`${ACH.first_defeat_body_type}:${BT.amorphous}`, `${ACH.first_defeat_race}:${RC.slime}`]);
-    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, 'level', `achievement:${ACH.first_defeat_race}:${RC.slime}`]); // 100 XP: level 2
+    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, 'level', `achievement:${ACH.first_defeat_race}:${RC.slime}`, 'level']); // level I pays enough for level 2, then 3
     expect(pr.xpLog![0].amount).toBe(xp);
-    expect(pr.xpLog![1].amount).toBe(100);
+    expect(pr.xpLog![1].amount).toBe(rewardXp('i'));
     const other = actor(s, 'slime_2');
     other.core.condition.hpLostPct = 100; // downed by someone else: nothing
     payDefeats(s, []);
-    expect(pr.xpLog).toHaveLength(4);
+    expect(pr.xpLog).toHaveLength(5);
   });
   it('RS7: a downed NPC the player hit pays whatever its stance; a surrender to someone else does not', () => {
     const s = makeVillage();

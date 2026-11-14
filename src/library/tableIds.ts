@@ -7,9 +7,9 @@ export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', 
 /** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */
 /** FT7 the stamina recovery table: Sleep, Rest, Catching your breath, and Perks (a counting row) */
 export const RV = { sleep: 'RV1', rest: 'RV2', breath: 'RV3', perk: 'RV4' } as const;
-export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5', steady: 'CP6' } as const;
+export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5', steady: 'CP6', foe_downed: 'CP7', rallied: 'CP8' } as const;
 /** fears: what costs (or restores) morale (MB21–MB28) */
-export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', foe_downed: 'FR6', dread_presence: 'FR7', battle_cry: 'FR8', rallied: 'FR9', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12', steady_slipped: 'FR13' } as const;
+export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', dread_presence: 'FR7', battle_cry: 'FR8', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12', steady_slipped: 'FR13' } as const; // FR6, FR9 retired: moved to the composure table (TM28)
 /** PL6: personality axes; PL19: values; PL10: named personality types */
 export const PA = { honesty: 'PA1', pride: 'PA2', temper: 'PA3', sociability: 'PA4', discipline: 'PA5', curiosity: 'PA6', levity: 'PA7' } as const;
 export const VL = { duty: 'VL1', wealth: 'VL2', family: 'VL3', faith: 'VL4', power: 'VL5', freedom: 'VL6', safety: 'VL7', pleasure: 'VL8', knowledge: 'VL9', kindness: 'VL10',
@@ -19,7 +19,7 @@ export const PY = { prideful: 'PY1', mature: 'PY2', childish: 'PY3', honourable:
 /** tensions: two parts of a character that pull against each other (personality line) */
 export const TN = { unshakeable_scatterbrained: 'TN1', bold_unbacked: 'TN2', old_head: 'TN3', wary_dangerous: 'TN4', home_temptation: 'TN5', talent_undisciplined: 'TN6', crooked_means: 'TN7' } as const;
 /** linked perks: a set of perks that together grant one more perk, or merge into one (src/library/perkLinks.ts) */
-export const LK = { crushing_presence: 'LK1' } as const;
+export const LK = { crushing_presence: 'LK1', ghost_blade: 'LK2', combination: 'LK3', blind_spot: 'LK4', bulwark: 'LK5' } as const;
 /** the Action times table (AT11); DU1 (the fight turn) is retired: it is CONFIG.FIGHT_TURN_S */
 export const DU = {
   action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5', blow: 'DU6', throw: 'DU7', bow_light: 'DU8', bow_medium: 'DU9', crossbow_shot: 'DU10',

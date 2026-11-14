@@ -56,7 +56,7 @@ export type Actor = {
   /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */
   followLost?: { who: string; why: 'down' | 'slipped_away' | 'out_of_sight'; zone: string };
   letsSearch?: { by: string; until: number }; // BF16: lets `by` search it hands-on, until that turn
-  heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
+  heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-grip modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
   wares?: { items: string[]; services: string[] };
   /** ES6 a: essences a seller bought and holds to sell on (it has no room, or no slots, to take them in) */
@@ -76,7 +76,7 @@ export type Actor = {
 
 /** a perk's lasting effect: target is the actor it names (an opening on that foe); made: the turn a timed mark was made (it
  * lasts PERK_MARK_ROUNDS rounds of game time from then); none: until used */
-export type PerkMark = { perk: string; target?: string; made?: number };
+export type PerkMark = { perk: string; target?: string; made?: number; /** the tier shift it gives, when not 1 (LR2 Combination) */ value?: number };
 
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
@@ -175,6 +175,9 @@ export type Progression = {
   /** skills the player has rolled, on the sheet or not, so the sheet and /stats can show an off-sheet skill in use (fists: Strike) */
   used?: LibraryRef[];
   zonesSeen?: string[]; // zones the player has entered
+  placesSeen?: string[]; // TM14: places the player has stood in, or that held where they stood (counted per kind)
+  /** AS1–AS11: foes the player struck while seeing them surrendered or broken, each counted once */
+  gaveUpStruck?: { surrendered: string[]; broken: string[] };
   crippled?: string[]; // parts Crippled or worse, waiting to heal back to Healthy (the 'mended' achievements)
   wasDown?: true; // went Down and is not yet back to Unhurt (the 'back_from_down' achievement)
   grudges?: string[]; // people who have been hostile to the player and are not yet friendly (the 'enemy_to_friend' achievements)
@@ -202,7 +205,6 @@ export type Mind = {
   earlier?: { upTo: string; lines: string[] };
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
-  stoodDown?: true; // TF16: it stood down from the player's side (talked out of the fight): it counts as beaten
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware
   xpPaid?: true; // its defeat has paid XP (B4)
   essenceRolled?: true; // growth proposal 2.3: its defeat has rolled for an essence (one offer per foe, ever)
@@ -260,6 +262,8 @@ export type NpcTemplate = {
   fallback?: { attackSkill: LibraryRef }; // overrides the body type's (Fallback behavior)
   /** perks every NPC made from this template has (any patrolling template has Keen Ear) */
   perks?: LibraryRef[];
+  /** SS12: for each tag, every NPC made from it rolls one quirk carrying that tag (PerkDef.tags) */
+  quirkTags?: string[];
   /** CH5: how far NPCs made from it chase the player when their band names no range */
   chase?: import('../scales').ChaseRange;
   /** AG13: the life stages NPCs made from it are drawn from; left out = CONFIG.NPC_AGE_STAGES */

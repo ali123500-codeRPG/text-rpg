@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -85,6 +85,11 @@ export const achievementSkill = (a: Actor, skill: string): number => currentAchi
 /** maxMorale: the flat max morale the actor's current achievements add, lower levels' amounts included */
 export const achievementMaxMorale = (a: Actor): number => currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, 'maxMorale'), 0);
 
+/** aimEase (TM26): the share (0-1) taken off the aim penalty for a part of `size`, from the actor's current by-size row
+ * for that size, lower levels' amounts included */
+export const achievementAimEase = (a: Actor, size: string): number =>
+  Math.min(100, bestReward(a, 'aimEase', (x) => x.d.by === 'size' && x.of === size)?.value ?? 0) / 100;
+
 /** standIn: the share stand-ins gain on rolls of `skill`, from achievements earned for a group the skill is in */
 export function achievementStandIn(a: Actor, skill: string): number {
   const groups: string[] = groupsOf(getLibrary().skills[skill]);
@@ -150,6 +155,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'skillAdd': return Object.entries(d.skillAdd ?? {}).map(([sk, n]) => `+${n} true skill in ${skillName(sk)}`);
     case 'renown': return [`every foe fighting you takes ${-d.renown!} on its morale rolls`];
     case 'maxMorale': return [`+${d.maxMorale} max morale`];
+    case 'aimEase': return [`${d.aimEase}% less aim penalty on parts of that size`];
     case 'firstSight': {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
       return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];
@@ -188,7 +194,13 @@ const TOP = () => REWARD_LEVELS.keys.length - 1;
 export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);
 export const rewardKeyAt = (pos: number): string => REWARD_LEVELS.at(Math.min(TOP(), Math.max(0, pos)));
 export const rewardName = (key: string): string => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : key);
-export const rewardXp = (key: string): number => CONFIG.REWARD_XP[key] ?? 0;
+/** the XP of the reward level at place p (0 = level 0, I = 1, −1 = −1): the one reward-XP equation (REWARD_XP_CURVE) */
+export function rewardXpAt(p: number): number {
+  const c = CONFIG.REWARD_XP_CURVE;
+  return Math.round(c.base * Math.max(0, (p + c.shift) / c.div) ** c.power);
+}
+/** a reward level's XP, for achievements and quests alike (quest levels are REWARD_LEVELS keys too) */
+export const rewardXp = (key: string): number => (REWARD_LEVELS.has(key) ? rewardXpAt(REWARD_LEVELS.pos(key as 'i') - REWARD_LEVELS.pos('zero')) : 0);
 
 /** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
  * step past its first count (an every-N row climbs as it is earned again), capped at the top level (XV). */

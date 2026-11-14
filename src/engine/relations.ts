@@ -50,6 +50,8 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
   const colder = onSightPerks(b).reduce((n, d) => n + (a.sightChecks?.includes(`${d.id}:${b.id}`) ? d.onSight!.colder : 0), 0);
   return colder ? STANCES.at(Math.max(0, STANCES.pos(s) - colder)) : s;
 }
+/** opposed or colder (opposed, hostile) */
+const cold = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) <= STANCES.pos('opposed');
 /** friendly or warmer (friendly, friend, loyal) */
 export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friendly');
 /** hostile: a attacks b on sight. RS3 loyal: a takes the side of anyone it is loyal to, so whoever is hostile to them
@@ -60,7 +62,7 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
   const s = stance(state, a, b);
   if (s === 'hostile') return true;
   if (s === 'yielded' || warm(s)) return false;
-  const opposed = STANCES.pos(s) <= STANCES.pos('opposed');
+  const opposed = cold(s);
   return allActors(state).some((c) => {
     if (c === a || c === b || !isActive(c) || stance(state, b, c) !== 'hostile') return false;
     const ac = stance(state, a, c);
@@ -88,10 +90,7 @@ export const sparring = (state: GameState, a: Actor, b: Actor): boolean => !!spa
 /** a fights b: for real (hostile) or in a spar (SP1). Stance and XP rules use hostile; fighting rules use foe. */
 export const foe = (state: GameState, a: Actor, b: Actor): boolean => hostile(state, a, b) || sparring(state, a, b);
 /** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
-export function wary(state: GameState, a: Actor, b: Actor): boolean {
-  const s = stance(state, a, b);
-  return s !== 'yielded' && STANCES.pos(s) <= STANCES.pos('opposed');
-}
+export const wary = (state: GameState, a: Actor, b: Actor): boolean => cold(stance(state, a, b));
 
 export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): boolean {
   return AWARENESS.pos(status ?? 'unaware') >= AWARENESS.pos(min);
@@ -206,16 +205,18 @@ export function reachesAcross(state: GameState, a: string, b: string): boolean {
  * bandmate's, or one learned by hearing it said (learnNames) */
 export function knowsName(state: GameState, viewer: Actor, a: Actor): boolean {
   if (a === viewer || a.knownOnSight || (viewer.bandId && viewer.bandId === a.bandId)) return true;
-  return !!(viewer.id === state.player.id ? state.player.journal?.namesKnown : viewer.mind?.namesKnown)?.includes(a.id);
+  return !!namesOf(state, viewer)?.namesKnown?.includes(a.id);
 }
+/** where the viewer keeps names: the player's journal, an NPC's mind */
+const namesOf = (state: GameState, viewer: Actor) => (viewer.id === state.player.id ? state.player.journal : viewer.mind);
 /** BG-95/NM2/NM3: the viewer's name lists (the player's journal or an NPC's mind), made on first write */
 export function nameBook(state: GameState, viewer: Actor): { known: string[]; heardOf: string[]; aliases: Record<string, string> } | undefined {
-  const b = viewer.id === state.player.id ? state.player.journal : viewer.mind;
+  const b = namesOf(state, viewer);
   if (!b) return undefined;
   return { known: (b.namesKnown ??= []), heardOf: (b.heardOf ??= []), aliases: (b.aliases ??= {}) };
 }
 /** what the viewer calls `a` by name: the real one once known, else a false name it believed (NM3), else none */
 export function nameFor(state: GameState, viewer: Actor, a: Actor): string | undefined {
   if (knowsName(state, viewer, a)) return a.names.current;
-  return (viewer.id === state.player.id ? state.player.journal?.aliases : viewer.mind?.aliases)?.[a.id];
+  return namesOf(state, viewer)?.aliases?.[a.id];
 }

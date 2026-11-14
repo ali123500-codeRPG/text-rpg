@@ -16,13 +16,14 @@ import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods, defeatsMods } from './bane';
 import { pressureMods } from './pressure';
-import { bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
+import { achievementAimEase, bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
+import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
-import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
+import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -240,7 +241,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const am: Mod[] = [];
   const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // 40/80/120 perk aimMult (none uses it today)
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') * (1 - achievementAimEase(A, aimedPart.size)) }); // 40/80/120 perk aimMult (none uses it today); TM26 by-size achievements
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value (CS2)
   const hit = cls.hit + (mode.hitAdj ?? 0);
@@ -444,7 +445,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
       destroyedEssential = part.impact === 'essential';
       if (part.roles.includes(RL.grip)) {
         const zone = zoneById(state, T.zone);
-        for (const inst of T.core.inventory.filter((i) => handsOf(i).includes(part.id))) {
+        for (const inst of T.core.inventory.filter((i) => gripsOf(i).includes(part.id))) {
           if (inst.soulbound) { delete inst.equippedIn; continue; } // HF18: soulbound gear never leaves its owner
           T.core.inventory = T.core.inventory.filter((i) => i !== inst);
           const { equippedIn: _, ...loose } = inst;
@@ -464,7 +465,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   if (T === state.player && T.core.condition.hpLostPct > lostBefore) tally(state, 'hp_lost', { add: ((T.core.condition.hpLostPct - lostBefore) / 100) * hp });
   const levelAfter = healthLevel(T);
   // a kill is counted apart from a defeat: the player's blow took someone else to Dead
-  if (levelAfter === 'dead' && levelBefore !== 'dead' && T !== state.player && result.attackerId === state.player.id) tally(state, 'kills');
+  if (levelAfter === 'dead' && levelBefore !== 'dead' && T !== state.player && result.attackerId === state.player.id) { tally(state, 'kills'); killedSurrenderedFeat(state, T); }
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;
 }

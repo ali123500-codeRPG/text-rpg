@@ -7,8 +7,9 @@ import './libraryViewer.css';
 import type { NpcTemplate, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
-import { achLevel, achXp, rewardLines, rewardName, tierUnlockLine } from '../ruleset/achRewards';
-import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
+import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
+import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
+import { branchLabel, branchRoots, chainHead, chainRows, chainTag, isBareHead } from '../ruleset/achChains';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
@@ -170,10 +171,10 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
-    i.hands !== undefined ? row('Grips', String(i.hands)) : null,
+    i.grips !== undefined ? row('Grips', String(i.grips)) : null,
     i.slot ? row('Slot', i.slot) : null,
     i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
-      `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.hands} grip${m.hands === 1 ? '' : 's'}`,
+      `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.grips} grip${m.grips === 1 ? '' : 's'}`,
       m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
@@ -403,6 +404,7 @@ function healing(): HTMLElement[] {
 function composureText(d: ComposureDef): string {
   if (d.countOnly) return 'nothing itself: it only tallies morale restored by perks, for achievements that count morale by source';
   if (d.hourly) return `every hour, ${d.hourly.pctPerPoint} % of max morale per ${skillName(d.hourly.skill)} point (${+(d.hourly.pctPerPoint * 50).toFixed(2)} % at 50)`;
+  if (d.points !== undefined) return `${d.points} morale points`;
   return `${d.pct} % of max morale`;
 }
 function composure(): HTMLElement[] {
@@ -550,37 +552,36 @@ function achievements(): HTMLElement[] {
       ghost(String(after), `${fmtNum(after)}+`, `${d.name.replace('{level}', String(after))}, and on every ${d.every}`)];
   };
   const fmtNum = (n: number) => n.toLocaleString('en');
-  const section = (title: string, list: [string, AchievementDef][]) => {
-    const xp = list.reduce((n, [, d]) => n + achXp(d), 0);
-    return h('section', { class: 'lv-group lv-chain' }, h('h2', { class: 'hs-section' }, title,
-      h('span', { class: 'lv-chainmeta' }, ` (${list.length} level${list.length === 1 ? '' : 's'}, ${fmtNum(xp)} XP)`)),
-      ...chainsOf(list).map(([label, rows]) => [label ? h('h3', { class: 'lv-chainlabel' }, label) : null,
-        ((ms) => h('div', { class: 'lv-grid lv-track', style: `--n: ${Math.min(ms.length, 6)}` }, ms))(rows.flatMap(medal))]).flat().filter((x) => !!x) as HTMLElement[]);
+  // TB4: one line per chain (a trunk and its branches, achChains), listed under the chain's tag. A line starts folded; it
+  // unfolds into the trunk's levels, then one track per branch kind. ↻N counts the rows the line folds.
+  const track = (rows: [string, AchievementDef][]) => ((ms) => h('div', { class: 'lv-grid lv-track', style: `--n: ${Math.min(ms.length, 6)}` }, ms))(rows.flatMap(medal));
+  const chainLine = (head: string, list: [string, AchievementDef][]) => {
+    const inList = (ks: string[]) => ks.map((k) => list.find(([x]) => x === k)).filter((x): x is [string, AchievementDef] => !!x);
+    const trunk = isBareHead(head) ? [] : inList(chainRows(head));
+    const branches = branchRoots(head).map((r): [string, [string, AchievementDef][]] => [branchLabel(lib.achievements?.[r]), inList(chainRows(r))]).filter(([, rs]) => rs.length);
+    const rows = [...trunk, ...branches.flatMap(([, rs]) => rs)];
+    const d = lib.achievements?.[head];
+    const title = isBareHead(head) ? ACH_HEAD_NAMES[head].name : d?.names ? Object.entries(d.names).sort(([a], [b]) => Number(a) - Number(b))[0][1] : d?.name ?? head;
+    const xp = rows.reduce((n, [, x]) => n + achXp(x), 0);
+    const meta = [trunk.length ? `${trunk.length} level${trunk.length === 1 ? '' : 's'}` : '', branches.length ? `${branches.length} branch${branches.length === 1 ? '' : 'es'}` : '', `${fmtNum(xp)} XP`].filter(Boolean).join(', ');
+    return h('div', { class: 'lv-foldcard lv-foldfirst lv-chainline' },
+      h('header', {}, h('h3', { 'data-fold': head }, title, h('span', { class: 'lv-chainmeta' }, ` ${meta}`), h('span', { class: 'lv-n lv-rep' }, `↻${rows.length}`))),
+      trunk.length ? track(trunk) : null,
+      ...branches.flatMap(([lbl, rs]) => [h('h4', { class: 'lv-chainlabel' }, `Branch · ${lbl}`), track(rs)]));
   };
-  // one line can hold several chains (one per healing source, say): follow `after` from each root so a medal's rail
-  // always leads to the level that builds on it; a line with no `after` links stays one track in count order
-  const chainsOf = (list: [string, AchievementDef][]): [string, [string, AchievementDef][]][] => {
-    const ids = new Set(list.map(([k]) => k));
-    const roots = list.filter(([, d]) => !d.after || !ids.has(d.after));
-    const chains = roots.map((r) => { const out = [r]; for (let cur = r, i = 0; i < 50; i++) { const next = list.find(([, d]) => d.after === cur[0]); if (!next || out.includes(next)) break; out.push(next); cur = next; } return out; });
-    if (!chains.some((c) => c.length > 1) || chains.length === 1) return [['', list]];
-    const linked = chains.filter((c) => c.length > 1), loose = chains.filter((c) => c.length === 1).flat();
-    const label = (c: [string, AchievementDef][]) => { const d = c[0][1]; return d.only ? `From ${sourceRowName(d, d.only)}` : `${c[0][1].name} chain`; };
-    return [...linked.map((c): [string, [string, AchievementDef][]] => [label(c), c]), ...(loose.length ? [['Single levels', loose] as [string, [string, AchievementDef][]]] : [])];
+  const headsOf = (list: [string, AchievementDef][]) => [...new Set(list.map(([k]) => chainHead(k)))];
+  const tagOrder = (t: string) => { const i = Object.keys(ACH_TAGS).indexOf(t); return i < 0 ? 99 : i; };
+  const byChain = (list: [string, AchievementDef][], tag?: string) => {
+    const heads = headsOf(list).filter((hd) => !tag || chainTag(hd) === tag);
+    const tags = [...new Set(heads.map(chainTag))].sort((a, b) => tagOrder(a) - tagOrder(b));
+    return tags.map((t) => { const hs = heads.filter((hd) => chainTag(hd) === t);
+      return h('section', { class: 'lv-group lv-chain' }, h('h2', { class: 'hs-section' }, achTagName(t), h('span', { class: 'lv-chainmeta' }, ` (${hs.length} chain${hs.length === 1 ? '' : 's'})`)), ...hs.map((hd) => chainLine(hd, list))); });
   };
-  // a line: one rule counted one way (rule + by), its levels in count order; each line folds on its own
-  const lineOf = (d: AchievementDef) => `${d.rule}|${d.by ?? ''}`;
-  const lineTitle = (k: string) => { const [rule, by] = k.split('|'); const t = ACH_RULE_TEXT[rule as AchievementDef['rule']] ?? rule; return `${cap(t)}${by ? ` (per ${by.replace('_', ' ')})` : ''}`; };
-  const byLine = (list: [string, AchievementDef][]) => [...new Set(list.map(([, d]) => lineOf(d)))]
-    .map((k) => section(lineTitle(k), list.filter(([, d]) => lineOf(d) === k)));
-  // sub-tabs by tag (TG1–TG9) in ACH_TAGS order, plus All; scars sit with achievements; a row with several tags shows under each
-  const used = new Set(all.flatMap(([, d]) => achTags(d)));
-  const tagKeys = [...Object.keys(ACH_TAGS).filter((t) => used.has(t)), ...[...used].filter((t) => !(t in ACH_TAGS))];
-  const untagged = all.filter(([, d]) => !achTags(d).length);
+  // sub-tabs by the tag each chain is listed under (chainTag, in ACH_TAGS order), plus All; scars sit with achievements
+  const tagKeys = [...new Set(headsOf(all).map(chainTag))].sort((a, b) => tagOrder(a) - tagOrder(b));
   return panes([
-    { key: 'all', title: 'All', n: all.length, content: byLine(all) },
-    ...tagKeys.map((t) => { const list = all.filter(([, d]) => achTags(d).includes(t)); return { key: `tag:${t}`, title: achTagName(t), n: list.length, content: byLine(list) }; }),
-    ...(untagged.length ? [{ key: 'untagged', title: 'Untagged', n: untagged.length, content: byLine(untagged) }] : []),
+    { key: 'all', title: 'All', n: all.length, content: byChain(all) },
+    ...tagKeys.map((t) => ({ key: `tag:${t}`, title: achTagName(t), n: all.filter(([k]) => chainTag(chainHead(k)) === t).length, content: byChain(all, t) })),
   ]);
 }
 
@@ -820,11 +821,11 @@ function questsView(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, 'Quests have no fixed list: each one is a job someone gives you in play, held in a deal, and kept in your save (see them on the Play screen\'s Quests page or with /quests). These are the rules every quest follows. Quest achievements are under Achievements.'),
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Rules'), h('div', { class: 'lv-grid wide' },
-      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('QUEST_REWARD_XP · QUEST_GAIN_LEVEL')],
-        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scenario stands to gain. Quests have their own XP table, apart from achievements.'),
+      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('REWARD_XP_CURVE · rewardXp · QUEST_GAIN_LEVEL')],
+        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scenario stands to gain. A quest pays the XP of its reward level from the same equation as achievements.'),
         tbl(['Level', 'XP', 'Scenario gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
           const g = gainsFor(lv);
-          return [QUEST_REWARD_LEVELS.name(lv), String(CONFIG.QUEST_REWARD_XP[lv] ?? 0), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
+          return [QUEST_REWARD_LEVELS.name(lv), String(rewardXp(lv)), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
         })))),
       fixed(card('quests', 'defeat-xp', {}, 'Defeat jobs against weak foes', [chip('questXp · weakFoeTaper')],
         h('p', { class: 'lv-formula' }, `XP × min(1, ${CONFIG.DEFEAT_XP_TAPER} × average foe power ÷ your power)`),
@@ -1212,7 +1213,7 @@ function filter(): void {
   allRes.remove();
   const all = cards();
   for (const c of all) c.hidden = !passes(c, q);
-  body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !!g.querySelector('.lv-card') && !g.querySelector('.lv-card:not([hidden])'); });
+  body.querySelectorAll<HTMLElement>('.lv-group, .lv-chainline').forEach((g) => { g.hidden = !!g.querySelector('.lv-card') && !g.querySelector('.lv-card:not([hidden])'); });
   body.querySelectorAll<HTMLAnchorElement>('.lv-cell').forEach((a) => a.classList.toggle('dim', !!document.getElementById(a.hash.slice(1))?.hidden));
   const n = all.filter((c) => !c.hidden).length;
   const filtering = !!q || picks.size > 0;
@@ -1401,7 +1402,7 @@ function fold(head: Element, open?: boolean, save = true): void {
   const folded = box(head).classList.toggle('lv-folded', open === undefined ? undefined : !open);
   if (save) {
     const k = foldKey(head);
-    if (FOLDED_FIRST.has(shown)) { if (folded) openedSet.delete(k); else openedSet.add(k); keep('lv-opened', [...openedSet]); }
+    if (firstFolded(head)) { if (folded) openedSet.delete(k); else openedSet.add(k); keep('lv-opened', [...openedSet]); }
     else { if (folded) foldedSet.add(k); else foldedSet.delete(k); keep('lv-folded', [...foldedSet]); }
     // the same section in the other sub-tabs follows
     body.querySelectorAll<HTMLElement>(HEAD).forEach((o) => {
@@ -1415,12 +1416,14 @@ function fold(head: Element, open?: boolean, save = true): void {
 // tables whose sections start folded until opened; for them the remembered choice is which sections are open
 const FOLDED_FIRST = new Set<string>([]); // achievements read as compact medal tracks now, so they open unfolded
 const openedSet = new Set<string>(remember<string[]>('lv-opened', []));
-const savedFolded = (k: string): boolean => (FOLDED_FIRST.has(shown) ? !openedSet.has(k) : foldedSet.has(k));
+// a box marked lv-foldfirst (an achievement chain line) also starts folded until opened
+const firstFolded = (head: Element): boolean => FOLDED_FIRST.has(shown) || box(head).classList.contains('lv-foldfirst');
+const savedFolded = (head: Element, k: string): boolean => (firstFolded(head) ? !openedSet.has(k) : foldedSet.has(k));
 // keyed by tab and title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new
 // build, and a section folded in one sub-tab is folded in every sub-tab that shows it
-const foldKey = (head: Element): string => `${shown}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
+const foldKey = (head: Element): string => `${shown}|${(head as HTMLElement).dataset.fold ?? (head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (savedFolded(foldKey(h2))) box(h2).classList.add('lv-folded'); });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (savedFolded(h2, foldKey(h2))) box(h2).classList.add('lv-folded'); });
   // the heading stays a heading; a button inside it does the folding
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => {
     const btn = h2.querySelector(':scope > .lv-foldbtn') ?? h('button', { type: 'button', class: 'lv-foldbtn', title: 'Fold or unfold' }, ...Array.from(h2.childNodes));

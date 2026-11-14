@@ -173,11 +173,13 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
     // TF13/TF17/TF10/TF11: in a fight, ways to talk a foe out of it (a hurt or frightened foe gives in more easily)
     { group: 'Talk', key: 'talk', items: [
       ...(pv.player.standDownOffers ?? []).map((o) => ({ text: `Take ${o.name}'s offer to stop`, note: 'ends your fight with them', kind: 'talk' as const })),
-      ...people.flatMap((a, i) => a.talkDown ? [
+      ...people.flatMap((a, i) => [...(a.talkDown ? [
         { text: `Talk ${names[i]} down`, note: 'your action · Persuasion; easier once they are hurt or scared', kind: 'talk' as const },
         { text: `Lie to ${names[i]} to end it`, note: 'your action · Lying against their Insight', kind: 'talk' as const },
         { text: `Pay ${names[i]} to stop`, note: 'your action · Barter; name the coin, paid if they agree', kind: 'talk' as const },
-      ] : [{ text: `Talk to ${names[i]}`, kind: 'talk' as const }])], all: true },
+      ] : [{ text: `Talk to ${names[i]}`, kind: 'talk' as const }]),
+        // TF19: a surrender asks more than a stand-down, and counts as beating them
+        ...(a.demandYield ? [{ text: `Demand ${names[i]} surrender`, note: 'your action · Persuasion; needs a bigger win; easier once they are hurt, scared, broken or crippled', kind: 'talk' as const }] : [])])], all: true },
     { group: 'Move', key: 'move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined, kind: l.frontier ? 'go_new' as const : 'go' as const })) },
     // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
     { group: 'Stealth', key: 'stealth', items: [

@@ -217,6 +217,11 @@ export type PerkDef = {
   id: string; name: string; text?: string; eventRoll?: number;
   tierUnlocks?: TierUnlock[];
   personality?: PersonalityAdd; // PL16: points added while owned
+  /** SS14: multipliers on how fast hours awake add sleep debt (sleepNeed) and how fast sleep clears it (sleepClear); several
+   * stack by the same-type rule (sleepMults in src/ruleset/fatigue.ts) */
+  sleepNeed?: number; sleepClear?: number;
+  /** SS12: tags a template's quirkTags pick from (Heavy Sleeper and Insomniac: 'sleep') */
+  tags?: string[];
   /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
   fearFrom?: { fear: string; steps: number };
   /** metres added to a thrown weapon's own range (CONFIG.THROW_M) */
@@ -227,6 +232,9 @@ export type PerkDef = {
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
+  /** SH1/SH4: 120 perks: a share of the ladder skill's true skill (read without shares) added as true skill, to the ladder skill
+   * itself (shareOwn) and to it and every skill sharing a group with it (shareGroup); several shares on one skill stack (SH7 b) */
+  shareOwn?: number; shareGroup?: number;
   /** F4: raises (or, negative, lowers) the owner's stand-in share for skills of function `fn` (every
    * function if left out), on top of CONFIG.SUBSTITUTE_EFFICIENCY or the skill's own table; the share stays within 0–1 */
   standIn?: { add: number; fn?: SkillFunction };
@@ -331,6 +339,8 @@ export type HealingDef = {
  * action also restores (HealingDef.composure), so rest restores both while each table tunes on its own. */
 export type ComposureDef = {
   id: string; name: string; pct: number; inFight: boolean;
+  /** flat morale points restored instead of a share (TM28: You down a foe, Rallied) */
+  points?: number;
   hourly?: { skill: string; pctPerPoint: number };
   /** never applied itself: a source achievements count restored morale under (CP.perk: morale from perks) */
   countOnly?: true;
@@ -371,7 +381,7 @@ export type RaceDef = {
 };
 
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
-export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
+export type AchievementRule = 'places' | 'health_reached' | 'struck_surrendered' | 'killed_surrendered' | 'struck_fleeing' | 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
   | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
@@ -379,21 +389,25 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct' | 'event_crits' | 'event_crit_fails'
   | 'essences_taken' | 'essence_room' | 'matched_crits' | 'kills' | 'survival_rolls' | 'won_broken';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source' | 'place_kind' | 'health_level';
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
   | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
-  | 'searchArea' | 'searchReach' | 'maxMorale';
+  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase';
 /** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is
  * earned at `count` defeats (first defeat = count 1). With `by`, it is earned once per kind (body type, race …): the granted
  * id is <id>:<kind> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when enough of its
  * skills (by the tree's rating, CONFIG.ALL_STEP_SKILLS) reach `count` (50, 100, 150 …), id <id>:<tree>. level: a
- * REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level]. after: the key of the lower level this one builds on; earning it
+ * REWARD_LEVELS key; its XP is rewardXp(level). after: the key of the lower level this one builds on; earning it
  * switches the lower level off, and its Bane bonus is the lower level's bonus plus its own. scar: a negative achievement,
  * listed under Scars instead of Achievements. */
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
+  /** TB1: on the lowest row of a branch, the chain it branches from: the trunk's lowest row, or a head of ACH_HEADS for
+   * branches with no trunk. A branch counts one slice of the trunk's act; it never switches the trunk off and carries rewards
+   * up only along itself (`after`). Display only. */
+  branchOf?: string;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
   perk?: string; // granted when earned, kept for good
@@ -407,6 +421,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   personalityByKind?: Record<string, PersonalityAdd>;
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
   maxMorale?: number; // flat points added to the owner's max morale (ordeals pay nerve, never the skill used)
+  aimEase?: number; // TM26: on a by-size row, % taken off the aim penalty for that part size
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
   standIn?: number; // + this share for stand-ins on rolls of a skill in the achievement's group

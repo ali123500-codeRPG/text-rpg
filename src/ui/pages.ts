@@ -1,14 +1,15 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group; the Inventory has none),
 // figures that can't be filtered in a text line under them, then the grouped table.
-import { PART_STATES, THREADBOUND_RANKS } from '../scales';
 import type { GameApi, GameState, ItemInstance, Quest } from '../types';
 import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
-import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
+import { HEALTH_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, THREADBOUND_RANKS } from '../scales';
 import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
-import { rewardName, rewardPos } from '../ruleset/achRewards';
+import { rewardName, rewardXp } from '../ruleset/achRewards';
+import { branchLabel, chainRows, chainTag, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
+import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
 import { gripWord, kitBonus, modeName } from '../ruleset/gear';
@@ -22,11 +23,10 @@ import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
 import { wornPack } from '../engine/containers';
-import { coins, coinWords } from '../engine/trade';
 import { gripParts } from '../engine/gear';
-import { countWords } from '../engine/trade';
+import { coins, coinWords, countWords } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
-import { cap } from '../words';
+import { cap, r1 } from '../words';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -105,7 +105,7 @@ export function characterPage(api: GameApi) {
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
       h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s.player)),
       essencesSection(api, s, update),
-      h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
+      h('p', { class: 'hs-note' }, `The ${HEALTH_LEVELS.keys.length - 1} health segments are the health track, ${HEALTH_LEVELS.name('unhurt')} to ${HEALTH_LEVELS.name('incapacitated')}. ✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`),
       perks);
     refreshPerks();
   }
@@ -125,7 +125,7 @@ export function itemRows(s: GameState, it: { itemId: string; boundTo?: string })
   if (!d) return [];
   const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
   const rows: PanelRow[] = [{ k: 'Look', v: d.look }, { k: 'Kind', v: d.kind }];
-  if (d.hands) rows.push({ k: 'Hands', v: String(d.hands) });
+  if (d.grips) rows.push({ k: 'Grips', v: String(d.grips) });
   for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach} m, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
   if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
   if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
@@ -136,7 +136,7 @@ export function itemRows(s: GameState, it: { itemId: string; boundTo?: string })
     const short = shortBy(s.player, d), steps = Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
     const rolls = d.armor ? 'Dodge and stealth rolls while worn' : 'rolls with it';
     rows.push({ k: 'Needs', v: h('span', { class: short > 0 ? 'tone-bad' : 'tone-muted' }, short > 0
-      ? `${needText(need)} (you have ${Math.round((need.need - short) * 10) / 10}: ${plural(steps, 'outcome step')} worse on ${rolls})`
+      ? `${needText(need)} (you have ${r1(need.need - short)}: ${plural(steps, 'outcome step')} worse on ${rolls})`
       : `${needText(need)} (met)`) });
   }
   rows.push({ k: 'Bulk', v: String(d.bulk) });
@@ -163,7 +163,7 @@ function threadboundRows(s: GameState, it: { boundTo?: string }, tb: NonNullable
   return rows;
 }
 
-// The equipment panel, laid out the way MMOs show equipped items: the slots the body has (one per hand,
+// The equipment panel, laid out the way MMOs show equipped items: the slots the body has (one per grip part,
 // the armor slot, the accessory slots) with what is in them, and the pack beside them as a grid of item icons.
 // Hovering or focusing an item shows its exact stats; Equip and Unequip send the same words the player could type,
 // so the turn rules hold (drawing and putting away are free, armor on or off is the turn's action).
@@ -176,8 +176,8 @@ export function gearWords(s: GameState, it: InvItem): { label: string; text: str
   const on = !!it.equippedIn?.length;
   if (d.slot === 'armor' || d.slot === 'accessory') return on ? { label: 'Unequip', text: `I take off my ${d.name}` } : { label: 'Equip', text: `I put on my ${d.name}` };
   // anything held can be put away; only weapons and shields offer Equip, so a draught or a bandage stays a pack item
-  if (d.hands && on) return { label: 'Unequip', text: `I put away my ${d.name}` };
-  if (d.hands && (d.kind === 'weapon' || d.kind === 'shield')) return { label: 'Equip', text: `I draw my ${d.name}` };
+  if (d.grips && on) return { label: 'Unequip', text: `I put away my ${d.name}` };
+  if (d.grips && (d.kind === 'weapon' || d.kind === 'shield')) return { label: 'Equip', text: `I draw my ${d.name}` };
   return null;
 }
 
@@ -204,7 +204,7 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const nameOf = (it: InvItem) => cap(safe(() => itemDef(s, it.itemId))?.name ?? it.itemId);
   const locked = api.busy() || api.fell();
   const status = h('p', { class: 'hs-note eq-status', role: 'status' });
-  const act = (w: { label: string; text: string }, it: InvItem) => h('button', {
+  const act = (w: { label: string; text: string }) => h('button', {
     type: 'button', class: w.label === 'Equip' ? 'hs-btn-main eq-act' : 'hs-btn-text eq-act', disabled: locked,
     title: `Sends “${w.text}” as your turn`,
     onclick: async () => { hideTip(); status.textContent = `${w.text}…`; await api.submit(w.text, { aimed: false }); },
@@ -221,10 +221,10 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const blank = (n: IconName) => { const el = h('span', { class: 'iico blank' }); el.innerHTML = ICONS[n]; return el; };
 
   // slots: one per grip part (an arm's hand, a dragon's head), then armor, then the accessory slots
-  const hands = gripParts(s, p).map((part) => ({ id: `grip:${part}`, label: cap(gripWord(part)), empty: 'sword' as IconName }));
-  const slots = [...hands, { id: 'armor', label: 'Body', empty: 'tunic' as IconName },
+  const gripSlots = gripParts(s, p).map((part) => ({ id: `grip:${part}`, label: cap(gripWord(part)), empty: 'sword' as IconName }));
+  const slots = [...gripSlots, { id: 'armor', label: 'Body', empty: 'tunic' as IconName },
     ...Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => ({ id: `acc:${n}`, label: `Accessory ${n + 1}`, empty: 'ring' as IconName }))];
-  const firstSlot = new Map<string, string>(); // a two-handed item shows once, in its first hand
+  const firstSlot = new Map<string, string>(); // a two-grip item shows once, in its first grip
   const slotCards = slots.map((sl) => {
     const it = inv.find((i) => i.equippedIn?.includes(sl.id));
     if (!it) return h('div', { class: 'eq-slot empty' }, blank(sl.empty), h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-none' }, 'Empty')));
@@ -232,8 +232,8 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
     if (!again) firstSlot.set(it.id, sl.id);
     const w = gearWords(s, it);
     return hover(h('div', { class: `eq-slot${again ? ' again' : ''}`, tabindex: '0' }, icon(it),
-      h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both hands)` : nameOf(it))),
-      w && !again ? act(w, it) : ''), it);
+      h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both grips)` : nameOf(it))),
+      w && !again ? act(w) : ''), it);
   });
   // like an MMO bag, plain stacks of the same item show as one tile; worn or damaged pieces (pools) keep their own
   const pack: InvItem[] = [];
@@ -245,7 +245,7 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
     const w = gearWords(s, it);
     return hover(h('div', { class: 'eq-item', tabindex: '0' },
       h('span', { class: 'eq-ico' }, icon(it), it.qty && it.qty > 1 ? h('b', { class: 'eq-qty' }, `×${it.qty}`) : ''),
-      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w, it) : h('span', { class: 'eq-cant' }, 'Carried')), it);
+      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w) : h('span', { class: 'eq-cant' }, 'Carried')), it);
   });
   return h('section', { class: 'eq', 'aria-label': 'Equipment' },
     h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'Equipped'), h('div', { class: 'eq-slots' }, ...slotCards)),
@@ -263,7 +263,7 @@ export const coinLine = (s: GameState) => `Coin: ${coinWords(coins(s.player))}`;
 type Inside = { it: ItemInstance; path: string; box: ItemInstance };
 export function insideOf(s: GameState, box: ItemInstance, path = ''): Inside[] {
   return (box.contents ?? []).flatMap((it) => {
-    const name = titleCase(safe(() => itemDef(s, it.itemId).name) ?? it.itemId), here = path ? `${path} › ${name}` : name;
+    const name = cap(safe(() => itemDef(s, it.itemId).name) ?? it.itemId), here = path ? `${path} › ${name}` : name;
     return [{ it, path: here, box }, ...insideOf(s, it, here)];
   });
 }
@@ -413,7 +413,6 @@ export function inventoryPage(api: GameApi) {
 
 /** a quest to open on arrival (the Play screen's quest line) */
 export const questFocus: { id: string | null } = { id: null };
-const titleCase = cap;
 
 /** QT12: "Abandon quest", confirmed in place */
 function abandonButton(api: GameApi, id: string): HTMLElement {
@@ -438,8 +437,8 @@ export function questsPage(api: GameApi) {
       const chains = new Map<string, Quest[]>();
       for (const q of s.quests) { const root = questChain(s, q)[0].id; chains.set(root, [...(chains.get(root) ?? []), q]); }
       const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
-        text: q.text, giver: titleCase(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
-        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${CONFIG.QUEST_REWARD_XP[q.level] ?? 0} XP`, pay: payText(s, q),
+        text: q.text, giver: cap(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
+        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${rewardXp(q.level)} XP`, pay: payText(s, q),
         due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: QUEST_STATE_NAME[q.state] },
         ...(q.unpaid || !isOpen(q) ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(!isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
       return [...chains.values()].map((qs) => {
@@ -478,7 +477,7 @@ export function questsPage(api: GameApi) {
     },
     line: (s) => {
       const done = s.quests.filter((q) => q.state === 'done');
-      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + (CONFIG.QUEST_REWARD_XP[q.level] ?? 0), 0)} XP from quests`;
+      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + rewardXp(q.level), 0)} XP from quests`;
     },
   });
 }
@@ -491,25 +490,24 @@ export function achievementsPage(api: GameApi) {
     h('button', { type: 'button', role: 'tab', 'aria-selected': String(scars === on), onclick: () => { scars = on; redraw(); } }, label);
   return listPage(api, {
     get title() { return scars ? 'Scars' : 'Achievements'; },
-    get intro() { return scars ? 'What went wrong and left its mark on you. Same as /achievements.' : 'Deeds that earned you a name, and the XP they paid. Same as /achievements.'; },
-    get noun(): [string, string] { return scars ? ['scar', 'scars'] : ['achievement', 'achievements']; },
+    get intro() { return scars ? 'What went wrong and left its mark on you. Same as /achievements.' : 'Deeds that earned you a name, and the XP they paid. One line per chain; click it for its earlier levels and branches. Same as /achievements.'; },
+    get noun(): [string, string] { return scars ? ['scar chain', 'scar chains'] : ['chain', 'chains']; },
     get empty() { return scars ? 'No scars yet.' : 'No achievements yet. Defeat foes, win fights, strike deals and explore.'; },
     get panelTitle() { return scars ? 'Scar' : 'Achievement'; },
     top: (redraw) => h('div', { class: 'pk-tabs', role: 'tablist' }, tab(false, 'Achievements', redraw), tab(true, 'Scars', redraw)),
     startOpen: true,
-    cols: [{ key: 'name', title: 'Name' }, { key: 'state', title: 'State' }, { key: 'turn', title: 'Earned' }],
-    detail: (s, id) => achievementDetail(s, id),
+    cols: [{ key: 'name', title: 'Name' }, { key: 'state', title: 'Level' }, { key: 'next', title: 'Next' }, { key: 'turn', title: 'Earned' }],
+    detail: (s, id) => chainDetail(s, id, scars),
     groups: (s) => {
-      const lib = getLibrary().achievements ?? {};
-      const mine = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars);
-      const levels = [...new Set([...REWARD_LEVELS.keys, ...mine.map((a) => achLevel(lib[a.key!], a.of))])].sort((x, y) => rewardPos(x) - rewardPos(y)); // past VI too
-      return levels.map((lv) => {
-        const rows: TRow[] = mine.filter((a) => achLevel(lib[a.key!], a.of) === lv).map((a) => ({ id: a.id, sortKey: a.turn,
-          cells: { name: achievementName(s, a), state: a.replacedBy ? 'Replaced by the next level' : 'Current', turn: `turn ${a.turn}` },
-          ...(a.replacedBy ? { tones: { state: 'muted' as const } } : {}) }));
-        const title = `Level ${rewardName(lv)}`;
-        return { id: lv, title, rows, value: String(rows.length), unit: unitOf(rows.length, scars ? 'scar' : 'achievement'),
-          sub: `${achXp({ level: lv, ...(scars ? { scar: true as const } : {}) })} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
+      // TB4: tag sections (Combat, Stealth …), one line per chain: its current name, its level ("III of IV"), the next
+      // row's count (TB5) and ↻N for every row earned in it, branches included
+      const lines = chainLines(s, scars);
+      return (Object.keys(ACH_TAGS) as (keyof typeof ACH_TAGS)[]).map((tag) => {
+        const rows: TRow[] = lines.filter((l) => l.tag === tag).map((l) => ({ id: l.id, sortKey: l.turn,
+          cells: { name: `${l.name}${l.count > 1 ? `  ↻${l.count}` : ''}`, state: l.level, next: l.next ?? '', turn: `turn ${l.turn}` } }));
+        const xp = lines.filter((l) => l.tag === tag).reduce((n, l) => n + l.xp, 0);
+        return { id: tag, title: ACH_TAGS[tag], rows, value: String(rows.length), unit: unitOf(rows.length, scars ? 'scar chain' : 'chain'),
+          sub: `${xp} XP`, how: `${scars ? 'Scar' : 'Achievement'} chains of the ${ACH_TAGS[tag]} section.`, combined: {} };
       }).filter((g) => g.rows.length);
     },
     line: (s) => {
@@ -521,17 +519,56 @@ export function achievementsPage(api: GameApi) {
 }
 
 /** the chain an achievement belongs to, lowest level first: each row's `after` names the level below it */
-export function achievementChain(key: string): string[] {
+export const achievementChain = (key: string): string[] => chainRows(key);
+
+type ChainLine = { id: string; tag: string; name: string; level: string; next?: string; count: number; xp: number; turn: number };
+/** a chain position in Roman numerals (1 to 39), as the sketch shows it: "III of IV" */
+const romanOf = (n: number): string => n < 1 || n > 39 ? String(n) : 'X'.repeat(Math.floor(n / 10)) + ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][n % 10];
+/** "III of IV": a held chain's place, its highest held row among all its rows */
+const placeText = (c: HeldChain) => `${romanOf(c.rows.indexOf(c.current) + 1)} of ${romanOf(c.rows.length)}`;
+/** TB5: the next row's count of a started chain, or that every level is held */
+const nextText = (s: GameState, c: HeldChain) => (c.next ? cap(earnedAtText(s, getLibrary().achievements![c.next], c.of)) : c.rows.length > 1 ? 'every level held' : '');
+const earnedOf = (s: GameState, c: HeldChain) => (s.player.progression?.achievements ?? []).filter((m) => c.held.includes(m.key ?? '') && (getLibrary().achievements![c.root]?.every || (m.of ?? '') === (c.of ?? '')));
+
+/** TB4: one line per chain head the player has started */
+export function chainLines(s: GameState, scars: boolean): ChainLine[] {
   const lib = getLibrary().achievements ?? {};
-  const down: string[] = [];
-  for (let k: string | undefined = key; k && lib[k] && !down.includes(k); k = lib[k].after) down.unshift(k);
-  const chain = [...down];
-  for (let k = key; ;) {
-    const next = Object.keys(lib).find((n) => lib[n].after === k && !chain.includes(n));
-    if (!next) break;
-    chain.push(next); k = next;
+  return [...heldChains(s, scars)].map(([id, chains]) => {
+    const head = id.split(':')[0];
+    const trunk = chains.find((c) => c.root === head);
+    const earned = chains.flatMap((c) => earnedOf(s, c));
+    const latest = earned.reduce((a, b) => (b.turn > a.turn ? b : a), earned[0]);
+    const show = trunk ? earnedOf(s, trunk).find((m) => m.key === trunk.current)! : latest;
+    const name = isBareHead(head) ? ACH_HEAD_NAMES[head].name : achievementName(s, show);
+    return { id, tag: chainTag(head), name, level: trunk ? placeText(trunk) : `${plural(chains.length, 'branch', 'branches')}`,
+      ...(trunk && nextText(s, trunk) ? { next: nextText(s, trunk) } : {}), count: earned.length,
+      xp: earned.reduce((n, m) => n + achXp(lib[m.key!], m.of), 0), turn: latest.turn };
+  });
+}
+
+/** the side panel for a chain (TB4 unfold): its current row, how it is earned, the earlier levels, one line per branch
+ * kind with its own level and next count, and the chain's combined XP (the trunk's next count is already a column) */
+export function chainDetail(s: GameState, id: string, scars: boolean): PanelRow[] {
+  const chains = heldChains(s, scars).get(id);
+  if (!chains) return [];
+  const lib = getLibrary().achievements ?? {};
+  const head = id.split(':')[0];
+  const trunk = chains.find((c) => c.root === head);
+  const rows: PanelRow[] = [];
+  if (trunk) {
+    const cur = earnedOf(s, trunk).find((m) => m.key === trunk.current)!;
+    const info = achievementInfo(s, cur);
+    rows.push({ k: 'How it is earned', v: cap(info.earnedAt) }, { k: 'You earned it', v: info.why },
+      { k: 'Reward', v: [`Level ${info.levelName} · ${info.xp} XP`, ...info.rewards].join(' · ') });
+    if (trunk.held.length > 1) rows.push({ k: 'Earlier', v: trunk.held.slice(0, -1).map((k) => `${achievementName(s, { id: '', key: k, ...(trunk.of ? { of: trunk.of } : {}) })} (${earnedAtText(s, lib[k], trunk.of)})`).join(' · ') });
   }
-  return chain;
+  for (const c of chains.filter((x) => x !== trunk)) {
+    const cur = earnedOf(s, c).find((m) => m.key === c.current)!;
+    rows.push({ k: `Branch · ${branchLabel(lib[c.root])}`, v: `${achievementName(s, cur)} · ${placeText(c)}${c.next ? ` · next: ${nextText(s, c)}` : ''}` });
+  }
+  const earned = chains.flatMap((c) => earnedOf(s, c));
+  rows.push({ k: 'Chain XP', v: `${earned.reduce((n, m) => n + achXp(lib[m.key!], m.of), 0)} XP from ${plural(earned.length, 'row', 'rows')}` });
+  return rows;
 }
 
 /** the side panel for an earned achievement: how it is earned, when you earned it, what it pays, and every level of its chain
@@ -631,7 +668,7 @@ export function journalPage(api: GameApi) {
     const sec = (title: string, note: string, table: HTMLElement) => h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), h('p', { class: 'hs-note' }, note)), table);
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
-      sec('People', 'A label until you learn the name. Health shows only from Wounded down. Heard of: names you have heard for people you have never met.',
+      sec('People', `A label until you learn the name. Health shows only from ${HEALTH_LEVELS.name(CONFIG.HEALTH_SHOWN_FROM)} down. Heard of: names you have heard for people you have never met.`,
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
           groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
       sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',

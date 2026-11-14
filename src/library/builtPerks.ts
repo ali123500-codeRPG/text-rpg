@@ -14,6 +14,8 @@ export const BUILT_PERKS = new Set<string>([
   PK.battle_cry, // C2/I9 (Intimidation 140): a perk move, src/engine/resolve.ts doBattleCry() and src/engine/auras.ts battleCry()
   PK.overwhelm, // MR2–MR4 (Resolve 100): src/engine/auras.ts overwhelms(), payFear overwhelm in src/engine/morale.ts
   PK.crushing_presence, // L1 linked perk (Dread Presence + Overwhelm): src/library/perkLinks.ts, trueSkill auraSkill
+  PK.ghost_blade, PK.combination, // LR1: doAttack() in src/engine/resolve.ts; LR2: afterAttack()/markShifts() in src/engine/perkMarks.ts
+  PK.blind_spot, PK.bulwark, // LR3: setPosture() in src/engine/resolve.ts; LR4: coverFor() in src/engine/perkMarks.ts
   PK.dread_presence, // I1 (Intimidation 100): src/engine/auras.ts engagementAuras(), from resolveTurn
   PK.never_surprised, // C1 (Earshot 100): src/engine/resolve.ts initiativeOrder() and doAttack(), via hears() in src/perception
   // All-50 parts (src/library/allPerks.ts), granted by src/ruleset/allSteps.ts
@@ -71,4 +73,7 @@ export const BUILT_PERKS = new Set<string>([
   // 40/80/120 perks (40 milestone): src/library/boostPerks.ts; trueSkill() and boostMult()/boostAdd() in src/ruleset/perks.ts
   PK.keen_edge, PK.steady_draw, PK.iron_grip, PK.light_feet, PK.guard_drill, PK.heavy_hand, PK.sharp_eyes, PK.armor_piercer, PK.street_fighter, PK.brawlers_eye, PK.braced,
   PK.quick_mend, PK.marksmans_eye, PK.soft_step,
+  PK.iron_lungs, PK.deep_lungs, PK.bottomless, // SS2/SS4/SS6: deep_lungs lineMax() in src/ruleset/fatigue.ts, bottomless payStrain() in src/engine/fatigue.ts
+  // Stamina ladder and part (SS1, SS3, SS5, SS8): src/engine/fatigue.ts restRecover(), payStrain(); runEffort() and perkSleepMult() in src/ruleset/fatigue.ts
+  PK.catnap, PK.forced_march, PK.sleepless, PK.second_breath,
 ]);

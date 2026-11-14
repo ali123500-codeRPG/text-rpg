@@ -52,20 +52,26 @@ function npcAccept<T extends { action: NpcAction; gear: PlannerOutput['gear']; s
   const leg = checkNpcLegality(box, view, world, alsoKnown);
   // BG-93: one rule for every NPC agent: a line is only the words spoken
   const v = value as { dialogue?: { line: string } | null; line?: string };
+  const words = (line: string) => { if (/[*[]/.test(line)) leg.errors.push('stage_direction'); return spokenOnly(line); };
   if (v.dialogue) {
-    const line = spokenOnly(v.dialogue.line);
-    if (/[*[]/.test(v.dialogue.line)) leg.errors.push('stage_direction');
+    const line = words(v.dialogue.line);
     if (line) v.dialogue.line = line;
     else v.dialogue = null;
   }
-  if (typeof v.line === 'string') {
-    const line = spokenOnly(v.line);
-    if (/[*[]/.test(v.line)) leg.errors.push('stage_direction');
-    v.line = line;
-  }
+  if (typeof v.line === 'string') v.line = words(v.line);
   value.gear = box.gear;
   value.stance = box.stance;
   return leg;
+}
+
+/** an NPC's plan update: a routine it may not switch to is dropped (invalid_routine), and its triggers are its own */
+function planUpdateFor(view: OppositionView, v: { planUpdate: PlannerOutput['planUpdate'] }, errors: string[]): void {
+  if (!v.planUpdate) return;
+  if (!routineAllowed(view, v.planUpdate.routine)) {
+    errors.push('invalid_routine');
+    v.planUpdate.routine = null;
+  }
+  v.planUpdate.triggers = v.planUpdate.triggers.map((t) => ({ ...t, ownerId: view.self.id }));
 }
 
 export type PlannerCallOpts = { signal?: AbortSignal; world: Set<string> };
@@ -77,13 +83,7 @@ export async function callPlanner(view: OppositionView, ctx: AgentCtx, opts: Pla
     const leg = npcAccept(view, opts.world, v);
     if (leg.orderError) return { kind: 'fail', errors: [leg.orderError, ...leg.errors] };
     const errors = [...leg.errors];
-    if (v.planUpdate) {
-      if (!routineAllowed(view, v.planUpdate.routine)) {
-        errors.push('invalid_routine');
-        v.planUpdate.routine = null;
-      }
-      v.planUpdate.triggers = v.planUpdate.triggers.map((t) => ({ ...t, ownerId: view.self.id }));
-    }
+    planUpdateFor(view, v, errors);
     pending = errors;
     return { kind: 'ok', value: v };
   };
@@ -96,7 +96,8 @@ export async function callPlanner(view: OppositionView, ctx: AgentCtx, opts: Pla
 
 // ---------------- Responder and Voice ----------------
 
-export const NEUTRAL_LINE = 'I have nothing to say about that.'; // GAP: the sheet has no neutral line; one fixed placeholder
+/** the fallback line when a Responder or Voice call fails: one fixed placeholder (an NPC's sheet has no neutral line of its own) */
+export const NEUTRAL_LINE = 'I have nothing to say about that.';
 
 function neutralAction(view: NpcViewBase): NpcAction {
   const target = view.beliefs.some((b) => b.about === 'player') ? 'player' : null;
@@ -132,13 +133,7 @@ export async function callResponder(
       extra.push('unlisted_reveal');
       v.reveals = [...v.reveals, ...unlisted];
     }
-    if (v.planUpdate) {
-      if (!routineAllowed(view, v.planUpdate.routine)) {
-        extra.push('invalid_routine');
-        v.planUpdate.routine = null;
-      }
-      v.planUpdate.triggers = v.planUpdate.triggers.map((t) => ({ ...t, ownerId: view.self.id }));
-    }
+    planUpdateFor(view, v, extra);
     return { kind: 'ok', value: v };
   };
   const run = await runAgent(ctx, {
