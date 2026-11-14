@@ -1,13 +1,13 @@
 // App shell: side rail (64px items, active pill fills the item, rail scrolls on its own), page area and the push-aside panel.
 import type { GameApi } from '../types';
-import { boxOf, h, setPanelHost, closePanel } from './kit';
+import { boxOf, h, setPanelHost, closePanel, playDraft } from './kit';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
 import { gmPage } from './gm';
 import { famePage } from './fame';
 import { mapPage } from './map';
-import { openFull } from './pop';
+import { closeFull, openFull } from './pop';
 import { bugsPage } from './bugs';
 import { gainsPage } from './gains';
 
@@ -67,7 +67,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
 
   const play = playScreen(api, (p) => go(p));
   // the map is a big pop-up over the page, not a page of its own: the Map button on Play opens it
-  const map = mapPage(api);
+  // "Move to here" on the map types the order in Play's action box, ready to send
+  const map = mapPage(api, (order) => { playDraft.text = order; closeFull(); go('play'); });
   let mapOpen = false;
   const openMap = (opener: HTMLElement | null) => {
     if (!api.state()) return;

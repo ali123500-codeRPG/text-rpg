@@ -154,7 +154,11 @@ function edgeOf(c: Pt, w: number, hh: number, to: Pt): Pt {
   return { x: c.x + dx * t, y: c.y + dy * t };
 }
 
-export function mapPage(api: GameApi) {
+/** the order "Move to here" types into the action box: the zone by its name, with "the" before a plain one */
+export const moveOrder = (name: string): string => `I go to ${/^(the|a|an)\s/i.test(name) || /^[A-Z]/.test(name) ? name : `the ${name}`}`;
+
+/** onMove: "Move to here" on a zone's card hands its order to Play's action box (typed, not sent) */
+export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   const el = h('main', { class: 'map-page' });
   // one map per top-level place (a "world"): the village, the tavern in it and the field beside it share one layout,
   // each inner place drawn as an outlined area. `focus` is the place picked in the list or the crumbs.
@@ -770,6 +774,7 @@ export function mapPage(api: GameApi) {
       h('div', { class: 'map-card-h' }, h('h2', {}, z.name), h('span', { class: `hs-tg ${z.here ? 'cap' : ''}` }, z.here ? 'You are here' : z.inView ? 'In view' : 'Remembered')),
       h('p', { class: 'hs-note' }, placeOf(z.placeId)?.name ?? ''),
       z.id === walk?.toZone ? h('p', { class: 'map-heading', role: 'status' }, h('b', {}, 'Heading here'), ` · ${walkLeft(walk)}`) : '',
+      !z.here && onMove ? h('button', { type: 'button', class: 'hs-btn-main map-move', 'data-move': z.id, title: 'Types the order in the action box for you to send', onclick: () => onMove(moveOrder(z.name)) }, 'Move to here') : '',
       h('p', { class: 'map-look' }, z.look || 'You have no picture of it.'),
       z.inView ? h('p', { class: 'hs-note' }, [z.outdoor ? 'Outdoors' : 'Indoors', z.light ? `${z.light} light` : '', z.cover ? `${z.cover} cover` : ''].filter(Boolean).join(' · ')) : h('p', { class: 'hs-note' }, 'Out of sight now, so light, people and things on the ground may have changed.'),
       h('p', { class: 'hs-label' }, 'Exits'),

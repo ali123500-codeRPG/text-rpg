@@ -166,6 +166,19 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('the map card of the zone you stand in has no Move to here', async () => {
+    await nav('Play');
+    await page.locator('[data-open="map"]').click();
+    const pop = page.locator('.fpop.map-full');
+    await pop.locator('.map-card h2').waitFor();
+    expect(await pop.locator('[data-zone].here').count()).toBe(1);
+    expect(await pop.locator('[data-move]').count()).toBe(0);
+    await page.waitForFunction(() => !document.getAnimations().some((a) => a.playState === 'running'));
+    await page.keyboard.press('Escape');
+    await page.locator('.fpop').waitFor({ state: 'detached' });
+    expect(errors).toEqual([]);
+  });
+
   it('opens the Inventory with its Coin line and no summary boxes', async () => {
     await nav('Inventory');
     await page.getByText(/^Coin: /).waitFor();
