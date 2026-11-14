@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-201
+
+**What was wrong:** On turn 24 Wren called "Here! The hare... take it to him" to Happi as he left. The words were placed where his walk ended, beyond the kitchen wall, so Happi never heard them.
+
+**What was done:** Ali approved the fix (BF36). Words beside a walk are heard from where they are said. An NPC says them as it sets off, unless its move says to say them on arrival (speakAt "end"). A walk up to someone to be heard still comes first. For the player, the order of their words decides, through the Parser's "after". A case test covers an NPC talking as it leaves, a line beside a dash, speakAt "end", and the player both ways.
+
+**Fixed by:** [PR #759](https://github.com/ali123500-codeRPG/text-rpg/pull/759)
+
 ## BG-208
 
 **What was wrong:** After turn 32 Ali asked why the skills from the Street Instinct essence (Dodge +1, Insight +1) showed nowhere. Happi had neither skill on her sheet, so the essence's points counted as 0. Separately, /essence take was a command, and commands were not saved until the next turn, so the take was lost if the page reloaded first.

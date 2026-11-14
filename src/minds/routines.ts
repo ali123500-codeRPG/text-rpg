@@ -134,6 +134,9 @@ export function routineOrder(view: ActorView): Order {
   if (!d) return order(view, 'hold', 'routine', 'hold');
   const into = headFrontier(view);
   if (into) return order(view, 'move', 'routine', `walk into ${into}`, { target: into, activity: d.activity });
+  // BF35: a follower in the player's zone keeps after them at its own distance (melee, or at range with a ranged weapon)
+  if (d.zone === view.self.zone && getRoutine(view.self.routine!.id).kind === 'follow' && view.beliefs.some((b) => b.about === 'player' && b.lastKnownZone === d.zone))
+    return order(view, 'idle', 'routine', d.activity, { activity: d.activity, move: d.zone, moveSpot: { near: 'player', follow: true } });
   if (d.zone === view.self.zone) return order(view, d.activity === 'search' ? 'search' : 'idle', 'routine', d.activity, { activity: d.activity }); // SE16
   const path = mapPath(view.map, view.self.zone, d.zone);
   if (!path) return order(view, 'idle', 'routine', UNREACHABLE, { activity: d.activity });

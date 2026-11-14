@@ -23,7 +23,7 @@ export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
  * id) or at a way out (`near` a link's zone id); the far side `awayFrom` someone or a way out; or the `side` a compass word
  * names ("north", "south-west"). lastSeen (BG-125, code-set): near someone the player cannot see now, at the point they
  * last perceived them */
-export type MoveSpot = { near?: string; awayFrom?: string; side?: string; lastSeen?: true; follow?: boolean }; // follow: BG-190, keep after the one near names
+export type MoveSpot = { near?: string; awayFrom?: string; side?: string; lastSeen?: true; follow?: boolean; keep?: number | 'melee' | 'range' }; // keep: BF35, a follow's distance in metres, or striking reach (melee) or 80% of the ranged weapon's reach (range) // follow: BG-190, keep after the one near names
 export type Intent = {
   move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62/BG-158, the player crosses a counter, fence or rail (going behind it or coming out); after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {
@@ -100,7 +100,7 @@ export type SparMade = { sides: string[][]; cruel?: boolean };
 
 /** the NPC's one move beside its action, as the player's: toZone is where it heads (it walks toward it; with hold it runs
  * on, a dash); after: act first, then move */
-export type NpcMove = { toZone: string; after?: boolean };
+export type NpcMove = { toZone: string; after?: boolean; speakAt?: 'end' }; // BF36: speakAt end: walk there, then say it (words come first by default)
 /** UG5: goals met or failed (by their number in the view) and goals added */
 export type GoalOps = { met: number[]; failed: number[]; add: { text: string; about?: string[] }[] };
 export type PlannerOutput = {

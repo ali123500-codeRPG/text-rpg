@@ -101,7 +101,7 @@ export type DoingView = { what: string; done: number; left: number };
 export type WalkingView = { toZone: string; to: string; metres: number; seconds: number };
 /** BG-190: whom the player is following (a walk with spot near them and follow): kept after turn by turn while seen or
  * heard; lost (once, the turn after): seen going down, slipped from sight where they were, or gone on out of sight from `zone` */
-export type FollowingView = { who: string; name: string; lost?: 'down' | 'slipped_away' | 'out_of_sight'; zone?: string };
+export type FollowingView = { who: string; name: string; lost?: 'down' | 'slipped_away' | 'out_of_sight'; zone?: string; keepM?: number }; // keepM: BF35, the distance the follow keeps
 
 // ---------- PlayerView: Agent Parser ----------
 export type PlayerView = {

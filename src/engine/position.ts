@@ -12,6 +12,7 @@ import { actorById, allActors, nameFor, shortestPath, wayPath, zoneById } from '
 import { theOf } from '../words';
 import { barrierOn, gripPasses, passage, type Passage } from './barriers';
 import { gripReachM } from '../ruleset/body';
+import { followGap } from './follow';
 import type { Actor, Barrier, GameState, MoveSpot, Zone } from '../types';
 
 export type Pos = { x: number; y: number };
@@ -165,6 +166,16 @@ export function sideFrom(viewer: { pos?: Pos; facing?: [number, number] }, at: P
   return Math.abs(ahead) >= Math.abs(left) ? (ahead >= 0 ? 'ahead' : 'behind') : left > 0 ? 'left' : 'right';
 }
 
+/** BF35: how far along the line from `A` toward `B` (d metres) the walker may go, at most `go`, so that where it stops keeps
+ * PLACE_GAP_M from everyone else in its zone (someone already within that of the start does not hold it back) */
+function roomAt(state: GameState, walker: Actor, A: Pos, B: Pos, go: number, d: number): number {
+  const gap = CONFIG.PLACE_GAP_M;
+  const others = allActors(state).filter((x) => x !== walker && x.zone === walker.zone && !!x.pos && flat(x.pos, A) > gap);
+  const at = (t: number): Pos => ({ x: A.x + (B.x - A.x) * t / d, y: A.y + (B.y - A.y) * t / d });
+  let t = go;
+  for (let i = 0; i < 200 && t > EPS && others.some((x) => flat(x.pos!, at(t)) < gap - EPS); i++) t = Math.max(0, t - gap / 10);
+  return t;
+}
 /** ZP2: one leg of a walk toward `goal`: to the doorway of the next zone on the way (entering it), or, inside the goal's
  * zone, straight at the goal's point, stopping `stopShort` metres before it. A goal with no point is the zone itself: the
  * walk ends ENTER_M past its doorway. At most `metres` are walked. Returns the metres walked (0: nothing left to walk), or
@@ -174,7 +185,10 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   if (A.zone === goal.zone) {
     if (!goal.pos) return 0;
     const B = pointOf(state, goal);
-    const d = flat(A.pos, B), go = Math.min(metres, Math.max(0, d - stopShort));
+    const d = flat(A.pos, B);
+    let go = Math.min(metres, Math.max(0, d - stopShort));
+    // BF35: a walk never ends on someone: at its end it stops PLACE_GAP_M short of anyone standing there
+    if (walker && go >= d - stopShort - EPS) go = roomAt(state, walker, A.pos, B, go, d);
     if (go <= EPS) return 0;
     step(a, { x: A.pos.x + (B.x - A.pos.x) * go / d, y: A.pos.y + (B.y - A.pos.y) * go / d });
     return go;
@@ -264,7 +278,7 @@ export function wayPoint(state: GameState, zoneId: string, to: string, from: Loc
  * edge straight across from someone or a way out (`awayFrom`); or the middle of the side a compass word names (`side`).
  * Points stand ENTER_M (a step) inside the edge. null: the zone has no rectangle, or the spot names nothing there. `toward` is the
  * actor walked to; `words` says the spot for the story ("to the north side", "away from the cellar steps"). */
-export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {
+export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located, walker?: Actor): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {
   const z = zoneById(state, zoneId);
   if (!z?.rect) return null;
   const r = z.rect, c = centre(z)!;
@@ -290,7 +304,9 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
   if (spot.near) {
     const p = point(spot.near);
     if (!p || (p.actor && !p.here)) return null; // someone elsewhere is a move to their zone, not a spot in this one
-    return p.actor ? { pos: p.at, stopShort: CONFIG.PLACE_GAP_M, toward: p.actor } : { pos: inset(p.at), stopShort: 0, words: `at ${p.label}` };
+    // BF35: a follow keeps its distance (followGap); a walk up to someone stops a step short of them
+    const short = spot.follow && walker ? followGap(state, walker, spot.keep) : CONFIG.PLACE_GAP_M;
+    return p.actor ? { pos: p.at, stopShort: short, toward: p.actor } : { pos: inset(p.at), stopShort: 0, words: `at ${p.label}` };
   }
   if (spot.awayFrom) {
     const p = point(spot.awayFrom);

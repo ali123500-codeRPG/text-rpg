@@ -129,7 +129,13 @@ function npcMove(state: GameState, o: AcceptedAgentOutput): Partial<Order> {
   const given: Intent['move'] = m ? { toZone: m.toZone, ...(m.after ? { after: true } : {}) } : null;
   const mv = a ? approachMove(state, a, { type: act.type, target: act.target, volume: vol }, given) : given;
   if (!mv?.toZone) return {};
-  return { move: mv.toZone, ...(mv.after ? { moveAfter: true } : {}), ...(mv.spot ? { moveSpot: mv.spot } : {}) };
+  // BF36: words beside a move the NPC chose are said as it sets off, unless it chose to say them at the end (speakAt);
+  // a walk up to someone to be heard (approachMove) still comes first. A spoken action is then done first; a line beside
+  // another action is said on its own before the walk
+  const talks = (SPEECH_ACTIONS as readonly string[]).includes(act.type);
+  const words = !!(o.agent === 'voice' ? o.output.line : o.output.dialogue?.line) || talks;
+  const first = !!m && words && !mv.after && m.speakAt !== 'end' && mv.toZone === m.toZone && !mv.spot;
+  return { move: mv.toZone, ...(mv.after || (first && talks) ? { moveAfter: true } : {}), ...(first && !talks ? { wordsFirst: true as const } : {}), ...(mv.spot ? { moveSpot: mv.spot } : {}) };
 }
 
 /** BG-132: a dialogue call's line (Responder, Voice) answers the player, so it is for them whatever action carries it */

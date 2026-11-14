@@ -29,6 +29,7 @@ import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
 import { contentsOf, findContainer, wornPack } from '../engine/containers';
 import { pocketName, pocketSlots } from '../engine/pockets';
+import { followGap } from '../engine/follow';
 import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
@@ -452,7 +453,7 @@ function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metr
 function followingOf(state: GameState, p: Actor): { following?: FollowingView } {
   const l = p.followLost, near = p.walking?.spot?.follow ? p.walking.spot.near : undefined;
   if (l) return { following: { who: l.who, name: callName(state, p.id, l.who), lost: l.why, zone: zoneById(state, l.zone)?.name ?? l.zone } };
-  return near && actorById(state, near) ? { following: { who: near, name: callName(state, p.id, near) } } : {};
+  return near && actorById(state, near) ? { following: { who: near, name: callName(state, p.id, near), keepM: r1(followGap(state, p, p.walking!.spot!.keep)) } } : {}; // BF35
 }
 
 /** BG-193: the body's own attacks usable now (fists, a grapple; none from a crippled arm), by mode: a weapon in hand never stands in for them */

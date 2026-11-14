@@ -49,6 +49,8 @@ const run = <T>(c: V<T>) => (v: unknown): Checked<T> => {
 };
 
 const VOLUME = oneOf(['whisper', 'normal', 'shout'] as const);
+/** BF35: a follow's distance: metres, or melee / range */
+const KEEP: V<NonNullable<MoveSpot['keep']>> = (v, p, e) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : v === 'melee' || v === 'range' ? v : (e.push(`${p}: expected metres, "melee" or "range"`), 'melee'));
 const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon' | 'set_down'; item: string; from?: string; into?: string; qty?: number }>(
   { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const), item: str, from: str, into: str, qty: num },
   ['from', 'into', 'qty'],
@@ -58,7 +60,7 @@ const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ towa
 
 const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool, pace: oneOf(TRAVEL_PACES.keys),
-    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str, follow: bool }, ['near', 'awayFrom', 'side', 'follow'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
+    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str, follow: bool, keep: KEEP }, ['near', 'awayFrom', 'side', 'follow', 'keep'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(PARSER_ACTIONS),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
@@ -150,7 +152,7 @@ const timeOfDay: V<TimeOfDay> = (v, p, e) => TIME_OF_DAY.keyOf(v) ?? (e.push(`${
 const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, e) => (bool(v, p, e) || undefined) as true, until: obj<StepEnd>({ at: timeOfDay, arrival: str }, ['at', 'arrival']) }, ['go', 'lead', 'routine', 'wait', 'until']);
 const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
-const npcMove = nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after']));
+const npcMove = nul(obj<{ toZone: string; after?: boolean; speakAt?: 'end' }>({ toZone: str, after: bool, speakAt: oneOf(['end'] as const) }, ['after', 'speakAt']));
 const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
   action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps,

@@ -577,6 +577,11 @@ const DEFAULTS = {
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
    * wall or a way out stops this far inside it */
   ENTER_M: 1,
+  /** BF35 following someone: the distance kept when none is said, sneaking or not (real metres: a tail stays back, a
+   * companion keeps close), and at range how much of the weapon's reach is used (a little margin inside it) */
+  FOLLOW_SNEAK_M: 5,
+  FOLLOW_M: 2,
+  FOLLOW_RANGE_SHARE: 0.8,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
    * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
   // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about
