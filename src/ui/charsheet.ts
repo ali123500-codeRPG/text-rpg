@@ -248,7 +248,7 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
   openPop({ title: skillName(id), cls: 'sk-pop', opener, body: [
     h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), h('span', {}, f.value === f.raw ? 'Skill' : `True skill · raw ${f.raw}`),
       tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
-    SKILL_SUB[id] ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
+    SKILL_SUB[id] && !f.gives.length ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
     h('div', { class: 'sk-list', 'aria-label': 'What adds to it' },
       line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
       f.mult !== 1 ? line('Hollowed', `×${whole(f.mult)}`, 'sk-bad') : null,

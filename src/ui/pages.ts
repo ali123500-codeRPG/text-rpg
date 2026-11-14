@@ -162,14 +162,14 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
   const owned = p.core.perks.filter((x) => !x.dormant && x.source !== 'race' && x.source !== 'essence').length;
   const gear = p.core.inventory.filter((i) => i.equippedIn?.length);
   const pe = personalityOf(p);
-  const tile = (key: string, label: string, value: Node | string, sub: string, onclick: (b: HTMLElement) => void, full = false) => {
-    const b: HTMLElement = h('button', { type: 'button', class: 'cs-tile', 'data-tile': key, 'aria-haspopup': 'dialog', title: full ? `Open ${label} full screen` : `Open ${label}`, onclick: () => onclick(b) },
+  const tile = (key: string, label: string, value: Node | string, sub: Node | string, onclick: (b: HTMLElement) => void, full = false, lit = false) => {
+    const b: HTMLElement = h('button', { type: 'button', class: 'cs-tile' + (lit ? ' lit' : ''), 'data-tile': key, 'aria-haspopup': 'dialog', title: full ? `Open ${label} full screen` : `Open ${label}`, onclick: () => onclick(b) },
       h('span', { class: 'hs-label' }, label), h('b', {}, value), h('span', { class: 'cs-tile-sub' }, sub));
     return b;
   };
   return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },
-    tile('essences', 'Essences', ess.used, ess.waiting ? '' : 'slots used', open.essences),
-    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : `perk${owned === 1 ? '' : 's'} taken`, open.perks, true),
+    tile('essences', 'Essences', ess.used, ess.waiting ? h('span', { class: 'ess-waiting' }, `◆ ${ess.waiting} on offer`) : 'slots used', open.essences, false, !!ess.waiting),
+    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : `perk${owned === 1 ? '' : 's'} taken`, open.perks, true, pts > 0),
     tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
     tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p)] })),
   );

@@ -26,9 +26,11 @@ describe('essences on screen', () => {
     expect(pr.essences?.map((e) => e.essence)).toEqual([ES.street_instinct]);
   });
 
-  it('essences show once on the Character page: in the Essences section, not again on the character card', () => {
+  it('essences show once on the Character page: in the Essences pop-up its tile opens (CP4), not again on the character card', () => {
     const card = readFileSync('src/ui/charsheet.ts', 'utf8');
     expect(card).not.toMatch(/Essences · \$\{held\.length\} of/);
-    expect(readFileSync('src/ui/pages.ts', 'utf8')).toMatch(/essencesSection\(api, s, update\)/);
+    const page = readFileSync('src/ui/pages.ts', 'utf8');
+    expect(page).toMatch(/essencesBody\(api, s,/);
+    expect(page).toMatch(/tile\('essences', 'Essences'/);
   });
 });
