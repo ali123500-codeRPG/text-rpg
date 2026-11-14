@@ -474,10 +474,9 @@ const DEFAULTS = {
   /** EN1 a: an essence row is on a template's list when the template's weighted average in the row's skills (raw × tier) is
    * at least this share of its best skill [placeholder] */
   ESSENCE_FIT_SHARE: 0.4,
-  /** an essence's appearance roll: one appears when d100 ≤ this % (by source: foe, or the ending's tier). Placeholders, set
-   * with ESSENCE_ROLL_NEEDED so essences come about as often as when one roll did both (about 31% from a notable foe or a
-   * Great Success ending, 50% from a Critical Success one) */
-  ESSENCE_APPEAR_CHANCE: { foe: 60, great_success: 60, critical_success: 70 } as Record<string, number>,
+  /** an essence's appearance roll: one appears when d100 ≤ this % (by source: a notable foe, any other foe (mob), or the
+   * ending's tier). D-274: a notable foe always has one and a mob 5%, so for a foe only the quality roll fails. Placeholders */
+  ESSENCE_APPEAR_CHANCE: { foe: 100, mob: 5, great_success: 60, critical_success: 70 } as Record<string, number>,
   /** an appeared essence's quality roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table; Near Miss or worse,
    * it fades (base 80: it holds 51%; 100: 71%) */
   ESSENCE_ROLL_NEEDED: 130,
