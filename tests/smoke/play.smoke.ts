@@ -63,6 +63,15 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('AD6/AD7: a click on Look around in the action deck plays the turn at once, with no typing', async () => {
+    const before = await page.locator('.ln-player').count();
+    await page.locator('.dk-act[data-kind="look"]').click();
+    await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
+    expect(await page.locator('.ln-player').last().innerText()).toBe('Look around');
+    await page.locator('.dk-act[data-kind="look"]:not([disabled])').waitFor(); // the deck comes back once the turn lands
+    expect(errors).toEqual([]);
+  });
+
   it('the suggestion from last turn is taken by clicking the box, or by Use it', async () => {
     await turn('look around then search the shelf', 1);
     const box = page.locator('.inbar .hs-input');

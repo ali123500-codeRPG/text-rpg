@@ -221,7 +221,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, waiting));
   const notices = h('div', { class: 'notices' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'Say or type what you do', 'aria-describedby': 'cmd-hint' });
-  const PLACEHOLDER = 'Say something, or type what you do. A line starting with / is a command (/help)';
+  const PLACEHOLDER = 'What do you do or say? A line starting with / is a command (/help)';
   const hint = h('p', { class: 'hs-note in-hint', id: 'cmd-hint' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   // AD5: the quick heal slot sits on the health strip; a click treats your wounds with it at once (AD7)
