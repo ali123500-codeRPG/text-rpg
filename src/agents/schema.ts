@@ -201,7 +201,7 @@ const weaver = obj<StagePlan>({
     links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool, drop: bool,
       barrier: obj<PlanBarrier>({ kind: str, grade: GRADE, locked: bool, barredFrom: str, guarded: bool, keys: arr(str) }, ['grade', 'locked', 'barredFrom', 'guarded', 'keys']) }, ['drop', 'barrier'])),
   }, ['cover', 'light', 'height', 'size', 'area', 'edges', 'length', 'danger', 'road', 'fromLayout', 'furniture'])),
-  frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
+  frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str, brief: str }, ['brief'])),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
     tactics: level(TACTICS),
@@ -259,6 +259,9 @@ export const checkResponder = run(responder);
 export const checkVoice = run(voice);
 export const checkNarrator = run(narrator);
 export const checkStagePlan = run(weaver);
+/** WB1: a World builder plan may leave out what it never writes (event grades, rewards, beats): defaults go in first */
+export const checkWorldPlan = run<StagePlan>((v, p, e) => weaver(isObj(v) ? { event: { summary: '', challenge: 'none', gain: 'none' }, rewards: [], hiddenTerms: [], weaverNote: '', ...v,
+  seeds: { plans: [], triggers: [], secrets: [], ...(isObj(v.seeds) ? v.seeds : {}) } } : v, p, e));
 
 /** SC12: arrivals use the stage plan's own band, cast and seed checks */
 const arrivals: V<NonNullable<CheckinAnswer['arrivals']>> = (v, p, e) => {
@@ -272,7 +275,7 @@ const checkin = obj<CheckinAnswer>({
   verdict: oneOf(['continue', 'end'] as const), as: str, text: str, beats: optArr(trigger) as V<CheckinAnswer['beats']>, note: str,
   change: obj<NonNullable<CheckinAnswer['change']>>({ question: str, scale: str, endings: arr(any) as V<NonNullable<NonNullable<CheckinAnswer['change']>['endings']>> }, ['question', 'scale', 'endings']),
   arrivals,
-  frontiers: arr(obj<NonNullable<CheckinAnswer['frontiers']>[number]>({ zone: str, key: str, label: str })),
+  frontiers: arr(obj<NonNullable<CheckinAnswer['frontiers']>[number]>({ zone: str, key: str, label: str, brief: str }, ['brief'])),
 }, ['as', 'text', 'beats', 'note', 'change', 'arrivals', 'frontiers']);
 export const checkCheckin = run(checkin);
 /** WZ2 the region brief: only its shape is checked here; src/land/brief.ts tidyBrief drops unknown words */

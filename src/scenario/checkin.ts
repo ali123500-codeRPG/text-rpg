@@ -49,6 +49,7 @@ export function applyCheckinPlan(state: GameState, a: CheckinAnswer, rng: Rng): 
   for (const fr of a.frontiers ?? []) {
     const link: ZoneLink = { to: freshId(fr.key, taken), label: fr.label, sight: false, frontier: true };
     taken.add(link.to);
+    if (fr.brief?.trim()) (state.hidden.frontierBriefs ??= {})[link.to] = fr.brief.trim(); // WB3: for the World builder
     zoneById(state, fr.zone)!.links.push(link);
   }
   return { changed: !!a.change, arrivals: plan?.cast.length ?? 0, frontiers: a.frontiers?.length ?? 0 };

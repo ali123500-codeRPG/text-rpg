@@ -321,6 +321,9 @@ export type LandView = {
   landmarks: { name: string; kind: string; look: string; where: string }[];
   beyond: Record<string, string>;
 };
+/** WB1: what the World builder sees: the Weaver's view with nothing of luck or story (no tier, stakes, ways, past
+ * scenarios or outer scenario) */
+export type WorldView = Omit<WeaverView, 'tier' | 'stakes' | 'ways' | 'lastScenarios' | 'outerScenario'>;
 export type WeaverView = {
   tier: TierName;
   /** null at story start: the Weaver picks the opening time of day (T8) */
@@ -331,6 +334,8 @@ export type WeaverView = {
   target: { kind: 'scenario' | 'frontier' | 'checkin'; placeId: string; /** NW6 */ placeName: string; label?: string; frontierKey?: string; wake?: true; /** HF26: a new character arrives in a world with a past */ arrive?: true;
     /** NW3: the ground past this frontier is built ahead for someone else heading there; the player is not crossing */
     ahead?: true;
+    /** WB3: the Weaver's short brief for the ground beyond this frontier (World builder) */
+    brief?: string;
     /** SC8: why this check-in was asked, and the running scenario it is about */
     reason?: import('./hidden').CheckinReason;
     scenario?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean;

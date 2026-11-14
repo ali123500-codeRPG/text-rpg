@@ -25,7 +25,7 @@ const guardToWoods = (s: GameState) => {
   headTo(s, g, 'woods');
   return g;
 };
-const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+const flush = () => new Promise((r) => setTimeout(r, 0)); // every pending background step settles
 
 describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
   it('NW3: an NPC walking into an unbuilt frontier waits at the edge, its move spent', () => {

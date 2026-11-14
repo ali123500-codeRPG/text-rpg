@@ -241,7 +241,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const zoneMap = new Map<string, string>();
   for (const z of plan.zones) zoneMap.set(z.key, freshId(z.key, allZoneIds));
   const frontierMap = new Map<string, string>();
-  for (const f of plan.frontiers) frontierMap.set(f.key, freshId(f.key, allZoneIds));
+  for (const f of plan.frontiers) {
+    frontierMap.set(f.key, freshId(f.key, allZoneIds));
+    if (f.brief?.trim()) (state.hidden.frontierBriefs ??= {})[frontierMap.get(f.key)!] = f.brief.trim(); // WB3
+  }
   const bandMap = new Map<string, string>();
   const bandTaken = new Set(state.bands.map((b) => b.id));
   for (const b of plan.bands) bandMap.set(b.key, freshId(b.key, bandTaken));
@@ -474,8 +477,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const hs = state.hidden.stage;
   if (ctx.kind === 'scenario') state.hidden.stage = { eventSummary: plan.event.summary, challenge: plan.event.challenge, gain: plan.event.gain, hiddenTerms: [...plan.hiddenTerms] };
   // an extension keeps the scenario's grades; its summary is appended and its hiddenTerms join the stage's (CS2)
-  else state.hidden.stage = { ...hs, eventSummary: [hs.eventSummary, plan.event.summary].filter(Boolean).join(' / '), hiddenTerms: [...new Set([...hs.hiddenTerms, ...plan.hiddenTerms])] };
-  state.hidden.weaverNote = plan.weaverNote;
+  // WB1: a World builder's ground is the world's, not the scenario's: only its hidden terms join
+  else state.hidden.stage = { ...hs, eventSummary: [hs.eventSummary, ctx.world ? '' : plan.event.summary].filter(Boolean).join(' / '), hiddenTerms: [...new Set([...hs.hiddenTerms, ...plan.hiddenTerms])] };
+  if (ctx.world) state.hidden.worldNote = plan.weaverNote; // WB1: each role keeps its own note
+  else state.hidden.weaverNote = plan.weaverNote;
   // SC1/SC2/SC7: a new scenario's question, scale and endings, plan keys mapped to ids
   const frameRef = (k: 'band' | 'place' | 'actor', r: string) => (k === 'band' ? bandRef(r) : k === 'actor' ? actorRef(r) : placeMap.get(r) ?? zoneMap.get(r) ?? r);
   // BG-227: an ending that names the base item this plan makes one item from means that made item (the Weaver can't know

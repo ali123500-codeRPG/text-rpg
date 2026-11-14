@@ -14,6 +14,10 @@ export type HiddenStore = {
   secrets: Secret[];
   firedLog: { triggerId: string; turn: number; ownerId?: string }[];
   weaverNote: string;
+  /** WB1: the World builder's own note (its plan's weaverNote field), kept apart from the Weaver's */
+  worldNote?: string;
+  /** WB3: the Weaver's brief for the ground beyond a frontier, by frontier id; the World builder builds to it */
+  frontierBriefs?: Record<string, string>;
   stage: { eventSummary: string; challenge: Grade; gain: Grade; hiddenTerms: string[] };
   /** W6: per-actor hidden Weaver text (motive, routineGap); GM view only. Not an agenda (hasAgenda ignores it). */
   castNotes?: Record<string, { motive: string; routineGap?: string; templateGap?: string }>;
@@ -99,7 +103,7 @@ export type CheckinAnswer = {
   verdict: 'continue' | 'end'; as?: string; text?: string; beats?: Trigger[]; note?: string;
   change?: { question?: string; scale?: string; endings?: { when: EndCheck; as: string; text: string }[] };
   arrivals?: { bands: import('./agents').StagePlan['bands']; cast: import('./agents').StagePlan['cast']; seeds?: import('./agents').StagePlan['seeds'] };
-  frontiers?: { zone: string; key: string; label: string }[];
+  frontiers?: { zone: string; key: string; label: string; brief?: string }[];
 };
 /** SC6: how one scenario went */
 export type ScenarioRecord = {

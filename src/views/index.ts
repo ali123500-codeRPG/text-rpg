@@ -9,7 +9,7 @@ import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
+  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
@@ -923,6 +923,11 @@ function uniqueCatalog(state: GameState): WeaverView['catalogs']['uniques'] {
 }
 
 export type WeaverTarget = Omit<WeaverView['target'], 'placeName'>;
+/** WB1: the World builder's view: the Weaver's, less everything of luck and story */
+export function buildWorldView(state: GameState, target: WeaverTarget): WorldView {
+  const { tier: _t, stakes: _s, ways: _w, lastScenarios: _l, outerScenario: _o, ...rest } = buildWeaverView(state, target);
+  return { ...rest, previousNote: state.hidden.worldNote ?? '' }; // its own note, never the Weaver's
+}
 export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
   const stage = new Set(state.stage.zoneIds);
@@ -944,7 +949,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     time: clockSet(state) ? timeView(state) : null,
     ways: WAYS_LEAN[state.stage.tier] ?? '',
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
-    target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}),
+    target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}), ...(target.brief ? { brief: target.brief } : {}),
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
       ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}),
       ...(target.kind === 'scenario' && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },

@@ -4,10 +4,10 @@
 import { placeAll } from '../engine/position';
 import { noteLeft } from '../engine/trail';
 import { noteCrossing } from '../engine/chase';
-import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
+import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView, WorldView } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
-import { buildWeaverView, type WeaverTarget } from '../views';
+import { buildWeaverView, buildWorldView, type WeaverTarget } from '../views';
 import { isActive, zoneById } from '../engine/relations';
 import type { FrontierWait } from '../engine/resolve';
 import type { PlanContext, PlanError } from './index';
@@ -21,7 +21,11 @@ import { squaresWanted } from '../land/edge';
  * the plan they belong to (V11). */
 export type Weave = (view: WeaverView, errors?: PlanError[], rejected?: StagePlan) => Promise<StagePlan | null>;
 
-/** WZ2: one Weaver call for a region's brief; null = the call failed (code then draws the land from the kind alone) */
+/** WB1: one World builder call: the ground beyond a frontier, its everyday people and standing situations, with no tier.
+ * Same contract as Weave. */
+export type Build = (view: WorldView, errors?: PlanError[], rejected?: StagePlan) => Promise<StagePlan | null>;
+
+/** WZ2/WB8: one World builder call for a region's brief; null = the call failed (code then draws the land from the kind alone) */
 export type RegionCall = (view: RegionCallView) => Promise<unknown | null>;
 
 /** SC8: one Weaver check-in call about the running scenario. null = the call failed. */
@@ -41,7 +45,8 @@ export type ScenarioResult = {
 /** errors that need the repair call: repaired notes don't count */
 const blocking = (errors: PlanError[]) => errors.some((e) => !e.repaired);
 
-type Planned = { plan: StagePlan | null; errors: PlanError[]; reason?: string };
+/** dropped: WB2, story parts a World builder plan held, logged when the plan is applied */
+type Planned = { plan: StagePlan | null; errors: PlanError[]; reason?: string; dropped?: string[] };
 /** ahead (NW3): started for an NPC waiting at the frontier; done: its result once back (applied by applyBuiltAhead) */
 type Held = { ctx: PlanContext; result: Promise<Planned>; ahead?: true; done?: Planned };
 const TIMEOUT: unique symbol = Symbol('timeout');
@@ -55,7 +60,7 @@ export class ScenarioDirector {
 
   /** WZ18: region briefs asked for in the background, keyed by square; never saved (a reload asks again) */
   private regionCalls = new Map<string, { gx: number; gy: number; back: boolean; raw?: unknown }>();
-  constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn; region?: RegionCall }) {}
+  constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn; region?: RegionCall; /** WB1: without it the Weave call builds frontiers (tests) */ build?: Build }) {}
 
   /** WZ1/WZ2: a story in a world with no land yet draws its first region before its first plan: the Weaver's brief, then
    * code. Without a region call wired (tests with a scripted Weaver) the world stays without land, and a story already
@@ -210,7 +215,7 @@ export class ScenarioDirector {
       if (!h.ahead || !h.done) continue;
       this.held.delete(key);
       if (!stageFrontiers(state).has(key)) continue; // the player crossed it first and it was applied then
-      const planned = h.done.plan ? { plan: h.done.plan, errors: validateStagePlan(state, h.done.plan, h.ctx) } : h.done;
+      const planned = h.done.plan ? { ...h.done, errors: validateStagePlan(state, h.done.plan, h.ctx) } : h.done;
       finish(state, h.ctx, planned, rng, 'stealthy'); // stealthy: no opening beliefs, the player is not arriving
       built.push(key);
     }
@@ -263,7 +268,7 @@ export class ScenarioDirector {
     const ctx: PlanContext = h.ahead ? (({ ahead: _, ...c }) => c)(h.ctx) : h.ctx;
     if (h.ahead) this.held.set(key, { ctx, result: h.result });
     // the stage may have changed since the plan came back: check it again (no retry for a background extension)
-    const planned = r.plan ? { plan: r.plan, errors: validateStagePlan(state, r.plan, ctx) } : r;
+    const planned = r.plan ? { ...r, errors: validateStagePlan(state, r.plan, ctx) } : r;
     const res = finish(state, ctx, planned, rng, entry);
     if (entry === 'stealthy') stealthyArrival(state, rng);
     return res;
@@ -274,22 +279,33 @@ export class ScenarioDirector {
     const edge = [zoneById(state, state.player.zone), ...state.zones].find((z) => z?.links.some((l) => l.to === key));
     const link = edge?.links.find((l) => l.to === key);
     const placeId = ahead && edge ? edge.placeId : state.player.placeId;
-    const ctx: PlanContext = { tier: state.stage.tier, kind: 'extension', frontierKey: key, placeId, ...(ahead ? { ahead: true as const } : {}) };
+    // WB1/WB2: the World builder builds it, with no tier: what is really there, not what luck brings
+    const ctx: PlanContext = { tier: state.stage.tier, kind: 'extension', frontierKey: key, placeId, world: true, ...(ahead ? { ahead: true as const } : {}) };
     // nobody may await a background call: a throw becomes a failed extension, never an unhandled rejection
-    const result = this.plan(state, ctx, { kind: 'frontier', placeId, label: link?.label, frontierKey: key, ...(ahead ? { ahead: true as const } : {}) })
+    const result = this.plan(state, ctx, { kind: 'frontier', placeId, label: link?.label, frontierKey: key, ...(state.hidden.frontierBriefs?.[key] ? { brief: state.hidden.frontierBriefs[key] } : {}), ...(ahead ? { ahead: true as const } : {}) })
       .catch((): Planned => ({ plan: null, errors: [], reason: 'call_failed' }));
     return { ctx, result };
   }
 
   /** one call plus one repair retry with the validator's errors. */
   private async plan(state: GameState, ctx: PlanContext, target: WeaverTarget, deadline?: number): Promise<Planned> {
-    const view = buildWeaverView(state, target);
-    const first = await this.timed(this.call(view), deadline);
+    // WB1: a world build goes to the World builder (its view has no tier); without one wired, to the Weave call
+    const build = ctx.world ? this.opts.build : undefined;
+    const call = build ? ((v: unknown, e?: PlanError[], r?: StagePlan) => build(v as WorldView, e, r).catch(() => null)) : (v: unknown, e?: PlanError[], r?: StagePlan) => this.call(v as WeaverView, e, r);
+    const view = build ? buildWorldView(state, target) : buildWeaverView(state, target);
+    const dropped = new Set<string>();
+    const got = async (e?: PlanError[], r?: StagePlan) => { const p = await this.timed(call(view, e, r), deadline); return p && p !== TIMEOUT && ctx.world ? worldOnly(p, dropped) : p; };
+    const res = await this.planWith(state, ctx, got);
+    return dropped.size ? { ...res, dropped: [...dropped] } : res;
+  }
+
+  private async planWith(state: GameState, ctx: PlanContext, got: (e?: PlanError[], r?: StagePlan) => Promise<StagePlan | null | typeof TIMEOUT>): Promise<Planned> {
+    const first = await got();
     if (first === TIMEOUT) return { plan: null, errors: [], reason: 'weaver_timeout' };
     if (!first) return { plan: null, errors: [], reason: 'call_failed' };
     const errors = validateStagePlan(state, first, ctx);
     if (!blocking(errors)) return { plan: first, errors };
-    const second = await this.timed(this.call(view, errors, first), deadline);
+    const second = await got(errors, first);
     if (second === TIMEOUT || !second) {
       // the repair failed: the first plan may still degrade if its errors are routine-only
       return { plan: first, errors, reason: second === TIMEOUT ? 'weaver_timeout' : 'call_failed' };
@@ -313,8 +329,19 @@ export class ScenarioDirector {
   }
 }
 
+/** WB2: a World builder plan holds no story: its scenario, rewards and beats are dropped (logged), and its event carries
+ * no grades */
+function worldOnly(p: StagePlan, dropped: Set<string>): StagePlan {
+  if (p.scenario) dropped.add('scenario');
+  if (p.rewards?.length) dropped.add('rewards');
+  if (p.seeds?.triggers?.length) dropped.add('beats');
+  const { scenario: _s, ...rest } = p;
+  return { ...rest, event: { summary: p.event?.summary ?? '', challenge: 'none', gain: 'none' }, rewards: [], seeds: { plans: p.seeds?.plans ?? [], triggers: [], secrets: p.seeds?.secrets ?? [] } };
+}
+
 function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'stealthy'): ScenarioResult {
   if (ctx.kind === 'scenario') delete state.stage.cause; // SW3 a: read by this plan's view only
+  if (p.dropped?.length) state.log.push({ turn: state.turn, code: 'world_story_dropped', detail: { dropped: p.dropped, ...(ctx.frontierKey ? { frontier: ctx.frontierKey } : {}) } });
   if (p.plan && p.errors.every((e) => e.routineOnly || e.repaired)) {
     const degrade = p.errors.filter((e) => e.routineOnly);
     applyStagePlan(state, p.plan, ctx, { entry, ...(degrade.length ? { degrade } : {}) }, rng);

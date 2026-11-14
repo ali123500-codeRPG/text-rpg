@@ -183,6 +183,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   // ---- grades ----
   const ev = plan.event;
   if (ctx.kind === 'checkin') { /* SC12: a check-in keeps the scenario's grades */ }
+  else if (ctx.world) { /* WB1: the World builder rolls no luck: no grades to fit */ }
   else if (!ev || !GRADES.includes(ev.challenge) || !GRADES.includes(ev.gain)) err('bad_grade', 'event needs challenge and gain grades');
   else if (!gradesFitTier(ctx.tier, ev.challenge, ev.gain))
     err('grades_misfit', `challenge ${ev.challenge} / gain ${ev.gain} does not fit tier ${tierName(ctx.tier)}`);
