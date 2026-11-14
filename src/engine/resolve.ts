@@ -1942,7 +1942,7 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
   if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';
   if (npc && r?.kind === 'follow' && a.bandId === state.player.bandId) a.posture = state.player.posture ?? 'open';
-  if ((o.line && o.line.volume !== 'whisper') || isSpeech(o.type)) a.posture = 'open';
+  if (o.line ? o.line.volume !== 'whisper' : isSpeech(o.type)) a.posture = 'open'; // BG-202: a whisper keeps you stealthy, whatever action carries it
   if (!npc || a.posture === was) return;
   if (a.posture === 'stealthy') stealthStart(state, a);
   else stealthEnd(state, a);
