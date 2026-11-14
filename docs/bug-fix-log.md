@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF58, option b). A wait can now run until someone appears (target "someone", WAIT_SOMEONE in src/scales.ts): time runs on until anyone new comes into the player's sight or hearing (inSenses in src/engine/comingNear.ts, why "appeared"), or CONFIG.WAIT_SOMEONE_MAX_H (8 hours). Parser rule 12 sends "wait until someone comes", "hold my place" and watching with no end there, with anything meant for whoever comes deferred (BF57). Test tests/cases/s314-wait-for-someone.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
 
 ## BG-230
 
@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF58). Parser rule 15 says Hide is getting out of sight; once hidden, staying hidden and watching is the wait until someone appears (BG-231), which keeps the player hidden. Test tests/cases/s314-wait-for-someone.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
 
 ## BG-229
 
@@ -28,7 +28,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF57, as a wait). The hold is the wait until someone appears (BG-231), and the shot goes in deferred, offered back in the box when someone comes. A real readied action is parked as a feature. Test tests/cases/s314-wait-for-someone.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
 
 ## BG-228
 
@@ -36,7 +36,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF56). The Parser gives two or three replies (answers) with a question; they show as buttons under it, and a tap fills the box without sending. Tests tests/cases/s314-wait-for-someone.test.ts and the play smoke test.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
 
 ## BG-227
 
@@ -44,7 +44,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF55) and asked for a bug report each time. An ending naming the base of the one item its plan makes means the made item (applyStagePlan), and each such ending files an ending_item_remapped bug report. Test tests/cases/s298-turn43-checkin-road-clarify.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #812](https://github.com/ali123500-codeRPG/text-rpg/pull/812)
 
 ## BG-226
 
