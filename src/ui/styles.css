@@ -370,20 +370,23 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .ct-h h2 { margin: 0; font-size: 18px; }
 .ct-h p { margin: 4px 0 0; color: var(--muted); }
 .ct-bands { position: relative; display: grid; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
-.ct-band { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: center; border-top: 1px dashed var(--rule); }
-.ct-band:first-of-type { border-top: 0; }
+.ct-band { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; border-left: 1px dashed var(--rule); }
+.ct-band:first-of-type { border-left: 0; }
 .ct-band[data-tier="tier_0"] { background: color-mix(in oklch, var(--accent) 3%, var(--bg)); }
 .ct-band[data-tier="tier_1"] { background: color-mix(in oklch, var(--accent) 7%, var(--bg)); }
 .ct-band[data-tier="tier_2"] { background: color-mix(in oklch, var(--accent) 11%, var(--bg)); }
 .ct-band[data-tier="tier_3"] { background: color-mix(in oklch, var(--perk-40) 10%, var(--bg)); }
 .ct-band[data-tier="tier_4"] { background: color-mix(in oklch, var(--perk-40) 15%, var(--bg)); }
 .ct-band[data-tier="tier_5"] { background: color-mix(in oklch, var(--scenario-mark) 12%, var(--bg)); }
-.ct-tier { padding-left: var(--space-4); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ct-tier { padding: var(--space-4) var(--space-4) 0; white-space: nowrap; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .ct-band[data-tier="tier_5"] .ct-tier { color: var(--scenario-mark); }
-.ct-row { display: grid; justify-content: center; justify-items: center; gap: var(--space-4) var(--space-9); padding: var(--space-3) var(--space-4); }
+.ct-col { display: grid; justify-items: center; align-items: center; gap: var(--space-6) 0; padding: var(--space-4); min-height: 0; }
 .ct-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 .ct-link { fill: none; stroke: var(--accent); stroke-width: 2; stroke-opacity: .75; }
 .ct-head { fill: var(--accent); fill-opacity: .9; }
+.ct-link.gold { stroke: var(--scenario-mark); stroke-width: 3; stroke-opacity: 1; }
+.ct-link.gold.planned { stroke-dasharray: 7 5; }
+.ct-head.gold { fill: var(--scenario-mark); fill-opacity: 1; }
 .ct-node { position: relative; z-index: 2; display: grid; gap: 2px; justify-items: start; align-self: center; align-content: start; min-width: 170px; max-width: 100%; padding: var(--space-2) var(--space-4); text-align: left;
   border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
 .ct-node:hover, .ct-node:focus-visible { border-color: var(--accent); }
@@ -394,14 +397,15 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .ct-node.next b { color: var(--muted); }
 .ct-node.target { border-color: var(--scenario-mark); }
 .ct-chip { font-size: 11px; font-weight: 700; padding: 0 8px; border-radius: var(--r-pill); border: 1px solid currentColor; }
-.ct-chip.next { color: var(--scenario-mark); }
+.ct-chip.next, .ct-chip.start { color: var(--scenario-mark); }
+.ct-chip.start { border-style: dashed; }
 .ct-chip.dead { color: var(--danger); }
 .ct-chip.all { color: var(--perk-40); }
 .ct-pop { width: min(460px, calc(100vw - 32px)); }
 .ct-pop .dpop-body { justify-items: stretch; }
 .ct-story { font-style: italic; color: var(--muted); }
 .ct-now { color: var(--scenario-mark); font-weight: 700; }
-@media (max-width: 760px) { .ct { padding: 20px var(--space-4); } .ct-band { grid-template-columns: minmax(0, 1fr); } .ct-tier { padding-top: var(--space-2); } }
+@media (max-width: 760px) { .ct { padding: 20px var(--space-4); } .ct-node { min-width: 0; } .ct-tier { padding-inline: var(--space-2); } }
 /* CP2: the full-screen pop-up, for a board too big for a panel; partial pop-ups and the perk card open over it */
 .fpop { position: fixed; inset: 0; z-index: 30; overflow: auto; background: var(--bg); }
 .fpop-x { position: fixed; top: 20px; right: var(--space-6); z-index: 1; }
