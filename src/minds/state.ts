@@ -20,6 +20,7 @@ import { PK } from '../library/perkIds';
 import { contestFeat, matchedCritFeat } from '../engine/feats';
 import { tally } from '../engine/xp';
 import { journalOf } from '../engine/trail';
+import { carriedContents } from '../engine/containers';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
@@ -387,12 +388,15 @@ export const revealedTo = (a: Actor, about: string): string[] => (a.kind === 'pl
  * find: no roll. What is found is revealed to the searcher. */
 export function searchPerson(state: GameState, a: Actor, t: Actor, rng: Rng): { r?: RollResult; found: ItemInstance[] } {
   const known = revealedTo(a, t.id);
-  const unknown = t.core.inventory.filter((i) => !known.includes(`item:${i.id}`));
+  const hands = gripOn(state, a, t);
+  // BG-206 (BF29): hands on goes through the bags they carry too, unless locked
+  const inside = hands ? carriedContents(state, t.core.inventory).map((x) => x.inst) : [];
+  const unknown = [...t.core.inventory, ...inside].filter((i) => !known.includes(`item:${i.id}`));
   let r: RollResult | undefined, found: ItemInstance[];
   // BG-178: what one found before and is still there is found again; only new finds need hands on or a roll
   const hiddenGear = (i: ItemInstance) => !!i.equippedIn?.length && !!itemDef(state, i.itemId).hiddenAt;
-  const again = t.core.inventory.filter((i) => known.includes(`item:${i.id}`) && (hiddenGear(i) || !i.equippedIn?.length));
-  if (gripOn(state, a, t)) found = unknown.filter((i) => itemDef(state, i.itemId).concealed || !i.equippedIn?.length);
+  const again = [...t.core.inventory, ...inside].filter((i) => known.includes(`item:${i.id}`) && (hiddenGear(i) || !i.equippedIn?.length));
+  if (hands) found = unknown.filter((i) => itemDef(state, i.itemId).concealed || !i.equippedIn?.length);
   else {
     const hidden = unknown.filter(hiddenGear);
     const roll = hidden.length ? (r = sightRoll(state, a, zoneById(state, t.zone), rng)) : undefined;

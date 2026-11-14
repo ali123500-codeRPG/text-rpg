@@ -9,6 +9,8 @@ import type { HealthLevelKey, PartStateKey } from '../scales';
 /** keys of the HEALTH_LEVELS and PART_STATES scales (scales.ts); views show their display names */
 export type HealthLevel = HealthLevelKey;
 export type PartState = PartStateKey;
+/** BG-193: an attack made with the body itself (fists, a grapple, a bite), by its attack mode id */
+export type BodyAttackView = { mode: string; name: string; handsFull?: string }; // handsFull (BF32): a blow that needs a free hand while what is named fills them
 
 /** CT1/CT3: a container as a viewer knows it: open or shut, with a lock (and the viewer's key to it), and what is inside
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. shut: a shut one (BG-175), so a mind knows to
@@ -114,6 +116,7 @@ export type PlayerView = {
     following?: FollowingView; // BG-190
     /** how far each weapon in hand reaches at its longest, in metres (Who's here hover: in reach or not) */
     reaches?: { name: string; metres: number }[];
+    bodyAttacks?: BodyAttackView[]; // BG-193: the body's own attacks (fists, a grapple), named by mode even with a weapon in hand
     perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
@@ -175,6 +178,7 @@ export type ActorView = {
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // fallback.attackSkill (template, else body type)
+    bodyAttacks?: BodyAttackView[]; // BG-193
     /** elapsed (NW10): game minutes since it started; dayPart: the time of day now */
     routine?: { id: string; anchorTurn: number; elapsed: number; dayPart: import('../scales').TimeOfDay };
     routines: { id: string; brief: string }[];
@@ -260,6 +264,7 @@ export type NarrationEvent = {
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
+  lastSeenOf?: string; // BG-203: whom the walk looks for, where they were last seen: anyone like them there is them
   steady?: 'calmer' | 'worse' | 'no change'; // SY1: how steadying oneself went, in words
   offers?: { to: string; landed: string; demand?: 'yield' }[]; // TF12: the player's offer to stop fighting, and how it landed with each listener; demand: TF19, it asked them to surrender
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words

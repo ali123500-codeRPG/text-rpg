@@ -13,6 +13,62 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Ali approved the plan (stage map questions MR1 to MR3). Zones snap to whole metres and take the free spot that leaves the most room for their named exits; a building is its indoor zones only. A layout pass (src/ui/mapPlan.ts) places every mark in the rpg-map order so nothing covers anything, tags every element, and in dev views the rpg-map checker runs after each render. A stored layout that breaks the rules is placed again once on load (MR2), and the journal keeps the zones the player has stood in so the map draws seen apart from explored (MR1). Tests in tests/unit/map-plan.test.ts.
 
 **Fixed by:** [PR #755](https://github.com/ali123500-codeRPG/text-rpg/pull/755)
+## BG-203
+
+**What was wrong:** On turn 25 Happi followed the lean man, who had just gone out of sight behind the kitchen door. The follow became a walk to where she last saw him, the walk's words named nobody ("them"), and the follow was dropped, so the story found an empty spot and then met the same man as a stranger.
+
+**What was done:** Ali approved the fix (BF28). The walk names the person as the player knows them ("the spot where you last saw the lean man"), and the Narrator is told that anyone like him there is him. A follow of someone out of sight stays a follow: once they are seen or heard on the way it keeps after them on the next turns; not found at the spot, they are lost and the following line says so. A case test replays the turn.
+
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
+
+## BG-213
+
+**What was wrong:** On turn 35 the give went to Corwin, who was out of sight, so the out-of-sight rule held the action back for arrival. It kept only spoken words, and a give has none, so nothing was kept: the walk ended a pace from Corwin with no suggestion.
+
+**What was done:** Ali approved the fix (BF41). A held-back action now comes back on arrival as the player's own line, built from the action ("give Corwin the lucky charm"), when there are no spoken words. A unit test covers the give.
+
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
+
+## BG-202
+
+**What was wrong:** On turn 24 Happi whispered her thanks while stealthy, and her stealth ended. Any speech action ended stealth whatever its volume, though only speaking above a whisper should.
+
+**What was done:** Ali approved the fix (BF38). A whisper keeps the player stealthy, whatever action carries it; speaking louder still ends it. A case test checks both.
+
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
+
+## BG-194
+
+**What was wrong:** In playtest run 101 the leak scan counted every actor id as a secret word. One actor's id was the plain word "thief", so a story about the purse thief was thrown out twice and the player read the bare template line.
+
+**What was done:** Ali approved the fix (BF39). Only ids that look like ids (with digits, underscores or dots) are scanned as ids. Strangers' first names (capitalised, not common words like Will or Rose at a sentence start) and unlearned secret ids are scanned as words. A case test checks both.
+
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
+
+## BG-207
+
+**What was wrong:** On turn 32 Happi attacked Wren while he lay down, and he rolled a dodge and was only grazed. Code treated someone down as merely unaware, which still rolls a defense with a penalty.
+
+**What was done:** Ali approved the fix (BF30). Someone down, asleep or held in a grip fails the defense roll outright (Critical Failure, "can't defend"), so the rest of the attack works as normal. A case test checks all three.
+
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
+
+## BG-193
+
+**What was wrong:** "Punch him" with a sword in hand struck with the sword, and on turn 32 "I strangle the lean man" became a shortbow shot. The view listed no attacks made with the body itself, so the Parser fell back to the weapon in hand.
+
+**What was done:** Ali approved the fix (BF32). The player's view lists the body's own attacks (punch, grapple, kick...), and the Parser uses one for a blow with the body; a strangle is a grapple. With every hand full, the game asks the player to put the held item away first instead of going ahead. Case and unit tests cover the sword and the bow.
+
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
+
+## BG-206
+
+**What was wrong:** On turn 30 Happi searched Wren for the charm. A search of a person listed only what they carried at the top level, so it found his sack but never looked inside it.
+
+**What was done:** Ali approved the fix (BF29). A hands-on search looks inside the unlocked bags someone carries, and what it finds there can be picked up from them. A locked bag is found and named as locked. A case test checks the charm in the sack.
+
+**Fixed by:** [PR #754](https://github.com/ali123500-codeRPG/text-rpg/pull/754)
+
 ## BG-200
 
 **What was wrong:** On turn 29 Happi's shot read as one tier ahead of Wren's dodge, yet it only grazed him. The midden yard's cover had pushed the result one tier his way, but the roll line never said so, so the outcome looked wrong.

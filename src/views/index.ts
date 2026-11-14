@@ -7,7 +7,7 @@ import { personalityText } from '../ruleset/personality';
 import { ageText, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -46,8 +46,9 @@ import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
-import { cap, mentions, r1 } from '../words';
-import { modeName, usableModes } from '../ruleset/gear';
+import { cap, listWords, mentions, r1, theOf } from '../words';
+import { gripsOf, isHeld, modeName, usableModes } from '../ruleset/gear';
+import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
@@ -327,7 +328,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     const by = f.data.by ? callName(state, viewerId, String(f.data.by)) : '';
     if (f.kind === 'found') out.push(`${by} finds ${who} hiding`); // SE3: a search won
     if (f.kind === 'found_items') { // SE8/SE11
-      const names = (f.data.items as string[]).map((id) => itemName(state, id) ?? 'something').join(', ');
+      // BF29: a locked bag found on someone is named as locked: what it holds stays shut
+      const names = (f.data.items as string[]).map((id) => `${itemName(state, id) ?? 'something'}${findContainer(state, id)?.inst.lock?.locked ? ' (locked)' : ''}`).join(', ');
       out.push(f.data.on ? `${by} finds ${names} on ${who}, left there for now` : `${who} finds ${names} hidden here, left there for now`); // BG-178: found is not taken
     }
     if (f.kind === 'found_nothing') out.push(!f.data.on ? `${by} finds nothing here` : f.data.held ? `${by} finds nothing on ${who}` : `${by} sees nothing on ${who}; going through their things needs a hold on them or their leave`); // BG-142, BF16
@@ -450,6 +452,17 @@ function followingOf(state: GameState, p: Actor): { following?: FollowingView } 
   return near && actorById(state, near) ? { following: { who: near, name: callName(state, p.id, near) } } : {};
 }
 
+/** BG-193: the body's own attacks usable now (fists, a grapple; none from a crippled arm), by mode: a weapon in hand never stands in for them */
+const HAND_BLOWS = ['punch', 'grapple']; // BF32: body blows made with a hand
+function bodyAttacks(state: GameState, a: Actor): { bodyAttacks?: BodyAttackView[] } {
+  const grips = usableGrips(state, a), held = a.core.inventory.filter(isHeld);
+  const full = grips.length > 0 && grips.every((g) => held.some((i) => gripsOf(i).includes(g)));
+  const filling = full ? listWords([...new Set(held.map((i) => itemDef(state, i.itemId).name))]) : '';
+  const l = usableModes(state, a).filter((m) => !a.core.inventory.some((i) => i.id === m.itemId))
+    .map((m) => ({ mode: m.mode.id, name: modeName(m.mode), ...(full && HAND_BLOWS.includes(m.mode.class) ? { handsFull: filling } : {}) }));
+  return l.length ? { bodyAttacks: l } : {};
+}
+
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
   const actors = seenActors(state, p);
@@ -465,6 +478,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...walkingOf(state, p),
       ...followingOf(state, p),
       ...reachesOf(state, p),
+      ...bodyAttacks(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
@@ -538,7 +552,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a), fatigue: fatigueWord(a),
       ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
-      gear: ownGear(state, a), attackSkill,
+      gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a),
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn, elapsed: Math.max(0, now(state) - (m.routine.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {}),
       routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),
@@ -732,6 +746,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
+      ...(full && e.lastSeenOf ? { lastSeenOf: theOf(callName(state, me, e.lastSeenOf)) } : {}), // BG-203
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
       ...(full && e.offers ? { offers: e.offers.map((o) => ({ to: callName(state, me, o.to), landed: o.landed, ...(o.demand ? { demand: o.demand } : {}) })) } : {}), // TF12, TF19
       ...(full && e.surrender ? { surrender: { with: e.surrender.with.map((id) => callName(state, me, id)) } } : {}), // TF19

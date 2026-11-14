@@ -8,7 +8,7 @@ import { healthLevel, partStates } from '../ruleset';
 import { logCode } from './effects';
 import { gripReachM, working } from '../ruleset/body';
 import { actorById, isActive, stance, zoneById } from './relations';
-import { findContainer, inContainer, isContainer, packUp, theft, wearIfNone, wornPack } from './containers';
+import { carriedContents, findContainer, inContainer, isContainer, packUp, theft, wearIfNone, wornPack } from './containers';
 import { withinGrip, type Located, type Pos } from './position';
 export { gripReachM };
 export { withinGrip } from './position';
@@ -124,7 +124,8 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         const src = op.from ? actorById(state, op.from) : undefined;
         const ground = at && !op.from ? zoneById(state, at.zone)?.groundItems : undefined;
         const list = !at || !withinGrip(state, actor, at) ? undefined
-          : src ? src.core.inventory : ground?.some((x) => x.id === op.item) ? ground : inContainer(state, actor, op.item)?.list;
+          : src ? (src.core.inventory.some((x) => x.id === op.item) ? src.core.inventory : carriedContents(state, src.core.inventory).find((x) => x.inst.id === op.item)?.list) // BG-206: or a bag they carry
+          : ground?.some((x) => x.id === op.item) ? ground : inContainer(state, actor, op.item)?.list;
         const i = list?.findIndex((x) => x.id === op.item && !hiddenFrom(x, actor)) ?? -1;
         const fixed = i >= 0 && !!itemDef(state, list![i].itemId).container?.fixed; // CT1: a chest stays where it stands
         const guarded = i >= 0 && !!src && isActive(src) && !!list![i].equippedIn?.length; // CT5: a yielded owner's pack only

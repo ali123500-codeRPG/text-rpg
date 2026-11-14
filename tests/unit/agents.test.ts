@@ -157,6 +157,27 @@ describe('Parser legality', () => {
     expect(r.intent).toMatchObject({ move: { toZone: to }, action: null, spoken: null, addressees: null, deferred: ['Bren, a word?'] });
     expect(r.run.log.errors).toContain('deferred_to_arrival');
   });
+  it('BG-213: a give to someone out of sight, with no words, waits for arrival as the line the player would type', async () => {
+    const { claude, ctx } = setup();
+    const pv = playerView();
+    pv.player.inventory.push({ id: 'charm_1', itemId: 'IT17', name: 'lucky charm', look: 'a charm', kind: 'trinket', equippedIn: [], modes: [] });
+    pv.lastSeen = [{ id: 'drover', name: 'Corwin', zone: pv.zone.links[0].to }];
+    const to = pv.zone.links[0].to;
+    claude.push('parser', intentOf({ move: { toZone: to, spot: { near: 'drover' } }, action: { ...intentOf().action!, type: 'give', target: 'drover', item: 'charm_1', skill: '' } }));
+    const r = await callParser('give Corwin the lucky charm', pv, ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent).toMatchObject({ move: { toZone: to }, action: null, deferred: ['give Corwin the lucky charm'] });
+    expect(r.run.log.errors).toContain('deferred_to_arrival');
+  });
+  it('BF32: a punch with both hands full asks the player to put what they hold away, and makes no blow', async () => {
+    const { claude, ctx } = setup();
+    const pv = playerView();
+    pv.player.bodyAttacks = [{ mode: 'AM5', name: 'fists', handsFull: 'shortbow' }];
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'attack', target: 'patron_1', mode: 'AM5', item: null, skill: '' } }));
+    const r = await callParser('I punch him', pv, ctx);
+    expect(r.intent).toBeNull();
+    expect(r.clarify).toBe('Your hands are full with the shortbow. Put it away or drop it first, then make the punch.');
+  });
   it('a speech action\'s skill is set by code, so a made-up one is not an error (P2)', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'intimidate', skill: 'intimidate', target: null } }));

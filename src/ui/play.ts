@@ -37,7 +37,7 @@ import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
 import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
-import { cap, r1 } from '../words';
+import { cap, r1, theOf } from '../words';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scenario_fallback: 'Scenario planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -895,7 +895,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const o = outcomeOf(c.result), k = c.strike;
     if (!o || !struck(o) || !k || !motionOn()) return;
     const beat = OUTCOME_BEAT[o], where = c.result.split(', ').slice(1).join(', ');
-    const target = k.target.replace(/^(a|an)\s+/i, 'the ');
+    const target = theOf(k.target);
     const card = h('div', { class: `strike t${beat}`, 'aria-hidden': 'true', 'data-o': o },
       beat >= 2 ? h('span', { class: 'sk-slash' }) : null,
       h('p', { class: 'sk-out' }, cap(outcomeText(o))),

@@ -101,6 +101,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Outnumbered', at: 'src/ruleset/index.ts', when: 'Defense rolls after the first this turn (Blade Wall removes it for Parry with a medium weapon, Shield Wall for Block, Slip the Crowd for Dodge).',
     value: sg(CONFIG.OUTNUMBERED_MOD) },
   { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming.', value: sg(CONFIG.UNAWARE_MOD) },
+  { type: 'situational', roll: 'skill', source: "Can't defend", at: 'src/ruleset/index.ts', when: 'Defense rolls by someone down, asleep or held in a grip (BG-207): no dice, the defense fails outright as a Critical Failure.', value: 'fails outright' },
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
   { type: 'situational', roll: 'skill', source: 'Waking', at: 'src/engine/sleep.ts', when: 'A light sleeper\'s hearing check against someone hostile moving openly near it (NW19): the grade their noise sets, louder is easier.',
     value: Object.entries(CONFIG.WAKE_GRADE).map(([k, g]) => `${k} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },

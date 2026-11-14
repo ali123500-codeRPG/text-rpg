@@ -23,6 +23,8 @@ export function falseName(speaker: { names: { current: string } }, text: string 
 }
 
 /** the text with its first letter in capitals */
+/** "a lean man" -> "the lean man": someone already met, said again */
+export const theOf = (label: string): string => label.replace(/^(a|an)\s+/i, 'the ');
 export const cap = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 /** "a, b and c" (or "a, b or c"): a list as a sentence says it */
 export const listWords = (xs: string[], last: 'and' | 'or' = 'and'): string =>

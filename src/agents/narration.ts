@@ -3,23 +3,35 @@
 import type { GameState, NarrationEvent, NarrationView, NarratorOutput } from '../types';
 import { getLibrary, itemDef } from '../library';
 import { knowsName } from '../engine/relations';
+import { CONFIG } from '../config';
 
 /** what must not appear in the text unless the view itself holds it */
 export type LeakContext = {
   terms: string[]; // leakTerms of unrevealed secrets + the active stage's hiddenTerms
   names: string[]; // names of actors not in namesKnown, names of items outside the player's own gear
-  ids: string[]; // actor, zone, item instance and secret ids
+  ids: string[]; // actor, zone and item instance ids that cannot be a plain word (BG-194: they hold a digit, _ or .)
+  firstNames?: string[]; // BG-194: the first name of anyone the player does not know, matched with capitals kept
 };
+/** BG-194: an id the story could not say as an everyday word: it holds a digit, an underscore or a dot (guard_1, tavern.common) */
+const idLike = (id: string) => /[\d_.]/.test(id);
+/** BG-194: first names that are everyday words too; at the start of a sentence they are read as the word ("Will he follow?") */
+const WORD_NAMES = ['will', 'mark', 'hope', 'rose', 'grace', 'may', 'faith', 'joy', 'bill', 'pat', 'sue', 'rob', 'jack', 'dawn', 'iris', 'ivy', 'sky', 'reed', 'wade', 'hunter', 'archer', 'baker', 'mason', 'miller', 'smith'];
 
 export function buildLeakContext(state: GameState): LeakContext {
   const known = new Set(state.player.journal?.secretsKnown ?? []);
   const terms = [
-    ...state.hidden.secrets.filter((s) => !known.has(s.id)).flatMap((s) => s.leakTerms),
+    ...state.hidden.secrets.filter((s) => !known.has(s.id)).flatMap((s) => [...s.leakTerms, s.id]), // BG-194: an unlearned secret's id stays forbidden, plain word or not
     ...state.hidden.stage.hiddenTerms,
   ];
-  const names: string[] = [];
+  const names: string[] = [], firstNames: string[] = [];
   for (const a of state.actors) {
-    if (!knowsName(state, state.player, a)) names.push(a.names.current, ...a.names.past.map((p) => p.name));
+    if (knowsName(state, state.player, a)) continue;
+    names.push(a.names.current, ...a.names.past.map((p) => p.name));
+    for (const n of [a.names.current, ...a.names.past.map((p) => p.name)]) {
+      const words = n.split(/\s+/);
+      const first = words.find((w) => !CONFIG.NAME_TITLE_WORDS.includes(w.toLowerCase()));
+      if (first && words.length > 1 && /^[A-Z]/.test(first)) firstNames.push(first);
+    }
   }
   const itemName = (itemId: string) => {
     try {
@@ -41,9 +53,8 @@ export function buildLeakContext(state: GameState): LeakContext {
     ...state.zones.map((z) => z.id),
     ...state.actors.flatMap((a) => a.core.inventory.map((i) => i.id)),
     ...state.player.core.inventory.map((i) => i.id),
-    ...state.hidden.secrets.map((s) => s.id),
-  ];
-  return { terms: uniq(terms), names: uniq(names), ids: uniq(ids) };
+  ].filter(idLike);
+  return { terms: uniq(terms), names: uniq(names), ids: uniq(ids), firstNames: uniq(firstNames) };
 }
 
 export { mentions } from '../words';
@@ -55,7 +66,19 @@ export function leakScan(text: string, allowedText: string, ctx: LeakContext): s
   for (const [kind, list] of [['term', ctx.terms], ['name', ctx.names], ['id', ctx.ids]] as const) {
     for (const x of list) if (mentions(text, x) && !mentions(allowedText, x)) hits.push(`${kind}:${x}`);
   }
+  for (const n of ctx.firstNames ?? []) if (firstNameSaid(text, n) && !firstNameSaid(allowedText, n) && !hits.some((h) => h.startsWith('name:') && h.includes(n))) hits.push(`name:${n}`);
   return hits;
+}
+
+/** BG-194: the first name said on its own, capitals kept; an everyday-word name at the start of a sentence is the word */
+function firstNameSaid(text: string, n: string): boolean {
+  const e = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const m of text.matchAll(new RegExp(`\\b${e}\\b`, 'g'))) {
+    const before = text.slice(0, m.index).trimEnd();
+    const starts = before === '' || /[.!?"\u201c\u2018:]$/.test(before);
+    if (!(starts && WORD_NAMES.includes(n.toLowerCase()))) return true;
+  }
+  return false;
 }
 
 const POSITION = new Set(['move', 'arrival', 'flee', 'sneak']);
@@ -116,7 +139,7 @@ function eventLine(e: NarrationEvent): string {
     case 'busy':
       return `${cap(who(e.actor))} ${e.actor === 'player' ? 'keep' : 'keeps'} at it${e.busy ? `: ${e.busy.doing.toLowerCase()}, ${e.busy.left} s to go` : ''}${e.item ? ` (${e.item})` : ''}.`;
     case 'move':
-      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.spot ? ` ${e.spot}` : e.heading ? ` toward ${e.heading}` : e.from && e.where ? ` from ${e.from} to ${e.where}` : e.within && e.where ? ` within ${e.where}` : e.where ? ` to ${e.where}` : ''}.`;
+      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.spot ? ` ${e.spot}` : e.heading ? ` toward ${e.heading}` : e.from && e.where ? ` from ${e.from} to ${e.where}` : e.within && e.where ? ` within ${e.where}` : e.where ? ` to ${e.where}` : ''}.${e.lastSeenOf ? ` If ${e.lastSeenOf} is seen or heard this turn, it is the same person, not someone new; never an empty spot when they are there.` : ''}`;
   }
   const changes = e.changes?.length ? `: ${e.changes.join('; ')}` : '';
   return `${cap(who(e.actor))} ${e.kind.replace(/_/g, ' ')}${e.target ? ` ${who(e.target)}` : ''}${e.item ? ` (${e.item})` : ''}${changes}.`;

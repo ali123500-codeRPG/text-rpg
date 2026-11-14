@@ -8,7 +8,8 @@ import { getLibrary } from '../library';
 import { compassOf, doorway, edgeToward } from '../scenario/geometry';
 import { furnitureById, furniturePos } from './furniture';
 import { heightOf } from '../scenario/heights';
-import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
+import { actorById, allActors, nameFor, shortestPath, wayPath, zoneById } from './relations';
+import { theOf } from '../words';
 import { barrierOn, gripPasses, passage, type Passage } from './barriers';
 import { gripReachM } from '../ruleset/body';
 import type { Actor, Barrier, GameState, MoveSpot, Zone } from '../types';
@@ -277,7 +278,8 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     const who = actorById(state, ref);
     if (who && spot.lastSeen) { // BG-125: where the player last perceived them, never where they are now
       const j = state.player.journal, at = j?.lastSpot?.[who.id];
-      return at && j?.lastKnown?.[who.id] === z.id ? { at, label: 'the spot where you last saw them' } : null;
+      // BG-203: the spot names whom it was, as the player knows them, never a bare "them"
+      return at && j?.lastKnown?.[who.id] === z.id ? { at, label: `the spot where you last saw ${theOf(nameFor(state, state.player, who) ?? who.label)}` } : null;
     }
     if (who) { const s = spotOf(state, who); return s.pos ? { at: s.pos, actor: who.id, label: who.label, here: s.zone === z.id } : null; }
     const f = furnitureById(state, z.id, ref); // FR1: a piece of furniture here
