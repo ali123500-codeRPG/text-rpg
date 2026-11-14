@@ -9,24 +9,24 @@ import { logCode } from './effects';
 import { callName } from '../views';
 import { isHeld, isWorn, tierMult } from '../ruleset/gear';
 import { itemValue } from '../ruleset/value';
-import { ruleMet, skillOpen } from '../ruleset/access';
+import { ruleMet } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { functionName, groupName, groupsOf } from '../library/functionNames';
-import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
+import { CLASS_TIERS, TIERS } from '../scales';
 import { tierName } from '../ruleset';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
 import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
 import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
 import { r1 } from '../words';
-import { levelCost, xpToReach } from '../ruleset/levels';
+import { levelCost, perkPointAt, xpToReach } from '../ruleset/levels';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
 /** character level: every class's level, plus bonus levels (levels no class gets) */
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0) + (a.progression?.bonusLevelsTaken ?? 0);
 /** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
 export const xpToNext = (a: Actor) => levelCost(charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
-export { levelCost, xpToReach } from '../ruleset/levels';
+export { levelCost, perkPointAt, perkPointsUpTo, xpToReach } from '../ruleset/levels';
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
@@ -78,7 +78,7 @@ function takeBonusLevels(state: GameState): void {
   const p = state.player, pr = p.progression!;
   while (bonusLevelsOwed(p) > 0) {
     pr.bonusLevelsTaken = (pr.bonusLevelsTaken ?? 0) + 1;
-    if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
+    if (perkPointAt(charLevel(p))) pr.unspentPerkPoints += 1;
     const up = { classId: '', level: charLevel(p) };
     (pr.xpLog ??= []).push({ source: 'bonus level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
@@ -119,7 +119,7 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   if (pick.level === classMaxLevel(pick.classId)) offerCapstones(p, pick.classId);
   p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn).filter((x) => !p.core.perks.some((o) => o.perkId === x.perkId))); // class-level perks, once each
   if (pr.capstoneOptions?.[pick.classId]) for (const x of capstonePerks(p, pick.classId)) x.dormant = true; // inactive until the player picks
-  if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
+  if (perkPointAt(charLevel(p))) pr.unspentPerkPoints += 1;
   return { classId: pick.classId, level: charLevel(p) };
 }
 
@@ -326,9 +326,9 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
   }
 }
 
-/** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names.
- * Saves keep only key and of, so renaming a row or moving its reward level edits only the table. */
-/** `reached`: the tally that earned it (shown as why it was earned) */
+/** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names;
+ * `reached`: the tally that earned it (shown as why it was earned). Saves keep only key and of, so renaming a row or moving
+ * its reward level edits only the table. */
 export function grantAchievement(state: GameState, key: string, of?: string, reached?: number, now = false): void {
   const pr = state.player.progression;
   const d = getLibrary().achievements?.[key];

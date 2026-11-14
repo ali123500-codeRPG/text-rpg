@@ -1,14 +1,13 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group; the Inventory has none),
 // figures that can't be filtered in a text line under them, then the grouped table.
-import { PART_STATES, THREADBOUND_RANKS } from '../scales';
-import type { AchievementDef, GameApi, GameState, ItemInstance, Quest } from '../types';
+import type { GameApi, GameState, ItemInstance, Quest } from '../types';
 import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
-import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
+import { HEALTH_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, THREADBOUND_RANKS } from '../scales';
 import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
-import { rewardName, rewardPos, rewardXp } from '../ruleset/achRewards';
+import { rewardName, rewardXp } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
@@ -24,11 +23,10 @@ import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
 import { wornPack } from '../engine/containers';
-import { coins, coinWords } from '../engine/trade';
 import { gripParts } from '../engine/gear';
-import { countWords } from '../engine/trade';
+import { coins, coinWords, countWords } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
-import { cap } from '../words';
+import { cap, r1 } from '../words';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -107,7 +105,7 @@ export function characterPage(api: GameApi) {
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
       h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s.player)),
       essencesSection(api, s, update),
-      h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
+      h('p', { class: 'hs-note' }, `The ${HEALTH_LEVELS.keys.length - 1} health segments are the health track, ${HEALTH_LEVELS.name('unhurt')} to ${HEALTH_LEVELS.name('incapacitated')}. ✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`),
       perks);
     refreshPerks();
   }
@@ -138,7 +136,7 @@ export function itemRows(s: GameState, it: { itemId: string; boundTo?: string })
     const short = shortBy(s.player, d), steps = Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
     const rolls = d.armor ? 'Dodge and stealth rolls while worn' : 'rolls with it';
     rows.push({ k: 'Needs', v: h('span', { class: short > 0 ? 'tone-bad' : 'tone-muted' }, short > 0
-      ? `${needText(need)} (you have ${Math.round((need.need - short) * 10) / 10}: ${plural(steps, 'outcome step')} worse on ${rolls})`
+      ? `${needText(need)} (you have ${r1(need.need - short)}: ${plural(steps, 'outcome step')} worse on ${rolls})`
       : `${needText(need)} (met)`) });
   }
   rows.push({ k: 'Bulk', v: String(d.bulk) });
@@ -165,7 +163,7 @@ function threadboundRows(s: GameState, it: { boundTo?: string }, tb: NonNullable
   return rows;
 }
 
-// The equipment panel, laid out the way MMOs show equipped items: the slots the body has (one per hand,
+// The equipment panel, laid out the way MMOs show equipped items: the slots the body has (one per grip part,
 // the armor slot, the accessory slots) with what is in them, and the pack beside them as a grid of item icons.
 // Hovering or focusing an item shows its exact stats; Equip and Unequip send the same words the player could type,
 // so the turn rules hold (drawing and putting away are free, armor on or off is the turn's action).
@@ -206,7 +204,7 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   const nameOf = (it: InvItem) => cap(safe(() => itemDef(s, it.itemId))?.name ?? it.itemId);
   const locked = api.busy() || api.fell();
   const status = h('p', { class: 'hs-note eq-status', role: 'status' });
-  const act = (w: { label: string; text: string }, it: InvItem) => h('button', {
+  const act = (w: { label: string; text: string }) => h('button', {
     type: 'button', class: w.label === 'Equip' ? 'hs-btn-main eq-act' : 'hs-btn-text eq-act', disabled: locked,
     title: `Sends “${w.text}” as your turn`,
     onclick: async () => { hideTip(); status.textContent = `${w.text}…`; await api.submit(w.text, { aimed: false }); },
@@ -235,7 +233,7 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
     const w = gearWords(s, it);
     return hover(h('div', { class: `eq-slot${again ? ' again' : ''}`, tabindex: '0' }, icon(it),
       h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both grips)` : nameOf(it))),
-      w && !again ? act(w, it) : ''), it);
+      w && !again ? act(w) : ''), it);
   });
   // like an MMO bag, plain stacks of the same item show as one tile; worn or damaged pieces (pools) keep their own
   const pack: InvItem[] = [];
@@ -247,7 +245,7 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
     const w = gearWords(s, it);
     return hover(h('div', { class: 'eq-item', tabindex: '0' },
       h('span', { class: 'eq-ico' }, icon(it), it.qty && it.qty > 1 ? h('b', { class: 'eq-qty' }, `×${it.qty}`) : ''),
-      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w, it) : h('span', { class: 'eq-cant' }, 'Carried')), it);
+      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w) : h('span', { class: 'eq-cant' }, 'Carried')), it);
   });
   return h('section', { class: 'eq', 'aria-label': 'Equipment' },
     h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'Equipped'), h('div', { class: 'eq-slots' }, ...slotCards)),
@@ -265,7 +263,7 @@ export const coinLine = (s: GameState) => `Coin: ${coinWords(coins(s.player))}`;
 type Inside = { it: ItemInstance; path: string; box: ItemInstance };
 export function insideOf(s: GameState, box: ItemInstance, path = ''): Inside[] {
   return (box.contents ?? []).flatMap((it) => {
-    const name = titleCase(safe(() => itemDef(s, it.itemId).name) ?? it.itemId), here = path ? `${path} › ${name}` : name;
+    const name = cap(safe(() => itemDef(s, it.itemId).name) ?? it.itemId), here = path ? `${path} › ${name}` : name;
     return [{ it, path: here, box }, ...insideOf(s, it, here)];
   });
 }
@@ -415,7 +413,6 @@ export function inventoryPage(api: GameApi) {
 
 /** a quest to open on arrival (the Play screen's quest line) */
 export const questFocus: { id: string | null } = { id: null };
-const titleCase = cap;
 
 /** QT12: "Abandon quest", confirmed in place */
 function abandonButton(api: GameApi, id: string): HTMLElement {
@@ -440,7 +437,7 @@ export function questsPage(api: GameApi) {
       const chains = new Map<string, Quest[]>();
       for (const q of s.quests) { const root = questChain(s, q)[0].id; chains.set(root, [...(chains.get(root) ?? []), q]); }
       const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
-        text: q.text, giver: titleCase(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
+        text: q.text, giver: cap(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
         reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${rewardXp(q.level)} XP`, pay: payText(s, q),
         due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: QUEST_STATE_NAME[q.state] },
         ...(q.unpaid || !isOpen(q) ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(!isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
@@ -671,7 +668,7 @@ export function journalPage(api: GameApi) {
     const sec = (title: string, note: string, table: HTMLElement) => h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), h('p', { class: 'hs-note' }, note)), table);
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
-      sec('People', 'A label until you learn the name. Health shows only from Wounded down. Heard of: names you have heard for people you have never met.',
+      sec('People', `A label until you learn the name. Health shows only from ${HEALTH_LEVELS.name(CONFIG.HEALTH_SHOWN_FROM)} down. Heard of: names you have heard for people you have never met.`,
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
           groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
       sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',

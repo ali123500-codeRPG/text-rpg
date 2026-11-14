@@ -44,11 +44,11 @@ export const TIERS = scale([
   ['critical_failure', 'Critical Failure'], ['failure', 'Failure'], ['near_miss', 'Near Miss'],
   ['success', 'Success'], ['great_success', 'Great Success'], ['critical_success', 'Critical Success'],
 ]);
-/** band tactics (V2) */
 /** growth proposal 2.2: an essence's grade, set by its quality roll (Success common, Great Success fine, Critical Success rare,
  * one grade higher per step past it). Multipliers: CONFIG.ESSENCE_GRADE_MULT; past the last row ESSENCE_GRADE_PAST_MULT each */
 export const ESSENCE_GRADES = scale([['common', 'Common'], ['fine', 'Fine'], ['rare', 'Rare'], ['epic', 'Epic'], ['legendary', 'Legendary']]);
 export type EssenceGradeKey = (typeof ESSENCE_GRADES.keys)[number];
+/** band tactics (V2) */
 export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], ['cunning', 'cunning']]);
 /** zone light, brightest first (V1) */
 export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
@@ -65,8 +65,9 @@ export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicio
 export const REWARD_LEVELS = scale([['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
   ['vii', 'VII'], ['viii', 'VIII'], ['ix', 'IX'], ['x', 'X'], ['xi', 'XI'], ['xii', 'XII'], ['xiii', 'XIII'], ['xiv', 'XIV'], ['xv', 'XV']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
-/** QT28: quests' own reward levels; XP per level is rewardXp, as for achievements; the level from CONFIG.QUEST_GAIN_LEVEL */
-export const QUEST_REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
+/** QT28: the reward levels a quest may have, 0 to IV: rows of REWARD_LEVELS (keys and names from there); XP per level is
+ * rewardXp, as for achievements; the level from CONFIG.QUEST_GAIN_LEVEL */
+export const QUEST_REWARD_LEVELS = scale(REWARD_LEVELS.keys.slice(REWARD_LEVELS.pos('zero'), REWARD_LEVELS.pos('iv') + 1).map((k) => [k, REWARD_LEVELS.name(k)] as const));
 export type QuestRewardLevel = (typeof QUEST_REWARD_LEVELS.keys)[number];
 /** AT25/AT57: an action's focus, what breaks it from outside, least first: reflex (nothing, too quick), steady (a hit that
  * wounds), careful (any attack aimed at the actor), deep (also anyone coming near, AT67) */
@@ -86,9 +87,6 @@ export type BreakKey = (typeof BREAKS.keys)[number];
  * a new scale is a new row here and a row there. */
 export const SCENARIO_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['journey', 'Journey'], ['venture', 'Venture']]);
 export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
-/** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
- * the scenario's ground), near (the ground and up to CHASE_NEAR_M metres past its edge by the walking path), far (anywhere, through frontiers after the player).
- * Agent-run NPCs decide for themselves. A new range is a new row here and a branch in engine/chase.ts chaseZones. */
 /** grades, none to divine (D-7; CR4, CR12): how hard a task, a challenge or a lock is, and how big a gain. The Weaver's
  * challenge and gain, barriers, gains and locks use none to WEAVER_GRADE_TOP; the rows past it are task grades only */
 export const GRADE_LEVELS = scale([['none', 'None'], ['minor', 'Minor'], ['moderate', 'Moderate'], ['major', 'Major'], ['extreme', 'Extreme'],
@@ -108,6 +106,9 @@ export type HitOutcome = (typeof HIT_OUTCOMES.keys)[number];
 export const QUALITY_LEVELS = scale([['quality_1', 'Passable'], ['quality_2', 'Solid'], ['quality_3', 'Exceptional'], ['quality_4', 'Flawless']]);
 export type QualityKey = (typeof QUALITY_LEVELS.keys)[number];
 
+/** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
+ * the scenario's ground), near (the ground and up to CHASE_NEAR_M metres past its edge by the walking path), far (anywhere, through frontiers after the player).
+ * Agent-run NPCs decide for themselves. A new range is a new row here and a branch in engine/chase.ts chaseZones. */
 export const CHASE_RANGES = scale([['post', 'Post'], ['ground', 'Ground'], ['near', 'Near'], ['far', 'Far']]);
 export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
 /** AG3: life stages, youngest first; each race lists the age in years at which each starts (RaceDef.ageStages).
