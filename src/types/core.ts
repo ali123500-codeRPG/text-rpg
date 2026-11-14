@@ -191,6 +191,8 @@ export type GameEvent = {
   visibility: VisibilityKey;
   perception: Record<string, { level: Perception; cue: Cue; heard?: true }>; // absent = not perceived; heard = the sound reached them (words need it)
   spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
+  ranged?: true; // BG-251: a shot or throw: its target feels it only when it meets them (blocked or past); an impact sounds where it lands
+  impact?: 'hard' | 'soft'; // BG-251: an impact event: what the missile struck (armour, a shield, a hard surface; or flesh, soft ground)
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: import('./agents').Volume; to?: string }; // to (BG-132): who a reply's words are for

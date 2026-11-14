@@ -70,7 +70,7 @@ import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
 import type { ExchangeSpeech, TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
-import { met } from '../ruleset/hits';
+import { met, struck } from '../ruleset/hits';
 import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
@@ -403,6 +403,26 @@ function struckSeen(ctx: Ctx, t: Actor, ev: GameEvent, before: { lost: number; a
     if (!isActive(t)) m.bodiesFound = [...new Set([...(m.bodiesFound ?? []), t.id])];
   }
   return s.perception;
+}
+
+/** BG-251: a shot or throw, hit or miss, sounds where it lands: an 'impact' event by its target, at its spot, loud on armour
+ * (the part hit is covered), a shield or a hard surface (a miss indoors), quieter on flesh or soft ground (a miss outdoors)
+ * (CONFIG.IMPACT_NOISE). Those it reaches that the shot itself didn't are alarmed (updateAlarms) and startled; the
+ * missed target notices it here. It shows where it landed, never where it came from. */
+function landImpact(ctx: Ctx, t: Actor, ev: GameEvent, res: AttackResult, struckBy: GameEvent['perception']): void {
+  const { state } = ctx;
+  const worn = t.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const armored = !!res.location && !!worn && !!itemDef(state, worn.itemId).armor?.covers.includes(res.location);
+  const hit = struck(res.outcome);
+  const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || !zoneById(state, t.zone)?.outdoor); // blocked or parried: on a shield or weapon
+  const kind = hard ? 'hard' as const : 'soft' as const;
+  const s = mk(ctx, t, 'impact', { impact: kind, noise: CONFIG.IMPACT_NOISE[kind], visibility: 'normal', ...(ev.spar ? { spar: true as const } : {}) });
+  s.perception = computePerception(s, state, ctx.rng);
+  for (const id of Object.keys(ev.perception)) delete s.perception[id]; // they perceived the shot itself
+  if (struckBy[t.id]) delete s.perception[t.id]; // the target felt the hit (a bystander who saw it may still hear it land)
+  if (!Object.keys(s.perception).length) return;
+  emit(ctx, s, undefined, true);
+  for (const id of Object.keys(s.perception)) { const mm = actorById(state, id)?.mind; if (mm) mm.startled = state.turn; }
 }
 
 /** BF65: someone who comes upon a body it did not see fall finds it, once per body: alarm (updateAlarms), a Planner call
@@ -789,8 +809,11 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (m.mode.thrown && dropToGround(state, a, m.itemId, t.zone, t.pos)) { // it lands where they stand, hit or miss
     ev.effects.push({ kind: 'item_landed', actorId: a.id, data: { itemId: m.itemId, zone: t.zone } });
   }
+  if (m.mode.tree === 'ranged') ev.ranged = true; // BG-251
   emit(ctx, ev, res, true);
-  const seenBy = { ...struckSeen(ctx, t, ev, before), ...ev.perception }; // BF65
+  const struckBy = struckSeen(ctx, t, ev, before);
+  if (ev.ranged) landImpact(ctx, t, ev, res, struckBy); // BG-251
+  const seenBy = { ...struckBy, ...ev.perception }; // BF65
   // Destroyed arm drops what it held: ruleset.applyEffects moves the item; each drop is its own perceived event
   for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
   // morale (MB21–MB23): a new health level a health fear covers; bandmates who perceive a fall; the one who downed it

@@ -2,7 +2,7 @@
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { AWARENESS, GRADE_LEVELS, NOISE, type GradeLevel, type NoiseKey } from '../scales';
+import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
 import { seeingM, type Located } from '../engine/position';
 import { sightLevel } from './sight';
@@ -149,7 +149,9 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // the target of a blow, a hand-over or a grip broken always feels it (at least partial, touch), e.g. a missile from an
   // unseen zone. BG-72/BG-89: only contact is felt; words, a walk toward them, a trade or a wasted action reach them only by
   // sound or sight
-  if (event.target === observer.id && CONTACT.has(event.kind)) best = better(best, { level: 'partial', cue: 'touch' });
+  // BG-251: a shot or throw is felt only when it meets them (a shield or the body); a miss reaches them by its impact
+  const felt = !event.ranged || !event.attack || HIT_OUTCOMES.pos(event.attack.outcome) >= HIT_OUTCOMES.pos('blocked');
+  if (event.target === observer.id && CONTACT.has(event.kind) && felt) best = better(best, { level: 'partial', cue: 'touch' });
   // words need the sound heard clearly (CLEAR_ABOVE_FLOOR_DB over the hearing floor: who and what; a sound heard only partly is a voice without its
   // words), or Every Sense One
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;

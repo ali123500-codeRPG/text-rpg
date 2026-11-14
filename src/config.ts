@@ -183,6 +183,10 @@ const DEFAULTS = {
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
+  /** BG-251: how loud a missile's impact is where it lands: on armour, a shield or a hard surface like an axe biting wood
+   * (3M Noise Navigator: chopping wood 66-71 dBA at 5 m, pounding tent stakes 66 dBA at 15.2 m, about 80-90 dB at 1 m);
+   * on flesh, clothing or soft ground some 20 dB less (Brüel: soft-material impacts peak 20-25 dB below metal; an estimate) */
+  IMPACT_NOISE: { hard: 'loud', soft: 'raised' } as const,
   /** hearing (perception/noise.ts, BG-57, HB1–HB5): a sound weakens 20·log10(metres) with distance (the inverse-square
    * law, never nearer than NEAREST_M) and loses SOUND_LOSS_DB at each crossing on its way, by the least-loss route. It is
    * heard while at least HEARING_FLOOR_DB and heard clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it: ANSI/ASA S12.60

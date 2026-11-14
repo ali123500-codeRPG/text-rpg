@@ -322,6 +322,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
+    ...(e.impact ? { impact: e.impact } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
     ...(e.overheard?.includes(viewer.id) || (e.push?.tell && e.push.listener === viewer.id) ? { tell: tellFor(viewer) } : {}), // LI5a Overheard; NL4 a lie aimed at it that it saw through
     ...(e.kind === 'wasted' && e.actorId === viewer.id && e.reason ? { reason: e.reason } : {}), // BG-175: its own action came to nothing, and why
@@ -662,6 +663,8 @@ function agreementViews(state: GameState, viewerId: string): AgreementView[] {
 export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): string | null {
   if (['hold', 'idle', 'wait', 'rest', 'sleep', 'presence'].includes(e.kind)) return null;
   const v = eventView(state, viewer, e);
+  // BG-251: a missile landing shows where it struck, never who sent it
+  if (e.kind === 'impact') return `${v.level === 'full' ? 'saw' : 'heard'} something shot or thrown strike ${e.actorId === viewer.id ? 'beside you' : v.level === 'full' ? `by ${callName(state, viewer.id, e.actorId)}` : 'nearby'}${v.where ? ` ${v.where}` : ''}`;
   if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
@@ -761,6 +764,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(full && e.spar ? { spar: true as const } : {}),
+    ...(e.impact ? { impact: e.impact } : {}),
       ...(e.push?.listener === me && pressedWords(e, p) ? { pressed: pressedWords(e, p) } : {}),
       ...(e.overheard?.includes(me) ? { overheard: tellFor(p) } : {}), // LI5a
       ...(item ? { item } : {}),
