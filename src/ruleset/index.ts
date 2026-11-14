@@ -22,7 +22,7 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
 import { shortShifts } from './requirements';
-import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
+import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -444,7 +444,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
       destroyedEssential = part.impact === 'essential';
       if (part.roles.includes(RL.grip)) {
         const zone = zoneById(state, T.zone);
-        for (const inst of T.core.inventory.filter((i) => handsOf(i).includes(part.id))) {
+        for (const inst of T.core.inventory.filter((i) => gripsOf(i).includes(part.id))) {
           if (inst.soulbound) { delete inst.equippedIn; continue; } // HF18: soulbound gear never leaves its owner
           T.core.inventory = T.core.inventory.filter((i) => i !== inst);
           const { equippedIn: _, ...loose } = inst;

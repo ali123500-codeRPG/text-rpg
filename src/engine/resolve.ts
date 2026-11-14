@@ -11,7 +11,7 @@ import { runEffort } from '../ruleset/fatigue';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
-import { parryItem, rollFnSkills } from '../ruleset/gear';
+import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
@@ -1393,7 +1393,7 @@ function doFilch(ctx: Ctx, a: Actor, o: Order): void {
  * unnoticed by all (src/engine/filch.ts) */
 function doShow(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
-  const carried = a.core.inventory.filter((i) => !i.equippedIn?.some((s) => s.startsWith('grip:')) && !i.soulbound);
+  const carried = a.core.inventory.filter((i) => !isHeld(i) && !i.soulbound);
   const shown = carried.flatMap((i) => [...(i.equippedIn?.length ? [] : [i]), ...(i.contents ?? [])]);
   const keep = o.item ? shown.find((i) => i.id === o.item || i.itemId === o.item) : undefined;
   const f = keep ? filchContest(state, a, undefined, a, itemDef(state, keep.itemId).bulk, ctx.rng, recentAround(ctx)) : null;

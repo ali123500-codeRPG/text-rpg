@@ -7,6 +7,7 @@ import { CONFIG } from '../config';
 import { getLibrary, itemDef } from '../library';
 import { CL } from '../library/classIds';
 import { hasPerk } from '../ruleset';
+import { isWorn } from '../ruleset/gear';
 import { isActive, wary } from './relations';
 import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
@@ -20,10 +21,10 @@ import { listWords } from '../words';
 const GOODS = 'goods:';
 const SERVICE = 'service:';
 
-/** PY9: a coin amount in coin words, largest coin first ("1 silver and 5 copper") */
 /** BG-176: an item and its count as words: coin in coin words (1 silver and 6 copper), anything else name ×n */
 export const countWords = (itemId: string, name: string, qty?: number): string => itemId === IT.coin && qty ? coinWords(qty) : `${name}${qty && qty > 1 ? ` ×${qty}` : ''}`;
 
+/** PY9: a coin amount in coin words, largest coin first ("1 silver and 5 copper") */
 export function coinWords(n: number): string {
   let left = Math.max(0, Math.floor(n));
   const parts: string[] = [];
@@ -160,9 +161,6 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
 const buysKind = (state: GameState, seller: Actor, itemId: string): boolean =>
   isSeller(seller) && seller.wares!.items.some((w) => itemDef(state, w).kind === itemDef(state, itemId).kind);
 
-/** SL7: worn armor and worn accessories must come off before they can be sold; held gear is stowed and sold */
-const worn = (inst: ItemInstance): boolean => !!inst.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
-
 /** SL1/SL5/SL8/SL10: what seller pays the owner for one of an item, or null when it won't buy it.
  * value × SELL_SHARE, × the haggle turned round (a won haggle pays more), × Hard Bargain; rounded down, at least 1. */
 export function sellPrice(state: GameState, owner: Actor, seller: Actor, itemId: string): number | null {
@@ -184,7 +182,7 @@ export function buyingPrice(owner: Actor, buyer: Actor, value: number): number {
 export function offerList(state: GameState, owner: Actor, seller: Actor): { id: string; name: string; price: string }[] {
   if (!isSeller(seller)) return [];
   return owner.core.inventory.flatMap((i) => {
-    const p = worn(i) || i.soulbound ? null : sellPrice(state, owner, seller, i.itemId); // HF18: soulbound gear can't be sold
+    const p = isWorn(i) || i.soulbound ? null : sellPrice(state, owner, seller, i.itemId); // HF18: soulbound gear can't be sold
     return p === null ? [] : [{ id: i.id, name: itemDef(state, i.itemId).name, price: coinWords(p) }];
   });
 }
@@ -202,7 +200,7 @@ export function sell(state: GameState, owner: Actor, seller: Actor | undefined, 
   const inst = owner.core.inventory.find((i) => i.id === instId);
   const each = inst ? sellPrice(state, owner, seller, inst.itemId) : null;
   if (!inst || inst.soulbound || each === null) return { ok: false, reason: 'not_bought' }; // HF18
-  if (worn(inst)) return { ok: false, reason: 'worn' };
+  if (isWorn(inst)) return { ok: false, reason: 'worn' }; // SL7: worn armor and accessories come off first; held gear is stowed and sold
   if (inst.stolenFrom === seller.id) return { ok: false, reason: 'stolen' }; // FL6: its owner knows it and won't buy it back
   const stackable = itemDef(state, inst.itemId).stackable;
   const qty = stackable ? Math.max(1, Math.floor(qtyIn ?? 1)) : 1;

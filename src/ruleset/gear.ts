@@ -27,7 +27,7 @@ export function freeAccSlot(a: Actor): string | undefined {
 /** a grip part as the story names it: an arm grips with its hand ("left hand"); any other part by its own name (a
  * dragon's head) */
 export const gripWord = (part: string) => (part.endsWith('_arm') ? `${part.replace(/_arm$/, '')} hand` : part).replace(/_/g, ' ');
-export const handsOf = (i: ItemInstance) => (i.equippedIn ?? []).filter((s) => s.startsWith('grip:')).map((s) => s.slice(5));
+export const gripsOf = (i: ItemInstance) => (i.equippedIn ?? []).filter((s) => s.startsWith('grip:')).map((s) => s.slice(5));
 
 type Active = { inst: ItemInstance; def: ItemDef; e: ItemEffect; source: string };
 
@@ -298,7 +298,7 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
   const maxGrips = heldBy(state, actor) ? 1 : grips.length; // A8 Hold: a held actor can't use a two-grip mode
   const out: { itemId: string; mode: AttackMode }[] = [];
   for (const inst of actor.core.inventory) {
-    if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
+    if (!isHeld(inst) || !gripsOf(inst).every((h) => grips.includes(h))) continue;
     const def = itemDef(state, inst.itemId);
     for (const mode of def.weapon?.modes ?? []) if (mode.grips <= maxGrips) out.push({ itemId: inst.id, mode: withRow(actor, def, mode) });
   }
@@ -335,7 +335,7 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
 
 const heldInGrips = (state: GameState, actor: Actor): ItemInstance[] => {
   const grips = usableGrips(state, actor);
-  return actor.core.inventory.filter((i) => isHeld(i) && handsOf(i).every((h) => grips.includes(h)));
+  return actor.core.inventory.filter((i) => isHeld(i) && gripsOf(i).every((h) => grips.includes(h)));
 };
 
 /** the item a block uses: a held shield (not Crippled) in working Grip hands. Block is shields only (PA1). */
@@ -353,7 +353,7 @@ export function openHandArm(state: GameState, actor: Actor): string | null {
   if (!hasPerk(actor, PK.open_hand_guard)) return null;
   const held = actor.core.inventory.filter(isHeld);
   if (held.some((i) => { const d = itemDef(state, i.itemId); return !!d.shield || !!d.weapon; })) return null;
-  const busy = new Set(held.flatMap(handsOf));
+  const busy = new Set(held.flatMap(gripsOf));
   return usableGrips(state, actor).find((h) => !busy.has(h)) ?? null;
 }
 

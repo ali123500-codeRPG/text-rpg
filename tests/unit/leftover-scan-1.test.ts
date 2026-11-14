@@ -14,6 +14,7 @@ import { MILESTONES, allStepsUpTo, milestonesUpTo, perksNeeded } from '../../src
 import * as prompts from '../../src/agents/prompts';
 import { roleOff } from '../../src/ruleset';
 import { RL } from '../../src/library/tableIds';
+import { PK } from '../../src/library/perkIds';
 import { perkSeries } from '../../src/ui/perks';
 import { cap, listWords, r1 } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
@@ -36,11 +37,13 @@ const ROUND_4 = ['src/config.ts', 'src/types/views.ts', 'src/types/actor.ts', 's
 const ROUND_5 = ['src/ui/libraryViewer.ts', 'src/types/library.ts', 'src/ruleset/equations.ts', 'src/ui/charsheet.ts', 'src/ui/sheet.ts'];
 const ROUND_6 = ['src/ui/pages.ts', 'src/engine/xp.ts', 'src/scenario/validate.ts', 'src/engine/speech.ts', 'src/engine/position.ts', 'src/scales.ts',
   'src/agents/wrappers.ts'];
-const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6];
+const ROUND_7 = ['src/ui/map.ts', 'src/library/perks.ts', 'src/perception/index.ts', 'src/engine/essence.ts', 'src/engine/gear.ts', 'src/engine/trade.ts',
+  'src/engine/relations.ts', 'src/library/allPerks.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2, ...ROUND_3, ...ROUND_4, ...ROUND_5, ...ROUND_6, ...ROUND_7];
 // config levers nothing reads yet, each waiting on a question (none now: CS8 put SHARED_ROLE_OFF_PCT to work)
 const UNREAD_LEVERS: string[] = [];
 // files whose GAP notes are settled into the spec (round 1: CS2; rounds 2 to 4: CS5, CS7, CS9)
-const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts'];
+const GAPS_SETTLED = [...ROUND_1, 'src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/views/index.ts', 'src/agents/schema.ts', 'src/scenario/validate.ts', 'src/agents/wrappers.ts', 'src/engine/speech.ts', 'src/perception/index.ts'];
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -241,5 +244,35 @@ describe('answers CS18 and CS19', () => {
   });
   it('CS19: a minted reward is checked for hidden terms as whole words, like every other public text', () => {
     expect(readFileSync('src/scenario/validate.ts', 'utf8') as string).not.toMatch(/toLowerCase\(\)\.includes\(t\)/);
+  });
+});
+
+describe('leftover scan round 7', () => {
+  it('perk rules text reads its numbers from config: no number typed beside the config name it copies', () => {
+    for (const f of ['src/library/perks.ts', 'src/library/allPerks.ts']) {
+      const t = readFileSync(f, 'utf8') as string;
+      expect(t.match(/[0-9][0-9.]*\s*\((?:a foe_perk modifier, )?CONFIG\.[A-Z_]+/g) ?? []).toEqual([]);
+    }
+    const perks = getLibrary().perks ?? {};
+    const rules = (id: string) => `${perks[id]?.rules?.conditions?.join(' ')} ${perks[id]?.rules?.effect}`;
+    expect(rules(PK.leg_bolt)).toContain(`${CONFIG.LEG_BOLT_PART_MULT}×`);
+    expect(rules(PK.open_hand_guard)).toContain(`${CONFIG.OPEN_HAND_ARM_SHARE}× of its damage`);
+    expect(rules(PK.slip_the_blow)).toContain(`${CONFIG.GAP_LADDER.dodge[CONFIG.HIT_GAPS.graze]}× damage`);
+    expect(rules(PK.haggler)).toContain(`×${CONFIG.HARD_BARGAIN_BUY}`);
+  });
+  it('Turn Aside names the multiplier of each defense column it replaces', () => {
+    const t = getLibrary().perks?.[PK.turn_aside]?.rules?.effect ?? '';
+    for (const k of ['dodge', 'block', 'parry'] as const) expect(t).toContain(`${CONFIG.GAP_LADDER[k][CONFIG.HIT_GAPS.heavy]}×`);
+    expect(t).toContain(`${CONFIG.GAP_LADDER.parry[CONFIG.HIT_GAPS.crushing]}×`);
+  });
+  it('Hard Bargain still pays: a sale with it pays less than buying the same item with it', () => {
+    expect(CONFIG.SELL_SHARE * CONFIG.HARD_BARGAIN_SELL).toBeLessThan(CONFIG.TRADE_MARKUP * CONFIG.HARD_BARGAIN_BUY);
+  });
+  it('held and worn gear: one isHeld and one isWorn test, no copies of the slot prefixes in engine code', () => {
+    const offenders = files('src/engine').filter((f) => /equippedIn\?\.some\(\(s\) => !?s\.startsWith\('grip:'\)\)|s === 'armor' \|\| s\.startsWith\('acc:'\)/.test(readFileSync(f, 'utf8') as string));
+    expect(offenders).toEqual([]);
+  });
+  it('grip, not hands, in code names', () => {
+    expect(files('src').filter((f) => /\b(handsOf|usableFreeHands)\b/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
   });
 });

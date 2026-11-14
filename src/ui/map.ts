@@ -10,10 +10,11 @@ import { furnIcon, furnKey } from './furnitureIcons';
 import { CONFIG } from '../config';
 import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
-/** CSS class of each edge kind's line on the To scale view */
-const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap } from '../words';
+
+/** CSS class of each edge kind's line on the To scale view */
+const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 
 const SVG = 'http://www.w3.org/2000/svg';
 const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {
@@ -28,11 +29,13 @@ const PX_PER_M = 12;
 const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
-/** a height as the floor buttons and stair tips name it */
-/** TV7: how far along a road you are, e.g. "1.8 km from the west end of 4.5 km" */
+/** the most people dots a tile shows; the rest are a "+n" */
+const MAX_DOTS = 6;
 /** the letter a person's dot shows: the first letter of what you know them by, a name or a description ("a lean man" → L) */
 export const whoInitial = (name: string) => (name.replace(/^(a|an|the)\s+/i, '').trim()[0] ?? '?').toUpperCase();
+/** TV7: how far along a road you are, e.g. "1.8 km from the west end of 4.5 km" */
 export const alongText = (a: NonNullable<MapZone['along']>) => `${distText(a.m)} from the ${a.from} end of ${distText(a.len)}`;
+/** a height as the floor buttons and stair tips name it */
 export const floorName = (m: number) => (m === 0 ? 'Ground level' : `${Math.abs(m)} m ${m > 0 ? 'up' : 'down'}`);
 /** the heights a map has, lowest first: the height slider's stops */
 export const mapHeights = (zones: { height: number }[]): number[] => [...new Set(zones.map((z) => z.height))].sort((a, b) => a - b);
@@ -44,7 +47,6 @@ type Node2 = Pt & { id: string; w: number; h: number; vx: number; vy: number; pi
 const tileW = (z: MapZone) => Math.max(132, Math.min(260, z.name.length * 8.4 + 40));
 const tileH = (z: MapZone) => (z.people.length || z.along ? TILE_H_PEOPLE : TILE_H);
 
-/** deterministic force layout; zones laid out before keep their spots (they still settle a little) */
 /** a barrier on an exit in words: "door, locked", "gate, locked: you hold its key", "door, standing open" */
 export function wayWords(w: MapWay): string {
   return w.shut === 'locked' && w.key ? `${w.kind}, locked: you hold its key` : w.shut ? `${w.kind}, ${w.shut}` : w.open ? `${w.kind}, standing open` : w.kind;
@@ -59,6 +61,7 @@ function wayGlyph(x: number, y: number, shut: NonNullable<MapWay['shut']>): SVGE
 const wayKey = (cls: string) => s('svg', { class: `k-way map-way ${cls}`, width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' },
   s('circle', { cx: 0, cy: 0, r: 9 }), ...wayGlyph(0, 0, cls.split(' ')[0] as NonNullable<MapWay['shut']>));
 
+/** deterministic force layout; zones laid out before keep their spots (they still settle a little) */
 export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): Map<string, Pt> {
   const byPlace = new Map<string, string[]>(), place = new Map(zones.map((z) => [z.id, z.placeId]));
   // floors: zones at another height sit right above or below the zone their stairs reach, and never push each other
@@ -452,7 +455,7 @@ export function mapPage(api: GameApi) {
     const placed = z.people.filter((who) => who.at), row = z.people.filter((who) => !who.at);
     g.append(s('text', { x: p.x, y: p.y - (row.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
       s('title', {}, `${z.name}: about ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²)`));
-    row.slice(0, 6).forEach((who, i, all) => g.append(whoDot(who, z.id, p.x + (i - (all.length - 1) / 2) * 16, p.y + 14, who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`)));
+    row.slice(0, MAX_DOTS).forEach((who, i, all) => g.append(whoDot(who, z.id, p.x + (i - (all.length - 1) / 2) * 16, p.y + 14, who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`)));
     for (const who of placed) {
       const pad = 7, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
       g.append(whoDot(who, z.id, clamp(who.at!.x * PX_PER_M, x + pad, x + w - pad), clamp(-who.at!.y * PX_PER_M, y + pad, y + hh - pad), who.name, who.id));
@@ -496,7 +499,7 @@ export function mapPage(api: GameApi) {
       s('text', { x: p.x, y: y + 42, 'text-anchor': 'middle', class: 'map-tile-sub' }, status));
     if (z.along) g.append(roadTrack(z.along, x, y + hh - 18, w)); // TV7: you, at your point along the road
     else if (z.people.length) {
-      const shown = z.people.slice(0, 6), r = 10, gap = 6, total = shown.length * (2 * r) + (shown.length - 1) * gap + (z.people.length > 6 ? 30 : 0);
+      const shown = z.people.slice(0, MAX_DOTS), r = 10, gap = 6, total = shown.length * (2 * r) + (shown.length - 1) * gap + (z.people.length > MAX_DOTS ? 30 : 0);
       let cx = p.x - total / 2 + r;
       for (const who of shown) {
         g.append(s('g', { class: `map-who${who.now ? '' : ' last'}` }, s('circle', { cx, cy: y + 64, r }),
@@ -504,7 +507,7 @@ export function mapPage(api: GameApi) {
           s('title', {}, who.now ? `${who.name} · here now` : `${who.name} · last seen here`)));
         cx += 2 * r + gap;
       }
-      if (z.people.length > 6) g.append(s('text', { x: cx + 4, y: y + 68, class: 'map-tile-sub' }, `+${z.people.length - 6}`));
+      if (z.people.length > MAX_DOTS) g.append(s('text', { x: cx + 4, y: y + 68, class: 'map-tile-sub' }, `+${z.people.length - MAX_DOTS}`));
     }
     if (z.here && !z.along) g.append(pin(x + w - 2, y + 2));
     return g;
