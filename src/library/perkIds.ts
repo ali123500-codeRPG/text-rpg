@@ -22,7 +22,7 @@ export const PK = {
   junk_arsenal: 'PK106', know_the_step: 'PK107', last_to_fall: 'PK108', overheard: 'PK109', grit: 'PK110', against_the_grain: 'PK111', iron_rim: 'PK112', gut_feeling: 'PK113', overwhelm: 'PK114', crushing_presence: 'PK115', steady_nerves: 'PK116', used_to_the_pain: 'PK117', run_later: 'PK118', one_sense: 'PK119',
   // D-218: the Varo's Loop's abilities (granted by the item, never taken)
   loose_odds: 'PK120', twin_abyss: 'PK121', call_the_toss: 'PK122', pull_to_the_edges: 'PK123', all_or_nothing: 'PK124', further_still: 'PK125',
-  light_sleeper: 'PK127', // NW14: Earshot 60 perk, wakes to a hearing check
+  // PK127 retired: Light Sleeper (Earshot 60) became everyone's rule (NW14, src/engine/sleep.ts wakeCheck); never reuse
   always_yours: 'PK126', // TB7: Threadbounded level 1, gives a random Threadbound item
   misdirection: 'PK128', fade_back: 'PK129', // PT12: Vanishing's All-50 part; Fade Back parked (D-232)
   // banked write-ups (not yet milestone perks)

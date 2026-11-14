@@ -1,6 +1,6 @@
 // 214 NW12, NW14, NW15, NW18–NW22: sleeping and keeping watch. A sleeper perceives nothing, does nothing and is struck
-// as unaware; a blow or a loud noise (a shout or louder) wakes it; with Light Sleeper (Earshot's 60 perk, NW14) it may hear someone
-// hostile come near. The player's sleep stops when someone hostile arrives; still asleep, the player's turns pass with
+// as unaware; a blow or a loud noise (a shout or louder) wakes it; every sleeper sleeps light (NW14: once the Light Sleeper perk)
+// and may hear someone hostile come near. The player's sleep stops when someone hostile arrives; still asleep, the player's turns pass with
 // nothing done. NPCs sleep by their routines under the same rules, and an awake band member who sees someone hostile
 // shouts its sleeping bandmates awake. Sleeping with companions shares the night out in watches, one each, capped at
 // 12 hours, the player taking the middle watch.
@@ -56,12 +56,13 @@ describe('214 sleeping and keeping watch', () => {
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     (g.mind!.overrides ??= {}).player = 'hostile';
     headTo(s, g, 'tav_cellar');
-    const t0 = now(s);
+    const t0 = now(s), grades = { ...CONFIG.WAKE_GRADE };
+    for (const k of Object.keys(grades)) CONFIG.WAKE_GRADE[k] = 'extreme'; // a hard hearing check, so the seeded roll fails
     turn(s, act('sleep'));
     expect(s.log.some((l) => l.code === 'sleep_stopped')).toBe(true);
     expect(now(s) - t0).toBeLessThan(480);
     expect(g.zone).toBe('tav_cellar');
-    expect(s.player.asleep).toBeDefined(); // no Light Sleeper: nothing woke you
+    expect(s.player.asleep).toBeDefined(); // the hearing check failed: nothing woke you
     expect(s.night).toBeDefined();
     // asleep, you see no one; what you type is not done, and the guard's blow lands on an unaware sleeper and wakes you
     expect(buildPlayerView(s).actors).toEqual([]);
@@ -74,6 +75,7 @@ describe('214 sleeping and keeping watch', () => {
       expect(s.log.some((l) => l.code === 'woke' && (l.detail as { why: string }).why === 'blow')).toBe(true);
       expect(s.player.asleep).toBeUndefined();
     }
+    Object.assign(CONFIG.WAKE_GRADE, grades);
   });
   it('NW14: a blow or a loud noise wakes a sleeper; normal talk does not; asleep it perceives nothing but the blow', () => {
     const s = quiet();
@@ -89,10 +91,9 @@ describe('214 sleeping and keeping watch', () => {
     expect(s.player.asleep).toBeUndefined();
     expect(s.log.filter((l) => l.code === 'woke').map((l) => (l.detail as { why: string }).why)).toEqual(['noise', 'blow']);
   });
-  it('NW14/NW19: with Light Sleeper, a sleeper hears someone hostile walk in and wakes aware of them', () => {
+  it('NW14/NW19: every sleeper sleeps light: it hears someone hostile walk in and wakes aware of them', () => {
     const s = quiet();
     startClock(s, 'evening');
-    s.player.core.perks.push({ perkId: PK.light_sleeper, source: 'level', gainedTurn: 0 });
     CONFIG.WAKE_GRADE.quiet = 'none'; // an easy check, so the seeded roll passes
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     (g.mind!.overrides ??= {}).player = 'hostile';

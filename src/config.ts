@@ -324,7 +324,7 @@ const DEFAULTS = {
   /** FT7/FT8: sleep clears SLEEP_CLEAR_PCT % of the bar an hour × the spot (in a bed or not) × worn armour by weight */
   SLEEP_CLEAR_PCT: 4,
   SLEEP_SPOT_MULT: { bed: 1, elsewhere: 0.75 } as Record<string, number>,
-  SLEEP_ARMOR_MULT: { light: 1, medium: 0.75, heavy: 0.5 } as Record<string, number>,
+  SLEEP_ARMOR_MULT: { light: 1, medium: 1, heavy: 1 } as Record<string, number>, // sleeping in armour makes no difference (less realism; was 1 / 0.75 / 0.5)
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
   /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it

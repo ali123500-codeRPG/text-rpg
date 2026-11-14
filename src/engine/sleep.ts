@@ -22,11 +22,7 @@ import { actorById, allActors, atLeast, hostile, isActive, isAsleep, isEngaged, 
 import { logCode } from './effects';
 import { matchedCritFeat, outmatchedOnce, type ActContest } from './feats';
 
-/** NW14: the perk that lets a sleeper wake to a hearing check (Earshot's 60 perk) */
-export const LIGHT_SLEEPER = PK.light_sleeper;
-export const lightSleeper = (a: Actor): boolean => hasPerk(a, LIGHT_SLEEPER);
-
-/** NW18: what wakes a sleeper. blow: struck; noise: a loud noise heard; heard: Light Sleeper's hearing check passed;
+/** NW18: what wakes a sleeper. blow: struck; noise: a loud noise heard; heard: its hearing check passed (every sleeper sleeps light, NW14);
  * rested: its sleep ran out; watch: its turn on watch */
 export type WakeWhy = 'blow' | 'noise' | 'heard' | 'rested' | 'watch';
 
@@ -58,14 +54,14 @@ export function wakeByEvent(state: GameState, ev: GameEvent): void {
   }
 }
 
-/** NW14/NW19: a light sleeper's hearing check against someone near. Someone sneaking: the sleeper's hearing against
+/** NW14/NW19: a sleeper's hearing check (every sleeper sleeps light: the Light Sleeper perk became everyone's rule) against someone near. Someone sneaking: the sleeper's hearing against
  * their stealth, the contest an awake listener makes. Someone moving openly (making `noise`): a hearing check whose
  * difficulty comes from that noise (CONFIG.WAKE_GRADE: louder is easier). Either way their steps (`noise`, a sneaker's
  * own quieter steps) must reach the sleeper, or there is no roll. Passed, the sleeper wakes aware of them. A sneak's
  * contest joins `act` when given (CS25: the caller counts Against the Odds once for the act), else counts on its own.
  * Both rolls learn (BG-249): the contest marks both sides, the check learns like any check. */
 export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise: NoiseKey, rng: Rng, act?: ActContest[]): boolean {
-  if (!isAsleep(sleeper) || !lightSleeper(sleeper) || !soundCarries(state, sleeper, other, noise)) return false;
+  if (!isAsleep(sleeper) || !soundCarries(state, sleeper, other, noise)) return false;
   let pass = false;
   if (other.posture === 'stealthy') {
     const skill = stealthSkill(other);
