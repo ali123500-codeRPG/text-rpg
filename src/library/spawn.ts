@@ -8,7 +8,7 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { BLESSING_TIERS, CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, NERVE_LINES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
+import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, NERVE_LINES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
 import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng, textSeed } from '../rng';
@@ -556,7 +556,7 @@ export function validateBuild(build: CreationBuild): string[] {
   const errs: string[] = [];
   const st = build.startId ?? PLAYER_START;
   if (!lib.starts[st]) errs.push(`${st} is not a Start`);
-  else if (lib.starts[st].blessing && !blessingGods(lib.starts[st].blessing.tier).length) errs.push(`No god gives a ${BLESSING_TIERS.name(lib.starts[st].blessing.tier)} blessing yet`);
+  else if (lib.starts[st].blessing && !blessingGods(lib.starts[st].blessing.tier).length) errs.push('No god gives this start’s blessing yet');
   const raceId = build.raceId ?? PLAYER_RACE;
   if (!playableRaces().includes(raceId)) errs.push(`${getLibrary().races?.[raceId]?.name ?? raceId} is not a race you can play`);
   else if (lib.starts[st] && raceStartBlock(st, raceId)) errs.push(`This start can't begin: ${raceStartBlock(st, raceId)}`);

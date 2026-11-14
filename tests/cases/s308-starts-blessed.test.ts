@@ -32,7 +32,7 @@ describe('308 Starts and the blessed start', () => {
 
   it('the blessed start can not begin while no god gives a Tier V blessing', () => {
     if (Object.values(getLibrary().perks).some((p) => p.blessing?.tier === 'tier_5')) return; // the extraction blessing is tagged: covered below
-    expect(validateBuild(recommendedBuild(ST.blessed))).toContain('No god gives a Tier V blessing yet');
+    expect(validateBuild(recommendedBuild(ST.blessed))).toContain('No god gives this start’s blessing yet');
   });
 
   it('begins with a random god\'s Tier V blessing, in that god\'s Blessed class; the same story gives the same roll', () => {
