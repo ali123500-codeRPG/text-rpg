@@ -38,11 +38,11 @@ describe('113 action economy', () => {
     const t = makeVillage();
     place(t, 'player', 'field_edge');
     bow(t);
-    t.player.core.inventory.find((i) => i.id === 'bow')!.itemId = IT.longbow; // a medium bow shot takes the whole turn
+    t.player.core.inventory.find((i) => i.id === 'bow')!.itemId = IT.longbow; // a medium bow shot (TP9: 4 s) leaves less of the walk
     const ev2 = turn(t, intent({ toZone: 'gate_inner' }, { type: 'attack', target: 'slime_1' }));
-    expect(t.player.zone).toBe('field_edge');
     expect(ev2.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(true);
-    expect(t.log.some((l) => l.code === 'move_dropped' && (l.detail as { reason?: string }).reason === 'ranged_attack')).toBe(true);
+    expect(walked(ev2)).toBeCloseTo(slotMetres(t, t.player, 'move', CONFIG.FIGHT_TURN_S - actionSeconds(actionRow(DU.bow_medium)!)), 0);
+    expect(walked(ev2)).toBeLessThan(walked(ev));
   });
   it('a ranged attack out of reach gives way to the move', () => {
     const s = makeVillage();
