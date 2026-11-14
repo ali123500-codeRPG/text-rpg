@@ -32,6 +32,18 @@ describe('Character page pop-ups', () => {
     expect(f.next - CONFIG.PERK_MILESTONE_EVERY).toBeLessThanOrEqual(f.value);
   });
 
+  it('BU3: Burden shows on an untagged skill only once it is above 0, and never on a tagged one', async () => {
+    const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+    await g.turn(intent({ action: { type: 'wait' } }));
+    const p = g.game.state()!.player;
+    p.core.skills = { [SK.dodge]: { raw: 40, state: 'normal' }, [SK.insight]: { raw: 90, state: 'tagged' } };
+    p.progression!.potential = { base: 40, adjustments: [] };
+    expect(skillFacts(p, SK.dodge).burden.by).toBe(0); // at Potential: nothing to show
+    p.core.skills[SK.dodge].raw = 40 + 2 * CONFIG.K;
+    expect(skillFacts(p, SK.dodge).burden).toEqual({ by: 2, total: 40 + 2 * CONFIG.K, potential: 40 });
+    expect(skillFacts(p, SK.insight).burden.by).toBe(0); // tagged: no Burden
+  });
+
   it('a skill with nothing but raw lists no parts', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     await g.turn(intent({ action: { type: 'wait' } }));
