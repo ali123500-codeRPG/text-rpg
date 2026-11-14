@@ -432,6 +432,8 @@ const DEFAULTS = {
   /** PO1: pockets everyone has outside the pack, each holding one item (a stack counts as one) no bulkier than
    * POCKET_MAX_BULK (hand-sized: a purse, a ring, a knife, a draught); worn gear adds more (ItemDef.pockets). Placeholders */
   POCKET_SLOTS: 4,
+  /** GD3: a code-run guard asks someone it suspects to open their locked container once every this many turns (placeholder) */
+  SUSPECT_ASK_TURNS: 3,
   POCKET_MAX_BULK: 1,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
   ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,

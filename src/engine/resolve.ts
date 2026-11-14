@@ -48,6 +48,7 @@ import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf
 import { cantSteady, steady } from './steady';
 import { breakInside } from './breakage';
 import { inPack } from './pockets';
+import { isGuard, lockedBoxes, shownInside, suspect } from './suspicion';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
@@ -1249,6 +1250,7 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
   ev.effects.push(...foundEffects(a, won));
   // SE8/SE11: hidden things: on a person seen, their gear; else the ground in reach
   const items = t ? (atLeast(beliefStatus(state, a, t), 'aware') ? { ...searchPerson(state, a, t, rng), hint: false } : { found: [], hint: false }) : searchItems(state, a, rng);
+  if (t && isGuard(a)) for (const box of lockedBoxes(state, items.found)) suspect(state, a, t, box); // GD2 b: a guard's search turns up a locked container
   if (items.found.length) {
     if (items.r) ev.roll = items.r;
     ev.effects.push({ kind: 'found_items', actorId: t?.id ?? a.id, data: { by: a.id, items: items.found.map((i) => i.id), ...(t ? { on: true } : {}) } });
@@ -1375,7 +1377,9 @@ function doOpen(ctx: Ctx, a: Actor, o: Order): void {
   // CT5: a pack its wearer guards is never opened, only reached into (filch)
   if (c && withinGrip(state, a, c.at) && theft(state, a, c) && !(c.holder && wornPack(c.inst)) && !filchStep(ctx, a, o, ownerOf(state, c), c.at, c.inst)) return;
   const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : openContainer(state, a, c, !(c.holder && wornPack(c.inst)));
-  emit(ctx, bark(mk(ctx, a, why ? 'wasted' : 'open', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), ...(why ? { reason: why } : {}) }), o));
+  const ev = bark(mk(ctx, a, why ? 'wasted' : 'open', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), ...(why ? { reason: why } : {}) }), o);
+  emit(ctx, ev);
+  if (c && !why) shownInside(state, c.inst, ev); // GD4 a: opened before a guard who suspects its carrier
 }
 
 /** BF31: breaking a locked container open, within grip reach: the turn's action, loud (heard like a shout). A soft one (a
@@ -1389,7 +1393,11 @@ function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : c.inst.open ? 'already_open' : !c.inst.lock?.locked ? 'not_locked' : null;
   if (why || !c) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), reason: why ?? 'no_container' }), o));
   const owner = theft(state, a, c) ? ownerOf(state, c) : undefined;
-  const done = (ev: GameEvent) => { emit(ctx, bark(ev, o)); if (owner) theftSeen(state, a, owner, itemDef(state, c.inst.itemId).name, ev); };
+  const done = (ev: GameEvent) => {
+    emit(ctx, bark(ev, o));
+    if (owner) theftSeen(state, a, owner, itemDef(state, c.inst.itemId).name, ev);
+    if (ev.breakOpen?.opened) shownInside(state, c.inst, ev); // GD4 a: forced open before a guard who suspects its carrier
+  };
   const ev = (opened: boolean, extra: Partial<GameEvent> = {}) => mk(ctx, a, 'break_open', { target: c.inst.id, itemId: c.inst.id, breakOpen: { opened }, ...extra });
   const held = usableModes(state, a).find((m) => m.mode.tree === 'melee' && !m.itemId.startsWith('natural:'));
   const blade = held && itemDef(state, a.core.inventory.find((i) => i.id === held.itemId)?.itemId ?? '').edge;

@@ -1,4 +1,5 @@
 // One order per active actor: trigger > surrendered > agent (dialogue call, else Planner) > onAlert > routine / combat list.
+import { suspicionOrder } from './suspicion';
 import type { Actor, ActorView, GameState, Intent, NpcAction, Order, Rng, Volume } from '../types';
 import type { NoiseKey } from '../scales';
 import { CONFIG } from '../config';
@@ -184,7 +185,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     const v = views.get(id)!;
     const a = actorById(state, id)!;
     // BF11: one staying where its own agent took it holds there instead of walking its routine
-    out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v));
+    const watch = isEngaged(state, a) ? undefined : suspicionOrder(state, a, v); // GD3: a code-run guard keeps close to someone it suspects
+    out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
   }
   // BF37: a broken nerve takes away any walk, attack or perk move; with nothing allowed left the actor cowers
   for (const id of ids) if (views.get(id)!.self.broken && !views.get(id)!.self.surrendered) out.set(id, nerveHolds(out.get(id)!).order);

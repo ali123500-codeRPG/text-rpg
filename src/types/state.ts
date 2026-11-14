@@ -15,6 +15,8 @@ export type StageInfo = {
   tierBeyond?: number;
   scenarioNumber: number;
   scenarioStartTurn: Turn;
+  /** GD1 b: library item ids a guard is after in this scenario (the Weaver's forbidden goods: weapons in a temple, smuggled wares at a gate) */
+  forbidden?: string[];
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)

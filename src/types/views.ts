@@ -197,6 +197,7 @@ export type ActorView = {
     standDownOffer?: { from: string; landed: string; coin?: string; demand?: 'yield' }; // TF15: an offer to stop fighting, and how it landed with self (answer standDown); demand: TF19, it demands self surrender (answer yields)
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
+    suspects?: { id: ActorId; name: string; item: string }[]; // GD3: whom it suspects over a locked container its search found
     chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
     atChaseLine?: true; // ZR12: it stands at the end of its near chase range, CHASE_NEAR_M past the ground: it turns back
   };

@@ -218,6 +218,8 @@ export type StagePlan = {
   /** CT2: containers the plan places (a chest in a cellar, a tinker's packs): a container item, where it is, its owner,
    * and a lock with who holds its key. What is inside is placed by rewards with place {in: key}. */
   containers?: { key: string; item: string; place: { carriedBy: string } | { groundIn: string }; owner?: string; locked?: { grade?: import('./core').Grade; keys?: string[] } }[];
+  /** GD1 b: library item ids guards here are after this scenario (weapons in a temple, smuggled wares at a gate) */
+  forbidden?: string[];
   hiddenTerms: string[];
   /** SP2: spars under way or agreed when the scenario opens (a training yard, a tournament): each side's cast keys or actor ids */
   spars?: SparMade[];
