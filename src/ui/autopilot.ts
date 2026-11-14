@@ -3,7 +3,8 @@
 // or on its own save (one story per owner: yours and the agent's), and you can switch between them. Mode "Asks me at
 // crossroads" (GA1–GA17) hands the big calls to the watcher in a question card here in the bar.
 import type { GameApi } from '../types';
-import { h } from './kit';
+import { boxOf, h, pointOf, viewSize } from './kit';
+import { arrive } from './motion';
 import { PERSONA_NAMES, VOICE_STYLES, autoPerk, plainLine } from '../agents/autopilot';
 import { type Mcp, type McpError, RPG_DEFAULT_VOICE, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from './rpgVoice';
 import { CONFIG } from '../config';
@@ -74,7 +75,10 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     try { mcp = ((await (globalThis as { claude?: { use(n: string): Promise<unknown> } }).claude?.use('mcp')) ?? null) as Mcp | null; } catch { mcp = null; }
     update();
   })();
-  const el = h('section', { class: 'auto', 'aria-label': 'Watch an agent play' });
+  // a floating pop-up over the play screen (non-modal, dragged by its head), so you watch the story under it while the agent
+  // plays; it stays open beside any details pop-up, and ✕ closes it and pauses the agent
+  const el = h('aside', { class: 'auto', role: 'dialog', 'aria-modal': 'false', 'aria-label': 'Watch an agent play' });
+  let at: { left: number; top: number } | null = null; // where it was dragged to, kept while the page lives
   const opener = h('button', { type: 'button', class: 'hs-btn-text auto-open', title: 'An agent plays while you watch, with spoken commentary',
     onclick: () => { if (open) pause(''); open = !open; update(); } });
   const agentStory = () => api.state()?.meta.owner === 'agent';
@@ -260,7 +264,22 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   const pickBox = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' });
   const fieldsBox = h('div', { class: 'auto-fields' }), goBox = h('div', { class: 'auto-go' });
   const ordersBox = h('div', { class: 'auto-row' }), liveBox = h('div', { class: 'auto-live' });
-  const panel = h('div', { class: 'auto-panel' }, h('div', { class: 'auto-row' }, pickBox, fieldsBox, goBox), ordersBox, liveBox);
+  const close = () => { pause(''); open = false; update(); };
+  const head = h('div', { class: 'dpop-head' }, h('span', { class: 'hs-label' }, 'Watch an agent play'),
+    h('button', { type: 'button', class: 'hs-icon-btn dpop-x auto-x', 'aria-label': 'Close the agent and pause it', title: 'Close (pauses the agent)', onclick: close }, '✕'));
+  head.addEventListener('pointerdown', (ev) => {
+    if ((ev.target as Element).closest('a, button')) return;
+    const b = boxOf(el), p0 = pointOf(ev), dx = p0.x - b.left, dy = p0.y - b.top;
+    const move = (m: PointerEvent) => {
+      const p = pointOf(m), v = viewSize();
+      at = { left: Math.max(0, Math.min(v.w - 80, p.x - dx)), top: Math.max(0, Math.min(v.h - 40, p.y - dy)) };
+      el.style.left = `${at.left}px`; el.style.top = `${at.top}px`;
+    };
+    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  });
+  const panel = h('div', { class: 'auto-panel dpop-body' }, pickBox, fieldsBox, ordersBox, goBox, liveBox);
   /** a list open or a box being typed in inside this part */
   const held = (box: Element) => { const f = document.activeElement; return !!f && box.contains(f) && (f.tagName === 'SELECT' || f.tagName === 'INPUT'); };
   function update() {
@@ -279,8 +298,15 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     // on the agent's own story the opener and the "Agent’s" choice turn yellow instead of a banner (no extra row)
     opener.classList.toggle('auto-agent', agentStory());
     opener.title = agentStory() ? 'You’re watching the agent’s own story. Your story is kept as it is.' : 'An agent plays while you watch, with spoken commentary';
-    if (!open) { el.replaceChildren(); return; }
-    if (el.firstChild !== panel) el.replaceChildren(panel);
+    if (!open) { el.replaceChildren(); el.classList.remove('dpop', 'auto-pop'); return; }
+    if (el.firstChild !== head) {
+      el.classList.add('dpop', 'auto-pop');
+      el.replaceChildren(head, panel);
+      // first opened at the top right, under the header; after a drag, where it was left
+      const v = viewSize(), w = Math.min(460, v.w - 32);
+      el.style.left = `${at?.left ?? Math.max(16, v.w - w - 32)}px`; el.style.top = `${at?.top ?? 96}px`;
+      arrive(el, 0, 6);
+    }
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
     const style = h('select', { 'aria-label': 'Voice style', onchange: (e: Event) => { prefs.style = (e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
@@ -329,7 +355,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       btn('Player’s', () => void useSave('player'), { pressed: !agentStory(), disabled: switching || api.busy(), title: api.busy() ? waitNote : 'The agent plays on your story' }),
       btn('Agent’s', () => void useSave('agent'), { pressed: agentStory(), disabled: switching || api.busy(), agent: true, title: api.busy() ? waitNote : 'The agent plays its own story; yours is kept as it is' }));
     if (!held(fieldsBox)) fieldsBox.replaceChildren(
-      h('label', { class: 'auto-field' }, mode), // its choices name themselves (Plays alone, Asks me at crossroads); the list keeps its Mode label for screen readers
+      h('label', { class: 'auto-field' }, 'Mode', mode),
       h('label', { class: 'auto-field' }, 'Playstyle', persona),
       h('label', { class: 'auto-field' }, 'Pace', wait),
       h('label', { class: 'auto-field' }, 'Style', style),
@@ -337,8 +363,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       h('label', { class: 'auto-field' }, 'Speed', rate));
     goBox.replaceChildren(
       btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
-      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
-      h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'));
+      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }));
     if (!held(ordersBox)) { ordersBox.replaceChildren(orders); ordersBox.hidden = !orders; }
     if (!held(liveBox)) liveBox.replaceChildren(
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), `“${plainLine(said)}”`) : ''),

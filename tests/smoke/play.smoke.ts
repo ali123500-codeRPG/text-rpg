@@ -179,6 +179,18 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('Watch an agent play opens a floating pop-up over Play; its ✕ closes it', async () => {
+    await nav('Play');
+    await page.locator('.auto-open').click();
+    const pop = page.locator('.auto.dpop.auto-pop');
+    await pop.locator('.dpop-head').waitFor();
+    expect(await pop.evaluate((e) => getComputedStyle(e).position)).toBe('fixed');
+    expect(await pop.getByRole('button', { name: 'Play', exact: true }).count()).toBe(1);
+    await pop.locator('.dpop-x').click();
+    await expect.poll(() => page.locator('.auto-pop').count()).toBe(0);
+    expect(errors).toEqual([]);
+  });
+
   it('opens the Inventory with its Coin line and no summary boxes', async () => {
     await nav('Inventory');
     await page.getByText(/^Coin: /).waitFor();
