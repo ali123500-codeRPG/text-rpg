@@ -566,10 +566,10 @@ export function createGame(deps: GameDeps): Game {
         // T18: wear one current achievement as a title; it reaches only people who see you (src/views/index.ts)
         const pr = s.player.progression, list = wearable(s);
         if (!pr) return say('You have no achievements to wear.');
-        if (arg.toLowerCase() === 'off') { delete pr.title; return say('You wear no title now.'); }
+        if (arg.toLowerCase() === 'off') { delete pr.title; amend((x) => { delete x.player.progression?.title; }); return say('You wear no title now.'); } // BF40: saved at once
         const n = Number(arg);
         const pick = arg ? (Number.isInteger(n) ? list[n - 1] : list.find((x) => achievementName(s, x).toLowerCase() === arg.toLowerCase())) : undefined;
-        if (pick) { pr.title = pick.id; return say(`You now go by ${achievementName(s, pick)}. Only people who see you will know it.`); }
+        if (pick) { pr.title = pick.id; amend((x) => { if (x.player.progression) x.player.progression.title = pick.id; }); return say(`You now go by ${achievementName(s, pick)}. Only people who see you will know it.`); }
         if (!list.length) return say('You have no achievements to wear yet.');
         return say([`Title: ${wornTitle(s) ?? 'none'}. Type /title and a number to wear one, or /title off.`,
           ...list.map((x, i) => `${i + 1}. ${achievementName(s, x)}`)].join('\n'));
@@ -579,10 +579,12 @@ export function createGame(deps: GameDeps): Game {
         const pr = s.player.progression;
         const [verb, a1, , a3] = arg.toLowerCase().split(/\s+/);
         const n = (x?: string) => (x && /^\d+$/.test(x) ? Number(x) - 1 : -1);
-        const done = (err: string | null, ok: string) => say(err ?? ok);
-        if (verb === 'take') return done(engine.takeEssence(s, n(a1), engine.playerAtRest(s), a3 !== undefined ? n(a3) : undefined), 'Taken. It is part of you now.');
-        if (verb === 'pass') return done(engine.passEssence(s, n(a1)), 'You let it go.');
-        if (verb === 'remove') return done(engine.removeEssence(s, n(a1), engine.playerAtRest(s)), 'Gone, and it cost you: one level\'s worth of XP.');
+        // BF40 (BG-208): a change to the character saves at once, as a perk pick does: made here, then on the saved story
+        const kept = (change: (x: GameState) => string | null, ok: string) => { const err = change(s); if (!err) amend((x) => { change(x); }); return say(err ?? ok); };
+        const atRest = engine.playerAtRest(s);
+        if (verb === 'take') return kept((x) => engine.takeEssence(x, n(a1), atRest, a3 !== undefined ? n(a3) : undefined), 'Taken. It is part of you now.');
+        if (verb === 'pass') return kept((x) => engine.passEssence(x, n(a1)), 'You let it go.');
+        if (verb === 'remove') return kept((x) => engine.removeEssence(x, n(a1), atRest), 'Gone, and it cost you: one level\'s worth of XP.');
         // ES1–ES6: give or sell an offer to someone you can see, by name ("/essence give 1 to Marta", "/essence sell 1 Mags")
         if (verb === 'give' || verb === 'sell') {
           const pv = views.buildPlayerView(s);
@@ -590,8 +592,10 @@ export function createGame(deps: GameDeps): Game {
           const id = who ? pv.actors.find((x) => (x.name ?? x.label).toLowerCase() === who)?.id ?? pv.actors.find((x) => (x.name ?? x.label).toLowerCase().includes(who))?.id : undefined;
           const to = id ? s.actors.find((x) => x.id === id) : undefined;
           if (!to) return say(`Whom to? Type /essence ${verb} ${a1 ?? '1'} to and a name you can see.`);
-          if (verb === 'give') return done(engine.giveEssence(s, n(a1), to), `It passes to ${seenName(pv, to.id)}.`);
+          const them = (x: GameState) => x.actors.find((y) => y.id === to.id);
+          if (verb === 'give') return kept((x) => engine.giveEssence(x, n(a1), them(x)), `It passes to ${seenName(pv, to.id)}.`);
           const r = engine.sellEssence(s, n(a1), to);
+          if (!('error' in r)) amend((x) => { engine.sellEssence(x, n(a1), them(x)); });
           return say('error' in r ? r.error : `Sold to ${seenName(pv, to.id)} for ${coinWords(r.price)}.`);
         }
         const offers = pr?.essenceOffers ?? [], held = pr?.essences ?? [];
