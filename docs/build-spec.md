@@ -3495,7 +3495,10 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-230 | Playtest turns 53-56: watching from hiding passed 2 seconds a turn | 14/11/2026 | fixed (Ali OK'd the fix, BF58) | Staying hidden and watching is the wait until someone appears. PR #812 |
 | BG-231 | Playtest turns 57-60: no way to wait until someone appears | 14/11/2026 | fixed (Ali OK'd the fix, BF58) | New wait until someone appears, up to 8 hours. PR #812 |
 | BG-232 | Ali's note: the agent keeps repeating the personality's signature | 14/11/2026 | fixed (Ali OK'd the fix, BF59) | Signatures are habits, said only where they fit; command speech joins the said list; word-for-word repeats filed as agent_repeat. PR #820 |
+| BG-239 | Playtest: "The scenario draws to a close" showed before the gains pop-up | 14/11/2026 | fixed (Ali OK'd the fix, BF64) | The line is gone; the perk badge holds its count while the turn runs. PR #824 |
 | BG-240 | Playtest turn 80: an 8-hour wait ended scenario 3 as "worn out" | 14/11/2026 | open (fix plan SW9 awaiting Ali) | The scenario budget counts all game time, so a long wait (and road travel) runs it out; Ali (SW7) wants waits, rest, sleep and trips left out and shorter budgets. |
+| BG-242 | Playtest turns 75-76: no hit pop-up | 14/11/2026 | fixed (Ali OK'd the fix, BF66) | The strike card shows as the turn lands, survives a skip, and shows with motion off. PR #824 |
+| BG-248 | Playtest turn 115: a tapped name in a question added brackets and asked again | 14/11/2026 | fixed (Ali OK'd the fix, BF72) | One way to answer; a tapped name replaces the order's name; the Parser sees its question. PR #824 |
 
 ## Check on release
 
