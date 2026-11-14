@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Giving and taking became trades at no price (BF34). A give holds the item out, from a grip, the pack or the giver's own bag, until the other side takes it by the end of the next turn; an NPC who is not set against the giver takes it at the end of the turn. A new take action is the taker's at once when the item is held out to them, or the owner yielded, surrendered, is down or asleep; anyone else refuses. Both need the grips to reach.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #764](https://github.com/ali123500-codeRPG/text-rpg/pull/764)
 
 ## BG-201
 
