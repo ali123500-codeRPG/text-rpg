@@ -48,11 +48,14 @@ export function happenedLines(state: GameState, events: GameEvent[], defeated: A
   return out;
 }
 
-/** after each turn: add this turn's lines to the running scenario (and the bigger one it sits in) */
+/** after each turn: add this turn's lines to the running scenario (and the bigger one it sits in), or in free roam (SW3 a)
+ * to the roam, with the player's attacks too, since one of them may start the next scenario */
 export function noteHappened(state: GameState, events: GameEvent[], defeated: Actor[]): void {
-  const lines = happenedLines(state, events, defeated);
+  const p = state.player.id, roam = state.stage.roam && !state.stage.scenario ? state.stage.roam : undefined;
+  const attacks = roam ? events.filter((e) => e.kind === 'attack' && (e.actorId === p || e.target === p)).map((e) => `${who(state, e.actorId)} attacked ${who(state, e.target)}`) : [];
+  const lines = [...new Set(attacks), ...happenedLines(state, events, defeated)];
   if (!lines.length) return;
-  for (const f of [state.stage.scenario, state.stage.outer]) {
+  for (const f of [state.stage.scenario, state.stage.outer, roam]) {
     if (!f) continue;
     const list = (f.happened ??= []);
     list.push(...lines.map((text) => ({ turn: state.turn, text })));

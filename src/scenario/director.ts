@@ -314,6 +314,7 @@ export class ScenarioDirector {
 }
 
 function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'stealthy'): ScenarioResult {
+  if (ctx.kind === 'scenario') delete state.stage.cause; // SW3 a: read by this plan's view only
   if (p.plan && p.errors.every((e) => e.routineOnly || e.repaired)) {
     const degrade = p.errors.filter((e) => e.routineOnly);
     applyStagePlan(state, p.plan, ctx, { entry, ...(degrade.length ? { degrade } : {}) }, rng);

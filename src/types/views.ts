@@ -337,7 +337,9 @@ export type WeaverView = {
       /** BG-41: what happened since it began (oldest first), and the memory lines people on the stage kept since then */
       happened: { turn: number; text: string }[]; remembered: { who: string; turn: number; text: string }[] };
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
-    encounter?: { zone: string; danger: string; noticed: boolean } };
+    encounter?: { zone: string; danger: string; noticed: boolean };
+    /** SW3 a: the player's own doing started this scenario in free roam: why, what happened in the roam, who saw them */
+    cause?: { why: string; happened: { turn: number; text: string }[]; seenBy: string[] } };
   headlines: string[];
   /** WZ1 the region's land (absent before any land is drawn) */
   land?: LandView;
