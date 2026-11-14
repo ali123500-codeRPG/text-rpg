@@ -13,7 +13,7 @@ import { falseName } from '../words';
 import type { ExchangeSpeech } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
-import { tally } from './xp';
+import { bested, tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
@@ -219,19 +219,25 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     const t = aT && threat(sp);
     const mine = t ? aT : a;
     if (t && spokespeople.every(threat)) shown = aT;
-    const b = answerRoll(state, state.actors.find((x) => x.id === sp)!, answerSkill(type), p.id, rng);
+    const who = state.actors.find((x) => x.id === sp)!, against = wary(state, who, p); // BS1 d: their stance before the words land
+    const b = answerRoll(state, who, answerSkill(type), p.id, rng);
     const contest = toContest(mine, b);
     const skills = [named, mine.skill, ...(t && mine.skill === SK.intimidation ? INFLUENCE() : [])];
     perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest), ...(type === 'deceive' && contest.winner === 'b' ? { tell: true as const } : {}) };
     // N4a/N4c: a speech contest won counts for the influence skill used, and against a better speaker
     if (contest.winner === 'a' && INFLUENCE().includes(mine.skill)) tally(state, 'speech_won', { by: 'skill', of: mine.skill });
-    if (contest.winner === 'a' && (type === 'persuade' || type === 'deceive')) talkedPast(state, state.actors.find((x) => x.id === sp), p); // GD4 b
+    if (contest.winner === 'a' && (type === 'persuade' || type === 'deceive')) talkedPast(state, who, p); // GD4 b
+    if (contest.winner === 'a' && against && BESTING_SPEECH.includes(type)) bested(state, who); // BS1 d: a won persuasion, lie or threat
     contestFeat(state, contest);
     markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
     if (!fight) countTry(p, sp, type);
   }
   return { skill: shown.skill, playerTier: shown.tier, impression: impressionWords(type, shown.tier) ?? null, perSpokesperson };
 }
+
+/** BS1 d: the speech types whose won contest against someone hostile or opposed bests them (a bribe bests through its
+ * stand-down, in offer.ts) */
+const BESTING_SPEECH: string[] = ['persuade', 'deceive', 'intimidate'];
 
 /** skills with the Influence function (persuasion, intimidation, barter, lying) */
 const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes(FN.influence)).map(([id]) => id);

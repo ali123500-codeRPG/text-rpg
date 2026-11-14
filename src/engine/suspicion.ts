@@ -17,6 +17,7 @@ import { applyMemoryOps } from './memory';
 import { filchAftermath } from './filch';
 import { carriedContents, isContainer } from './containers';
 import { perceptionOf } from '../perception';
+import { bested } from './xp';
 
 export const isGuard = (a: Actor): boolean => a.core.classes.some((c) => c.classId === CL.guard);
 
@@ -40,6 +41,7 @@ function clear(state: GameState, guard: Actor, t: Actor, why: 'shown' | 'talked'
   if (why !== 'caught') stepStance(state, guard, t, 'friendlier');
   const who = nameFor(state, guard, t) ?? 'the stranger';
   if (why !== 'caught') applyMemoryOps(state, guard, { add: [why === 'shown' ? `${who} showed me inside; nothing I was after.` : `${who} talked me out of my suspicion.`], drop: [] });
+  if (why === 'talked' && t === state.player) bested(state, guard); // BS1 d: a suspicion talked away bests the guard
   logCode(state, 'suspicion_cleared', { actorId: guard.id, of: t.id, why });
 }
 
