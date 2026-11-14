@@ -109,19 +109,19 @@ export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean
 
 /** a tier unlock as a reward line */
 export function tierUnlockLine(u: TierUnlock): string {
-  const rolls = u.roll === 'any' ? 'all your rolls' : u.roll === 'event' ? 'your event rolls' : `your ${u.roll} rolls`;
+  const rolls = u.roll === 'any' ? 'all your rolls' : u.roll === 'event' ? 'your event rolls' : u.roll === 'contest' ? 'your contest rolls' : `your ${u.roll} rolls`;
   return u.side === 'up' ? `${rolls} can go +${u.steps} tier${u.steps === 1 ? '' : 's'} past Critical Success`
     : `${rolls} can fall +${u.steps} tier${u.steps === 1 ? '' : 's'} below Critical Failure`;
 }
 /** how many tiers past Critical Success (up) and below Critical Failure (down) the actor has opened on one kind of roll:
  * every current achievement's tierUnlocks along its chain, plus every active owned perk's, for that kind or 'any' (a
- * skill roll with no roll kind reads only 'any') */
-export function tierReach(a: Actor, roll: RollKind | undefined): { up: number; down: number } {
+ * skill roll with no roll kind reads only 'any'); a roll made in a contest also reads 'contest' (D-292) */
+export function tierReach(a: Actor, roll: RollKind | undefined, contest = false): { up: number; down: number } {
   const perks = getLibrary().perks ?? {};
   const all: TierUnlock[] = [
     ...currentAchievements(a).flatMap((x) => chainRewards(x.d).filter((e) => e.field === 'tierUnlocks').flatMap((e) => e.from.tierUnlocks ?? [])),
     ...a.core.perks.filter((p) => !p.dormant).flatMap((p) => perks[p.perkId]?.tierUnlocks ?? []),
-  ].filter((u) => u.roll === 'any' || (roll !== undefined && u.roll === roll));
+  ].filter((u) => u.roll === 'any' || (roll !== undefined && u.roll === roll) || (contest && u.roll === 'contest'));
   const sum = (side: TierUnlock['side']) => all.filter((u) => u.side === side).reduce((n, u) => n + u.steps, 0);
   return { up: sum('up'), down: sum('down') };
 }

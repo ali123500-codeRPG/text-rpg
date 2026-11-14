@@ -192,7 +192,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   // one player roll for every spokesperson: per-listener modifiers (Bane, Shaken, Swayed) count when there is one listener
   const p = state.player;
   const tries = repeatTryMods(p, spokespeople, type); // NT3
-  const req = (actorId: string) => ({ actorId, skill: named, modifiers: tries, tierShifts: [], ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
+  const req = (actorId: string) => ({ actorId, skill: named, modifiers: tries, tierShifts: [], contest: true as const, ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
   // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
   const threat = (sp: string) => {
     const b = state.actors.find((x) => x.id === sp);
@@ -243,13 +243,13 @@ export const tellFor = (listener: Actor | undefined, gap?: number): string =>
  * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
 export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng): RollResult {
   const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
+  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
 }
 
 /** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */
 export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng, listener: Actor = state.player): ContestResult {
   const skill = SPEECH_SKILL[type] ?? SK.persuasion;
-  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: repeatTryMods(speaker, [listener.id], type), tierShifts: [], against: listener.id }, state, rng), answerRoll(state, listener, answerSkill(type), speaker.id, rng));
+  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: repeatTryMods(speaker, [listener.id], type), tierShifts: [], against: listener.id, contest: true }, state, rng), answerRoll(state, listener, answerSkill(type), speaker.id, rng));
   countTry(speaker, listener.id, type);
   contestFeat(state, contest);
   markUse(state, listener, contest.b.skill, contest);
@@ -268,7 +268,7 @@ export function overhearLie(state: GameState, ev: GameEvent, answered: string[],
     if (o.id === speaker.id || answered.includes(o.id) || !isActive(o) || !hasPerk(o, PK.overheard)) continue;
     const heard = ev.perception?.[o.id];
     if (!hearsWords(heard)) continue;
-    roll ??= ruleset.roll({ actorId: speaker.id, skill: SK.lying, modifiers: [], tierShifts: [] }, state, rng);
+    roll ??= ruleset.roll({ actorId: speaker.id, skill: SK.lying, modifiers: [], tierShifts: [], contest: true }, state, rng);
     const contest = toContest(roll, answerRoll(state, o, SK.insight, speaker.id, rng));
     contestFeat(state, contest);
     markUse(state, o, contest.b.skill, contest);

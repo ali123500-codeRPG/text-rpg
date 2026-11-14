@@ -941,6 +941,8 @@ export function prototypeLibrary(): Library {
       [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1 },
       // the deepest of the near-death depths (Critical, Down and back, the survival roll): depth pays more than count
       [ACH.survival_roll_1]: { id: ACH.survival_roll_1, name: 'Woke Up Anyway', level: 'ii', rule: 'survival_rolls', tags: ['combat', 'survival'], count: 1, maxMorale: 10 },
+      // D-292: one time; your contest rolls can go one tier past Critical Success (name and reward level are placeholders)
+      [ACH.matched_crit_1]: { id: ACH.matched_crit_1, name: 'Perfect Meets Perfect', level: 'i', rule: 'matched_crits', tags: ['skill'], count: 1, tierUnlocks: [{ roll: 'contest', side: 'up', steps: 1 }] },
       [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10 },
       [ACH.holds_100]: { id: ACH.holds_100, name: 'No Getting Loose', level: 'ii', rule: 'holds', tags: ['combat', 'skill'], count: 100, after: ACH.holds_10 },
       [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10 },

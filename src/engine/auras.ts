@@ -53,7 +53,7 @@ export function engagementAuras(state: GameState, rng: Rng, fear: AuraFear): Aur
       for (const t of allActors(state)) {
         if (t.auraChecks?.includes(key(aura, owner)) || !inReach(state, owner, t)) continue;
         (t.auraChecks ??= []).push(key(aura, owner));
-        const contest = toContest(ruleset.roll({ actorId: owner.id, skill: aura.skill, modifiers: [], tierShifts: [], against: t.id }, state, rng), moraleRoll(state, t, rng));
+        const contest = toContest(ruleset.roll({ actorId: owner.id, skill: aura.skill, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), moraleRoll(state, t, rng, 0, [], true));
         markUse(state, owner, contest.a.skill, contest); // I8: both sides mark, like any contest
         markUse(state, t, contest.b.skill, contest);
         contestFeat(state, contest);
@@ -109,7 +109,7 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
   for (const t of allActors(state)) {
     if (t === owner || !isActive(t) || !(ev.perception[t.id] ?? perceptionOf(ev, state, t))) continue;
     if (wary(state, t, owner)) {
-      const contest = toContest(ruleset.roll({ actorId: owner.id, skill: SK.intimidation, modifiers: [], tierShifts: [], against: t.id }, state, rng), moraleRoll(state, t, rng));
+      const contest = toContest(ruleset.roll({ actorId: owner.id, skill: SK.intimidation, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), moraleRoll(state, t, rng, 0, [], true));
       markUse(state, owner, contest.a.skill, contest);
       markUse(state, t, contest.b.skill, contest);
       contestFeat(state, contest);

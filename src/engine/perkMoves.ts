@@ -76,7 +76,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   if (perk === PK.bluff) {
-    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng));
+    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng));
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c);
     markUse(state, t, c.b.skill, c);

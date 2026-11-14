@@ -161,7 +161,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const margin = rollMargin(d, eff.value, modifiers);
   const shifts = [...req.tierShifts];
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
-  let level = tierOf(d, eff.value, modifiers, shifts, tierReach(actor, req.rollKind)); // unclamped (Part 1 §4)
+  let level = tierOf(d, eff.value, modifiers, shifts, tierReach(actor, req.rollKind, !!req.contest)); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
   const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
@@ -185,8 +185,8 @@ export const toContest = (a: RollResult, b: RollResult): ContestResult => {
 
 function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult {
   const noAim = (r: RollRequest) => ({ ...r, modifiers: r.modifiers.filter((m) => m.type !== 'aim') });
-  const ra = ruleset.roll(noAim({ ...a, against: a.against ?? b.actorId }), state, rng);
-  const rb = ruleset.roll(noAim({ ...b, against: b.against ?? a.actorId }), state, rng);
+  const ra = ruleset.roll(noAim({ ...a, against: a.against ?? b.actorId, contest: true }), state, rng);
+  const rb = ruleset.roll(noAim({ ...b, against: b.against ?? a.actorId, contest: true }), state, rng);
   return toContest(ra, rb);
 }
 
@@ -257,9 +257,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
     ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
-  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns, blend: mode.blend }, state, rng);
+  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend }, state, rng);
   const atkEff = mode.blend ? blendedSkill(state, A, mode.blend, { itemId: req.weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, skill, { itemId: req.weaponId });
-  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit'));
+  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit', true));
 
   const base: Omit<AttackResult, 'outcome' | 'deciding'> = {
     attack: atk, ...(req.context?.defenderUnaware ? { unaware: true as const } : {}), defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
@@ -291,9 +291,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
   }
   dm.push(...(req.context?.defenderMods ?? []));
-  const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
+  const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id, contest: true }, state, rng);
   const defEff = effectiveSkill(state, D, DEFENSE_SKILL[type], { itemId: blocker?.id });
-  const defDeciding = decidingOf(def, defEff.value, defEff.gear, tierReach(D, type));
+  const defDeciding = decidingOf(def, defEff.value, defEff.gear, tierReach(D, type, true));
 
   // 4. gap
   const gapShifts: TierShift[] = [];
@@ -527,9 +527,9 @@ export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: 
 
 /** the morale roll (MB4, MB30): the actor's Resolve (the Morale function), with wounds (health and morale, MB35),
  * the player's renown on every morale roll of a foe fighting the player (MB24) and rally on allies beside the player */
-export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0, extra: Mod[] = []): RollResult {
+export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0, extra: Mod[] = [], contest = false): RollResult {
   const mods = [...renownMods(state, actor, actor !== state.player && hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor)), ...extra];
-  return roll({ actorId: actor.id, skill: SK.resolve, modifiers: mods, tierShifts: shift ? [{ source: 'fear', value: shift }] : [] }, state, rng);
+  return roll({ actorId: actor.id, skill: SK.resolve, modifiers: mods, tierShifts: shift ? [{ source: 'fear', value: shift }] : [], ...(contest ? { contest: true as const } : {}) }, state, rng);
 }
 
 /** skills the actor has rolled that are not on its sheet: shown with raw 0 so a fist fighter sees Unarmed strike */

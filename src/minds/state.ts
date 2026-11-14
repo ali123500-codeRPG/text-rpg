@@ -17,7 +17,7 @@ import { hasPerk } from '../ruleset/perks';
 import { bindTemplate, expandSteps, HEAD_TO, offeredRoutines, slotsRead } from './routines';
 import { SK, SENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
-import { contestFeat } from '../engine/feats';
+import { contestFeat, matchedCritFeat } from '../engine/feats';
 import { tally } from '../engine/xp';
 import { journalOf } from '../engine/trail';
 
@@ -464,14 +464,15 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
     .map((id) => actorById(state, id))
     .filter((o): o is Actor => !!o && isActive(o) && !atLeast(beliefStatus(state, o, attacker), 'aware')); // NS6: the player too
   if (!observers.length) return { surprised: false };
-  const ambush: RollResult = ruleset.roll({ actorId: attackerId, skill: ambushSkill(state, attacker, attackEvent.itemId), modifiers: [], tierShifts: [], itemId: attackEvent.itemId }, state, rng);
+  const ambush: RollResult = ruleset.roll({ actorId: attackerId, skill: ambushSkill(state, attacker, attackEvent.itemId), modifiers: [], tierShifts: [], itemId: attackEvent.itemId, contest: true }, state, rng);
   let surprised = false;
   const target = actorById(state, targetId);
   const spar = !!target && sparring(state, attacker, target); // SP11: a sparring blow from hiding raises no alarm
   for (const o of observers) {
     const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
-    const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill }, state, rng); // function roll
+    const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill, contest: true }, state, rng); // function roll
     const contest = toContest(ambush, p), gap = contest.gap;
+    matchedCritFeat(state, contest); // D-292
     // the watcher's sense learns from the ambush contest (only the player keeps marks)
     markUse(state, o, p.skill, contest);
     if (o.id === targetId && gap < 0) surprised = true;

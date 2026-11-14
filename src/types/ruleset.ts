@@ -54,6 +54,8 @@ export type RollRequest = {
   roles?: import('./library').RoleId[];
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
   against?: string;
+  /** a roll made as one side of a contest: tier unlocks for roll 'contest' apply (D-292) */
+  contest?: true;
   /** a Near Miss on this roll counts one tier higher, with this source (All-50 Hushed Steps against listeners) */
   nearMissUp?: string;
 };
