@@ -311,6 +311,25 @@ describe('125 All-50 moves', () => {
     const plain = fight(u, 'patron_1', 'w_player', (r) => ({ ...r, attack: { ...r.attack, tier: 'failure' as const }, outcome: 'missed' as const, damage: 0, location: null }));
     expect(plain[1]).not.toEqual({ by: 'patron_1', at: 'player' }); // a plain Failure gives nothing at once
   });
+  it('Counter answers every fumbled blow, two in one round too (D-336)', () => {
+    const s = makeVillage();
+    beside(s, 'patron_1');
+    arm(s, 'patron_1');
+    for (const i of s.player.core.inventory) delete i.equippedIn; // bare hands: Flurry's free strike lands in the same round
+    give(s.player, PK.flurry);
+    give(s.actors.find((a) => a.id === 'patron_1')!, PK.counter);
+    const calls: { by: string; at: string }[] = [];
+    const real = ruleset.attack;
+    vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
+      calls.push({ by: req.attackerId, at: req.targetId });
+      const r = real(req, st, forcedRng([50, 50, 50, 50]));
+      return req.attackerId === 'player' ? fumble(r) : r;
+    });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
+    const blows = calls.filter((c) => c.by === 'player').length;
+    expect(blows).toBeGreaterThanOrEqual(2);
+    expect(calls.filter((c) => c.by === 'patron_1').length).toBeGreaterThanOrEqual(blows); // a Counter for each (its own blows may add)
+  });
   it('Second Wind: once per engagement, at Wounded or worse the health track moves one level better', () => {
     const s = makeVillage();
     beside(s, 'patron_1');

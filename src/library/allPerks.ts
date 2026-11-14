@@ -59,7 +59,7 @@ export const ALL_PARTS: PerkWriteup[] = [
   part(TR.melee, { id: PK.counter, ref: 'T1c', name: 'Counter', effect: 'defense',
     story: 'A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.',
     rules: { kind: 'Always on', trigger: 'A melee attack on the owner is resolved.',
-      conditions: ['The attack roll ends in Critical Failure or worse.', 'The attack was not itself a free attack.', 'The owner is active, in the attacker\'s zone, and its default mode at that range is melee or unarmed.', 'Once per turn.'],
+      conditions: ['The attack roll ends in Critical Failure or worse.', 'The attack was not itself a free attack.', 'The owner is active, in the attacker\'s zone, and its default mode at that range is melee or unarmed.'],
       effect: 'The owner makes one attack at the attacker at once, with that mode. It does not use the owner\'s action.', lasts: 'That attack.' } }),
   part(TR.melee, { id: PK.fighters_frame, ref: 'T1d', name: "Fighter's Frame", effect: 'defense',
     story: 'A body hardened by a thousand bouts. Melee blows that get past your armor cost you a tenth less health.',

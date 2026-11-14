@@ -326,7 +326,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner parries a melee attack with a medium melee weapon.",
       conditions: [],
-      effect: "The parry's free strike back comes at a gap 2 lower (ANSWER_THE_BLOW_DROP): +1 instead of +3. The damage the parry lets through is unchanged. The strike is still once per turn.",
+      effect: "The parry's free strike back comes at a gap 2 lower (ANSWER_THE_BLOW_DROP): +1 instead of +3. The damage the parry lets through is unchanged. A strike back earns no strike back of its own.",
       lasts: "Each parry." } },
   // Sword-dancer mirror of Answer the Blow: the same strike back, off a dodge instead of a block
   { id: PK.step_and_cut, ref: "B18b", name: "Step and Cut", skill: SK.blade_dance, place: "higher",
@@ -334,7 +334,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     story: "The blade passes where you were a moment ago. When you slip a blow cleanly with a light or medium weapon in hand, you cut back at once.",
     rules: { kind: "Always on",
       trigger: "The owner dodges a melee attack while holding a light or medium melee weapon.",
-      conditions: ["The gap is +2 or better for the owner.", "The attack was not itself a free attack.", "Once per turn."],
+      conditions: ["The gap is +2 or better for the owner.", "The attack was not itself a free attack."],
       effect: "The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.",
       lasts: "That attack." } },
   { id: PK.blade_wall, ref: "B19", name: "Blade Wall", skill: SK.parry, place: "higher",
