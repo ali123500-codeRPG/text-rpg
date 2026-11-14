@@ -204,6 +204,15 @@ const DEFAULTS = {
    * visibilityLevels rows); null = nothing to see. Sight distance is never under NEAREST_M (seeingM), so a level made
    * out only nearer than that (faint) is at most glimpsed. A dark zone caps sight at partial. */
   SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
+  // ---- making out what is half seen or half heard (PG3-PG9; placeholders) ----
+  /** PG4 a: a make-out roll's grade for something half seen: by how far past its clear range it is, as a share of the way
+   * to its glimpse range (CONFIG.SIGHT_M), the first row whose share it is within */
+  MAKE_OUT_SIGHT_GRADES: [[0.25, 'minor'], [0.5, 'moderate'], [0.75, 'major'], [1, 'extreme']] as [number, GradeLevel][],
+  /** PG4 a: darkness where it happens makes the sight grade this many steps harder (Night Eyes cancels it) */
+  MAKE_OUT_DARK_STEPS: 1,
+  /** PG4 a: a make-out roll's grade for something half heard: by the decibels it reaches above HEARING_FLOOR_DB, the first
+   * row it reaches (clear starts at CLEAR_ABOVE_FLOOR_DB, 15) */
+  MAKE_OUT_SOUND_GRADES: [[11, 'minor'], [7, 'moderate'], [3, 'major'], [0, 'extreme']] as [number, GradeLevel][],
   // ---- searching (SE20, SE21, SE24, SA8; placeholders) ----
   /** SE20: what one search covers outside a fight at the base skill: the game's room size (a tavern common room) */
   SEARCH_AREA_M2: 60,

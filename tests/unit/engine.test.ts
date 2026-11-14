@@ -103,6 +103,9 @@ vi.mock('../../src/perception', async () => {
   stealthEnd: () => {},
   lookAround: () => [],
   noticeCue: () => undefined,
+  // PG3: perceived fully above, so nothing to make out
+  hasWords: () => false,
+  faintness: () => null,
   };
 });
 

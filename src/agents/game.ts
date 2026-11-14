@@ -1314,6 +1314,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   // ER5: a scenario's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
   if (eventRoll) out.push(`Event roll d100 ${eventRoll.roll} → ${tierName(eventRoll)}${mods(eventRoll.modifiers)}`);
   for (const e of events) {
+    // PG9: the player's make-out roll on something half seen or half heard
+    if (e.madeOut) out.push(`${roll(e.madeOut.roll)} to make out ${name(e.actorId).toLowerCase() === 'someone' ? 'someone' : name(e.actorId)} vs difficulty ${e.madeOut.target}: ${e.madeOut.passed ? 'made out' : 'not made out'}`);
     const target = e.attack?.targetId ?? e.target;
     if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;
     if (e.attack) {

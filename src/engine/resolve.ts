@@ -26,6 +26,7 @@ import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './h
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
+import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView, seesClearlyNow } from '../views';
 import { UNREACHABLE } from '../minds/routines';
@@ -330,6 +331,7 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   }
   wakeByEvent(state, ev); // NW18: a blow or a loud noise wakes sleepers first, so they hear what woke them
   if (!perceived) ev.perception = computePerception(ev, state, rng);
+  makeOut(state, ev, rng); // PG3: what is half seen or half heard may be made out
   noteSightings(ev, state);
   updateBeliefs(state, { kind: 'event', event: ev, result });
   if (ev.actorId === state.player.id && isMajorAction(ev)) detectPlayer(state, ev, rng);
@@ -1362,7 +1364,7 @@ function doStash(ctx: Ctx, a: Actor, o: Order): void {
   const watchers = Object.entries(ev.perception).filter(([id, p]) => p.level === 'full' && p.cue === 'sight' && id !== a.id).map(([id]) => actorById(state, id)).filter((w): w is Actor => !!w);
   for (const w of watchers) if (!inst.knownTo.includes(w.id)) inst.knownTo.push(w.id);
   // SE25 a: a stash learns against the best sight skill watching it; unwatched, it learns nothing
-  if (watchers.length) markAgainst(state, a, r, Math.max(...watchers.map((w) => trueSkill(w, fnRoller(state, w, FN.sight)))));
+  if (watchers.length) markAgainst(state, a, r, Math.max(...watchers.map((w) => trueSkill(w, fnRoller(state, w, FN.sight)))), false); // seen by them: nothing beaten
 }
 
 /** the barrier on the way from `a`'s zone to `to`, and that link */

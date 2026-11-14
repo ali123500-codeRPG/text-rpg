@@ -41,16 +41,14 @@ describe('269 search learning and secrets', () => {
     expect(tierSkill('critical_failure')).toBe(0);
   });
 
-  it('SE25 a: a search learns against the stasher\'s stealth skill: inside the window it marks, far above it does not', () => {
-    const s = makeVillage({ playerZone: 'street_square' });
+  it('SE25 a: a search learns against the stasher\'s stealth skill: inside the window it marks, far above only when found (PG2)', () => {
     rigRolls('success');
-    hideHere(s, { hiderSkill: 25 }); // the player's Eyesight is 25
-    play(s, search());
-    expect(marks(s, SK.eyesight)).toBe(1);
-    const t = makeVillage({ playerZone: 'street_square' });
-    hideHere(t, { hiderSkill: 200 });
-    play(t, search());
-    expect(marks(t, SK.eyesight)).toBe(0);
+    // PG3: half-seen people around may be made out (and mark Eyesight) the same in every run, so count against a run with nothing hidden
+    const run = (over?: object) => { const s = makeVillage({ playerZone: 'street_square' }); if (over) hideHere(s, over); play(s, search()); return marks(s, SK.eyesight); };
+    const base = run();
+    expect(run({ hiderSkill: 25 }) - base).toBe(1); // the player's Eyesight is 25
+    expect(run({ hiderSkill: 200 }) - base).toBe(0); // not found, far above: no mark
+    expect(run({ hiderSkill: 200, hiddenAt: { tier: 'near_miss' } }) - base).toBe(1); // PG2: found, it teaches however far above
   });
 
   it('SE25 a: a stash keeps the stasher\'s stealth skill on the item; unwatched it learns nothing', () => {

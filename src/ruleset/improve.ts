@@ -35,7 +35,7 @@ export function clearMarkCounts(actor: Actor): void {
 }
 
 /** SP2: does `opposition` teach this skill? From MARK_WINDOW below raw skill up to MARK_WINDOW above true skill; a won
- * contest has no top (a win against a stronger side teaches). A skill not on the sheet counts as raw 0. */
+ * contest or a passed check has no top (beating something stronger teaches, PG2). A skill not on the sheet counts as raw 0. */
 function close(actor: Actor, skill: string, opposition: number, won = false): boolean {
   return inWindow(learningWindow(actor.core.skills[skill]?.raw ?? 0, trueSkill(actor, skill)), opposition, won);
 }
@@ -106,8 +106,9 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
     for (const p of r.parts ?? []) if (p !== r.skill) markIfClose(state, who, p, opp, force, won); // a combined roll: every part learns
   };
   if ('target' in result) {
-    for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target);
-    markAugments(state, actor, result, result.target);
+    // PG2: a passed check has no top to its window, like a won contest (the stand-in's asked skill keeps its window)
+    for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target, false, result.passed && sk !== result.asked);
+    markAugments(state, actor, result, result.target, false, result.passed);
     return;
   }
   if ('a' in result) {

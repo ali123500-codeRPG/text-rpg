@@ -227,6 +227,9 @@ export type GameEvent = {
   check?: import('./ruleset').CheckResult;
   /** Q17: the player's look, a sight roll */
   roll?: import('./ruleset').RollResult;
+  /** PG3/PG9: the player's make-out roll on this event (something half seen or half heard): its difficulty and whether
+   * it made it out; shown only with Show rolls on */
+  madeOut?: { roll: import('./ruleset').RollResult; target: number; passed: boolean };
   speech?: { skill: string; impression?: string; addressees: string[] }; // dialogue-turn speech
   /** OQ-29: an NPC's speech roll at the player: the speech type, whether it landed, the penalty it left, a lie the player saw
    * through, and whether the speaker saw how it was taken */
