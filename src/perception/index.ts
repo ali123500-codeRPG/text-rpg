@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
 import { seeingM, type Located } from '../engine/position';
-import { sightLevel } from './sight';
+import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { now, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
@@ -134,11 +134,10 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // BG-23: a leg out of a zone is seen where it set off as well as where it ended (someone walking out through a door
   // in plain sight is seen going, though the room beyond is out of sight)
   if (event.fromZone) sight = better(sight, seenAt({ zone: event.fromZone, pos: event.fromPos }));
-  // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
-  if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
-    const d = seeingM(state, observer, at);
-    if (d !== null && d <= lookReach()) sight = { level: 'full', cue: 'sight' };
-  }
+  // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see); BG-252
+  // (PG11 a): as long as they can still be glimpsed, the same rule as Who's here (seenActors)
+  if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone
+    && stillGlimpsed(event.visibility, seeingM(state, observer, at))) sight = { level: 'full', cue: 'sight' };
   const nl = soundReach(state, observer, at, event.noise, leansIn(event, observer));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
