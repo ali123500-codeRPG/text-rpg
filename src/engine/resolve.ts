@@ -28,6 +28,7 @@ import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
+import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, blindSpotNow, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
@@ -1043,6 +1044,24 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
 /** NW18: what a sleeper does on its turn: nothing, asleep */
 const asleepOrder = (a: Actor): Order => ({ actorId: a.id, type: 'idle', target: null, skill: null, intent: 'asleep', source: a.kind === 'player' ? 'player' : 'routine', activity: 'sleep' });
 
+/** CS22: an NPC whose routine spot has no path from where it stands logs routine_unreachable once, with the zone it
+ * stands in and the zone it can't reach. It logs again only after its routine found a way (a routine walk) or it got
+ * there, so a map that strands an NPC leaves one line, not one a turn. */
+function noteUnreachable(state: GameState, orders: Map<string, Order>): void {
+  for (const [id, o] of orders) {
+    const a = actorById(state, id), m = a?.mind;
+    if (!a || !m || o.source !== 'routine') continue;
+    if (o.intent !== UNREACHABLE) {
+      if (m.unreachable && (o.type === 'move' || a.zone === m.unreachable.to)) delete m.unreachable;
+      continue;
+    }
+    const to = desiredState(buildActorView(state, id))?.zone;
+    if (!to || (m.unreachable?.from === a.zone && m.unreachable.to === to)) continue;
+    m.unreachable = { from: a.zone, to };
+    logCode(state, UNREACHABLE, { actorId: id, from: a.zone, to });
+  }
+}
+
 /** the clock moves on; natural recovery runs for that time (H12–H15) */
 function passTime(state: GameState, minutes: number): void {
   advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
@@ -1052,8 +1071,8 @@ function passTime(state: GameState, minutes: number): void {
 
 /** NW12/NW15/NW18: the player's night runs on. The clock steps SLEEP_STEP_MIN at a time (to the next change of watch
  * at most): everyone moves on toward their routines (catchUp), sleeps or keeps watch by the plan, and NPCs sleep by
- * their routines. It stops when someone hostile to the player arrives in the player's zone: the clock has moved on only
- * that far, they are there, and each light sleeper there may hear them (NW14). The player's sleep heals a rest per
+ * their routines. It stops when someone hostile to the player comes near (CS20: their steps reach the player): the clock
+ * has moved on only that far, they are there, and each light sleeper they came near may hear them (NW14). The player's sleep heals a rest per
  * REST_COOLDOWN_MIN asleep and counts as the last rest. Returns the minutes it ran. */
 function runNight(ctx: Ctx): number {
   const { state, rng } = ctx;
@@ -1062,7 +1081,7 @@ function runNight(ctx: Ctx): number {
   if (!n) return 0;
   const t0 = now(state);
   const noiseOf = (x: Actor) => armorNoise(state, x, 'move', SENSE.move[0]);
-  let present = new Set(hostilesNear(state, p).map((x) => x.id));
+  let present = new Set(hostilesNear(state, p, noiseOf).map((x) => x.id));
   applyNightPhase(state);
   while (now(state) < n.end && !n.woke.includes(p.id) && isActive(p)) {
     const t = now(state);
@@ -1078,13 +1097,13 @@ function runNight(ctx: Ctx): number {
     }
     applyNightPhase(state);
     settleSleepers(state);
-    const here = hostilesNear(state, p);
+    const here = hostilesNear(state, p, noiseOf);
     // AT42/AT71: a newcomer stops it, and so does a foe after the player that reached them (its blow comes next turn)
     const came = [...new Set([...here.filter((x) => !present.has(x.id)).map((x) => x.id), ...reached])].map((id) => actorById(state, id)!);
     if (came.length) {
       logCode(state, 'sleep_stopped', { actorId: p.id, by: came.map((x) => x.id) });
       (state.scratch ??= {}).nightStopped = true; // the next turn starts with them there
-      for (const s of allActors(state).filter((x) => isAsleep(x) && x.zone === p.zone)) for (const x of came) if (wakeCheck(state, s, x, noiseOf(x), rng)) break;
+      for (const s of allActors(state).filter(isAsleep)) for (const x of hostilesNear(state, s, noiseOf).filter((h) => came.includes(h))) if (wakeCheck(state, s, x, noiseOf(x), rng)) break;
       break;
     }
     present = new Set(here.map((x) => x.id));
@@ -2020,6 +2039,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // shouts to wake its sleeping bandmates
   for (const id of [...orders.keys()]) { const x = actorById(state, id); if (x && x !== state.player && isAsleep(x)) orders.set(id, asleepOrder(x)); }
   for (const c of wakeCalls(state)) orders.set(c.actorId, c);
+  noteUnreachable(state, orders);
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {

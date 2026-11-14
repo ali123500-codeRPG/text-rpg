@@ -301,3 +301,20 @@ describe('leftover scan round 8', () => {
     expect(t.match(/\['block', 'parry', 'dodge'\]/g)?.length).toBe(1);
   });
 });
+
+describe('answers CS20 to CS22', () => {
+  it('CS20: sleep checks who is near by sound; no sleeper loop reads the zone as the distance', () => {
+    const sleep = readFileSync('src/engine/sleep.ts', 'utf8') as string, resolve = readFileSync('src/engine/resolve.ts', 'utf8') as string;
+    expect(sleep).not.toMatch(/x\.zone === a\.zone && hostile/);
+    expect(resolve).not.toMatch(/isAsleep\(x\) && x\.zone === p\.zone/);
+  });
+  it('CS21: D-3 is settled; effective skill has no hard cap step', () => {
+    expect(readFileSync('src/ruleset/gear.ts', 'utf8') as string).not.toMatch(/GAP: hard cap/);
+    const spec = readFileSync('docs/build-spec.md', 'utf8') as string;
+    expect(spec).not.toMatch(/apply hard cap/);
+    expect(spec).toMatch(/\| D-3 \| Soft cap and hard cap \| 1 \| Built \|/);
+  });
+  it('CS22: routine_unreachable is logged, not promised', () => {
+    expect(readFileSync('src/minds/routines.ts', 'utf8') as string).not.toMatch(/routine_unreachable \[Proposed\]/);
+  });
+});

@@ -125,7 +125,8 @@ function headFrontier(view: ActorView): string | null {
   return g?.frontier && g.zone === view.self.zone ? g.frontier : null;
 }
 
-/** marks a routine order whose desired zone has no path; the engine logs routine_unreachable [Proposed]. */
+/** marks a routine order whose desired zone has no path: the NPC idles where it stands, and the engine logs
+ * routine_unreachable once for it (CS22, noteUnreachable in src/engine/resolve.ts). */
 export const UNREACHABLE = 'routine_unreachable';
 
 export function routineOrder(view: ActorView): Order {

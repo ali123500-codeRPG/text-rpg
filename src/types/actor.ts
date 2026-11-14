@@ -228,6 +228,8 @@ export type Mind = {
   errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
   /** AT63: time ran on past its agent's order (a stretch or a night) while it went on by code; its next Planner call is told */
   meanwhile?: { turn: number; seconds: number };
+  /** CS22: its routine spot (to) has no path from where it stands (from); routine_unreachable was logged for this pair */
+  unreachable?: { from: string; to: string };
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;
