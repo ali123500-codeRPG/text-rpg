@@ -1131,6 +1131,11 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-note text { fill: var(--muted); font: 600 11px var(--font-round); }
 .map-note.away rect { stroke: var(--accent); stroke-dasharray: none; }
 .map-note.away text { fill: var(--text); }
+/* an unexplored exit is clickable too: its card has Move to here; the picked one is marked like a picked zone */
+.map-exit.open, .map-note.open, .map-stair.unknown, .map-stub[data-exit], .map-pill.unknown[data-exit] { cursor: pointer; }
+.map-note.open:hover rect, .map-note.picked rect { stroke: var(--scenario-mark); }
+.map-note.picked text { fill: var(--text); }
+.map-exit.picked line { stroke: var(--scenario-mark); }
 .map-door .gap { fill: var(--bg); stroke: none; }
 .map-door.group circle { fill: var(--bg); stroke: var(--text); stroke-width: 1.5; }
 .map-door .leaf { fill: var(--muted); stroke: none; }

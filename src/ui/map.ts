@@ -157,12 +157,21 @@ function edgeOf(c: Pt, w: number, hh: number, to: Pt): Pt {
 /** the order "Move to here" types into the action box: the zone by its name, with "the" before a plain one */
 export const moveOrder = (name: string): string => `I go to ${/^(the|a|an)\s/i.test(name) || /^[A-Z]/.test(name) ? name : `the ${name}`}`;
 
-/** onMove: "Move to here" on a zone's card hands its order to Play's action box (typed, not sent) */
+/** an exit you have not taken, as an order: "back out to the road" reads "I go back out to the road", "the hut door"
+ *  reads "I go to the hut door" */
+export const exitOrder = (label: string): string =>
+  /^(back|out|up|down|through|into|in|toward|towards|across|over|past|along|onto|on|to|north|south|east|west|behind|under|outside|inside|around)\b/i.test(label) ? `I go ${label}` : moveOrder(label);
+
+/** onMove: "Move to here" on a zone's or an unexplored exit's card hands its order to Play's action box (typed, not sent) */
 export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   const el = h('main', { class: 'map-page' });
   // one map per top-level place (a "world"): the village, the tavern in it and the field beside it share one layout,
   // each inner place drawn as an outlined area. `focus` is the place picked in the list or the crumbs.
   let focus = '', selected = '', lastHere = '';
+  /** an unexplored exit picked on the map: its card offers Move to here */
+  let exitSel: { zoneId: string; label: string } | null = null;
+  /** what makes an unexplored exit clickable: the zone it leaves and its words */
+  const exitAttrs = (zoneId: string, label: string) => ({ 'data-exit': label, 'data-exit-from': zoneId, tabindex: 0, role: 'button', 'aria-label': `${label}: unexplored, click for Move to here` });
   const spots = new Map<string, Map<string, Pt>>(); // per world
   const separated = new WeakSet<Map<string, Pt>>(); // layouts already pushed apart (separate)
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
@@ -329,8 +338,10 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   svg.addEventListener('pointercancel', endDrag);
   svg.addEventListener('wheel', (e) => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, { x: e.clientX - r.left, y: e.clientY - r.top }); }, { passive: false });
   const pick = (t: Element | null) => {
-    const z = t?.closest('[data-zone]'), a = t?.closest('[data-area]'), g = t?.closest('[data-goto]');
-    if (g) goTo(g.getAttribute('data-goto')!);
+    const z = t?.closest('[data-zone]'), a = t?.closest('[data-area]'), g = t?.closest('[data-goto]'), x = t?.closest('[data-exit]');
+    exitSel = null;
+    if (x) { selected = x.getAttribute('data-exit-from')!; exitSel = { zoneId: selected, label: x.getAttribute('data-exit')! }; draw(); }
+    else if (g) goTo(g.getAttribute('data-goto')!);
     else if (z && world === WORLD && isRoad(z.getAttribute('data-zone')!)) { selected = focus = z.getAttribute('data-zone')!; draw(); } // RD2: its card
     else if (z && world === WORLD) show(z.getAttribute('data-zone')!);
     else if (z) { selected = z.getAttribute('data-zone')!; focus = worldZones().find((x) => x.id === selected)?.placeId ?? focus; draw(); }
@@ -459,10 +470,14 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
         const away = l.known ? allZones().find((x) => x.id === l.to) : undefined;
         const awayName = away ? placeOf(rootOf(away.placeId))?.name ?? away.name : '';
         const text = away ? `${l.label} · to ${awayName}` : `${l.label} · unexplored`;
-        links.append(s('line', { x1: p1.x, y1: p1.y, x2: far.x, y2: far.y, class: `map-stub${away ? ' away' : ''}${hot ? ' hot' : ''}`, 'marker-end': 'url(#map-arrow)', ...(away ? { 'data-goto': away.id } : {}) },
+        links.append(s('line', { x1: p1.x, y1: p1.y, x2: far.x, y2: far.y, class: `map-stub${away ? ' away' : ''}${hot ? ' hot' : ''}`, 'marker-end': 'url(#map-arrow)', ...(away ? { 'data-goto': away.id } : exitAttrs(z.id, l.label)) },
           s('title', {}, away ? `${l.label}: to ${away.name} (${awayName}) · click to open that map` : `${l.label}: unexplored`)));
         if (l.way?.shut) labels.append(wayMark((p1.x + far.x) / 2, (p1.y + far.y) / 2, l, z.name, away?.name ?? ''));
-        if (hot || away) { const pl = pill(far.x + Math.cos(ang) * 14, far.y + Math.sin(ang) * 14, text, away ? 'away' : 'unknown', Math.cos(ang)); if (away) pl.setAttribute('data-goto', away.id); labels.append(pl); }
+        if (hot || away) {
+          const pl = pill(far.x + Math.cos(ang) * 14, far.y + Math.sin(ang) * 14, text, away ? 'away' : 'unknown', Math.cos(ang));
+          if (away) pl.setAttribute('data-goto', away.id); else for (const [k, v] of Object.entries(exitAttrs(z.id, l.label))) pl.setAttribute(k, String(v));
+          labels.append(pl);
+        }
       });
     }
     for (const z of zones) tiles.append(tile(z, sp.get(z.id)!, world === WORLD ? (z.here ? 'You are here' : z.look) : undefined));
@@ -475,7 +490,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       nth.set(key, i + 1);
       const x = c.x - w / 2 + 14 + i * 26, y = st.up ? c.y - hh / 2 : c.y + hh / 2;
       const gone = st.other ? `${st.up ? 'up' : 'down'} to ${st.other.name} (${floorName(st.other.height)})` : 'unexplored';
-      tiles.append(s('g', { class: `map-stair${st.other ? '' : ' unknown'}${st.z.id === selected ? ' hot' : ''}`, ...(st.other ? { 'data-goto': st.other.id, tabindex: 0, role: 'button' } : {}), 'aria-label': `${st.l.label}: ${gone}` },
+      tiles.append(s('g', { class: `map-stair${st.other ? '' : ' unknown'}${st.z.id === selected ? ' hot' : ''}`, ...(st.other ? { 'data-goto': st.other.id, tabindex: 0, role: 'button' } : exitAttrs(st.z.id, st.l.label)), 'aria-label': `${st.l.label}: ${gone}` },
         s('circle', { cx: x, cy: y, r: 11 }), s('text', { x, y: y + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, `${st.l.label}: ${gone}`)));
     }
     drawFloors();
@@ -552,11 +567,13 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     for (const d of sc.doors) marks.append(doorMark(d));
     for (const p of sc.places) marks.append(textMark(p.title, `map-place-title${p.id === focus ? ' on' : ''}`, { 'data-role': 'label', 'data-id': `place:${p.id}`, 'data-for': p.id, 'data-placement': 'outside', 'data-area': p.id }, 'title'));
     for (const e of sc.exits) {
-      marks.append(s('g', { class: `map-exit${e.goto ? ' away' : ''}${e.zoneId === selected ? ' hot' : ''}`, 'data-role': 'exit', 'data-id': e.id, 'data-target': e.target, ...(e.goto ? { 'data-goto': e.goto } : {}) },
+      const open = e.goto ? {} : exitAttrs(e.zoneId, e.target); // unexplored: click for its card and Move to here
+      const on = exitSel?.zoneId === e.zoneId && exitSel.label === e.target ? ' picked' : '';
+      marks.append(s('g', { class: `map-exit${e.goto ? ' away' : ' open'}${e.zoneId === selected ? ' hot' : ''}${on}`, 'data-role': 'exit', 'data-id': e.id, 'data-target': e.target, ...(e.goto ? { 'data-goto': e.goto } : open) },
         s('line', { x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, 'marker-end': 'url(#map-arrow)' }), s('title', {}, e.title)));
-      marks.append(textMark(e.note, `map-note${e.goto ? ' away' : ''}${e.way?.shut ? ` ${e.way.shut}` : ''}`, { 'data-role': 'label', 'data-id': `note:${e.id}`, 'data-for': e.zoneId, 'data-placement': 'outside', ...(e.goto ? { 'data-goto': e.goto, tabindex: 0, role: 'button', 'aria-label': `${e.title}: open it` } : {}) }, 'note'));
+      marks.append(textMark(e.note, `map-note${e.goto ? ' away' : ' open'}${e.way?.shut ? ` ${e.way.shut}` : ''}${on}`, { 'data-role': 'label', 'data-id': `note:${e.id}`, 'data-for': e.zoneId, 'data-placement': 'outside', ...(e.goto ? { 'data-goto': e.goto, tabindex: 0, role: 'button', 'aria-label': `${e.title}: open it` } : open) }, 'note'));
     }
-    for (const st of sc.stairs) marks.append(s('g', { class: `map-stair${st.goto ? '' : ' unknown'}${st.zoneId === selected ? ' hot' : ''}`, 'data-role': 'icon', 'data-id': st.id, ...(st.goto ? { 'data-goto': st.goto, tabindex: 0, role: 'button' } : {}), 'aria-label': st.title },
+    for (const st of sc.stairs) marks.append(s('g', { class: `map-stair${st.goto ? '' : ' unknown'}${st.zoneId === selected ? ' hot' : ''}`, 'data-role': 'icon', 'data-id': st.id, ...(st.goto ? { 'data-goto': st.goto, tabindex: 0, role: 'button' } : exitAttrs(st.zoneId, st.label)), 'aria-label': st.title },
       s('circle', { cx: st.cx, cy: st.cy, r: st.x1 - st.cx }), s('text', { x: st.cx, y: st.cy + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, st.title)));
     for (const f of sc.furniture) { const g = furnIcon(f.kind, cap(f.name), f.cx, f.cy); g.setAttribute('data-role', 'icon'); g.setAttribute('data-id', f.id); marks.append(g); }
     for (const t of sc.tokens) {
@@ -813,7 +830,17 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
         people.length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...people.map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
         items.length ? h('div', {}, h('p', { class: 'hs-label' }, 'On the ground'), h('p', {}, ...items.map((x) => h('span', { class: 'hs-tg' }, x)))) : '');
     };
-    const card = world === WORLD ? (isRoad(selected) ? roadCard(selected) : worldCard()) : z ? h('section', { class: 'map-card' },
+    // an unexplored exit: where it leaves from, and Move to here, which types the order to take it
+    const exitCard = (x: { zoneId: string; label: string }) => {
+      const from = allZones().find((q) => q.id === x.zoneId);
+      return h('section', { class: 'map-card' },
+        h('div', { class: 'map-card-h' }, h('h2', {}, cap(x.label)), h('span', { class: 'hs-tg' }, 'Unexplored')),
+        h('p', { class: 'hs-note' }, from ? `A way out of ${from.name} you have not taken yet` : 'A way you have not taken yet'),
+        onMove ? h('button', { type: 'button', class: 'hs-btn-main map-move', 'data-move': x.label, title: 'Types the order in the action box for you to send', onclick: () => onMove(exitOrder(x.label)) }, 'Move to here') : '',
+        h('p', { class: 'map-look' }, 'You don’t know what lies that way until you go.'),
+        from ? h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { exitSel = null; draw(); } }, `Back to ${from.name}`) : '');
+    };
+    const card = world === WORLD ? (isRoad(selected) ? roadCard(selected) : worldCard()) : exitSel ? exitCard(exitSel) : z ? h('section', { class: 'map-card' },
       h('div', { class: 'map-card-h' }, h('h2', {}, z.name), h('span', { class: `hs-tg ${z.here ? 'cap' : ''}` }, z.here ? 'You are here' : z.inView ? 'In view' : 'Remembered')),
       h('p', { class: 'hs-note' }, placeOf(z.placeId)?.name ?? ''),
       z.id === walk?.toZone ? h('p', { class: 'map-heading', role: 'status' }, h('b', {}, 'Heading here'), ` · ${walkLeft(walk)}`) : '',
