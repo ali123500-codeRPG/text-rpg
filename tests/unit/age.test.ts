@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { ageFloor, ageKeeps, ageText, ageYears, advanceAging, bornDayFor, lifeStage, stageName, stageOf, stageReaches, talentMult, talentName } from '../../src/ruleset/age';
 import { effectiveSkill } from '../../src/ruleset/gear';
-import { createPlayer, presetAgeFloor, presetTalent, rankRow, recommendedBuild, refreshCopies, spawnNpc, validateBuild } from '../../src/library/spawn';
+import { composeTemplate, createPlayer, presetAgeFloor, presetTalent, rankRow, recommendedBuild, refreshCopies, spawnNpc, templateRank, validateBuild } from '../../src/library/spawn';
+import { RO, TH } from '../../src/library/npcLayerIds';
 import { npcTemplate } from '../../src/library';
 import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
@@ -106,6 +107,30 @@ describe('youngest age per rank (AG12, AG21–AG25)', () => {
     expect(plan('Adult', 'Common')).not.toContain('bad_age');
     expect(plan('Adult', 'Genius')).toContain('bad_talent');
     expect(stageReaches(RC.human, 'stage_6', 500)).toBe(true); // Ancient never runs out
+  });
+});
+
+describe('children', () => {
+  it('needs no age for no training, so an Untrained NPC can be a Child', () => {
+    expect(ageFloor(RC.human, 0, 'talent_0')).toBe(0);
+    expect(ageFloor(RC.human, rankRow('rank_1').training, 'talent_2')).toBe(14); // a Novice is past childhood
+  });
+  it('has a Child role with no rank floor, and a village child preset drawn from the Child stage', () => {
+    const s = makeVillage(), t = npcTemplate(null, TP.child);
+    expect(templateRank(t)).toBe('rank_0');
+    for (let i = 0; i < 20; i++) expect(stageOf(s, spawnNpc(s, TP.child, { id: `npc_k${i}`, zone: 'z', placeId: 'p', bandId: 'b' }))).toBe('Child');
+    const composed = composeTemplate({ race: RC.human, role: RO.child, theme: TH.village_folk, rank: 'Untrained' }, 'a stable boy');
+    expect(templateRank(composed)).toBe('rank_0');
+  });
+  it('lets the Weaver cast a Child from the child preset, but not from a guard', () => {
+    const s = toStoryStart(makeVillage());
+    const codes = (template: string) => {
+      const p = villageStagePlan();
+      Object.assign(p.cast.find((c) => c.template === TP.guard)!, { template, age: 'Child' });
+      return validateStagePlan(s, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }).map((e) => e.code);
+    };
+    expect(codes(TP.child)).not.toContain('bad_age');
+    expect(codes(TP.guard)).toContain('bad_age');
   });
 });
 

@@ -81,10 +81,12 @@ export function talentName(k: TalentKey): string {
   return n <= last ? TALENTS.name(k as (typeof TALENTS.keys)[number]) : TALENTS.name(TALENTS.keys[last]) + '+'.repeat(n - last);
 }
 /** AG12, AG21: the youngest age someone of a race can be after `training` years at a talent: the race's Youth start +
- * years × the talent's multiplier. Undefined for an ageless race. */
+ * years × the talent's multiplier. No training (Untrained) needs no age, so children can be Untrained. Undefined for an
+ * ageless race. */
 export function ageFloor(raceId: string | undefined, training: number, talent: TalentKey): number | undefined {
   const st = stagesOf(raceId);
-  return st ? startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent) : undefined;
+  if (!st) return undefined;
+  return training > 0 ? startOf(st, LIFE_STAGES.at(1)) + training * talentMult(talent) : startOf(st, LIFE_STAGES.at(0));
 }
 /** AG14: whether a life stage has any year at or past the floor (the last stage always does) */
 export function stageReaches(raceId: string | undefined, k: LifeStageKey, floor: number): boolean {

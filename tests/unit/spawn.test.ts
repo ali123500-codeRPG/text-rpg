@@ -114,7 +114,7 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
       expect(t.rank, t.id).toMatch(/^rank_\d+$/);
       expect(t.level, t.id).toBeUndefined(); // NG7: presets never set a level
     }
-    expect(Object.keys(lib.npcRoles ?? {})).toHaveLength(9);
+    expect(Object.keys(lib.npcRoles ?? {})).toHaveLength(10);
     expect(Object.keys(lib.themes ?? {})).toHaveLength(4);
   });
 });
