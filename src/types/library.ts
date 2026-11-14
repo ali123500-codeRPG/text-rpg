@@ -381,7 +381,7 @@ export type RaceDef = {
 };
 
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
-export type AchievementRule = 'places' | 'health_reached' | 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
+export type AchievementRule = 'places' | 'health_reached' | 'struck_surrendered' | 'killed_surrendered' | 'struck_fleeing' | 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
   | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'

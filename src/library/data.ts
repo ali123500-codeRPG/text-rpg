@@ -1011,6 +1011,22 @@ export function prototypeLibrary(): Library {
       [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true, personality: ap({ nerve: -1 }) },
       // the mind's twin of the survival roll: the fight was won although your morale broke in it. Extraordinary by nature (Broken
       // stops attacks), so the higher levels are something to chase, not something a build plans on
+      // AS1–AS11: attacking a foe who already gave up. Counted once per foe, hit or miss, when the player sees the foe
+      // surrendered or broken (a visible state) as they strike; surrendered to anyone counts. Temper +5 per level.
+      // Killing a surrendered foe is its branch; cutting down a broken foe as it flees is a branch line of its own. New names are placeholders.
+      [ACH.struck_surrendered_1]: { id: ACH.struck_surrendered_1, name: 'No Quarter', level: 'i', rule: 'struck_surrendered', tags: ['combat'], count: 1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_5]: { id: ACH.struck_surrendered_5, name: 'Mercy Is for Others', level: 'ii', rule: 'struck_surrendered', tags: ['combat'], count: 5, after: ACH.struck_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_10]: { id: ACH.struck_surrendered_10, name: 'Deaf to Begging', level: 'iii', rule: 'struck_surrendered', tags: ['combat'], count: 10, after: ACH.struck_surrendered_5, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_25]: { id: ACH.struck_surrendered_25, name: 'The White Flag Means Nothing', level: 'iv', rule: 'struck_surrendered', tags: ['combat'], count: 25, after: ACH.struck_surrendered_10, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_surrendered_50]: { id: ACH.struck_surrendered_50, name: 'None Are Spared', level: 'v', rule: 'struck_surrendered', tags: ['combat'], count: 50, after: ACH.struck_surrendered_25, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.killed_surrendered_1]: { id: ACH.killed_surrendered_1, name: 'Surrender Was Not Enough', level: 'i', rule: 'killed_surrendered', tags: ['combat'], count: 1, branchOf: ACH.struck_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.killed_surrendered_5]: { id: ACH.killed_surrendered_5, name: 'Executioner', level: 'ii', rule: 'killed_surrendered', tags: ['combat'], count: 5, after: ACH.killed_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.killed_surrendered_25]: { id: ACH.killed_surrendered_25, name: 'No One Walks Away', level: 'iii', rule: 'killed_surrendered', tags: ['combat'], count: 25, after: ACH.killed_surrendered_5, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_1]: { id: ACH.struck_fleeing_1, name: 'No Running', level: 'i', rule: 'struck_fleeing', tags: ['combat'], count: 1, branchOf: ACH.struck_surrendered_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_5]: { id: ACH.struck_fleeing_5, name: 'Back Turned, Blade Bared', level: 'ii', rule: 'struck_fleeing', tags: ['combat'], count: 5, after: ACH.struck_fleeing_1, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_10]: { id: ACH.struck_fleeing_10, name: 'Run Them Down', level: 'iii', rule: 'struck_fleeing', tags: ['combat'], count: 10, after: ACH.struck_fleeing_5, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_25]: { id: ACH.struck_fleeing_25, name: 'The Hunt Ends Here', level: 'iv', rule: 'struck_fleeing', tags: ['combat'], count: 25, after: ACH.struck_fleeing_10, personality: ap({ [PA.temper]: 1 }) },
+      [ACH.struck_fleeing_50]: { id: ACH.struck_fleeing_50, name: 'None Escape', level: 'v', rule: 'struck_fleeing', tags: ['combat'], count: 50, after: ACH.struck_fleeing_25, personality: ap({ [PA.temper]: 1 }) },
       [ACH.won_broken_1]: { id: ACH.won_broken_1, name: 'Back from the Break', level: 'ii', rule: 'won_broken', tags: ['combat'], count: 1, maxMorale: 5, personality: ap({ nerve: 1 }) },
       [ACH.won_broken_5]: { id: ACH.won_broken_5, name: 'Broken, Not Beaten', level: 'iii', rule: 'won_broken', tags: ['combat'], count: 5, after: ACH.won_broken_1, maxMorale: 5, personality: ap({ nerve: 1 }) },
       [ACH.won_broken_25]: { id: ACH.won_broken_25, name: 'Nothing Left to Fear', level: 'iv', rule: 'won_broken', tags: ['combat'], count: 25, after: ACH.won_broken_5, maxMorale: 5, personality: ap({ nerve: 1 }) },

@@ -60,6 +60,9 @@ export const ACH = {
   kills_1: 'AC194', kills_10: 'AC195', kills_50: 'AC196', survival_roll_1: 'AC197',
   matched_crit_1: 'AC198',
   won_broken_1: 'AC199', won_broken_5: 'AC200', won_broken_25: 'AC201',
+  struck_surrendered_1: 'AC221', struck_surrendered_5: 'AC222', struck_surrendered_10: 'AC223', struck_surrendered_25: 'AC224', struck_surrendered_50: 'AC225',
+  killed_surrendered_1: 'AC226', killed_surrendered_5: 'AC227', killed_surrendered_25: 'AC228',
+  struck_fleeing_1: 'AC229', struck_fleeing_5: 'AC230', struck_fleeing_10: 'AC231', struck_fleeing_25: 'AC232', struck_fleeing_50: 'AC233',
 } as const;
 /** TB6: chain heads with no trunk of their own; their branches are the per-source chains (healing and calming by source) */
 export const ACH_HEADS = { healed: 'AH1', calmed: 'AH2', areas: 'AH3', wounds: 'AH4' } as const;
@@ -76,6 +79,8 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   defeats: 'defeats', mastery: 'true skill in enough skills of a tree (by its rating)', unaware_defeats: 'foes defeated while unaware of you',
   yielded: 'foes who surrendered or broke while fighting you', crits: 'rolls at Critical Success or better with a skill of the group',
   beyond_crit: 'step(s) past Critical Success on a roll', crippled_defeats: 'foes defeated while one of your parts is Crippled',
+  struck_surrendered: 'foes you attacked after they surrendered (once per foe, hit or miss)', killed_surrendered: 'foes you killed after they surrendered',
+  struck_fleeing: 'broken foes you attacked as they fled (once per foe, hit or miss)',
   zones: 'different zones entered', places: 'different places of the kind entered (a settlement, a place in one, and any kind made later)',
   health_reached: 'times your health reached the level', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
   flawless: 'fights won without losing HP, after at least one defense roll', outnumbered: `fights won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
@@ -116,7 +121,7 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   defeats: 'defeat', unaware_defeats: 'foe defeated while unaware of you', yielded: 'foe who surrendered or broke while fighting you',
   event_crits: 'event roll at Critical Success', event_crit_fails: 'event roll at Critical Failure',
   crits: 'roll at Critical Success or better with a skill of the group', beyond_crit: 'step past Critical Success on a roll',
-  crippled_defeats: 'foe defeated while one of your parts is Crippled', zones: 'zone entered', places: 'place of the kind entered', health_reached: 'time your health reached the level', deals: 'deal struck with you',
+  crippled_defeats: 'foe defeated while one of your parts is Crippled', struck_surrendered: 'foe you attacked after it surrendered', killed_surrendered: 'foe you killed after it surrendered', struck_fleeing: 'broken foe you attacked as it fled', zones: 'zone entered', places: 'place of the kind entered', health_reached: 'time your health reached the level', deals: 'deal struck with you',
   days: 'game day survived', flawless: 'fight won without losing HP, after at least one defense roll',
   outnumbered: `fight won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fight survived after reaching Critical health (once per fight)', held_line: 'fight won beside at least one ally, while the foes outnumbered your side',

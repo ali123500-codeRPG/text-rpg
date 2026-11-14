@@ -4,7 +4,7 @@
 import { yieldTaken } from './yield';
 import { defended, struck } from '../ruleset/hits';
 import { moraleLevel } from '../ruleset/morale';
-import type { AchievementRule, ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
+import type { Actor, AchievementRule, ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
 import { CONFIG } from '../config';
 import { healthLevel, partStates, working } from '../ruleset/body';
 import { trueSkill } from '../ruleset/perks';
@@ -105,6 +105,24 @@ export function contestFeat(state: GameState, c: ContestResult, fns?: SkillFunct
   if (!them || trueSkill(them, theirs.skill) <= trueSkill(p, mine.skill)) return;
   tally(state, 'outmatched');
   for (const f of fns ?? getLibrary().skills[mine.skill]?.functions ?? []) tally(state, 'outmatched', { by: 'function', of: f });
+}
+
+/** AS1–AS11: the player attacks `t` (hit or miss) while seeing it surrendered or broken, both visible states; each foe
+ * counts once per line. A surrendered foe the player struck so is remembered, so killing it later counts on its branch. */
+export function gaveUpFeats(state: GameState, a: Actor, t: Actor): void {
+  const p = state.player, pr = p.progression;
+  if (a !== p || !pr || t === p) return;
+  const st = t.mind?.moraleState;
+  if (!st || seeingM(state, p, t) === null) return;
+  const seen = (pr.gaveUpStruck ??= { surrendered: [], broken: [] });
+  const list = st === 'surrendered' ? seen.surrendered : seen.broken;
+  if (list.includes(t.id)) return;
+  list.push(t.id);
+  tally(state, st === 'surrendered' ? 'struck_surrendered' : 'struck_fleeing');
+}
+/** AS4: the player's blow killed a foe they had struck after it surrendered */
+export function killedSurrenderedFeat(state: GameState, t: Actor): void {
+  if (state.player.progression?.gaveUpStruck?.surrendered.includes(t.id)) tally(state, 'killed_surrendered');
 }
 
 /** D-292: the player and the other side of a contest both landed on the same tier, Critical Success or past it */
