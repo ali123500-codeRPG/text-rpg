@@ -108,11 +108,12 @@ export function compassOf(label: string): [number, number] | null {
   return c ? [c[0], -c[1] || 0] : null;
 }
 
-/** the top-level place a place sits in (itself when it has no known parent) */
+/** the top-level place a place sits in (itself when it has no known parent). A road is only a line on the World map, so a
+ *  place along it (a waystation) stops below the road and is a map of its own */
 export function rootPlace(m: KnownMap, id: string): string {
   const byId = new Map(m.places.map((p) => [p.id, p]));
   let p = byId.get(id);
-  for (let n = 0; p?.parentId && byId.has(p.parentId) && n < 20; n++) p = byId.get(p.parentId);
+  for (let n = 0; p?.parentId && byId.has(p.parentId) && byId.get(p.parentId)!.kind !== 'road' && n < 20; n++) p = byId.get(p.parentId);
   return p?.id ?? id;
 }
 
@@ -125,8 +126,8 @@ export function extentOf(zones: MapZone[]): import('../types').Rect | undefined 
   return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, d: y1 - y0 };
 }
 
-/** the World view: one tile per top-level place you know (a village, a field, a road), joined by the roads you know between
- *  them. Each tile is a MapZone whose id is the place's id, so the map's layout and drawing serve both views. */
+/** the World view: one tile per top-level place you know (a village, a field, a road, a waystation along a road), joined by
+ *  the roads you know between them. Each tile is a MapZone whose id is the place's id, so the map's layout and drawing serve both views. */
 export function worldTiles(m: KnownMap): MapZone[] {
   const roots = m.places.filter((p) => rootPlace(m, p.id) === p.id);
   const zoneRoot = new Map(m.places.flatMap((p) => p.zones.map((z) => [z.id, rootPlace(m, p.id)] as const)));
