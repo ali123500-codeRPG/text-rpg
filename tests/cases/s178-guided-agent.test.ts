@@ -3,7 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { actor, makeVillage } from '../harness';
 import { CROSSROADS, askKey, guidedPrompt, readAsk, spotCrossroads, turnSnap } from '../../src/agents/crossroads';
-import { readMove } from '../../src/agents/autopilot';
+import { autopilotTurn, readMove } from '../../src/agents/autopilot';
+import { setSignatures } from '../../src/ruleset/personality';
 
 describe('178 guided agent', () => {
   it('code spots a fight someone else started, once the character is engaged', () => {
@@ -29,14 +30,25 @@ describe('178 guided agent', () => {
 
   it('the agent is told what to ask about, the coin limit, what is settled, and a code crossroads to word', () => {
     const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-    const p = guidedPrompt(s, [], { orders: 'never kill', settled: ['deal: the barkeep → yes'] });
+    const p = guidedPrompt(s, [], { settled: ['deal: the barkeep → yes'] });
     for (const c of CROSSROADS.filter((x) => x.by === 'agent')) expect(p).toContain(`- ${c.kind}:`);
-    expect(p).toContain('Standing orders from the watcher (always follow them; never ask about what they already settle): never kill');
+    expect(p).not.toContain('Standing orders'); // gone: the character's signatures replaced them
     expect(p).toContain('Coin limit:');
     expect(p).toContain('deal: the barkeep → yes');
     const must = guidedPrompt(s, [], { mustAsk: { kind: 'badly_hurt', about: 'Wounded', situation: 'your health is now Wounded' } });
     expect(must).toContain('STOP: the watcher must decide');
     expect(guidedPrompt(s, [], { answered: { about: 'the barkeep', words: 'talk her down' } })).toContain('"talk her down"');
+  });
+
+  it('signatures replaced standing orders: the agent keeps the character\'s own signatures in every style, once', () => {
+    const s = makeVillage({ without: ['slime_1', 'slime_2'] });
+    expect(autopilotTurn([], '', 'plain', [], undefined, s)).not.toContain('signatures'); // none set, nothing said
+    setSignatures(s.player, ['Never kills a foe who yields.', 'Saves coin for a horse.']);
+    const plain = autopilotTurn([], '', 'plain', [], { state: s, ctx: {} }, s);
+    expect(plain).toContain("Your character's signatures (always keep to them; never ask the watcher about what they already settle):\n- Never kills a foe who yields.\n- Saves coin for a horse.");
+    const inChar = autopilotTurn([], '', 'character', [], undefined, s); // In character has them in its personality line, not twice
+    expect(inChar).toContain('Saves coin for a horse.');
+    expect(inChar).not.toContain("Your character's signatures");
   });
 
   it('a question is read safely; a bad one is no question', () => {

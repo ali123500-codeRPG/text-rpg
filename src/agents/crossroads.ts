@@ -26,9 +26,9 @@ const KINDS = new Set(CROSSROADS.map((c) => c.kind));
 /** GA12: what never asks */
 const NEVER = 'scenario breaks, people arriving or leaving, achievements, skill gains, level-ups, ordinary talk, small buys, or a fight you are already in';
 
-/** what the bar keeps for the guided agent: standing orders (GA16), this scenario's guidance (GA14), calls already made this
+/** what the bar keeps for the guided agent: this scenario's guidance (GA14), calls already made this
  *  scenario (GA12: the same kind about the same thing asks once per scenario), and a crossroads code spotted that it must word */
-export type GuidedCtx = { orders?: string; guidance?: string; settled?: string[]; mustAsk?: Crossroad; answered?: { about: string; words: string } };
+export type GuidedCtx = { guidance?: string; settled?: string[]; mustAsk?: Crossroad; answered?: { about: string; words: string } };
 /** key: what makes two of them the same thing for GA12's once-per-scenario rule (about when left out) */
 export type Crossroad = { kind: string; about: string; situation: string; key?: string };
 export type Ask = { kind: string; about: string; choices: string[]; pick: number };
@@ -36,7 +36,6 @@ export type Ask = { kind: string; about: string; choices: string[]; pick: number
 /** the guided part of the agent's per-turn prompt */
 export function guidedPrompt(s: GameState | null, lines: LogLine[], g: GuidedCtx): string {
   const out: string[] = [];
-  if (g.orders?.trim()) out.push(`Standing orders from the watcher (always follow them; never ask about what they already settle): ${g.orders.trim()}`);
   if (g.guidance?.trim()) out.push(`The watcher's guidance for this scenario (follow it): ${g.guidance.trim()}`);
   if (g.answered) return [...out, `The watcher answered your question about ${g.answered.about}: "${g.answered.words}". Make your next move from that answer now; do not ask again.`].join('\n\n');
   const coin = s ? coins(s.player) : 0;

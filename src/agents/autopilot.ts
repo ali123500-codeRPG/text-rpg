@@ -120,13 +120,22 @@ export function surroundings(s: GameState): string {
   return `Where you are: ${theName(v.zone.name)}. Ways out you can see from here: ${ways.join('; ') || 'none'}.${known.length ? ` Other places you know, which a move can name: ${known.join('; ')}.` : ''} To leave, use only these: never head for a door, stair or path that isn't listed, however likely one seems (a tavern may have no cellar door you know of).`;
 }
 
+/** the character's own signatures (set on the Character page's Personality pop-up), which the agent keeps to every move in
+ *  every style and mode: they are the watcher's lasting rules for how this character acts. In character already has them in
+ *  its personality line */
+export function signatureRules(s: GameState): string {
+  const sig = s.player.core.signatures ?? [];
+  return sig.length ? `Your character's signatures (always keep to them; never ask the watcher about what they already settle):\n${sig.map((x) => `- ${x}`).join('\n')}` : '';
+}
+
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
  *  own recent commentary, so it doesn't keep repeating itself */
 export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }, me?: GameState | null): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const base = VOICE_STYLES.find(([id]) => id === style)?.[2];
   const voice = base && style === 'character' && me ? `${base}\nWho you are: ${personalityText(me, me.player, MORALE_LEVELS.name(moraleLevel(me.player)))}` : base;
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
+  const rules = me && style !== 'character' ? signatureRules(me) : '';
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${rules ? `${rules}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
 }
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in
