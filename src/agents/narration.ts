@@ -139,7 +139,7 @@ function eventLine(e: NarrationEvent): string {
     case 'busy':
       return `${cap(who(e.actor))} ${e.actor === 'player' ? 'keep' : 'keeps'} at it${e.busy ? `: ${e.busy.doing.toLowerCase()}, ${e.busy.left} s to go` : ''}${e.item ? ` (${e.item})` : ''}.`;
     case 'move':
-      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.spot ? ` ${e.spot}` : e.heading ? ` toward ${e.heading}` : e.from && e.where ? ` from ${e.from} to ${e.where}` : e.within && e.where ? ` within ${e.where}` : e.where ? ` to ${e.where}` : ''}.`;
+      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.spot ? ` ${e.spot}` : e.heading ? ` toward ${e.heading}` : e.from && e.where ? ` from ${e.from} to ${e.where}` : e.within && e.where ? ` within ${e.where}` : e.where ? ` to ${e.where}` : ''}.${e.lastSeenOf ? ` If ${e.lastSeenOf} is seen or heard this turn, it is the same person, not someone new; never an empty spot when they are there.` : ''}`;
   }
   const changes = e.changes?.length ? `: ${e.changes.join('; ')}` : '';
   return `${cap(who(e.actor))} ${e.kind.replace(/_/g, ' ')}${e.target ? ` ${who(e.target)}` : ''}${e.item ? ` (${e.item})` : ''}${changes}.`;

@@ -46,7 +46,7 @@ import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
-import { cap, listWords, mentions, r1 } from '../words';
+import { cap, listWords, mentions, r1, theOf } from '../words';
 import { gripsOf, isHeld, modeName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
@@ -745,6 +745,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
+      ...(full && e.lastSeenOf ? { lastSeenOf: theOf(callName(state, me, e.lastSeenOf)) } : {}), // BG-203
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
       ...(full && e.offers ? { offers: e.offers.map((o) => ({ to: callName(state, me, o.to), landed: o.landed, ...(o.demand ? { demand: o.demand } : {}) })) } : {}), // TF12, TF19
       ...(full && e.surrender ? { surrender: { with: e.surrender.with.map((id) => callName(state, me, id)) } } : {}), // TF19

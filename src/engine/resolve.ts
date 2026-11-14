@@ -449,7 +449,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
-  const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot) } : {}) };
+  const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}), ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
@@ -910,11 +910,14 @@ function walkStep(ctx: Ctx, o: Order, seconds: number): 'there' | 'blocked' | nu
 function keepFollowing(ctx: Ctx, wo: Order | undefined): void {
   const { state } = ctx;
   const p = state.player, spot = wo?.moveSpot;
-  const who = spot?.follow && spot.near && !spot.lastSeen ? actorById(state, spot.near) : undefined;
+  const who = spot?.follow && spot.near ? actorById(state, spot.near) : undefined;
   if (!wo?.move || !who || who === p || wo.way || ctx.travelled || !isActive(p) || !ctx.acted.has(p.id) || foundShut(ctx.events, p)) return;
   if (ctx.stretch && ctx.stretch.kind !== 'walk') return; // another long thing to do ends it, as any walk
   const seen = perceivesNow(state, p, who, 'faint');
-  if (seen && isActive(who)) { p.walking = walkOf({ ...wo, move: who.zone }); return; }
+  // BG-203: a follow of someone out of sight walks to where the player last saw them; seen or heard on the way, it is a
+  // follow of them again from the next turn. Not found there, they are lost; not there yet, the walk goes on
+  if (seen && isActive(who)) { p.walking = walkOf({ ...wo, move: who.zone, moveSpot: { near: who.id, follow: true } }); return; }
+  if (spot!.lastSeen && p.walking) return;
   delete p.walking;
   p.followLost = { who: who.id, why: seen ? 'down' : who.zone === wo.move && p.zone === wo.move ? 'slipped_away' : 'out_of_sight', zone: wo.move };
   logCode(state, 'follow_lost', { actorId: p.id, ...p.followLost });

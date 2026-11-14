@@ -264,6 +264,7 @@ export type NarrationEvent = {
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
+  lastSeenOf?: string; // BG-203: whom the walk looks for, where they were last seen: anyone like them there is them
   steady?: 'calmer' | 'worse' | 'no change'; // SY1: how steadying oneself went, in words
   offers?: { to: string; landed: string; demand?: 'yield' }[]; // TF12: the player's offer to stop fighting, and how it landed with each listener; demand: TF19, it asked them to surrender
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
