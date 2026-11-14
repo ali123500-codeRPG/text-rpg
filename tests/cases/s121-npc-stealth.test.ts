@@ -92,10 +92,10 @@ describe('121 NPC stealth', () => {
     expect(ev.find((e) => e.actorId === 'thief_1')?.perception.player).toBeUndefined();
     vi.restoreAllMocks();
     rig({ player: 1 });
-    const won = turn(s, { thief_1: act('hide') });
+    const won = turn(s, { thief_1: act('sneak') });
     expect(seen(s)).toBe('aware');
     expect(inView(s)?.level).toBe('full');
-    expect(won.find((e) => e.actorId === 'thief_1' && e.kind === 'hide')?.perception.player).toBeDefined(); // BG-64: the deed you spot them by is told
+    expect(won.find((e) => e.actorId === 'thief_1')?.perception.player).toBeDefined(); // BG-64: the deed you spot them by is told
   });
 
   it('NS4: a tie leaves you suspicious: you half see someone', () => {
@@ -105,7 +105,7 @@ describe('121 NPC stealth', () => {
     t.posture = 'stealthy';
     s.player.journal!.stealthSeen = { thief_1: 'unaware' };
     rig({ player: 0 });
-    turn(s, { thief_1: act('hide') });
+    turn(s, { thief_1: act('sneak') });
     expect(seen(s)).toBe('suspicious');
     expect(inView(s)).toMatchObject({ label: 'someone', level: 'partial' });
   });

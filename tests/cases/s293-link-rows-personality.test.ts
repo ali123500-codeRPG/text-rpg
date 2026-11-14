@@ -89,7 +89,7 @@ describe('293 link rows and personality nudges', () => {
       const i = intent({ action: { type: 'vanish' } });
       const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
       const ev = play(s, { intent: i });
-      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'hide' && e.vanish) };
+      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish) };
     };
     expect(run(false).legal).toContain('action.vanish');
     const r = run(true);

@@ -188,7 +188,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
-    case 'hide': return of(DU.hide);
+    case 'vanish': return of(DU.vanish_in_place); // A19 Melt Away: the only Vanish left after setPosture
     case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
@@ -934,7 +934,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   // T6a Strike and Fade: right after an attack from hiding, a free Vanishing roll in place
   if (fromHiding && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
     if (a.posture !== 'stealthy') { a.posture = 'stealthy'; stealthStart(state, a); }
-    const ev = mk(ctx, a, 'hide', { vanish: true });
+    const ev = mk(ctx, a, 'vanish', { vanish: true });
     ev.effects.push({ kind: PK.strike_and_fade, actorId: a.id, data: {} });
     emit(ctx, ev);
   }
@@ -1671,9 +1671,9 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
       return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
     }
-    case 'hide':
-      // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
-      return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));
+    case 'vanish':
+      // A19 Melt Away: a Vanish in place is a Vanishing contest per observer (stealthDetect)
+      return emit(ctx, bark(mk(ctx, a, 'vanish', { vanish: true }), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -2128,15 +2128,15 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 /** AE2: no running (the move role switched off by the shared-role rule, CS8) stops a dash, and so does Leg Bolt's slow (A6) */
 const lame = (state: GameState, a: Actor) => slowed(state, a) || roleOff(state, a, RL.move);
 
-/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
- * Vanish is the turn's move, contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
+/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a
+ * Vanish is the turn's move (in place, with Melt Away, the main action), contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
  * vanish names the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
  * following the player copies the player's posture (NS9). */
 function setPosture(state: GameState, a: Actor, o: Order): void {
   const was = a.posture ?? 'open';
   const npc = a !== state.player;
   const goTo = npc && o.target && o.target !== a.zone && zoneById(state, o.target) ? o.target : null;
-  if (o.type === 'sneak' || o.type === 'vanish') {
+  if (o.type === 'sneak' || (o.type === 'vanish' && !o.vanish)) {
     a.posture = 'stealthy';
     if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
     // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
@@ -2144,9 +2144,8 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
     // LR3 Blind Spot: with a foe's sight spoiled by Dirt in the Eyes, Melt Away needs no cover or shade
     const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, PK.melt_away) && !!zone && (blindSpotNow(state, a) || meltAwayHere(zone.cover, zoneLight(state, zone)));
     if (inPlace) o.vanish = true;
-    o.type = inPlace ? 'hide' : goTo ? 'move' : 'hold';
+    o.type = inPlace ? 'vanish' : goTo ? 'move' : 'hold';
   }
-  if (o.type === 'hide') a.posture = 'stealthy';
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
   if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';
   if (npc && r?.kind === 'follow' && a.bandId === state.player.bandId) a.posture = state.player.posture ?? 'open';

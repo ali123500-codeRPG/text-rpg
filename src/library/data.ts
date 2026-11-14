@@ -885,7 +885,7 @@ export function prototypeLibrary(): Library {
       [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 20, locksMove: true, focus: 'careful' },
       [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },
       // senses (AT11o)
-      [DU.hide]: { id: DU.hide, name: 'Hide', effort: 'moderate', seconds: 2, locksMove: true },
+      [DU.vanish_in_place]: { id: DU.vanish_in_place, name: 'Vanish in place', effort: 'moderate', seconds: 2, locksMove: true },
       [DU.look]: { id: DU.look, name: 'Look around', effort: 'light', seconds: 3, focus: 'steady' },
       // armour on and off (AT12): instant and no strain, like all gear (heavy alone keeps ARMOR_ALONE_MULT, × 0 today)
       [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },

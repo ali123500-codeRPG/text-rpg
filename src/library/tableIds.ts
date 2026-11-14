@@ -25,7 +25,7 @@ export const DU = {
   action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5', blow: 'DU6', throw: 'DU7', bow_light: 'DU8', bow_medium: 'DU9', crossbow_shot: 'DU10',
   span_light: 'DU11', span_stirrup: 'DU12', span_crossbow: 'DU13', battle_cry: 'DU14', talk: 'DU15', draw: 'DU16', stow: 'DU17', swap: 'DU18',
   pick_up_reach: 'DU19', pick_up_ground: 'DU20', hand_over: 'DU21', door: 'DU22', bar: 'DU23', key: 'DU24', pick_lock: 'DU25', bandage: 'DU26',
-  drink: 'DU27', hide: 'DU28', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
+  drink: 'DU27', vanish_in_place: 'DU28', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
   armor_heavy_on: 'DU34', armor_heavy_off: 'DU35', wait: 'DU36', break_open: 'DU37', from_pack: 'DU38',
 } as const;
 /** CO15 edge kinds: what a zone's side is (wall, open, low, window); a new kind is a new row */
