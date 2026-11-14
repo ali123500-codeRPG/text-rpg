@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK } from './tableIds';
+import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
 import { TP } from './templateIds';
 import { RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
@@ -866,6 +866,38 @@ export function prototypeLibrary(): Library {
     // TV3/TV4: a road is one long zone; its length and danger words
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
+    // WZ11 region kinds (placeholders): relief in metres, wild shares by land cover, settlements per region (WZ3: one
+    // market town and a few villages and hamlets in about 10 km)
+    regionKinds: {
+      [RK.river_valley]: { id: RK.river_valley, name: 'River valley farmland', text: 'A broad valley with a river, farmed round its villages, woods and heath on the higher ground.',
+        relief: [20, 140], rough: 0.35, river: { width: 40, like: 'a lowland river like the Ouse at York, about 40 m across' }, streams: 6,
+        wild: { [LC.woods]: 0.22, [LC.heath]: 0.12, [LC.marsh]: 0.05 }, open: LC.pasture,
+        settlements: { town: 1, village: [3, 5], hamlet: [3, 6] }, danger: 'quiet' },
+      [RK.forest]: { id: RK.forest, name: 'Forest', text: 'Rolling ground mostly under trees, with clearings for a few villages and a small river.',
+        relief: [60, 260], rough: 0.5, river: { width: 15, like: 'a small river like the Cam at Cambridge, about 15 m across' }, streams: 7,
+        wild: { [LC.woods]: 0.8, [LC.heath]: 0.05, [LC.marsh]: 0.04 }, open: LC.pasture,
+        settlements: { town: 1, village: [2, 3], hamlet: [3, 6] }, danger: 'wild' },
+      [RK.upland_moor]: { id: RK.upland_moor, name: 'Upland moor', text: 'High open moor cut by steep stream valleys, with a small market town and farms in the dales.',
+        relief: [250, 600], rough: 0.6, streams: 9,
+        wild: { [LC.moor]: 0.6, [LC.rock]: 0.08, [LC.woods]: 0.1, [LC.marsh]: 0.1 }, open: LC.heath,
+        settlements: { town: 1, village: [2, 3], hamlet: [2, 5] }, danger: 'wild' },
+    },
+    // WZ1 land covers: standsM is how high it stands (trees, houses block sight over them)
+    landCovers: Object.fromEntries(([
+      [LC.farmland, 'Farmland', 'none', 0, 'Open fields of crops round a village'],
+      [LC.pasture, 'Pasture', 'none', 0, 'Grass and meadow grazed by sheep and cattle'],
+      [LC.woods, 'Woods', 'heavy', 20, 'Trees: a mature English oak stands about 20 to 25 m'],
+      [LC.heath, 'Heath', 'some', 1, 'Heather, gorse and bracken, about knee to waist high'],
+      [LC.moor, 'Moor', 'none', 0.5, 'Open upland of heather and rough grass'],
+      [LC.marsh, 'Marsh', 'some', 2, 'Wet ground and reed beds; common reed grows to about 2 to 3 m'],
+      [LC.rock, 'Crag and scree', 'some', 0, 'Bare rock, cliffs and loose stone'],
+      [LC.settlement, 'Settlement', 'some', 6, 'Houses and yards; a two-storey house stands about 6 m'],
+      [LC.water_meadow, 'Water meadow', 'none', 0, 'Flat grass beside a river that floods in winter'],
+    ] as const).map(([id, name, cover, standsM, like]) => [id, { id, name, cover, standsM, like }])),
+    landmarkKinds: Object.fromEntries(([
+      [LM.quarry, 'Quarry', 'hill'], [LM.mill, 'Mill', 'river'], [LM.ruin, 'Ruin', 'remote'], [LM.shrine, 'Shrine', 'hill'],
+      [LM.tower, 'Tower', 'hill'], [LM.mine, 'Mine', 'hill'], [LM.standing_stones, 'Standing stones', 'hill'], [LM.camp, 'Camp', 'woods'],
+    ] as const).map(([id, name, seek]) => [id, { id, name, seek }])),
     edgeKinds: Object.fromEntries(([
       [EK.wall, 'Wall', false, false, false, false, 'wall', 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
       [EK.open, 'Open', true, true, true, false, 'open', 'Nothing in the way: walk and see across anywhere along it.'],

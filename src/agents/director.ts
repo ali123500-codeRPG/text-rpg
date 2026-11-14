@@ -8,7 +8,7 @@ import type { AgentCtx } from './call';
 import type { ScenarioDirector } from './game';
 import { runAgent } from './call';
 import { FIXED } from './prompts';
-import { checkCheckin, checkStagePlan } from './schema';
+import { checkCheckin, checkRegionBrief, checkStagePlan } from './schema';
 import { applyCheckin } from '../engine/scenarioEnd';
 import { formatWeaverView } from './format';
 import { computePerception } from '../perception';
@@ -38,6 +38,13 @@ export function createDirector(clock: Clock): ScenarioDirector {
       // SC7: an ending code cannot check is numbered as a bug, so we can look at making it checkable
       const judged = Array.isArray(run.value?.scenario?.endings) ? run.value!.scenario!.endings.filter((e) => e?.when?.kind === 'judged') : [];
       if (judged.length && !errors?.length) own.reportBug?.('scenario_ending_judged', { question: run.value!.scenario!.question, endings: judged.map((e) => ({ as: e.as, text: e.text })) });
+      return run.value;
+    },
+    // WZ2: the region brief, once per region, logged under the turn that needed the land
+    region: async (view) => {
+      const own = ctx;
+      if (!own) return null;
+      const run = await runAgent<Record<string, unknown>>(own, { agent: 'weaver', fixed: FIXED.region, data: `REGION_VIEW:\n${JSON.stringify(view)}`, schema: checkRegionBrief });
       return run.value;
     },
     // SC8: a background check-in, logged under the turn whose save started it

@@ -83,6 +83,13 @@ function placeChain(state: GameState): (id: string) => Set<string> {
   return (id) => { const out = new Set<string>(); for (let q: string | null | undefined = id, n = 0; q && n < 20; q = parentOf.get(q), n++) out.add(q); return out; };
 }
 
+/** WZ1 the point of the region site a place stands on, or the site of a place it sits in */
+export function siteOf(state: GameState, placeId: string): { x: number; y: number } | undefined {
+  const chain = placeChain(state)(placeId);
+  const id = state.places.find((p) => chain.has(p.id) && p.site)?.site;
+  return id ? state.regions?.flatMap((r) => r.sites).find((s) => s.id === id)?.at : undefined;
+}
+
 /** gives each zone in `zones` without a rectangle one, next to a placed zone it links to (CO1 B). Zones already placed
  *  never move (MAP-03), so a stage that grows only adds zones at its edges. A zone touches a zone it links to, on the
  *  side the exit's compass words name when that side is free, and in whole metres (MAP-10). A building stays one piece
@@ -173,12 +180,14 @@ export function placeZones(state: GameState, zones: Zone[]): void {
       open.delete(id); progress = true;
     }
     if (!progress) {
-      // nothing to go by (a story's first zones, or a place with no link to anything placed): start east of everything
+      // nothing to go by (a story's first zones, or a place with no link to anything placed): on its settlement's site
+      // (WZ1), else east of everything
       const z = byId.get([...open][0])!;
       const rs = placed().map((o) => o.rect!);
       const [w, d] = dims(z, 'ew');
-      const x = rs.length ? Math.max(...rs.map((r) => r.x + r.w / 2)) + START_GAP_M + w / 2 : 0;
-      z.rect = snap({ x, y: 0, w, d });
+      const site = siteOf(state, z.placeId);
+      const x = site ? site.x : rs.length ? Math.max(...rs.map((r) => r.x + r.w / 2)) + START_GAP_M + w / 2 : 0;
+      z.rect = snap({ x, y: site ? site.y : 0, w, d });
       open.delete(z.id);
     }
   }

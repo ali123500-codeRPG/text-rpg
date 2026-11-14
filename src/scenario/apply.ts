@@ -51,6 +51,9 @@ function logCastPower(state: GameState, challenge: string, cast: Actor[]): void 
   if (off) state.log.push({ turn: state.turn, code: 'cast_power_off_band', detail: { challenge, ratio: Math.round(ratio * 100) / 100, band } });
 }
 
+/** every settlement site of the world's land */
+const sites = (state: GameState) => (state.regions ?? []).flatMap((r) => r.sites);
+
 export function freshId(key: string, taken: Set<string>): string {
   let id = key;
   for (let n = 2; taken.has(id); n++) id = `${key}_${n}`;
@@ -260,6 +263,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       id: placeMap.get(p.key)!, storyId: state.storyId, kind: p.kind, parentId: p.parent ? placeRef(p.parent) : null,
       names: { current: p.name, past: [] }, zones: [], state: {}, headlines: [],
     };
+    // WZ1/WZ13: a settlement stands on its site; the story's first top-level place stands on the brief's start site
+    const site = sites(state).find((x) => x.id === (p.site ?? (!node.parentId && ctx.site && !sites(state).some((y) => y.id === ctx.site && y.placeId) ? ctx.site : undefined)));
+    if (site && !node.parentId) { node.site = site.id; site.placeId = node.id; }
     const stub = bare(node.id);
     if (stub) { Object.assign(stub, { ...node, zones: stub.zones }); delete stub.bare; }
     else state.places.push(node);
@@ -271,11 +277,14 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight, ...(l.drop ? { drop: true as const } : {}) };
     });
     const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
-    const road = k.road ? roadShape(z.length, z.danger) : {};
+    // WZ1: a road along a road of the land takes its real length and its danger from it
+    const line = k.road && z.road ? state.regions?.flatMap((r) => r.roads).find((x) => x.id === z.road) : undefined;
+    const road = line ? { ...roadShape(line.length / 1000, line.danger), road: line.id } : k.road ? roadShape(z.length, z.danger) : {};
     const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), kind: z.kind, name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}),
       area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), ...(k.aspect > 1 ? { aspect: k.aspect } : {}), ...road, groundItems: [] };
     const furn = z.furniture ?? k.furniture; // FR2
     if (furn?.length) zone.furniture = makeFurniture(zone.id, furn);
+    if (line) line.zone = zone.id;
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);

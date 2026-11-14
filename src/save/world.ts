@@ -60,7 +60,7 @@ export function carryOn(world: GameState, fresh: GameState, fell = true): GameSt
     actors: fell ? [...w.actors, past] : w.actors,
     bands: [...fresh.bands, ...w.bands],
     hidden: { ...w.hidden, plans: {}, stage: fresh.hidden.stage }, // plans and the stage brief were the last story's
-    places: w.places, facts: w.facts, clocks: w.clocks, flags: w.flags, blueprints: w.blueprints,
+    places: w.places, ...(w.regions ? { regions: w.regions } : {}), facts: w.facts, clocks: w.clocks, flags: w.flags, blueprints: w.blueprints,
     stage: { ...fresh.stage, scenarioNumber: world.stage.scenarioNumber, scenarioStartTurn: world.turn + 1 },
     ...(w.barriers ? { barriers: w.barriers } : {}), ...(w.turnEnds ? { turnEnds: w.turnEnds } : {}), ...(w.recentEvents ? { recentEvents: w.recentEvents } : {}),
   };

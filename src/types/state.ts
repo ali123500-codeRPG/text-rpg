@@ -115,6 +115,8 @@ export type GameState = {
   pending: Pending;
   // engine page fields
   places: Place[];
+  /** WZ1 the world's land, region by region, as code drew it (src/land) */
+  regions?: import('./core').Region[];
   facts: StoryFact[];
   stage: StageInfo;
   scenarioCaps: { promotions: number; minted: number };
@@ -208,7 +210,7 @@ export type EnginePage = {
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */
-  order?: { actors: string[]; places: string[] };
+  order?: { actors: string[]; places: string[]; regions?: string[] };
 };
 
 export type HiddenPage = { storyId: StoryId } & HiddenStore;
@@ -229,6 +231,8 @@ export type Place = {
   zones: Zone[];
   state: Record<SlotKey, { value: string; setTurn: Turn; setBy: string }>;
   headlines: FactId[];
+  /** WZ1 the region site this place stands on (a top-level settlement); its zones are placed there */
+  site?: string;
   /** a bare node made for the story start before any plan (ensurePlace); the first plan's place of the same key fills it in (BG-32) */
   bare?: true;
 };

@@ -1,4 +1,5 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { landView } from '../land/brief';
 import { actionRow } from '../ruleset/actionTime';
 import { doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
@@ -947,6 +948,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
       ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
+    ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const r = zoneById(state, state.player.zone)?.rect; return r ? { x: r.x, y: r.y } : undefined; })())),
     places: weaverPlaces(state, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },

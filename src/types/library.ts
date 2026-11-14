@@ -194,6 +194,9 @@ export type Library = {
   zoneSizes?: Record<string, ZoneSize>; // CO16
   roadLengths?: Record<string, RoadLength>; // TV3
   roadDangers?: Record<string, RoadDanger>; // TV4
+  regionKinds?: Record<string, RegionKind>; // WZ11: RK…
+  landCovers?: Record<string, LandCover>; // WZ1: LC…
+  landmarkKinds?: Record<string, { id: string; name: string; seek: string }>; // WZ2: LM…, seek is a WHERE word (src/land)
   noiseLevels?: Record<string, NoiseLevel>;
   visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
@@ -233,6 +236,17 @@ export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; 
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
 export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string };
 export type RoadLength = { id: import('../scales').RoadLengthKey; name: string; km: number };
+/** WZ11 a region kind: how code draws its land. Shares are of the region's wild land (not farmed or settled), by land
+ * cover id; relief is the lowest and highest ground in metres; a river crosses it when `river` is set */
+export type RegionKind = {
+  id: string; name: string; text: string;
+  relief: [number, number]; rough: number; river?: { width: number; like: string }; streams: number;
+  wild: Record<string, number>; open: string;
+  settlements: { town: number; village: [number, number]; hamlet: [number, number] };
+  danger: import('../scales').RoadDangerKey;
+};
+/** WZ1 a land cover: its cover for those standing in it, how high it stands (it blocks sight over it: trees, houses) */
+export type LandCover = { id: string; name: string; cover: import('./core').Cover; standsM: number; like: string };
 export type RoadDanger = { id: import('../scales').RoadDangerKey; name: string; encounterPct: number };
 /** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };

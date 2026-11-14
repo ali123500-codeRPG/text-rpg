@@ -27,7 +27,7 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
 
 afterEach(() => {
   resetConfig();
-  delete MIGRATIONS[8];
+  delete MIGRATIONS[9];
 });
 
 describe('save and load', () => {
@@ -209,13 +209,13 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await play(st, s, 1, 2);
-    CONFIG.SCHEMA_VERSION = 9;
-    MIGRATIONS[8] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    CONFIG.SCHEMA_VERSION = 10;
+    MIGRATIONS[9] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.flags.migrated).toBe(true);
-    expect(report).toContain('migrated v8 -> v9');
+    expect(report).toContain('migrated v9 -> v10');
     const h = await head(st);
-    expect(h).toMatchObject({ schemaVersion: 9, undo: null, safety: { turn: 2 } });
+    expect(h).toMatchObject({ schemaVersion: 10, undo: null, safety: { turn: 2 } });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
     // the safety bookmark can be taken back (it migrates again)
     expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
@@ -225,11 +225,11 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    CONFIG.SCHEMA_VERSION = 10;
-    MIGRATIONS[8] = () => {};
+    CONFIG.SCHEMA_VERSION = 11;
+    MIGRATIONS[9] = () => {};
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toContain('schema: no migration step v9 -> v10');
-    expect((await head(st)).schemaVersion).toBe(8);
+    expect(err.report).toContain('schema: no migration step v10 -> v11');
+    expect((await head(st)).schemaVersion).toBe(9);
   });
 
   it('v3 -> v4 gives humanoids two legs from the old pool and widens armor that covered legs', () => {

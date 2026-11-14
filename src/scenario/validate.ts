@@ -214,6 +214,13 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (p.parent && !isPlace(p.parent)) err('unresolved_place', `place ${p.key}: parent ${p.parent} unknown`);
     const lays = getLibrary().layouts ?? {};
     if (p.layout !== undefined && !lays[p.layout]) err('bad_place', `place ${p.key}: layout is a layout id from catalogs.layouts (${Object.values(lays).map((l) => `${l.id} ${l.name}`).join(', ')})`);
+    // WZ1: a settlement stands on a free site of the land, and only a top-level place does
+    if (p.site !== undefined) {
+      const site = (state.regions ?? []).flatMap((r) => r.sites).find((x) => x.id === p.site);
+      if (!site) err('bad_place', `place ${p.key}: site is a site id from target.region.sites`);
+      else if (site.placeId && site.placeId !== p.key) err('bad_place', `place ${p.key}: site ${p.site} already holds ${site.placeId}`);
+      else if (p.parent) err('bad_place', `place ${p.key}: only a top-level place (no parent) stands on a site`);
+    }
   }
   for (const f of frontiers) text(`frontier ${f.key} label`, f.label, true);
 
@@ -250,6 +257,13 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     }
     if (z.length !== undefined && !(ROAD_LENGTHS.has(z.length) || (typeof z.length === 'number' && Number.isFinite(z.length) && z.length >= 0.1 && z.length <= 500))) err('bad_zone', `zone ${z.key}: a road's length is ${ROAD_LENGTHS.list()}, or km from 0.1 to 500`);
     if (z.danger !== undefined && !ROAD_DANGERS.has(z.danger)) err('bad_zone', `zone ${z.key}: a road's danger is ${ROAD_DANGERS.list()}`);
+    // WZ1: a road zone runs along a road of the land that no other road zone holds yet
+    if (z.road !== undefined) {
+      const line = (state.regions ?? []).flatMap((r) => r.roads).find((x) => x.id === z.road);
+      if (!road) err('bad_zone', `zone ${z.key}: only a road kind runs along a region road`);
+      else if (!line) err('bad_zone', `zone ${z.key}: road is a road id from target.region.roads`);
+      else if (line.zone && line.zone !== z.key) err('bad_zone', `zone ${z.key}: road ${z.road} is already the zone ${line.zone}`);
+    }
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
     const edgeKinds = getLibrary().edgeKinds ?? {};
     for (const [side, ek] of Object.entries(z.edges ?? {})) {

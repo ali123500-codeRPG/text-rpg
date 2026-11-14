@@ -3,7 +3,7 @@ import type { CreationBuild, Bookmark, EnginePage, GameState, Head, Library, Log
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
 import { relayBroken } from '../scenario/geometry';
-import { checkInvariants, checkShape, migrate, newReport, reconcile, repairReferences, type CheckReport } from './checks';
+import { checkInvariants, checkShape, migrate, LAND_SCHEMA, newReport, reconcile, repairReferences, type CheckReport } from './checks';
 export { memoryStore, artifactDbStore, type MemoryStore, type DB } from './store';
 export { universeDay, reachDay } from './universe';
 export { carryOn, pastCharacterId } from './world';
@@ -320,6 +320,7 @@ async function freeWorlds(store: Store, owner: StoryOwner): Promise<(FreeWorld &
     if (ms.some((m) => !m.archivedAt || !m.end)) continue; // someone lives there (or an old save that kept no ending)
     ms.sort((a, b) => a.archivedAt!.localeCompare(b.archivedAt!));
     const last = ms.at(-1)!, title = await store.get<{ name: string }>(worldTitle(worldId));
+    if ((last.schemaVersion ?? 0) < LAND_SCHEMA) continue; // WZ12: a world from before the land ends with its saves
     free.push({ worldId, name: title?.name || `${ms[0].end!.name}’s world`, lastStoryId: last.storyId, day: last.end!.day,
       past: ms.map((m) => ({ name: m.end!.name, fell: !!m.fame })), threadbound: last.end!.threadbound, at: last.archivedAt! });
   }

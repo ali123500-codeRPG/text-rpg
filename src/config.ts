@@ -476,7 +476,7 @@ const DEFAULTS = {
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 8, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
+  SCHEMA_VERSION: 9, // v9: land (regions, WZ12): older saves end; v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
   /** GD3: a code-run guard asks someone it suspects to open their locked container once every this many turns (placeholder) */
@@ -603,6 +603,31 @@ const DEFAULTS = {
   PACE_M: 1,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
+  // ---- land first (WZ1-WZ12): a region's land, drawn once by code (src/land); placeholders unless a source is given ----
+  /** WZ3 a region is a square this many metres across: one market town, a few villages and hamlets, two to three hours'
+   * walk from side to side */
+  REGION_SIZE_M: 10000,
+  /** a region's land is stored on a grid of cells this many metres across (heights and cover per cell) */
+  REGION_CELL_M: 100,
+  /** the nearest two settlements of a size sit to another settlement: lowland English parishes were mostly 4 to 12 km² (1,000
+   * to 3,000 acres), each round one village, which puts villages about 2 to 3.5 km apart */
+  SITE_SPACING_M: { town: 3000, village: 2000, hamlet: 900 } as Record<string, number>,
+  /** how far a settlement's houses and yards reach from its middle: a small market town of 1,000 to 2,000 people covered
+   * about 20 ha; a village of about 40 houses (Wharram Percy, English Heritage) strung along a street of 250 to 300 m */
+  SITE_BUILT_M: { town: 250, village: 130, hamlet: 50 } as Record<string, number>,
+  /** how far a settlement's farmland reaches from its middle (its parish fields, from the parish sizes above) */
+  SITE_FIELDS_M: { town: 1400, village: 1000, hamlet: 400 } as Record<string, number>,
+  /** the widest water a road fords; wider is bridged (a placeholder: medieval fords were usually knee deep, on broad
+   * shallow stretches) */
+  FORD_MAX_WIDTH_M: 20,
+  /** a stream's width in metres, least and most: a brook a few metres across */
+  STREAM_WIDTH_M: [2, 5] as [number, number],
+  /** WZ4 how far land is made out at each light, in metres: hills, woods, rivers and roads (WMO visibility: "good" from 10
+   * km in clear daylight; at dusk a few km; on a moonlit night some hundreds of metres; placeholders). Hills and anything
+   * standing (trees, houses) block it. */
+  LAND_SIGHT_M: { bright: 10000, dim: 2000, dark: 300 } as Record<string, number>,
+  /** WZ4 an eye this many metres above the ground (a standing adult) */
+  LAND_EYE_M: 1.6,
   /** TV3 road lengths in km (ROAD_LENGTHS): a walk of about 4.5 km an hour gives the time words their lengths */
   ROAD_LENGTH_KM: { short_walk: 0.5, half_hour: 2, hour: 4.5, half_day: 15, day: 30, two_days: 60 } as Record<string, number>,
   /** TV3 a road's width in metres: a cart track or Roman road, about 4 m (Roman viae ran about 4 to 6 m with the verges) */

@@ -1004,6 +1004,40 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile.world-place.plan.road.here .map-tile-box { stroke: var(--accent); }
 .map-tile.world-place.plan.road.selected:not(.here) .map-tile-box { stroke: var(--scenario-mark); }
 .map-tile.world-place.plan.road .map-road-hit { stroke: transparent; stroke-width: 18; cursor: pointer; }
+.map-tile.world-place.plan.road polyline { fill: none; stroke-linejoin: round; }
+/* WZ4 the land you have made out, under the World's places and roads (map.ts drawLand, landSvg.ts). The one land palette,
+   muted for Sky diary Night and mixed from the tokens (HISAB has no land colours). The land is drawn in metres; --px
+   (metres per screen pixel, set on zoom) keeps its lines a set width on screen. No glow, shadow or motion. */
+.map-page {
+  --land-farmland: color-mix(in srgb, var(--c15) 24%, var(--bg)); --land-pasture: color-mix(in srgb, var(--c2) 22%, var(--bg));
+  --land-woods: color-mix(in srgb, var(--c16) 40%, var(--bg)); --land-heath: color-mix(in srgb, var(--c22) 32%, var(--bg));
+  --land-moor: color-mix(in srgb, var(--c14) 26%, var(--bg)); --land-marsh: color-mix(in srgb, var(--c12) 24%, var(--bg));
+  --land-rock: color-mix(in srgb, var(--c3) 28%, var(--bg)); --land-settlement: color-mix(in srgb, color-mix(in srgb, var(--c15), var(--c3)) 34%, var(--bg));
+  --land-meadow: color-mix(in srgb, var(--c13) 24%, var(--bg)); --land-water: color-mix(in srgb, var(--c9) 60%, var(--bg));
+  --land-road: color-mix(in srgb, var(--c15) 50%, var(--muted)); --land-contour: color-mix(in srgb, var(--text) 10%, transparent); }
+.map-land { pointer-events: none; }
+/* names over the land keep a rim of the night behind them, so a line or field under one never cuts it */
+.map-world-name text { paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+.lc { stroke: none; }
+.lc-LC1 { fill: var(--land-farmland); } .lc-LC2 { fill: var(--land-pasture); } .lc-LC3 { fill: var(--land-woods); }
+.lc-LC4 { fill: var(--land-heath); } .lc-LC5 { fill: var(--land-moor); } .lc-LC6 { fill: var(--land-marsh); }
+.lc-LC7 { fill: var(--land-rock); } .lc-LC8 { fill: var(--land-settlement); } .lc-LC9 { fill: var(--land-meadow); }
+.land-contour { fill: none; stroke: var(--land-contour); stroke-width: calc(var(--px, 8) * 1px); }
+.land-contour-major { stroke: color-mix(in srgb, var(--text) 18%, transparent); stroke-width: calc(var(--px, 8) * 1.4px); }
+.land-water { fill: none; stroke: var(--land-water); stroke-linecap: round; stroke-linejoin: round; stroke-width: max(calc(var(--w) * 1px), calc(var(--px, 8) * 2.5px)); }
+.land-stream { stroke-width: max(calc(var(--w) * 1px), calc(var(--px, 8) * 1.25px)); }
+.land-road { fill: none; stroke: var(--land-road); stroke-linecap: round; stroke-linejoin: round; stroke-width: calc(var(--px, 8) * 1.5px); }
+.land-path { stroke-width: calc(var(--px, 8) * 1px); stroke-dasharray: calc(var(--px, 8) * 4px) calc(var(--px, 8) * 3px); }
+.land-bridge { fill: var(--land-road); r: max(30px, calc(var(--px, 8) * 2.5px)); }
+.land-ford { fill: none; stroke: var(--land-road); stroke-width: calc(var(--px, 8) * 1px); r: max(30px, calc(var(--px, 8) * 3px)); }
+/* the land's settlements and landmarks, on the name layer at a set size: under the places' names in weight and colour */
+.map-land-mark circle, .map-land-mark rect { fill: var(--bg); stroke: var(--c15); stroke-width: 1.5; }
+.map-land-mark text { fill: var(--muted); font-size: 11.5px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+.map-land-mark.town text { fill: var(--text); font-size: 13px; }
+.map-land-mark.feature rect { stroke: var(--faint); }
+.map-land-mark.feature text { fill: var(--faint); font-weight: 600; }
+.map-land-mark.faint { opacity: .55; }
+.map-land-mark.faint circle { stroke-dasharray: 2 2; }
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
 .map-tile.plan.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; opacity: 1; }
 .map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }
@@ -1110,6 +1144,12 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
 .k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }
 .k-who.last { background: none; border: 1.5px dashed var(--c4); }
+.k-land { width: 18px; height: 12px; border-radius: 3px; background: linear-gradient(90deg, var(--land-farmland) 50%, var(--land-woods) 50%); }
+.k-land-water { width: 20px; height: 0; border-top: 3px solid var(--land-water); }
+.k-land-road { width: 20px; height: 0; border-top: 2px solid var(--land-road); }
+.k-site { width: 9px; height: 9px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--c15); }
+.k-site.faint { opacity: .55; border-style: dashed; }
+.k-mark { width: 8px; height: 8px; box-sizing: border-box; margin: 0 1px; transform: rotate(45deg); background: var(--bg); border: 1.5px solid var(--faint); }
 /* The stage map to scale (rpg-map, mapPlan.ts): code places every mark in screen pixels at the zoom shown. Names sit
    inside their zone or outside on a plate with a leader; exit notes name where an arrow goes; doors sit on shared walls. */
 .map-plan .map-area { cursor: pointer; }

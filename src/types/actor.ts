@@ -349,6 +349,8 @@ export type Journal = {
   zonesSeen?: string[];
   /** the Map page (MAP-33): every zone the player has stood in, oldest first; a save made before it starts from the trail */
   zonesVisited?: string[];
+  /** WZ4 the land the player has made out, per region id: one bit per grid cell, base64 (src/land/sight.ts) */
+  landSeen?: Record<string, string>;
 };
 
 export type { PlaceId };

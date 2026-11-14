@@ -129,7 +129,7 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     settings: { showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],
-    meta: { storyId, title: 'Test story', schemaVersion: 5, createdAt: '2026-11-07', settings: { showMechanics: true, tone: 'grounded low fantasy' } },
+    meta: { storyId, title: 'Test story', schemaVersion: CONFIG.SCHEMA_VERSION, createdAt: '2026-11-07', settings: { showMechanics: true, tone: 'grounded low fantasy' } },
   };
   // ZR8: real rectangles, so everyone stands at a point in metres, as in every world the game builds
   for (const z of state.zones) z.area = CONFIG.ZONE_SIZE_M2[z.placeId === 'field' ? 'open' : z.placeId === 'tavern' ? 'room' : 'yard'];

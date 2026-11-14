@@ -28,6 +28,10 @@ import { now } from '../time';
 import { DU, FU } from '../library/tableIds';
 import { makeFurniture } from '../engine/furniture';
 import { FAKE_STAGES, type FakeStage } from './fakeStages';
+import { drawRegion } from '../land/generate';
+import { cellsInSight } from '../land/sight';
+import { pointAlong } from './mapData';
+import { LM, RK } from '../library/tableIds';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -199,6 +203,45 @@ const FAKE_PLACES = (): GameState['places'] => placed([
 /** code places every fake zone in metres, as applyStagePlan does for real ones */
 function placed(ps: GameState['places']): GameState['places'] { placeZones({ places: ps } as GameState, ps.flatMap((p) => p.zones)); return ps; }
 
+/** WZ1/WZ4: the fake world's land, one region drawn from a fixed seed (drawn once: it takes about a second). Millbrook stands
+ *  on its village site, the mill road runs along a road line out of it, and the player has made out the land around the
+ *  village and along that road, so the World shows land, roads and you */
+let fakeRegion: import('../types').Region | undefined;
+function fakeLand(st: GameState): void {
+  const r = structuredClone(fakeRegion ??= drawRegion('rg_fake', 0, 0, 2007, {
+    kind: RK.river_valley, name: 'the Wend valley', look: '', river: { name: 'the Wend' },
+    settlements: [{ size: 'village', name: 'Millbrook', look: '', where: 'river' }, { size: 'town', name: 'Marbury', look: '', where: 'crossing' },
+      { size: 'village', name: 'Thornbury', look: '' }, { size: 'hamlet', name: 'Hob End', look: '' }, { size: 'hamlet', name: 'Sallow', look: '', where: 'woods' }],
+    features: [{ kind: LM.mill, name: 'the old mill', look: '', where: 'river' }, { kind: LM.ruin, name: 'the burnt tower', look: '', where: 'hill' }],
+  }));
+  const site = r.sites.find((x) => x.name === 'Millbrook')!, sq = st.places.flatMap((p) => p.zones).find((z) => z.id === 'v_square')!.rect!;
+  // the fake places keep their shapes and move as one, so the village square sits on its site
+  const dx = site.at.x - sq.x, dy = site.at.y - sq.y;
+  for (const z of st.places.flatMap((p) => p.zones)) if (z.rect) z.rect = { ...z.rect, x: z.rect.x + dx, y: z.rect.y + dy };
+  site.placeId = 'village';
+  st.places.find((p) => p.id === 'village')!.site = site.id;
+  // the longest road line out of Millbrook, as the mill road's zone
+  const node = r.nodes.find((n) => n.site === site.id)!;
+  const line = r.roads.filter((x) => x.ends.includes(node.id)).sort((a, b) => b.length - a.length)[0];
+  const pts = line.ends[0] === node.id ? line.pts : [...line.pts].reverse();
+  if (pts !== line.pts) line.ends = [line.ends[1], line.ends[0]];
+  line.pts = pts; line.zone = 'm_road';
+  const xs = pts.map((q) => q.x), ys = pts.map((q) => q.y), [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  st.places.push(FP('mill_road', 'road', null, 'the mill road', [
+    FZ('m_road', 'mill_road', 'the mill road', 'A cart track along the valley, rutted where the mill carts go.', [['v_square', 'back to Millbrook', false], ['m_road_far', 'on along the road', false, true]],
+      { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, road: line.id, rect: { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: Math.max(4, x1 - x0), d: Math.max(4, y1 - y0) } }),
+  ]));
+  st.places.find((p) => p.id === 'village')!.zones[0].links.push({ to: 'm_road', label: 'the mill road', sight: false });
+  // what the character has made out: the land round the village, and along the road as far as they have walked it
+  const N = Math.round(r.size / r.cell), bits = new Uint8Array(Math.ceil((N * N) / 8));
+  const look = (at: { x: number; y: number }, range: number) => { for (const i of cellsInSight(r, at, CONFIG.LAND_EYE_M, range)) bits[i >> 3] |= 1 << (i & 7); };
+  look(site.at, 3000);
+  for (let m = 0; m <= line.length * 0.6; m += 400) look(pointAlong(pts, m), 1500);
+  st.regions = [r];
+  (st.player.journal!.landSeen ??= {})[r.id] = btoa(String.fromCharCode(...bits));
+  st.player.journal!.zonesSeen!.push('m_road');
+}
+
 /** barriers on the fake map's exits, so the Map shows its marks: the kitchen door (locked, tried), the back door (barred
  *  from the yard, tried), the front door (locked, the player holds its key) and the yard gate to the lane (blocked) */
 function fakeBarriers(st: GameState): void {
@@ -270,13 +313,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
         { id: 'q1', state: 'active', text: 'Clear the slimes from the field', giver: 'guard_1', dealId: 'ag_1', goal: { kind: 'defeat', by: 'race', of: slime.core.raceId!, count: 3, noun: 'slimes' }, progress: 1, level: 'i', startTurn: 2, after: 'q0', pay: { coin: 10 }, paid: { coin: 0, qty: 0 }, due: 3 * 1440 + 1080, dueBy: 'dusk' },
       ],
-      settings, libraryVersion: 1, blueprints: [{ storyId: 'fake', id: `${IT.short_sword}_m2_1`, kind: 'item', data: { id: `${IT.short_sword}_m2_1`, kind: 'weapon', name: 'Wim’s old blade', look: 'a notched short sword with a wire-bound grip', base: { itemId: IT.short_sword, quality: 'fine' } } }], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
+      settings, libraryVersion: 1, blueprints: [{ storyId: 'fake', id: `${IT.short_sword}_m2_1`, kind: 'item', data: { id: `${IT.short_sword}_m2_1`, kind: 'weapon', name: 'Wim’s old blade', look: 'a notched short sword with a wire-bound grip', base: { itemId: IT.short_sword, quality: 'fine' } } }], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: CONFIG.SCHEMA_VERSION, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     fakeBarriers(state);
     if (opts.achievements) seedAchievements(state);
     const stage = opts.stage ? FAKE_STAGES[opts.stage] : undefined;
     if (stage) useStage(state, stage());
+    else fakeLand(state);
     // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point
     const common = state.places.flatMap((x) => x.zones).find((z) => z.id === 'tav_common')?.rect;
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
@@ -373,8 +417,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
       // "attack" lands a heavy hit; "attack hard" a crushing one and "attack light" a full one, to show the strike card's tiers
       const hurt = /^attack\b/i.test(text) ? fightTurn(state, /hard/i.test(text) ? 'crushing hit' : /light/i.test(text) ? 'full hit' : 'heavy hit') : null;
-      // "travel" sets you partway along the west road, to show your point on the road on the Map (TV7)
-      if (/^travel\b/i.test(text)) {
+      // "travel" sets you partway along the west road, to show your point on the road on the Map (TV7); "travel mill" on the
+      // mill road, a road bound to the land (WZ1)
+      const mill = state.places.find((x) => x.id === 'mill_road')?.zones[0], line = mill?.road && state.regions?.[0]?.roads.find((x) => x.id === mill.road);
+      if (/^travel mill\b/i.test(text) && mill && line) {
+        state.player.zone = mill.id; state.player.placeId = mill.placeId;
+        state.player.pos = pointAlong(line.pts, line.length * 0.45);
+      } else if (/^travel\b/i.test(text)) {
         const road = state.places.find((x) => x.id === 'west_road')!.zones[0];
         state.player.zone = road.id; state.player.placeId = road.placeId;
         if (road.rect) state.player.pos = { x: road.rect.x - road.rect.w * 0.1, y: road.rect.y };

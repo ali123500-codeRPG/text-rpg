@@ -2,6 +2,7 @@
 import { CONFIG } from '../config';
 import type { Actor, GameState, Journal } from '../types';
 import { perceivedZoneIds, zoneById } from './relations';
+import { seeLand } from '../land/sight';
 
 /** the player's journal, made empty the first time it is needed */
 export const journalOf = (p: Actor): Journal => (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });
@@ -23,6 +24,7 @@ export function noteZonesSeen(state: GameState): void {
   const seen = (j.zonesSeen ??= []);
   for (const z of perceivedZoneIds(state, p.zone)) if (!seen.includes(z)) seen.push(z);
   noteVisited(state, p.zone);
+  seeLand(state);
 }
 
 /** the zones the player has stood in (MAP-33: the map draws them apart from zones only seen); a save made before the list
