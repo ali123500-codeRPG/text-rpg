@@ -10,7 +10,7 @@ import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
 import { ZK } from '../library/tableIds';
-import { placeAll, startAtDoor } from '../engine/position';
+import { entryPoint, placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { composeTemplate, presetPersonality, spawnNpc } from '../library/spawn';
@@ -112,9 +112,9 @@ function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) =>
   return out;
 }
 
-/** an extension's entry: links into the crossed frontier now lead to `entry`, and the player stands there (NW3: unless it
- * was built ahead for an NPC, when the player stays where it is). */
-function enterFrontier(state: GameState, frontierKey: string, entry: Zone, movePlayer = true): void {
+/** an extension's entry: links into the crossed frontier now lead to `entry`. BG-225: done before the new zones are placed,
+ * so the entry is placed touching the zone the frontier was on, never apart from it. */
+function joinFrontier(state: GameState, frontierKey: string, entry: Zone): void {
   for (const z of state.zones) {
     for (const l of z.links) {
       if (l.frontier && l.to === frontierKey) {
@@ -126,7 +126,15 @@ function enterFrontier(state: GameState, frontierKey: string, entry: Zone, moveP
   ensureBackLinks(state, [entry]);
   // NW2: anyone heading for the frontier now heads for the zone beyond it
   for (const a of state.actors) if (a.mind?.slots?.dest === frontierKey) a.mind.slots.dest = entry.id;
-  if (movePlayer) moveTo(state, state.player, entry.id);
+}
+
+/** the player crosses into the placed `entry` (NW3: not when it was built ahead for an NPC). BG-226: they stand a step
+ * inside the way they came in by, never at the middle of the zone (on a road, kilometres on) */
+function enterFrontier(state: GameState, entry: Zone): void {
+  const from = state.player.zone;
+  moveTo(state, state.player, entry.id);
+  const at = entryPoint(state, entry.id, from);
+  if (at) state.player.pos = at;
 }
 
 function setFallbackFlags(state: GameState, reason: string, code: 'weaver_fallback' | 'routine_fallback', errors: PlanError[], actors?: string[]): void {
@@ -273,13 +281,14 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     newZones.push(zone);
   }
   ensureBackLinks(state, newZones);
+  // an extension's entry, or (CH3 a) a scenario started in free roam by crossing an unbuilt frontier: joined before placing (BG-225)
+  if (ctx.frontierKey && newZones[0]) joinFrontier(state, ctx.frontierKey, newZones[0]);
   const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);
   placeZones(state, newZones); // after heights: stairs stack zones straight above or below
   const firstZone = newZones[0]?.id;
   const startZone = state.player.zone; // CH1: the zone the player stood in when the scenario began is ground
-  // an extension's entry, or (CH3 a) a scenario started in free roam by crossing an unbuilt frontier
-  if (ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0], !ctx.ahead);
+  if (ctx.frontierKey && newZones[0] && !ctx.ahead) enterFrontier(state, newZones[0]);
   // at story start the player has no zone on the stage yet; it starts in the plan's first zone (CS2)
   const storyStart = !!firstZone && !state.stage.zoneIds.includes(state.player.zone);
   if (storyStart) moveTo(state, state.player, firstZone!);
@@ -517,8 +526,9 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     const zone = bareZone(freshId(ctx.frontierKey, taken), ctx.placeId, link?.label ?? ctx.frontierKey);
     place?.zones.push(zone);
     putOnStage(state, zone);
-    enterFrontier(state, ctx.frontierKey, zone, !ctx.ahead);
+    joinFrontier(state, ctx.frontierKey, zone);
     placeZones(state, [zone]);
+    if (!ctx.ahead) enterFrontier(state, zone);
     if (state.stage.scenario?.ground && ctx.kind === 'extension') state.stage.scenario.ground.push(zone.id); // CH1
   } else {
     if (place?.zones.length) for (const z of place.zones) putOnStage(state, z);

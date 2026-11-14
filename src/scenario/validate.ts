@@ -243,6 +243,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       delete z.length; delete z.danger;
       errs.push({ code: 'road_fields_dropped', message: `zone ${z.key}: not a road kind, so its length and danger were dropped`, routineOnly: false, repaired: true });
     }
+    // BG-223: the Weaver is told road lengths in words ("an hour's walk"): they read as their keys, and "2 km" as km
+    if (typeof z.length === 'string') {
+      const km = /^\s*(\d+(?:\.\d+)?)\s*km\s*$/i.exec(z.length);
+      z.length = km ? Number(km[1]) : ROAD_LENGTHS.keyOf(z.length) ?? z.length;
+    }
     if (z.length !== undefined && !(ROAD_LENGTHS.has(z.length) || (typeof z.length === 'number' && Number.isFinite(z.length) && z.length >= 0.1 && z.length <= 500))) err('bad_zone', `zone ${z.key}: a road's length is ${ROAD_LENGTHS.list()}, or km from 0.1 to 500`);
     if (z.danger !== undefined && !ROAD_DANGERS.has(z.danger)) err('bad_zone', `zone ${z.key}: a road's danger is ${ROAD_DANGERS.list()}`);
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
@@ -428,6 +433,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
 
   // ---- SC1/SC2/SC3/SC7: a new scenario's question, scale and endings ----
+  const itemKnown = (id: unknown): boolean => { try { return typeof id === 'string' && !!itemDef(state, id); } catch { return false; } };
   if (ctx.kind === 'scenario' || (ctx.kind === 'checkin' && plan.scenario)) {
     // degradable: after the repair retry, a plan whose scenario is still wrong is applied with the bad endings dropped
     const serr = (code: string, message: string) => err(code, message, undefined, true);
@@ -455,8 +461,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
           case 'band_out': if (!isBand(w.band)) serr('scenario_ending', `${at}: band ${w.band} unknown`); break;
           case 'reach': case 'leave': if (!isPlace(w.place) && !isZone(w.place)) serr('scenario_ending', `${at}: place ${w.place} unknown`); break;
           case 'find': if (!isActor(w.actor)) serr('scenario_ending', `${at}: actor ${w.actor} unknown`); break;
-          case 'hold': if (!lib.items?.[w.item]) serr('scenario_ending', `${at}: item ${w.item} unknown`); break;
-          case 'deliver': if (!lib.items?.[w.item]) serr('scenario_ending', `${at}: item ${w.item} unknown`); else if (!isActor(w.to)) serr('scenario_ending', `${at}: actor ${w.to} unknown`); break;
+          // BG-222: items made in play (IT26_m39_0) are known too, through the same lookup as the rest of the game
+          case 'hold': if (!itemKnown(w.item)) serr('scenario_ending', `${at}: item ${w.item} unknown`); break;
+          case 'deliver': if (!itemKnown(w.item)) serr('scenario_ending', `${at}: item ${w.item} unknown`); else if (!isActor(w.to)) serr('scenario_ending', `${at}: actor ${w.to} unknown`); break;
           case 'time': if (!TIME_OF_DAY.keyOf(w.at)) serr('scenario_ending', `${at}: time must be one of ${TIME_OF_DAY.list()}`); break;
           case 'judged': break;
           default: serr('scenario_ending', `${at}: when.kind must be one of band_out, reach, leave, find, hold, deliver, time, judged`);

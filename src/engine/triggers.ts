@@ -69,13 +69,19 @@ export function fireTurnStartTriggers(state: GameState, turn: number): { orders:
   return { orders, fired };
 }
 
-/** Mid-turn: after each event, player_seen_in_zone and actor_down only, for owners that haven't acted. First holding trigger wins. */
+/** BG-221: a speech beat aimed at the player: its words come from the owner's Responder, which runs only at a turn's start */
+const speechAtPlayer = (state: GameState, t: Trigger): boolean =>
+  isSpeech(t.then.type) && (t.then.target === state.player.id || t.then.target === 'player');
+
+/** Mid-turn: after each event, player_seen_in_zone and actor_down only, for owners that haven't acted. First holding trigger wins.
+ * BG-221: a speech beat at the player never fires mid-turn (it would speak with no words); it stays armed and fires at the
+ * next turn's start, where its owner's Responder writes the words (beatSpeakers). */
 export function fireMidTurnTrigger(state: GameState, owner: Actor, event: GameEvent): Order | null {
   const plan = state.hidden.plans[owner.id];
   if (!plan || !isActive(owner)) return null;
   const t = plan.triggers.find(
     (x) => (x.ownerId ?? owner.id) === owner.id && (x.when.type === 'player_seen_in_zone' || x.when.type === 'actor_down') &&
-      triggerHolds(state, x, owner, [event], 'mid', state.turn),
+      !speechAtPlayer(state, x) && triggerHolds(state, x, owner, [event], 'mid', state.turn),
   );
   return t ? fire(state, owner.id, t, state.turn, true) : null;
 }

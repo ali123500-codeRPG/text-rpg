@@ -955,7 +955,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone },
       ...((() => { const own = itemHolders(state).flat().filter((i) => i.boundTo === state.player.id && lib.items[i.itemId]?.threadbound).map((i) => lib.items[i.itemId].name); return own.length ? { threadbound: own } : {}; })()) },
     previousNote: state.hidden.weaverNote,
-    lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
+    lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => { try { return itemDef(state, i).name; } catch { return i; } }), ...(r.inner ? { inner: true as const } : {}) })),
     ...(state.stage.outer ? { outerScenario: { question: state.stage.outer.question, scale: SCENARIO_SCALES.name(state.stage.outer.scale) } } : {}),
     catalogs: {
       templates: [...templates.values()],
