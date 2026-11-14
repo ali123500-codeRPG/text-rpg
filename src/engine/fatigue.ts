@@ -8,7 +8,10 @@ import { actorBody, getLibrary } from '../library';
 import { FU, RV } from '../library/tableIds';
 import { EFFORT, type EffortKey } from '../scales';
 import { now } from '../time';
-import { barMax, fatigueOf, isSpent, lineMax, lineUsed, staminaSkill, wornWeight } from '../ruleset/fatigue';
+import { barMax, fatigueOf, isSpent, lineMax, lineUsed, perkSleepMult, runEffort, staminaSkill, wornWeight } from '../ruleset/fatigue';
+import { hasPerk } from '../ruleset/perks';
+import { PK } from '../library/perkIds';
+import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markStamina } from '../ruleset';
 import { allActors, isActive, isAsleep, zoneById } from './relations';
 import { logCode } from './effects';
@@ -21,15 +24,21 @@ const harder = (e: EffortKey, than: EffortKey) => EFFORT.pos(e) > EFFORT.pos(tha
 /** FT24: pays `units` of an effort tier's strain, × worn armour (FT5). Above Light it resets catching your breath.
  * Every point paid counts toward the player's Stamina marks (FT27, FB6). Spill that fills the bar leaves the actor Spent (FT10). */
 export function payStrain(state: GameState, a: Actor, effort: EffortKey, units = 1): void {
-  const cost = CONFIG.STRAIN_COST[effort] * units * (CONFIG.STRAIN_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1);
+  const cost = CONFIG.STRAIN_COST[effort] * units * (CONFIG.STRAIN_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1) * (hasPerk(a, PK.bottomless) ? CONFIG.BOTTOMLESS_STRAIN : 1);
   if (cost <= 0 || !isActive(a)) return;
   const f = fat(a);
   if (harder(effort, 'light')) f.hardAt = now(state);
-  const used = lineUsed(a), left = lineMax(a) - used;
-  f.line = used + Math.min(cost, left);
-  if (cost > left) {
+  let used = lineUsed(a), left = lineMax(a) - used, pay = cost;
+  if (cost > left && secondBreath(a)) { // SS8: the line empties, refills to SECOND_BREATH_PCT at once, and nothing spills this time
+    const rest = cost - left;
+    f.line = lineMax(a); recoverLine(a, RV.perk, CONFIG.SECOND_BREATH_PCT);
+    used = lineUsed(a); left = lineMax(a) - used; pay = Math.min(rest, left);
+    logCode(state, 'second_breath', { actorId: a.id });
+  }
+  f.line = used + Math.min(pay, left);
+  if (pay > left) {
     const was = isSpent(a);
-    f.debt = Math.min(barMax(a), f.debt + (cost - left) * CONFIG.SPILL_SHARE);
+    f.debt = Math.min(barMax(a), f.debt + (pay - left) * CONFIG.SPILL_SHARE);
     f.line = Math.min(f.line, lineMax(a));
     if (!was && isSpent(a)) logCode(state, 'spent', { actorId: a.id });
   }
@@ -38,20 +47,26 @@ export function payStrain(state: GameState, a: Actor, effort: EffortKey, units =
     for (; f.toMark >= CONFIG.STAMINA_MARK_EVERY; f.toMark -= CONFIG.STAMINA_MARK_EVERY) markStamina(state, a);
   }
 }
+/** SS8 Second Breath: once per engagement, only in one */
+function secondBreath(a: Actor): boolean {
+  if (!a.engagement || !hasPerk(a, PK.second_breath) || !usableThisEngagement(a, PK.second_breath)) return false;
+  useThisEngagement(a, PK.second_breath);
+  return true;
+}
 /** FT24: an Action times row's strain for `seconds` of it: once for a short row, per STRAIN_LONG_S it runs for a longer one */
 export const payRow = (state: GameState, a: Actor, r: DurationDef | undefined, seconds: number): void => {
   if (r) payStrain(state, a, r.effort, r.seconds > CONFIG.STRAIN_LONG_S ? seconds / CONFIG.STRAIN_LONG_S : 1);
 };
 /** FT24: movement pays per STRAIN_MOVE_S moved: a walk (move time) or a run (a dash, main time) */
 export const payMove = (state: GameState, a: Actor, paid: 'move' | 'main', seconds: number): void =>
-  payStrain(state, a, paid === 'main' ? CONFIG.RUN_EFFORT : CONFIG.WALK_EFFORT, seconds / CONFIG.STRAIN_MOVE_S);
+  payStrain(state, a, paid === 'main' ? runEffort(a) : CONFIG.WALK_EFFORT, seconds / CONFIG.STRAIN_MOVE_S);
 /** FT10: a Spent actor can't make an effort above Light */
 export const tooSpent = (a: Actor, effort: EffortKey | undefined): boolean => isSpent(a) && harder(effort ?? 'base', 'light');
 
 /** refills `pct` % of the short line from recovery row `sourceId`; every line refill goes through here. Returns the points */
 export function recoverLine(a: Actor, sourceId: string, pct: number): number {
   const r = row(sourceId), used = lineUsed(a);
-  if (!r || r.countOnly || pct <= 0 || used <= 0) return 0;
+  if (!r || pct <= 0 || used <= 0) return 0; // a count-only row (Perks) is applied with the perk's own pct
   const got = Math.min(used, (pct / 100) * lineMax(a));
   fat(a).line = used - got;
   return got;
@@ -59,14 +74,24 @@ export function recoverLine(a: Actor, sourceId: string, pct: number): number {
 /** clears `pct` % of the bar from the long term, from recovery row `sourceId`; every long-term clear goes through here */
 export function recoverDebt(a: Actor, sourceId: string, pct: number): number {
   const r = row(sourceId), f = fatigueOf(a);
-  if (!r || r.countOnly || pct <= 0 || f.debt <= 0) return 0;
+  if (!r || pct <= 0 || f.debt <= 0) return 0;
   const got = Math.min(f.debt, (pct / 100) * barMax(a));
   fat(a).debt = f.debt - got;
   return got;
 }
-/** FT8: sleep's speed here: in a bed or elsewhere, × the worn armour's weight */
+/** FT8: sleep's speed here: in a bed or elsewhere, × the worn armour's weight, × the owner's sleepClear perks (SS14) */
 export const sleepMult = (state: GameState, a: Actor): number =>
-  CONFIG.SLEEP_SPOT_MULT[zoneById(state, a.zone)?.furniture?.some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * (CONFIG.SLEEP_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1);
+  CONFIG.SLEEP_SPOT_MULT[zoneById(state, a.zone)?.furniture?.some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * (CONFIG.SLEEP_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1) * perkSleepMult(a, 'sleepClear');
+
+/** FT7: a rest that ran `share` of its hour refills the line; with Catnap (SS1) it also clears the sleep debt CATNAP_SLEEP_HOURS
+ * of sleep would here. Both rest paths call this */
+export function restRecover(state: GameState, a: Actor, share: number): void {
+  recoverLine(a, RV.rest, (row(RV.rest)?.linePct ?? 0) * share);
+  if (!hasPerk(a, PK.catnap)) return;
+  const got = recoverDebt(a, RV.perk, (row(RV.sleep)?.debtPctPerHour ?? 0) * CONFIG.CATNAP_SLEEP_HOURS * share * sleepMult(state, a));
+  const f = a.core.condition.fatigue;
+  if (f?.awake) f.awake = Math.max(0, f.awake - got);
+}
 /** FT9: minutes of sleep that clear the long term here, within SLEEP_MIN_HOURS to SLEEP_MAX_HOURS */
 export function sleepMinutes(state: GameState, a: Actor): number {
   const perHour = ((row(RV.sleep)?.debtPctPerHour ?? 0) / 100) * barMax(a) * sleepMult(state, a);
@@ -91,7 +116,7 @@ export function passiveFatigue(state: GameState, minutes: number): void {
       continue;
     }
     const f = fat(a), max = barMax(a);
-    const add = (CONFIG.SLEEP_DEBT_FLAT + (CONFIG.SLEEP_DEBT_PCT / 100) * max) * (actorBody(state, a).sleepNeed ?? 1) * (minutes / 60);
+    const add = (CONFIG.SLEEP_DEBT_FLAT + (CONFIG.SLEEP_DEBT_PCT / 100) * max) * (actorBody(state, a).sleepNeed ?? 1) * perkSleepMult(a, 'sleepNeed') * (minutes / 60);
     if (add > 0) {
       const was = f.debt;
       f.debt = Math.min(max, f.debt + add);

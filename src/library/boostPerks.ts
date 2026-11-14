@@ -9,9 +9,12 @@ import { skillName } from './skillNames';
 import { SK } from './skillIds';
 import { GR } from './functionIds';
 import { PK } from './perkIds';
+import { CONFIG } from '../config';
 
 type Row = {
   id: string; ref: string; skill: string; name: string; effect: PerkEffect;
+  /** 40 (left out), 80 or 120 */
+  milestone?: 40 | 80 | 120;
   /** display name of the skill, and its group key: every skill of that group, itself included, gets +1 */
   group: SkillGroup;
   extra: { story: string; rule: string; numbers?: BoostNumbers; trueSkillTo?: Record<string, number> };
@@ -47,16 +50,32 @@ const ROWS: Row[] = [
     extra: { story: 'What your eye finds, your arrow follows: +5 Light ranged, +5 Medium ranged.', rule: `+5 true skill in ${skillName(SK.ranged_light)} and +5 in ${skillName(SK.ranged_medium)}.`, trueSkillTo: { [SK.ranged_light]: 5, [SK.ranged_medium]: 5 } } },
   { id: PK.soft_step, ref: 'P14', skill: SK.earshot, group: GR.notice, name: 'Soft Step', effect: 'senses',
     extra: { story: 'You know what every footstep sounds like, so yours make none: +10 Sneaking.', rule: `+10 true skill in ${skillName(SK.sneaking)}.`, trueSkillTo: { [SK.sneaking]: 10 } } },
+  // Stamina (SS2, SS4, SS6). Stamina is alone in its group, so the +1 lands on Stamina itself
+  { id: PK.iron_lungs, ref: 'SS2', skill: SK.stamina, group: GR.stamina, name: 'Iron Lungs', effect: 'health',
+    extra: { story: `A body that keeps going learns to take punishment: +10 ${skillName(SK.endurance)}.`, rule: `+10 true skill in ${skillName(SK.endurance)}.`, trueSkillTo: { [SK.endurance]: 10 } } },
+  { id: PK.deep_lungs, ref: 'SS4', skill: SK.stamina, group: GR.stamina, name: 'Deep Lungs', effect: 'health', milestone: 80,
+    extra: { story: 'You breathe deeper than other people: your short-term stamina is half again as large.', rule: `The owner's short-term line is ×${CONFIG.DEEP_LUNGS_LINE} its size (CONFIG.DEEP_LUNGS_LINE, placeholder), before the fatigue level bands shrink it.` } },
+  { id: PK.bottomless, ref: 'SS6', skill: SK.stamina, group: GR.stamina, name: 'Bottomless', effect: 'health', milestone: 120,
+    extra: { story: 'Effort that would empty anyone else barely touches you: every strain you pay is halved.', rule: `Every strain cost the owner pays is ×${CONFIG.BOTTOMLESS_STRAIN} (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.` } },
 ];
+
+/** SH1-SH4: the 40 and 80 perks give +5 to their own skill; the 120 perk gives HIGH_PERK_SHARE of it instead, and HIGH_PERK_SPREAD of
+ * it to every skill sharing a group on top of the +1. Shares read true skill without shares (trueSkill in src/ruleset/perks.ts) */
+const own = (r: Row) => r.milestone === 120
+  ? { short: `+${CONFIG.HIGH_PERK_SHARE * 100}% ${skillName(r.skill)}, +1 and +${CONFIG.HIGH_PERK_SPREAD * 100}% ${GROUP_NAMES[r.group]}`,
+    rule: `+${CONFIG.HIGH_PERK_SHARE * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SHARE, placeholder) as true skill in ${skillName(r.skill)}. +1 true skill, and +${CONFIG.HIGH_PERK_SPREAD * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SPREAD, placeholder), in every skill of group ${groupName(r.group)}. Shares read true skill without shares; several on one skill stack (the second and later at half).` }
+  : { short: `+5 ${skillName(r.skill)}, +1 ${GROUP_NAMES[r.group]}`,
+    rule: `+5 true skill in ${skillName(r.skill)}. +1 true skill in every skill of group ${groupName(r.group)}.` };
 
 export const BOOST_PERKS: PerkWriteup[] = ROWS.map((r) => ({
   id: r.id, ref: r.ref, name: r.name, skill: r.skill, place: '40',
-  ladder: { skill: r.skill, milestone: 40 }, effect: r.effect, trueSkill: 5, functionBoost: 1,
+  ladder: { skill: r.skill, milestone: r.milestone ?? 40 }, effect: r.effect, functionBoost: 1,
+  ...(r.milestone === 120 ? { shareOwn: CONFIG.HIGH_PERK_SHARE, shareGroup: CONFIG.HIGH_PERK_SPREAD } : { trueSkill: 5 }),
   ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
-  story: `+5 ${skillName(r.skill)}, +1 ${GROUP_NAMES[r.group]}. ${r.extra.story}`,
+  story: `${own(r).short}. ${r.extra.story}`,
   rules: {
     kind: 'Always on', trigger: 'Always.', conditions: [],
-    effect: `+5 true skill in ${skillName(r.skill)}. +1 true skill in every skill of group ${groupName(r.group)}. ${r.extra.rule}`,
+    effect: `${own(r).rule} ${r.extra.rule}`,
     lasts: 'Always.',
   },
 }));

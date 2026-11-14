@@ -73,7 +73,7 @@ describe('personality', () => {
       const p = personalityOf(a);
       expect(p.nerve).toBe(10);
       expect(p.traits[PA.pride]).toBe(15);
-      expect(p.traits[PA.discipline]).toBe(40);
+      expect(p.traits[PA.discipline]).toBe(40 + CONFIG.ACH_PERSONALITY_STEP); // the template's 40, and the current Guard class's step (PN5)
       expect(a.core.personality!.nerve).toBe(0); // the stored points don't change
     } finally { lib.perks[perk].personality = before; }
   });

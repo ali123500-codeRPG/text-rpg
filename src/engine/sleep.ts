@@ -47,13 +47,14 @@ export function wake(state: GameState, a: Actor, why: WakeWhy, by?: string): voi
 }
 
 /** NW18: an event wakes the sleepers it touches: the one it strikes, and anyone who hears it when it is as loud as a
- * shout or louder (CONFIG.WAKE_NOISE). Runs before the event is perceived, so the woken hear what woke them. */
+ * shout or louder (CONFIG.WAKE_NOISE; a Heavy Sleeper HEAVY_SLEEPER_STEPS louder, SS10). Runs before the event is
+ * perceived, so the woken hear what woke them. */
 export function wakeByEvent(state: GameState, ev: GameEvent): void {
-  const loud = NOISE.pos(ev.noise) >= NOISE.pos(CONFIG.WAKE_NOISE);
+  const loud = (x: Actor) => NOISE.pos(ev.noise) >= NOISE.pos(CONFIG.WAKE_NOISE) + (hasPerk(x, PK.heavy_sleeper) ? CONFIG.HEAVY_SLEEPER_STEPS : 0);
   for (const x of allActors(state)) {
     if (!isAsleep(x) || x.id === ev.actorId) continue;
     if (ev.target === x.id && CONFIG.WAKE_CONTACT.includes(ev.kind)) wake(state, x, 'blow', ev.actorId);
-    else if (loud && soundCarries(state, x, { zone: ev.zone, pos: ev.pos }, ev.noise)) wake(state, x, 'noise', ev.actorId);
+    else if (loud(x) && soundCarries(state, x, { zone: ev.zone, pos: ev.pos }, ev.noise)) wake(state, x, 'noise', ev.actorId);
   }
 }
 

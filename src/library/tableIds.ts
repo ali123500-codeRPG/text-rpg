@@ -19,7 +19,7 @@ export const PY = { prideful: 'PY1', mature: 'PY2', childish: 'PY3', honourable:
 /** tensions: two parts of a character that pull against each other (personality line) */
 export const TN = { unshakeable_scatterbrained: 'TN1', bold_unbacked: 'TN2', old_head: 'TN3', wary_dangerous: 'TN4', home_temptation: 'TN5', talent_undisciplined: 'TN6', crooked_means: 'TN7' } as const;
 /** linked perks: a set of perks that together grant one more perk, or merge into one (src/library/perkLinks.ts) */
-export const LK = { crushing_presence: 'LK1' } as const;
+export const LK = { crushing_presence: 'LK1', ghost_blade: 'LK2', combination: 'LK3', blind_spot: 'LK4', bulwark: 'LK5' } as const;
 /** the Action times table (AT11); DU1 (the fight turn) is retired: it is CONFIG.FIGHT_TURN_S */
 export const DU = {
   action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5', blow: 'DU6', throw: 'DU7', bow_light: 'DU8', bow_medium: 'DU9', crossbow_shot: 'DU10',

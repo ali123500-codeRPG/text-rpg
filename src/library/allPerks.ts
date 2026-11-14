@@ -6,6 +6,7 @@
 // (so code checks hasPerk on the part) with a Story and an exact Rules view, like the ladder perks. A part is granted
 // only once it is built (BUILT_PERKS). Names: "<tree> All-50: <name>" (G5); All-50 and 100+ names may be dramatic.
 import { TR } from './treeIds';
+import { PA } from './tableIds';
 import { FN } from './functionIds';
 import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
@@ -35,7 +36,7 @@ export const SKILL_PARTS: Record<string, string> = {
   [SK.melee_light]: PK.counter, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.opening_strike,
   [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
   [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold, [SK.unarmed_improvised]: PK.junk_arsenal,
-  [SK.dodge]: PK.dodgy, [SK.parry]: PK.against_the_grain, [SK.block]: PK.iron_rim, [SK.endurance]: PK.second_wind, [SK.resolve]: PK.grit,
+  [SK.dodge]: PK.dodgy, [SK.parry]: PK.against_the_grain, [SK.block]: PK.iron_rim, [SK.endurance]: PK.second_wind, [SK.resolve]: PK.grit, [SK.stamina]: PK.second_breath,
   [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.know_the_step, // Spotter parked (D-192)
   [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade, [SK.vanishing]: PK.misdirection, // Fade Back parked (D-232)
   [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
@@ -138,13 +139,17 @@ export const ALL_PARTS: PerkWriteup[] = [
     rules: { kind: 'Always on', trigger: 'The owner makes a Resolve roll (a morale roll, or an answer to an aura).', conditions: ['The Fortitude tree is open to the owner.'],
       effect: 'Endurance augments Resolve: the roll adds the owner\'s true Endurance × 0.25 (CONFIG.GRIT_SHARE, placeholder) × its tier, the way a skill augment does, and Endurance can learn from the roll the same way.', lasts: 'Always.' },
     augments: [{ from: SK.endurance, skill: SK.resolve, share: CONFIG.GRIT_SHARE }] }),
+  part(TR.fortitude, { id: PK.second_breath, ref: 'SS8', name: 'Second Breath', effect: 'health',
+    story: 'Just when your lungs give out, they find more. Once a fight, when your breath runs out, half of it comes back at once.',
+    rules: { kind: 'Automatic', trigger: 'A strain cost would empty the owner\'s short-term line.', conditions: ['Once per engagement.', 'The owner is in an engagement.'],
+      effect: `The line refills to ${CONFIG.SECOND_BREATH_PCT}% at once (CONFIG.SECOND_BREATH_PCT, placeholder) and the rest of the cost is paid from it; no strain spills into sleep debt that time.`, lasts: 'Permanent (it is recovery).', cooldown: 'Once per engagement.' } }),
   // ---- Perception ----
   // Spotter is parked (D-192): no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
     story: 'What you see, your people sense. Your band-mates who can hear your call or see your signal know something is there whenever you do.',
     rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate hears the owner\'s normal voice clearly or makes out its hand sign (close visibility), and is less than suspicious of that actor.'],
       effect: 'That band-mate becomes suspicious of the actor (told by the owner), with its zone as last known.', lasts: 'Until the band-mate\'s belief changes on its own.' } }),
-  part(TR.perception, { id: PK.curiouser, ref: 'T5d', name: 'Curiouser and Curiouser', effect: 'senses',
+  part(TR.perception, { id: PK.curiouser, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, ref: 'T5d', name: 'Curiouser and Curiouser', effect: 'senses',
     story: 'Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes a sight or hearing roll (any skill with that function, Tremor included).', conditions: ['The roll ends in Success or better.'],
       effect: 'Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.', lasts: 'That roll.' } }),

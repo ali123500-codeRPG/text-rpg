@@ -118,6 +118,7 @@ export type PlayerView = {
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)
     mentallySteady?: true; // SY1: the next morale loss is halved
+    blindSpot?: true; // LR3 Blind Spot: Melt Away works here without cover or shade (a foe's sight is spoiled by Dirt in the Eyes)
     stamina: StaminaView; // FT20: the stamina bar and its short line
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';

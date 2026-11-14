@@ -217,6 +217,11 @@ export type PerkDef = {
   id: string; name: string; text?: string; eventRoll?: number;
   tierUnlocks?: TierUnlock[];
   personality?: PersonalityAdd; // PL16: points added while owned
+  /** SS14: multipliers on how fast hours awake add sleep debt (sleepNeed) and how fast sleep clears it (sleepClear); several
+   * stack by the same-type rule (sleepMults in src/ruleset/fatigue.ts) */
+  sleepNeed?: number; sleepClear?: number;
+  /** SS12: tags a template's quirkTags pick from (Heavy Sleeper and Insomniac: 'sleep') */
+  tags?: string[];
   /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
   fearFrom?: { fear: string; steps: number };
   /** metres added to a thrown weapon's own range (CONFIG.THROW_M) */
@@ -227,6 +232,9 @@ export type PerkDef = {
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
+  /** SH1/SH4: 120 perks: a share of the ladder skill's true skill (read without shares) added as true skill, to the ladder skill
+   * itself (shareOwn) and to it and every skill sharing a group with it (shareGroup); several shares on one skill stack (SH7 b) */
+  shareOwn?: number; shareGroup?: number;
   /** F4: raises (or, negative, lowers) the owner's stand-in share for skills of function `fn` (every
    * function if left out), on top of CONFIG.SUBSTITUTE_EFFICIENCY or the skill's own table; the share stays within 0–1 */
   standIn?: { add: number; fn?: SkillFunction };
