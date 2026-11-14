@@ -29,7 +29,7 @@ import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { UNREACHABLE } from '../minds/routines';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, blindSpotNow, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
@@ -378,7 +378,8 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && (hostile(state, a, x) || hostile(state, x, a)))) { yieldSpar(state, a); return; }
   if (a === state.player) { tally(state, 'morale_breaks'); return; } // MB12: you keep control but cannot attack (doAttack)
   loseNerve(state, a, r);
-  if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) ctx.orders.set(a.id, brokenOrder(buildActorView(state, a.id)));
+  // BF37: broken, what it has yet to do loses any walk, attack or perk move (cowering if nothing is left); surrendered, it holds
+  if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) { const v = buildActorView(state, a.id); ctx.orders.set(a.id, v.self.broken && !v.self.surrendered ? nerveHolds(ctx.orders.get(a.id)!).order : brokenOrder(v)); }
   // MB23: bandmates who perceived it are frightened too
   for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
 }
@@ -2030,6 +2031,14 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     // loot L3: the grabbed object is minted and drawn (swap stows held weapons) before the attack
     playerOrder.item = improvise(state, state.player, imp);
     playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
+  }
+  // BF37: with a broken nerve the player's walk, attack, grab, filch or perk move comes to nothing; words and the allowed
+  // actions still happen, and with nothing allowed left the player cowers where they stand
+  if (isActive(state.player) && moraleLevel(state.player) === 'broken') {
+    const { order, blocked } = nerveHolds(playerOrder);
+    if (blocked) logCode(state, 'broken_cowers', { actorId: state.player.id, wanted: playerOrder.type });
+    for (const k of Object.keys(playerOrder) as (keyof Order)[]) if (!(k in order)) delete playerOrder[k];
+    Object.assign(playerOrder, order);
   }
   if (isActive(state.player)) orders.set(state.player.id, playerOrder);
   // AT47: an NPC at a long action carries on with it unless its agent was asked anyway or a trigger fired for it

@@ -22,6 +22,7 @@ import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
 import { busyNow } from '../engine/busy';
+import { NERVE_BLOCKED } from '../minds';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
@@ -88,8 +89,16 @@ const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
   '/help, /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
-/** NB5: what the game says when an attack is ordered with a broken nerve; the order is turned away and no time passes */
-export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to attack. Nothing happened and no time passed. You can still move, flee, sneak, hide, vanish, yield, talk or use a bandage.";
+/** NB5/BF37: what the game says when only what a broken nerve blocks was asked (a walk, an attack, a grab, a filch, a perk
+ * move); the order is turned away and no time passes */
+export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to move or attack. Nothing happened and no time passed. You can still talk, beg, yield, give, use an item such as a bandage, pick something up, or open a door or container within reach. With nothing else to do, you cower where you stand.";
+/** BF37: the intent asks only for what a broken nerve blocks: a walk, an attack, a grab, a filch or a perk move, and no words */
+function nerveBlocksAll(i: Intent): boolean {
+  const blocked = (t?: string) => !!t && NERVE_BLOCKED.includes(t);
+  const wants = !!i.move || !!i.perkMove || blocked(i.action?.type);
+  const allowed = !!i.spoken || !!i.gear?.length || !!i.way || (!!i.action && !blocked(i.action.type));
+  return wants && !allowed;
+}
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
 /** NW18: a turn played while the player sleeps */
@@ -350,8 +359,9 @@ export function createGame(deps: GameDeps): Game {
       lastLog = [...turnLog]; // BG-143: every clarify keeps the turn's log, so the Parser output that led here can be seen
       return;
     }
-    // NB5: with a broken nerve an attack is turned away before the turn: nothing happens and no time passes
-    if (intent.action?.type === 'attack' && moraleLevel(s.player) === 'broken') {
+    // NB5/BF37: with a broken nerve, an order of only what it blocks is turned away before the turn: nothing happens and no
+    // time passes. Words or an allowed action beside it go ahead, and the engine takes the blocked part away (nerveHolds)
+    if (moraleLevel(s.player) === 'broken' && nerveBlocksAll(intent)) {
       lines.push({ turn: s.turn, kind: 'clarify', text: NERVE_REFUSED });
       lastLog = [...turnLog];
       return;
@@ -478,9 +488,9 @@ export function createGame(deps: GameDeps): Game {
     const ways = wayRows(s, events);
     // the turn's change in coin, shown as its own row (coin is left out of the gear rows)
     const coin = rec.coinBefore === undefined ? 0 : coins(s.player) - rec.coinBefore;
-    // MB12: the player's nerve broke this turn, or an attack was refused because it is broken (shown again after a reload)
+    // MB12: the player's nerve broke this turn, or a walk or attack was taken away because it is broken (shown again after a reload)
     const nerveBroke = rec.brokenBefore === false && moraleLevel(s.player) === 'broken';
-    const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken');
+    const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken') || s.log.some((l) => l.code === 'broken_cowers'); // BF37
     // AT11a: the long actions the player saw: going on (seconds to go), finished, broken off or set aside
     const actions = rec.doingBefore ? actionNotes(s, rec.doingBefore, doingSnap(views.buildPlayerView(s))) : [];
     const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(actions.length ? { actions } : {}), ...(nerveBroke ? { nerveBroke: true as const } : {}), ...(nerveRefused ? { nerveRefused: true as const } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };

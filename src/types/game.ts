@@ -33,7 +33,7 @@ export type LogLine = {
   wounds?: { id: string; from: PartStateKey; to: PartStateKey }[]; // M-30: the player's body parts whose state got worse this turn
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
   nerveBroke?: true; // MB12: the player's morale reached Broken this turn (the play screen's Nerve broken card)
-  nerveRefused?: true; // MB12: the player's attack this turn was refused because their nerve is broken
+  nerveRefused?: true; // MB12/BF37: the player's walk or attack this turn was taken away because their nerve is broken
   coin?: number; // what the turn changed in the player's coin, in copper: 12 gained, -5 lost (left out of `gear`)
   /** AT11a: long actions the player saw this turn, theirs first: who (You, or the name the screen uses), the action, whole seconds
    * done and to go after the turn, and whether it goes on, was finished, was broken off by a blow, or was set aside */

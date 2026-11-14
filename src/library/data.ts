@@ -466,6 +466,7 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('eat', 'eating', 'distracted', 'quiet', 'normal'),
   act('rest', 'resting', 'distracted', 'silent', 'low'),
   act('cower', 'keeping out of sight', 'alert', 'silent', 'close'), // NV4
+  act('cowering', 'cowering where they stand', 'alert', 'quiet', 'normal'), // BF37: a broken nerve, no move and no attack
   act('ooze', 'oozing across the grass', 'normal', 'quiet', 'normal'),
   act('prowl', 'keeping to the shadows', 'alert', 'silent', 'close'), // NV4
 ].map((a) => [a.id, a]));
