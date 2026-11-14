@@ -29,6 +29,14 @@ beforeEach(async () => {
   errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && /not saved|unhandled/i.test(m.text()))) errors.push(`console: ${m.text()}`); });
+  // a scenario that ends with gains shows the gains panel over the page; Continue closes it whenever it is in the way
+  // (while it still moves, the first click only lands every gain, M-12, so it may take a second click)
+  await page.addLocatorHandler(page.locator('.gains-veil'), async (veil) => {
+    for (let i = 0; i < 5 && await veil.isVisible(); i++) {
+      await veil.getByRole('button', { name: 'Continue' }).click().catch(() => undefined);
+      await page.waitForTimeout(300);
+    }
+  });
   await page.goto(url);
   await page.getByRole('button', { name: 'Begin the story' }).click();
   await page.getByText(/^Turn 0/).waitFor();
