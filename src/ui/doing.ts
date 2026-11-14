@@ -63,7 +63,7 @@ const LOST_WORDS: Record<NonNullable<FollowingView['lost']>, string> = {
 /** BG-190: the following line as plain text, as it reads on screen */
 export function followingText(f: FollowingView, w?: WalkingView): string {
   if (f.lost) return `Lost ${f.name} · ${LOST_WORDS[f.lost]} ${f.zone ?? 'here'}`;
-  return `Following ${f.name} · ${w ? `in ${w.to} · ${walkLeft(w)}` : 'close behind'}`;
+  return `Following ${f.name}${f.keepM !== undefined ? ` · ${f.keepM} m back` : ''} · ${w ? `in ${w.to} · ${walkLeft(w)}` : 'close behind'}`; // BF35: the distance kept
 }
 /** BG-190: the chips under the following line, and what each fills the box with */
 export function followingChips(f: FollowingView): { key: string; label: string; text: string }[] {

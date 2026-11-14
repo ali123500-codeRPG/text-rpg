@@ -17,7 +17,7 @@ describe('279 following someone', () => {
     place(s, 'patron_1', 'tav_common');
     play(s, { intent: follow(s) });
     expect(s.player.walking?.spot).toMatchObject({ near: 'patron_1', follow: true });
-    expect(buildPlayerView(s).player.following).toEqual({ who: 'patron_1', name: expect.any(String) });
+    expect(buildPlayerView(s).player.following).toEqual({ who: 'patron_1', name: expect.any(String), keepM: 2 }); // BF35: 2 m back by default
     place(s, 'patron_1', 'tav_counter'); // the patron steps up to the counter, in sight
     play(s, { intent: intent() }); // "continue"
     expect(s.player.zone).toBe('tav_counter');

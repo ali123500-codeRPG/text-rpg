@@ -510,7 +510,7 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
   // since the order was made, takes the walk to their zone now
   const who = o.moveSpot?.near && !o.moveSpot.lastSeen ? actorById(state, o.moveSpot.near) : undefined;
   const zone = who && who !== a && who.zone !== o.move && perceivesNow(state, a, who, 'faint') ? who.zone : o.move;
-  const sp = zone && o.moveSpot ? spotPoint(state, zone, o.moveSpot, a) : null;
+  const sp = zone && o.moveSpot ? spotPoint(state, zone, o.moveSpot, a, a) : null;
   if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: a.id, to: zone, spot: o.moveSpot });
   return {
     goal: sp ? { zone: zone!, pos: sp.pos } : { zone: zone! },
@@ -933,7 +933,7 @@ function keepFollowing(ctx: Ctx, wo: Order | undefined): void {
   const seen = perceivesNow(state, p, who, 'faint');
   // BG-203: a follow of someone out of sight walks to where the player last saw them; seen or heard on the way, it is a
   // follow of them again from the next turn. Not found there, they are lost; not there yet, the walk goes on
-  if (seen && isActive(who)) { p.walking = walkOf({ ...wo, move: who.zone, moveSpot: { near: who.id, follow: true } }); return; }
+  if (seen && isActive(who)) { p.walking = walkOf({ ...wo, move: who.zone, moveSpot: { near: who.id, follow: true, ...(spot!.keep !== undefined ? { keep: spot!.keep } : {}) } }); return; }
   if (spot!.lastSeen && p.walking) return;
   delete p.walking;
   p.followLost = { who: who.id, why: seen ? 'down' : who.zone === wo.move && p.zone === wo.move ? 'slipped_away' : 'out_of_sight', zone: wo.move };
