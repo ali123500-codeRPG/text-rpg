@@ -25,6 +25,10 @@ export function falseName(speaker: { names: { current: string } }, text: string 
 /** the text with its first letter in capitals */
 /** "a lean man" -> "the lean man": someone already met, said again */
 export const theOf = (label: string): string => label.replace(/^(a|an)\s+/i, 'the ');
+/** BG-218: a place or zone name in a phrase. A name that starts with an article, a capital (a proper name, Thornbury) or a
+ *  place word (behind the counter) stands as it is; any other takes "the" (common room → the common room). */
+export const theName = (n: string): string =>
+  /^(the|a|an|behind|beside|outside|inside|under|above|below|beyond|by|near|past|across|along|off)\s/i.test(n) || /^[A-Z]/.test(n) ? n : `the ${n}`;
 export const cap = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 /** "a, b and c" (or "a, b or c"): a list as a sentence says it */
 export const listWords = (xs: string[], last: 'and' | 'or' = 'and'): string =>

@@ -26,6 +26,8 @@ export function scaleFor(places: number, at: ScenarioScale): ScenarioScale {
 
 /** the frame for a new scenario from its plan, with plan keys already mapped to ids by `ref` */
 export function frameOf(state: GameState, scenario: StagePlan['scenario'], tier: Tier, ref: (kind: 'band' | 'place' | 'actor', key: string) => string): ScenarioFrame {
+  const roam = state.stage.roamGrowth; // BG-217: a scenario after free roam counts the roam's XP in its gains
+  delete state.stage.roamGrowth;
   const endings: PlanEnding[] = (Array.isArray(scenario?.endings) ? scenario!.endings : []).filter((e) => e && PLAN_AS.has(e.as) && e.when)
     .map((e) => ({ as: e.as as PlanEnding['as'], text: typeof e.text === 'string' ? e.text : '', when: mapCheck(e.when, ref) }))
     .filter((e) => checkable(state, e.when)); // a plan applied after a failed repair drops the endings that name nothing real
@@ -33,7 +35,7 @@ export function frameOf(state: GameState, scenario: StagePlan['scenario'], tier:
     question: scenario?.question ?? '', scale: SCENARIO_SCALES.keyOf(scenario?.scale) ?? 'situation', endings, tier,
     startTurn: state.turn, startMinute: now(state), number: state.stage.scenarioNumber,
     upAtStart: state.actors.filter(isActive).map((a) => a.id), heldAtStart: state.player.core.inventory.map((i) => i.itemId),
-    xpFrom: state.player.progression?.xpLog?.length ?? 0, xpStart: xpBar(state),
+    xpFrom: roam?.xpFrom ?? state.player.progression?.xpLog?.length ?? 0, xpStart: roam?.xpStart ?? xpBar(state),
     ...(tier === 'critical_success' && state.stage.tierBeyond ? { beyond: state.stage.tierBeyond } : {}),
   };
 }
@@ -294,6 +296,7 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
   if (roam) {
     delete st.breakCause;
     st.roam = { since: state.turn };
+    st.roamGrowth = { xpFrom: state.player.progression?.xpLog?.length ?? 0, xpStart: xpBar(state) }; // BG-217
     logCode(state, 'free_roam', { as });
     return 'roam';
   }
