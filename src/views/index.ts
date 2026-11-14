@@ -47,7 +47,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1 } from '../words';
-import { handsOf, isHeld, modeName, usableModes } from '../ruleset/gear';
+import { gripsOf, isHeld, modeName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -455,7 +455,7 @@ function followingOf(state: GameState, p: Actor): { following?: FollowingView } 
 const HAND_BLOWS = ['punch', 'grapple']; // BF32: body blows made with a hand
 function bodyAttacks(state: GameState, a: Actor): { bodyAttacks?: BodyAttackView[] } {
   const grips = usableGrips(state, a), held = a.core.inventory.filter(isHeld);
-  const full = grips.length > 0 && grips.every((g) => held.some((i) => handsOf(i).includes(g)));
+  const full = grips.length > 0 && grips.every((g) => held.some((i) => gripsOf(i).includes(g)));
   const filling = full ? listWords([...new Set(held.map((i) => itemDef(state, i.itemId).name))]) : '';
   const l = usableModes(state, a).filter((m) => !a.core.inventory.some((i) => i.id === m.itemId))
     .map((m) => ({ mode: m.mode.id, name: modeName(m.mode), ...(full && HAND_BLOWS.includes(m.mode.class) ? { handsFull: filling } : {}) }));

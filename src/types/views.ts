@@ -7,10 +7,10 @@ import type { DefenseKind, Pronouns } from './actor';
 import type { HealthLevelKey, PartStateKey } from '../scales';
 
 /** keys of the HEALTH_LEVELS and PART_STATES scales (scales.ts); views show their display names */
-/** BG-193: an attack made with the body itself (fists, a grapple, a bite), by its attack mode id */
-export type BodyAttackView = { mode: string; name: string; handsFull?: string }; // handsFull (BF32): a blow that needs a free hand while what is named fills them
 export type HealthLevel = HealthLevelKey;
 export type PartState = PartStateKey;
+/** BG-193: an attack made with the body itself (fists, a grapple, a bite), by its attack mode id */
+export type BodyAttackView = { mode: string; name: string; handsFull?: string }; // handsFull (BF32): a blow that needs a free hand while what is named fills them
 
 /** CT1/CT3: a container as a viewer knows it: open or shut, with a lock (and the viewer's key to it), and what is inside
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. shut: a shut one (BG-175), so a mind knows to
