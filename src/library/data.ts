@@ -835,8 +835,8 @@ export function prototypeLibrary(): Library {
     // Battle Cry). Unset: no movement lock, focus reflex, stop
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
-      [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 60 },
-      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 10 * 60, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
+      [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 30 }, // an out-of-fight turn's own time (EXPLORE_TURN_S)
+      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 3, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
       [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', effort: 'base', seconds: 0, focus: 'deep' },
@@ -849,39 +849,40 @@ export function prototypeLibrary(): Library {
       // spanning stays done when broken off: a spanned crossbow stays loaded (AT11c b)
       [DU.span_light]: { id: DU.span_light, name: 'Span a light crossbow', effort: 'hard', seconds: 4, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
       [DU.span_stirrup]: { id: DU.span_stirrup, name: 'Span a stirrup crossbow', effort: 'hard', seconds: 8, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
-      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'all_out', seconds: 28, readies: DU.crossbow_shot, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }] },
+      [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot }, // less realism: the heavy crossbow spans at once
       // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
       [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
       [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
-      // gear and things in hand (AT11h-j)
-      [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 1 },
-      [DU.stow]: { id: DU.stow, name: 'Stow a weapon', effort: 'base', seconds: 2 },
-      [DU.swap]: { id: DU.swap, name: 'Swap weapons', effort: 'base', seconds: 3 },
-      [DU.pick_up_reach]: { id: DU.pick_up_reach, name: 'Pick up within reach', effort: 'base', seconds: 1 },
-      [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', effort: 'base', seconds: 4, locksMove: true },
-      [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', effort: 'light', seconds: 2 },
-      // ways (AT11k-l): you stop at the door; picking keeps its work and is sped by Lockpicking (BA2)
-      [DU.door]: { id: DU.door, name: 'Open or close a door', effort: 'base', seconds: 1, locksMove: true },
-      [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', effort: 'base', seconds: 2, locksMove: true },
-      [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', effort: 'base', seconds: 4, locksMove: true },
-      // in a fight, taking something out of a container you carry (a sack) takes your action; the pack itself is as quick as a draw (no pockets)
-      [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a container', effort: 'base', seconds: 6 },
+      // gear and things in hand (AT11h-j): changing gear is instant and costs no strain (less realism)
+      [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 0 },
+      [DU.stow]: { id: DU.stow, name: 'Stow a weapon', effort: 'base', seconds: 0 },
+      [DU.swap]: { id: DU.swap, name: 'Swap weapons', effort: 'base', seconds: 0 },
+      [DU.pick_up_reach]: { id: DU.pick_up_reach, name: 'Pick up within reach', effort: 'base', seconds: 0 },
+      [DU.pick_up_ground]: { id: DU.pick_up_ground, name: 'Pick up from the ground', effort: 'base', seconds: 0 },
+      [DU.hand_over]: { id: DU.hand_over, name: 'Hand something over', effort: 'base', seconds: 0 }, // instant, like gear
+      // ways (AT11k-l): doors, bars and keys are instant and never stop the walk (less realism); picking keeps its work
+      // and is sped by Lockpicking (BA2)
+      [DU.door]: { id: DU.door, name: 'Open or close a door', effort: 'base', seconds: 0 },
+      [DU.bar]: { id: DU.bar, name: 'Bar or unbar a door', effort: 'base', seconds: 0 },
+      [DU.key]: { id: DU.key, name: 'Lock or unlock with a key', effort: 'base', seconds: 0 },
+      // taking something out of a container you carry (a sack): instant, like all gear
+      [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a container', effort: 'base', seconds: 0 },
       [DU.break_open]: { id: DU.break_open, name: 'Break something open', effort: 'hard', seconds: 6, locksMove: true, focus: 'steady' }, // BF31
-      [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 60, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
+      [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 30, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
         speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },
       // care (AT11m-n): a bandage broken off is not used up
-      [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 40, locksMove: true, focus: 'careful' },
+      [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 20, locksMove: true, focus: 'careful' },
       [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },
       // senses (AT11o)
       [DU.hide]: { id: DU.hide, name: 'Hide', effort: 'moderate', seconds: 2, locksMove: true },
       [DU.look]: { id: DU.look, name: 'Look around', effort: 'light', seconds: 3, focus: 'steady' },
-      // armour on and off with help (AT12): each piece counts once on; heavy alone takes ARMOR_ALONE_MULT times as long
-      [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'moderate', seconds: 2 * 60, ...ARMOR_TIME },
-      [DU.armor_light_off]: { id: DU.armor_light_off, name: 'Take off light armour', effort: 'moderate', seconds: 60, ...ARMOR_TIME },
-      [DU.armor_medium_on]: { id: DU.armor_medium_on, name: 'Put on medium armour', effort: 'moderate', seconds: 60, ...ARMOR_TIME },
-      [DU.armor_medium_off]: { id: DU.armor_medium_off, name: 'Take off medium armour', effort: 'moderate', seconds: 30, ...ARMOR_TIME },
-      [DU.armor_heavy_on]: { id: DU.armor_heavy_on, name: 'Put on heavy armour', effort: 'moderate', seconds: 10 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
-      [DU.armor_heavy_off]: { id: DU.armor_heavy_off, name: 'Take off heavy armour', effort: 'moderate', seconds: 3 * 60, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
+      // armour on and off (AT12): instant and no strain, like all gear (heavy alone keeps ARMOR_ALONE_MULT, × 0 today)
+      [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_light_off]: { id: DU.armor_light_off, name: 'Take off light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_medium_on]: { id: DU.armor_medium_on, name: 'Put on medium armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_medium_off]: { id: DU.armor_medium_off, name: 'Take off medium armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
+      [DU.armor_heavy_on]: { id: DU.armor_heavy_on, name: 'Put on heavy armour', effort: 'base', seconds: 0, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
+      [DU.armor_heavy_off]: { id: DU.armor_heavy_off, name: 'Take off heavy armour', effort: 'base', seconds: 0, ...ARMOR_TIME, aloneMult: CONFIG.ARMOR_ALONE_MULT },
     },
     // Humans and elves for now, identical but for lifespan
     // AG3–AG6: years at which each life stage starts. Human from real references (adolescence 13, majority 18, middle age 40,

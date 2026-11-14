@@ -314,8 +314,6 @@ const DEFAULTS = {
   RUN_EFFORT: 'hard' as EffortKey,
   /** FT5: a dodge, block or parry (no Action times row of its own) */
   DEFENSE_EFFORT: 'light' as EffortKey,
-  /** FT5: worn armour multiplies all strain, by weight */
-  STRAIN_ARMOR_MULT: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** FT23: strain past an empty short line spills into the long-term bar at this share */
   SPILL_SHARE: 0.5,
   /** FT27/FB6: one Stamina mark per this many points of strain paid, any effort, armour included */
@@ -328,7 +326,7 @@ const DEFAULTS = {
   /** FT7/FT8: sleep clears SLEEP_CLEAR_PCT % of the bar an hour × the spot (in a bed or not) × worn armour by weight */
   SLEEP_CLEAR_PCT: 4,
   SLEEP_SPOT_MULT: { bed: 1, elsewhere: 0.75 } as Record<string, number>,
-  SLEEP_ARMOR_MULT: { light: 1, medium: 0.75, heavy: 0.5 } as Record<string, number>,
+  SLEEP_ARMOR_MULT: { light: 1, medium: 1, heavy: 1 } as Record<string, number>, // sleeping in armour makes no difference (less realism; was 1 / 0.75 / 0.5)
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
   /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
@@ -358,9 +356,12 @@ const DEFAULTS = {
   /** AE12/AT13: the most a fight turn lasts, in seconds, and the least (a turn lasts as long as the player's order) */
   FIGHT_TURN_S: 6,
   FIGHT_TURN_MIN_S: 3,
+  /** AT20/TP4: carried time lasts this many turns, and each pool carries at most CARRY_MAX_TURNS fight turns of it */
+  CARRY_TURNS: 2,
+  CARRY_MAX_TURNS: 2,
   /** AT46: the most a turn outside a fight lasts, in seconds (as long as the player's order); longer actions, walks, rests
    * and waits run on the world clock instead (AT45) */
-  EXPLORE_TURN_S: 120,
+  EXPLORE_TURN_S: 30,
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
   // ---- the world clock (AT56, AT65 to AT68; src/engine/comingNear.ts). Placeholders from the Action Time part three page.

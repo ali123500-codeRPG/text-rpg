@@ -152,18 +152,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner hears 10 dB quieter (hearingDb): every sound counts 10 dB louder for the owner, so it carries about three times as far (a normal voice is clear to about 56 m in the open instead of about 18 m). A Silent sound stays unheard.
 - **Lasts:** Always.
 
-### Quick Word (Persuasion) · A15
-
-*Story:* Blades clash, and you still have time for the last word. Once a turn, a one-sentence remark is spoken without using up your action, and the answer it gets costs the other side nothing either.
-
-- **Kind:** Always on
-- **Trigger:** A tactical turn in which the owner both speaks and acts.
-- **Conditions:** The line is short (one sentence).
-- **Effect:** The line resolves as talk without using the owner's action. An NPC's spoken reply to that line is also free: it doesn't use the NPC's action.
-- **Lasts:** That line.
-- **Cooldown:** Once per turn.
-- **Open:** Trial perk: test in play how NPCs answer. It is dropped if the free exchange doesn't work.
-
 ### Threaten for Answers (Intimidation) · A16
 
 *Story:* Charm is a request. Fear is an answer. Asking an unfriendly or hostile person for information, your intimidation counts at its full value instead of half.
@@ -435,16 +423,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Always.
 
 ## Higher milestone
-
-### Light Sleeper (Earshot) · NW14
-
-*Story:* You sleep with one ear open. A step on the stair, a hand on the latch: someone who means you harm has to get past your hearing before they can catch you asleep.
-
-- **Kind:** Always on
-- **Trigger:** Someone hostile to the sleeping owner is in its zone: when they arrive, and at the start of each turn while they stay.
-- **Conditions:** The owner is asleep.
-- **Effect:** The owner makes a hearing check. Against someone sneaking it is their stealth against the owner's hearing; against someone moving openly its difficulty comes from how much noise they make (quieter is harder). Passed, the owner wakes and is aware of them.
-- **Lasts:** Each time someone hostile is near.
 
 ### Find the Gap (Light weapons) · B1
 

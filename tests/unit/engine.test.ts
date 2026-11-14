@@ -437,7 +437,10 @@ describe('gear and combat', () => {
     s.turn = 2;
     const ev2 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'pick_up', item: `guard_1_${IT.arming_sword}_1` }], action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     expect(s.player.core.inventory.some((i) => i.id === `guard_1_${IT.arming_sword}_1`)).toBe(true);
-    expect(ev2.filter((e) => e.actorId === 'player').map((e) => e.kind)).toEqual(['pick_up', 'attack']);
+    const kinds = ev2.filter((e) => e.actorId === 'player').map((e) => e.kind);
+    expect(kinds[0]).toBe('pick_up'); // instant: the whole turn's blows follow
+    expect(kinds.slice(1).length).toBeGreaterThan(0);
+    expect(kinds.slice(1).every((k) => k === 'attack')).toBe(true);
   });
   it('equip on armor takes the main action', () => {
     const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'equip', item: `player_${IT.gambeson}_3` } }) }), createRng(1));

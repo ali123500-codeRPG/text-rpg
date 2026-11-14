@@ -27,7 +27,6 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, itemDef } from '../library';
-import { LIGHT_SLEEPER } from '../engine/sleep';
 import { actorById, isActive, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
@@ -1402,7 +1401,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
       const i = d.watches.findIndex((w) => w.actorId === s.player.id);
       out.push(`Night watch: ${d.watches.length} watches; yours is ${clockText(d.watches[i].from)} to ${clockText(d.watches[i].to)}`);
     } else if (l.code === 'woke') {
-      const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: `you hear someone come (${getLibrary().perks[LIGHT_SLEEPER]?.name ?? 'Light Sleeper'})`, rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
+      const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: 'you hear someone come', rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
       out.push(`Awake: ${why}`);
     }
   }

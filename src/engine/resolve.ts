@@ -96,7 +96,7 @@ export function isMajorAction(_event: GameEvent): boolean {
 
 /** AT19/AT20: an actor's move and main time left this turn, in seconds (two pools side by side), what of each carried in from
  * its last turn, and the seconds it has walked */
-type Slots = { move: number; main: number; carried: { move: number; main: number }; walkedS: number; arrived?: boolean };
+type Slots = { move: number; main: number; carried: { move: number; main: number }; walkedS: number; arrived?: boolean; carryIn: NonNullable<Actor['carry']> };
 const T_EPS = 1e-6;
 /** AT50: the round (ROUND_S) the action resolving now falls in, for once-a-round limits; keyed per actor */
 const roundKey = (ctx: Ctx, id: string): string => `${id}@${Math.max(0, Math.ceil(ctx.at / CONFIG.ROUND_S - T_EPS) - 1)}`;
@@ -104,8 +104,9 @@ const roundKey = (ctx: Ctx, id: string): string => `${id}@${Math.max(0, Math.cei
 const slotsOf = (ctx: Ctx, a: Actor): Slots => {
   let s = ctx.slots.get(a.id);
   if (!s) {
-    const c = a.carry && a.carry.turn === ctx.state.turn - 1 ? a.carry : undefined;
-    s = { move: ctx.turnS + (c?.move ?? 0), main: ctx.turnS + (c?.main ?? 0), carried: { move: c?.move ?? 0, main: c?.main ?? 0 }, walkedS: 0 };
+    const carryIn = (a.carry ?? []).filter((c) => ctx.state.turn - c.turn <= CONFIG.CARRY_TURNS); // TP4: oldest first
+    const c = { move: carryIn.reduce((n, x) => n + x.move, 0), main: carryIn.reduce((n, x) => n + x.main, 0) };
+    s = { move: ctx.turnS + c.move, main: ctx.turnS + c.main, carried: c, walkedS: 0, carryIn };
     ctx.slots.set(a.id, s);
   }
   return s;
@@ -199,6 +200,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
     }
     default:
+      // TP6 c: in a fight plain talk is no action (its time stays and carries); words that use a skill (persuade, lie,
+      // threaten, haggle) take their words' time
+      if (o.type === 'talk' && state.mode === 'tactical') return { row: actionRow(DU.talk)!, seconds: 0 };
       if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row) * o.line.text.trim().split(/\s+/).length }; }
       return undefined;
   }
@@ -640,8 +644,22 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
   }
 }
 
-/** TP2: why a planned deed can no longer happen (its target is gone or out of reach), as against a choice that holds it back */
-const STALE_REASONS = ['no_target', 'already_dead', 'out_of_reach', 'no_room'];
+/** TP2/TP3: why a planned deed can no longer happen (its target or thing is gone, dead, down or out of reach), as against a
+ * choice that holds it back (a yield, a truce) or a try that was really made (a miss, a refusal) */
+const STALE_REASONS = ['no_target', 'already_dead', 'already_down', 'out_of_reach', 'no_room', 'no_item', 'no_container', 'no_lock', 'not_locked', 'already_open'];
+
+/** TP3: an action that could not happen (all the actor did with it was a wasted event for a STALE_REASONS reason) spends none
+ * of its time: its main time, the move time it locked and its clock come back, and what is left carries (TP4) */
+function giveBack(ctx: Ctx, a: Actor, before: { main: number; move: number; clock: number }, from: number): void {
+  const mine = ctx.events.slice(from).filter((e) => e.actorId === a.id && e.kind !== 'move');
+  if (!mine.length || !mine.every((e) => e.kind === 'wasted' && STALE_REASONS.includes(e.reason ?? ''))) return;
+  const s = slotsOf(ctx, a);
+  s.main = Math.max(s.main, before.main);
+  s.move = Math.max(s.move, before.move);
+  ctx.clock.set(a.id, Math.min(ctx.clock.get(a.id) ?? 0, before.clock));
+  ctx.finished.add(a.id);
+  ctx.stopped.add(a.id); // no repeat of what could not happen
+}
 
 function dropped(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
@@ -1802,7 +1820,8 @@ function step(ctx: Ctx, id: string): void {
     cost = long;
   }
   ctx.at = (ctx.clock.get(id) ?? 0) + Math.min(cost?.seconds ?? pools.main, pools.main);
-  if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && moved && !o.line)) doMain(ctx, a, o);
+  const before = { main: pools.main, move: pools.move, clock: ctx.clock.get(id) ?? 0 }, evFrom = ctx.events.length;
+  if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && moved && !o.line)) { doMain(ctx, a, o); giveBack(ctx, a, before, evFrom); }
   if (o.moveAfter && !turned) move(false); // AE3: act, then move
 }
 
@@ -1920,15 +1939,19 @@ function repeatAttacks(ctx: Ctx, ordered: string[]): void {
     if (near && !near.ok()) closeInOn(ctx, a, o, near);
     if (near && !near.ok()) { ctx.stopped.add(a.id); continue; }
     ctx.at = at;
+    const before = { main: slotsOf(ctx, a).main, move: slotsOf(ctx, a).move, clock: ctx.clock.get(a.id) ?? 0 };
     useMain(ctx, a, cost);
     const from = ctx.events.length;
     doAttack(ctx, a, { ...o, move: null, line: null, gear: [] });
+    giveBack(ctx, a, before, from);
     if (ctx.events.slice(from).some((e) => e.actorId === a.id && e.kind === 'wasted')) ctx.stopped.add(a.id);
   }
 }
 
-/** AT20: each pool keeps, for the next turn only, what was left after the actor's last finished action, less any time it
- * carried in and left unused; a hold, a wait and a turn where nothing finished carry nothing. In a fight only. */
+/** AT20/TP4: each pool keeps what was left after the actor's last finished action (or given back, TP3) for CARRY_TURNS
+ * turns: time carried in is spent oldest first, what is left of it carries on until it is too old, and each pool holds at
+ * most CARRY_MAX_TURNS fight turns (the oldest goes first); a hold, a wait and a turn where nothing finished carry nothing
+ * new. In a fight only. */
 function noteCarry(ctx: Ctx): void {
   const { state } = ctx;
   for (const [id, s] of ctx.slots) {
@@ -1936,12 +1959,18 @@ function noteCarry(ctx: Ctx): void {
     if (!a) continue;
     delete a.carry;
     if (state.mode !== 'tactical' || !o || ['hold', 'idle', 'wait', 'sleep', 'rest'].includes(o.type)) continue;
-    const keep = (pool: 'main' | 'move', done: boolean) => {
-      const left = pool === 'main' ? mainLeft(ctx, a) : s.move, used = ctx.turnS + s.carried[pool] - left;
-      return done ? Math.max(0, left - Math.max(0, s.carried[pool] - used)) : 0;
-    };
-    const carry = { main: keep('main', ctx.finished.has(id)), move: keep('move', !!s.arrived), turn: state.turn };
-    if (carry.main > T_EPS || carry.move > T_EPS) a.carry = carry;
+    const chunks = [...s.carryIn.map((c) => ({ ...c })), { main: 0, move: 0, turn: state.turn }];
+    for (const [pool, done] of [['main', ctx.finished.has(id)], ['move', !!s.arrived]] as const) {
+      const left = pool === 'main' ? mainLeft(ctx, a) : s.move;
+      let used = ctx.turnS + s.carried[pool] - left;
+      for (const c of chunks) { const take = Math.min(c[pool], Math.max(0, used)); c[pool] -= take; used -= take; }
+      const kept = chunks.reduce((n, c) => n + c[pool], 0);
+      chunks[chunks.length - 1][pool] = done ? Math.max(0, left - kept) : 0;
+      let over = chunks.reduce((n, c) => n + c[pool], 0) - CONFIG.CARRY_MAX_TURNS * CONFIG.FIGHT_TURN_S;
+      for (const c of chunks) { const cut = Math.min(c[pool], Math.max(0, over)); c[pool] -= cut; over -= cut; }
+    }
+    const carry = chunks.filter((c) => state.turn + 1 - c.turn <= CONFIG.CARRY_TURNS && (c.main > T_EPS || c.move > T_EPS));
+    if (carry.length) a.carry = carry;
   }
 }
 

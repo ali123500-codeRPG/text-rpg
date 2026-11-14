@@ -21,10 +21,10 @@ const fat = (a: Actor) => (a.core.condition.fatigue ??= { debt: 0, line: 0 });
 const row = (id: string) => getLibrary().recovery?.[id];
 const harder = (e: EffortKey, than: EffortKey) => EFFORT.pos(e) > EFFORT.pos(than);
 
-/** FT24: pays `units` of an effort tier's strain, × worn armour (FT5). Above Light it resets catching your breath.
+/** FT24: pays `units` of an effort tier's strain (worn armour no longer multiplies it: TP6 d retired FT5). Above Light it resets catching your breath.
  * Every point paid counts toward the player's Stamina marks (FT27, FB6). Spill that fills the bar leaves the actor Spent (FT10). */
 export function payStrain(state: GameState, a: Actor, effort: EffortKey, units = 1): void {
-  const cost = CONFIG.STRAIN_COST[effort] * units * (CONFIG.STRAIN_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1) * (hasPerk(a, PK.bottomless) ? CONFIG.BOTTOMLESS_STRAIN : 1);
+  const cost = CONFIG.STRAIN_COST[effort] * units * (hasPerk(a, PK.bottomless) ? CONFIG.BOTTOMLESS_STRAIN : 1);
   if (cost <= 0 || !isActive(a)) return;
   const f = fat(a);
   if (harder(effort, 'light')) f.hardAt = now(state);

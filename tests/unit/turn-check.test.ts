@@ -81,11 +81,11 @@ describe('turn checker (TQ1)', () => {
     s.turn = 10;
     const p = s.actors.find((a) => a.id === 'patron_1')!;
     p.engagement = { start: 1, last: 5, kinds: ['fight'] };
-    ago(s, 5, engagementEndS());
+    ago(s, 5, engagementEndS() + 1);
     expect(rules(s)).toContain('fight_ends');
     delete p.engagement;
     p.mind!.knowledge.player = { status: 'engaged', source: 'seen', revealed: [], closedTurn: 4 };
-    ago(s, 4, engagementEndS());
+    ago(s, 4, engagementEndS() + 1);
     expect(rules(s)).toContain('fight_ends');
   });
 
@@ -144,7 +144,7 @@ describe('turn checker (TQ1)', () => {
     const s = makeVillage();
     s.turn = 10;
     s.actors.find((a) => a.id === 'patron_1')!.mind!.knowledge.player = { status: 'hunting', source: 'seen', revealed: [], closedTurn: 4 };
-    ago(s, 4, engagementEndS());
+    ago(s, 4, engagementEndS() + 1);
     expect(rules(s)).toContain('fight_ends');
     const t = makeVillage();
     t.stage.zoneIds.push('nowhere');

@@ -2,6 +2,8 @@
 // makes every win plain. BF10: a lie the player ties with leaves the hint (a doubt), short of seeing through it.
 // BF11 (BG-139, run 95): a place an NPC's own agent moved it to holds AGENT_STAY_TURNS before its routine takes it back.
 // BF9 (BG-136): anyone following the player who is together with them travels with them, not only bandmates.
+import { DU } from '../../src/library/tableIds';
+import { actionRow } from '../../src/ruleset/actionTime';
 import { expect, it } from 'vitest';
 import type { ContestResult, GameEvent } from '../../src/types';
 import type { Actor } from '../../src/types';
@@ -38,7 +40,7 @@ it('BF11: a place its own agent chose holds before the routine takes it back', (
   play(s, { agentOutputs: [plannerOut(m.id, act('move', 'street_door'))] });
   m.mind!.control = 'code';
   expect(m.zone).toBe('street_door');
-  for (let i = 0; i < turnsFor(CONFIG.AGENT_STAY_S, 60); i++) { play(s); expect(m.zone).toBe('street_door'); }
+  for (let i = 0; i < turnsFor(CONFIG.AGENT_STAY_S, actionRow(DU.action)!.seconds); i++) { play(s); expect(m.zone).toBe('street_door'); }
   play(s);
   expect(staying(s, m)).toBe(false); // from here its routine leads again
 });
