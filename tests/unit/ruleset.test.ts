@@ -21,10 +21,10 @@ const sword = `player_${IT.arming_sword}_1`;
 
 describe('ruleset maths', () => {
   it('stacks within a type (Part 1 §4 example)', () => {
-    expect(stackType([6, 4, 2])).toBe(8.5);
-    expect(stackType([-8, -3])).toBe(-9.5);
-    expect(stackType([6, 4, 2, -8, -3])).toBe(-1);
-    expect(stackType([8, 8, 8, 8, 8])).toBe(15.5); // 8 + 4 + 2 + 1 + 0.5: the x-th counts at 0.5^(x−1)
+    expect(stackType([6, 4, 2])).toBeCloseTo(8.29, 2); // RN2 b: the k-th largest counts √k − √(k−1)
+    expect(stackType([-8, -3])).toBeCloseTo(-9.24, 2);
+    expect(stackType([6, 4, 2, -8, -3])).toBeCloseTo(8.29 - 9.24, 1);
+    expect(stackType([8, 8, 8, 8, 8])).toBeCloseTo(8 * Math.sqrt(5)); // n equal ones total n^0.5, no ceiling
   });
   it('bands margins exactly, .5 included', () => {
     expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map((m) => TIERS.at(band(m)))).toEqual(

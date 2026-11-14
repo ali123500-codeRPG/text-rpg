@@ -47,8 +47,9 @@ const DEFAULTS = {
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 300 } as Record<GradeLevel, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
-  /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … */
-  STACK_RATIO: 0.5,
+  /** RN2 b: stacking within one modifier type (ruleset/stacking.ts powerStack): n equal modifiers total n^MOD_STACK_EXP, so the
+   * k-th largest counts √k − √(k−1): 1, 0.41, 0.32, 0.27 … with no ceiling (placeholder) */
+  MOD_STACK_EXP: 0.5,
   /** the quality lever: a minted weapon's hit bonus = QUALITY_HIT_FACTOR × its need × its quality (1–4) */
   QUALITY_HIT_FACTOR: 0.04,
   /** QE2: a minted weapon's damage boost = QUALITY_DAMAGE_FACTOR × need × quality × the mode's class factor × its tree factor */
@@ -326,7 +327,8 @@ const DEFAULTS = {
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this
   SECOND_BREATH_PCT: 50, // SS8 Second Breath: once per engagement an emptied line refills to this % of its size
   OVERDRIVE_SHARE: 0.1, // SS15 Overdrive (Stamina 140): while the line is above half, every roll adds this share of Stamina (the augment equation)
-  PAYOFF_SHARE: 0.05, // CN4 payoff perks: the first counted piece adds this share of the skill, each further one STACK_RATIO of the one before (placeholder)
+  PAYOFF_SHARE: 0.05, // CN4 payoff perks: one counted piece adds this share of the skill (placeholder)
+  PAYOFF_EXP: 0.8, // RN4 a / CN9 d: n pieces give PAYOFF_SHARE × n^PAYOFF_EXP (5, 8.7, 12, 15.2, 18.1% …; no ceiling; placeholder)
   OVERDRIVE_STRAIN: 1, // SS15 Overdrive: strain points each of those rolls costs (with worn armour and Bottomless)
   HEAVY_SLEEPER_STEPS: 1, // SS10 Heavy Sleeper: noise levels louder than WAKE_NOISE it takes to wake the owner
   INSOMNIAC_CLEAR: 0.75, // SS11 Insomniac: sleepClear multiplier

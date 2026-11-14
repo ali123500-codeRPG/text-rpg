@@ -1,5 +1,5 @@
 // CN1-CN2 (D-260): theme tags on perks. A payoff perk counts the owned perks with its tag (CN3) and grows a share per
-// piece, each further piece at STACK_RATIO (CN4). A perk may carry any number of tags (CN1); one table keyed by theme, so
+// piece by the power rule (PAYOFF_SHARE × pieces^PAYOFF_EXP, RN4). A perk may carry any number of tags (CN1); one table keyed by theme, so
 // moving a perk is one line. A payoff perk carries its own theme, so it counts itself as a piece.
 import { PK } from './perkIds';
 
