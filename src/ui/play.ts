@@ -117,7 +117,7 @@ export function whoDistance(a: PlayerView['actors'][number], pv: PlayerView): st
   return [`${m(a.distanceM)} away`, where, reach].filter(Boolean).join(' · ');
 }
 
-/** a clarifying question's phrases the player can tap: people (seen now or earlier), zones and items the view names, matched
+/** a clarifying question's phrases the player can tap: people (seen now or earlier), zones, ways out and items the view names, matched
  * with or without articles ("the lean man in the patched coat" finds "a lean man in a patched coat"); longest first, never
  * overlapping. Each gives where it sits in the text and the words to answer with (the text's own wording). */
 export function clarifyPicks(text: string, pv: PlayerView): { start: number; end: number; phrase: string }[] {
@@ -125,6 +125,7 @@ export function clarifyPicks(text: string, pv: PlayerView): { start: number; end
   const names = [
     ...pv.actors.flatMap((a) => [a.name, a.label]), ...(pv.lastSeen ?? []).map((x) => x.name),
     ...pv.zones.map((z) => z.name), ...(pv.known ?? []).map((z) => z.name),
+    ...(pv.zone.links ?? []).map((l) => l.label), // BG-224: ways out by their labels, the ones to places not built yet too
     ...pv.player.inventory.map((i) => i.name), ...pv.zone.groundItems.map((i) => i.name),
   ].filter((x): x is string => !!x);
   const words = [...new Set(names.map((n) => n.toLowerCase().replace(/^(a|an|the)\s+/, '').trim()))]
