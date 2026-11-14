@@ -5,12 +5,14 @@ import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { AWARENESS, CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { AWARENESS, CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, TALENTS, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
+import { presetAgeFloor, presetTalent, rankName } from '../library/spawn';
+import { stageReaches, talentName } from '../ruleset/age';
 import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
@@ -333,6 +335,12 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         // AG14: a life stage the race has; an ageless race takes none
         if (c.age !== undefined && (!LIFE_STAGES.keyOf(c.age) || !lib.races?.[tpl.raceId]?.ageStages))
           err('bad_age', `cast ${k}: age is a life stage, ${LIFE_STAGES.list()}, and only for a race that ages`, k);
+        // AG25: a talent from the scale; AG12, AG14: a stage wholly under the rank's youngest age at that talent is refused
+        const talent = TALENTS.keyOf(c.talent);
+        if (c.talent !== undefined && !talent) err('bad_talent', `cast ${k}: talent is ${TALENTS.list()}`, k);
+        const stage = LIFE_STAGES.keyOf(c.age), floor = presetAgeFloor(tpl, presetTalent(tpl, talent));
+        if (stage && floor !== undefined && !stageReaches(tpl.raceId, stage, floor))
+          err('bad_age', `cast ${k}: a ${rankName(tpl.rank!, tpl.themeId)} ${talentName(presetTalent(tpl, talent))} ${race(tpl.raceId).name} is at least ${Math.ceil(floor)} years old, past ${LIFE_STAGES.name(stage)}; name an older stage or a faster talent`, k);
       }
     }
     if (!c.band) err('missing_band', `cast ${k}: names no band`, k);

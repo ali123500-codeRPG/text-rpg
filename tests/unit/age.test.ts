@@ -1,9 +1,13 @@
-// Character age (AG1–AG22): life stages per race, the old-age decline, NPC ages at spawn, creation and the stage line.
+// Character age (AG1–AG27): life stages per race, the old-age decline, NPC ages at spawn, the youngest age per rank and
+// talent, creation and the stage line.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { ageKeeps, ageText, advanceAging, bornDayFor, lifeStage, stageName, stageOf } from '../../src/ruleset/age';
+import { ageFloor, ageKeeps, ageText, ageYears, advanceAging, bornDayFor, lifeStage, stageName, stageOf, stageReaches, talentMult, talentName } from '../../src/ruleset/age';
 import { effectiveSkill } from '../../src/ruleset/gear';
-import { createPlayer, recommendedBuild, refreshCopies, spawnNpc, validateBuild } from '../../src/library/spawn';
+import { createPlayer, presetAgeFloor, presetTalent, rankRow, recommendedBuild, refreshCopies, spawnNpc, validateBuild } from '../../src/library/spawn';
+import { npcTemplate } from '../../src/library';
+import { validateStagePlan } from '../../src/scenario';
+import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { RC } from '../../src/library/raceIds';
 import { SK } from '../../src/library/skillIds';
 import { TP } from '../../src/library/templateIds';
@@ -55,6 +59,53 @@ describe('NPC ages (AG13, AG14)', () => {
     const born = a.core.bornDay;
     refreshCopies(s);
     expect(a.core.bornDay).toBe(born);
+  });
+});
+
+describe('youngest age per rank (AG12, AG21–AG25)', () => {
+  it('reads training years from the rank rows, the same for every race, +10 a step past Paragon', () => {
+    expect(['rank_0', 'rank_1', 'rank_2', 'rank_3', 'rank_4', 'rank_5', 'rank_6', 'rank_8', 'rank_9'].map((r) => rankRow(r as `rank_${number}`).training)).toEqual([0, 1, 4, 8, 12, 20, 30, 50, 60]);
+  });
+  it('multiplies them by talent, halving past Prodigy, from the race\'s Youth start', () => {
+    expect(['talent_0', 'talent_1', 'talent_2', 'talent_3', 'talent_4', 'talent_5', 'talent_6'].map((k) => talentMult(k as `talent_${number}`))).toEqual([3, 2, 1, 0.75, 0.5, 0.25, 0.125]);
+    expect(talentName('talent_6')).toBe('Prodigy++');
+    expect(ageFloor(RC.human, rankRow('rank_4').training, 'talent_0')).toBe(49); // a Common human Elite
+    expect(ageFloor(RC.human, rankRow('rank_5').training, 'talent_0')).toBe(73); // a Common human Paragon
+    expect(ageFloor(RC.elf, rankRow('rank_5').training, 'talent_2')).toBe(33);
+    expect(ageFloor(RC.slime, 20, 'talent_2')).toBeUndefined();
+  });
+  it('takes the Weaver\'s talent, then the preset\'s, then its theme\'s, then Able', () => {
+    const g = npcTemplate(null, TP.guard);
+    expect(presetTalent(g)).toBe(CONFIG.NPC_TALENT_DEFAULT);
+    expect(presetTalent({ ...g, talent: 'talent_3' })).toBe('talent_3');
+    expect(presetTalent({ ...g, talent: 'talent_3' }, 'talent_0')).toBe('talent_0');
+    expect(presetAgeFloor(g, 'talent_2')).toBe(17); // a Trained human: 13 + 4
+  });
+  it('never spawns an NPC under its floor, and saves the talent that set it', () => {
+    const s = makeVillage();
+    for (let i = 0; i < 30; i++) {
+      const a = spawnNpc(s, TP.guard, { id: `npc_y${i}`, zone: 'z', placeId: 'p', bandId: 'b', ageStage: 'stage_1' });
+      expect(ageYears(s, a)).toBeGreaterThanOrEqual(17);
+      expect(stageOf(s, a)).toBe('Youth');
+      expect(a.core.talent).toBe('talent_2');
+      const c = spawnNpc(s, TP.guard, { id: `npc_c${i}`, zone: 'z', placeId: 'p', bandId: 'b', ageStage: 'stage_1', talent: 'talent_0' });
+      expect(ageYears(s, c)).toBeGreaterThanOrEqual(25); // Youth is wholly under a Common guard's 25: it rolls in Adult instead
+      expect(stageOf(s, c)).toBe('Adult');
+    }
+  });
+  it('refuses a Weaver stage wholly under the floor, and a talent off the scale', () => {
+    const s = toStoryStart(makeVillage());
+    const plan = (age: string, talent?: string) => {
+      const p = villageStagePlan();
+      const g = p.cast.find((c) => c.template === TP.guard)!;
+      Object.assign(g, { age, ...(talent ? { talent } : {}) });
+      return validateStagePlan(s, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }).map((e) => e.code);
+    };
+    expect(plan('Youth')).not.toContain('bad_age');
+    expect(plan('Youth', 'Common')).toContain('bad_age');
+    expect(plan('Adult', 'Common')).not.toContain('bad_age');
+    expect(plan('Adult', 'Genius')).toContain('bad_talent');
+    expect(stageReaches(RC.human, 'stage_6', 500)).toBe(true); // Ancient never runs out
   });
 });
 

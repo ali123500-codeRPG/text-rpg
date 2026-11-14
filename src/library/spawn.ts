@@ -7,8 +7,8 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, RANKS, type LifeStageKey, type RankKey } from '../scales';
-import { rollBornDay } from '../ruleset/age';
+import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
+import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng } from '../rng';
 import { SK, DEFENSE_SKILL } from './skillIds';
@@ -51,7 +51,7 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
   return out;
 }
 
-export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */; ageStage?: LifeStageKey /* AG14: the Weaver's life stage */ };
+export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */; ageStage?: LifeStageKey /* AG14: the Weaver's life stage */; talent?: TalentKey /* AG25: the Weaver's talent */ };
 
 /** A class's skill floors: its own floors plus its unlock conditions (a character of the class must meet what unlocks it).
  * all = every skill must reach its value; any = either-of groups, one skill in each must reach its value. */
@@ -76,11 +76,11 @@ export function templateMinimums(t: NpcTemplate): Record<string, number> {
   return min;
 }
 
-/** NG3: a rank's anchor skill and level; past the last row each step adds CONFIG.RANK_BEYOND_STEP */
-export function rankRow(rank: RankKey): { anchor: number; level: number } {
-  const n = Number(rank.slice(5)), last = RANKS.keys.length - 1, top = CONFIG.RANK_ROWS[RANKS.keys[last]];
+/** NG3: a rank's anchor skill, level and training years (AG12); past the last row each step adds CONFIG.RANK_BEYOND_STEP */
+export function rankRow(rank: RankKey): { anchor: number; level: number; training: number } {
+  const n = Number(rank.slice(5)), last = RANKS.keys.length - 1, top = CONFIG.RANK_ROWS[RANKS.keys[last]], step = CONFIG.RANK_BEYOND_STEP;
   if (n <= last) return CONFIG.RANK_ROWS[rank];
-  return { anchor: top.anchor + (n - last) * CONFIG.RANK_BEYOND_STEP.anchor, level: top.level + (n - last) * CONFIG.RANK_BEYOND_STEP.level };
+  return { anchor: top.anchor + (n - last) * step.anchor, level: top.level + (n - last) * step.level, training: top.training + (n - last) * step.training };
 }
 /** NG3: a rank's name, a theme's own title first; past the last row the last name gains a + per step (Divine+, Divine++) */
 export function rankName(rank: RankKey, themeId?: string): string {
@@ -143,10 +143,19 @@ function tagQuirks(t: NpcTemplate, id: string, turn: number): OwnedPerk[] {
   });
 }
 
-/** AG13, AG14: drawn once from the Weaver's stage or the template's stages, seeded by the actor's ID, and saved */
-function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?: LifeStageKey): { bornDay?: number } {
-  const d = rollBornDay(state, t.raceId, stage ? [stage] : t.ageStages, createRng(templateSeed(id)));
-  return d === undefined ? {} : { bornDay: d };
+/** AG25: an NPC's talent: the Weaver's, else its preset's, else its theme's, else CONFIG.NPC_TALENT_DEFAULT */
+export const presetTalent = (t: NpcTemplate, own?: TalentKey): TalentKey =>
+  own ?? t.talent ?? (t.themeId ? getLibrary().themes?.[t.themeId]?.talent : undefined) ?? CONFIG.NPC_TALENT_DEFAULT;
+/** AG12, AG21: the youngest age a preset's rank allows at a talent; undefined for an ageless race or a preset with no rank */
+export const presetAgeFloor = (t: NpcTemplate, talent: TalentKey): number | undefined =>
+  t.rank ? ageFloor(t.raceId, rankRow(t.rank).training, talent) : undefined;
+
+/** AG13, AG14: drawn once from the Weaver's stage or the template's stages, seeded by the actor's ID, never under its rank's
+ * youngest age (AG12), and saved with the talent that set that age (AG25) */
+function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?: LifeStageKey, own?: TalentKey): { bornDay?: number; talent?: TalentKey } {
+  const talent = presetTalent(t, own);
+  const d = rollBornDay(state, t.raceId, stage ? [stage] : t.ageStages, createRng(templateSeed(id)), presetAgeFloor(t, talent));
+  return d === undefined ? {} : { bornDay: d, ...(t.rank ? { talent } : {}) };
 }
 
 export function spawnNpc(state: GameState | null, templateId: string, opts: SpawnOpts, rng?: Rng): Actor {
@@ -176,7 +185,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player
       personality: opts.personality ?? structuredClone(t.personality), // PL11, PL12: the template's points, or the Weaver's pick on them
-      ...npcBornDay(state, t, opts.id, opts.ageStage),
+      ...npcBornDay(state, t, opts.id, opts.ageStage, opts.talent),
     },
     // GAP: rolled NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'rolled' ? { progression: {

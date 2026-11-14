@@ -4,18 +4,18 @@ import { doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
-import { ageText, stageOf } from '../ruleset/age';
+import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
+  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type VisibilityKey } from '../scales';
 import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
 import { charLevel, power, wornTitle } from '../engine/xp';
-import { spawnNpc } from '../library/spawn';
+import { presetAgeFloor, presetTalent, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
 import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
 import { moveSpeed } from '../engine/speed';
@@ -932,7 +932,9 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
-  const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).filter((t) => t.generation !== 'unique').map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
+  // AG14: the youngest life stage a preset's rank allows at its own talent, so the Weaver names no stage it would refuse
+  const youngest = (t: NpcTemplate) => { const f = presetAgeFloor(t, presetTalent(t)), s = f === undefined ? undefined : lifeStage(t.raceId, f); return s ? { youngestStage: stageName(s) } : {}; };
+  const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string; youngestStage?: string }>(Object.values(lib.templates).filter((t) => t.generation !== 'unique').map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}), ...youngest(t) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
   // D-220: the Weaver placing Threadbound items is parked, so they stay out of its catalog

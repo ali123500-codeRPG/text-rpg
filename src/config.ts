@@ -372,10 +372,10 @@ const DEFAULTS = {
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
   // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
-  /** NG3: each rank's anchor skill and level */
-  RANK_ROWS: { rank_0: { anchor: 15, level: 1 }, rank_1: { anchor: 30, level: 2 }, rank_2: { anchor: 50, level: 4 }, rank_3: { anchor: 65, level: 8 }, rank_4: { anchor: 75, level: 12 }, rank_5: { anchor: 100, level: 20 }, rank_6: { anchor: 150, level: 30 }, rank_7: { anchor: 200, level: 40 }, rank_8: { anchor: 300, level: 60 } } as Record<string, { anchor: number; level: number }>,
+  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, the same for every race */
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_8: { anchor: 300, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
   /** NG3: past the last rank row, each step adds this */
-  RANK_BEYOND_STEP: { anchor: 100, level: 20 },
+  RANK_BEYOND_STEP: { anchor: 100, level: 20, training: 10 },
   /** NG2: a role's bands as shares of the rank's anchor */
   ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
@@ -395,6 +395,10 @@ const DEFAULTS = {
   AGE_DECLINE_GROUPS: [GR.melee, GR.ranged, GR.defense, GR.health, GR.stealth, GR.sleight, GR.notice] as string[], // AG19: body skills and the senses (Sleight: FL1, fingers)
   CREATION_AGE_DEFAULT: 20, // AG15: the creation picker's default (a start may set its own, ClassDef.creation.age)
   NPC_AGE_STAGES: ['stage_2', 'stage_3'] as import('./scales').LifeStageKey[], // AG13: the stages an NPC is drawn from when its template names none
+  /** AG23: each talent row's multiplier on a rank's training years; past the last row each step multiplies by TALENT_BEYOND_MULT */
+  TALENT_MULT: { talent_0: 3, talent_1: 2, talent_2: 1, talent_3: 0.75, talent_4: 0.5 } as Record<string, number>,
+  TALENT_BEYOND_MULT: 0.5,
+  NPC_TALENT_DEFAULT: 'talent_2' as import('./scales').TalentKey, // AG24, AG25: Able, a real professional's pace, when neither the preset nor its theme names one
   CREATION_TAGS: 3,
   STARTING_COIN: 20,
   // Trade (D-93, PY4–PY10; placeholders): price = base × MARKUP × haggle × Hard Bargain, rounded up, at least 1

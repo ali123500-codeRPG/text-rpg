@@ -2,7 +2,7 @@
 // input and output, the red fallback banner, the backup list with restore, and the "Download backup" button.
 import { tierName } from '../ruleset';
 import { getLibrary } from '../library';
-import { ageText } from '../ruleset/age';
+import { ageText, talentName } from '../ruleset/age';
 import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
 import { HIT_OUTCOMES, QUALITY_LEVELS, TIERS } from '../scales';
@@ -149,13 +149,13 @@ export function gmPage(api: GameApi) {
       // AG16: exact ages, which the play screen never shows for NPCs; and who an agent runs, with their last agent calls in a pop-up
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'People · age and who an agent runs'),
         s ? h('table', { class: 'hs-tbl gm-people' },
-          h('thead', {}, h('tr', {}, ['Actor', 'Age', 'Run by', 'Agent calls this turn'].map((t) => h('th', {}, t)))),
+          h('thead', {}, h('tr', {}, ['Actor', 'Age · talent', 'Run by', 'Agent calls this turn'].map((t) => h('th', {}, t)))),
           h('tbody', {}, [s.player, ...s.actors].map((a) => {
             const mine = g.agentLog.filter((l) => l.actorId === a.id);
             const runBy = a.id === s.player.id ? 'Player' : a.mind?.control === 'agent' ? 'Agent' : 'Code';
             const name = a.id === s.player.id ? a.names.current
               : h('button', { class: 'hs-btn-text gm-who', type: 'button', title: 'Open their last agent calls', onclick: (e: Event) => void showCalls(a.id, a.names.current, e.currentTarget as HTMLElement) }, a.names.current);
-            return h('tr', { 'data-actor': a.id }, h('td', {}, name), h('td', {}, ageText(s, a) ?? 'Ageless'),
+            return h('tr', { 'data-actor': a.id }, h('td', {}, name), h('td', {}, [ageText(s, a) ?? 'Ageless', a.core.talent ? talentName(a.core.talent) : ''].filter(Boolean).join(' · ')),
               h('td', {}, runBy === 'Agent' ? h('span', { class: 'hs-chip gm-agent' }, 'Agent') : h('span', { class: 'hs-note' }, runBy)),
               h('td', {}, mine.length ? mine.map((l) => l.agent).join(', ') : '–'));
           })))

@@ -350,7 +350,7 @@ export type WeaverView = {
   /** SC4: the bigger scenario (Episode or Venture) this new scenario sits inside; it carries on when this one ends */
   outerScenario?: { question: string; scale: string };
   catalogs: {
-    templates: { id: string; label: string; raceId: string; classId?: string }[];
+    templates: { id: string; label: string; raceId: string; classId?: string; youngestStage?: string }[];
     /** HF9, HF2: unique NPCs not yet in this world: one specific person each (an echo: a fallen hero), with its power and,
      * hidden, who it was */
     uniques: { id: string; name: string; label: string; raceId: string; classes: { name: string; level: number }[]; level: number; power: number; echo?: true; past: string }[];

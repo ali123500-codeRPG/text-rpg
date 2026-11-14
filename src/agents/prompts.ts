@@ -10,7 +10,7 @@ import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scenario/validate';
 import { tierName } from '../ruleset';
 import { GRADES, NPC_ACTIONS, ORDER_TYPES } from '../types';
-import { CHASE_RANGES, COVER, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
+import { CHASE_RANGES, COVER, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, TALENTS, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 /** a scale's levels as the JSON choices Claude may write (G4) */
 const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
@@ -146,7 +146,7 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
    "slots":{slot:zone|[zone]} (a route slot lists 1 to ${CONFIG.MAX_ROUTE_ZONES} zones; one zone means stay there),"startAt"?:slot,"routineGap"?:string,
    "awarenessOfPlayer":awareness,"awarenessOfBands"?:[{"band":bandKey|bandId,"awareness":awareness}],"overrides"?:[{"actor","stance"}],"motive":string,"goals"?:[{"text","about"?:[actor, place, zone or item id or key]}] (a unique from catalogs.uniques only),
    "wares"?:{"items":[{"item":itemId,"qty"?:number}],"services":[serviceId]},
-   "personality"?:{"nerve"?:${Object.keys(NERVE_LINES).map((k) => JSON.stringify(k)).join('|')},"types"?:[up to 2 type ids from catalogs.personality.types],"values"?:[up to 3 value ids from catalogs.personality.values, strongest first]},"age"?:${words(LIFE_STAGES)} (a new actor's life stage; code picks the years)}],
+   "personality"?:{"nerve"?:${Object.keys(NERVE_LINES).map((k) => JSON.stringify(k)).join('|')},"types"?:[up to 2 type ids from catalogs.personality.types],"values"?:[up to 3 value ids from catalogs.personality.values, strongest first]},"age"?:${words(LIFE_STAGES)} (a new actor's life stage; code picks the years; not younger than its template's youngestStage),"talent"?:${words(TALENTS)} (how fast a new actor trained, slowest first; a faster talent allows a younger age for its rank; left out = its template's)}],
  "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tier,"againstActorId"}}]},
  "rewards":[{"item":itemId|{"base","quality":${QUALITY_LEVELS.keys.map((k) => JSON.stringify(k)).join('|')},"boosts","name","look","fragility"?:${FRAGILITY.keys.map((k) => JSON.stringify(k)).join('|')}},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone,"hiddenAt"?:${words(TIERS)}}|{"in":containerKey},"owner"?:key}],
  "containers"?:[{"key","item":container itemId from catalogs.items,"place":{"carriedBy":key}|{"groundIn":zone},"owner"?:castKey|actorId,"locked"?:{"grade"?:grade,"keys"?:[castKey|actorId]}}],

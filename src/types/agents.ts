@@ -207,6 +207,8 @@ export type StagePlan = {
     personality?: { nerve?: string; types?: string[]; values?: string[] };
     /** AG14: a new actor's life stage (a LIFE_STAGES name); code picks the years inside it */
     age?: string;
+    /** AG25: a new actor's talent (a TALENTS name); sets the youngest age its rank allows */
+    talent?: string;
   }[];
   seeds: { plans: (Plan & { ownerId: string })[]; triggers: Trigger[]; secrets: Secret[] };
   rewards: {

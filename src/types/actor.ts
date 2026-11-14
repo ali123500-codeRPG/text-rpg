@@ -110,6 +110,7 @@ export type Core = {
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
   personality?: Personality; // PL1: Nerve and personality points, before what perks, classes and achievements add (personalityOf)
   bornDay?: number; // AG2: the game day it was born (before day 1 is 0 and below); left out = no age (an ageless race)
+  talent?: import('../scales').TalentKey; // AG25: an NPC's talent, set once at spawn (it set its youngest age); the player has none (AG27)
 };
 
 /** PL1: Nerve runs Cautious (−100) to Daring (+100); traits are points by personality axis (PA…, −100 to +100); values
@@ -281,6 +282,8 @@ export type NpcTemplate = {
   chase?: import('../scales').ChaseRange;
   /** AG13: the life stages NPCs made from it are drawn from; left out = CONFIG.NPC_AGE_STAGES */
   ageStages?: import('../scales').LifeStageKey[];
+  /** AG25: how fast NPCs made from it trained, which sets their youngest age for the rank; left out = the theme's, then CONFIG.NPC_TALENT_DEFAULT */
+  talent?: import('../scales').TalentKey;
   /** growth proposal 2.3: a leader or other notable NPC: beating it may offer an essence whatever its power */
   notable?: true;
   /** EN3 b: a hand-set essence list that replaces the worked-out one (templateEssences). An echo carries only its own
