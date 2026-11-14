@@ -362,6 +362,8 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
     if (!q.some((x) => x.key === key && x.of === of)) q.push({ key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}) });
     return;
   }
+  // growth lands at a scenario's end (D-226): an achievement granted anywhere else is flagged, filed as a bug report
+  if (!flushing) logCode(state, 'achievement_outside_end', { id, why: !CONFIG.GROWTH_AT_SCENARIO_END ? 'growth_off' : now ? 'forced' : 'no_scenario' });
   // a higher level switches off every lower level of its chain, so only the highest one is checked
   const lib = getLibrary().achievements ?? {};
   for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)

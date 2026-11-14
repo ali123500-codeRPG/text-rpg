@@ -11,7 +11,8 @@ import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { abandonQuest, pinQuest } from '../engine/quests';
 import { setSignatures } from '../ruleset/personality';
-import { spawnNpc, validateBuild } from '../library/spawn';
+import { newInstanceId, spawnNpc, validateBuild } from '../library/spawn';
+import { zoneById } from '../engine/relations';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
@@ -89,6 +90,23 @@ function robTurn(st: GameState): Partial<LogLine> {
   if (!purse || !took) return {};
   purse.qty = (purse.qty ?? 1) - took;
   return { coin: -took };
+}
+
+// "loot" drops Bren in the common room, turns out what he carries (a search found it) and sets an open chest and a sack by
+// him, to show the loot pop-up
+function lootTurn(st: GameState): void {
+  const p = st.player, g = st.actors.find((a) => a.id === 'guard_1');
+  if (!g) return;
+  g.zone = p.zone; g.placeId = p.placeId;
+  g.core.condition.hpLostPct = 100;
+  const add = (itemId: string, qty = 1) => { const it = { id: newInstanceId(), itemId, qty }; g.core.inventory.push(it); return it; };
+  const found = [add(IT.bandage), add(IT.healing_draught), add(IT.coin, 14), add(IT.key)];
+  p.journal = { ...p.journal!, revealed: [...(p.journal?.revealed ?? []), ...found.map((i) => `item:${i.id}`)] };
+  const zone = zoneById(st, p.zone);
+  if (zone && !zone.groundItems.some((i) => i.itemId === IT.chest)) {
+    zone.groundItems.push({ id: newInstanceId(), itemId: IT.chest, open: true, contents: [{ id: newInstanceId(), itemId: IT.lockpicks }, { id: newInstanceId(), itemId: IT.curio }] } as never,
+      { id: newInstanceId(), itemId: IT.sack } as never);
+  }
 }
 
 // "bandage" works at a 40 s bandage 15 s a turn while someone in view spans a crossbow (20 s), to show long actions (AT11a):
@@ -423,6 +441,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : null;
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
+      if (/^loot\b/i.test(text)) lootTurn(state);
       const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;
       // "walk" leaves a walk to the upstairs landing still on its way, to show the move order in the action box and on the Map
       // (AT49); "stop" ends it

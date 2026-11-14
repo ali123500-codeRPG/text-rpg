@@ -123,7 +123,7 @@ function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: 
   const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const } : {};
   const key = viewer && i.lock && viewer.core.inventory.some((k) => k.opens?.includes(i.id)) ? { key: true as const } : {};
   const shows = !viewer || i.open;
-  return { container: { ...(i.open ? { open: true as const } : { shut: true as const }), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
+  return { container: { ...(i.open ? { open: true as const } : { shut: true as const }), ...(itemDef(state, i.itemId).container?.fixed ? { fixed: true as const } : {}), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
     ...(shows ? { contents: inside.map((c) => ({ id: c.id, name: itemDef(state, c.itemId).name, ...(itemDef(state, c.itemId).stackable ? { qty: c.qty ?? 1 } : {}) })) } : {}) } };
 }
 const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));

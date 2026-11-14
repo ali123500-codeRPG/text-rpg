@@ -13,7 +13,7 @@ import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength } from '../land/generate';
 import { worldTiles, compassOf, knownMap, pointAlong, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
-import { cap } from '../words';
+import { cap, theName } from '../words';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
 
@@ -240,6 +240,12 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   const rootOf = (id: string) => { let p = placeOf(id); for (let n = 0; p?.parentId && placeOf(p.parentId) && !isRoad(p.parentId) && n < 20; n++) p = placeOf(p.parentId); return p?.id ?? id; };
   /** the map a place is drawn on: its top-level place's, or the World zoomed to the road when it is a road (RD1) */
   const mapOf = (id: string) => (isRoad(rootOf(id)) ? WORLD : rootOf(id));
+  /** Move to here's order for a zone; a zone in another town or building than the one you are in names it, so the order
+   *  can't be read as a spot nearby ("I go to the village square in Thornbury") */
+  const moveHere = (z: MapZone): string => {
+    const to = rootOf(z.placeId), name = placeOf(to)?.name;
+    return cur && name && rootOf(cur.placeId) !== to && name.toLowerCase() !== z.name.toLowerCase() ? `${moveOrder(z.name)} in ${theName(name)}` : moveOrder(z.name);
+  };
   const inside = (id: string, anc: string) => { for (let p = placeOf(id), n = 0; p && n < 20; p = p.parentId ? placeOf(p.parentId) : undefined, n++) if (p.id === anc) return true; return false; };
   const allZones = () => (cur?.places ?? []).flatMap((p) => p.zones);
   // WORLD: every top-level place as one tile, joined by the roads you know (worldTiles); any other `world` is a place's own map
@@ -913,7 +919,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       h('div', { class: 'map-card-h' }, h('h2', {}, z.name), h('span', { class: `hs-tg ${z.here ? 'cap' : ''}` }, z.here ? 'You are here' : z.inView ? 'In view' : 'Remembered')),
       h('p', { class: 'hs-note' }, placeOf(z.placeId)?.name ?? ''),
       z.id === walk?.toZone ? h('p', { class: 'map-heading', role: 'status' }, h('b', {}, 'Heading here'), ` · ${walkLeft(walk)}`) : '',
-      !z.here && onMove ? h('button', { type: 'button', class: 'hs-btn-main map-move', 'data-move': z.id, title: 'Types the order in the action box for you to send', onclick: () => onMove(moveOrder(z.name)) }, 'Move to here') : '',
+      !z.here && onMove ? h('button', { type: 'button', class: 'hs-btn-main map-move', 'data-move': z.id, title: 'Types the order in the action box for you to send', onclick: () => onMove(moveHere(z)) }, 'Move to here') : '',
       h('p', { class: 'map-look' }, z.look || 'You have no picture of it.'),
       z.inView ? h('p', { class: 'hs-note' }, [z.outdoor ? 'Outdoors' : 'Indoors', z.light ? `${z.light} light` : '', z.cover ? `${z.cover} cover` : ''].filter(Boolean).join(' · ')) : h('p', { class: 'hs-note' }, 'Out of sight now, so light, people and things on the ground may have changed.'),
       h('p', { class: 'hs-label' }, 'Exits'),

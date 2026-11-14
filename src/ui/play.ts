@@ -33,6 +33,7 @@ import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, im
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
+import { lootCount, lootSources, openLoot } from './loot';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -209,14 +210,14 @@ export function ideas(pv: PlayerView, broken = false, canSteady = false, self?: 
     .map((g) => ({ group: g.group, items: g.items.map(({ text, note }) => (note ? { text, note } : { text })) }));
 }
 
-/** "Common room · the Crooked Kettle"; the place is left out when it only repeats the zone's name */
-function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
+/** where you are for the Play heading: here is the zone ("Common room"), where the place it sits in ("the Crooked Kettle"); the place is left out when it only repeats the zone's name */
+function placeHead(s: GameState, pv: PlayerView | null): { here: string; where: string } {
   const place = s.places.find((x) => x.id === s.player.placeId);
   const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;
   const zone = pv?.zone.name ? cap(pv.zone.name) : '';
   const bare = (t: string) => t.toLowerCase().replace(/^the\s+/, '');
   const where = [place?.names.current, parent?.names.current].filter((x): x is string => !!x && bare(x) !== bare(zone)).join(' › ');
-  return zone ? [' · ', h('b', {}, zone), where ? ' · ' + where : ''] : where ? [' · ', h('b', {}, where)] : [];
+  return zone ? { here: zone, where } : { here: where, where: '' };
 }
 
 /** each body part's state as the UI last saw it, so the body figure opens on the turn a part changes */
@@ -279,6 +280,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const hint = h('p', { class: 'hs-note in-hint', id: 'cmd-hint' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   const healBtn = h('button', { type: 'button', class: 'itm' });
+  // what can be taken here (a body that is down, an open chest, the ground): opens the loot pop-up, which types the order
+  const lootBtn = h('button', { type: 'button', class: 'itm loot-btn', 'data-chip': 'loot', title: 'See what you can take here and pick what to pocket' });
   let open: 'commands' | 'ideas' | null = null;
   let suggestion = ''; // Q16: what the player put off last turn, offered in the box until used or cleared
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
@@ -290,7 +293,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const helpPanel = h('div', { class: 'helps', hidden: true });
   // MB12/BF37: while the player's nerve is broken, Yield comes forward and Aim steps back (no attack can come); no Flee, for now
   const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
-  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
+  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn, againBtn), h('div', { class: 'hs-picker' }, yieldBtn, aimBtn, st.sneak, st.hide, st.vanish, lootBtn, healBtn));
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the chips
   let doingHtml = '';
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, doingSlot, tools);
@@ -462,8 +465,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   function results(l: LogLine, s: GameState | null): HTMLElement | null {
     const lib = getLibrary();
-    const xp = (s?.player.progression?.xpLog ?? []).filter((a) => a.turn === l.turn && !a.levelUp && a.amount); // BG-199: each award with its source
-    const gains = Object.entries(l.gains ?? {}).filter(([, n]) => n);
+    // the turn a scenario ends with gains, its pop-up shows the skills and XP, so the story leaves those rows out
+    const ended = anyGains(l.scenarioGains);
+    const xp = ended ? [] : (s?.player.progression?.xpLog ?? []).filter((a) => a.turn === l.turn && !a.levelUp && a.amount); // BG-199: each award with its source
+    const gains = ended ? [] : Object.entries(l.gains ?? {}).filter(([, n]) => n);
     const gear = l.gear ?? [];
     const row = (k: string, ...v: (Node | string)[]) => h('p', { class: 'rrow' }, h('span', { class: 'hs-label' }, k), h('span', {}, ...v));
     const kids = [
@@ -652,8 +657,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const mh = <T extends Element | null>(key: string, x: T): T => { x?.setAttribute('data-mh', key); return x; };
     // the agent button is one live element: a stand-in copy is compared, so a header that isn't redrawn keeps the real one
     const openerSlot = s ? auto.opener.cloneNode(true) as HTMLElement : null;
-    const titleKids = [h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '', motionBtn)];
+    // the heading is where you are now (the zone), not the story's premise; the place it sits in follows the turn below it
+    const here = s ? placeHead(s, pv) : null;
+    const titleKids = [h('div', {}, h('h1', {}, here?.here || 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s)), now(s)) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
+      h('p', {}, s ? [`Turn ${lastTurn}`, here?.where ? ` · ${here.where}` : ''] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, mapBtn ?? '', openerSlot ?? '', rollsBtn ?? '', motionBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
@@ -759,6 +766,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // H3 b: one quick slot for a healing item; it fills the box, nothing is sent until Send
     const qh = s ? quickHeal(s, s.player) : null;
     healBtn.hidden = !qh;
+    const loot = pv ? lootCount(lootSources(pv)) : 0;
+    lootBtn.hidden = !loot;
+    lootBtn.disabled = stopped;
+    if (loot) {
+      lootBtn.setAttribute('aria-label', `Loot, ${loot} thing${loot === 1 ? '' : 's'} to take`);
+      lootBtn.replaceChildren('Loot', h('b', {}, `×${loot}`));
+      lootBtn.onclick = () => { const v = api.state() ? safe(() => buildPlayerView(api.state()!)) : null; if (v) openLoot(v, lootBtn, pick); };
+    }
     const again = lastOrder(api.lines());
     againBtn.disabled = stopped || !again;
     againBtn.title = again ? `Fills the box with your last order: “${again}”. Nothing is sent until Send` : 'No order yet to repeat';
@@ -834,7 +849,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const text = (x: Element) => (x.textContent ?? '').trim();
     return {
       who: Object.fromEntries(Array.from(who.querySelectorAll('[data-who]')).map((x) => [x.getAttribute('data-who')!, text(x)])),
-      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? x.outerHTML : text(x)])),
+      // the sun's tip carries the clock, which moves every turn: only a new day or time of day gives it a beat
+      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? (x.getAttribute('data-tip') ?? '').replace(/ · [0-9:]+$/, '') : text(x)])),
       heal: healBtn.hidden ? '' : text(healBtn),
     };
   }

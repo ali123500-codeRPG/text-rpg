@@ -3,6 +3,7 @@
 // a quiet green line (src/ui/healing.ts). Icons and colours are keyed by TIME_OF_DAY key; names come from that table.
 import { TIME_OF_DAY } from '../scales';
 import { h } from './kit';
+import { clockSecondsText } from '../time';
 
 // one path set per key, drawn on a 24 grid with round strokes (same style as the other hs-i icons)
 const PATHS: Record<string, string[]> = {
@@ -27,10 +28,12 @@ export function todIcon(key: string): SVGSVGElement {
 
 const words = (day: number, key: string) => `Day ${day} · ${TIME_OF_DAY.name(key as never)}`;
 
-/** T1: the header's icon, coloured by time of day; the words are its tip and its label */
-export const todBadge = (day: number, key: string) =>
+/** T1: the header's icon, coloured by time of day; the words and the clock to the second are its tip and its label */
+export const todBadge = (day: number, key: string, at?: number) => {
+  const tip = at === undefined ? words(day, key) : `${words(day, key)} · ${clockSecondsText(at)}`;
   // its own tip, shown at once on hover or focus: the header is rebuilt often, which cancels the browser's slow title tip
-  h('span', { class: `tod tod-${key}`, 'data-tip': words(day, key), tabindex: '0', role: 'img', 'aria-label': words(day, key) }, todIcon(key));
+  return h('span', { class: `tod tod-${key}`, 'data-tip': tip, tabindex: '0', role: 'img', 'aria-label': tip }, todIcon(key));
+};
 
 /** T2: "11 hours later · Day 2 · Dawn" between story lines */
 export function timePassedRow(t: { minutes: number; day: number; timeOfDay: string }): HTMLElement {

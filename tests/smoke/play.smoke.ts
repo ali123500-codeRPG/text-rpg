@@ -45,7 +45,7 @@ beforeEach(async () => {
 const turn = async (text: string, n: number) => {
   await page.getByPlaceholder(/What do you do/).fill(text);
   await page.getByRole('button', { name: 'Send' }).click();
-  await page.getByText(new RegExp(`^Turn ${n} `)).waitFor();
+  await page.getByText(new RegExp(`^Turn ${n}\\b`)).waitFor();
 };
 const nav = (name: string) => page.locator('nav').getByText(name, { exact: true }).click();
 
@@ -110,7 +110,7 @@ describe('play page smoke (TQ7)', () => {
     await nav('Bugs');
     await page.getByPlaceholder(/What went wrong/).waitFor();
     await nav('Play');
-    await page.getByText(/^Turn 4 /).waitFor();
+    await page.getByText(/^Turn 4\b/).waitFor();
     const gap = await page.locator('.story').evaluate((s) => s.scrollHeight - s.scrollTop - s.clientHeight);
     expect(await page.locator('.story').evaluate((s) => s.scrollHeight > s.clientHeight)).toBe(true);
     expect(gap).toBeLessThan(40);
@@ -142,7 +142,7 @@ describe('play page smoke (TQ7)', () => {
     expect(await ans.allTextContents()).toEqual(['I hold my place and wait to see who appears', 'I go back inside']);
     await ans.first().click();
     expect(await page.locator('.inbar .hs-input').inputValue()).toBe('I hold my place and wait to see who appears');
-    expect(await page.getByText(/^Turn 1 /).count()).toBe(0); // nothing was sent
+    expect(await page.getByText(/^Turn 1\b/).count()).toBe(0); // nothing was sent
     expect(errors).toEqual([]);
   });
 
@@ -216,9 +216,9 @@ describe('play page smoke (TQ7)', () => {
     await turn('look around', 1);
     await page.getByRole('button', { name: 'Watch an agent play' }).click();
     await page.getByRole('button', { name: 'Agent’s' }).click();
-    await page.getByText(/^Turn 0 /).waitFor(); // the agent's new story opens
+    await page.getByText(/^Turn 0\b/).waitFor(); // the agent's new story opens
     await page.getByRole('button', { name: 'Player’s' }).click();
-    await page.getByText(/^Turn 1 /).waitFor(); // the player's story, as it was left
+    await page.getByText(/^Turn 1\b/).waitFor(); // the player's story, as it was left
     expect(await page.getByText('look around', { exact: true }).count()).toBeGreaterThan(0);
     expect(errors).toEqual([]);
   });

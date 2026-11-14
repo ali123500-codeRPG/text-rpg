@@ -10,7 +10,7 @@ import { arrive, bar as barMove, count, impact, later, measured, motionOn, ms, p
 import { skillName } from './creation';
 import { perkSeries } from './perks';
 import { getLibrary } from '../library';
-import { SCENARIO_ENDING_NAMES, type AchievementNote, type GameApi, type ScenarioEndNote, type ScenarioGains, type XpPart } from '../types';
+import { SCENARIO_ENDING_NAMES, SCENARIO_ENDING_OUTCOMES, type AchievementNote, type GameApi, type ScenarioEndNote, type ScenarioGains, type XpPart } from '../types';
 import { cap } from '../words';
 
 /** one way to write a number in the moment, counting or still, so a count never ends in a jump (XP can be fractional) */
@@ -65,6 +65,7 @@ export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
   return h('div', { class: 'gains-veil', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'gains-h', 'data-end': end?.as ?? '' },
     h('section', { class: 'gains' },
       end ? h('p', { class: 'pbreak end g-rule', 'data-end': end.as }, h('b', {}, cap(end.name))) : null,
+      end ? h('p', { class: 'g-outcome', 'data-end': end.as }, SCENARIO_ENDING_OUTCOMES[end.as]) : null,
       // SD1: the old scenario's closing line sits under its ending, so the panel is that scenario's last word
       end?.closing ? h('p', { class: 'g-closing' }, end.closing) : null,
       h('h2', { id: 'gains-h', class: 'g-title' }, 'What you gained'),
@@ -136,6 +137,7 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
     play(rule, [{ transform: 'scaleX(0)', transformOrigin: 'left' }, { transform: 'scaleX(1)', transformOrigin: 'left' }], { dur: scen, delay: t0, pseudo: '::after' });
   }
   impact(rule?.querySelector('b'), t0 + scen * 0.5); // the ending's word lands in its struck pose as the rules meet it
+  play(veil.querySelector('.g-outcome'), [{ opacity: 0 }, { opacity: 1 }], { dur: state, delay: t0 + scen * 0.5 }); // said as the word lands
   play(veil.querySelector('.g-closing'), [{ opacity: 0 }, { opacity: 1 }], { dur: state * 2, delay: t0 + scen * 0.3 });
   arrive(veil.querySelector('.g-title'), t0 + scen * 0.6, 6);
   let t = t0 + scen * 0.9 + hold; // anticipation: the title settles, a breath, then the first knot
@@ -228,7 +230,7 @@ export function gainsPage(api: GameApi): { el: HTMLElement; update: () => void }
       const d = h('details', { class: 'g-past', 'data-end': r.ending, ...(open.has(r.endTurn) ? { open: true } : {}) },
         h('summary', {}, h('b', { class: 'g-past-n' }, `Scenario ${r.number}`), h('span', { class: 'g-past-end' }, cap(SCENARIO_ENDING_NAMES[r.ending])),
           h('span', { class: 'hs-note' }, `Turn ${r.endTurn}`), h('span', { class: 'g-past-sum' }, gainsSummary(r))),
-        h('div', { class: 'g-past-body' }, r.closing ? h('p', { class: 'g-closing' }, r.closing) : null, gainsSpine(r, achNote)));
+        h('div', { class: 'g-past-body' }, h('p', { class: 'g-outcome' }, SCENARIO_ENDING_OUTCOMES[r.ending]), r.closing ? h('p', { class: 'g-closing' }, r.closing) : null, gainsSpine(r, achNote)));
       d.addEventListener('toggle', () => { if (d.open) open.add(r.endTurn); else open.delete(r.endTurn); });
       return d;
     });
