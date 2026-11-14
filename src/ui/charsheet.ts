@@ -7,9 +7,8 @@ import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp,
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
 import { hollowedMult, type SkillPart } from '../ruleset/perks';
-import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpFill, xpToNext } from '../engine/xp';
+import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
 import { essenceSlots } from '../engine/essence';
-import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
@@ -29,7 +28,7 @@ import { cap, r1, theName } from '../words';
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
 /** Set by a link from another page; the Character page opens that pop-up once on arrival (CP1: its big sections live in pop-ups) */
-export const charFocus: { open: 'essences' | 'perks' | null } = { open: null };
+export const charFocus: { open: 'essences' | 'perks' | 'classes' | null } = { open: null };
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const BAR_SCALE = CONFIG.SKILL_CAP; // display only: the bar fills at the mortal limit; true skill can pass it
@@ -92,7 +91,8 @@ const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2)))
 const steps = (boxes: HealthLevel[], level: HealthLevel, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
   boxes.map((l, i) => (l !== 'unhurt' && i % 2 === below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, HEALTH_LEVELS.name(l)) : null)));
 
-export function charCard(s: GameState, p: Actor): HTMLElement {
+/** `openClasses` opens the class tree (the class line is its button); without it the line is plain text */
+export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => void): HTMLElement {
   const { hp } = hpLeft(s, p);
   const level = shownLevel(healthLevel(p));
   const levels = SHOWN_LEVELS().map(([l]) => l);
@@ -112,7 +112,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       steps(boxes, level, 0),
       h('div', { class: 'cs-hp', title: `Health track: ${levels.map(HEALTH_LEVELS.name).join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: HEALTH_LEVELS.name(l), 'aria-label': HEALTH_LEVELS.name(l) }))),
       steps(boxes, level, 1)),
-    xpTrack(s, p),
+    xpTrack(s, p, openClasses),
     capstoneChoice(s, p),
     // the body figure beside the figures (CP5: a click opens each part in a pop-up); gear and personality are tiles under the page
     h('div', { class: 'cs-bodyrow' }, bodyButton(s, p),
@@ -154,30 +154,28 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
   ] });
 }
 
-/** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. A class at
- * its top level (classMaxLevel, by tier) can't be picked; while no class can take a level, XP banks and the picker asks for one. */
-function xpTrack(s: GameState, p: Actor): HTMLElement | null {
+/** X9/X15: one XP bar, and the class line: the current class, and where the next level goes when that is another class.
+ * The line opens the class tree, where the class for the next level is chosen. A class at its top level (classMaxLevel,
+ * by tier) takes no levels; while no class can take one, XP banks and the line asks for a class. */
+function xpTrack(s: GameState, p: Actor, openClasses?: (opener: HTMLElement) => void): HTMLElement | null {
   const pr = p.progression;
   if (!pr) return null;
   const lib = getLibrary();
   const need = xpToNext(p);
-  const open = p.core.classes.filter((c) => c.state === 'current' || c.state === 'unlocked');
-  const cur = open.find((c) => c.state === 'current');
+  const cur = p.core.classes.find((c) => c.state === 'current');
   const target = levelTarget(p);
-  const name = (id: string) => lib.classes[id] ? `${lib.classes[id].name} (${CLASS_TIERS.name(lib.classes[id].tier)})` : id;
-  const capped = (c: { classId: string; level: number }) => c.level >= classMaxLevel(c.classId);
-  const el: HTMLElement = h('div', { class: 'cs-track' },
+  const name = (id: string) => lib.classes[id]?.name ?? id;
+  const line = [cur ? `${name(cur.classId)} · ${CLASS_TIERS.name(lib.classes[cur.classId]?.tier ?? 'tier_0')}` : 'No class',
+    target && target.classId !== cur?.classId ? `next level to ${name(target.classId)}` : ''].filter(Boolean).join(' · ');
+  const cls: HTMLElement = openClasses
+    ? h('button', { type: 'button', class: 'cs-class', 'aria-haspopup': 'dialog', title: 'Open the class tree: how classes link, and where your next level goes',
+      onclick: () => openClasses(cls) }, h('span', { class: 'hs-label' }, 'Class'), h('b', {}, line), h('span', { class: 'cs-class-go', 'aria-hidden': 'true' }, '›'))
+    : h('div', { class: 'cs-row' }, h('span', {}, 'Class'), h('b', {}, line));
+  return h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${xpFill(p).pct}%` })),
-    !target ? h('small', {}, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level.`) : null,
-    open.length > 1 || !target
-      ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
-        h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; spendXp(s); el.replaceWith(xpTrack(s, p) ?? ''); } },
-          !target ? h('option', { value: '', selected: true, disabled: true }, 'Choose a class') : null,
-          open.map((c) => h('option', { value: c.classId, ...(capped(c) ? { disabled: true } : {}), ...(target && (pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) },
-            capped(c) ? `${name(c.classId)} (level ${c.level}, its top level)` : name(c.classId)))))
-      : null);
-  return el;
+    cls,
+    !target ? h('small', { class: 'cs-bank' }, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level in the class tree.`) : null);
 }
 
 /** 2.7 on the play sheet: the essences held by name, and any offer still waiting, both opening the Character page's Essences pop-up */

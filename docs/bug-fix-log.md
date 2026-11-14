@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-220
+
+**What was wrong:** Back (the browser's or the mouse's back button) went to another tab instead of closing the full-screen Perks pop-up: opening it added no step to the browser's history, so Back left the Character page.
+
+**What was done:** Ali approved the fix (BF48). Opening a full-screen pop-up adds one history step, so Back closes it and stays on the page; closing it with ✕ or Esc takes that step back off, so the next Back goes where it always did. Small pop-ups are unchanged. Browser test in tests/smoke/play.smoke.ts.
+
+**Fixed by:** [PR #796](https://github.com/ali123500-codeRPG/text-rpg/pull/796)
+
+## BG-219
+
+**What was wrong:** The small Gear pop-up on the Character page opened outside the screen. On screens 2400 px and wider the page is zoomed 1.3x, and pop-ups were placed from screen-pixel sizes used as page pixels, so they landed 1.3 times too far right and down. The perk card, the item tip, the distance tip, the rail tips and dragging pop-ups had the same mix-up.
+
+**What was done:** Ali approved the fix (BF47). New helpers in src/ui/kit.ts (viewSize, boxOf, pointOf) turn the window size, an element's box and the mouse position into page pixels; every floating panel uses them, and pop-ups are capped at the zoomed window's height. Below 2400 px nothing changes. Browser test at 2560x1440 in tests/smoke/play.smoke.ts.
+
+**Fixed by:** [PR #796](https://github.com/ali123500-codeRPG/text-rpg/pull/796)
+
 ## BG-218
 
 **What was wrong:** The Character card read "In the the Crooked Kettle": it always wrote "In the" before the place's name, though place names carry their own article or are proper names (it would have said "In the Thornbury"). The agent player's where-you-are line had the same gap ("Where you are: the the village square").

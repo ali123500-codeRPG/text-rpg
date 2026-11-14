@@ -117,6 +117,41 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('BG-219: on a 2400px+ screen (page zoomed 1.3x) the Gear pop-up opens inside the window', async () => {
+    const was = page.viewportSize();
+    await page.setViewportSize({ width: 2560, height: 1440 });
+    await nav('Character');
+    await page.locator('[data-tile="gear"]').click();
+    const pop = page.locator('.gear-pop');
+    await pop.waitFor();
+    const b = (await pop.boundingBox())!;
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.y).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.width).toBeLessThanOrEqual(2560);
+    expect(b.y + b.height).toBeLessThanOrEqual(1440);
+    await page.keyboard.press('Escape');
+    if (was) await page.setViewportSize(was);
+    expect(errors).toEqual([]);
+  });
+
+  it('BG-220: Back closes the full-screen Perks pop-up and stays on the Character page; closing it with ✕ leaves Back as it was', async () => {
+    await nav('Character');
+    const at = page.url();
+    await page.locator('[data-tile="perks"]').click();
+    await page.locator('.fpop').waitFor();
+    await page.goBack();
+    await page.locator('.fpop').waitFor({ state: 'detached' });
+    expect(page.url()).toBe(at);
+    await page.locator('[data-tile="perks"]').click();
+    await page.locator('.fpop').waitFor();
+    await page.locator('.fpop-x').click();
+    await page.locator('.fpop').waitFor({ state: 'detached' });
+    await page.waitForTimeout(100);
+    expect(page.url()).toBe(at);
+    expect(await page.evaluate(() => history.state?.fpop ?? null)).toBe(null);
+    expect(errors).toEqual([]);
+  });
+
   it('opens the Inventory with its Coin line and no summary boxes', async () => {
     await nav('Inventory');
     await page.getByText(/^Coin: /).waitFor();

@@ -209,7 +209,8 @@ const roman = (n: number): string => [[1000, 'M'], [900, 'CM'], [500, 'D'], [400
 export const BLESSING_TIERS = scale(Array.from({ length: BLESSING_TIER_ROWS }, (_, i) => [`tier_${i + 1}` as `tier_${number}`, `Tier ${roman(i + 1)}`] as const));
 export type BlessingTierKey = (typeof BLESSING_TIERS.keys)[number];
 /** a god's standing, weakest first. Minor gods are grand to the average person, but the minimum for the divine; the beings
- * above them, who govern wider concepts, are still to be built. Adding a standing means adding a row here */
+ * above them, who govern wider concepts, are still to be built. Game-side only: mortals call every god a god, so in-world
+ * text never says "minor". Adding a standing means adding a row here */
 export const GOD_RANKS = scale([['minor', 'Minor god']]);
 export type GodRankKey = (typeof GOD_RANKS.keys)[number];
 /** a skill tree's rating, weakest first: sets how many of its skills at a step earn its All-XXX (CONFIG.ALL_STEP_SKILLS) */

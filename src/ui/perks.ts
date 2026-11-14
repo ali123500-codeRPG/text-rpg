@@ -5,7 +5,7 @@
 import type { Actor, GameApi, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { MILESTONES, allStepsUpTo, canUndo, milestonesUpTo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
-import { h } from './kit';
+import { boxOf, h, pointOf, viewSize } from './kit';
 import { CONFIG } from '../config';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
@@ -193,19 +193,20 @@ export function perksSection(api: GameApi): HTMLElement {
   function place() {
     const c = el.querySelector<HTMLElement>('.pk-card');
     if (!c || !ui.sel) return;
-    const fit = (left: number, top: number) => ({ left: Math.max(8, Math.min(innerWidth - c.offsetWidth - 8, left)), top: Math.max(8, Math.min(innerHeight - c.offsetHeight - 8, top)) });
+    const v = viewSize();
+    const fit = (left: number, top: number) => ({ left: Math.max(8, Math.min(v.w - c.offsetWidth - 8, left)), top: Math.max(8, Math.min(v.h - c.offsetHeight - 8, top)) });
     let at = ui.pos ? fit(ui.pos.left, ui.pos.top) : null;
     if (!at) {
       const n = Array.from(el.querySelectorAll<HTMLElement>(`[data-k="${ui.sel.skill}:${ui.sel.milestone}"]`)).find((x) => x.offsetParent);
-      const r = n?.getBoundingClientRect();
-      at = r ? fit(r.right + 16 + c.offsetWidth > innerWidth ? r.left - c.offsetWidth - 16 : r.right + 16, r.top + r.height / 2 - c.offsetHeight / 2) : fit(innerWidth - c.offsetWidth - 32, 96);
+      const r = n ? boxOf(n) : undefined;
+      at = r ? fit(r.right + 16 + c.offsetWidth > v.w ? r.left - c.offsetWidth - 16 : r.right + 16, r.top + r.height / 2 - c.offsetHeight / 2) : fit(v.w - c.offsetWidth - 32, 96);
     }
     c.style.left = `${at.left}px`; c.style.top = `${at.top}px`;
     const head = c.querySelector<HTMLElement>('.pk-card-head');
     head?.addEventListener('pointerdown', (ev) => {
       if ((ev.target as Element).closest('button')) return;
-      const b = c.getBoundingClientRect(), dx = ev.clientX - b.left, dy = ev.clientY - b.top;
-      const move = (m: PointerEvent) => { ui.pos = fit(m.clientX - dx, m.clientY - dy); c.style.left = `${ui.pos.left}px`; c.style.top = `${ui.pos.top}px`; };
+      const b = boxOf(c), p0 = pointOf(ev), dx = p0.x - b.left, dy = p0.y - b.top;
+      const move = (m: PointerEvent) => { const p = pointOf(m); ui.pos = fit(p.x - dx, p.y - dy); c.style.left = `${ui.pos.left}px`; c.style.top = `${ui.pos.top}px`; };
       const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
       addEventListener('pointermove', move); addEventListener('pointerup', up);
     });

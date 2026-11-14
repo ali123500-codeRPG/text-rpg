@@ -18,10 +18,11 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { closePanel, groupedTable, playDraft, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
+import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
+import { classTreeView } from './classTree';
 import { archetypeOf, nerveLine, nerveTier, personalityOf } from '../ruleset/personality';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
@@ -114,19 +115,21 @@ export function characterPage(api: GameApi) {
     openPop({ title: 'Essences', tone: 'essence', cls: 'ess-pop ess-all', opener, body: essencesBody(api, s, () => { closePop(); again(); }) });
   };
   const openPerks = (opener?: HTMLElement | null) => { openFull({ label: 'Perks', cls: 'pk-full', opener, body: [perks] }); refreshPerks(); };
+  // the class tree, full screen from the card's class line; choosing a class there redraws the page under it
+  const openClasses = (opener?: HTMLElement | null) => { const s = api.state(); if (s) openFull({ label: 'Class tree', cls: 'ct-full', opener, body: [classTreeView(s, update)] }); };
   function update() {
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const p = s.player;
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats. Click a skill, the body or a tile for more.'))),
-      h('div', { class: 'cs-split' }, charCard(s, p), h('div', { class: 'cs-right' }, treeBars(p),
+      h('div', { class: 'cs-split' }, charCard(s, p, openClasses), h('div', { class: 'cs-right' }, treeBars(p),
         h('p', { class: 'hs-note cs-foot' }, `✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`))),
       charTiles(s, { essences: openEss, perks: openPerks, sign: (lines) => api.setSignatures(lines) }));
     if (fullOpen()?.contains(perks)) refreshPerks();
     const go = charFocus.open;
     charFocus.open = null;
-    if (go) setTimeout(() => (go === 'perks' ? openPerks(tileOf('perks')) : openEss(tileOf('essences'))));
+    if (go) setTimeout(() => (go === 'perks' ? openPerks(tileOf('perks')) : go === 'classes' ? openClasses(el.querySelector<HTMLElement>('.cs-class')) : openEss(tileOf('essences'))));
   }
   return { el, update };
 }
@@ -252,10 +255,10 @@ function showTip(s: GameState, it: InvItem, at: HTMLElement) {
   tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, d.name, it.qty))),
     h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])));
   tipEl.hidden = false;
-  const r = at.getBoundingClientRect(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
-  const left = r.right + 12 + w < innerWidth ? r.right + 12 : Math.max(12, r.left - 12 - w);
+  const r = boxOf(at), v = viewSize(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
+  const left = r.right + 12 + w < v.w ? r.right + 12 : Math.max(12, r.left - 12 - w);
   tipEl.style.left = `${left}px`;
-  tipEl.style.top = `${Math.max(12, Math.min(innerHeight - ht - 12, r.top))}px`;
+  tipEl.style.top = `${Math.max(12, Math.min(v.h - ht - 12, r.top))}px`;
 }
 const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
