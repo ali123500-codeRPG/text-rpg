@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF54). Crossing into a newly built zone puts the player a step inside the way they came in by (entryPoint in src/engine/position.ts), as walking into any zone does. Test tests/cases/s299-frontier-road-joins.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
 ## BG-225
 
@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF53). The frontier is joined to the new zone before the zones are placed, so it is laid touching the zone it leads from (also for the fallback zone when the Weaver fails). Zones already placed don't move, so roads in existing saves stay where they are. Test tests/cases/s299-frontier-road-joins.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
 ## BG-224
 
@@ -28,7 +28,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF52). The labels of the ways out of where the player stands are tappable too. Test in tests/cases/s298-turn43-checkin-road-clarify.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
 ## BG-223
 
@@ -36,7 +36,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF51). The check reads a length in words as its key, and "2 km" written as text as km; anything else is still refused. Test in tests/cases/s298-turn43-checkin-road-clarify.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
 ## BG-222
 
@@ -44,7 +44,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF50). Hold and deliver endings are checked with the same lookup as the rest of the game, which knows items made in play. The Weaver's world summary names items made in play too. Test in tests/cases/s298-turn43-checkin-road-clarify.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
 ## BG-221
 
@@ -52,7 +52,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF49). A speech beat aimed at the player that comes due mid-turn waits for the next turn's start, where the speaker's own call writes the words. Other beats still fire at once. Test tests/cases/s297-mid-turn-speech-beat-waits.test.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
 ## BG-220
 
