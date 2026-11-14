@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF48). Opening a full-screen pop-up adds one history step, so Back closes it and stays on the page; closing it with ✕ or Esc takes that step back off, so the next Back goes where it always did. Small pop-ups are unchanged. Browser test in tests/smoke/play.smoke.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #796](https://github.com/ali123500-codeRPG/text-rpg/pull/796)
 
 ## BG-219
 
@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the fix (BF47). New helpers in src/ui/kit.ts (viewSize, boxOf, pointOf) turn the window size, an element's box and the mouse position into page pixels; every floating panel uses them, and pop-ups are capped at the zoomed window's height. Below 2400 px nothing changes. Browser test at 2560x1440 in tests/smoke/play.smoke.ts.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #796](https://github.com/ali123500-codeRPG/text-rpg/pull/796)
 
 ## BG-218
 
