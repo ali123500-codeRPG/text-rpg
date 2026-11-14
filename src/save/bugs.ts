@@ -1,9 +1,11 @@
-// Bug reports for the build threads: every bug gets its own number (BG-1, BG-2, ...) and starts open, so each one is
-// tracked until a build thread marks it fixed. Threads take numbers for bugs they find from the same counter, so the
-// spec's bug log and the game never reuse a number. Numbers come from one counter document; filings in the same window
-// queue behind each other, so two at once never take the same number.
+// Bug reports for the build threads (BF45): the game files each report unnumbered, as a new report
+// (bugs/new-<time>, status new). Claude looks at the new reports and gives each real bug one number from the counter
+// (BG-1, BG-2, ...); repeats of one bug share that number, and a report that is not a bug gets none. Threads take numbers
+// for bugs they find from the same counter, so the spec's bug log never reuses a number. A numbered bug stays open until a
+// build thread marks it fixed. Filings in the same window queue behind each other, so two at once never take one id.
 import type { Store } from './index';
 
+/** the one BG counter: Claude numbers bugs from it at triage, threads for bugs they find (the game never does) */
 export const BUG_COUNTER = 'bugs_meta/counter';
 
 /** log codes that are bugs: a model output that broke a rule, a call that failed, or a fallback that replaced real
@@ -17,25 +19,27 @@ export const BUG_CODES = new Set([
 ]);
 export const isBugCode = (code: string): boolean => code.startsWith('invalid_') || BUG_CODES.has(code);
 export type BugReport = { code: string; storyId: string; turn: number; [k: string]: unknown };
-export type FiledBug = BugReport & { id: string; status: 'open' | 'fixed' | 'wont_fix'; at: number };
+export type FiledBug = BugReport & { id: string; status: 'new' | 'open' | 'fixed' | 'wont_fix'; at: number };
+/** BF45: a report the game filed that Claude has not numbered yet */
+export const isNewReport = (b: FiledBug): boolean => b.status === 'new';
 
 const queues = new WeakMap<Store, Promise<unknown>>();
 
-/** the open bugs, newest number first (the play page's bug list) */
+/** the new reports, newest first, then the open bugs, newest number first (the play page's bug list) */
 export async function openBugs(store: Store): Promise<FiledBug[]> {
   const docs = await Promise.all((await store.list('bugs')).map((p) => store.get<FiledBug>(p)));
   const num = (b: FiledBug) => Number(String(b.id).replace(/^BG-/, '')) || 0;
-  return docs.filter((b): b is FiledBug => !!b && b.status === 'open').sort((a, b) => num(b) - num(a));
+  const live = docs.filter((b): b is FiledBug => !!b && (b.status === 'open' || isNewReport(b)));
+  return [...live.filter(isNewReport).sort((a, b) => b.at - a.at), ...live.filter((b) => !isNewReport(b)).sort((a, b) => num(b) - num(a))];
 }
 
-/** files a bug as `bugs/BG-<n>` with status open; resolves to its id, or null when the store refused */
+/** files a report as `bugs/new-<time>` with status new and no number (BF45); resolves to its id, or null when the store
+ *  refused */
 export function fileBug(store: Store, now: number, bug: BugReport): Promise<string | null> {
   const run = async (): Promise<string | null> => {
-    const c = await store.get<{ next: number }>(BUG_COUNTER);
-    const n = Math.max(1, c?.next ?? 1);
-    await store.set(BUG_COUNTER, { next: n + 1 });
-    const id = `BG-${n}`;
-    const doc: FiledBug = { ...bug, id, status: 'open', at: now };
+    let id = `new-${now}`;
+    for (let k = 1; await store.get(`bugs/${id}`); k++) id = `new-${now}-${k}`;
+    const doc: FiledBug = { ...bug, id, status: 'new', at: now };
     await store.set(`bugs/${id}`, doc);
     return id;
   };

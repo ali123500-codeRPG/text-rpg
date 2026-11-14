@@ -92,12 +92,12 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  it('reports a bug: it is filed with a BG number and listed', async () => {
+  it('reports a bug: it is filed as a new report, numbered later by Claude (BF45), and listed', async () => {
     await nav('Bugs');
     await page.getByPlaceholder(/What went wrong/).fill('smoke test report');
     await page.getByRole('button', { name: 'Report bug' }).click();
     await page.getByRole('cell', { name: 'smoke test report' }).waitFor();
-    expect(await page.getByRole('row').filter({ hasText: 'smoke test report' }).getByText(/^BG-\d+$/).count()).toBe(1);
+    expect(await page.getByRole('row').filter({ hasText: 'smoke test report' }).getByText(/^New$/).count()).toBe(1);
     expect(errors).toEqual([]);
   });
 

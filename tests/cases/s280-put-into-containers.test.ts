@@ -9,8 +9,9 @@ import { intent, play } from './w4-kit';
 import { wholeTurn } from '../harness/turn';
 import { actorById, zoneById } from '../../src/engine/relations';
 import { IT } from '../../src/library/itemIds';
-import { checkParserLegality } from '../../src/agents/legality';
-import { buildPlayerView } from '../../src/views';
+import { checkNpcLegality, checkParserLegality } from '../../src/agents/legality';
+import { buildOppositionView, buildPlayerView } from '../../src/views';
+import type { NpcAction } from '../../src/types';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -93,4 +94,15 @@ it('whole turn: the Narrator hears what went in and sees what the sack holds', a
   const req = g.claude.callsFor('narrator').at(-1) as { input: { content: string }[] };
   expect(req.input[1].content).toContain('"into":"sack"');
   expect(req.input[1].content).toContain('holding dagger');
+});
+
+it('BG-192, 196, 198, 205: an NPC may name what is in its own sack, to give it or to take it out (Wren, story mwf2lt7l t23)', () => {
+  const s = village();
+  const wim = actorById(s, 'patron_1')!;
+  wim.core.inventory.push({ id: 'wim_sack', itemId: IT.sack, contents: [{ id: 'charm', itemId: IT.coin }] });
+  const out = { action: { type: 'give', target: 'player', item: 'charm', mode: null } as unknown as NpcAction, gear: [{ op: 'pick_up' as const, item: 'charm', from: 'patron_1' }], stance: null };
+  const r = checkNpcLegality(out, buildOppositionView(s, 'patron_1'), new Set(['player', 'patron_1', 'charm']), ['player']); // Wren knew Happi
+  expect(r).toEqual({ orderError: null, errors: [] });
+  expect(out.action.item).toBe('charm');
+  expect(out.gear).toHaveLength(1);
 });
