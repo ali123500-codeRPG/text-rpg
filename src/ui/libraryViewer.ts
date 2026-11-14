@@ -40,6 +40,10 @@ import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { classMaxLevel } from '../library/spawn';
 import { cap } from '../words';
+/** D-276: an augment's share as the viewer shows it: ×share, or a percentage augment's rate of the receiving skill */
+const augmentShareText = (a: { share?: number; kind?: string }): string => a.kind === 'percent'
+  ? ` +${Math.round((a.share ?? CONFIG.AUGMENT_PERCENT_RATE) * 100)}% of its own skill per 100`
+  : ` ×${a.share ?? (a.kind === 'trade' ? CONFIG.AUGMENT_TRADE_SHARE : 1)}`;
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -635,8 +639,8 @@ function skills(): HTMLElement[] {
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Group', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : []),
-          ...(s.augments ?? []).map((a) => h('div', { class: 'lv-bits' }, 'augments ', link('skills', a.skill, skillName(a.skill)), ` ×${a.share ?? 1}`, a.rollKinds?.length ? ` (${a.rollKinds.join(', ')} rolls)` : '')),
-          ...Object.values(lib.skills).flatMap((o) => (o.augments ?? []).filter((a) => a.skill === s.id).map((a) => h('div', { class: 'lv-bits' }, 'augmented by ', link('skills', o.id, skillName(o.id)), ` ×${a.share ?? 1}`, a.rollKinds?.length ? ` (${a.rollKinds.join(', ')} rolls)` : '')))), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneFor('Function', functionName(f))))) : '—'),
+          ...(s.augments ?? []).map((a) => h('div', { class: 'lv-bits' }, a.kind === 'trade' ? 'trades into ' : 'augments ', link('skills', a.skill, skillName(a.skill)), augmentShareText(a), a.rollKinds?.length ? ` (${a.rollKinds.join(', ')} rolls)` : '')),
+          ...Object.values(lib.skills).flatMap((o) => (o.augments ?? []).filter((a) => a.skill === s.id).map((a) => h('div', { class: 'lv-bits' }, a.kind === 'trade' ? 'traded into by ' : 'augmented by ', link('skills', o.id, skillName(o.id)), augmentShareText(a), a.rollKinds?.length ? ` (${a.rollKinds.join(', ')} rolls)` : '')))), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneFor('Function', functionName(f))))) : '—'),
         h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.map((r) => lib.roles[r as keyof typeof lib.roles]?.name ?? r).join(', ') || '—'),
         h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, groupsOf(s)[0] ? chip(`${GROUP_NAMES[groupsOf(s)[0]]} · ${XP_FACTORS.name(CONFIG.XP_GROUP_FACTOR[groupsOf(s)[0]] as XpFactorKey ?? 'none')} ×${xpGroupFactor(groupsOf(s)[0])}`, toneFor('Group', GROUP_NAMES[groupsOf(s)[0]])) : '—'), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)

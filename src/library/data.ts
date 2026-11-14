@@ -187,6 +187,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Always on (quirk)', trigger: 'Anyone outside the owner\'s band sees the owner for the first time.', conditions: ['Once per person, for good.', 'The owner\'s bandmates are never affected.'],
       effect: 'They pay the fear "You set eyes on someone dreaded" (15 morale, scaled by their morale roll), in a fight or out of one. From then on their stance toward the owner reads one step colder than their band\'s (neutral becomes unfriendly, opposed becomes hostile), until play gives them a stance of their own toward the owner. The player holds no stances, so a player who sees the owner only pays the fear.', lasts: 'The colder stance lasts until that person\'s own stance toward the owner is set.' },
   },
+  // the first essence trait (Tavern Brawler), and the first trade augment (D-276); a placeholder until the D-229 content round
+  [PK.fists_do_the_talking]: {
+    id: PK.fists_do_the_talking, name: 'Fists Do the Talking', built: true, augments: [{ from: SK.unarmed_strike, skill: SK.intimidation, kind: 'trade' }],
+    story: 'Someone\'s brawls taught your fists to speak for you. Half your Strike now stands behind every threat you make, and your punches give that much up to do it.',
+    rules: { kind: 'Always on (trait of the Tavern Brawler essence)', trigger: 'The owner makes an Intimidation roll, or a Strike roll.', conditions: ['The owner holds a Tavern Brawler essence.', 'The Unarmed tree is open to the owner.'],
+      effect: 'Strike trades into Intimidation: every Intimidation roll adds the owner\'s true Strike × 0.5 (CONFIG.AUGMENT_TRADE_SHARE, placeholder) × its tier, and every Strike roll loses the same amount. Strike learns from the Intimidation rolls the way an augment does.', lasts: 'While a Tavern Brawler essence is held.' },
+  },
   [PK.quick_study]: {
     id: PK.quick_study, name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
@@ -599,7 +606,7 @@ export function prototypeLibrary(): Library {
       // EN6: placeholder rows so the barkeep and the tavern patron each carry one
       [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'A haggler\'s ear has knotted into yours. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
-      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
+      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
         story: 'Someone\'s long nights of tavern brawls have tied into your own. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
       [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
         story: 'What you did again and again here has pulled tight and held. Something in you will remember it.' },
