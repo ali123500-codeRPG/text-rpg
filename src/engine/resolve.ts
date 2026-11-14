@@ -38,7 +38,7 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, freeGrips, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -55,7 +55,7 @@ import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName, r1 } from '../words';
 import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, speechSkill as speechSkillOf } from './speech';
-import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
+import { bested, growthWaits, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { cantExtract, extractEssence } from './extract';
@@ -1490,6 +1490,7 @@ function doFilch(ctx: Ctx, a: Actor, o: Order): void {
     return emitFilch(ctx, a, o, owner, inst, f);
   }
   const before = inst.qty;
+  if (f && a === state.player && owner && owner !== a && wary(state, owner, a)) bested(state, owner); // BS1 d: an uncaught filch from someone hostile or opposed
   const got = takeFilched(state, a, list, inst, watched ? owner?.id : undefined);
   if (!f) return emit(ctx, bark(mk(ctx, a, 'filch', { ...(owner ? { target: owner.id } : {}), itemId: got.id, ...(got.qty ? { qty: got.qty } : {}), filch: 'taken' }), o));
   emitFilch(ctx, a, o, owner, got, f, before !== undefined ? got.qty : undefined);
