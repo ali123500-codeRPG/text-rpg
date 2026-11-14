@@ -347,7 +347,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         if (c.talent !== undefined && !talent) err('bad_talent', `cast ${k}: talent is ${TALENTS.list()}`, k);
         const stage = LIFE_STAGES.keyOf(c.age), floor = presetAgeFloor(tpl, presetTalent(tpl, talent));
         if (stage && floor !== undefined && !stageReaches(tpl.raceId, stage, floor))
-          err('bad_age', floor <= youngestAge(tpl.raceId)! ? `cast ${k}: there are no children; everyone is ${LIFE_STAGES.name(CONFIG.YOUNGEST_STAGE)} or older`
+          err('bad_age', !stageReaches(tpl.raceId, stage, youngestAge(tpl.raceId)!) ? `cast ${k}: there are no children; everyone is ${LIFE_STAGES.name(CONFIG.YOUNGEST_STAGE)} or older`
             : `cast ${k}: a ${rankName(templateRank(tpl)!, tpl.themeId)} ${talentName(presetTalent(tpl, talent))} ${race(tpl.raceId).name} is at least ${Math.ceil(floor)} years old, past ${LIFE_STAGES.name(stage)}; name an older stage or a faster talent`, k);
       }
     }

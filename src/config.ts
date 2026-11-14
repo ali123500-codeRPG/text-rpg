@@ -422,7 +422,7 @@ const DEFAULTS = {
   AGE_DECLINE_FROM: 'stage_4' as import('./scales').LifeStageKey, // AG17: decline starts at the start of Old
   AGE_DECLINE_GROUPS: [GR.melee, GR.ranged, GR.defense, GR.health, GR.stealth, GR.sleight, GR.notice] as string[], // AG19: body skills and the senses (Sleight: FL1, fingers)
   CREATION_AGE_DEFAULT: 20, // AG15: the creation picker's default (a start may set its own, ClassDef.creation.age)
-  YOUNGEST_STAGE: 'stage_2' as import('./scales').LifeStageKey, // no children: no one in the game, player or NPC, is younger than this stage's start (Adult)
+  YOUNGEST_STAGE: 'stage_1' as import('./scales').LifeStageKey, // no children: no one in the game, player or NPC, is younger than this stage's start (Youth)
   NPC_AGE_STAGES: ['stage_2', 'stage_3'] as import('./scales').LifeStageKey[], // AG13: the stages an NPC is drawn from when its template names none
   /** AG23: each talent row's multiplier on a rank's training years; past the last row each step multiplies by TALENT_BEYOND_MULT */
   TALENT_MULT: { talent_0: 3, talent_1: 2, talent_2: 1, talent_3: 0.75, talent_4: 0.5 } as Record<string, number>,

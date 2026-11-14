@@ -238,8 +238,8 @@ Public text (names, labels, appearances, knows) is at most ${CONFIG.TEXT_CAP} ch
 trigger = {"id","ownerId":actor id,"when":{"type":"quiet_turns","turns":number}|{"type":"player_seen_in_zone","zone"}|{"type":"turn_reached","turn":number}|{"type":"actor_down","actorId"}|{"type":"alarm_heard"},"then":{"type":orderType,"target":id|"$player"|null,"skill":string|null,"intent"},"once"?:boolean (default true)}
 orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
 
-/** no children: every agent's world holds adults only */
-const NO_CHILDREN = 'There are no children or teenagers in this world: every person is an adult. Never cast, describe or mention a child.';
+/** no children: every agent's world holds no one younger than a Youth */
+const NO_CHILDREN = 'There are no children in this world: everyone is a teenager or older. Never cast, describe or mention a child.';
 const fixed = (instr: string, shape: string) => `${instr}\n\n${NO_CHILDREN}\n\nSCHEMA:\n${shape}`;
 /** the whole fixed (leading) user turn per agent */
 export const FIXED = {

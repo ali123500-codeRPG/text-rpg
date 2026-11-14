@@ -2,8 +2,8 @@
 import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place } from '../types';
 import { resolveAlias } from '../library';
 import type { Pages } from './pages';
-import { COVER, LIFE_STAGES, LIGHT, TACTICS, TIERS } from '../scales';
-import { ageYears, bornDayFor, lifeStage, youngestAge } from '../ruleset/age';
+import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
+import { ageYears, bornDayFor, youngestAge } from '../ruleset/age';
 import { tierAt } from '../ruleset';
 import { skillCap } from '../ruleset/skillCap';
 import { gripSlot, gripsOf } from '../ruleset/slots';
@@ -257,14 +257,14 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
   }
 }
 
-/** No children: an NPC still a child leaves the world (the links to it are dropped below); anyone else under their race's
- * youngest age (a player or NPC made before the rule) is aged up to it */
+/** No children: an NPC under its race's youngest age leaves the world (the links to it are dropped below); a player made
+ * before the rule is aged up to it */
 function dropChildren(pages: Pages, r: CheckReport): void {
   const clock = { clocks: (pages.engine as EnginePage | undefined)?.clocks ?? {} } as GameState;
   for (const k of actorKeys(pages)) {
     const a = pages[k] as Actor, years = ageYears(clock, a), min = youngestAge(a.core.raceId);
     if (years === undefined || min === undefined || years >= min) continue;
-    if (a.kind === 'npc' && lifeStage(a.core.raceId, years)?.key === LIFE_STAGES.at(0)) { delete pages[k]; r.repairs.push(`reference: dropped child ${a.id}`); continue; }
+    if (a.kind === 'npc') { delete pages[k]; r.repairs.push(`reference: dropped child ${a.id}`); continue; }
     a.core.bornDay = Math.floor(bornDayFor(clock, min));
     r.repairs.push(`reference: ${a.id} aged up to ${min}`); r.changed.add(k);
   }

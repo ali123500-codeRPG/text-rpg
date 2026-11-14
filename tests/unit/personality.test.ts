@@ -89,7 +89,7 @@ describe('personality', () => {
     a.core.classes = []; a.core.perks = [];
     a.core.personality = { nerve: -40, traits: { [PA.honesty]: -30, [PA.pride]: -20, [PA.temper]: -40, [PA.sociability]: -20, [PA.discipline]: 60, [PA.curiosity]: 70, [PA.levity]: -20 }, values: [VL.knowledge, VL.loyalty] };
     a.core.skills = { [SK.resolve]: { raw: 20, state: 'normal' }, [SK.melee_medium]: { raw: 50, state: 'normal' } };
-    a.core.bornDay = bornDayFor(s, 20); // no children: Aldo is an adult
+    a.core.bornDay = bornDayFor(s, 20); // no children: Aldo is grown
     expect(personalityText(s, a, 'Calm')).toBe('Nerve: Timid (keeps out of danger when they can; Calm right now). Mature at heart (thinks before acting, keeps a cool head, owns their mistakes), but very curious (wants to know how things work, asks and pokes) and a bit deceitful (bends the truth when it suits them). Drives: knowledge first (studies, practises and seeks out learning), then loyalty (stands by their friends and their own). Tensions: wary but dangerous (avoids danger, yet hits hard when pushed); good ends, crooked means (bends the truth to help the people they care about).');
   });
   it('a rolled NPC gets its template\'s signatures after Nerve and its title with its name; a copy gets neither', () => {
