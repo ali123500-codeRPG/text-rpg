@@ -32,6 +32,8 @@ const NARROW_W = 640, NARROW_MIN_K = 0.75;
 /** TV7: how far along a road you are, e.g. "1.8 km from the west end of 4.5 km" */
 export const alongText = (a: NonNullable<MapZone['along']>) => `${distText(a.m)} from the ${a.from} end of ${distText(a.len)}`;
 export const floorName = (m: number) => (m === 0 ? 'Ground level' : `${Math.abs(m)} m ${m > 0 ? 'up' : 'down'}`);
+/** the heights a map has, lowest first: the height slider's stops */
+export const mapHeights = (zones: { height: number }[]): number[] => [...new Set(zones.map((z) => z.height))].sort((a, b) => a - b);
 const mode = (xs: number[]) => { const c = new Map<number, number>(); for (const x of xs) c.set(x, (c.get(x) ?? 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0][0]; };
 /** the `world` key of the World view (every top-level place as one tile) */
 const WORLD = '*world*';
@@ -153,10 +155,11 @@ export function mapPage(api: GameApi) {
   /** FR5: the key shows the furniture mark once the plan draws some */
   const anyFurniture = () => planned() && !!cur?.places.some((p) => p.zones.some((z) => z.furniture?.length));
   const floors = new Map<string, number>(); // per world: the height shown
-  // To scale (CO1): each zone as its own rectangle in metres, sides drawn by edge kind, in place of the exit tiles
-  let plan = false;
+  // To scale (CO1, CO9): each zone, and in World each place, as its own rectangle at its real position in metres, so
+  // neighbours touch along x and y; the default whenever code has placed every zone. ▦ switches to the exit diagram.
+  let plan = true;
   const plannedLast = new Set<string>(); // worlds whose spots are the to-scale ones
-  const planned = () => plan && world !== WORLD && worldZones().length > 0 && worldZones().every((z) => z.rect);
+  const planned = () => plan && worldZones().length > 0 && worldZones().every((z) => z.rect);
   const tw = (z: MapZone) => (planned() && z.rect ? z.rect.w * PX_PER_M : tileW(z));
   const th = (z: MapZone) => (planned() && z.rect ? z.rect.d * PX_PER_M : tileH(z));
 
@@ -169,7 +172,11 @@ export function mapPage(api: GameApi) {
   // to scale, your pin sits on its own layer at a fixed size, so it stays visible however far out a long road zooms (TV7)
   const youLayer = s('g', { class: 'map-you' }) as SVGGElement;
   let youAt: (Pt & { title: string }) | null = null;
-  svg.append(defs, vp, youLayer);
+  // to scale, the World's place names sit on their own layer at a fixed size, at each place's north-west corner, so they
+  // stay readable when kilometres of road zoom the map far out
+  const nameLayer = s('g', { class: 'map-world-names' }) as SVGGElement;
+  let worldNames: { x: number; y: number; name: string; sub: string; here: boolean }[] = [];
+  svg.append(defs, vp, nameLayer, youLayer);
   const stage = h('div', { class: 'map-stage' });
   const side = h('aside', { class: 'map-side', 'aria-label': 'Map details' });
   const crumbs = h('nav', { class: 'map-crumbs', 'aria-label': 'Place' });
@@ -179,7 +186,7 @@ export function mapPage(api: GameApi) {
   const tools = h('div', { class: 'map-tools' },
     zoomBtn('+', 'Zoom in', () => zoomBy(1.25)), zoomBtn('−', 'Zoom out', () => zoomBy(0.8)),
     zoomBtn('◎', 'Find me', () => findMe()), zoomBtn('⤢', 'Show the whole map', () => fit(world)));
-  const planBtn = h('button', { type: 'button', class: 'map-btn map-plan-btn', title: 'Draw to scale', 'aria-label': 'Draw to scale', 'aria-pressed': 'false',
+  const planBtn = h('button', { type: 'button', class: 'map-btn map-plan-btn', title: 'Draw to scale (off: the exit diagram)', 'aria-label': 'Draw to scale', 'aria-pressed': 'true',
     onclick: () => { plan = !plan; planBtn.setAttribute('aria-pressed', String(plan)); draw(); requestAnimationFrame(() => fit(focus || world)); } }, '▦');
   tools.append(planBtn);
   const floorBar = h('nav', { class: 'map-floors', 'aria-label': 'Floor' });
@@ -198,16 +205,21 @@ export function mapPage(api: GameApi) {
 
   // ---------- pan and zoom
   const view = () => views.get(world) ?? { x: 0, y: 0, k: 1 };
+  /** how far out the map zooms: to scale the World can span kilometres, so it may zoom much further out */
+  const minK = () => (planned() && world === WORLD ? 0.005 : 0.2);
   const apply = () => {
     const v = view();
     vp.setAttribute('transform', `translate(${v.x} ${v.y}) scale(${v.k})`);
+    nameLayer.replaceChildren(...worldNames.map((n) => s('g', { class: `map-world-name${n.here ? ' here' : ''}` },
+      s('text', { x: v.x + n.x * v.k + 8, y: v.y + n.y * v.k + 18, class: 'map-tile-name' }, n.name),
+      s('text', { x: v.x + n.x * v.k + 8, y: v.y + n.y * v.k + 34, class: 'map-tile-sub' }, n.sub))));
     youLayer.replaceChildren(...(youAt ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title)] : []));
   };
   const setView = (v: { x: number; y: number; k: number }) => { views.set(world, v); apply(); };
   function zoomBy(f: number, at?: Pt) {
     const v = view(), r = svg.getBoundingClientRect();
     const c = at ?? { x: r.width / 2, y: r.height / 2 };
-    const k = Math.max(0.2, Math.min(2.5, v.k * f));
+    const k = Math.max(minK(), Math.min(2.5, v.k * f));
     setView({ k, x: c.x - (c.x - v.x) * (k / v.k), y: c.y - (c.y - v.y) * (k / v.k) });
   }
   /** the box around a place's zones (and the places inside it), stubs included */
@@ -223,7 +235,7 @@ export function mapPage(api: GameApi) {
     const b = bounds(placeId), r = svg.getBoundingClientRect();
     if (!b || !r.width) return;
     const top = 60, pad = 24; // the crumbs sit over the top edge
-    const k = Math.max(0.2, Math.min(1.1, Math.min((r.width - 2 * pad) / (b.x1 - b.x0), (r.height - top - 70) / (b.y1 - b.y0))));
+    const k = Math.max(minK(), Math.min(1.1, Math.min((r.width - 2 * pad) / (b.x1 - b.x0), (r.height - top - 70) / (b.y1 - b.y0))));
     // a narrow screen keeps tiles readable: a floor on the scale, centred on you when you are in this place
     const me = cur ? spots.get(world)?.get(cur.zoneId) : undefined;
     if (k < NARROW_MIN_K && r.width < NARROW_W) {
@@ -275,10 +287,10 @@ export function mapPage(api: GameApi) {
   /** an inner place's outline: its known zones' tiles plus a margin that grows for outer places, and a strip on top for its name */
   function areaBox(p: { depth: number }, zs: MapZone[], sp: Map<string, Pt>, maxDepth: number): Box | null {
     if (!zs.length) return null;
-    const pad = 30 + (maxDepth - p.depth) * 18;
+    const pad = planned() ? 0 : 30 + (maxDepth - p.depth) * 18;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const z of zs) { const c = sp.get(z.id); if (!c) continue; x0 = Math.min(x0, c.x - tw(z) / 2); x1 = Math.max(x1, c.x + tw(z) / 2); y0 = Math.min(y0, c.y - th(z) / 2); y1 = Math.max(y1, c.y + th(z) / 2); }
-    return x0 === Infinity ? null : { x0: x0 - pad, y0: y0 - pad - 22, x1: x1 + pad, y1: y1 + pad };
+    return x0 === Infinity ? null : { x0: x0 - pad, y0: y0 - pad - (planned() ? 0 : 22), x1: x1 + pad, y1: y1 + pad };
   }
   /** the free layout knows zones, not places, so two places' outlines (or a place and a loose zone) can overlap. Push
    *  apart every pair of groups that overlap: each top place below the map's root with its zones, and each zone that
@@ -329,9 +341,11 @@ export function mapPage(api: GameApi) {
       const b = areaBox(p, zs, sp, maxDepth);
       if (!b) continue;
       const on = p.id === focus, mine = inside(cur!.placeId, p.id);
-      areas.append(s('g', { class: `map-area${on ? ' on' : ''}${mine ? ' mine' : ''}`, 'data-area': p.id, tabindex: 0, role: 'button', 'aria-label': `${p.name}, ${zs.length} zones known` },
-        s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, rx: 18 }),
-        s('text', { x: b.x0 + 16, y: b.y0 + 20, class: 'map-area-name' }, p.name)));
+      // to scale the outline is the place's real extent: square corners, its name on a tab above its north side
+      const real = planned();
+      areas.append(s('g', { class: `map-area${on ? ' on' : ''}${mine ? ' mine' : ''}${real ? ' real' : ''}`, 'data-area': p.id, tabindex: 0, role: 'button', 'aria-label': `${p.name}, ${zs.length} zones known` },
+        s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, rx: real ? 0 : 18 }),
+        s('text', { x: b.x0 + (real ? 4 : 16), y: real ? b.y0 - 8 : b.y0 + 20, class: 'map-area-name' }, p.name)));
     }
     const done = new Set<string>();
     const stairs: { z: MapZone; l: MapZone['links'][number]; up: boolean; other?: MapZone }[] = [];
@@ -346,7 +360,7 @@ export function mapPage(api: GameApi) {
           const key = [z.id, l.to].sort().join('>');
           if (done.has(key)) return;
           done.add(key);
-          if (planned()) return; // to scale, neighbours touch: their shared wall is the exit
+          if (planned() && world !== WORLD) return; // to scale, neighbouring zones touch: their shared wall is the exit
           const b = sp.get(l.to)!;
           const p1 = edgeOf(a, tw(z), th(z), b), p2 = edgeOf(b, tw(to), th(to), a);
           const road = world === WORLD;
@@ -435,9 +449,11 @@ export function mapPage(api: GameApi) {
   function scaleBar(zs: MapZone[], sp: Map<string, Pt>) {
     let x0 = Infinity, y1 = -Infinity;
     for (const z of zs) { const c = sp.get(z.id)!; x0 = Math.min(x0, c.x - tw(z) / 2); y1 = Math.max(y1, c.y + th(z) / 2); }
-    const len = 10 * PX_PER_M, y = y1 + 28;
+    // the bar's length suits the map: 10 m for a place, and in the World a tenth of its width rounded to 10 m, 100 m or 1 km
+    const span = Math.max(...zs.map((z) => (z.rect?.w ?? 0))), m = world === WORLD ? [1000, 100, 10].find((x) => x <= span / 5) ?? 10 : 10;
+    const len = m * PX_PER_M, y = y1 + 28;
     return s('g', { class: 'map-scale' }, s('line', { x1: x0, y1: y, x2: x0 + len, y2: y }), s('line', { x1: x0, y1: y - 5, x2: x0, y2: y + 5 }), s('line', { x1: x0 + len, y1: y - 5, x2: x0 + len, y2: y + 5 }),
-      s('text', { x: x0 + len + 8, y: y + 4 }, `10 m · ${Math.round(10 / CONFIG.PACE_M)} paces`));
+      s('text', { x: x0 + len + 8, y: y + 4 }, `${distText(m)} · ${Math.round(m / CONFIG.PACE_M)} paces`));
   }
   function pill(x: number, y: number, text: string, tone = '', lean = 0) {
     const w = text.length * 6.6 + 18;
@@ -452,12 +468,13 @@ export function mapPage(api: GameApi) {
     return s('g', { class: `map-way ${shut}${w.key ? ' key' : ''}`, role: 'img', 'aria-label': said }, s('circle', { cx: x, cy: y, r: 10 }), ...wayGlyph(x, y, shut), s('title', {}, said));
   }
   function tile(z: MapZone, p: Pt, sub?: string) {
-    if (planned() && z.rect) return planTile(z, p);
+    if (planned() && z.rect && world !== WORLD) return planTile(z, p);
+    if (planned() && z.rect) return worldPlanTile(z, p, sub ?? '');
     const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
     const cls = ['map-tile', world === WORLD ? 'world-place' : '', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
     const status = sub && !z.along ? sub : z.along ? `${distText(z.along.m)} of ${distText(z.along.len)}` : z.here ? 'You are here' : z.id === walk?.toZone ? `Heading here${Number.isFinite(walk.metres) ? ' · ' + distText(walk.metres) : ''}` : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
     const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${status}` },
-      s('rect', { x, y, width: w, height: hh, rx: 10, class: 'map-tile-box' }),
+      s('rect', { x, y, width: w, height: hh, rx: planned() ? 0 : 10, class: 'map-tile-box' }),
       s('text', { x: p.x, y: y + 24, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
       s('text', { x: p.x, y: y + 42, 'text-anchor': 'middle', class: 'map-tile-sub' }, status));
     if (z.along) g.append(roadTrack(z.along, x, y + hh - 18, w)); // TV7: you, at your point along the road
@@ -474,6 +491,14 @@ export function mapPage(api: GameApi) {
     }
     if (z.here && !z.along) g.append(pin(x + w - 2, y + 2));
     return g;
+  }
+  /** CO9, World to scale: a place as its real extent; its name goes on the fixed-size name layer */
+  function worldPlanTile(z: MapZone, p: Pt, sub: string) {
+    const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
+    const cls = ['map-tile', 'world-place', 'plan', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : ''].filter(Boolean).join(' ');
+    worldNames.push({ x, y, name: z.name, sub, here: z.here });
+    return s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${sub}, about ${distText(z.rect!.w)} by ${distText(z.rect!.d)}` },
+      s('rect', { x, y, width: w, height: hh, class: 'map-tile-box' }), s('title', {}, `${z.name}: about ${distText(z.rect!.w)} × ${distText(z.rect!.d)}`));
   }
   /** the "you are here" pin */
   function pin(cx: number, cy: number, title?: string) {
@@ -558,14 +583,19 @@ export function mapPage(api: GameApi) {
     if (w !== world) { world = w; draw(); requestAnimationFrame(() => fit(w)); } else { draw(); centre(zoneId); }
   }
   function setFloorOf(zoneId: string) { const z = allZones().find((x) => x.id === zoneId); if (z) floors.set(rootOf(z.placeId), z.height); }
-  /** the floor buttons: one per height this map has, highest first; hidden when it has one */
+  /** the height slider: one stop per height this map has, lowest at the bottom; hidden when it has one */
   function drawFloors() {
-    const hs = world === WORLD ? [] : [...new Set(worldZones().map((z) => z.height))].sort((a, b) => b - a);
+    const hs = mapHeights(world === WORLD ? [] : worldZones());
     floorBar.hidden = hs.length < 2;
-    const mineH = cur ? allZones().find((z) => z.id === cur!.zoneId)?.height : undefined;
-    floorBar.replaceChildren(...hs.map((x) => h('button', { type: 'button', class: 'map-floor' + (x === floor() ? ' on' : ''), 'aria-pressed': x === floor() ? 'true' : 'false',
-      title: `Show ${floorName(x).toLowerCase()}`, onclick: () => { floors.set(world, x); draw(); requestAnimationFrame(() => fit(focus)); } },
-      floorName(x), worldZones().some((z) => z.here && z.height === x) && mineH === x ? h('span', { class: 'you' }, ' · you') : '')));
+    if (hs.length < 2) { floorBar.replaceChildren(); return; }
+    const mineH = cur ? worldZones().find((z) => z.id === cur!.zoneId)?.height : undefined;
+    const at = Math.max(0, hs.indexOf(floor()));
+    const said = (x: number) => `${floorName(x)}${x === mineH ? ' · you' : ''}`;
+    const out = h('output', { class: 'map-floor-now' }, floorName(hs[at]), hs[at] === mineH ? h('span', { class: 'you' }, ' · you') : '');
+    const range = h('input', { type: 'range', class: 'map-floor-range', min: '0', max: String(hs.length - 1), step: '1', value: String(at), 'aria-label': 'Height shown',
+      'aria-valuetext': said(hs[at]), oninput: (e: Event) => { floors.set(world, hs[+(e.target as HTMLInputElement).value]); draw(); } }) as HTMLInputElement;
+    floorBar.replaceChildren(h('span', { class: 'hs-label' }, 'Height'),
+      h('div', { class: 'map-floor-track' }, range, h('div', { class: 'map-floor-stops', 'aria-hidden': 'true' }, ...hs.map((x, i) => h('span', { class: i === at ? 'on' : '' }, floorName(x))).reverse())), out);
   }
   function showWorld() {
     world = WORLD; selected = ''; draw();
@@ -589,6 +619,8 @@ export function mapPage(api: GameApi) {
   function draw() {
     if (!cur) return;
     youAt = null; // set again when a to-scale tile draws you at your own point
+    worldNames = []; // set again when the World draws to scale
+    nameLayer.replaceChildren();
     tilesOfWorld = worldTiles(cur);
     if (world !== WORLD && !placeOf(world)) world = rootOf(cur.placeId);
     if (!placeOf(focus)) focus = cur.placeId;

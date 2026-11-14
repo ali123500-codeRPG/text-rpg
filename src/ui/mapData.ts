@@ -116,6 +116,15 @@ export function rootPlace(m: KnownMap, id: string): string {
   return p?.id ?? id;
 }
 
+/** CO9: a place's real extent, the box around its known zones' rectangles (every floor), in metres; none when code has not
+ *  placed all of them */
+export function extentOf(zones: MapZone[]): import('../types').Rect | undefined {
+  if (!zones.length || !zones.every((z) => z.rect)) return undefined;
+  const x0 = Math.min(...zones.map((z) => z.rect!.x - z.rect!.w / 2)), x1 = Math.max(...zones.map((z) => z.rect!.x + z.rect!.w / 2));
+  const y0 = Math.min(...zones.map((z) => z.rect!.y - z.rect!.d / 2)), y1 = Math.max(...zones.map((z) => z.rect!.y + z.rect!.d / 2));
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, d: y1 - y0 };
+}
+
 /** the World view: one tile per top-level place you know (a village, a field, a road), joined by the roads you know between
  *  them. Each tile is a MapZone whose id is the place's id, so the map's layout and drawing serve both views. */
 export function worldTiles(m: KnownMap): MapZone[] {
@@ -132,7 +141,8 @@ export function worldTiles(m: KnownMap): MapZone[] {
     }
     const n = zones.length;
     const along = zones.find((z) => z.along)?.along;
+    const rect = extentOf(zones);
     return { id: r.id, placeId: r.id, name: r.name, look: n ? `${n} zone${n === 1 ? '' : 's'} known` : 'no zones known', outdoor: true,
-      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [], ...(along ? { along } : {}) };
+      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [], ...(along ? { along } : {}), ...(rect ? { rect } : {}) };
   });
 }
