@@ -392,6 +392,9 @@ const DEFAULTS = {
   // TF13–TF16: an offer to stand down in a fight (engine/offer.ts); all placeholders
   OFFER_WIN_TIERS: 3, // TF14: the win in tiers that convinces a code-run foe
   OFFER_WIN_TIERS_SHAKEN: 2, // TF14: the win that convinces it once it is hurt (OFFER_EASIER_HEALTH) or uneasy (OFFER_EASIER_MORALE)
+  OFFER_YIELD_WIN_TIERS: 4, // TF19 (placeholder): the win that talks a foe into surrendering
+  OFFER_YIELD_WIN_TIERS_SHAKEN: 3, // TF19 (placeholder): the same once it is hurt or uneasy
+  OFFER_YIELD_EASIER: 1, // TF19 (placeholder): tiers less for each of: it is Broken, a part of it is Crippled or worse
   OFFER_EASIER_HEALTH: 'hurt' as HealthLevelKey,
   OFFER_EASIER_MORALE: 'uneasy' as MoraleLevel,
   OFFER_OPEN_TURNS: 2, // TF15: turns an AI-run listener (or the player) has to answer an offer; no answer is no

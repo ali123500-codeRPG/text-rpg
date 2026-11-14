@@ -41,7 +41,7 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
-import { canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
+import { canDemand, canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
 import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
@@ -253,6 +253,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
       ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
+      ...(viewer === state.player && level === 'full' && canDemand(state, viewer, a) && (fightingWith(state, a, viewer) || a.mind?.moraleState === 'broken') ? { demandYield: true as const } : {}), // TF19
     });
   }
   return out;
@@ -544,7 +545,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(state.mercy?.pending.includes(a.id) ? { playerAtMercy: true as const } : {}),
-      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}) } } : {})(offersTo(state, a)[0]), // TF15
+      ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
