@@ -6,12 +6,13 @@ import { FN } from './functionIds';
 export const SK = {
   melee_light: 'SK1', melee_medium: 'SK2', melee_heavy: 'SK3',
   ranged_light: 'SK4', ranged_medium: 'SK5', ranged_heavy: 'SK6',
-  unarmed_strike: 'SK7', unarmed_grapple: 'SK8', unarmed_improvised: 'SK9', unarmed_natural: 'SK10',
+  unarmed_strike: 'SK7', unarmed_grapple: 'SK8', unarmed_improvised: 'SK9', slam: 'SK10', // SK10 was Natural weapons until AB16 split it; the slime's slam kept its id
   dodge: 'SK11', block: 'SK12', endurance: 'SK13', eyesight: 'SK14', earshot: 'SK15',
   sneaking: 'SK16', combat_stealth: 'SK17', vanishing: 'SK18',
   persuasion: 'SK19', intimidation: 'SK20', barter: 'SK21', riposte: 'SK23', // SK22 (Feint) and SK24 (Disarm) are retired, not reused
   light_armor: 'SK25', medium_armor: 'SK26', heavy_armor: 'SK27', tremor: 'SK28', lockpicking: 'SK29', blade_dance: 'SK30',
   lying: 'SK31', insight: 'SK32', shrewd_dealing: 'SK33', resolve: 'SK34', parry: 'SK35', filching: 'SK36', stamina: 'SK37',
+  bite: 'SK38', claws: 'SK39', hooves_horns: 'SK40', tail: 'SK41', scent: 'SK42', hide: 'SK43', // AB16, AB18, AB20
 } as const;
 export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge, block or parry, a choice, not a skill) and the skill it rolls */
@@ -19,7 +20,7 @@ export const DEFENSE_SKILL = { dodge: SK.dodge, block: SK.block, parry: SK.parry
 /** an item effect's skill rolled for each piece (a charmed ring): ruleset/gear rolledSkill names it from the piece's id */
 export const ROLLED_SKILL = '$rolled';
 /** a sense function's default skill: a function roll asks for it, and the best skill with the function rolls */
-export const SENSE_SKILL = { [FN.sight]: SK.eyesight, [FN.hearing]: SK.earshot } as const;
+export const SENSE_SKILL = { [FN.sight]: SK.eyesight, [FN.hearing]: SK.earshot, [FN.smell]: SK.scent } as const;
 /** an armor weight and the skill that wears it */
 export const ARMOR_SKILL: Record<string, SkillId> = { light: SK.light_armor, medium: SK.medium_armor, heavy: SK.heavy_armor };
 /** a weapon tree and size class and the skill that wields it */

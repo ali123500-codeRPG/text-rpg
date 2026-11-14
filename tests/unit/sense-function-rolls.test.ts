@@ -8,6 +8,7 @@ import { ruleset, situational, fnRoller } from '../../src/ruleset';
 import { zoneById } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { BT, RC } from '../../src/library/raceIds';
 import { PK } from '../../src/library/perkIds';
 
 const sense = (actorId: string, f: 'sight' | 'hearing') => ({ actorId, skill: f === 'sight' ? SK.eyesight : SK.earshot, fn: FN[f], modifiers: [], tierShifts: [], auto: false as const });
@@ -16,6 +17,7 @@ const value = (r: { d100: number; margin: number }) => (r.margin - r.d100 + CONF
 describe('sense rolls use the function', () => {
   it('Tremor adds its value to every hearing roll (tier 0 halves it) and nothing to sight', () => {
     const s = makeVillage(), p = actor(s, 'slime_1');
+    Object.assign(p.core, { raceId: RC.python, bodyTypeId: BT.serpent }); // AB19: Tremor is for snakes and spiders
     p.core.skills[SK.tremor] = { raw: 50, state: 'normal' };
     const hearing = ruleset.roll(sense(p.id, 'hearing'), s, createRng(1)), sight = ruleset.roll(sense(p.id, 'sight'), s, createRng(1));
     expect([hearing.skill, value(hearing)]).toEqual([SK.earshot, 25]);
@@ -51,6 +53,6 @@ describe('Curiouser and Curiouser reads the function', () => {
     const s = makeVillage(), slime = actor(s, 'slime_1');
     slime.core.perks.push({ perkId: PK.curiouser, source: 'mastery', gainedTurn: 0 });
     expect(afterRollShifts(slime, SK.earshot, TIERS.pos('success'))).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
-    expect(afterRollShifts(slime, SK.unarmed_natural, TIERS.pos('success'))).toEqual([]);
+    expect(afterRollShifts(slime, SK.slam, TIERS.pos('success'))).toEqual([]);
   });
 });

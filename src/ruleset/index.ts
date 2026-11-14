@@ -3,7 +3,7 @@
 import { DU, RL } from '../library/tableIds';
 import { actionRow, actionSeconds } from './actionTime';
 import type {
-  Actor, AttackRequest, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
+  Actor, AttackRequest, NaturalArmor, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
@@ -235,6 +235,9 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
 }
 
+/** AB20 (one equation with worn armor): natural armor stops ARMOR_FACTOR × the owner's effective Hide × its race's hide */
+export const naturalReduction = (state: GameState, a: Actor, n: NaturalArmor): number => CONFIG.ARMOR_FACTOR * effectiveSkill(state, a, SK.hide).value * n.hide;
+
 /** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the
  * mode's reach (both in metres) */
 export function rangeMod(dist: number, reach: number): number {
@@ -396,7 +399,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const pierce = boostAdd(A, skill, 'armorPierce'); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
-    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
+    const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
+    for (const a of [armor, nat]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)

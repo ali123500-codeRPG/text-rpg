@@ -4,7 +4,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { seeingM, type Located } from '../engine/position';
+import { distOrNull, seeingM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { now, turnTime, zoneLight } from '../time';
@@ -12,6 +12,8 @@ import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
+import { SK } from '../library/skillIds';
+import { effectiveSkill } from '../ruleset/gear';
 
 export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
@@ -84,6 +86,15 @@ export function sightAt(state: GameState, observer: Actor, at: Located, visibili
   return sl && (zoneLight(state, zoneById(state, at.zone)) === 'dark' ? 'partial' : sl);
 }
 
+/** AB18 a: `observer` smells someone at that point: within its Scent skill in metres along the open ways (the straight line
+ * where they see each other, else the path through the doorways: walls stop a smell, light never does) */
+export function smells(state: GameState, observer: Actor, at: Located): boolean {
+  const reach = effectiveSkill(state, observer, SK.scent).value;
+  if (reach <= 0) return false;
+  const d = distOrNull(state, observer, at);
+  return d !== null && d <= reach;
+}
+
 /** BG-89: event kinds that touch their target */
 const CONTACT = new Set(['attack', 'give', 'break_free', 'restrain']);
 
@@ -141,6 +152,8 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   const nl = soundReach(state, observer, at, event.noise, leansIn(event, observer));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
+  // AB18 a: someone neither seen nor heard but smelled is noticed, not made out (partial: something, not who)
+  if (!best && smells(state, observer, at)) best = { level: 'partial', cue: 'smell' };
   // Perception All-150 Every Sense One: what the owner hears it sees, and what it sees it hears. The better sense sets the
   // level for both: a full perception shows everything (read as sight), a partial one is heard too (its words come through)
   const oneSense = !!best && hasPerk(observer, PK.one_sense);

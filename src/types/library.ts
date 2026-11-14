@@ -35,7 +35,7 @@ export type SkillDef = {
    * or only rolls of the listed kinds (none listed: every roll and check of that skill); kind as AugmentKind */
   augments?: { skill: string; share?: number; kind?: AugmentKind; rollKinds?: import('./items').RollKind[] }[];
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
-  cue?: 'sight' | 'sound'; // Notice skills: which cue they read
+  cue?: 'sight' | 'sound'; // Notice skills: which cue they read (Scent reads smell through its own function)
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
   access?: TreeAccess; // a skill's own rule on top of its tree's (SR1: persuasion and barter need a speaking race)
@@ -124,7 +124,8 @@ export type ClassDef = {
 
 /** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2) */
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number };
-export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };
+/** AB20: natural armor stops ARMOR_FACTOR × the owner's Hide skill × `hide` (the race's multiplier), then multiplies as worn armor */
+export type NaturalArmor = { covers: string[]; hide: number; multiplier: number; pools?: Record<string, number> };
 /** BR1: a body type is the shape only: parts, general area, silhouette, and the attacks the shape
  * always has (BR3). Toughness, natural armor and a being's own attacks are on its race. */
 export type BodyType = {

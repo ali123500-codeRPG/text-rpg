@@ -45,7 +45,7 @@ describe('207 essences', () => {
 
   it('a notable foe beaten offers once, ever, an essence from its template list (EN4); points come from its skills', () => {
     const s = makeVillage(), foe = slime(s);
-    foe.core.skills[SK.unarmed_natural] = { raw: 60, state: 'normal' }; // EN5: Gel Patience is Natural Weapons 2 + Tremor 1
+    foe.core.skills[SK.slam] = { raw: 60, state: 'normal' }; // EN5: Gel Patience is Natural Weapons 2 + Tremor 1
     foe.core.skills[SK.tremor] = { raw: 30, state: 'normal' };
     foe.core.generation = 'rolled'; // notable whatever its power
     offersFromDefeats(s, [slain(foe)], dice(1, 100)); // appears on 1, quality 100
@@ -55,7 +55,7 @@ describe('207 essences', () => {
     // source skill = (60 × 2 + 30 × tremor tier × 1) ÷ 3, × 0.07 × 4 (a natural 100 lifts the Critical Success one grade), split 2 : 1
     const total = Object.values(o.points).reduce((n, v) => n + v, 0);
     expect(total).toBeGreaterThan(0);
-    expect(o.points[SK.unarmed_natural]).toBeGreaterThanOrEqual(o.points[SK.tremor] ?? 0);
+    expect(o.points[SK.slam]).toBeGreaterThanOrEqual(o.points[SK.tremor] ?? 0);
     offersFromDefeats(s, [foe], dice(100));
     expect(offers(s)).toHaveLength(1);
   });

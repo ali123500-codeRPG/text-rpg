@@ -1,6 +1,6 @@
 // 124 Skill groups and functions (F1–F8): a skill lists one or more narrow functions (stand-ins at
 // SUBSTITUTE_EFFICIENCY 0.3, which perks can move); each function sits in one broad group (40 perk +1, XP category).
-import { RC } from '../../src/library/raceIds';
+import { BT, RC } from '../../src/library/raceIds';
 import { TR } from '../../src/library/treeIds';
 import { FN, GR } from '../../src/library/functionIds';
 import { groupsOf } from '../../src/library/functionNames';
@@ -36,6 +36,7 @@ describe('124 skill groups and functions', () => {
     only(s.player, { [SK.earshot]: 80 });
     expect(effectiveSkill(s, s.player, SK.eyesight).value).toBe(0);
     const slime = s.actors.find((a) => a.core.raceId === RC.slime)!;
+    Object.assign(slime.core, { raceId: RC.python, bodyTypeId: BT.serpent }); // AB19: Tremor is for snakes and spiders
     only(slime, { [SK.tremor]: 50 });
     // an augment adds its full value, × tremor's tier 0 (×0.5); it never reaches sight
     expect(effectiveSkill(s, slime, SK.earshot).value).toBe(50 * 0.5);
@@ -43,7 +44,7 @@ describe('124 skill groups and functions', () => {
   });
   it('F1: a 40 perk in a weapon skill gives +1 to every Melee skill, unarmed included, and not to Ranged', () => {
     const s = makeVillage();
-    only(s.player, { [SK.melee_light]: 40, [SK.unarmed_strike]: 10, [SK.unarmed_natural]: 10, [SK.ranged_light]: 10 });
+    only(s.player, { [SK.melee_light]: 40, [SK.unarmed_strike]: 10, [SK.slam]: 10, [SK.ranged_light]: 10 });
     give(s.player, PK.keen_edge);
     expect([trueSkill(s.player, SK.melee_light), trueSkill(s.player, SK.unarmed_strike), trueSkill(s.player, SK.ranged_light)]).toEqual([46, 11, 10]);
   });

@@ -1,6 +1,6 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, ContestResult, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
+import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
 import { TIERS } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { hiddenFrom } from '../engine/gear';
@@ -212,7 +212,9 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
 /** ST2: Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
 export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? SK.combat_stealth : SK.sneaking);
 
-type Sense = typeof FN.sight | typeof FN.hearing;
+type Sense = typeof FN.sight | typeof FN.hearing | typeof FN.smell;
+/** the sense a perception cue rolls (a stealth contest, an ambush): smell rolls Scent (AB18), sound hearing, else sight */
+const cueSense = (cue: Cue | undefined): Sense => (cue === 'sound' ? FN.hearing : cue === 'smell' ? FN.smell : FN.sight);
 /** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
  * (a Vanish in place, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
@@ -262,7 +264,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     if (sees && !vanish) continue; // ST12: Sneak never shakes off someone who sees you
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
-    const sense = seen.cue === 'sound' ? FN.hearing : FN.sight;
+    const sense = cueSense(seen.cue);
     const r = ruleset.contested(mine(skill, sense), theirs(a, sense), state, rng);
     done.ids.push(key);
     if (sees) saw++;
@@ -315,7 +317,8 @@ function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean
 export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng, opts: { look?: Sense; only?: string } = {}): { found: Actor; r: ContestResult }[] {
   const here = zoneById(state, a.zone);
   const after = (sense: Sense) => CONFIG.SKILL_WEIGHT * senseSkill(state, a, sense) + watcherRoll(state, a, sense, here).modifiers.reduce((n, m) => n + m.value, 0);
-  const sense: Sense = opts.look ?? (after(FN.hearing) > after(FN.sight) ? FN.hearing : FN.sight);
+  // AB18 a: a search rolls the better sense after light; smell only when it beats both (light never touches it)
+  const sense: Sense = opts.look ?? ([FN.sight, FN.hearing, FN.smell] as Sense[]).reduce((b, f) => (after(f) > after(b) ? f : b));
   const area = searchAreaM2(a, senseSkill(state, a, sense));
   const reaches = (h: Actor) => opts.look ? ((d) => d !== null && withinM(d, CONFIG.SIGHT_M.normal![0]))(seeingM(state, a, h)) : inSearch(state, a, h, area);
   const done = contestedThisTurn(state);
@@ -477,7 +480,7 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   const spar = !!target && sparring(state, attacker, target); // SP11: a sparring blow from hiding raises no alarm
   const act: ActContest[] = [];
   for (const o of observers) {
-    const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
+    const skill = cueSense(perception[o.id]?.cue);
     const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill, contest: true }, state, rng); // function roll
     const contest = toContest(ambush, p), gap = contest.gap;
     matchedCritFeat(state, contest); // D-292

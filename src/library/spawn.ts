@@ -113,15 +113,16 @@ export const templateLevel = (t: NpcTemplate): number => { const r = templateRan
 
 type Band = keyof typeof CONFIG.ROLE_BAND_SHARE;
 /** NG2, NG8: the band each skill sits in for this preset: its role's and theme's, the higher wins; then the skills every
- * NPC whose body can use them has (CONFIG.NPC_COMMON_SKILLS). Nothing else rises. */
+ * NPC has (CONFIG.NPC_COMMON_SKILLS). Only skills its body can use; nothing else rises. */
 function presetBands(t: NpcTemplate): Record<string, Band> {
   const lib = getLibrary(), out: Record<string, Band> = {};
   const order: Band[] = ['low', 'moderate', 'high'];
-  const put = (id: string, b: Band) => { if (!out[id] || order.indexOf(b) > order.indexOf(out[id])) out[id] = b; };
+  const body = { core: { raceId: t.raceId, bodyTypeId: race(t.raceId).bodyTypeId, classes: [], perks: [], skills: {} } } as unknown as Actor;
+  // AB16: only skills its body can use (a beast's role lists every natural attack; a dog trains only Bite)
+  const put = (id: string, b: Band) => { if (skillOpen(body, id) && (!out[id] || order.indexOf(b) > order.indexOf(out[id]))) out[id] = b; };
   for (const bands of [t.roleId ? lib.npcRoles?.[t.roleId]?.bands : undefined, t.themeId ? lib.themes?.[t.themeId]?.bands : undefined])
     for (const b of order) for (const id of bands?.[b] ?? []) put(id, b);
-  const body = { core: { raceId: t.raceId, bodyTypeId: race(t.raceId).bodyTypeId, classes: [], perks: [], skills: {} } } as unknown as Actor;
-  for (const [id, b] of Object.entries(CONFIG.NPC_COMMON_SKILLS)) if (skillOpen(body, id)) put(id, b);
+  for (const [id, b] of Object.entries(CONFIG.NPC_COMMON_SKILLS)) put(id, b);
   return out;
 }
 

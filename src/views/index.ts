@@ -669,7 +669,7 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
   const v = eventView(state, viewer, e);
   // BG-251: a missile landing shows where it struck, never who sent it
   if (e.kind === 'impact') return `${v.level === 'full' ? 'saw' : 'heard'} something shot or thrown strike ${e.actorId === viewer.id ? 'beside you' : v.level === 'full' ? `by ${callName(state, viewer.id, e.actorId)}` : 'nearby'}${v.where ? ` ${v.where}` : ''}`;
-  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
+  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : v.cue === 'smell' ? 'smelled' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
   // BF65: struck by someone unseen; a body come upon

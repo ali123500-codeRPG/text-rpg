@@ -1,3 +1,4 @@
+import { SK } from '../../src/library/skillIds';
 // 146 Gear in the rating: GEAR_RATING_FACTOR × the coin value of held and worn gear, on both sides (the player's too).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -21,6 +22,7 @@ describe('146 Gear in the rating', () => {
   it("the player's own gear counts in the player's rating, so it shrinks the taper on a weak foe", () => {
     const s = makeVillage();
     const slime = s.actors.find((a) => a.core.templateId === TP.slime)!;
+    slime.core.skills[SK.scent].raw = 0; // a weak foe, so the taper bites
     const mine = gearRating(s, s.player);
     expect(mine).toBeGreaterThan(0);
     const theirs = rating(slime) + gearRating(s, slime);
