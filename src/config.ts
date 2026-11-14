@@ -252,6 +252,9 @@ const DEFAULTS = {
   DRIVES_SHOWN: 3,
   /** tensions given to the agent, in table order */
   TENSIONS_SHOWN: 2,
+  /** signatures a character may hold (set on the Character page), and the longest one in characters [placeholder] */
+  SIGNATURES_MAX: 5,
+  SIGNATURE_MAX_CHARS: 120,
   /** PL12: the Nerve points a named line sets (− for cautious, + for daring) */
   NERVE_LINE_POINTS: 40,
   /** AP2: personality points one achievement step is worth; rows write steps (+1, −1), so this one number scales them all */

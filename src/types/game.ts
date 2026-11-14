@@ -164,4 +164,6 @@ export interface GameApi {
   abandonQuest(questId: string): void;
   /** pin a quest to the Play screen's quest line, or unpin it */
   pinQuest(questId: string): void;
+  /** the player character's signatures, one per line (setSignatures cleans them); saved at once */
+  setSignatures(lines: string[]): void;
 }

@@ -10,6 +10,7 @@ import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { abandonQuest, pinQuest } from '../engine/quests';
+import { setSignatures } from '../ruleset/personality';
 import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
@@ -423,5 +424,6 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     undoPerk(id) { if (state) { undoPerk(state, state.player, id); emit(); } },
     abandonQuest(id) { if (state && abandonQuest(state, id)) emit(); },
     pinQuest(id) { if (state) { pinQuest(state, id); emit(); } },
+    setSignatures(lines) { if (state) { setSignatures(state.player, lines); emit(); } },
   };
 }

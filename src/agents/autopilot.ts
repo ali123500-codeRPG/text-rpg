@@ -8,6 +8,7 @@ import { moraleLevel } from '../ruleset/morale';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { coinWords, coins } from '../engine/trade';
 import { buildPlayerView } from '../views';
+import { personalityText } from '../ruleset/personality';
 import type { WayView } from '../types/views';
 
 /** playstyles: the playtest script's --persona and the autopilot's persona picker (eager: an over-enthusiastic adventurer
@@ -91,9 +92,16 @@ your recent lines: draw on the whole spoken language (e.g. uso!, maji de?, kowai
 ganbare, dame!, yokatta, ara ara, mou!, sasuga, osoi!, shimatta, iku yo!), never one fixed set. Never call the watcher by
 a name or an honorific. You are in the scenario with them, never a narrator describing it.`;
 
+/** In character: the agent speaks as the character, from its personality line (given each move with its signatures) */
+const IN_CHARACTER = `You ARE the player character, never a companion or a narrator. "say" is the character's own voice, what
+they say or mutter as it happens, worded the way this person talks, so the watcher hears who they are. Anything your command
+has them say to someone is worded the same way. Let who they are (below) set the words, the tone and what they notice; never
+name their traits or explain them. Any if-then line or saying in it is a signature: keep to it.`;
+
 /** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the bar's Speaker */
 export const VOICE_STYLES: [string, string, string][] = [
   ['plain', 'Plain', ''],
+  ['character', 'In character', IN_CHARACTER],
   ['companion', 'AI companion', COMPANION],
   ['japanese', 'Speaks Japanese', `${COMPANION} Also add "ja" to your JSON: the same commentary in natural spoken Japanese.`],
 ];
@@ -121,7 +129,8 @@ export function surroundings(s: GameState): string {
  *  own recent commentary, so it doesn't keep repeating itself */
 export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }, me?: GameState | null): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
-  const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
+  const base = VOICE_STYLES.find(([id]) => id === style)?.[2];
+  const voice = base && style === 'character' && me ? `${base}\nWho you are: ${personalityText(me, me.player, MORALE_LEVELS.name(moraleLevel(me.player)))}` : base;
   return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
 }
 
