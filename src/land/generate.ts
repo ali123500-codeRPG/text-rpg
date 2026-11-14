@@ -29,8 +29,9 @@ export type RegionBrief = {
   danger?: RoadDangerKey;
 };
 /** what a drawn neighbour fixes on a shared edge: where its roads and waters cross it (metres along the edge from its
- * west or south end) */
-export type EdgeJoin = { side: Side; roads: number[]; waters: { at: number; width: number; kind: Water['kind']; name: string; out: boolean }[] };
+ * west or south end; out: the water flows from this region into the neighbour), and its ground heights along the edge,
+ * one per cell from the west or south end, so the land rises and falls on across it (WZ18) */
+export type EdgeJoin = { side: Side; roads: number[]; waters: { at: number; width: number; kind: Water['kind']; name: string; out: boolean }[]; heights?: number[] };
 
 const SIDES: Side[] = ['n', 'e', 's', 'w'];
 const OPP: Record<Side, Side> = { n: 's', s: 'n', e: 'w', w: 'e' };
@@ -140,7 +141,8 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   let river: Water | undefined;
   if (kind.river || brief.river || riverJoin.length) {
     const inJ = riverJoin.find((w) => !w.out), outJ = riverJoin.find((w) => w.out);
-    const from: Side = inJ?.side ?? brief.river?.from ?? SIDES[rng.int(0, 3)];
+    const pick = brief.river?.from ?? SIDES[rng.int(0, 3)];
+    const from: Side = inJ?.side ?? (outJ && pick === outJ.side ? OPP[outJ.side] : pick);
     const to: Side = outJ?.side ?? (brief.river?.to && brief.river.to !== from ? brief.river.to : OPP[from]);
     const a = edgePoint(from, inJ?.at ?? S * (0.3 + 0.4 * rng.next())), b = edgePoint(to, outJ?.at ?? S * (0.3 + 0.4 * rng.next()));
     const steps = Math.ceil(dist(a, b) / C);
@@ -175,15 +177,28 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
     }
     heights[i] = Math.round(lo + (hi - lo) * Math.max(0, Math.min(1, h)));
   }
-  const slopes = new Float64Array(cells), margin = new Float64Array(cells);
+  // WZ18: near a drawn neighbour the ground eases into the heights along its edge, over REGION_EDGE_BLEND_M. The slope
+  // that makes is only the meeting of two kinds of land, so bare rock still goes by the region's own ground (own)
+  const own = Float64Array.from(heights);
+  for (const j of joins) {
+    if (!j.heights?.length) continue;
+    const B = CONFIG.REGION_EDGE_BLEND_M;
+    for (let i = 0; i < cells; i++) {
+      const p = at(i), d = nearSide(p, j.side);
+      if (d >= B) continue;
+      const k = j.side === 'n' || j.side === 's' ? i % N : Math.floor(i / N), t = d / B, w = t * t * (3 - 2 * t);
+      heights[i] = Math.round(heights[i] * w + j.heights[k] * (1 - w));
+    }
+  }
+  const slopes = new Float64Array(cells), ownSlopes = new Float64Array(cells), margin = new Float64Array(cells);
   for (let i = 0; i < cells; i++) {
     const c = i % N, r = Math.floor(i / N);
-    let m = 0;
+    let m = 0, mo = 0;
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const cc = c + dc, rr = r + dr;
-      if (cc >= 0 && cc < N && rr >= 0 && rr < N) m = Math.max(m, Math.abs(heights[rr * N + cc] - heights[i]) / C);
+      if (cc >= 0 && cc < N && rr >= 0 && rr < N) { m = Math.max(m, Math.abs(heights[rr * N + cc] - heights[i]) / C); mo = Math.max(mo, Math.abs(own[rr * N + cc] - own[i]) / C); }
     }
-    slopes[i] = m;
+    slopes[i] = m; ownSlopes[i] = mo;
     margin[i] = (Math.min(c, r, N - 1 - c, N - 1 - r) + 0.5) * C; // metres to the nearest edge
   }
   const slope = (i: number) => slopes[i];
@@ -422,7 +437,7 @@ export function drawRegion(id: string, gx: number, gy: number, seed: number, bri
   }
   const hn = (i: number) => (heights[i] - lo) / Math.max(1, hi - lo);
   const SCORE: Record<string, (i: number) => number> = {
-    [LC.rock]: (i) => slope(i) * 10 + hn(i),
+    [LC.rock]: (i) => ownSlopes[i] * 10 + hn(i),
     [LC.marsh]: (i) => -slope(i) * 30 - hn(i) * 3 - waterD[i] / 900 + 1.5 * fbm(seed + 91, at(i).x, at(i).y, 700, 2),
     [LC.woods]: (i) => woodsNoise(i) * 3 + slope(i) * 4,
     [LC.heath]: (i) => hn(i) * 2 + fbm(seed + 97, at(i).x, at(i).y, 1200, 3),

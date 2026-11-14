@@ -15,6 +15,7 @@ import { stageFrontiers, validateStagePlan } from './validate';
 import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, stealthyArrival } from './apply';
 import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
 import { addRegion, regionCallView, tidyBrief, type RegionCallView } from '../land/brief';
+import { squaresWanted } from '../land/edge';
 
 /** one Agent Weaver call; null = the call failed. `errors` and `rejected` set = the repair retry: the validator's errors and
  * the plan they belong to (V11). */
@@ -52,6 +53,8 @@ export class ScenarioDirector {
   /** SC8: the check-in in flight, for the scenario numbered `number`; never saved (a reload drops it) */
   private checkin: { number: number; done: boolean; answer: CheckinAnswer | null } | null = null;
 
+  /** WZ18: region briefs asked for in the background, keyed by square; never saved (a reload asks again) */
+  private regionCalls = new Map<string, { gx: number; gy: number; back: boolean; raw?: unknown }>();
   constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn; region?: RegionCall }) {}
 
   /** WZ1/WZ2: a story in a world with no land yet draws its first region before its first plan: the Weaver's brief, then
@@ -135,6 +138,7 @@ export class ScenarioDirector {
   afterSave(state: GameState): string[] {
     const started: string[] = [];
     this.startCheckin(state);
+    this.drawAhead(state);
     started.push(...this.buildAhead(state));
     if (state.stage.roam) return started;
     for (const key of frontiersNearPlayer(state)) {
@@ -143,6 +147,40 @@ export class ScenarioDirector {
       started.push(key);
     }
     return started;
+  }
+
+  /** WZ18: once the player can see past their region's edge, or stands on a road that leaves by it, the Weaver's brief
+   * for the square beyond is asked for in the background; applyRegionsDrawn draws it when it is back. Returns the
+   * squares asked for. */
+  drawAhead(state: GameState): string[] {
+    const call = this.opts.region;
+    if (!call || !state.regions?.length) return [];
+    const asked: string[] = [];
+    for (const q of squaresWanted(state)) {
+      const key = `${q.gx},${q.gy}`;
+      if (this.regionCalls.has(key)) continue;
+      const e: { gx: number; gy: number; back: boolean; raw?: unknown } = { ...q, back: false };
+      this.regionCalls.set(key, e);
+      call(regionCallView(state, q.gx, q.gy)).then((raw) => { e.raw = raw; e.back = true; }, () => { e.raw = null; e.back = true; });
+      asked.push(key);
+    }
+    return asked;
+  }
+
+  /** WZ18: regions whose brief came back since the last turn are drawn before the next one, joined to their drawn
+   * neighbours (a brief that failed draws from the region kind alone). Returns the region ids drawn. */
+  applyRegionsDrawn(state: GameState): string[] {
+    const out: string[] = [];
+    for (const [key, e] of this.regionCalls) {
+      if (!e.back) continue;
+      this.regionCalls.delete(key);
+      if (state.regions?.some((r) => r.gx === e.gx && r.gy === e.gy)) continue;
+      const view = regionCallView(state, e.gx, e.gy), { brief, notes } = tidyBrief(e.raw, view);
+      const r = addRegion(state, e.gx, e.gy, brief);
+      state.log.push({ turn: state.turn, code: 'region_drawn', detail: { region: r.id, kind: r.kind, ...(e.raw ? {} : { fallback: true }), ...(notes.length ? { notes } : {}) } });
+      out.push(r.id);
+    }
+    return out;
   }
 
   /** NW3 (option A): an NPC waiting at an unbuilt frontier this turn starts the same background Weaver call the player's
