@@ -429,6 +429,10 @@ const DEFAULTS = {
   SCHEMA_VERSION: 8, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
+  /** PO1: pockets everyone has outside the pack, each holding one item (a stack counts as one) no bulkier than
+   * POCKET_MAX_BULK (hand-sized: a purse, a ring, a knife, a draught); worn gear adds more (ItemDef.pockets). Placeholders */
+  POCKET_SLOTS: 4,
+  POCKET_MAX_BULK: 1,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
   ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */

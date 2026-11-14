@@ -31,7 +31,7 @@ export function findContainer(state: GameState, id: string | null | undefined): 
 
 /** what is inside: a worn pack holds its wearer's stowed items (CT7), any other container its own contents */
 export function contentsOf(c: Found): ItemInstance[] {
-  if (c.holder && wornPack(c.inst)) return c.holder.core.inventory.filter((i) => !i.equippedIn?.length);
+  if (c.holder && wornPack(c.inst)) return c.holder.core.inventory.filter((i) => !i.equippedIn?.length && !i.pocket); // PO1: not what is in pockets
   return c.inst.contents ?? [];
 }
 
@@ -87,7 +87,7 @@ export function carriedContents(state: GameState, inv: ItemInstance[]): { inst: 
 
 /** CT7: a worn pack taken off its wearer (picked up from a downed or yielded one) takes their stowed items with it */
 export function packUp(holder: Actor, pack: ItemInstance): void {
-  const stowed = holder.core.inventory.filter((i) => i !== pack && !i.equippedIn?.length && !i.soulbound); // HF18: soulbound gear stays with its owner
+  const stowed = holder.core.inventory.filter((i) => i !== pack && !i.equippedIn?.length && !i.pocket && !i.soulbound); // HF18: soulbound gear stays with its owner; PO1: pockets too
   holder.core.inventory = holder.core.inventory.filter((i) => !stowed.includes(i));
   pack.contents = [...(pack.contents ?? []), ...stowed];
 }

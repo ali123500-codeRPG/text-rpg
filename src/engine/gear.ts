@@ -14,6 +14,7 @@ export { gripReachM };
 export { withinGrip } from './position';
 import { summon } from '../ruleset/threadboundItems';
 import { freeAccSlot, isHeld, isWorn } from '../ruleset/gear';
+import { fitsPocket, freePocket, pocketIt, tidyPockets } from './pockets';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
@@ -46,6 +47,7 @@ function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
   const free = freeGrips(state, actor);
   if (inst.equippedIn?.length || free.length < need) return false;
   inst.equippedIn = free.slice(0, need);
+  delete inst.pocket; // PO1: out of its pocket
   return true;
 }
 
@@ -63,14 +65,20 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         ok = !!inst && (isHeld(inst) || draw(state, actor, inst));
         break;
       case 'stow': {
+        if (op.into === POCKET) { // PO3: into a free pocket, from the hand or the pack
+          const p = inst && !isWorn(inst) && !inst.pocket && fitsPocket(state, { ...inst, equippedIn: undefined }) ? freePocket(state, actor) : undefined;
+          ok = !!p;
+          if (p) { delete inst!.equippedIn; inst!.pocket = p; res.putIn.push({ itemId: inst!.id, into: POCKET }); }
+          break;
+        }
         if (op.into) { // PI1: into a container one carries, or an open one within reach
           const put = inst ? putInto(state, actor, inst, op.into, op.qty) : null;
           ok = !!put;
           if (put) res.putIn.push({ itemId: put.id, into: op.into, ...(put.qty ? { qty: put.qty } : {}) });
           break;
         }
-        ok = !!inst && isHeld(inst);
-        if (ok) delete inst!.equippedIn;
+        ok = !!inst && (isHeld(inst) || !!inst.pocket); // PO3: from the hand, or out of a pocket into the pack
+        if (ok) { delete inst!.equippedIn; delete inst!.pocket; }
         break;
       }
       case 'swap': {
@@ -90,7 +98,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         const ownerGone = !!inst.boundTo && !inst.soulbound && healthLevel(actorById(state, inst.boundTo) ?? actor) === 'dead';
         if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id && !ownerGone)) && !(inst.soulbound && inst.boundTo === actor.id)) break;
         const slot = freeAccSlot(actor);
-        if (slot) { inst.equippedIn = [slot]; ok = true; }
+        if (slot) { inst.equippedIn = [slot]; delete inst.pocket; ok = true; }
         if (ok && itemDef(state, inst.itemId).threadbound && (!inst.boundTo || ownerGone)) inst.boundTo = actor.id; // D-218: binds to the player on first wear
         break;
       }
@@ -137,8 +145,10 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
           delete it.hiddenAt;
           delete it.knownTo;
           delete it.hiderSkill;
+          delete it.pocket;
           actor.core.inventory.push(it);
           wearIfNone(state, actor, it);
+          pocketIt(state, actor, it); // PO3: into a free pocket if it fits
           res.picked.push({ itemId: it.id, from: op.from });
           ok = true;
         }
@@ -147,8 +157,11 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
     }
     if (!ok) res.invalid.push(op);
   }
+  tidyPockets(state, actor); // PO1: a belt taken off gives its pockets' things back to the pack
   return res;
 }
+/** PO3: the gear op word for "into a free pocket" */
+export const POCKET = 'pocket';
 
 /** HF18: an echo's soulbound gear fades when it dies */
 export function fadeSoulbound(state: GameState, a: Actor): void {
@@ -166,7 +179,7 @@ export function putInto(state: GameState, a: Actor, inst: ItemInstance, intoId: 
   const c = findContainer(state, intoId);
   if (!c || c.inst === inst || isContainer(state, inst) || isWorn(inst)) return null;
   if (c.holder ? c.holder !== a : !c.inst.open || theft(state, a, c) || !withinGrip(state, a, c.at)) return null;
-  if (wornPack(c.inst)) { delete inst.equippedIn; return { id: inst.id }; }
+  if (wornPack(c.inst)) { delete inst.equippedIn; delete inst.pocket; return { id: inst.id }; }
   const d = itemDef(state, inst.itemId), have = inst.qty ?? 1, n = qty == null || !d.stackable ? have : Math.floor(qty);
   if (n < 1 || n > have) return null;
   const list = (c.inst.contents ??= []);
@@ -176,6 +189,7 @@ export function putInto(state: GameState, a: Actor, inst: ItemInstance, intoId: 
   if (stack) { stack.qty = (stack.qty ?? 1) + n; return { id: stack.id, qty: n }; }
   const moved: ItemInstance = n < have ? { id: `${inst.id}_in_${state.turn}`, itemId: inst.itemId, qty: n } : inst;
   delete moved.equippedIn;
+  delete moved.pocket;
   list.push(moved);
   return { id: moved.id, ...(d.stackable ? { qty: n } : {}) };
 }
@@ -187,8 +201,10 @@ export function dropToGround(state: GameState, actor: Actor, instId: string, zon
   if (i < 0 || !zone || actor.core.inventory[i].soulbound) return false; // HF18: soulbound gear can't be dropped
   const [it] = actor.core.inventory.splice(i, 1);
   delete it.equippedIn;
+  delete it.pocket;
   if (at) it.at = { ...at };
   zone.groundItems.push(it);
+  tidyPockets(state, actor);
   return true;
 }
 
@@ -215,8 +231,11 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
   }
   const moved: ItemInstance = n < have ? { id: `${it.id}_${to.id}_${state.turn}`, itemId: it.itemId, qty: n } : it;
   delete moved.equippedIn;
+  delete moved.pocket;
   if (moved.stolenFrom === to.id) delete moved.stolenFrom; // FL6: handed back to its owner
   to.core.inventory.push(moved);
+  pocketIt(state, to, moved); // PO3
+  tidyPockets(state, actor);
   return { id: moved.id, qty: n };
 }
 
@@ -232,6 +251,7 @@ export function equipArmor(state: GameState, actor: Actor, instId: string | null
   if (inst.equippedIn?.length) return false;
   actor.core.inventory.forEach((i) => { if (i.equippedIn?.includes('armor')) delete i.equippedIn; });
   inst.equippedIn = ['armor'];
+  delete inst.pocket;
   return true;
 }
 
