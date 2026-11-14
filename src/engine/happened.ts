@@ -21,6 +21,7 @@ export function happenedLines(state: GameState, events: GameEvent[], defeated: A
   const out: string[] = [];
   for (const e of events) {
     if (e.kind === 'give') out.push(`${who(state, e.actorId)} gave ${who(state, e.target)} ${itemOf(state, e.itemId)}`);
+    else if (e.kind === 'take') out.push(`${who(state, e.actorId)} took ${itemOf(state, e.itemId)} from ${who(state, e.target)}`); // BF34
     else if (e.kind === 'buy' || e.kind === 'sell') out.push(`${who(state, e.actorId)} ${e.kind === 'buy' ? 'bought' : 'sold'} ${e.itemId ? itemOf(state, e.itemId) : 'a service'} ${e.kind === 'buy' ? 'from' : 'to'} ${who(state, e.target)}`);
   }
   for (const a of defeated) out.push(`the player defeated ${who(state, a.id)}`);

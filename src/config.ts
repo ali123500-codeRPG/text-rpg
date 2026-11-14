@@ -584,6 +584,8 @@ const DEFAULTS = {
   FOLLOW_SNEAK_M: 5,
   FOLLOW_M: 2,
   FOLLOW_RANGE_SHARE: 0.8,
+  /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
+  TAKE_FROM_STANCE: 'neutral',
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
    * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
   // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about

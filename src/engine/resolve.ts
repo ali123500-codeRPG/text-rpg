@@ -45,6 +45,7 @@ import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { POCKET, applyGearOps, dropToGround, equipArmor, fadeSoulbound, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
+import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
 import { cantSteady, steady } from './steady';
 import { breakInside } from './breakage';
 import { inPack } from './pockets';
@@ -197,7 +198,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
     case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
-    case 'give': return of(DU.hand_over);
+    case 'give': case 'take': return of(DU.hand_over); // BF34: taking is a hand-over too
     case 'barter': case 'buy': case 'sell': return of(DU.trade);
     case 'equip': {
       const w = o.item ? itemDef(state, inv(o.item)?.itemId ?? o.item).armor?.weight : undefined;
@@ -1551,14 +1552,16 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'sleep':
       return doWait(ctx, a, o);
     case 'give': {
-      const got = giveItem(state, a, o.item, o.target, o.qty) ?? (stepUpToTake(ctx, a, o) ? giveItem(state, a, o.item, o.target, o.qty) : null);
-      if (!got) { // BG-149: a wasted event always says why
-        const t = o.target ? actorById(state, o.target) : undefined;
-        const why = !t || t === a ? 'no_one_to_give_to' : !isActive(t) ? 'already_down' : !a.core.inventory.some((x) => x.id === o.item) ? 'no_item' : !withinGrip(state, a, t, gripReachM(state, t)) ? 'out_of_reach' : 'not_that_many';
-        return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
-      }
-      return emit(ctx, bark(mk(ctx, a, 'give', { target: o.target ?? undefined, itemId: got.id, qty: got.qty }), o));
+      // BF34: a give holds the item out (from hand, pack or one's own bag); it changes hands when they take it
+      const t = o.target ? actorById(state, o.target) : undefined;
+      let why = offerBlock(state, a, t, o.item, o.qty);
+      if (why === 'out_of_reach' && stepUpToTake(ctx, a, o)) why = offerBlock(state, a, t, o.item, o.qty);
+      if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o)); // BG-149: a wasted event always says why
+      holdOut(state, a, t!, o.item!, o.qty);
+      return emit(ctx, bark(mk(ctx, a, 'offer', { target: t!.id, itemId: o.item!, ...(o.qty != null ? { qty: o.qty } : {}) }), o));
     }
+    case 'take':
+      return doTake(ctx, a, o);
     case 'buy': {
       const to = o.for ? actorById(state, o.for) : a;
       const r = buy(state, a, o.target ? actorById(state, o.target) : undefined, o.item, o.qty, to ?? a);
@@ -1942,6 +1945,42 @@ function stepUpToTake(ctx: Ctx, a: Actor, o: Order): boolean {
   return true;
 }
 
+/** BF34: a take: what is held out to the taker, or what someone yielded, surrendered, down or asleep carries, is theirs at
+ * once; anyone else refuses (grabbing it is filching) */
+function doTake(ctx: Ctx, a: Actor, o: Order): void {
+  const { state } = ctx;
+  const t = o.target ? actorById(state, o.target) : undefined;
+  let r = takeBlock(state, a, t, o.item);
+  if ('why' in r && r.why === 'out_of_reach' && t && t.zone !== a.zone && stepUpToTake(ctx, a, o)) r = takeBlock(state, a, t, o.item);
+  if ('why' in r) return emit(ctx, bark(mk(ctx, a, r.why === 'refused' ? 'take_refused' : 'wasted', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), reason: r.why }), o));
+  const offered = r.how === 'offered';
+  const got = transfer(state, t!, a, o.item!, offered ? t!.offer!.qty : o.qty);
+  if (!got) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t!.id, reason: 'not_that_many' }), o));
+  if (offered) delete t!.offer;
+  // a thing held out and taken is a give by its owner (quests count it); one taken from the helpless is a take
+  emit(ctx, bark(offered ? mk(ctx, t!, 'give', { target: a.id, itemId: got.id, qty: got.qty }) : mk(ctx, a, 'take', { target: t!.id, itemId: got.id, qty: got.qty }), o));
+}
+
+/** BF34: at the end of the turn it is made, an NPC takes what is held out to it if it wants it (wantsOffer: its agent saw
+ * no offer yet); declined, the offer stands through the next turn, when the NPC's agent may still take it, and is then
+ * withdrawn */
+function settleOffers(ctx: Ctx): void {
+  const { state } = ctx;
+  for (const g of allActors(state)) {
+    const f = g.offer;
+    if (!f) continue;
+    const to = actorById(state, f.to);
+    if (!to || !carriedItem(state, g, f.item) || !isActive(g)) { delete g.offer; continue; }
+    if (to !== state.player && f.turn === state.turn && gripsReach(state, g, to) && wantsOffer(state, to, g)) {
+      const got = transfer(state, g, to, f.item, f.qty);
+      delete g.offer;
+      if (got) emit(ctx, mk(ctx, g, 'give', { target: to.id, itemId: got.id, qty: got.qty }));
+      continue;
+    }
+    if (f.turn < state.turn) { delete g.offer; logCode(state, 'offer_withdrawn', { actorId: g.id, to: f.to, item: f.item }); }
+  }
+}
+
 /** AE1: the attack would be ranged from here, or (out of reach here) from where the move leads */
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);
@@ -2189,6 +2228,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));
   letSearch(state, state.player, input.intent?.letsSearch); // BF16
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
+  settleOffers(ctx); // BF34: what was held out is taken, or stands one more turn, or is withdrawn
   const defeated = payDefeats(state, ctx.events);
   offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
   expireOffers(state);

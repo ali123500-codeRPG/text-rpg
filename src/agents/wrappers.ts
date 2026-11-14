@@ -21,7 +21,7 @@ export function actionWords(a: NonNullable<Intent['action']>, view: PlayerView):
   const what = (id: string | null) => (id && (view.player.inventory.find((x) => x.id === id || x.itemId === id)?.name ?? wares.find((w) => w.id === id)?.name)) || '';
   const t = who(a.target), it = what(a.item), the = it ? `the ${it}` : '';
   const line: Partial<Record<string, string>> = {
-    give: `give ${t} ${the || 'it'}`, buy: `buy ${it || 'something'} from ${t}`, sell: `sell ${the || 'it'} to ${t}`,
+    give: `give ${t} ${the || 'it'}`, take: `take ${the || 'it'} from ${t}`, buy: `buy ${it || 'something'} from ${t}`, sell: `sell ${the || 'it'} to ${t}`,
     use_item: `use ${the || 'it'} on ${t}`, filch: `filch ${the || 'something'} from ${t}`, restrain: `hold ${t} back`,
     search: `search ${t}`, attack: `attack ${t}`, observe: `look at ${t}`,
     talk: `talk to ${t}`, persuade: `persuade ${t}`, deceive: `lie to ${t}`, barter: `haggle with ${t}`, intimidate: `threaten ${t}`,

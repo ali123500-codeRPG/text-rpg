@@ -93,6 +93,7 @@ export type SeenActor = {
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
+  holdsOut?: { item: string; name: string }; // BF34: what this person holds out to the viewer: it is the viewer's once they take it (action take, item that id)
   demandYield?: true; // TF19: a foe the player can demand surrender from (as talkDown, or it cowers Broken)
 };
 /** AT11a/AT2: a long action under way: what, in words, and whole seconds done and to go */
