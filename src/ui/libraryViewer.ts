@@ -38,7 +38,7 @@ import { skillName } from './creation';
 import { ALL_BUNDLES } from '../library/allPerks';
 import { classFloors, presetPersonality, rankName, templateLevel, templateLoadout, templatePerks, templateRank, templateSkills } from '../library/spawn';
 import { partName } from './healing';
-import { SENSE_SKILL, SK } from '../library/skillIds';
+import { ROLLED_SKILL, SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { classMaxLevel, creationPoints, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
@@ -205,7 +205,7 @@ const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essentia
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
 function effectParts(e: ItemEffect, def?: ItemDef): [string, string[]] {
-  const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : skillName(String(e.skill))) : `${e.roll} rolls`;
+  const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : e.skill === ROLLED_SKILL ? 'one skill, rolled for each piece when it comes into being (any tier 2 skill)' : skillName(String(e.skill))) : `${e.roll} rolls`;
   const v = e.kit && def ? kitBonus(def, e) : e.value; // a kit piece: EQUIP_FACTOR × its need, as the game reads it
   return [`${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what}`, [ACTIVE[e.active], ...(e.scope === 'withItem' ? ['with this item only'] : []), ...(e.kit ? ['kit'] : [])]];
 }

@@ -53,7 +53,7 @@ export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'ste
 
 export type ItemEffect = {
   kind: 'skill' | 'rollMod';
-  skill?: LibraryRef; // kind 'skill'; '$mode' = the skill of the mode used (kit pieces)
+  skill?: LibraryRef; // kind 'skill'; '$mode' = the skill of the mode used (kit pieces); '$rolled' = a skill rolled for each piece (rolledSkill: a charmed ring)
   roll?: RollKind; // kind 'rollMod'
   value: number;
   active: 'worn' | 'held' | 'inUse' | 'carried';

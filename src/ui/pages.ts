@@ -12,7 +12,8 @@ import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, t
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
-import { accSlot, gripSlot, gripWord, isHeld, kitBonus, modeName } from '../ruleset/gear';
+import { accSlot, gripSlot, gripWord, isHeld, kitBonus, modeName, rolledSkill } from '../ruleset/gear';
+import { ROLLED_SKILL } from '../library/skillIds';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
@@ -185,7 +186,7 @@ const KIND_GROUP: Record<string, [string, string, string]> = {
 const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
 
 /** an item's exact stats: the Inventory's side panel and the equipment panel's hover card share these rows */
-export function itemRows(s: GameState, it: { itemId: string; boundTo?: string; qty?: number }): PanelRow[] {
+export function itemRows(s: GameState, it: { id?: string; itemId: string; boundTo?: string; qty?: number }): PanelRow[] {
   const d = safe(() => itemDef(s, it.itemId));
   if (!d) return [];
   const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
@@ -194,7 +195,7 @@ export function itemRows(s: GameState, it: { itemId: string; boundTo?: string; q
   for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach} m, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
   if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
   if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
-  for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+  for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : e.skill === ROLLED_SKILL ? (it.id ? skillName(rolledSkill(s, { id: it.id })) : 'one skill, rolled for each piece') : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
   // EQ7: the requirement, red while the player is short, grey once met
   const need = requirement(d);
   if (need) {
