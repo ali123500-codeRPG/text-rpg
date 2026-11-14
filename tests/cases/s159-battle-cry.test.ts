@@ -9,7 +9,7 @@ import { getLibrary } from '../../src/library';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { PERK_MOVES } from '../../src/ruleset/perks';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
-import { moraleLost } from '../../src/ruleset/morale';
+import { maxMorale, moraleLost } from '../../src/ruleset/morale';
 import { buildPlayerView } from '../../src/views';
 import { ideas } from '../../src/ui/play';
 import { PK } from '../../src/library/perkIds';
@@ -80,5 +80,12 @@ describe('159 Battle Cry', () => {
     play(s, { intent: cry });
     expect(moraleLost(s.player)).toBeCloseTo(20, 0);
     expect(s.player.pressure?.patron_1?.shaken).toBeUndefined();
+  });
+  it('can be let out while broken: a broken nerve keeps the roar and still blocks the attack (BF37)', () => {
+    const { s } = setup();
+    s.player.core.condition.moraleLost = maxMorale(s.player); // broken
+    const ev = play(s, { intent: { ...cry, action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } } as never });
+    expect(ev.some((e) => e.kind === 'battle_cry' && e.actorId === 'player')).toBe(true);
+    expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(false);
   });
 });

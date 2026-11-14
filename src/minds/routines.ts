@@ -1,6 +1,7 @@
 // Code minds: routines (desired state) and the fallback combat list. They read only ActorView, never GameState.
 import type { ActorView, MapZone, Order, OrderTemplate, Routine, Rng } from '../types';
 import { CONFIG } from '../config';
+import { PK } from '../library/perkIds';
 import { AWARENESS, type TimeOfDay } from '../scales';
 import { routine as getRoutine } from '../library';
 
@@ -147,21 +148,25 @@ export function routineOrder(view: ActorView): Order {
 function hostileBeliefs(view: ActorView) {
   return view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && b.status !== 'unaware');
 }
-/** BF37: what a broken nerve blocks, for now: any walk or run (fleeing too), and any attack, grab, filch or perk move (Battle
- * Cry). Talking, begging, persuading, lying, yielding, giving, using an item, picking up and unlocking or opening a door or
- * container within reach still work. An actor broken with nothing allowed to do cowers where it stands. */
+/** BF37: what a broken nerve blocks, for now: any walk or run (fleeing too), and any attack, grab, filch or perk move, except
+ * the perk moves in NERVE_ALLOWED_PERK_MOVES (Battle Cry: a broken one can still roar). Talking, begging, persuading, lying,
+ * yielding, giving, using an item, picking up and unlocking or opening a door or container within reach still work. An actor
+ * broken with nothing allowed to do cowers where it stands. */
 export const NERVE_BLOCKED: readonly string[] = ['attack', 'move', 'flee', 'filch', 'restrain'];
+export const NERVE_ALLOWED_PERK_MOVES: readonly string[] = [PK.battle_cry];
 const NOTHING_CHOSEN: readonly string[] = ['idle', 'hold', 'wait'];
 /** BF37: the cowering order: no move and no action, only words */
 export const cowerOrder = (actorId: string, source: Order['source']): Order => ({ actorId, type: 'idle', target: null, skill: null, intent: 'cower', source, activity: 'cowering' });
 /** BF37: the order a broken nerve leaves: the blocked parts taken away (the move, an attack, a perk move), the rest kept
  * (its words, gear and an allowed action); nothing allowed left, it cowers. `blocked` says whether anything was taken. */
 export function nerveHolds(o: Order): { order: Order; blocked: boolean } {
-  const { move: _m, moveAfter: _ma, moveSpot: _ms, jump: _j, vanish: _v, perkMove: _pm, pace: _p, ...kept } = o;
-  const blocked = !!o.move || !!o.perkMove || !!o.vanish || NERVE_BLOCKED.includes(o.type);
+  const { move: _m, moveAfter: _ma, moveSpot: _ms, jump: _j, vanish: _v, perkMove: _pm, pace: _p, ...rest } = o;
+  const cry = o.perkMove && NERVE_ALLOWED_PERK_MOVES.includes(o.perkMove.perk) ? { perkMove: o.perkMove } : {};
+  const kept: Order = { ...rest, ...cry };
+  const blocked = !!o.move || (!!o.perkMove && !cry.perkMove) || !!o.vanish || NERVE_BLOCKED.includes(o.type);
   if (!NERVE_BLOCKED.includes(o.type) && !NOTHING_CHOSEN.includes(o.type)) return { order: kept, blocked };
   const cower = cowerOrder(o.actorId, o.source);
-  return { order: { ...cower, ...(kept.line ? { line: kept.line } : {}), ...(kept.addressees ? { addressees: kept.addressees } : {}), ...(kept.gear?.length ? { gear: kept.gear } : {}), ...(kept.way ? { way: kept.way } : {}), ...(kept.triggerId ? { triggerId: kept.triggerId } : {}) }, blocked };
+  return { order: { ...cower, ...cry, ...(kept.line ? { line: kept.line } : {}), ...(kept.addressees ? { addressees: kept.addressees } : {}), ...(kept.gear?.length ? { gear: kept.gear } : {}), ...(kept.way ? { way: kept.way } : {}), ...(kept.triggerId ? { triggerId: kept.triggerId } : {}) }, blocked };
 }
 
 /** a broken actor no one asked anything of cowers (BF37); one that surrendered holds where it is */

@@ -10,7 +10,7 @@ import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
 import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
-import { augmentWindow, learningWindow } from '../ruleset/improve';
+import { augmentWindow, burdenOf, burdenParts, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
 import { openPop } from './pop';
 import { powerFigure } from './power';
@@ -236,6 +236,8 @@ export function skillFacts(p: Actor, id: string) {
     rolls: [...augmentsOf(p, id), ...tradesOut(p, id)].filter((x) => x.value),
     gives: (lib.skills[id]?.augments ?? []).map((g) => skillName(g.skill)),
     window: windowOf(p, id), next, toNext: next - value,
+    // BU3: what Burden takes off this skill's improvement rolls (0 for a tagged skill, or with no progression record)
+    burden: p.progression && p.core.skills[id]?.state !== 'tagged' ? { by: burdenOf(p), ...burdenParts(p) } : { by: 0, total: 0, potential: 0 },
   };
 }
 
@@ -255,6 +257,9 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
     f.gives.length ? h('p', {}, `Adds to ${f.gives.join(' and ')} rolls.`) : null,
     h('div', { class: 'sk-list' },
       line('Learns from', winText(f.window)),
+      // BU3 b: shown only once Burden is above 0, and only here
+      f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad') : null,
+      f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your untagged skills add up to ${f.burden.total}, past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
       line('Next perk milestone', `${f.next} · ${whole(f.toNext)} to go`)),
   ] });
 }
