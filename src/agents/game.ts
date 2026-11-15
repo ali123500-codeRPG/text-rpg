@@ -1340,7 +1340,9 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   const name = (id: string) => (id === me ? 'You' : clear.has(id) ? cap(views.callName(s, me, id)) : 'Someone');
   const whose = (id: string) => (id === me ? 'Your' : `${name(id)}’s`);
   const num = (n: number) => String(r1(n));
-  const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${num(x.value)}`).join(', ')}]` : '');
+  const sgn = (n: number) => `${n >= 0 ? '+' : ''}${num(n)}`;
+  // PW5 a: a wound shows its % and the points it came to, "health: Wounded -20% (-15.1)"
+  const mods = (m: { source: string; value: number; pct?: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.pct !== undefined ? `${sgn(x.pct)}% (${sgn(x.value)})` : sgn(x.value)}`).join(', ')}]` : '');
   // BF70: a roll moved by outcome steps (short of gear, cover, fear, perks) shows the outcome before them, the steps and what
   // moved it, then the outcome they made: "Near Miss [weapon +9], 8 steps down [Short of … −8] → Critical Failure−−−−−−"
   const tiered = (r: TierRoll & { modifiers?: { source: string; value: number }[]; tierShifts?: { source: string; value: number }[] }) => {

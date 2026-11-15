@@ -102,8 +102,15 @@ function rolePenalty(a: Actor, raw: PartState): number {
   return hasPerk(a, PK.iron_frame) && PART_STATES.pos(s) <= PART_STATES.pos('damaged') ? 0 : rolePenaltyOf(s);
 }
 
+/** PW1 b: a wound's % comes off the average roll, the d100's average (50.5) + SKILL_WEIGHT × the effective skill */
+export const averageRoll = (skill: number): number => 50.5 + CONFIG.SKILL_WEIGHT * skill;
+/** PW1 b, PW5 a: woundsMods' % values as margin points for a roll at this effective skill, each keeping its % to show */
+export const woundsOnRoll = (mods: Mod[], skill: number): Mod[] =>
+  mods.map((m) => ({ ...m, pct: m.value, value: (m.value / 100) * averageRoll(skill) }));
+
 /**
- * wounds-type roll modifiers for a skill: health-track level plus body-part role penalties.
+ * wounds-type roll modifiers for a skill: health-track level plus body-part role penalties. Values are % of the average
+ * roll (PW1 b); roll() turns them into points with woundsOnRoll.
  * ctx.itemId picks the limb (the grips holding that item, worse arm for two grips; 'natural:<mode>' its Strike part);
  * without an item, the best Grip arm is used.
  */
@@ -118,7 +125,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
   const ct = actorBody(state, actor);
   const uses = ctx.roles ?? lib.skills[skill]?.roles ?? [];
   const st = (id: string) => poolState(partPct(actor, id));
-  // any essential part Crippled or worse: one flat penalty on every roll (Tough It Out counts the part one step milder)
+  // any essential part Crippled or worse: one penalty on every roll (Tough It Out counts the part one step milder)
   const crip = ct.parts.find((p) => p.impact === 'essential' && PART_STATES.pos(effectiveState(actor, st(p.id))) >= PART_STATES.pos('crippled'));
   if (crip) out.push({ source: `essential part crippled: ${crip.id.replace(/_/g, ' ')}`, type: 'wounds', value: CONFIG.ESSENTIAL_CRIPPLED_PENALTY });
   // Past the Pain: the first Crippled part in body order gives no role penalty
@@ -147,7 +154,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
     }
     if (v) out.push({ source: `${lib.roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
   }
-  // a Damaged shield: −10 to block (wounds type)
+  // a Damaged shield: the Damaged role penalty on Block (wounds type)
   if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'damaged') {
     out.push({ source: 'shield damaged', type: 'wounds', value: CONFIG.ROLE_PENALTY.damaged });
   }

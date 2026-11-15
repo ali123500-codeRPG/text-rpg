@@ -377,7 +377,7 @@ export function moraleHint(k: MoraleLevel): string | null {
   if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM as MoraleLevel)) return null;
   if (k === 'broken') return `${NERVE_PASSES()} ${NERVE_STILL}`;
   const roll = moraleRoll(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
-  return `${roll ? `−${Math.abs(roll)} on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to walk away or attack.`;
+  return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to walk away or attack.`;
 }
 
 /** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
@@ -414,7 +414,7 @@ export function staminaBar(p: Actor, full: boolean): HTMLElement[] {
   const breath = `Breath ${fmt1(v.lineLeft)} / ${fmt1(v.lineMax)}: strain spends it first, then eats into sleep debt; it comes back once you stop for a while`;
   return [
     h('span', { class: 'cs-row' }, h('span', {}, 'Stamina', v.spent ? h('span', { class: 'cs-spent', 'data-m': 'spent', title: 'Spent: nothing harder than a Light effort until you sleep' }, 'Spent') : null),
-      h('b', {}, row && row[2] < 0 ? tipped(v.level, `${v.level}: −${Math.abs(row[2])} to rolls`, 'stamina-level', 'stamina-hint') : h('span', { 'data-m': 'stamina-level' }, v.level), full ? [' · ', h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
+      h('b', {}, row && row[2] < 0 ? tipped(v.level, `${v.level}: −${Math.abs(row[2])}% to rolls`, 'stamina-level', 'stamina-hint') : h('span', { 'data-m': 'stamina-level' }, v.level), full ? [' · ', h('span', { 'data-m': 'stamina-left' }, fmt1(v.left)), ` / ${fmt1(v.max)}`] : null)),
     h('span', { class: 'cs-hptrack cs-stam', title: 'Stamina: sleep debt, Rested on the right; only sleep clears it', role: 'img', 'aria-label': `Stamina: ${v.level}`, 'data-m': 'stamina-track' },
       h('b', { style: `width:${pct(v.left, v.max)}%` }), ...ticks),
     h('span', { class: 'cs-stline', title: breath, role: 'img', 'aria-label': breath, 'data-m': 'stamina-line', style: `width:${pct(v.lineMax, v.max)}%` },

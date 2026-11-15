@@ -11,7 +11,7 @@ import { COVER, HIT_OUTCOMES, TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { sightDistM, withinM } from '../engine/position';
-import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
+import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk, trueSkill } from './perks';
 import { baneMods, defeatsMods } from './bane';
@@ -171,7 +171,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const eff: { skill: string; value: number; parts?: string[] } = req.blend ? blendedSkill(state, actor, req.blend, ctx) : effectiveSkill(state, actor, req.skill, ctx); // a combined roll (Throw)
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
-    modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
+    modifiers.push(...woundsOnRoll(woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }), eff.value)); // PW1 b
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
     modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
     modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses

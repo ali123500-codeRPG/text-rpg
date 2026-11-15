@@ -17,7 +17,8 @@ export interface Rng {
 }
 
 export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status';
-export type Mod = { source: string; type: ModType; value: number };
+/** pct: a wound's % of the average roll that `value` came from (PW5 a) */
+export type Mod = { source: string; type: ModType; value: number; pct?: number };
 export type TierShift = { source: string; value: number };
 
 export type CheckRequest = { actorId: string; skill: string; target?: string; modifiers: { source: string; value: number }[] };
