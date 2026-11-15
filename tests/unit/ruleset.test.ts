@@ -191,7 +191,7 @@ describe('ruleset methods', () => {
     expect(tierCostMult(-2)).toBe(3); // two steps past Critical Failure
     p.core.condition.moraleLost = 40; // 50 % of 80: Afraid
     expect(moraleLevel(p)).toBe('afraid');
-    expect(woundsMods(s, p, SK.resolve).find((m) => m.source === 'morale: Afraid')?.value).toBe(-7);
+    expect(woundsMods(s, p, SK.resolve).find((m) => m.source === 'morale: Afraid')?.value).toBe(-10); // PW6 a: its own step
     p.core.condition.moraleLost = 80;
     expect(moraleLevel(p)).toBe('broken');
     restoreMorale(p, 25); // engagement end: back 20 of 80
