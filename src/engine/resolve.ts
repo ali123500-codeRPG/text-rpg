@@ -44,7 +44,7 @@ import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from '
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
+import { applyGearOps, bindCarriedCharms, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
 import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
 import { cantSteady, steady } from './steady';
@@ -2479,6 +2479,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (!CONFIG.GROWTH_AT_SCENARIO_END) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
+  bindCarriedCharms(state); // D-218: a Threadbound charm binds to the player carrying it
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
     syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter

@@ -1,5 +1,5 @@
-// 191 Threadbound items (D-218): the Varo's Loop, one of a kind. It binds to the first who wears it; while its owner
-// wears it, each ability opens once the owner has earned its event-roll achievement. Its passives widen the event roll
+// 191 Threadbound items (D-218): the Varo's Loop, one of a kind, a charm. It binds to the first player who carries it;
+// while its owner carries it, each ability opens once the owner has earned its event-roll achievement. Its passives widen the event roll
 // both ways (wider natural edges, more tiers past each Critical, a spread die); its two actives fire by themselves on essence rolls.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
@@ -7,7 +7,9 @@ import { intent, play } from './w4-kit';
 import { ruleset, tierName } from '../../src/ruleset';
 import { tierReach } from '../../src/ruleset/achRewards';
 import { syncThreadboundItemPerks } from '../../src/ruleset/threadboundItems';
-import { applyGearOps } from '../../src/engine/gear';
+import { applyGearOps, bindCarriedCharms } from '../../src/engine/gear';
+import { power } from '../../src/engine/xp';
+import { getLibrary } from '../../src/library';
 import { offersFromDefeats, qualityRoll } from '../../src/engine/essence';
 import { CONFIG } from '../../src/config';
 import { PERK_MOVES } from '../../src/ruleset';
@@ -27,11 +29,11 @@ const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { 
 const LOOP = 'loop_1';
 const earn = (a: Actor, ...keys: string[]) => keys.forEach((key) => ((a.progression ??= {} as never).achievements ??= []).push({ key, turn: 0 } as never));
 const has = (a: Actor, perk: string) => a.core.perks.some((p) => p.perkId === perk && p.source === 'item');
-/** the player carries the loop and has put it on */
+/** the player carries the loop (it binds at the turn's end) */
 const worn = (earned: string[] = []) => {
   const s = makeVillage();
   s.player.core.inventory.push({ id: LOOP, itemId: IT.varos_loop });
-  applyGearOps(s, s.player, [{ op: 'wear_acc', item: LOOP }]);
+  bindCarriedCharms(s);
   earn(s.player, ...earned);
   syncThreadboundItemPerks(s.player, s.turn);
   return s;
@@ -39,26 +41,38 @@ const worn = (earned: string[] = []) => {
 const ev = (s: GameState, ...d: number[]) => ruleset.eventRoll(s.player, s, forcedRng(d));
 
 describe('191 the Varo\'s Loop', () => {
-  it('binds to the first who wears it and gives nothing in anyone else\'s hands', () => {
+  it('binds to the first player who carries it and gives nothing in anyone else\'s hands', () => {
     const s = worn([ACH.event_crit_1]);
     const inst = s.player.core.inventory.find((i) => i.id === LOOP)!;
     expect(inst.boundTo).toBe('player');
-    // even worn by someone else by force, it gives them nothing (nobody else can put it on: s192)
+    // carried by someone else, it gives them nothing, and an NPC never binds it
     expect(has(s.player, PK.loose_odds)).toBe(true);
     const other = s.actors[0];
-    other.core.inventory.push({ ...inst, id: 'loop_2', equippedIn: ['acc:0'] });
+    other.core.inventory.push({ id: 'loop_2', itemId: IT.varos_loop });
+    bindCarriedCharms(s);
+    expect(other.core.inventory.at(-1)!.boundTo).toBeUndefined();
+    other.core.inventory.push({ ...inst, id: 'loop_3' });
     earn(other, ACH.event_crit_1);
     syncThreadboundItemPerks(other, s.turn);
     expect(has(other, PK.loose_odds)).toBe(false);
   });
 
-  it('abilities follow achievements and leave when it comes off', () => {
+  it('a charm: no slot, it can\'t be worn, and it adds nothing to the rating', () => {
+    const s = worn();
+    expect(getLibrary().items[IT.varos_loop].slot).toBeUndefined();
+    expect(applyGearOps(s, s.player, [{ op: 'wear_acc', item: LOOP }]).invalid).toHaveLength(1);
+    const before = power(s, s.player);
+    s.player.core.inventory = s.player.core.inventory.filter((i) => i.id !== LOOP);
+    expect(power(s, s.player)).toBe(before);
+  });
+
+  it('abilities follow achievements and leave when it is set down', () => {
     const s = worn();
     expect(s.player.core.perks.some((p) => p.source === 'item')).toBe(false);
     earn(s.player, ACH.event_crit_fail_1);
     syncThreadboundItemPerks(s.player, s.turn);
     expect(has(s.player, PK.twin_abyss)).toBe(true);
-    applyGearOps(s, s.player, [{ op: 'remove_acc', item: LOOP }]);
+    applyGearOps(s, s.player, [{ op: 'set_down', item: LOOP }]);
     syncThreadboundItemPerks(s.player, s.turn);
     expect(has(s.player, PK.twin_abyss)).toBe(false);
   });

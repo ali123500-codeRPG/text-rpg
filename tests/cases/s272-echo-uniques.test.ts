@@ -33,12 +33,12 @@ const slain = <T extends { core: { condition: { hpLostPct: number } }; mind?: { 
 const ECHO = 'TP_echo_test', ECHO_ESSENCE = 'ES_echo_test';
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
 
-/** the village's player falls and is sent: a Threadbound item worn, a hurt shield, an achievement and a scar */
+/** the village's player falls and is sent: a Threadbound item carried, a hurt shield, an achievement and a scar */
 function sendHero(s: GameState): void {
   const p = s.player, lib = getLibrary();
   p.core.bornDay = -30 * CONFIG.YEAR_DAYS; // 30 years old
   const tb = Object.values(lib.items).find((d) => d.threadbound)!;
-  p.core.inventory.push({ id: 'tb', itemId: tb.id, boundTo: p.id, equippedIn: ['acc:1'] });
+  p.core.inventory.push({ id: 'tb', itemId: tb.id, boundTo: p.id });
   const shield = p.core.inventory.find((i) => itemDef(s, i.itemId).shield);
   if (shield) shield.pools = { shield: 20 };
   p.progression!.achievements = [{ id: 'a1', key: Object.keys(lib.achievements ?? {})[0], turn: 3 }];

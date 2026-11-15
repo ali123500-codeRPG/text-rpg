@@ -16,6 +16,20 @@ import { summon } from '../ruleset/threadboundItems';
 import { freeAccSlot, gripSlot, isAccSlot, isHeld, isWorn } from '../ruleset/gear';
 import { inArmorSlot } from '../ruleset/slots';
 
+/** WP2: a Threadbound item's bond dies with its owner (never an echo's soulbound copy); `by` stands in for an owner not found */
+const ownerGone = (state: GameState, inst: ItemInstance, by: Actor): boolean =>
+  !!inst.boundTo && !inst.soulbound && healthLevel(actorById(state, inst.boundTo) ?? by) === 'dead';
+
+/** D-218: a Threadbound charm (no slot, so never worn) binds to the player carrying it, when it is unbound or its owner is
+ * dead; like wear_acc for one that is worn. NPCs never bind one (TB6). Runs at the end of every turn, before its perks sync. */
+export function bindCarriedCharms(state: GameState): void {
+  const p = state.player;
+  for (const i of p.core.inventory) {
+    const d = itemDef(state, i.itemId);
+    if (d.threadbound && !d.slot && i.boundTo !== p.id && (!i.boundTo || ownerGone(state, i, p))) i.boundTo = p.id;
+  }
+}
+
 export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
 }
@@ -82,11 +96,11 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         // TB6: a Threadbound item is the player's alone: no one else can wear it. WP2: its bond dies with its owner, so the
         // player may take a dead owner's for themselves (never an echo's soulbound copy)
         // HF18: an echo wears its own soulbound copy of one
-        const ownerGone = !!inst.boundTo && !inst.soulbound && healthLevel(actorById(state, inst.boundTo) ?? actor) === 'dead';
-        if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id && !ownerGone)) && !(inst.soulbound && inst.boundTo === actor.id)) break;
+        const gone = ownerGone(state, inst, actor);
+        if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id && !gone)) && !(inst.soulbound && inst.boundTo === actor.id)) break;
         const slot = freeAccSlot(actor);
         if (slot) { inst.equippedIn = [slot]; ok = true; }
-        if (ok && itemDef(state, inst.itemId).threadbound && (!inst.boundTo || ownerGone)) inst.boundTo = actor.id; // D-218: binds to the player on first wear
+        if (ok && itemDef(state, inst.itemId).threadbound && (!inst.boundTo || gone)) inst.boundTo = actor.id; // D-218: binds to the player on first wear
         break;
       }
       case 'remove_acc':

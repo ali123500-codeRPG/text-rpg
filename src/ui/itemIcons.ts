@@ -26,7 +26,7 @@ const ICON_OF: Record<string, IconName> = {
   [IT.round_shield]: 'shield', [IT.kite_shield]: 'shield',
   [IT.crude_clothes]: 'tunic', [IT.gambeson]: 'tunic', [IT.boiled_leather]: 'leather', [IT.mail_hauberk]: 'mail',
   [IT.brigandine]: 'plate', [IT.lamellar_coat]: 'plate', [IT.plate_harness]: 'plate', [IT.half_plate]: 'plate',
-  [IT.varos_loop]: 'earring', [IT.lucky_charm]: 'charm', [IT.lockpicks]: 'picks', [IT.key]: 'key',
+  [IT.varos_loop]: 'charm', [IT.lucky_charm]: 'charm', [IT.lockpicks]: 'picks', [IT.key]: 'key',
   [IT.healing_draught]: 'potion', [IT.bandage]: 'bandage', [IT.curio]: 'pouch', [IT.coin]: 'coin',
   [IT.pack]: 'pack', [IT.sack]: 'sack', [IT.chest]: 'chest', [IT.crate]: 'crate',
 };
