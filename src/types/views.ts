@@ -368,7 +368,7 @@ export type WeaverView = {
   /** SC6: how the last few scenarios went, oldest first (question, scale, tier, ending, who fell, what the player gained) */
   lastScenarios: { question: string; scale: string; tier: TierName; ending: string; note: string; turns: number; fallen: string[]; gained: string[]; inner?: true }[];
   /** SC4: the bigger scenario (Episode or Venture) this new scenario sits inside; it carries on when this one ends */
-  outerScenario?: { question: string; scale: string };
+  outerScenario?: { question: string; stake?: string; scale: string };
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string; youngestStage?: string }[];
     /** HF9, HF2: unique NPCs not yet in this world: one specific person each (an echo: a fallen hero), with its power and,
