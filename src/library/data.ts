@@ -134,6 +134,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   { ...sk(SK.tremor, TR.slime_senses, [], [RL.sense], 'sound', 'tier_0'), groups: [GR.notice], augments: [{ skill: SK.earshot }] },
   // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells)
   sk(SK.scent, TR.scent, [FN.smell], [RL.sense]),
+  sk(SK.healing, TR.medicine, [FN.healing], [RL.grip]), // NR33
   // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
@@ -518,7 +519,11 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   // NR4: woods folk who live by the bow (hunters, foresters, trappers, poachers); civilian, Commoner class line (NR2)
   role(RO.hunter, 'Hunter', 'civilian', { high: [SK.ranged_medium, SK.sneaking], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
   // NR6: barber-surgeons, herb-wives, midwives; the one who sells clinic care (SV.clinic) where a place has it
-  role(RO.healer, 'Healer', 'civilian', { high: [SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
+  role(RO.healer, 'Healer', 'civilian', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
+  // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (D-340)
+  role(RO.leader, 'Leader', 'civilian', { high: [SK.persuasion, SK.intimidation], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
+  // NR13: the armoured professional (man-at-arms, knight, champion); its master's class is Knight (CL11)
+  role(RO.knight, 'Knight', 'combat', { high: [SK.melee_medium, SK.heavy_armor], moderate: [SK.block, SK.resolve, SK.intimidation], low: [SK.melee_heavy, SK.persuasion] }, { traits: { [PA.discipline]: 40 }, values: [VL.duty, VL.glory] }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_heavy]),
   role(RO.beast, 'Beast', 'beast', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
 ].map((r) => [r.id, r]));
 
@@ -713,6 +718,7 @@ export function prototypeLibrary(): Library {
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
       // AB18 a: animals smell; anyone else only through an essence
       [TR.scent]: { id: TR.scent, name: 'Scent', skills: [SK.scent], access: { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) } },
+      [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
@@ -730,6 +736,9 @@ export function prototypeLibrary(): Library {
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
+      // NR13 (placeholder numbers, benefits later): every Arms skill at 50 (the Arms All-50), one at 75, and Heavy Armor 60
+      [CL.knight]: { id: CL.knight, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight', tier: 'tier_2', label: 'a knight', story: 'Armoured head to foot and sworn to a banner; the blade does not tire and the line does not break.', floors: {},
+        unlock: { [SK.melee_light]: 50, [SK.melee_medium]: 50, [SK.melee_heavy]: 50, [SK.heavy_armor]: 60 }, unlockAny: [{ [SK.melee_light]: 75, [SK.melee_medium]: 75, [SK.melee_heavy]: 75 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
       // unlocked through Commoner 5's perk (its Start, ST3, was removed: CC3)
@@ -794,6 +803,8 @@ export function prototypeLibrary(): Library {
       [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false },
       // AT10 (placeholder): a healing draught, 25% of health and parts up to Damaged, any time
       [HL.draught]: { id: HL.draught, name: 'Healing draught', hpPct: 25, partPct: 25, reach: 'damaged', revivesDead: false },
+      // NR34: Heal (Healing 50); its share is set per use by the roll's tier (CONFIG.HEAL_TIER_SHARE of what is missing)
+      [HL.heal]: { id: HL.heal, name: 'Heal', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
       [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
       // never applied itself: healing straight from a perk (Second Wind) is counted here for achievements; Fast Healer counts as natural recovery

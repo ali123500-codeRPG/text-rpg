@@ -3,7 +3,7 @@
 // Code refers to them through these constants. Never reuse or renumber an ID.
 export const RL = { sense: 'RL1', grip: 'RL2', move: 'RL3', fly: 'RL4', strike: 'RL5', speech: 'RL6' } as const;
 /** healing sources (health); HL5 is retired (natural composure moved to the composure table, CP) */
-export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', perk: 'HL6', draught: 'HL7' } as const;
+export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', perk: 'HL6', draught: 'HL7', heal: 'HL8' } as const;
 /** FT7 the stamina recovery table: Sleep, Rest, Catching your breath, and Perks (a counting row) */
 export const RV = { sleep: 'RV1', rest: 'RV2', breath: 'RV3', perk: 'RV4' } as const;
 /** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */

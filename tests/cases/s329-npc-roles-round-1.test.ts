@@ -23,7 +23,7 @@ describe('329 NPC roles, first round', () => {
   it('NR6: a Healer is a civilian who reads and calms people, with no gear of its own', () => {
     const r = getLibrary().npcRoles![RO.healer];
     expect(r.kind).toBe('civilian');
-    expect(r.bands.high).toEqual([SK.insight, SK.persuasion]);
+    expect(r.bands.high).toEqual([SK.healing, SK.insight, SK.persuasion]); // NR33: Healing joins its High band
     expect(r.gear).toBeUndefined();
   });
 

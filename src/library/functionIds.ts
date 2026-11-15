@@ -10,7 +10,8 @@ export const FN = {
   filching: 'FN16', // FL1: taking what someone carries or owns without being caught (the Filching skill)
   stamina: 'FN17', // FT15: how long the body keeps going (the Stamina skill)
   smell: 'FN18', // AB18: noticing by smell (the Scent skill)
+  healing: 'FN19', // NR33: mending someone else's body (the Healing skill)
 } as const;
 export const GR = {
-  melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7', speed: 'GR8', will: 'GR9', aura: 'GR10', sleight: 'GR11', stamina: 'GR12',
+  melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7', speed: 'GR8', will: 'GR9', aura: 'GR10', sleight: 'GR11', stamina: 'GR12', medicine: 'GR13',
 } as const;

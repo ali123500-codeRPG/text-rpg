@@ -43,6 +43,7 @@ const ROWS: Record<string, Row> = {
   show: { need: 'none', who: 'both' }, // BF16: turning out your own pockets
   steady: { need: 'none', who: 'both' }, // SY1: anyone in a fight can steady itself
   extract: { need: 'grip', who: 'player only: only the player takes essence offers' }, // DX3: within arm's reach of someone helpless
+  heal: { need: 'grip', who: 'player only: NPC agents are not offered it yet; the order type exists, so they can be later' }, // NR34: within arm's reach, or oneself
   move: { need: 'none', who: 'npc only: the player moves in the move slot' },
   hold: { need: 'none', who: 'npc only: the player waits' },
   call_help: { need: 'none', who: 'npc only: the player shouts' },
