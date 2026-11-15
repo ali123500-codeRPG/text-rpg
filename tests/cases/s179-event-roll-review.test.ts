@@ -7,9 +7,14 @@ import { mechanicsLines } from '../../src/agents/game';
 import { WEAVER_INSTRUCTIONS } from '../../src/agents/prompts';
 
 describe('179 event roll tiers (ER1, ER2)', () => {
-  it('Great Success is high gain with little challenge; Critical Success is the biggest gain inside a Critical Failure challenge (D-247)', () => {
-    expect(gradesFitTier('great_success', 'minor', 'major')).toBe(true);
+  it('Great Success is a prize one or two steps above a real challenge (SW1 b, SW2 a); Critical Success is the biggest gain inside a Critical Failure challenge (D-247)', () => {
+    expect(gradesFitTier('great_success', 'minor', 'major')).toBe(false);
+    expect(gradesFitTier('great_success', 'moderate', 'major')).toBe(true);
+    expect(gradesFitTier('great_success', 'moderate', 'extreme')).toBe(true);
+    expect(gradesFitTier('great_success', 'major', 'extreme')).toBe(true);
     expect(gradesFitTier('great_success', 'major', 'major')).toBe(false);
+    // SW1 b: no tier allows a scenario with no challenge
+    for (const t of Object.keys(GRADES_FIT) as (keyof typeof GRADES_FIT)[]) expect(GRADES_FIT[t].challenge[0], t).not.toBe('none');
     expect(GRADES_FIT.critical_success.challenge).toBe(GRADES_FIT.critical_failure.challenge);
     expect(gradesFitTier('critical_success', 'moderate', 'extreme')).toBe(false);
     expect(gradesFitTier('critical_success', 'major', 'extreme')).toBe(true);
@@ -21,8 +26,9 @@ describe('179 event roll tiers (ER1, ER2)', () => {
     expect(gradesFitTier('near_miss', 'moderate', 'moderate')).toBe(false);
     expect(gradesFitTier('success', 'moderate', 'moderate')).toBe(true);
     expect(gradesFitText()).toContain('Near Miss = challenge minor to major, gain one step below it');
-    expect(gradesFitText()).toContain('Great Success = challenge none to moderate, gain major');
-    expect(WEAVER_INSTRUCTIONS).toContain('high tiers are good fortune');
+    expect(gradesFitText()).toContain('Great Success = challenge moderate to major, gain 1 to 2 steps above it');
+    expect(WEAVER_INSTRUCTIONS).toContain('Every scenario, at every tier, has a real');
+    expect(WEAVER_INSTRUCTIONS).toContain('never by a milder danger');
   });
 });
 

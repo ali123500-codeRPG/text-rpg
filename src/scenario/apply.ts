@@ -500,7 +500,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // SC12: a check-in may change the running scenario's question, scale and endings; its number, start and records stay
   else if (ctx.kind === 'checkin' && plan.scenario && state.stage.scenario) {
     const f = frameOf(state, plan.scenario, state.stage.scenario.tier, frameRef);
-    Object.assign(state.stage.scenario, { question: f.question, scale: f.scale, endings: f.endings });
+    Object.assign(state.stage.scenario, { question: f.question, scale: f.scale, endings: f.endings, ...(f.stake ? { stake: f.stake } : {}) });
   }
   state.hidden.castNotes ??= {};
   plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}), ...(c.templateGap ? { templateGap: c.templateGap } : {}) }));
