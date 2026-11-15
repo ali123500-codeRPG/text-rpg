@@ -132,8 +132,9 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // tremor is tier 0 and no sense function of its own: it adds its full value to every hearing roll
   // (every hearing roll asks for Earshot, SENSE_SKILL)
   { ...sk(SK.tremor, TR.slime_senses, [], [RL.sense], 'sound', 'tier_0'), groups: [GR.notice], augments: [{ skill: SK.earshot }] },
-  // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells)
-  sk(SK.scent, TR.scent, [FN.smell], [RL.sense]),
+  // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells).
+  // It sits in the Perception tree; who may use it is the skill's own rule (end of prototypeLibrary)
+  sk(SK.scent, TR.perception, [FN.smell], [RL.sense]),
   sk(SK.healing, TR.medicine, [FN.healing], [RL.grip]), // NR33
   // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
   // each stands in for the other (CONFIG.SUBSTITUTES)
@@ -706,7 +707,8 @@ export function prototypeLibrary(): Library {
       [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.parry, SK.hide] },
       [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve, SK.stamina] },
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
-      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
+      // open to all; each sense has its own rule (end of this function): no eyes or ears (TA6), smell for animals and slimes (AB18)
+      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight, SK.scent] },
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
       [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
@@ -715,8 +717,6 @@ export function prototypeLibrary(): Library {
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
-      // AB18 a: animals smell; anyone else only through an essence
-      [TR.scent]: { id: TR.scent, name: 'Scent', skills: [SK.scent], access: { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) } },
       [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
     },
@@ -1437,5 +1437,8 @@ export function prototypeLibrary(): Library {
   natural.access = { either: holders((x) => !!x.naturalAttacks?.some((m) => natural.skills.includes(m.skill ?? ''))) };
   for (const id of natural.skills) lib.skills[id].access = { either: holders((x) => !!x.naturalAttacks?.some((m) => m.skill === id)) };
   lib.skills[SK.hide].access = { either: holders((x) => !!x.naturalArmor) };
+  // Perception: eyes and ears are not for the amorphous (TA6); animals and slimes smell, anyone else only through an essence (AB18 a)
+  for (const id of [SK.eyesight, SK.earshot, SK.insight]) lib.skills[id].access = { blockedBy: [AMORPHOUS] };
+  lib.skills[SK.scent].access = { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) };
   return lib;
 }
