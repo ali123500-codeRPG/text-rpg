@@ -5,9 +5,9 @@ export const IT = {
   dagger: 'IT1', arming_sword: 'IT2', greataxe: 'IT3', spear: 'IT4', shortbow: 'IT5',
   longbow: 'IT6', crossbow: 'IT7', hidden_blade: 'IT8', crude_clothes: 'IT9', cudgel: 'IT10',
   rusty_knife: 'IT11', gambeson: 'IT12', mail_hauberk: 'IT13', plate_harness: 'IT14', round_shield: 'IT15',
-  signet_ring: 'IT16', lucky_charm: 'IT17', lockpicks: 'IT18', healing_draught: 'IT19', improvised_light: 'IT20',
+  lucky_charm: 'IT17', lockpicks: 'IT18', healing_draught: 'IT19', improvised_light: 'IT20',
   improvised_medium: 'IT21', improvised_heavy: 'IT22', curio: 'IT23', bandage: 'IT24', coin: 'IT25',
-  basket_hilt_sword: 'IT26',
+  basket_hilt_sword: 'IT26', // IT16 (signet ring) retired: removed, never reused
   // starter pairs: a Common (25) and a Fine (50) piece for every gear class
   short_sword: 'IT27', hand_axe: 'IT28', woodsman_axe: 'IT29', greatsword: 'IT30', recurve_bow: 'IT31', flatbow: 'IT32',
   light_crossbow: 'IT33', stirrup_crossbow: 'IT34', boiled_leather: 'IT35', brigandine: 'IT36', lamellar_coat: 'IT37',

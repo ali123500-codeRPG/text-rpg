@@ -3726,7 +3726,6 @@ Seventeen library items for the first build, approved as placeholders (Nov 2026)
 | mail\_hauberk | armor, medium | covers general, arms · 4, ×0.65 | Dodge −10 | — | 3 | 60 |
 | plate\_harness | armor, heavy | covers general, arms, both legs, head, neck · 6, ×0.55 · head pool: 20 | Dodge −20 | — | 3 | 200 |
 | round\_shield | shield | shield part, pool 30 | Kit +25 (Block) | 1 | 2 | 10 |
-| signet\_ring | accessory, visible | — | none; shows the visible tag | — | 0 | 40 |
 | lucky\_charm | misc | — | Event roll +5, carried, any (noted roll modifier) | — | 0 | 50 |
 | lockpicks | tool | — | lockpicking +25, inUse, withItem | 1 | 0 | 15 |
 | healing\_draught | consumable, stackable | — | none until Healing is designed | 1 | 1 | 10 |

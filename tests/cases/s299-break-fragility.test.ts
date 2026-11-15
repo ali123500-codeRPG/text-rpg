@@ -37,7 +37,7 @@ const broken = (s: GameState, list: ItemInstance[]) => list.filter((i) => itemDe
 it('BK1: fragility by kind, with tools between armor and weapons; coin, keys and Threadbound items never break', () => {
   const s = village();
   const f = (id: string) => fragilityOf(itemDef(s, id));
-  expect([IT.healing_draught, IT.lucky_charm, IT.signet_ring, IT.boiled_leather, IT.lockpicks, IT.dagger, IT.coin, IT.key, IT.varos_loop].map(f))
+  expect([IT.healing_draught, IT.lucky_charm, IT.charmed_ring, IT.boiled_leather, IT.lockpicks, IT.dagger, IT.coin, IT.key, IT.varos_loop].map(f))
     .toEqual(['fragile', 'delicate', 'delicate', 'sturdy', 'tough', 'solid', 'unbreakable', 'unbreakable', 'unbreakable']);
   const line = (id: string) => breakLine(itemDef(s, id));
   expect(line(IT.boiled_leather)! > line(IT.lockpicks)! && line(IT.lockpicks)! > line(IT.dagger)!).toBe(true);
