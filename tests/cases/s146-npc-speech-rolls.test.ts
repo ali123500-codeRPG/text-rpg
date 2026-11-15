@@ -138,7 +138,7 @@ it('146h a lie rolls Lying and the listener answers with Insight; only the shady
   expect(p.b.skill).toBe(SK.insight);
   const lib = getLibrary();
   expect(lib.trees[lib.skills[SK.lying].treeId].name).toBe('Trickery');
-  expect(lib.trees[lib.skills[SK.insight].treeId].skills).toEqual([SK.eyesight, SK.earshot, SK.insight]);
+  expect(lib.trees[lib.skills[SK.insight].treeId].skills).toEqual([SK.eyesight, SK.earshot, SK.insight, SK.scent]);
   const liars = Object.values(lib.templates).filter((t) => t.minimums[SK.lying]).map((t) => t.id);
   expect(liars).toEqual([TP.thief]);
 });

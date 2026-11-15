@@ -27,6 +27,7 @@ export const DU = {
   pick_up_reach: 'DU19', pick_up_ground: 'DU20', hand_over: 'DU21', door: 'DU22', bar: 'DU23', key: 'DU24', pick_lock: 'DU25', bandage: 'DU26',
   drink: 'DU27', vanish_in_place: 'DU28', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
   armor_heavy_on: 'DU34', armor_heavy_off: 'DU35', wait: 'DU36', break_open: 'DU37', from_pack: 'DU38',
+  blow_unarmed: 'DU39', blow_medium: 'DU40', blow_heavy: 'DU41', // blows by class (DU6 blow is the light weapon blow)
 } as const;
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;

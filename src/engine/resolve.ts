@@ -179,7 +179,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
   switch (o.type) {
     case 'attack': {
       const m = attackMode(state, a, o).m;
-      if (!m || m.mode.tree !== 'ranged') return of(DU.blow);
+      if (!m) return of(DU.blow);
+      if (m.mode.tree === 'unarmed') return of(DU.blow_unarmed); // fists, grapples and natural attacks
+      if (m.mode.tree === 'melee') return of(m.mode.class === 'heavy' ? DU.blow_heavy : m.mode.class === 'medium' ? DU.blow_medium : DU.blow);
       if (m.mode.thrown) return of(DU.throw);
       const it = inv(m.itemId), def = it ? itemDef(state, it.itemId) : undefined;
       // AT11c: a crossbow spans, then shoots: one long action under the spanning row (its focus, its work kept when broken off)
@@ -1305,7 +1307,8 @@ function exploreSeconds(ctx: Ctx, o: Order): number {
   const timed = Math.max(slotsOf(ctx, p).walkedS, (ctx.clock.get(p.id) ?? 0) - own.fill) + own.over;
   const plainMove = o.type === 'move' || o.type === 'flee' || (o.type === 'hold' && !!o.move); // BG-16: just the walk
   const untimed = timed <= T_EPS || (own.fill > T_EPS && !plainMove);
-  return Math.min(CONFIG.EXPLORE_TURN_S, untimed ? Math.max(timed, actionRow(DU.action)?.seconds ?? 0) : timed);
+  const free = o.type === 'barter' || o.type === 'buy' || o.type === 'sell'; // trading takes no time (its row is 0 s), so no default turn either
+  return Math.min(CONFIG.EXPLORE_TURN_S, untimed && !free ? Math.max(timed, actionRow(DU.action)?.seconds ?? 0) : timed);
 }
 /** AT13/AT78: a fight turn lasts FIGHT_TURN_S, or as long as the player's order when that is one shorter action with no walk
  * (never under FIGHT_TURN_MIN_S); an attack repeats to fill it */

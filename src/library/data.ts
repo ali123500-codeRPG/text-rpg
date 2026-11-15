@@ -132,13 +132,14 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // tremor is tier 0 and no sense function of its own: it adds its full value to every hearing roll
   // (every hearing roll asks for Earshot, SENSE_SKILL)
   { ...sk(SK.tremor, TR.slime_senses, [], [RL.sense], 'sound', 'tier_0'), groups: [GR.notice], augments: [{ skill: SK.earshot }] },
-  // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells)
-  sk(SK.scent, TR.scent, [FN.smell], [RL.sense]),
+  // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells).
+  // It sits in the Perception tree; who may use it is the skill's own rule (end of prototypeLibrary)
+  sk(SK.scent, TR.perception, [FN.smell], [RL.sense]),
   sk(SK.healing, TR.medicine, [FN.healing], [RL.grip]), // NR33
   // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
-  sk(SK.filching, TR.tools, [FN.filching], [RL.grip]),
+  sk(SK.filching, TR.trickery, [FN.filching], [RL.grip]), // in Trickery beside Lying; still Lockpicking's stand-in
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -706,19 +707,18 @@ export function prototypeLibrary(): Library {
       [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.parry, SK.hide] },
       [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve, SK.stamina] },
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
-      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
+      // open to all; each sense has its own rule (end of this function): no eyes or ears (TA6), smell for animals and slimes (AB18)
+      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight, SK.scent] },
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
+      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying, SK.filching], access: { blockedBy: [AMORPHOUS] } },
       [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
-      // AB18 a: animals smell; anyone else only through an essence
-      [TR.scent]: { id: TR.scent, name: 'Scent', skills: [SK.scent], access: { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) } },
       [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
-      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
+      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
@@ -870,7 +870,7 @@ export function prototypeLibrary(): Library {
       [TN.crooked_means]: { id: TN.crooked_means, name: 'good ends, crooked means', hint: 'bends the truth to help the people they care about', when: { max: { [PA.honesty]: -20 }, anyDrive: [VL.loyalty, VL.kindness] } },
     },
     fears: {
-      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 15, rolled: true, health: { from: 'injured', to: 'mauled' } },
+      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 5, rolled: true, health: { from: 'injured', to: 'mauled' } },
       [FR.own_critical]: { id: FR.own_critical, name: 'Your health reaches Critical', cost: 50, rolled: true, health: { from: 'critical', to: 'critical' } },
       [FR.bandmate_down]: { id: FR.bandmate_down, name: 'A bandmate goes down', cost: 10, rolled: true },
       [FR.bandmate_broken]: { id: FR.bandmate_broken, name: 'A bandmate breaks', cost: 10, rolled: true }, // MB23
@@ -895,13 +895,18 @@ export function prototypeLibrary(): Library {
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
       [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 30 }, // an out-of-fight turn's own time (EXPLORE_TURN_S)
-      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 3, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
+      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 0, orders: ['barter', 'buy', 'sell'] }, // trading takes no time
       [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', effort: 'base', seconds: 0, focus: 'deep' },
-      // attacks (AT11a-e): a melee or unarmed blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own.
-      // TP9 a: one shot time per weapon class, all Hard: light 3 s (light bows), medium 4 s (medium bows), heavy 5 s (crossbows)
-      [DU.blow]: { id: DU.blow, name: 'Melee or unarmed blow', effort: 'hard', seconds: 3, attack: true },
+      // attacks (AT11a-e): a blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own.
+      // TP9 a: one shot time per weapon class, all Hard: light 3 s (light bows), medium 4 s (medium bows), heavy 5 s (crossbows).
+      // Blows go by class the same way: unarmed and natural attacks 2 s, then light, medium and heavy weapons 3, 4 and 5 s
+      // (an improvised strike goes by its weight class)
+      [DU.blow_unarmed]: { id: DU.blow_unarmed, name: 'Unarmed or natural blow', effort: 'hard', seconds: 2, attack: true },
+      [DU.blow]: { id: DU.blow, name: 'Light weapon blow', effort: 'hard', seconds: 3, attack: true },
+      [DU.blow_medium]: { id: DU.blow_medium, name: 'Medium weapon blow', effort: 'hard', seconds: 4, attack: true },
+      [DU.blow_heavy]: { id: DU.blow_heavy, name: 'Heavy weapon blow', effort: 'hard', seconds: 5, attack: true },
       [DU.throw]: { id: DU.throw, name: 'Throw', effort: 'hard', seconds: 3, attack: true, locksMove: true },
       [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', effort: 'hard', seconds: 3, attack: true, locksMove: true, focus: 'steady' },
       [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', effort: 'hard', seconds: 4, attack: true, locksMove: true, focus: 'steady' },
@@ -1438,5 +1443,8 @@ export function prototypeLibrary(): Library {
   natural.access = { either: holders((x) => !!x.naturalAttacks?.some((m) => natural.skills.includes(m.skill ?? ''))) };
   for (const id of natural.skills) lib.skills[id].access = { either: holders((x) => !!x.naturalAttacks?.some((m) => m.skill === id)) };
   lib.skills[SK.hide].access = { either: holders((x) => !!x.naturalArmor) };
+  // Perception: eyes and ears are not for the amorphous (TA6); animals and slimes smell, anyone else only through an essence (AB18 a)
+  for (const id of [SK.eyesight, SK.earshot, SK.insight]) lib.skills[id].access = { blockedBy: [AMORPHOUS] };
+  lib.skills[SK.scent].access = { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) };
   return lib;
 }
