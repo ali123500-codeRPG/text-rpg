@@ -137,6 +137,10 @@ function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
     const title = String(e.name ?? e.label ?? e.brief ?? e.look ?? label(id));
     if (sec === 'npcRoles' || sec === 'themes') return layerCard(sec, id, e, title);
     if (sec === 'routineSets') return routineSetCard(id, e as unknown as RoutineSet, title);
+    // a god's card names the blessings it gives (perks with PerkDef.blessing) and its Blessed class
+    if (sec === 'gods') return card(sec, id, e, title, [], ...fields(e, ['id', 'name']),
+      row('Blessings', links('perks', Object.values(lib.perks).filter((p) => p.blessing?.god === id).map((p) => [p.id, `${p.name} (${BLESSING_TIERS.name(p.blessing!.tier)})`]))),
+      row('Blessed class', ((c) => (c ? link('classes', c, lib.classes[c].name) : none('none yet')))(blessedClass(id))));
     if (sec !== 'templates') return card(sec, id, e, title, [], ...fields(e, ['id', 'name']));
     const t = e as unknown as NpcTemplate;
     const skills = templateSkills(t);
@@ -384,7 +388,9 @@ function perks(): HTMLElement[] {
   const classes = byTier(); // every class gets a row, so one with no level perks shows as empty
   const classPerkIds = new Set(classes.flatMap((c) => [...Object.values(c.levelPerks ?? {}).flat(), ...(c.capstone ?? []), ...(c.capstones ?? []).map((x) => x.perk)]));
   const classPerks = all.filter((d) => classPerkIds.has(d.id) || d.classLevel);
-  const other = all.filter((d) => d.built && !d.ladder && !d.allStep && !classPerks.includes(d));
+  // blessings: perks a god gives (PerkDef.blessing), grouped by god, highest tier first
+  const blessings = all.filter((d) => d.blessing);
+  const other = all.filter((d) => d.built && !d.ladder && !d.allStep && !d.blessing && !classPerks.includes(d));
   const quirks = all.filter((d) => d.quirk).length;
   // milestone grid: skills × the milestones with perks written; All-XX grid: trees × the steps with parts written (dashed = not built yet, as in the game's tiles)
   const steps = [...new Set(ladder.map((d) => d.ladder!.milestone))].sort((x, y) => x - y).map(String);
@@ -417,6 +423,11 @@ function perks(): HTMLElement[] {
         h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts). Capstones come at the class\'s top level (set by its tier): the default one, or an alternate whose conditions hold; the Classes tab shows what each alternate needs.'),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classCols, classRows)),
         cardsOf('Class perks', classPerks, 'No class grants a perk yet.')] },
+      { key: 'blessing', title: 'Blessings', n: blessings.length, content: [
+        h('p', { class: 'hs-note' }, 'A blessing is a perk a god gives, at a blessing tier. Holding one of a god\'s blessings unlocks that god\'s Blessed class; The Blessed start begins with a random god\'s blessing.'),
+        ...[...new Set(blessings.map((d) => d.blessing!.god))].sort().map((g) => cardsOf(`${lib.gods?.[g]?.name ?? g}${lib.gods?.[g]?.field ? ` (${lib.gods[g].field})` : ''}`,
+          blessings.filter((d) => d.blessing!.god === g).sort((x, y) => BLESSING_TIERS.pos(y.blessing!.tier) - BLESSING_TIERS.pos(x.blessing!.tier)), 'None.')),
+        ...(blessings.length ? [] : [h('p', { class: 'lv-none' }, 'No god gives a blessing yet.')])] },
       { key: 'other', title: 'Other', n: other.length, content: [
         cardsOf('Built, with no milestone, All-XX step or class', other, 'None right now: every built perk is a milestone, All-XX or class perk.')] },
     ]),

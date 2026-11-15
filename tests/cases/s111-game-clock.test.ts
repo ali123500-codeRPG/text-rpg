@@ -33,7 +33,7 @@ describe('111 game clock', () => {
     turn(s, act('observe'));
     expect(now(s) - t0).toBeCloseTo(3 / 60, 6); // a look around
     turn(s, act('barter'));
-    expect(now(s) - t0).toBeCloseTo(3 / 60 + actionRow(DU.trade)!.seconds / 60, 6); // a trade: its row (3 s, TP5)
+    expect(now(s) - t0).toBeCloseTo(3 / 60 + actionRow(DU.trade)!.seconds / 60, 6); // a trade: its row, which takes no time
     turn(s, act('other'));
     expect(now(s) - t0).toBeCloseTo(3 / 60 + actionRow(DU.trade)!.seconds / 60 + actionRow(DU.action)!.seconds / 60, 6); // no time of its own: the action row
   });

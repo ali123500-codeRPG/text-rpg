@@ -458,7 +458,7 @@ describe('gear and combat', () => {
     F.init = { player: 90, patron_1: 80, guard_1: 10 };
     F.damage = 20;
     F.morale = 'broken';
-    actor(s, 'guard_1').core.condition.moraleLost = 90; // near Broken: Injured's fear (25 × 1.5) breaks it
+    actor(s, 'guard_1').core.condition.moraleLost = 96; // near Broken: the new health level's fear (5 × 1.5) breaks it
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }), agentOutputs: [planner('patron_1', npcAction('attack', 'guard_1'))] }), createRng(1));
     expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]); // AT50: two blows in the same round; the break stops the repeats
     expect(actor(s, 'guard_1').mind!.moraleState).toBe('broken');

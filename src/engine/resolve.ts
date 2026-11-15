@@ -1305,7 +1305,8 @@ function exploreSeconds(ctx: Ctx, o: Order): number {
   const timed = Math.max(slotsOf(ctx, p).walkedS, (ctx.clock.get(p.id) ?? 0) - own.fill) + own.over;
   const plainMove = o.type === 'move' || o.type === 'flee' || (o.type === 'hold' && !!o.move); // BG-16: just the walk
   const untimed = timed <= T_EPS || (own.fill > T_EPS && !plainMove);
-  return Math.min(CONFIG.EXPLORE_TURN_S, untimed ? Math.max(timed, actionRow(DU.action)?.seconds ?? 0) : timed);
+  const free = o.type === 'barter' || o.type === 'buy' || o.type === 'sell'; // trading takes no time (its row is 0 s), so no default turn either
+  return Math.min(CONFIG.EXPLORE_TURN_S, untimed && !free ? Math.max(timed, actionRow(DU.action)?.seconds ?? 0) : timed);
 }
 /** AT13/AT78: a fight turn lasts FIGHT_TURN_S, or as long as the player's order when that is one shorter action with no walk
  * (never under FIGHT_TURN_MIN_S); an attack repeats to fill it */
