@@ -55,7 +55,7 @@ describe('322 a scenario started in free roam is planned in the background', () 
     expect(claude.callsFor('weaver')).toHaveLength(1); // the background plan was used, not a second call
     expect(s.stage.starting).toBeUndefined();
     expect(s.stage.roam).toBeUndefined();
-    expect(s.stage.scenarioNumber).toBe(number + 1);
+    expect(s.stage.scenarioNumber).toBe(number + 2); // SW10 a: the episode and its first part
     expect(s.stage.cause).toBeUndefined();
     expect(s.stage.fallback).toBeUndefined();
     expect(s.zones.some((z) => z.name === 'mill yard')).toBe(true);

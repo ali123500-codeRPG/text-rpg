@@ -269,6 +269,9 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
   const as = st.ended?.as ?? (cause ? BREAK_ENDING[cause] : undefined) ?? 'interrupted';
   const text = st.ended?.text ?? '';
   const cur = st.scenario, outer = st.outer;
+  // SW10 a: danger or a window between Situations starts the next one inside the Episode: nothing closes; the Episode
+  // becomes the bigger scenario when the new Situation begins (beginScenario)
+  if (cause === 'roam' && cur && !outer && st.between) return 'new';
   // free roam after the endings CONFIG.ROAM_AFTER lists; a road encounter or a knock-out starts the next scenario instead
   const roam = !!cur && cause !== 'encounter' && cause !== 'knocked_out' && (!!st.ended?.roam || CONFIG.ROAM_AFTER.includes(as));
   const endsOuter = !!st.ended?.outer || cause === 'knocked_out';
@@ -276,7 +279,7 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
   // owed rolls and waiting achievements are kept apart while the inner scenario runs
   const becomesOuter = !!cur && !outer && !endsOuter && cause === 'encounter' && holdsInner(cur.scale);
   const pr = state.player.progression;
-  if (becomesOuter && pr) { cur!.held = { marks: pr.marks, ...(pr.pendingAchievements ? { pending: pr.pendingAchievements } : {}) }; pr.marks = []; delete pr.pendingAchievements; }
+  if (becomesOuter) holdForInner(state, cur!);
   if (endsOuter && outer && pr) restoreHeld(outer, pr); // both end: the bigger scenario's waiting growth joins the inner's, paid at its ending
   // D-226/EG7: what waited for the end is paid and granted now, with one gains summary (both scenarios' when the bigger one ends too)
   if (cur && !becomesOuter) {
@@ -296,10 +299,12 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
     if (pr) restoreHeld(outer, pr); // its owed rolls and waiting achievements come back
     outer.xpFrom = state.player.progression?.xpLog?.length ?? 0; outer.xpStart = xpBar(state); // D-226: the inner scenario's XP was in its own summary
     delete st.breakCause;
+    // SW10 a: back in the Episode, between Situations: danger and windows start the next one, after the rest (WB7)
+    st.between = { since: state.turn, sinceMin: now(state), rest: CONFIG.ROAM_REST_MIN[state.hidden.stage?.challenge] ?? 0 };
     logCode(state, 'scenario_resumed', { number: outer.number });
     return 'resume';
   }
-  delete st.outer;
+  delete st.outer; delete st.between;
   if (cur && !endsOuter && cause === 'encounter' && holdsInner(cur.scale)) st.outer = cur; // SC4: the encounter is an inner scenario
   delete st.scenario;
   if (roam) {
@@ -310,6 +315,15 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
     return 'roam';
   }
   return 'new';
+}
+
+/** SC4/SW10 a: a scenario becomes the bigger one around a new inner scenario: it pays nothing yet, so its owed rolls and
+ * waiting achievements are kept apart while the inner one runs (restoreHeld brings them back) */
+export function holdForInner(state: GameState, f: ScenarioFrame): void {
+  const pr = state.player.progression;
+  if (!pr) return;
+  f.held = { marks: pr.marks, ...(pr.pendingAchievements ? { pending: pr.pendingAchievements } : {}) };
+  pr.marks = []; delete pr.pendingAchievements;
 }
 
 /** the last few scenario records, for the next Weaver (SC6) */

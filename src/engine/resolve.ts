@@ -2578,7 +2578,7 @@ function updatePacing(state: GameState, events: GameEvent[], learnedBefore: numb
   const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
   // AT76: a quiet turn in a fight (a standoff) is not the story stalling: it neither counts nor resets
   state.stage.quiet = !quiet ? 0 : (state.stage.quiet ?? 0) + (state.mode === 'tactical' ? 0 : 1);
-  if (state.stage.breakCause || state.stage.roam) return; // SD2 a: no stall in free roam, since no scenario runs
+  if (state.stage.breakCause || state.stage.roam || state.stage.between) return; // SD2 a: no stall in free roam, since no scenario runs; SW10 a: nor between Situations, where windows serve
   if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) {
     state.stage.breakCause = 'story_beat';
     logCode(state, 'scenario_stalled', { number: state.stage.scenarioNumber, quiet: state.stage.quiet }); // SC12: code ended it, not the Weaver: a bug

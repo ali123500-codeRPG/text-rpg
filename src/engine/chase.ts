@@ -4,7 +4,7 @@
 // pursuers keep to their chase range (CH5), and follow through a frontier only with range far (CH6). When no pursuer has
 // seen or heard the player for CHASE_LOST_S seconds, the chase is lost (CH7): they drop to tracking, go back to their
 // routines and remember it (the price comes from the fiction, SC23), and off the ground the scenario ends as escaped.
-import type { Actor, GameEvent, GameState, WindowAnswer } from '../types';
+import type { Actor, GameEvent, GameState, Lull, WindowAnswer } from '../types';
 import { CONFIG } from '../config';
 import { CHASE_RANGES, type ChaseRange } from '../scales';
 import { getLibrary } from '../library';
@@ -155,6 +155,20 @@ export function checkGround(state: GameState): void {
   logCode(state, 'scenario_ground_left', { zone: state.player.zone, outer: g.outer });
 }
 
+/** SD2 a / SW10 a: the stretch the starters below watch: free roam (no scenario running), or an Episode (or bigger) running
+ * with no Situation inside it (between) */
+export function lull(state: GameState): Lull | undefined {
+  const st = state.stage;
+  if (st.roam && !st.scenario) return st.roam;
+  return st.between && st.scenario && !st.outer ? st.between : undefined;
+}
+/** SW3 a: what happened in the stretch: free roam keeps its own lines; between, the Episode's lines since it began */
+function lullHappened(state: GameState): { turn: number; text: string }[] {
+  const st = state.stage;
+  if (st.roam && !st.scenario) return [...(st.roam.happened ?? [])];
+  return (st.scenario?.happened ?? []).filter((h) => h.turn >= (st.between?.since ?? 0)).map((h) => ({ ...h }));
+}
+
 /** WB5: what starts a scenario at once in free roam, from this turn: a fight with the player, or someone hostile spotting them.
  * Road encounters start one on their own. Talk, trade and crossing a frontier start nothing by themselves. */
 export function roamStart(state: GameState, events: GameEvent[]): string | null {
@@ -171,7 +185,7 @@ export function roamStart(state: GameState, events: GameEvent[]): string | null 
  * a job's goal reached) open one at any time; past the rest after the last scenario, so do an active job left untouched for
  * THREAD_STALE_MIN (stale) and a quiet stretch of ROAM_QUIET_MIN (quiet), but not within WINDOW_DECLINED_MIN of a declined one. */
 export function roamWindow(state: GameState): string | null {
-  const r = state.stage.roam!, p = state.player.id, t = now(state), mine = state.log.filter((l) => l.turn === state.turn);
+  const r = lull(state)!, p = state.player.id, t = now(state), mine = state.log.filter((l) => l.turn === state.turn);
   if (mine.some((l) => l.code === 'quest_made' || (l.code === 'agreement_made' && (l.detail?.parties as string[] | undefined)?.includes(p)))) return 'job';
   if (mine.some((l) => l.code === 'quest_ready')) return 'quest';
   const since = r.sinceMin ?? t, calm = Math.max(since + (r.rest ?? 0), r.declinedAt === undefined ? -Infinity : r.declinedAt + CONFIG.WINDOW_DECLINED_MIN);
@@ -184,12 +198,12 @@ export function roamWindow(state: GameState): string | null {
  * matters opens a scenario window, which the Weaver is asked about after the save (it may decline). SW3 a: either way the
  * Weaver is told why, what happened in the roam, and who saw the player this turn. */
 export function checkRoam(state: GameState, events: GameEvent[]): void {
-  const st = state.stage;
-  if (!st.roam || st.roam.since >= state.turn || st.scenario || st.breakCause || st.starting) return; // BG-238: one is on its way
+  const st = state.stage, r = lull(state);
+  if (!r || r.since >= state.turn || st.breakCause || st.starting) return; // BG-238: one is on its way
   const danger = roamStart(state, events), why = danger ?? (st.window ? null : roamWindow(state));
   if (!why) return;
   const seenBy = state.actors.filter((a) => a !== state.player && isActive(a) && a.mind?.knowledge[state.player.id]?.lastSeenTurn === state.turn).map((a) => a.id);
-  st.cause = { why, happened: [...(st.roam.happened ?? [])], seenBy };
+  st.cause = { why, happened: lullHappened(state), seenBy };
   if (danger) { delete st.window; st.breakCause = 'roam'; logCode(state, 'roam_scenario', { why }); return; }
   st.window = 'due';
   logCode(state, 'window_opened', { why });
@@ -198,11 +212,11 @@ export function checkRoam(state: GameState, events: GameEvent[]): void {
 /** WB6: the Weaver's answer to the window, back from its background call: start the scenario now (null, a failed call, starts
  * one too, as before windows) or not now. Nothing happens if a scenario started meanwhile or free roam ended. */
 export function applyWindow(state: GameState, answer: WindowAnswer | null): void {
-  const st = state.stage, open = st.window;
+  const st = state.stage, open = st.window, r = lull(state);
   delete st.window;
-  if (!open || !st.roam || st.scenario || st.breakCause || st.starting || !st.cause) return;
+  if (!open || !r || st.breakCause || st.starting || !st.cause) return;
   if (answer && !answer.start) {
-    st.roam.declinedAt = now(state);
+    r.declinedAt = now(state);
     logCode(state, 'window_declined', { why: st.cause.why, ...(answer.note ? { note: answer.note } : {}) });
     delete st.cause;
     return;
