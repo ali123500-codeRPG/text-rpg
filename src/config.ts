@@ -842,9 +842,9 @@ const DEFAULTS = {
   LEVEL_RATING_SHARE: 0.02,
   DEFEAT_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
-   * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
+   * top of the bonus of the lower level it builds on, its own step growing with its place (BG-256: I = +5, II = +15, III = +30), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,
-  /** D-119: a total-defeats achievement adds this much to every attack and defense roll for each of its tiers (I = +1, II = +2, III = +3, IV = +4) */
+  /** D-119: a total-defeats achievement adds this much to every attack and defense roll times its place, added to the lower tiers' steps (BG-256: I = +1, II = +3, III = +6, IV = +10) */
   DEFEATS_ROLL_PER_TIER: 1,
   /** the outnumbered achievement: the most foes fighting the player at once, with no one on the player's side */
   OUTNUMBERED_FOES: 3,

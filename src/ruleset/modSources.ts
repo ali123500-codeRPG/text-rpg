@@ -50,11 +50,11 @@ export const MOD_SOURCES: ModSource[] = [
   // achievement
   { type: 'achievement', roll: 'skill', source: 'Bane (race and body type)', at: 'src/ruleset/bane.ts',
     when: 'Any roll against a foe of that race or body type. The best race Bane and the best body type Bane both count.',
-    value: `${W()} × (+${CONFIG.BANE_SKILL_PER_LEVEL} skill per level of the chain)`,
+    value: `${W()} × (+${CONFIG.BANE_SKILL_PER_LEVEL} skill × place for each level of the chain, added up)`,
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => isBane(a)).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(W() * baneSkill(k)) })) },
   { type: 'achievement', roll: 'skill', source: 'Total defeats', at: 'src/ruleset/bane.ts',
     when: 'Attack, dodge and block rolls. Only the highest earned one counts.',
-    value: `+${CONFIG.DEFEATS_ROLL_PER_TIER} per tier`,
+    value: `+${CONFIG.DEFEATS_ROLL_PER_TIER} × place for each tier, added up`,
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.rule === 'defeats' && !a.by).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(defeatsRoll(k)) })) },
   { type: 'achievement', roll: 'skill', source: 'Renown', at: 'src/ruleset/achRewards.ts',
     when: 'Every morale roll of a foe fighting a player holding a renown achievement (MB24).', value: 'minus the achievement\'s renown',
