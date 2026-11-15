@@ -38,7 +38,7 @@ export const GRADES_FIT: Record<Tier, Fit> = {
   failure: { challenge: ['moderate', 'extreme'], gain: ['none', 'minor'] },
   near_miss: { challenge: ['minor', 'major'], gain: ['none', 'moderate'], gainVsChallenge: [-1, -1] },
   success: { challenge: ['minor', 'major'], gain: ['none', 'extreme'], gainVsChallenge: [-1, 1] },
-  great_success: { challenge: ['none', 'moderate'], gain: ['major', 'major'] },
+  great_success: { challenge: ['moderate', 'major'], gain: ['major', 'extreme'], gainVsChallenge: [1, 2] }, // SW1 b, SW2 a: a prize above a real challenge
   critical_success: { challenge: CRITICAL_CHALLENGE, gain: ['extreme', 'extreme'] },
 };
 const within = (x: number, [lo, hi]: [Grade, Grade]) => x >= g(lo) && x <= g(hi);
@@ -51,7 +51,7 @@ export function gradesFitTier(tier: Tier, challenge: Grade, gain: Grade): boolea
 /** GRADES_FIT in words, for the Weaver prompt */
 export function gradesFitText(): string {
   const range = ([lo, hi]: [Grade, Grade]) => (lo === hi ? lo : `${lo} to ${hi}`);
-  const vs = ([lo, hi]: [number, number]) => (lo === -1 && hi === -1 ? 'one step below it' : lo === -hi ? `within ${hi} step of it` : `${lo} to ${hi} steps from it`);
+  const vs = ([lo, hi]: [number, number]) => (lo === -1 && hi === -1 ? 'one step below it' : lo === -hi ? `within ${hi} step of it` : lo > 0 ? `${lo} to ${hi} steps above it` : `${lo} to ${hi} steps from it`);
   return TIERS.keys.map((t) => {
     const f = GRADES_FIT[t];
     return `${TIERS.name(t)} = challenge ${range(f.challenge)}, gain ${f.gainVsChallenge ? vs(f.gainVsChallenge) : range(f.gain)}`;
@@ -457,6 +457,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (!sc || typeof sc !== 'object') serr('scenario_missing', `scenario: give the scenario's question, scale and ${CONFIG.SCENARIO_ENDINGS_MIN} to ${CONFIG.SCENARIO_ENDINGS_MAX} endings`);
     else {
       if (typeof sc.question !== 'string' || !sc.question.trim()) serr('scenario_question', 'scenario.question: one line, the hidden question this scenario turns on');
+      // SW8: every scenario, at every tier, has something to lose
+      if (ctx.kind === 'scenario' && (typeof sc.stake !== 'string' || !sc.stake.trim())) serr('scenario_stake', 'scenario.stake: one line, what is lost if the player does nothing');
       const scale = SCENARIO_SCALES.keyOf(sc.scale);
       if (!scale) serr('scenario_scale', `scenario.scale must be one of ${SCENARIO_SCALES.list()}`);
       else {

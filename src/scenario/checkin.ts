@@ -15,7 +15,7 @@ export function checkinPlan(state: GameState, a: CheckinAnswer): StagePlan | nul
     event: { summary: '', challenge: 'none', gain: 'none' }, places: [], zones: [], frontiers: [],
     bands: a.arrivals?.bands ?? [], cast: a.arrivals?.cast ?? [], seeds: a.arrivals?.seeds ?? { plans: [], triggers: [], secrets: [] },
     rewards: [], hiddenTerms: [...(state.hidden.stage?.hiddenTerms ?? [])], weaverNote: state.hidden.weaverNote ?? '',
-    ...(a.change && f ? { scenario: { question: a.change.question ?? f.question, scale: a.change.scale ?? f.scale, endings: a.change.endings ?? f.endings } } : {}),
+    ...(a.change && f ? { scenario: { question: a.change.question ?? f.question, stake: a.change.stake ?? f.stake, scale: a.change.scale ?? f.scale, endings: a.change.endings ?? f.endings } } : {}),
   } as StagePlan;
 }
 

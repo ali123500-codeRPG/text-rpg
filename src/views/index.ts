@@ -892,7 +892,7 @@ function cameAndWent(state: GameState, me: string, comings: Map<string, string[]
 function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<WeaverView['target']['scenario']> {
   const c = CONFIG.SCENARIO_SCALE[f.scale];
   return {
-    question: f.question, scale: SCENARIO_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
+    question: f.question, ...(f.stake ? { stake: f.stake } : {}), scale: SCENARIO_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
     turns: state.turn - f.startTurn, budget: c?.budgetMin ? `${spanText(c.budgetMin)} of game time` : '?',
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
     happened: (f.happened ?? []).map((h) => ({ ...h })),
@@ -932,7 +932,7 @@ const STAKES: Record<Tier, string> = {
   failure: 'A real challenge with little gain',
   near_miss: 'A fair event tilted slightly against the player: gain a step below the challenge',
   success: 'A normal event, gain matched to challenge',
-  great_success: 'Good fortune: a windfall or a chance worth taking, with little challenge',
+  great_success: 'Good fortune inside a real conflict: a prize one or two steps above the challenge',
   critical_success: 'The best of luck: the biggest gain, found inside a challenge as hard as a Critical Failure brings. The opportunity in the danger sets it apart, not a milder danger',
 };
 
