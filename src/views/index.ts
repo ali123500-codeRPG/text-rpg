@@ -123,7 +123,7 @@ const tendedOf = (state: GameState, a: Actor): { tended?: string } => { const t 
 /** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
 function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: ItemInstance[] = i.contents ?? []): { container?: ContainerView } {
   if (!itemDef(state, i.itemId).container) return {};
-  const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const } : {};
+  const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const, ...(i.grade && (!viewer || i.graded?.includes(viewer.id)) ? { grade: i.grade } : {}) } : {}; // OD12
   const key = viewer && i.lock && viewer.core.inventory.some((k) => k.opens?.includes(i.id)) ? { key: true as const } : {};
   const shows = !viewer || i.open;
   return { container: { ...(i.open ? { open: true as const } : { shut: true as const }), ...(itemDef(state, i.itemId).container?.fixed ? { fixed: true as const } : {}), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),

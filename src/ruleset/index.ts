@@ -99,6 +99,12 @@ const sumShifts = (s: TierShift[]) => s.reduce((t, x) => t + x.value, 0);
 export function gradeMod(target: number): number {
   return CONFIG.SKILL_WEIGHT * (CONFIG.DIFFICULTY.moderate - target);
 }
+/** OD1 b: whether an act on a thing graded `target` needs a roll: 'sure' (Success, no roll), 'out' (out of reach, no roll) */
+export function obstacleGate(effective: number, target: number): 'sure' | 'out' | 'roll' {
+  return effective - target >= CONFIG.OBSTACLE_SURE_GAP ? 'sure' : target - effective > CONFIG.OBSTACLE_REACH_GAP ? 'out' : 'roll';
+}
+/** OD10 a: a lock's grade modifier on the roll (SE23's one formula), none at Moderate */
+export const lockMods = (target: number): Mod[] => (gradeMod(target) ? [{ source: 'lock', type: 'situational', value: gradeMod(target) }] : []);
 /** Part 1 §4: the margin of a skill roll */
 export const rollMargin = (d: number, skill: number, mods: Mod[]) => d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED;
 /** the tier level of a skill roll: the margin's band, any unlocked extra bands, the natural edge and tier shifts. Rolls and

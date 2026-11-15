@@ -95,11 +95,12 @@ export function wayOp(b: Barrier, a: Actor, from: string, op: WayOp): string | n
 
 /** what `viewer` standing in `from` can tell of a barrier: its kind; that it is blocked or broken (plain to see); a drawn bar
  * from the bolt's side; and a lock or a bar from the far side only once they tried it, or hold its key */
-export function barrierView(b: Barrier, viewer: Actor | undefined, from: string): { kind: string; open?: true; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string } {
+export function barrierView(b: Barrier, viewer: Actor | undefined, from: string): { kind: string; grade?: string; open?: true; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string } {
   const knows = !viewer || b.tried?.includes(viewer.id) || false;
   const key = !!viewer && holdsKey(viewer, b);
   return {
     kind: barrierName(b),
+    ...(b.lock && viewer && b.graded?.includes(viewer.id) ? { grade: b.grade } : {}), // OD12: known once they tried to pick it
     ...(b.open ? { open: true as const } : {}),
     ...(b.blocked && !broken(b) ? { blocked: true as const } : {}),
     ...(b.lock?.locked && (knows || key) ? { locked: true as const } : {}),

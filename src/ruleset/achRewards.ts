@@ -9,10 +9,11 @@ import { dayOf, now } from '../time';
 import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
+import { SENSE_SKILL } from '../library/skillIds';
 import { levelMaxPct } from './body';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -79,17 +80,30 @@ export function deathsDoor(state: GameState, a: Actor, before: number, lost: num
   return top;
 }
 
-/** skillAdd: true skill the actor's current achievements add to a skill, lower levels' amounts included */
+/** the skills a by-kind row's kind stands for (XR2 skillAddByKind): a skill row that skill, a group row every skill of the
+ * group, a function row that sense's skill (SENSE_SKILL) or else every skill with the function */
+export function kindSkills(by: AchievementDef['by'], of: string): string[] {
+  const skills = getLibrary().skills;
+  if (by === 'skill') return [of];
+  if (by === 'group') return Object.keys(skills).filter((k) => groupsOf(skills[k]).includes(of as never));
+  if (by === 'function') {
+    const sense = (SENSE_SKILL as Record<string, string>)[of];
+    return sense ? [sense] : Object.keys(skills).filter((k) => (skills[k].functions ?? []).includes(of as never));
+  }
+  return [];
+}
+/** skillAdd and skillAddByKind: true skill the actor's current achievements add to a skill, lower levels' amounts included */
 export const achievementSkill = (a: Actor, skill: string): number => currentAchievements(a).reduce((n, x) =>
-  n + chainRewards(x.d).reduce((m, e) => m + (e.field === 'skillAdd' ? e.from.skillAdd?.[skill] ?? 0 : 0), 0), 0);
+  n + chainRewards(x.d).reduce((m, e) => m + (e.field === 'skillAdd' ? e.from.skillAdd?.[skill] ?? 0
+    : e.field === 'skillAddByKind' && x.of && kindSkills(x.d.by, x.of).includes(skill) ? e.from.skillAddByKind! : 0), 0), 0);
 
 /** maxMorale: the flat max morale the actor's current achievements add, lower levels' amounts included */
 export const achievementMaxMorale = (a: Actor): number => currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, 'maxMorale'), 0);
 
-/** aimEase (TM26): the share (0-1) taken off the aim penalty for a part of `size`, from the actor's current by-size row
- * for that size, lower levels' amounts included */
+/** aimEase (TM26): the share (0-1) taken off the aim penalty for a part of `size`: the actor's current by-size row for that
+ * size plus its current row of the trunk (any size, XR9), lower levels' amounts included */
 export const achievementAimEase = (a: Actor, size: string): number =>
-  Math.min(100, bestReward(a, 'aimEase', (x) => x.d.by === 'size' && x.of === size)?.value ?? 0) / 100;
+  Math.min(100, (bestReward(a, 'aimEase', (x) => x.d.by === 'size' && x.of === size)?.value ?? 0) + (bestReward(a, 'aimEase', (x) => !x.d.by)?.value ?? 0)) / 100;
 
 /** standIn: the share stand-ins gain on rolls of `skill`, from achievements earned for a group the skill is in */
 export function achievementStandIn(a: Actor, skill: string): number {
@@ -134,10 +148,10 @@ export function tierReach(a: Actor, roll: RollKind | undefined, contest = false)
 /** a reward that adds up over every source: every current achievement's along its chain, plus every active owned perk's.
  * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets; searchArea
  * and searchReach widen a search (SE24). */
-export function rewardSum(a: Actor, f: 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach'): number {
+export function rewardSum(a: Actor, f: 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'essenceSlots'): number {
   const perks = getLibrary().perks ?? {};
   return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, f), 0)
-    + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + (perks[p.perkId]?.[f] ?? 0), 0);
+    + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + ((perks[p.perkId] as Partial<Record<typeof f, number>> | undefined)?.[f] ?? 0), 0);
 }
 export const freeLevelsEarned = (a: Actor) => rewardSum(a, 'freeLevels');
 /** free levels earned and not yet taken */
@@ -157,6 +171,10 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'renown': return [`every foe fighting you takes ${-d.renown!} on its morale rolls`];
     case 'maxMorale': return [`+${d.maxMorale} max morale`];
     case 'aimEase': return [`${d.aimEase}% less aim penalty on parts of that size`];
+    case 'skillAddByKind': return [`+${d.skillAddByKind} true skill in ${d.by === 'group' ? 'every skill of that group' : d.by === 'function' ? 'that sense\'s skill' : 'that skill'}`];
+    case 'sellPct': return [`traders pay you +${d.sellPct}% for what you sell`];
+    case 'questPayPct': return [`+${d.questPayPct}% on the coin a quest giver promises you`];
+    case 'essenceSlots': return [`+${d.essenceSlots} essence slot${d.essenceSlots === 1 ? '' : 's'}`];
     case 'safeBreak': return [`forcing a container open breaks less: every fragility line ${steps(d.safeBreak!, 'tier')} worse`];
     case 'firstSight': {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');

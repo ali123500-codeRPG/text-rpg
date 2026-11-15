@@ -734,8 +734,11 @@ const DEFAULTS = {
   /** scaling: each tier a landing goes past Critical Success (Critical Success+, ++) moves the fall this
    * many more bands lighter, so a supernatural dodger can land a tower jump unhurt (past Critical Failure: its own row) */
   FALL_LANDING_PAST_STEP: 1,
-  /** BA2: a Lockpicking roll's modifier by the lock's grade (placeholders); master or magic locks would add grades past extreme */
-  LOCK_GRADE_MOD: { none: 0, minor: -10, moderate: -20, major: -35, extreme: -50 } as Record<GradeLevel, number>,
+  /** OD1 b: an act on a graded thing (today a lock: picking, BA2) rolls only when in doubt: a grade this many points or more
+   * below the actor's effective skill is a sure Success with no roll; more than OBSTACLE_REACH_GAP above it is out of reach.
+   * Placeholders: points or a share of the grade is D-343. Only the gap counts, so it reads the same at 50 and at 300 */
+  OBSTACLE_SURE_GAP: 25,
+  OBSTACLE_REACH_GAP: 25,
   /** BK1/BK2: the best break roll that still breaks an item inside the container, by its fragility (placeholders). One roll
    * checks everything inside; a tier past Critical Failure is that tier with beyond −1, −2 (Critical Failure−, −−), which a
    * roll reaches only once an achievement unlocks it. null: never breaks. */
