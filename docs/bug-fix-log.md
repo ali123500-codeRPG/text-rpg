@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-257
+
+**What was wrong:** The line under the story for the player's own roll ended "you make out who is there" (Success or better) or "nothing clearer" for every plain roll, not only Look around: picking a lock, breaking a box open, healing, stashing, filching, steadying, turning out pockets. The words were written when Look around was the only plain roll, and the code never checked what the roll was for.
+
+**What was done:** Ali approved the plan (OD15 a). Look around keeps its words; a pick names what happened at the lock ("the lock opens", "still at it", "not yet", "beyond you for now", "the pick snaps"); a break says "it breaks open" or "it holds"; a graded act says done, not yet or not done; any other roll shows its skill and tier with no words, and the story tells what it meant.
+
+**Fixed by:** [PR #893](https://github.com/ali123500-codeRPG/text-rpg/pull/893)
+
 ## BG-240
 
 **What was wrong:** On turn 80 of Ali's save, "I wait until the door to the keeper's hut is open" passed 480 game minutes and the Situation ended as "Worn out" with no text. A scenario's budget counted all game time, waiting included, and code ends any scenario at twice its budget (40 game minutes for a Situation, so 80 ended it). Road trips ran budgets out the same way, and at about 30 seconds a turn the budgets were far too long for play.
