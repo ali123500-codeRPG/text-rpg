@@ -287,7 +287,7 @@ const DEFAULTS = {
   ACH_PERSONALITY_STEP: 5,
   /** [MORALE_LEVELS key, max % of max morale lost, roll penalty in % of the average roll (type wounds, MB3, PW1 b)]; broken = out of the fight */
   MORALE_TRACK: [
-    ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -7], ['afraid', 60, -7],
+    ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -7], ['afraid', 60, -10],
     ['terrified', 75, -13], ['panicking', 99.999, -20], ['broken', Infinity, 0],
   ] as [string, number, number][],
   /** MB6: a rolled fear's cost × this, by the morale roll's tier; each step below Critical Failure adds MORALE_BEYOND_CF */
