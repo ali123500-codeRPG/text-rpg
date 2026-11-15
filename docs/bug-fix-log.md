@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the plan. A level's own step is its place in the chain times the step, and the level gives its own step plus every lower level's. Bane: I +5, II +5 + 10 = +15, III +5 + 10 + 15 = +30 skill, which is +2.5, +7.5 and +15 on the roll. Total defeats: I +1, II +3, III +6, IV +10. The library viewer and reward lines now show each number reward as one total with its parts, for example "+15 on rolls vs that body type (+2.5 + +5 + +7.5)" and "+2 max morale in all (+1 from A Life Taken, +1 here)".
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #890](https://github.com/ali123500-codeRPG/text-rpg/pull/890)
 
 ## BG-240
 
