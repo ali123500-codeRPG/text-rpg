@@ -2,7 +2,7 @@
 import type { EndCheck, GameState, Grade, StagePlan, Tier } from '../types';
 import { GRADES, PLAN_ENDINGS } from '../types';
 import { triggerErrors } from './triggers';
-import { scaleFor } from '../engine/scenarioEnd';
+import { holdsInner, scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
 import { AWARENESS, CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, TALENTS, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
@@ -453,41 +453,51 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   if (ctx.kind === 'scenario' || (ctx.kind === 'checkin' && plan.scenario)) {
     // degradable: after the repair retry, a plan whose scenario is still wrong is applied with the bad endings dropped
     const serr = (code: string, message: string) => err(code, message, undefined, true);
-    const sc = plan.scenario;
-    if (!sc || typeof sc !== 'object') serr('scenario_missing', `scenario: give the scenario's question, scale and ${CONFIG.SCENARIO_ENDINGS_MIN} to ${CONFIG.SCENARIO_ENDINGS_MAX} endings`);
-    else {
-      if (typeof sc.question !== 'string' || !sc.question.trim()) serr('scenario_question', 'scenario.question: one line, the hidden question this scenario turns on');
+    // SW10 a: a scenario start with no bigger scenario running plans the Episode (or bigger) too, with this one inside it
+    const ep = ctx.kind === 'scenario' && !state.stage.outer && plan.episode && typeof plan.episode === 'object' ? plan.episode : undefined;
+    const block = (sc: StagePlan['scenario'], at: string, outer: boolean): void => {
+      if (!sc || typeof sc !== 'object') { serr(`${at}_missing`, `${at}: give the ${at}'s question, stake, scale and ${CONFIG.SCENARIO_ENDINGS_MIN} to ${CONFIG.SCENARIO_ENDINGS_MAX} endings`); return; }
+      if (typeof sc.question !== 'string' || !sc.question.trim()) serr(`${at}_question`, `${at}.question: one line, the hidden question this ${at} turns on`);
       // SW8: every scenario, at every tier, has something to lose
-      if (ctx.kind === 'scenario' && (typeof sc.stake !== 'string' || !sc.stake.trim())) serr('scenario_stake', 'scenario.stake: one line, what is lost if the player does nothing');
+      if (ctx.kind === 'scenario' && (typeof sc.stake !== 'string' || !sc.stake.trim())) serr(`${at}_stake`, `${at}.stake: one line, what is lost if the player does nothing`);
       const scale = SCENARIO_SCALES.keyOf(sc.scale);
-      if (!scale) serr('scenario_scale', `scenario.scale must be one of ${SCENARIO_SCALES.list()}`);
-      else {
-        // SC3: the plan must fit its scale's space; code raises the scale to fit (a repair note, never blocking)
+      if (!scale) serr(`${at}_scale`, `${at}.scale must be one of ${SCENARIO_SCALES.list()}`);
+      else if (outer && !holdsInner(scale)) serr('episode_scale', `episode.scale must be one of ${SCENARIO_SCALES.keys.filter((k) => holdsInner(k)).join(', ')}`);
+      else if (ep && !outer && holdsInner(scale)) serr('scenario_scale_inner', `scenario.scale: the first scenario inside the episode is ${SCENARIO_SCALES.keys.filter((k) => !holdsInner(k)).join(' or ')}`);
+      else if (outer || !ep) {
+        // SC3: the plan must fit its scale's space; code raises the scale to fit (a repair note, never blocking); with an
+        // episode the places count against the episode
         const fit = scaleFor(new Set(zones.map((z) => z?.place)).size, scale); // places that hold zones in this plan
-        if (fit !== scale) errs.push({ code: 'scenario_scale_raised', message: `scenario.scale ${scale} holds at most ${CONFIG.SCENARIO_SCALE[scale].places} place(s) with zones; raised to ${fit}`, routineOnly: false, repaired: true });
+        if (fit !== scale) errs.push({ code: `${at}_scale_raised`, message: `${at}.scale ${scale} holds at most ${CONFIG.SCENARIO_SCALE[scale].places} place(s) with zones; raised to ${fit}`, routineOnly: false, repaired: true });
         sc.scale = fit;
       }
       const ends = arr(sc.endings);
-      if (ends.length < CONFIG.SCENARIO_ENDINGS_MIN || ends.length > CONFIG.SCENARIO_ENDINGS_MAX) serr('scenario_endings', `scenario.endings: ${CONFIG.SCENARIO_ENDINGS_MIN} to ${CONFIG.SCENARIO_ENDINGS_MAX}, got ${ends.length}`);
+      if (ends.length < CONFIG.SCENARIO_ENDINGS_MIN || ends.length > CONFIG.SCENARIO_ENDINGS_MAX) serr(`${at}_endings`, `${at}.endings: ${CONFIG.SCENARIO_ENDINGS_MIN} to ${CONFIG.SCENARIO_ENDINGS_MAX}, got ${ends.length}`);
       ends.forEach((e, i) => {
-        const at = `scenario.endings ${i}`;
-        if (!e || typeof e !== 'object') { serr('scenario_ending', `${at}: not an ending`); return; }
-        if (!PLAN_ENDINGS.includes(e.as as never)) serr('scenario_ending', `${at}: as must be one of ${PLAN_ENDINGS.join(', ')}`);
-        text(`${at} text`, e.text, false);
+        const where = `${at}.endings ${i}`;
+        if (!e || typeof e !== 'object') { serr('scenario_ending', `${where}: not an ending`); return; }
+        if (!PLAN_ENDINGS.includes(e.as as never)) serr('scenario_ending', `${where}: as must be one of ${PLAN_ENDINGS.join(', ')}`);
+        text(`${where} text`, e.text, false);
         const w = e.when as EndCheck | undefined;
         switch (w?.kind) {
-          case 'band_out': if (!isBand(w.band)) serr('scenario_ending', `${at}: band ${w.band} unknown`); break;
-          case 'reach': case 'leave': if (!isPlace(w.place) && !isZone(w.place)) serr('scenario_ending', `${at}: place ${w.place} unknown`); break;
-          case 'find': if (!isActor(w.actor)) serr('scenario_ending', `${at}: actor ${w.actor} unknown`); break;
+          case 'band_out': if (!isBand(w.band)) serr('scenario_ending', `${where}: band ${w.band} unknown`); break;
+          case 'reach': case 'leave': if (!isPlace(w.place) && !isZone(w.place)) serr('scenario_ending', `${where}: place ${w.place} unknown`); break;
+          case 'find': if (!isActor(w.actor)) serr('scenario_ending', `${where}: actor ${w.actor} unknown`); break;
           // BG-222: items made in play (IT26_m39_0) are known too, through the same lookup as the rest of the game
-          case 'hold': if (!itemKnown(w.item)) serr('scenario_ending', `${at}: item ${w.item} unknown`); break;
-          case 'deliver': if (!itemKnown(w.item)) serr('scenario_ending', `${at}: item ${w.item} unknown`); else if (!isActor(w.to)) serr('scenario_ending', `${at}: actor ${w.to} unknown`); break;
-          case 'time': if (!TIME_OF_DAY.keyOf(w.at)) serr('scenario_ending', `${at}: time must be one of ${TIME_OF_DAY.list()}`); break;
+          case 'hold': if (!itemKnown(w.item)) serr('scenario_ending', `${where}: item ${w.item} unknown`); break;
+          case 'deliver': if (!itemKnown(w.item)) serr('scenario_ending', `${where}: item ${w.item} unknown`); else if (!isActor(w.to)) serr('scenario_ending', `${where}: actor ${w.to} unknown`); break;
+          case 'time': if (!TIME_OF_DAY.keyOf(w.at)) serr('scenario_ending', `${where}: time must be one of ${TIME_OF_DAY.list()}`); break;
           case 'judged': break;
-          default: serr('scenario_ending', `${at}: when.kind must be one of band_out, reach, leave, find, hold, deliver, time, judged`);
+          default: serr('scenario_ending', `${where}: when.kind must be one of band_out, reach, leave, find, hold, deliver, time, judged`);
         }
       });
-    }
+    };
+    if (ep) block(ep, 'episode', true);
+    block(plan.scenario, 'scenario', false);
+    // SW10 a: no episode given, and the scenario is too small to be one
+    const sk = SCENARIO_SCALES.keyOf(plan.scenario?.scale);
+    if (ctx.kind === 'scenario' && !state.stage.outer && !ep && sk && !holdsInner(sk))
+      serr('episode_missing', `episode: no bigger scenario is running, so plan the ${SCENARIO_SCALES.keys.filter((k) => holdsInner(k)).join(' or ')} this ${sk} is the first part of (question, stake, scale, endings)`);
   }
 
   // ---- rewards: repaired, never blocking (loot L1) ----

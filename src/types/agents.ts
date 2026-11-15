@@ -237,6 +237,8 @@ export type StagePlan = {
   weaverNote: string;
   /** SC1/SC2/SC7: a new scenario's hidden question, its scale, and two or three ways it can end (not on a frontier extension) */
   scenario?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[] };
+  /** SW10 a: with no bigger scenario running, the Episode (or bigger) this scenario is the first Situation of */
+  episode?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[] };
 };
 
 // ---- the Claude-call boundary (artifact `sample` capability, runtime 0.2.96) ----
