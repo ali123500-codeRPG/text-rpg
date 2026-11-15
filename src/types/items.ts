@@ -116,6 +116,7 @@ export type ItemInstance = {
   lock?: { locked: boolean; broken?: true }; // broken: BF31, broken open: it never locks again
   grade?: import('./core').Grade;
   beyond?: Record<string, number>; // BA2, as on a barrier
+  graded?: string[]; // OD12, as on a barrier
   work?: Record<string, number>; // BA2, as on a barrier
 };
 

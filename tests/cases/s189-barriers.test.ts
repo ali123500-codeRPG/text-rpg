@@ -211,8 +211,8 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
       expect((s.clocks.time ?? 0) - t0).toBeGreaterThanOrEqual(1); // at least the turn; 60 s at skill 50
     });
     it('Near Miss: not yet; Failure: beyond the picker until its skill is higher', () => {
-      const { s, b } = setup();
-      expect(turn(s, pick('street_door'), d(40)).find((e) => e.kind === 'pick')!.way!.did).toBe('not_yet');
+      const { s, b } = setup('moderate'); // OD10 a: Moderate is +0, so Near Miss is d100 14-38 at 50
+      expect(turn(s, pick('street_door'), d(30)).find((e) => e.kind === 'pick')!.way!.did).toBe('not_yet');
       expect(turn(s, pick('street_door'), d(12)).find((e) => e.kind === 'pick')!.way!.did).toBe('beyond');
       expect(b.beyond?.player).toBeDefined();
       expect(turn(s, pick('street_door'), d(99)).find((e) => e.kind === 'pick')!.way!.did).toBe('beyond'); // no roll

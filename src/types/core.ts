@@ -69,6 +69,8 @@ export type Barrier = {
   open?: true;
   /** BA2: a picker's Failure leaves the lock beyond them until their Lockpicking (with tools) is higher than this */
   beyond?: Record<string, number>;
+  /** OD12: actors who tried to pick it: they know its grade */
+  graded?: string[];
   /** BA2: seconds of picking done toward opening it in a fight, by picker */
   work?: Record<string, number>;
 };

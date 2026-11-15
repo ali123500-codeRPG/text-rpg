@@ -15,11 +15,11 @@ export type BodyAttackView = { mode: string; name: string; handsFull?: string };
 /** CT1/CT3: a container as a viewer knows it: open or shut, with a lock (and the viewer's key to it), and what is inside
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. shut: a shut one (BG-175), so a mind knows to
  * open it */
-export type ContainerView = { open?: true; shut?: true; fixed?: true; lock?: 'locked' | 'unlocked'; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack; fixed: CT1, it stays where it stands (a chest)
+export type ContainerView = { open?: true; shut?: true; fixed?: true; lock?: 'locked' | 'unlocked'; grade?: string; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack; fixed: CT1, it stays where it stands (a chest)
 export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView; beyondYou?: string }; // beyondYou: BF70, how far its requirement is past the holder's skill
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
-export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
+export type WayView = { kind: string; grade?: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
 export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string }[] }; // furniture: FR1/FR5, what stands there
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
