@@ -539,13 +539,15 @@ const DEFAULTS = {
   /** SC2/AT83/AT84 levers per scenario scale (placeholders), keyed by SCENARIO_SCALES key: the budget in game minutes (fights
    * count like any other time; a long action uses it by its real length) and how many places a plan of that scale may hold
    * (code raises the scale to fit). A place is one location the Weaver builds (a tavern, a farmstead, a stretch of road) */
+  // BG-240 (SW9 a): the smaller scales count only acting time (actingOnly: waiting, rest, sleep and trips are left out),
+  // sized for turns of about 30 seconds; Journey and Venture count all game time, being made of travel and nights
   SCENARIO_SCALE: {
-    moment: { budgetMin: 12, places: 1 },
-    situation: { budgetMin: 40, places: 2 },
-    episode: { budgetMin: 2 * 60, places: 4 },
+    moment: { budgetMin: 5, places: 1, actingOnly: true },
+    situation: { budgetMin: 15, places: 2, actingOnly: true },
+    episode: { budgetMin: 45, places: 4, actingOnly: true },
     journey: { budgetMin: 3 * 24 * 60, places: 8 },
     venture: { budgetMin: 7 * 24 * 60, places: Infinity },
-  } as Record<string, { budgetMin: number; places: number }>,
+  } as Record<string, { budgetMin: number; places: number; actingOnly?: true }>,
   /** SC4: scales from this one up hold smaller scenarios inside them, one level deep */
   SCENARIO_HOLDS_FROM: 'episode',
   /** SC7: how many endings a scenario plan lists */

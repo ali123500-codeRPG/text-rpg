@@ -70,6 +70,8 @@ export type ScenarioFrame = {
   /** SW8: hidden, what is lost if the player does nothing (absent on an old save) */
   stake?: string;
   tier: Tier; startTurn: number; startMinute: number; number: number;
+  /** BG-240: game minutes spent waiting, resting, sleeping or on a trip since it began (left out of an actingOnly budget) */
+  idleMin?: number;
   /** who was up and what the player held at the start, for the record */
   upAtStart: string[]; heldAtStart: string[];
   /** places a 'leave' ending names that the player has been in this scenario (leaving needs being there first) */

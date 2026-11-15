@@ -1,5 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
-import { checkScenarioEnd, closeScenario } from './scenarioEnd';
+import { checkScenarioEnd, closeScenario, noteIdle } from './scenarioEnd';
 import { checkRoam, updateChase } from './chase';
 import { noticeGoals, runSteps } from './goals';
 import { noteHappened } from './happened';
@@ -1029,6 +1029,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       return emit(ctx, ev);
     }
     const minutes = now(state) - t;
+    if (a.id === state.player.id) noteIdle(state, minutes); // BG-240: a night is not acting time
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } }); // SC4/SC9: a time skip never ends the scenario
   }
@@ -1169,6 +1170,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   }
   (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
   noteMeanwhile(state, ran - firstS);
+  if (st.kind !== 'busy') noteIdle(state, ran / 60); // BG-240: waiting, rest and long walks are not acting time; a long action is
   st.ran = ran;
   if (stop) {
     st.stop = stop;
@@ -2006,6 +2008,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
   const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), night: trip.night, stop: trip.stop, companions: trip.companions };
   logCode(state, 'travelled', { actorId: a.id, ...detail });
   if (trip.minutes > 0) logCode(state, 'time_passed', { actorId: a.id, minutes: trip.minutes, travel: true });
+  if (a.id === state.player.id) noteIdle(state, trip.minutes); // BG-240: a trip is not acting time
   emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
   if (trip.encounter) {
     state.stage.encounter = { eventRoll: trip.encounter.eventRoll, noticed: trip.encounter.noticed, zone: a.zone, at: trip.encounter.at };
