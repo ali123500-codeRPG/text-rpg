@@ -22,9 +22,11 @@ import { buyingPrice, coins, isSeller, orderReaches, payCoin } from './trade';
 import { withinGrip } from './position';
 import { applyMemoryOps } from './memory';
 import { now } from '../time';
+import { rewardSum } from '../ruleset/achRewards';
 
-/** EG2: how many essences the player can hold: ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels, no top */
-export const essenceSlots = (a: Actor): number => CONFIG.ESSENCE_SLOTS_BASE + Math.floor(charLevel(a) / CONFIG.ESSENCE_SLOT_EVERY);
+/** EG2: how many essences the player can hold: ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels, no top,
+ * + essenceSlots achievement rewards (XR2, Room for No More) */
+export const essenceSlots = (a: Actor): number => CONFIG.ESSENCE_SLOTS_BASE + Math.floor(charLevel(a) / CONFIG.ESSENCE_SLOT_EVERY) + rewardSum(a, 'essenceSlots');
 
 /** a grade's multiplier: its row, or past the last row the last one × ESSENCE_GRADE_PAST_MULT per step */
 export function gradeMult(grade: EssenceGradeKey, past = 0): number {
