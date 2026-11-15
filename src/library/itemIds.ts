@@ -13,7 +13,7 @@ export const IT = {
   light_crossbow: 'IT33', stirrup_crossbow: 'IT34', boiled_leather: 'IT35', brigandine: 'IT36', lamellar_coat: 'IT37',
   half_plate: 'IT38', kite_shield: 'IT39',
   key: 'IT40', // BA3: a key; the instance names the barriers it opens (ItemInstance.opens)
-  varos_loop: 'IT41', // D-218: the first Threadbound item, an earring
+  varos_loop: 'IT41', // D-218: the first Threadbound item, a charm, carried
   // CT1: containers
   pack: 'IT42', sack: 'IT43', chest: 'IT44', crate: 'IT45', // IT46 (belt with pouches), IT47 (bandolier) retired with pockets (PO4)
   // accessories

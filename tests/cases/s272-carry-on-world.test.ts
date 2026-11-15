@@ -16,7 +16,7 @@ import { SK } from '../../src/library/skillIds';
 import type { GameState, TurnRecord } from '../../src/types';
 import { IT } from '../../src/library/itemIds';
 import { threadboundStartBlocked } from '../../src/ruleset/threadboundItems';
-import { applyGearOps } from '../../src/engine/gear';
+import { bindCarriedCharms } from '../../src/engine/gear';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -125,17 +125,18 @@ describe('272 carrying a world on', () => {
     const s = makeVillage();
     const owner = s.actors[0];
     s.player.core.inventory.push({ id: 'loop', itemId: IT.varos_loop, boundTo: owner.id });
-    expect(applyGearOps(s, s.player, [{ op: 'wear_acc', item: 'loop' }]).invalid).toHaveLength(1); // still bound while they live
+    bindCarriedCharms(s);
+    expect(s.player.core.inventory.find((i) => i.id === 'loop')?.boundTo).toBe(owner.id); // still bound while they live
     owner.core.condition.hpLostPct = 200;
-    applyGearOps(s, s.player, [{ op: 'wear_acc', item: 'loop' }]);
-    expect(s.player.core.inventory.find((i) => i.id === 'loop')).toMatchObject({ boundTo: 'player', equippedIn: [expect.any(String)] });
+    bindCarriedCharms(s); // carried at the turn's end, the charm binds to the player
+    expect(s.player.core.inventory.find((i) => i.id === 'loop')?.boundTo).toBe('player');
   });
 
   it('WP6 a: the foes who downed the one who fell loot the body before the newcomer arrives', () => {
     const world = fallenWorld();
     const [patron, trader] = ['patron_1', 'trader'].map((id) => world.actors.find((a) => a.id === id)!);
     (patron.mind!.overrides ??= {})[world.player.id] = 'hostile'; // it downed them, in the same zone
-    world.player.core.inventory.push({ id: 'loop', itemId: IT.varos_loop, boundTo: world.player.id, equippedIn: ['acc:1'] });
+    world.player.core.inventory.push({ id: 'loop', itemId: IT.varos_loop, boundTo: world.player.id });
     const kit = world.player.core.inventory.map((i) => i.id);
     const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(build, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
     const [p, t, past] = [patron.id, trader.id, pastCharacterId('story_a')].map((id) => s.actors.find((a) => a.id === id)!);

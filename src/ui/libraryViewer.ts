@@ -993,13 +993,13 @@ function threadboundView(): HTMLElement[] {
         r ? h('p', { class: 'lv-tb-effect' }, cap(r.effect) + '.') : pk?.story ? h('p', { class: 'lv-tb-effect' }, pk.story) : null));
   };
   return [
-    h('p', { class: 'hs-note' }, 'Each Threadbound item is one of a kind in the world. It binds to the first person who wears it, and no one else can wear it after that. Its owner can summon it from wherever it is. While the owner wears it, each ability opens once the owner has earned the achievement beside it, and stays open even after a higher level of that achievement replaces it. In anyone else\'s hands it does nothing. The Weaver does not place these items in scenes.'),
+    h('p', { class: 'hs-note' }, 'Each Threadbound item is one of a kind in the world. It binds to the first person who wears it (a charm: the first who carries it), and no one else can use it after that. Its owner can summon it from wherever it is. While the owner wears it, or carries it when it is a charm, each ability opens once the owner has earned the achievement beside it, and stays open even after a higher level of that achievement replaces it. In anyone else\'s hands it does nothing. The Weaver does not place these items in scenes.'),
     h('div', { class: 'lv-grid wide' }, items.map((it) => {
       const tb = it.threadbound!;
       const chains = new Map<string, { perk: string; achievement: string }[]>();
       for (const g of tb.grants) { const k = rootOf(g.achievement); chains.set(k, [...(chains.get(k) ?? []), g]); }
       const giv = givers(tb.rank);
-      return card('threadbound', it.id, it, it.name, [chip(THREADBOUND_RANKS.name(tb.rank)), chip(it.slot ?? it.kind), chip(`${tb.grants.length} abilities`)],
+      return card('threadbound', it.id, it, it.name, [chip(THREADBOUND_RANKS.name(tb.rank)), chip(it.slot ?? 'charm'), chip(`${tb.grants.length} abilities`)],
         it.look ? h('p', { class: 'lv-story' }, it.look) : null,
         h('div', { class: 'lv-tb-paths' }, [...chains].map(([root, gs]) => h('section', { class: 'lv-tb-path' },
           h('h4', { class: 'lv-chainlabel' }, `${ach[root]?.name ?? root} chain`),
