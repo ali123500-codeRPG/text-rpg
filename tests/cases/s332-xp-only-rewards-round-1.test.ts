@@ -1,4 +1,4 @@
-// 330 Rewards for XP-only achievements, round 1 (XR2, XR4, XR9, XR11, XR15, XR16, XR17, XR30, XR32, XR35): the four new
+// 332 Rewards for XP-only achievements, round 1 (XR2, XR4, XR9, XR11, XR15, XR16, XR17, XR30, XR32, XR35): the four new
 // reward fields (true skill by kind, selling price %, quest pay %, essence slots) and the chains that now pay more than XP.
 // Amounts follow the "+1, +2, +3 added up" format: each level adds its own amount on top of the levels below it.
 import { describe, expect, it } from 'vitest';
@@ -18,7 +18,7 @@ const L = () => getLibrary().achievements! as Record<string, import('../../src/t
 const give = (s: GameState, ...keys: string[]) => { for (const k of keys) grantAchievement(s, k, undefined, undefined, true); };
 const giveOf = (s: GameState, of: string, ...keys: string[]) => { for (const k of keys) grantAchievement(s, k, of, undefined, true); };
 
-describe('330 XP-only rewards, round 1', () => {
+describe('332 XP-only rewards, round 1', () => {
   it('XR15: unseen moves pay Sneaking +1, +2, +3 (6 at the top) and one step quieter at 250', () => {
     const s = makeVillage();
     give(s, ACH.unseen_1, ACH.unseen_10);

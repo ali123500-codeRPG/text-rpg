@@ -24,7 +24,7 @@ import { travel, travelSpeed, tripGoal } from './travel';
 import { M_EPS, distM, distOrNull, gateAhead, placeAll, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, effectiveSkill, gradeMod, lockMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -44,7 +44,7 @@ import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from '
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
+import { applyGearOps, bindCarriedCharms, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
 import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
 import { cantSteady, steady } from './steady';
@@ -190,6 +190,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
+    case 'heal': return of(DU.bandage); // NR34: hands-on, as long as binding a wound
     case 'vanish': return of(DU.vanish_in_place); // A19 Melt Away: the only Vanish left after setPosture
     case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
@@ -1338,6 +1339,37 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   return true;
 }
 
+/** NR34 (placeholders): Heal, open at true Healing CONFIG.HEAL_UNLOCK, on someone within grip reach or oneself. A Healing
+ * roll at moderate difficulty gives back CONFIG.HEAL_TIER_SHARE (by tier, plus HEAL_PAST_STEP per step past Critical
+ * Success) of what is missing, of health and of each part up to Damaged (the heal row's reach). Below Near Miss, nothing. */
+export const healShare = (level: number): number => {
+  const top = TIERS.pos('critical_success');
+  if (level > top) return Math.min(1, CONFIG.HEAL_TIER_SHARE.critical_success + (level - top) * CONFIG.HEAL_PAST_STEP);
+  return CONFIG.HEAL_TIER_SHARE[TIERS.at(level)] ?? 0;
+};
+function doHeal(ctx: Ctx, a: Actor, o: Order): void {
+  const { state, rng } = ctx;
+  const t = (o.target && actorById(state, o.target)) || a;
+  if (trueSkill(a, SK.healing) < CONFIG.HEAL_UNLOCK) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'no_power' }), o));
+  if (healthLevel(t) === 'dead') return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'no_target' }), o));
+  if (t !== a && !withinGrip(state, a, t)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'out_of_reach' }), o));
+  const ev = bark(mk(ctx, a, 'heal', t !== a ? { target: t.id } : {}), o);
+  const c = t.core.condition; // the heal row carries no fixed amount (the roll sets it), so hurt is checked here
+  if (!(c.hpLostPct > 0 || Object.values(c.parts).some((v) => v < 100))) {
+    logCode(state, 'heal_blocked', { actorId: a.id, source: HL.heal, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
+    return emit(ctx, ev);
+  }
+  const r = ruleset.roll({ actorId: a.id, skill: FN.healing, modifiers: [], tierShifts: [], fn: FN.healing }, state, rng);
+  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY.moderate, passed: tierAtLeast(r.tier, 'success'), modifiers: [] }, state);
+  ev.roll = r; ev.tier = r.tier;
+  const share = healShare(tierLevel(r));
+  if (share > 0) {
+    applyHealing(state, t, HL.heal, { pct: Math.max(c.hpLostPct, ...Object.values(c.parts).map((v) => 100 - v)) * share });
+    ev.effects.push({ kind: 'healed', actorId: t.id, data: { source: HL.heal } });
+  }
+  emit(ctx, ev);
+}
+
 /** SE23 (the rule lives in the ruleset) */
 export { gradeMod };
 
@@ -1469,7 +1501,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   // CT3: a container's lock is picked the same way, at the container's grade; an owner watching over it makes it theft
   const c = findContainer(state, o.target);
   if (c) c.inst.grade ??= 'minor';
-  const b = (c?.inst ?? barrierTo(state, a, o.target)) as Pick<Barrier, 'id' | 'grade' | 'lock' | 'beyond' | 'work'> | undefined;
+  const b = (c?.inst ?? barrierTo(state, a, o.target)) as Pick<Barrier, 'id' | 'grade' | 'lock' | 'beyond' | 'work' | 'graded'> | undefined;
   if (!b?.lock?.locked) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: b?.lock ? 'not_locked' : 'no_lock' }), o));
   if (c ? !withinGrip(state, a, c.at) : !atDoor(state, a, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   const to = o.target!;
@@ -1480,15 +1512,21 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const tool = pickTool(state, a, skill).itemId ?? undefined;
   const eff = effectiveSkill(state, a, FN.lockpicking, { itemId: tool, fullValue: rollFnSkills(a, FN.lockpicking) }).value; // FL1: Filching stands in at its share
   if (b.beyond?.[a.id] !== undefined && eff <= b.beyond[a.id]) return emit(ctx, way('beyond'));
-  const modifiers: Mod[] = CONFIG.LOCK_GRADE_MOD[b.grade] ? [{ source: 'lock', type: 'situational', value: CONFIG.LOCK_GRADE_MOD[b.grade] }] : [];
-  const r = ruleset.roll({ actorId: a.id, skill: FN.lockpicking, modifiers, tierShifts: [], fn: FN.lockpicking, ...(tool ? { itemId: tool } : {}) }, state, rng);
-  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY[b.grade] ?? CONFIG.DIFFICULTY.moderate, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
-  const extra = { roll: r, tier: r.tier };
-  if (r.tier === 'critical_failure') {
+  if (!(b.graded ??= []).includes(a.id)) b.graded.push(a.id); // OD12: trying it shows its grade
+  const target = CONFIG.DIFFICULTY[b.grade] ?? CONFIG.DIFFICULTY.moderate;
+  const gate = obstacleGate(eff, target); // OD1 b: no roll when it is sure or out of reach
+  if (gate === 'out') return emit(ctx, way('beyond'));
+  const modifiers = lockMods(target);
+  const r = gate === 'roll' ? ruleset.roll({ actorId: a.id, skill: FN.lockpicking, modifiers, tierShifts: [], fn: FN.lockpicking, ...(tool ? { itemId: tool } : {}) }, state, rng) : undefined;
+  const ok = !r || tierAtLeast(r.tier, 'success');
+  const used = r?.skill ?? skill;
+  ruleset.recordUse(a, used, { actorId: a.id, skill: used, target, passed: ok, modifiers }, state);
+  const extra = r ? { roll: r, tier: r.tier } : {};
+  if (r?.tier === 'critical_failure') {
     if (tool) a.core.inventory = a.core.inventory.filter((i) => i.id !== tool);
     return emit(ctx, way('pick_broke', extra));
   }
-  if (r.tier === 'failure') {
+  if (r?.tier === 'failure') {
     (b.beyond ??= {})[a.id] = eff;
     return emit(ctx, way('beyond', extra));
   }
@@ -1496,12 +1534,12 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   if (state.mode === 'tactical') {
     const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + ctx.turnS);
     payRow(state, a, actionRow(DU.pick_lock), ctx.turnS); // FT24: picking has no order row of its own, so it pays here
-    if (work < need || !tierAtLeast(r.tier, 'success')) return emit(ctx, way(tierAtLeast(r.tier, 'success') ? 'picking' : 'not_yet', extra));
+    if (work < need || !ok) return emit(ctx, way(ok ? 'picking' : 'not_yet', extra));
   } else {
     payRow(state, a, actionRow(DU.pick_lock), need);
     const extraMin = need / 60 - turnMinutes(state, o);
     if (extraMin > 0) { passTime(state, extraMin); logCode(state, 'time_passed', { actorId: a.id, minutes: extraMin, picking: true }); }
-    if (!tierAtLeast(r.tier, 'success')) return emit(ctx, way('not_yet', extra));
+    if (!ok) return emit(ctx, way('not_yet', extra));
   }
   b.lock.locked = false;
   delete b.work?.[a.id];
@@ -1525,7 +1563,7 @@ function doOpen(ctx: Ctx, a: Actor, o: Order): void {
 
 /** BF31: breaking a locked container open, within grip reach: the turn's action, loud (heard like a shout). A soft one (a
  * sack, a pack) is cut open by an edged weapon in hand, with no roll. Otherwise a roll of the melee weapon in hand (bare
- * hands: Improvised) at the lock's grade, the same modifier Lockpicking uses; Success or better opens it, and its lock is
+ * hands: Improvised) at the lock's grade, the same modifier Lockpicking uses (OD10 a: SE23's grade modifier); Success or better opens it, and its lock is
  * broken for good. BK1-BK4: the same roll is checked against everything inside (src/engine/breakage.ts), opened or not, and
  * a rolled open counts toward the broke_open chain. BK6: one someone guards is open theft (theftSeen). */
 function doBreak(ctx: Ctx, a: Actor, o: Order): void {
@@ -1546,7 +1584,7 @@ function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   if (blade && itemDef(state, c.inst.itemId).container?.soft) { open(); return done(ev(true, { breakOpen: { opened: true, cut: true } })); }
   c.inst.grade ??= 'minor';
   const skill = held ? modeSkill(held.mode) : SK.unarmed_improvised;
-  const modifiers: Mod[] = CONFIG.LOCK_GRADE_MOD[c.inst.grade] ? [{ source: 'lock', type: 'situational', value: CONFIG.LOCK_GRADE_MOD[c.inst.grade] }] : [];
+  const modifiers = lockMods(CONFIG.DIFFICULTY[c.inst.grade] ?? CONFIG.DIFFICULTY.moderate); // OD10 a
   const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], ...(held ? { itemId: held.itemId } : {}) }, state, rng);
   const opened = tierAtLeast(r.tier, 'success');
   ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY[c.inst.grade] ?? CONFIG.DIFFICULTY.moderate, passed: opened, modifiers }, state);
@@ -1734,6 +1772,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: 'cannot_put_that_on' }), o)); // BG-149
       return emit(ctx, bark(mk(ctx, a, 'equip', { itemId: o.item ?? undefined }), o));
     }
+    case 'heal':
+      return doHeal(ctx, a, o);
     case 'use_item':
       if (doHealItem(ctx, a, o)) return;
       // BG-171: using an item one does not carry (or none named) comes to nothing, and says why
@@ -2479,6 +2519,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (!CONFIG.GROWTH_AT_SCENARIO_END) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
+  bindCarriedCharms(state); // D-218: a Threadbound charm binds to the player carrying it
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
     syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
@@ -2543,7 +2584,7 @@ function updatePacing(state: GameState, events: GameEvent[], learnedBefore: numb
   const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
   // AT76: a quiet turn in a fight (a standoff) is not the story stalling: it neither counts nor resets
   state.stage.quiet = !quiet ? 0 : (state.stage.quiet ?? 0) + (state.mode === 'tactical' ? 0 : 1);
-  if (state.stage.breakCause || state.stage.roam) return; // SD2 a: no stall in free roam, since no scenario runs
+  if (state.stage.breakCause || state.stage.roam || state.stage.between) return; // SD2 a: no stall in free roam, since no scenario runs; SW10 a: nor between Situations, where windows serve
   if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) {
     state.stage.breakCause = 'story_beat';
     logCode(state, 'scenario_stalled', { number: state.stage.scenarioNumber, quiet: state.stage.quiet }); // SC12: code ended it, not the Weaver: a bug

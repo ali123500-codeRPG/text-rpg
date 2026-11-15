@@ -26,14 +26,14 @@ const ICON_OF: Record<string, IconName> = {
   [IT.round_shield]: 'shield', [IT.kite_shield]: 'shield',
   [IT.crude_clothes]: 'tunic', [IT.gambeson]: 'tunic', [IT.boiled_leather]: 'leather', [IT.mail_hauberk]: 'mail',
   [IT.brigandine]: 'plate', [IT.lamellar_coat]: 'plate', [IT.plate_harness]: 'plate', [IT.half_plate]: 'plate',
-  [IT.varos_loop]: 'earring', [IT.lucky_charm]: 'charm', [IT.lockpicks]: 'picks', [IT.key]: 'key',
+  [IT.varos_loop]: 'charm', [IT.lucky_charm]: 'charm', [IT.lockpicks]: 'picks', [IT.key]: 'key',
   [IT.healing_draught]: 'potion', [IT.bandage]: 'bandage', [IT.curio]: 'pouch', [IT.coin]: 'coin',
   [IT.pack]: 'pack', [IT.sack]: 'sack', [IT.chest]: 'chest', [IT.crate]: 'crate',
 };
 const CLASS_ICON: Record<string, IconName> = {
   [CL.swordsman]: 'swordsman', [CL.late_bloomer]: 'late_bloomer', [CL.sword_dancer]: 'sword_dancer', [CL.commoner]: 'commoner',
   [CL.a_nobody]: 'a_nobody', [CL.trader]: 'trader', [CL.merchant]: 'merchant', [CL.guard]: 'guard',
-  [CL.threadbounded]: 'threadbounded', [CL.blessed_by_imbra]: 'blessed',
+  [CL.threadbounded]: 'threadbounded', [CL.blessed_by_imbra]: 'blessed', [CL.knight]: 'plate', // NR13: plate until it has art of its own
 };
 /** a class's icon; a class not listed yet shows the Commoner's */
 export const classIconName = (classId: string): IconName => CLASS_ICON[classId] ?? 'commoner';

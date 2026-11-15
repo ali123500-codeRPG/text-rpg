@@ -52,7 +52,9 @@ export function happenedLines(state: GameState, events: GameEvent[], defeated: A
  * to the roam, with the player's attacks too, since one of them may start the next scenario */
 export function noteHappened(state: GameState, events: GameEvent[], defeated: Actor[]): void {
   const p = state.player.id, roam = state.stage.roam && !state.stage.scenario ? state.stage.roam : undefined;
-  const attacks = roam ? events.filter((e) => e.kind === 'attack' && (e.actorId === p || e.target === p)).map((e) => `${who(state, e.actorId)} attacked ${who(state, e.target)}`) : [];
+  // SW10 a: between Situations the Episode keeps the player's attacks too, since one may start the next Situation
+  const open = roam || (state.stage.between && state.stage.scenario && !state.stage.outer);
+  const attacks = open ? events.filter((e) => e.kind === 'attack' && (e.actorId === p || e.target === p)).map((e) => `${who(state, e.actorId)} attacked ${who(state, e.target)}`) : [];
   const lines = [...new Set(attacks), ...happenedLines(state, events, defeated)];
   if (!lines.length) return;
   for (const f of [state.stage.scenario, state.stage.outer, roam]) {

@@ -10,7 +10,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 /** every action the Parser can give (schema and completeness tests read this list) */
 export const PARSER_ACTIONS = ['attack', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate',
-  'use_item', 'equip', 'give', 'take', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'break', 'restrain', 'filch', 'steady', 'show', 'extract'] as const; // extract: DX3, pull out the essence of someone helpless (a blessing); break: BF31, force a locked container open; show: BF16, turn out your own pockets; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
+  'use_item', 'equip', 'give', 'take', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'break', 'restrain', 'filch', 'steady', 'show', 'extract', 'heal'] as const; // heal: NR34, Heal at Healing 50 on someone within reach (or oneself); extract: DX3, pull out the essence of someone helpless (a blessing); break: BF31, force a locked container open; show: BF16, turn out your own pockets; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
 export type ParserActionType = (typeof PARSER_ACTIONS)[number];
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
@@ -237,6 +237,8 @@ export type StagePlan = {
   weaverNote: string;
   /** SC1/SC2/SC7: a new scenario's hidden question, its scale, and two or three ways it can end (not on a frontier extension) */
   scenario?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[] };
+  /** SW10 a: with no bigger scenario running, the Episode (or bigger) this scenario is the first Situation of */
+  episode?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[] };
 };
 
 // ---- the Claude-call boundary (artifact `sample` capability, runtime 0.2.96) ----

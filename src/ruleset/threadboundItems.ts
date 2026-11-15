@@ -1,4 +1,5 @@
-// D-218 Threadbound items: one of a kind in the world, bound to the first who wears one. While the owner wears it, each
+// D-218 Threadbound items: one of a kind in the world, bound to the first who wears one (a charm, with no slot: the first
+// player who carries it, engine/gear bindCarriedCharms). While the owner wears it (a charm: carries it), each
 // of its grants gives the grant's perk (source 'item') once the owner has earned the grant's achievement (a replaced
 // lower level still counts as earned). In anyone else's hands it gives nothing. Runs at the end of every turn.
 import type { Actor, GameState, ItemDef, ItemInstance, Turn } from '../types';
@@ -13,23 +14,23 @@ const libItem = (id: string): ItemDef | undefined => getLibrary().items[id];
 /** the actor has earned this achievement, even if a higher level has since replaced it */
 export const earned = (a: Actor, achievement: string) => !!a.progression?.achievements?.some((x) => x.key === achievement);
 
-/** the Threadbound items the actor wears and owns */
+/** the Threadbound items the actor owns and wears, or carries when it is a charm (no slot) */
 export const ownThreadboundItems = (a: Actor): ItemInstance[] =>
-  a.core.inventory.filter((i) => i.boundTo === a.id && isWorn(i) && libItem(i.itemId)?.threadbound);
+  a.core.inventory.filter((i) => i.boundTo === a.id && libItem(i.itemId)?.threadbound && (isWorn(i) || !libItem(i.itemId)!.slot));
 
-/** the perks the actor's worn Threadbound items give now */
+/** the perks the actor's Threadbound items in use give now */
 export function threadboundItemPerks(a: Actor): string[] {
   return ownThreadboundItems(a).flatMap((i) => libItem(i.itemId)!.threadbound!.grants.filter((g) => earned(a, g.achievement)).map((g) => g.perk));
 }
 
-/** adds the perks the actor's worn Threadbound items give and takes away those they no longer give */
+/** adds the perks the actor's Threadbound items in use give and takes away those they no longer give */
 export function syncThreadboundItemPerks(a: Actor, turn: Turn): void {
   const want = new Set(threadboundItemPerks(a));
   a.core.perks = a.core.perks.filter((p) => p.source !== 'item' || want.has(p.perkId));
   for (const id of want) if (!a.core.perks.some((p) => p.perkId === id && p.source === 'item')) a.core.perks.push({ perkId: id, source: 'item', gainedTurn: turn });
 }
 
-/** the worn Threadbound item that gives this perk to the actor */
+/** the Threadbound item in use that gives this perk to the actor */
 export const threadboundItemFor = (a: Actor, perk: string): ItemInstance | undefined =>
   ownThreadboundItems(a).find((i) => libItem(i.itemId)!.threadbound!.grants.some((g) => g.perk === perk));
 
@@ -79,7 +80,7 @@ export function threadboundStartBlocked(startId: string, taken: string[]): boole
 }
 
 /** TB7: each owned perk with grantsThreadboundItem gives, once, a random Threadbound item of at least its Rank (TB11) not
- * yet in the world (state given), bound to the owner and worn in a free accessory slot. The pick is seeded by the story
+ * yet in the world (state given), bound to the owner and worn in a free accessory slot (a charm is carried). The pick is seeded by the story
  * id, so a replay gives the same. */
 export function grantThreadboundItem(a: Actor, state?: GameState): void {
   const lib = getLibrary();

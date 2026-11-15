@@ -8,7 +8,7 @@ import { getLibrary, itemDef } from './index';
 import { ageYears } from '../ruleset/age';
 
 /** HF24 c: what an echo keeps: what it fights, guards and works with; coin, consumables and other goods stay behind */
-const GEAR_KINDS: ItemDef['kind'][] = ['weapon', 'shield', 'armor', 'accessory', 'tool'];
+const GEAR_KINDS: ItemDef['kind'][] = ['weapon', 'shield', 'armor', 'accessory', 'tool']; // and any Threadbound item, a charm too (D-218)
 
 /** a full pool again: an echo comes back whole (HF5), its gear too */
 function freshPools(state: GameState | null, inst: ItemInstance): ItemInstance['pools'] {
@@ -29,7 +29,7 @@ export function echoSheet(state: GameState, a: Actor, id: string, past: string):
     if (!itemDefs.some((d) => d.id === newId)) itemDefs.push({ ...structuredClone(itemDef(state, itemId)), id: newId });
     return newId;
   };
-  const gear = a.core.inventory.filter((i) => GEAR_KINDS.includes(itemDef(state, i.itemId).kind)).map((i, n): ItemInstance => {
+  const gear = a.core.inventory.filter((i) => GEAR_KINDS.includes(itemDef(state, i.itemId).kind) || itemDef(state, i.itemId).threadbound).map((i, n): ItemInstance => {
     const pools = freshPools(state, i);
     return { id: `g${n + 1}`, itemId: own(i.itemId), ...(i.qty ? { qty: i.qty } : {}), ...(i.equippedIn ? { equippedIn: [...i.equippedIn] } : {}), ...(pools ? { pools } : {}), soulbound: true };
   });

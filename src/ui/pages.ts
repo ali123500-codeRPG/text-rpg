@@ -209,16 +209,16 @@ export function itemRows(s: GameState, it: { id?: string; itemId: string; boundT
   // what it is worth in coin (the price a trader starts from), and for a stack what the whole stack is worth
   const worth = safe(() => itemValue(s, it.itemId)) ?? 0, n = it.qty ?? 1;
   rows.push({ k: 'Value', v: !worth ? 'Worthless' : n > 1 ? `${coinWords(worth)} each, ${coinWords(worth * n)} for ${n}` : coinWords(worth) });
-  if (d.threadbound) rows.push(...threadboundRows(s, it, d.threadbound));
+  if (d.threadbound) rows.push(...threadboundRows(s, it, d));
   return rows;
 }
 
 /** A Threadbound item's powers: each one shows the deed (achievement) that wakes it and what that deed asks, but what the
  * power does stays hidden until it wakes; then it is named, since it is the owner's perk from then on. Only for its owner,
  * or before it is bound to anyone. */
-function threadboundRows(s: GameState, it: { boundTo?: string }, tb: NonNullable<ReturnType<typeof itemDef>['threadbound']>): PanelRow[] {
-  const p = s.player, lib = getLibrary(), mine = !it.boundTo || it.boundTo === p.id;
-  const rows: PanelRow[] = [{ k: 'Threadbound', v: `${THREADBOUND_RANKS.name(tb.rank)} · ${it.boundTo === p.id ? 'bound to you' : it.boundTo ? 'bound to someone else' : 'binds to whoever wears it first'}` }];
+function threadboundRows(s: GameState, it: { boundTo?: string }, def: ReturnType<typeof itemDef>): PanelRow[] {
+  const p = s.player, lib = getLibrary(), mine = !it.boundTo || it.boundTo === p.id, tb = def.threadbound!;
+  const rows: PanelRow[] = [{ k: 'Threadbound', v: `${THREADBOUND_RANKS.name(tb.rank)} · ${it.boundTo === p.id ? 'bound to you' : it.boundTo ? 'bound to someone else' : `binds to whoever ${def.slot ? 'wears' : 'carries'} it first`}` }];
   if (!mine) return rows;
   const woke = tb.grants.filter((g) => earned(p, g.achievement)).length;
   rows.push({ k: 'Powers', v: `${woke} of ${tb.grants.length} awake. Each wakes with a deed; what a power does stays hidden until then.` });

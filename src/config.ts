@@ -411,6 +411,12 @@ const DEFAULTS = {
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
+  /** NR34 (placeholders): Heal opens at this true Healing; it gives back this share of the target's missing health (and of
+   * each part's missing share) by the Healing roll's tier, plus HEAL_PAST_STEP for each step past Critical Success.
+   * Its cost is the action's own effort for now; a resource of its own (mana) comes later (D-340) */
+  HEAL_UNLOCK: 50,
+  HEAL_TIER_SHARE: { near_miss: 0.05, success: 0.1, great_success: 0.15, critical_success: 0.25 } as Record<string, number>,
+  HEAL_PAST_STEP: 0.1,
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
@@ -728,8 +734,11 @@ const DEFAULTS = {
   /** scaling: each tier a landing goes past Critical Success (Critical Success+, ++) moves the fall this
    * many more bands lighter, so a supernatural dodger can land a tower jump unhurt (past Critical Failure: its own row) */
   FALL_LANDING_PAST_STEP: 1,
-  /** BA2: a Lockpicking roll's modifier by the lock's grade (placeholders); master or magic locks would add grades past extreme */
-  LOCK_GRADE_MOD: { none: 0, minor: -10, moderate: -20, major: -35, extreme: -50 } as Record<GradeLevel, number>,
+  /** OD1 b: an act on a graded thing (today a lock: picking, BA2) rolls only when in doubt: a grade this many points or more
+   * below the actor's effective skill is a sure Success with no roll; more than OBSTACLE_REACH_GAP above it is out of reach.
+   * Placeholders: points or a share of the grade is D-343. Only the gap counts, so it reads the same at 50 and at 300 */
+  OBSTACLE_SURE_GAP: 25,
+  OBSTACLE_REACH_GAP: 25,
   /** BK1/BK2: the best break roll that still breaks an item inside the container, by its fragility (placeholders). One roll
    * checks everything inside; a tier past Critical Failure is that tier with beyond −1, −2 (Critical Failure−, −−), which a
    * roll reaches only once an achievement unlocks it. null: never breaks. */
@@ -805,7 +814,7 @@ const DEFAULTS = {
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
-  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter' } as Record<string, string>,
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter', [GR.medicine]: 'half' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
   /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
   SKILL_RATING_AT_50: 23.1,
