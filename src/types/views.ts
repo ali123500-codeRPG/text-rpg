@@ -275,6 +275,8 @@ export type NarrationEvent = {
   surrender?: { with: string[] }; // TF19: someone talked into surrendering: who gave up with them (names)
   breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ..."); beyond: OD13, past the breaker (no roll)
   beyond?: true; // OD1 b: an act on a thing past the actor's reach: it comes to nothing, with no roll
+  graded?: true; // OD5: an act on something with a grade, whose tier says what it did
+  mishap?: { kind: 'tool' | 'fall' | 'noise'; item?: string }; // OD5: a graded act's Critical Failure: the tool that broke (its name), a fall, or a loud noise
   mentallySteady?: true; // SY1: it left them Mentally steady
   extract?: { essence: string }; // DX3: an essence pulled out of the target: its name (the target is left Hollowed)
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)

@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-257
+
+**What was wrong:** The line under the story for the player's own roll ended "you make out who is there" (Success or better) or "nothing clearer" for every plain roll, not only Look around: picking a lock, breaking a box open, healing, stashing, filching, steadying, turning out pockets. The words were written when Look around was the only plain roll, and the code never checked what the roll was for.
+
+**What was done:** Ali approved the plan (OD15 a). Look around keeps its words; a pick names what happened at the lock ("the lock opens", "still at it", "not yet", "beyond you for now", "the pick snaps"); a break says "it breaks open" or "it holds"; a graded act says done, not yet or not done; any other roll shows its skill and tier with no words, and the story tells what it meant.
+
+**Fixed by:** [PR #893](https://github.com/ali123500-codeRPG/text-rpg/pull/893)
+
 ## BG-256
 
 **What was wrong:** Ali's ruling is that a higher level of an achievement chain includes the lower levels' rewards. Bane achievements (per race and per body type) and the total-defeats achievements were the only ones whose bonus was worked out from the level's place instead of adding the levels up: Scourge of the {body_type} Hordes gave +15 skill (+7.5 on the roll), where Ali expected each level to add its own growing step on top of the ones below. The library viewer also listed rewards carried up from lower levels as separate "(from ...)" lines, so a top level looked as if it gave only its own step.

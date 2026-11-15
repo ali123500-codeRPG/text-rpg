@@ -91,7 +91,7 @@ export type LineCheck = {
   tier: Tier; beyond?: number;
   against?: { what: string; tier: Tier; beyond?: number }; // the defense or the other side of a contest, e.g. "its dodge"
   shifts?: string[]; // BG-200: what moved the gap besides the two tiers, e.g. "cover: 1 tier his way"
-  result: string; // "full hit, body", "you win the exchange"
+  result: string; // "full hit, body", "you win the exchange"; empty: the roll has no words of its own (the story tells it, BG-257)
   /** the player's own attack: whom, with what, and what the player saw it change (the strike card on Play) */
   strike?: { target: string; weapon: string | null; changes: string[] };
 };

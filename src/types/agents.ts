@@ -42,6 +42,8 @@ export type Intent = {
     noSkillFits?: boolean;
     /** OD3: how hard the deed is, from fixed meanings, when what it acts on has no grade of its own */
     grade?: import('./core').Grade;
+    /** OD5: a climb or a balance: how far the character would fall, in metres (a Critical Failure falls that far) */
+    fall?: number;
     /** TF19: a persuade or deceive at a foe in a fight that demands its surrender, not only that it stop */
     demand?: 'yield' | null;
     /** a scenario object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */
@@ -83,6 +85,9 @@ export type NpcAction = {
   qty?: number | null; // give: how many of a stack (null: all of it)
   mode: string | null;
   intent: string;
+  /** OD14 a: how hard the deed is (use_item, other), from the Parser's fixed meanings; fall: a climb or balance's drop in metres (OD5) */
+  grade?: import('./core').Grade;
+  fall?: number;
 };
 export type PlanUpdate = { goal: string; steps: string[]; triggers: Trigger[]; memoryNote?: string; routine: string | null }; // memoryNote: older outputs, read as one memory entry
 /** PM1/PM2: memory list changes; drop names entries by their number in the view (n) */

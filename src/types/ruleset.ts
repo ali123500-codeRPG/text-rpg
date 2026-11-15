@@ -161,7 +161,8 @@ export type Order = {
   type: string; // attack | move | search | hide | sneak | hold | call_help | alarm | flee | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | rest | wait | sleep | idle | other
   target: string | null;
   skill: string | null;
-  grade?: import('./core').Grade; // OD3: the Parser's grade for the act, used when what it acts on has none
+  grade?: import('./core').Grade; // OD3/OD14: the Parser's or the NPC agent's grade for the act, used when what it acts on has none
+  fall?: number; // OD5: a climb or balance's drop in metres
   intent: string;
   source: OrderSource;
   move?: string | null; // the turn's one move (toZone), resolved before the main action (player, or an NPC's Planner/Responder)

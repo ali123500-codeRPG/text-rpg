@@ -136,7 +136,7 @@ export type LandFeature = { id: string; kind: string; name: string; look: string
  * when left out. Mostly colour: a move can end beside it, and search and stash work where one stands. FR4: one on an edge
  * (a counter, a rail) shows on both sides of it from this one record. grade (OD2): set when someone can do something hard
  * with it, or by the first act on it (OD3); graded: who has tried it, and sees its grade (OD12). */
-export type Furniture = { id: string; kind: string; name: string; at?: string; edge?: true; grade?: Grade; graded?: string[] };
+export type Furniture = { id: string; kind: string; name: string; at?: string; edge?: true; grade?: Grade; graded?: string[]; beyond?: Record<string, number> };
 export type Zone = {
   id: string;
   placeId: PlaceId;
@@ -236,6 +236,8 @@ export type GameEvent = {
   contest?: import('./ruleset').ContestResult;
   /** OD1 b/OD3: an act on a graded thing (use, interact, other): the skill, the grade, and whether it was sure, out of reach or rolled */
   obstacle?: { skill: string; grade: Grade; gate: 'sure' | 'out' | 'roll' };
+  /** OD5: a graded act's Critical Failure: a tool that broke (its instance), a fall (see fall), or a loud noise */
+  mishap?: { kind: 'tool' | 'fall' | 'noise'; item?: string };
   /** Q17: the player's look, a sight roll */
   roll?: import('./ruleset').RollResult;
   /** PG3/PG9: the player's make-out roll on this event (something half seen or half heard): its difficulty and whether

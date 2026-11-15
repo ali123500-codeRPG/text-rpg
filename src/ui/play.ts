@@ -411,7 +411,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const checkLine = (c: NonNullable<LogLine['check']>, by?: string) => h('p', { class: 'check' + (by ? ' in' : '') }, checkIcon(c.kind),
     h('span', { class: 'sk' }, by ? cap(by) : skillName(c.skill)), tierChip(c),
     c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against), h('span', { class: 'gap' }, [tierGap(c, c.against), ...(c.shifts ?? [])].join(' · '))] : null,
-    h('span', { class: 'res' }, '→ ', ((o) => h('b', { class: o && struck(o) ? 'hit' : '', 'data-o': o ? String(OUTCOME_BEAT[o]) : '0' }, c.result))(outcomeOf(c.result))));
+    c.result && h('span', { class: 'res' }, '→ ', ((o) => h('b', { class: o && struck(o) ? 'hit' : '', 'data-o': o ? String(OUTCOME_BEAT[o]) : '0' }, c.result))(outcomeOf(c.result))));
 
   function results(l: LogLine, s: GameState | null): HTMLElement | null {
     const lib = getLibrary();
