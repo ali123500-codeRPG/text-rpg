@@ -244,8 +244,9 @@ export function templateLoadout(t: NpcTemplate, skills: Record<string, SkillEntr
 
 /** NR28: the role whose bands cover the wanted skills best (High CONFIG.ROLE_WANT_SCORE.high, then moderate, then low,
  * per wanted skill; ties keep the table's order), and the wanted skills that role lacks from its High and Moderate bands */
-export function closestRole(skills: readonly string[]): { role: string; missing: string[] } {
-  const roles = Object.values(getLibrary().npcRoles ?? {});
+export function closestRole(skills: readonly string[], theme?: string): { role: string; missing: string[] } {
+  const kinds = theme ? getLibrary().themes?.[theme]?.roleKinds : undefined; // only roles the theme takes
+  const roles = Object.values(getLibrary().npcRoles ?? {}).filter((r) => !kinds || kinds.includes(r.kind));
   const band = (r: (typeof roles)[number], id: string): keyof typeof CONFIG.ROLE_WANT_SCORE | undefined =>
     r.bands.high?.includes(id) ? 'high' : r.bands.moderate?.includes(id) ? 'moderate' : r.bands.low?.includes(id) ? 'low' : undefined;
   const score = (r: (typeof roles)[number]) => skills.reduce((n, id) => { const b = band(r, id); return n + (b ? CONFIG.ROLE_WANT_SCORE[b] : 0); }, 0);
@@ -282,6 +283,8 @@ export function composeError(c: { race: string; role: string; theme: string; ran
   if (!lib.races?.[c.race]) return `compose race ${c.race} unknown; known: ${list(lib.races)}`;
   if (!lib.npcRoles?.[c.role]) return `compose role ${c.role} unknown; known: ${list(lib.npcRoles)}`;
   if (!lib.themes?.[c.theme]) return `compose theme ${c.theme} unknown; known: ${list(lib.themes)}`;
+  const kinds = lib.themes[c.theme].roleKinds, kind = lib.npcRoles[c.role].kind;
+  if (!kinds.includes(kind)) return `compose role ${c.role} (${lib.npcRoles[c.role].name}, ${kind}) does not fit theme ${lib.themes[c.theme].name}: it takes ${kinds.join(' or ')} roles`;
   if (!rankKeyOf(c.rank)) return `compose rank ${c.rank} unknown; ranks: ${RANKS.list()}, then Divine+, Divine++ …`;
   if (c.class !== undefined && !lib.classes[c.class]) return `compose class ${c.class} unknown`;
   return undefined;
