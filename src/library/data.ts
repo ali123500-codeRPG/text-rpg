@@ -132,13 +132,14 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // tremor is tier 0 and no sense function of its own: it adds its full value to every hearing roll
   // (every hearing roll asks for Earshot, SENSE_SKILL)
   { ...sk(SK.tremor, TR.slime_senses, [], [RL.sense], 'sound', 'tier_0'), groups: [GR.notice], augments: [{ skill: SK.earshot }] },
-  // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells)
-  sk(SK.scent, TR.scent, [FN.smell], [RL.sense]),
+  // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells).
+  // It sits in the Perception tree; who may use it is the skill's own rule (end of prototypeLibrary)
+  sk(SK.scent, TR.perception, [FN.smell], [RL.sense]),
   sk(SK.healing, TR.medicine, [FN.healing], [RL.grip]), // NR33
   // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
-  sk(SK.filching, TR.tools, [FN.filching], [RL.grip]),
+  sk(SK.filching, TR.trickery, [FN.filching], [RL.grip]), // in Trickery beside Lying; still Lockpicking's stand-in
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -737,19 +738,18 @@ export function prototypeLibrary(): Library {
       [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.parry, SK.hide] },
       [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve, SK.stamina] },
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
-      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
+      // open to all; each sense has its own rule (end of this function): no eyes or ears (TA6), smell for animals and slimes (AB18)
+      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight, SK.scent] },
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
+      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying, SK.filching], access: { blockedBy: [AMORPHOUS] } },
       [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
-      // AB18 a: animals smell; anyone else only through an essence
-      [TR.scent]: { id: TR.scent, name: 'Scent', skills: [SK.scent], access: { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) } },
       [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
-      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
+      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
@@ -901,7 +901,7 @@ export function prototypeLibrary(): Library {
       [TN.crooked_means]: { id: TN.crooked_means, name: 'good ends, crooked means', hint: 'bends the truth to help the people they care about', when: { max: { [PA.honesty]: -20 }, anyDrive: [VL.loyalty, VL.kindness] } },
     },
     fears: {
-      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 15, rolled: true, health: { from: 'injured', to: 'mauled' } },
+      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 5, rolled: true, health: { from: 'injured', to: 'mauled' } },
       [FR.own_critical]: { id: FR.own_critical, name: 'Your health reaches Critical', cost: 50, rolled: true, health: { from: 'critical', to: 'critical' } },
       [FR.bandmate_down]: { id: FR.bandmate_down, name: 'A bandmate goes down', cost: 10, rolled: true },
       [FR.bandmate_broken]: { id: FR.bandmate_broken, name: 'A bandmate breaks', cost: 10, rolled: true }, // MB23
@@ -926,13 +926,18 @@ export function prototypeLibrary(): Library {
     // any, output end, broken off = lost. The action row is the default turn outside a fight until turns last as long as their order.
     durations: {
       [DU.action]: { id: DU.action, name: 'Move, talk or other action', effort: 'base', seconds: 30 }, // an out-of-fight turn's own time (EXPLORE_TURN_S)
-      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 3, orders: ['barter', 'buy', 'sell'], focus: 'steady' },
+      [DU.trade]: { id: DU.trade, name: 'Trade', effort: 'base', seconds: 0, orders: ['barter', 'buy', 'sell'] }, // trading takes no time
       [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', effort: 'base', seconds: 0, focus: 'deep' },
-      // attacks (AT11a-e): a melee or unarmed blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own.
-      // TP9 a: one shot time per weapon class, all Hard: light 3 s (light bows), medium 4 s (medium bows), heavy 5 s (crossbows)
-      [DU.blow]: { id: DU.blow, name: 'Melee or unarmed blow', effort: 'hard', seconds: 3, attack: true },
+      // attacks (AT11a-e): a blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own.
+      // TP9 a: one shot time per weapon class, all Hard: light 3 s (light bows), medium 4 s (medium bows), heavy 5 s (crossbows).
+      // Blows go by class the same way: unarmed and natural attacks 2 s, then light, medium and heavy weapons 3, 4 and 5 s
+      // (an improvised strike goes by its weight class)
+      [DU.blow_unarmed]: { id: DU.blow_unarmed, name: 'Unarmed or natural blow', effort: 'hard', seconds: 2, attack: true },
+      [DU.blow]: { id: DU.blow, name: 'Light weapon blow', effort: 'hard', seconds: 3, attack: true },
+      [DU.blow_medium]: { id: DU.blow_medium, name: 'Medium weapon blow', effort: 'hard', seconds: 4, attack: true },
+      [DU.blow_heavy]: { id: DU.blow_heavy, name: 'Heavy weapon blow', effort: 'hard', seconds: 5, attack: true },
       [DU.throw]: { id: DU.throw, name: 'Throw', effort: 'hard', seconds: 3, attack: true, locksMove: true },
       [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', effort: 'hard', seconds: 3, attack: true, locksMove: true, focus: 'steady' },
       [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', effort: 'hard', seconds: 4, attack: true, locksMove: true, focus: 'steady' },
@@ -1252,9 +1257,9 @@ export function prototypeLibrary(): Library {
       [ACH.beyond_1]: { id: ACH.beyond_1, name: 'Beyond Perfect', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1 },
       [ACH.beyond_2]: { id: ACH.beyond_2, name: 'Past the Limit', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, after: ACH.beyond_1 },
       [ACH.beyond_3]: { id: ACH.beyond_3, name: 'Touched by Fate', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, after: ACH.beyond_2 },
-      [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group', branchOf: ACH.beyond_1 },
-      [ACH.beyond_group_2]: { id: ACH.beyond_group_2, name: 'Past the Limit ({group})', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, by: 'group', after: ACH.beyond_group_1 },
-      [ACH.beyond_group_3]: { id: ACH.beyond_group_3, name: 'Touched by Fate ({group})', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, by: 'group', after: ACH.beyond_group_2 },
+      [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group', branchOf: ACH.beyond_1, skillAddByKind: 1 },
+      [ACH.beyond_group_2]: { id: ACH.beyond_group_2, name: 'Past the Limit ({group})', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, by: 'group', after: ACH.beyond_group_1, skillAddByKind: 1 },
+      [ACH.beyond_group_3]: { id: ACH.beyond_group_3, name: 'Touched by Fate ({group})', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, by: 'group', after: ACH.beyond_group_2, skillAddByKind: 1 },
       [ACH.flawless_1]: { id: ACH.flawless_1, name: 'Untouched', level: 'i', rule: 'flawless', tags: ['combat'], count: 1, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.flawless_10]: { id: ACH.flawless_10, name: 'Not a Scratch', level: 'ii', rule: 'flawless', tags: ['combat'], count: 10, after: ACH.flawless_1, personality: ap({ [PA.discipline]: 1 }) },
       [ACH.flawless_50]: { id: ACH.flawless_50, name: 'Untouchable', level: 'iii', rule: 'flawless', tags: ['combat'], count: 50, after: ACH.flawless_10, personality: ap({ [PA.discipline]: 1 }) },
@@ -1280,17 +1285,18 @@ export function prototypeLibrary(): Library {
       [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10 },
       [ACH.clean_500]: { id: ACH.clean_500, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 500, after: ACH.clean_100 },
       [ACH.unseen_1]: { id: ACH.unseen_1, name: 'Unnoticed', level: 'zero', rule: 'unseen_moves', tags: ['stealth'], count: 1 }, // TM24 (placeholder name)
-      [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10, after: ACH.unseen_1 },
-      [ACH.unseen_50]: { id: ACH.unseen_50, name: 'Slipped Past', level: 'ii', rule: 'unseen_moves', tags: ['stealth'], count: 50, after: ACH.unseen_10 },
-      [ACH.unseen_250]: { id: ACH.unseen_250, name: 'Never Was Here', level: 'iii', rule: 'unseen_moves', tags: ['stealth'], count: 250, after: ACH.unseen_50 },
+      [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10, after: ACH.unseen_1, skillAdd: { [SK.sneaking]: 1 } },
+      [ACH.unseen_50]: { id: ACH.unseen_50, name: 'Slipped Past', level: 'ii', rule: 'unseen_moves', tags: ['stealth'], count: 50, after: ACH.unseen_10, skillAdd: { [SK.sneaking]: 2 } },
+      [ACH.unseen_250]: { id: ACH.unseen_250, name: 'Never Was Here', level: 'iii', rule: 'unseen_moves', tags: ['stealth'], count: 250, after: ACH.unseen_50, skillAdd: { [SK.sneaking]: 3 }, quieter: 1 },
       [ACH.vanished_1]: { id: ACH.vanished_1, name: 'Gone', level: 'zero', rule: 'vanished', tags: ['stealth'], count: 1 }, // TM24 (placeholder name)
-      [ACH.vanished_5]: { id: ACH.vanished_5, name: 'Now You Don\u2019t', level: 'i', rule: 'vanished', tags: ['stealth'], count: 5, after: ACH.vanished_1 },
-      [ACH.vanished_25]: { id: ACH.vanished_25, name: 'Smoke on the Wind', level: 'ii', rule: 'vanished', tags: ['stealth'], count: 25, after: ACH.vanished_5 },
+      [ACH.vanished_5]: { id: ACH.vanished_5, name: 'Now You Don\u2019t', level: 'i', rule: 'vanished', tags: ['stealth'], count: 5, after: ACH.vanished_1, skillAdd: { [SK.vanishing]: 1 } },
+      [ACH.vanished_25]: { id: ACH.vanished_25, name: 'Smoke on the Wind', level: 'ii', rule: 'vanished', tags: ['stealth'], count: 25, after: ACH.vanished_5, skillAdd: { [SK.vanishing]: 2 } },
+      [ACH.vanished_50]: { id: ACH.vanished_50, name: 'As If Never There', level: 'iii', rule: 'vanished', tags: ['stealth'], count: 50, after: ACH.vanished_25, skillAdd: { [SK.vanishing]: 3 } }, // XR16 (placeholder name)
       [ACH.spotted_10]: { id: ACH.spotted_10, name: 'Nothing Gets Past', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10 },
       [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10 },
       [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function', branchOf: ACH.spotted_10 },
-      [ACH.spotted_fn_10]: { id: ACH.spotted_fn_10, name: '{function} That Never Sleeps', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10, after: ACH.spotted_fn_1, by: 'function' },
-      [ACH.spotted_fn_100]: { id: ACH.spotted_fn_100, name: 'Nothing Hides from Your {function}', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_fn_10, by: 'function' },
+      [ACH.spotted_fn_10]: { id: ACH.spotted_fn_10, name: '{function} That Never Sleeps', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10, after: ACH.spotted_fn_1, by: 'function', skillAddByKind: 2 },
+      [ACH.spotted_fn_100]: { id: ACH.spotted_fn_100, name: 'Nothing Hides from Your {function}', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_fn_10, by: 'function', skillAddByKind: 2 },
       [ACH.speech_1]: { id: ACH.speech_1, name: 'First Word Won ({skill})', level: 'zero', rule: 'speech_won', tags: ['social'], count: 1, by: 'skill' }, // TM20 (placeholder name)
       [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', after: ACH.speech_1, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
       [ACH.speech_100]: { id: ACH.speech_100, name: 'Voice That Carries ({skill})', level: 'ii', rule: 'speech_won', tags: ['social'], count: 100, after: ACH.speech_10, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
@@ -1323,10 +1329,10 @@ export function prototypeLibrary(): Library {
       [ACH.holds_1]: { id: ACH.holds_1, name: 'Got a Grip', level: 'zero', rule: 'holds', tags: ['combat', 'skill'], count: 1 }, // TM24 (placeholder name)
       [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10, after: ACH.holds_1 },
       [ACH.holds_100]: { id: ACH.holds_100, name: 'No Getting Loose', level: 'ii', rule: 'holds', tags: ['combat', 'skill'], count: 100, after: ACH.holds_10 },
-      [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10 },
+      [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10, aimEase: 5 },
       // TM7: 10 / 50 / 100
-      [ACH.aimed_50]: { id: ACH.aimed_50, name: 'Where I Said', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 50, after: ACH.aimed_10 },
-      [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_50 },
+      [ACH.aimed_50]: { id: ACH.aimed_50, name: 'Where I Said', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 50, after: ACH.aimed_10, aimEase: 5 },
+      [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_50, aimEase: 5 },
       // TM26/TM27: per part size 1 / 10 / 50; each row takes AIM_EASE_PCT % off that size's aim penalty (carried up: 10 / 20 / 30 %).
       // The first row's name is a placeholder.
       [ACH.aimed_size_1]: { id: ACH.aimed_size_1, name: 'Found the {size} Mark', level: 'zero', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1, by: 'size', levelUp: SMALLER_PAYS_MORE, aimEase: CONFIG.AIM_EASE_PCT, branchOf: ACH.aimed_10 },
@@ -1350,9 +1356,9 @@ export function prototypeLibrary(): Library {
       [ACH.defeated_5]: { id: ACH.defeated_5, name: 'Loser', level: 'i', rule: 'defeated', tags: ['combat'], count: 5, after: ACH.defeated_1, scar: true, personality: ap({ [PA.pride]: -1 }) },
       [ACH.defeated_25]: { id: ACH.defeated_25, name: 'Sore Loser', level: 'ii', rule: 'defeated', tags: ['combat'], count: 25, after: ACH.defeated_5, scar: true, personality: ap({ [PA.pride]: -1 }) },
       // D-160 morale: fights won while Panicking, and the scar for breaking (a break also counts as defeated)
-      [ACH.won_panicking_1]: { id: ACH.won_panicking_1, name: 'Hands Still Shaking', level: 'i', rule: 'won_panicking', tags: ['combat'], count: 1, personality: ap({ nerve: 1 }) },
-      [ACH.won_panicking_10]: { id: ACH.won_panicking_10, name: 'Fear Rides With Me', level: 'ii', rule: 'won_panicking', tags: ['combat'], count: 10, after: ACH.won_panicking_1, personality: ap({ nerve: 1 }) },
-      [ACH.won_panicking_25]: { id: ACH.won_panicking_25, name: 'Panic Is Just Another Weapon', level: 'iii', rule: 'won_panicking', tags: ['combat'], count: 25, after: ACH.won_panicking_10, personality: ap({ nerve: 1 }) },
+      [ACH.won_panicking_1]: { id: ACH.won_panicking_1, name: 'Hands Still Shaking', level: 'i', rule: 'won_panicking', tags: ['combat'], count: 1, personality: ap({ nerve: 1 }), maxMorale: 5 },
+      [ACH.won_panicking_10]: { id: ACH.won_panicking_10, name: 'Fear Rides With Me', level: 'ii', rule: 'won_panicking', tags: ['combat'], count: 10, after: ACH.won_panicking_1, personality: ap({ nerve: 1 }), maxMorale: 5 },
+      [ACH.won_panicking_25]: { id: ACH.won_panicking_25, name: 'Panic Is Just Another Weapon', level: 'iii', rule: 'won_panicking', tags: ['combat'], count: 25, after: ACH.won_panicking_10, personality: ap({ nerve: 1 }), maxMorale: 5 },
       [ACH.morale_breaks_1]: { id: ACH.morale_breaks_1, name: 'First Crack', level: 'zero', rule: 'morale_breaks', tags: ['combat'], count: 1, scar: true, personality: ap({ nerve: -1 }) },
       [ACH.morale_breaks_5]: { id: ACH.morale_breaks_5, name: 'Glass Nerves', level: 'i', rule: 'morale_breaks', tags: ['combat'], count: 5, after: ACH.morale_breaks_1, scar: true, personality: ap({ nerve: -1 }) },
       [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true, personality: ap({ nerve: -1 }) },
@@ -1411,9 +1417,9 @@ export function prototypeLibrary(): Library {
       [ACH.hp_lost_100]: { id: ACH.hp_lost_100, name: 'Bled For It', level: 'zero', rule: 'hp_lost', tags: ['survival'], count: 100 },
       [ACH.hp_lost_1000]: { id: ACH.hp_lost_1000, name: 'Hard to Count the Wounds', level: 'i', rule: 'hp_lost', tags: ['survival'], count: 1000, after: ACH.hp_lost_100 },
       [ACH.hp_lost_10000]: { id: ACH.hp_lost_10000, name: 'Made of Old Wounds', level: 'ii', rule: 'hp_lost', tags: ['survival'], count: 10000, after: ACH.hp_lost_1000 },
-      [ACH.morale_lost_100]: { id: ACH.morale_lost_100, name: 'Nerves Worn Thin', level: 'zero', rule: 'morale_lost', tags: ['survival'], count: 100 },
-      [ACH.morale_lost_1000]: { id: ACH.morale_lost_1000, name: 'Seen Too Much', level: 'i', rule: 'morale_lost', tags: ['survival'], count: 1000, after: ACH.morale_lost_100 },
-      [ACH.morale_lost_10000]: { id: ACH.morale_lost_10000, name: 'Fear Is an Old Friend', level: 'ii', rule: 'morale_lost', tags: ['survival'], count: 10000, after: ACH.morale_lost_1000 },
+      [ACH.morale_lost_100]: { id: ACH.morale_lost_100, name: 'Nerves Worn Thin', level: 'zero', rule: 'morale_lost', tags: ['survival'], count: 100, maxMorale: 5 },
+      [ACH.morale_lost_1000]: { id: ACH.morale_lost_1000, name: 'Seen Too Much', level: 'i', rule: 'morale_lost', tags: ['survival'], count: 1000, after: ACH.morale_lost_100, maxMorale: 5 },
+      [ACH.morale_lost_10000]: { id: ACH.morale_lost_10000, name: 'Fear Is an Old Friend', level: 'ii', rule: 'morale_lost', tags: ['survival'], count: 10000, after: ACH.morale_lost_1000, maxMorale: 5 },
       // D-177: fights against a hostile foe stronger than you (power = rating + gear rating); gaps are placeholders
       [ACH.survived_above_100]: { id: ACH.survived_above_100, name: 'Lived to Tell It', level: 'i', rule: 'survived_above', tags: ['combat', 'survival'], count: 100 },
       [ACH.survived_above_250]: { id: ACH.survived_above_250, name: 'Walked Away From That', level: 'ii', rule: 'survived_above', tags: ['combat', 'survival'], count: 250, after: ACH.survived_above_100 },
@@ -1436,9 +1442,9 @@ export function prototypeLibrary(): Library {
       [ACH.event_crit_fail_3]: { id: ACH.event_crit_fail_3, name: 'Fate\'s Favourite Punchline', level: 'ii', rule: 'event_crit_fails', tags: ['exploration'], count: 3, after: ACH.event_crit_fail_2, scar: true, tierUnlocks: [{ roll: 'event', side: 'down', steps: 1 }] },
       [ACH.total_10]: { id: ACH.total_10, name: 'A Few Threads', level: 'i', rule: 'achievements', tags: ['progression'], count: 10 },
       [ACH.total_25]: { id: ACH.total_25, name: 'Woven In', level: 'ii', rule: 'achievements', tags: ['progression'], count: 25, after: ACH.total_10 },
-      [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },
+      [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25, eventRoll: 1 },
       [ACH.total_100]: { id: ACH.total_100, name: 'Pattern in the Weave', level: 'iv', rule: 'achievements', tags: ['progression'], count: 100, after: ACH.total_50 },
-      [ACH.total_250]: { id: ACH.total_250, name: 'The Tapestry Remembers', level: 'v', rule: 'achievements', tags: ['progression'], count: 250, after: ACH.total_100 },
+      [ACH.total_250]: { id: ACH.total_250, name: 'The Tapestry Remembers', level: 'v', rule: 'achievements', tags: ['progression'], count: 250, after: ACH.total_100, eventRoll: 2 },
       // TM16: the chain scales with however many achievements the game gains: every 250 past 250, a reward level higher each time
       [ACH.total_every]: { id: ACH.total_every, name: 'The Weave Goes On ({level})', level: 'v', rule: 'achievements', tags: ['progression'], count: 500, every: 250, levelStep: 1, branchOf: ACH.total_10 },
       // TM14: areas entered, counted per kind of area under one head: zones 1 / 25 / 50 / 150 / 300, and every kind of place
@@ -1482,7 +1488,7 @@ export function prototypeLibrary(): Library {
           60: 'Something Tugs at the Edges', 70: 'The Pattern Takes Notice', 80: 'Caught in the Weave', 90: 'A Thread That Will Not Fray', 100: 'One Who Pulls the Threads' } },
       // growth proposal EG12 a (approved): take your first essence; fill every essence slot at character level 8 or higher
       [ACH.first_knot]: { id: ACH.first_knot, name: 'First Knot', level: 'i', rule: 'essences_taken', tags: ['progression'], count: 1 },
-      [ACH.room_for_no_more]: { id: ACH.room_for_no_more, name: 'Room for No More', level: 'ii', rule: 'essence_room', tags: ['progression'], count: 8 },
+      [ACH.room_for_no_more]: { id: ACH.room_for_no_more, name: 'Room for No More', level: 'ii', rule: 'essence_room', tags: ['progression'], count: 8, essenceSlots: 1 },
     },
   });
   // ST1: a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
@@ -1500,5 +1506,8 @@ export function prototypeLibrary(): Library {
   natural.access = { either: holders((x) => !!x.naturalAttacks?.some((m) => natural.skills.includes(m.skill ?? ''))) };
   for (const id of natural.skills) lib.skills[id].access = { either: holders((x) => !!x.naturalAttacks?.some((m) => m.skill === id)) };
   lib.skills[SK.hide].access = { either: holders((x) => !!x.naturalArmor) };
+  // Perception: eyes and ears are not for the amorphous (TA6); animals and slimes smell, anyone else only through an essence (AB18 a)
+  for (const id of [SK.eyesight, SK.earshot, SK.insight]) lib.skills[id].access = { blockedBy: [AMORPHOUS] };
+  lib.skills[SK.scent].access = { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) };
   return lib;
 }

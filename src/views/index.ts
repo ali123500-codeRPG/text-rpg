@@ -124,7 +124,7 @@ const tendedOf = (state: GameState, a: Actor): { tended?: string } => { const t 
 /** CT1/CT3: a container as `viewer` knows it (no viewer: the Weaver, everything); `inside` lists what a worn pack holds */
 function containerOf(state: GameState, i: ItemInstance, viewer?: Actor, inside: ItemInstance[] = i.contents ?? []): { container?: ContainerView } {
   if (!itemDef(state, i.itemId).container) return {};
-  const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const } : {};
+  const lock = i.lock ? { lock: i.lock.locked ? 'locked' as const : 'unlocked' as const, ...(i.grade && (!viewer || i.graded?.includes(viewer.id)) ? { grade: i.grade } : {}) } : {}; // OD12
   const key = viewer && i.lock && viewer.core.inventory.some((k) => k.opens?.includes(i.id)) ? { key: true as const } : {};
   const shows = !viewer || i.open;
   return { container: { ...(i.open ? { open: true as const } : { shut: true as const }), ...(itemDef(state, i.itemId).container?.fixed ? { fixed: true as const } : {}), ...lock, ...key, ...(!viewer && i.owner ? { owner: i.owner } : {}),
@@ -1018,7 +1018,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       ...((() => { const own = itemHolders(state).flat().filter((i) => i.boundTo === state.player.id && lib.items[i.itemId]?.threadbound).map((i) => lib.items[i.itemId].name); return own.length ? { threadbound: own } : {}; })()) },
     previousNote: state.hidden.weaverNote,
     lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => { try { return itemDef(state, i).name; } catch { return i; } }), ...(r.inner ? { inner: true as const } : {}) })),
-    ...(state.stage.outer ? { outerScenario: { question: state.stage.outer.question, scale: SCENARIO_SCALES.name(state.stage.outer.scale) } } : {}),
+    ...(state.stage.outer ? { outerScenario: { question: state.stage.outer.question, ...(state.stage.outer.stake ? { stake: state.stage.outer.stake } : {}), scale: SCENARIO_SCALES.name(state.stage.outer.scale) } } : {}),
     catalogs: {
       templates: [...templates.values()],
       uniques: uniqueCatalog(state),

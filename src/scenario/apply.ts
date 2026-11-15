@@ -2,11 +2,11 @@
 import { endSuspicions } from '../engine/suspicion';
 import { freshId } from '../ids';
 import { expireOffers } from '../engine/essence';
-import { frameOf } from '../engine/scenarioEnd';
+import { frameOf, holdForInner, holdsInner } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
 import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, NpcTemplate, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
-import { LIFE_STAGES, TALENTS, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
+import { LIFE_STAGES, TALENTS, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY, SCENARIO_SCALES } from '../scales';
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
@@ -175,6 +175,15 @@ export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['
 
 /** reset scenario-scoped records at a scenario start (Scenarios: Start). */
 export function beginScenario(state: GameState, tier: Tier, beyond?: number): void {
+  // SW10 a: a Situation started between Situations sits inside the running Episode, which becomes the bigger scenario
+  const st = state.stage;
+  if (st.between && st.scenario && !st.outer) {
+    holdForInner(state, st.scenario);
+    st.outer = st.scenario;
+    delete st.scenario;
+    state.log.push({ turn: state.turn, code: 'episode_inner', detail: { outer: st.outer.number } });
+  }
+  delete st.between;
   state.stage.tier = tier;
   if (beyond) state.stage.tierBeyond = beyond; else delete state.stage.tierBeyond;
   state.stage.scenarioNumber += 1;
@@ -490,12 +499,26 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     // BF55: filed as a bug either way, so the Weaver's habit can be looked into
     state.log.push({ turn, code: 'ending_item_remapped', detail: { from, ...(one ? { to: w.item } : { made: made.get(from), plainToo: plain.has(from) }) } });
   }
-  if (ctx.kind === 'scenario') state.stage.scenario = frameOf(state, plan.scenario, ctx.tier, frameRef);
+  if (ctx.kind === 'scenario') {
+    // SW10 a: with no bigger scenario running, the plan's episode is the bigger one and its scenario the first part inside it
+    const st = state.stage, epScale = SCENARIO_SCALES.keyOf(plan.episode?.scale), inScale = SCENARIO_SCALES.keyOf(plan.scenario?.scale);
+    if (plan.episode && !st.outer && epScale && holdsInner(epScale) && !(inScale && holdsInner(inScale))) {
+      st.outer = frameOf(state, plan.episode, ctx.tier, frameRef);
+      st.scenarioNumber += 1; // its first part is a scenario of its own (a check-in names the one it is about)
+      state.log.push({ turn, code: 'episode_planned', detail: { number: st.outer.number, scale: st.outer.scale } });
+    }
+    st.scenario = frameOf(state, plan.scenario, ctx.tier, frameRef);
+    // an Episode (or bigger) on its own: between parts from the start, so danger and windows start the parts inside it
+    if (!st.outer && holdsInner(st.scenario.scale)) st.between = { since: turn, sinceMin: now(state) };
+  }
   // CH1: the ground: the start zone, every zone this scenario's plans build, and the stage zones they name (links, slots)
   const named = [...plan.zones.flatMap((z) => z.links.map((l) => l.to)), ...plan.cast.flatMap((c) => Object.values(c.slots ?? {}).flat())]
     .filter((r): r is string => typeof r === 'string' && stageZones.has(r));
   const ground = [...(ctx.kind === 'scenario' && !ctx.wake ? [startZone] : []), ...newZones.map((z) => z.id), ...named].filter((z) => zoneById(state, z));
-  if (ctx.kind === 'scenario' && state.stage.scenario) state.stage.scenario.ground = [...new Set(ground)];
+  if (ctx.kind === 'scenario' && state.stage.scenario) {
+    state.stage.scenario.ground = [...new Set(ground)];
+    if (state.stage.outer) state.stage.outer.ground = [...new Set([...(state.stage.outer.ground ?? []), ...ground])]; // SW10 a: the episode holds each part's ground
+  }
   else if (state.stage.scenario?.ground) state.stage.scenario.ground = [...new Set([...state.stage.scenario.ground, ...ground])];
   // SC12: a check-in may change the running scenario's question, scale and endings; its number, start and records stay
   else if (ctx.kind === 'checkin' && plan.scenario && state.stage.scenario) {

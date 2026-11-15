@@ -52,6 +52,7 @@ export const MILL_PLAN: StagePlan = {
   frontiers: [{ key: 'mill_pond', label: 'along the race' }],
   bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [],
   hiddenTerms: ['nest'], weaverNote: 'the slimes come from the pond',
+  episode: { question: 'who is behind the slimes at the mill?', stake: 'the village loses its mill', scale: 'episode', endings: [{ when: { kind: 'judged' }, as: 'resolved', text: 'the source is found' }, { when: { kind: 'judged' }, as: 'lost', text: 'the mill is given up' }] },
   scenario: { question: 'what waits at the old mill?', stake: 'the mill falls to whoever waits there', scale: 'moment', endings: [{ when: { kind: 'judged' }, as: 'resolved', text: 'the mill is searched' }, { when: { kind: 'leave', place: 'mill' }, as: 'left', text: 'the player walks away' }] },
 };
 

@@ -36,12 +36,10 @@ export type StageInfo = {
   /** SD1: how the last scenario ended and the turn it was closed (the play page's ending moment reads it that turn) */
   closed?: { as: import('./hidden').ScenarioEnding; turn: number };
   /** SD2 a: free roam, since this turn: no scenario runs until danger starts one or a window opens (WB5, WB6) */
-  roam?: { since: number;
-    /** WB6/WB7: the game minute free roam began, the rest after the scenario that ended (ROAM_REST_MIN by its challenge), and
-     * the minute the Weaver last declined a window */
-    sinceMin?: number; rest?: number; declinedAt?: number;
-    /** SW3 a: what happened in this free roam, one short hidden line per notable thing (as a scenario's `happened`, plus attacks) */
-    happened?: { turn: number; text: string }[] };
+  roam?: Lull;
+  /** SW10 a: an Episode (or bigger) runs with no Situation inside it, since this turn: danger and windows start the next
+   * Situation inside it, as they start a scenario in free roam */
+  between?: Lull;
   /** SW3 a: why free roam is ending in a scenario (danger, or a window the Weaver took), what happened in the roam and who saw
    * the player that turn; read by the window's and the next scenario's Weaver views, cleared once that plan is applied */
   cause?: { why: string; happened: { turn: number; text: string }[]; seenBy: string[] };
@@ -288,3 +286,11 @@ export type { ActorId };
 /** NW15/NW22: a night's plan. Each member sleeps from start to end except during its own watch [from, to); slept counts
  * the player's minutes asleep for the rest heal; woke lists members woken out of the plan (their night is over). */
 export type Night = { start: number; end: number; members: string[]; watches: { actorId: string; from: number; to: number }[]; slept: number; heals: number; woke: string[] };
+
+/** SD2 a / SW10 a: a stretch with no scenario running (free roam), or an Episode with no Situation inside it (between) */
+export type Lull = { since: number;
+    /** WB6/WB7: the game minute free roam began, the rest after the scenario that ended (ROAM_REST_MIN by its challenge), and
+     * the minute the Weaver last declined a window */
+    sinceMin?: number; rest?: number; declinedAt?: number;
+    /** SW3 a: what happened in this free roam, one short hidden line per notable thing (as a scenario's `happened`, plus attacks) */
+    happened?: { turn: number; text: string }[] };

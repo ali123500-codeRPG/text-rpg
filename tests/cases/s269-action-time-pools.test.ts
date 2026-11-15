@@ -49,6 +49,8 @@ describe('269 action time pools', () => {
     g.zone = s.player.zone;
     g.placeId = s.player.placeId;
     g.pos = { x: s.player.pos!.x + 0.5, y: s.player.pos!.y };
+    for (const i of s.player.core.inventory) delete i.equippedIn;
+    s.player.core.inventory.push({ id: 'ss', itemId: IT.short_sword, qty: 1, equippedIn: ['grip:right_arm'] }); // a light weapon: 3 s blows, two to the turn
     s.mode = 'tactical';
     inFight(s);
     const ev = turn(s, intent({ target: 'guard_1' }));
@@ -62,10 +64,10 @@ describe('269 action time pools', () => {
       g.zone = s.player.zone; g.placeId = s.player.placeId; g.pos = { x: s.player.pos!.x + 0.5, y: s.player.pos!.y };
       s.mode = 'tactical';
       inFight(s);
-      s.player.carry = [{ main: actionSeconds(actionRow(DU.blow)!), move: 0, turn: s.turn + 1 - age }];
+      s.player.carry = [{ main: actionSeconds(actionRow(DU.blow_medium)!), move: 0, turn: s.turn + 1 - age }]; // an arming sword: medium
       return turn(s, intent({ target: 'guard_1' })).filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
     };
-    const plain = CONFIG.FIGHT_TURN_S / actionSeconds(actionRow(DU.blow)!);
+    const plain = Math.floor(CONFIG.FIGHT_TURN_S / actionSeconds(actionRow(DU.blow_medium)!));
     expect(blows(CONFIG.CARRY_TURNS)).toBe(plain + 1);
     expect(blows(CONFIG.CARRY_TURNS + 1)).toBe(plain);
   });
@@ -107,7 +109,7 @@ describe('269 action time pools', () => {
     const ev = turn(s, intent({ target: 'guard_1' }));
     const r = s.player.react!;
     expect(r.s).toBeCloseTo(reactSeconds(r.init), 6);
-    const blow = actionSeconds(actionRow(DU.blow)!);
+    const blow = actionSeconds(actionRow(DU.blow_medium)!); // the player's arming sword
     expect(ev.filter((e) => e.kind === 'attack' && e.actorId === 'player')).toHaveLength(Math.floor((CONFIG.FIGHT_TURN_S - r.s) / blow + 1e-9));
     turn(s, intent({ target: 'guard_1' }));
     expect(s.player.react).toMatchObject({ s: r.s, init: r.init, turn: s.turn });
@@ -123,15 +125,16 @@ describe('269 action time pools', () => {
       g.mind!.knowledge.player = { status: 'engaged', lastKnownZone: s.player.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
       s.mode = 'tactical';
       inFight(s);
+      for (const i of g.core.inventory) delete i.equippedIn; // fists: 2 s blows
       g.react = { s: 2, init: 50, turn: s.turn };
       if (bluff) g.perkMarks = [{ perk: PK.bluff, made: s.turn }];
       s.turn += 1;
       const ev = resolveTurn(s, { intent: { ...intent({ target: 'guard_1' }), action: null }, aimed: false, agentOutputs: [], spokespeople: [], fired: [{ actorId: 'guard_1', type: 'attack', target: 'player', skill: null, intent: '', source: 'trigger' }] }, createRng(3));
       return { n: ev.filter((e) => e.kind === 'attack' && e.actorId === 'guard_1').length, marks: g.perkMarks };
     };
-    expect(blows(false).n).toBe(2);
+    expect(blows(false).n).toBe(3);
     const b = blows(true);
-    expect(b.n).toBe(1); // starts 2 s in: one 3 s blow fits
+    expect(b.n).toBe(2); // starts 2 s in: two 2 s blows fit
     expect(b.marks).toBeUndefined(); // the hesitation is spent
   });
 });

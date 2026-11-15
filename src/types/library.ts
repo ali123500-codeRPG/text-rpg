@@ -465,7 +465,7 @@ export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | '
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
   | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind' | 'tierUnlocks'
-  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak';
+  | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'skillAddByKind' | 'sellPct' | 'questPayPct' | 'essenceSlots';
 /** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is
  * earned at `count` defeats (first defeat = count 1). With `by`, it is earned once per kind (body type, race …): the granted
  * id is <id>:<kind> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when enough of its
@@ -493,6 +493,12 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   maxMorale?: number; // flat points added to the owner's max morale (ordeals pay nerve, never the skill used)
   aimEase?: number; // TM26: on a by-size row, % taken off the aim penalty for that part size
   safeBreak?: number; // BK4: forcing a container open moves every fragility line this many tiers worse (src/engine/breakage.ts)
+  /** XR2: on a by-kind row, true skill added to the skill(s) of the kind it was earned for: a skill row that skill, a group
+   * row every skill of the group, a function row that sense's skill (or every skill with the function) */
+  skillAddByKind?: number;
+  sellPct?: number; // XR2: + this % on what traders pay the owner (the mirror of pricePct)
+  questPayPct?: number; // XR2: + this % on the coin a quest giver promises the owner
+  essenceSlots?: number; // XR2: this many more essence slots
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
   standIn?: number; // + this share for stand-ins on rolls of a skill in the achievement's group

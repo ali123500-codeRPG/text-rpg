@@ -76,7 +76,8 @@ const intent = obj<Intent>({
     improvised: (v, p, e) => (v === null || v === undefined ? null
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
     demand: (v, p, e) => (v === null || v === undefined ? null : oneOf(['yield'] as const)(v, p, e)),
-  }, ['qty', 'for', 'demand', 'aimed'])),
+    noSkillFits: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
+  }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const) })),
   gear: GEAR,
@@ -252,8 +253,9 @@ const weaver = obj<StagePlan>({
   weaverNote: str,
   spars: arr(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])),
   scenario: any as V<StagePlan['scenario']>, // SC1/SC2/SC7: checked by the validator (src/scenario/validate.ts)
+  episode: any as V<StagePlan['episode']>, // SW10 a: checked by the validator too
   forbidden: arr(str), // GD1 b
-}, ['timeOfDay', 'spars', 'scenario', 'containers', 'forbidden']);
+}, ['timeOfDay', 'spars', 'scenario', 'episode', 'containers', 'forbidden']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);
