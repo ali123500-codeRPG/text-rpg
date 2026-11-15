@@ -736,7 +736,8 @@ Output shape (notation, not literal JSON):
     mode:     mode_id | null,              // attack mode; code default if null (Part 5 §5)
     approach: short phrase in the player's style,   // flavor only
     stance:   careful | normal | reckless,         // flavor only
-    improvised: { base: improvised_light | improvised_medium | improvised_heavy, name: short phrase } | null   // a scenario object used as a weapon (Part 5 §7)
+    improvised: { base: improvised_light | improvised_medium | improvised_heavy, name: short phrase } | null,  // a scenario object used as a weapon (Part 5 §7)
+    noSkillFits?: true   // no skill in PlayerView fits the deed; the closest is used and the game flags it (skill_gap)
   } | null,
   perkMove:   { perk: perk_id, target: actor_id | null } | null,   // an owned perk move (AE8); a free one rides beside the action
   gear:       [ { op: draw | stow | swap | wear_acc | remove_acc | pick_up,
@@ -750,6 +751,7 @@ Output shape (notation, not literal JSON):
 ```
 
 - approach and stance are flavor: the engine ignores them unless an active skill or perk names them as a trigger. They are passed to Agent Narrator so the prose keeps the player's style.
+- **No skill fits** (Ali, 15/11/2026, thread "Give each obstacle its own difficulty"): when no skill in PlayerView fits the deed, the Parser still picks the closest and sets noSkillFits. Every such turn is flagged: the log code skill\_gap (a bug code, so it is filed on the Bugs page with the player's words, the action type, the skill used and the target). The flags show which skills the game is missing as play goes on.
 - deferred is logged and otherwise ignored for now. How extra actions are handled is part of the action-economy discussion (D-19).
 - A clarify answer stops the turn: no resolution, turn unchanged. Planner outputs are kept and apply when the turn resolves.
 - Code adds aimed: true | false to the player's order from the Aim toggle or /aim (Part 1 §7), or when the Parser says the player's words aim at the part they name (BF26: "aimed": true with a targetPart).
