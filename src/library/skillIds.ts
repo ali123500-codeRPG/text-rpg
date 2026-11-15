@@ -13,6 +13,7 @@ export const SK = {
   light_armor: 'SK25', medium_armor: 'SK26', heavy_armor: 'SK27', tremor: 'SK28', lockpicking: 'SK29', blade_dance: 'SK30',
   lying: 'SK31', insight: 'SK32', shrewd_dealing: 'SK33', resolve: 'SK34', parry: 'SK35', filching: 'SK36', stamina: 'SK37',
   bite: 'SK38', claws: 'SK39', hooves_horns: 'SK40', tail: 'SK41', scent: 'SK42', hide: 'SK43', // AB16, AB18, AB20
+  healing: 'SK44', // NR33: the Medicine tree; Heal opens at 50 (NR2, NR34)
 } as const;
 export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge, block or parry, a choice, not a skill) and the skill it rolls */

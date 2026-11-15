@@ -411,6 +411,12 @@ const DEFAULTS = {
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
+  /** NR34 (placeholders): Heal opens at this true Healing; it gives back this share of the target's missing health (and of
+   * each part's missing share) by the Healing roll's tier, plus HEAL_PAST_STEP for each step past Critical Success.
+   * Its cost is the action's own effort for now; a resource of its own (mana) comes later (D-340) */
+  HEAL_UNLOCK: 50,
+  HEAL_TIER_SHARE: { near_miss: 0.05, success: 0.1, great_success: 0.15, critical_success: 0.25 } as Record<string, number>,
+  HEAL_PAST_STEP: 0.1,
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
@@ -805,7 +811,7 @@ const DEFAULTS = {
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
-  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter' } as Record<string, string>,
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter', [GR.medicine]: 'half' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
   /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
   SKILL_RATING_AT_50: 23.1,
