@@ -69,7 +69,7 @@ describe('192 the Threadbound start', () => {
     far.groundItems.push(s.player.core.inventory.splice(s.player.core.inventory.findIndex((i) => i.id === 'loop'), 1)[0]);
     expect(applyGearOps(s, s.player, [{ op: 'summon', item: 'loop' }]).summoned).toEqual(['loop']);
     // an item bound to no one, or someone else's, cannot be summoned
-    npc.core.inventory.push({ id: 'plain', itemId: IT.signet_ring });
+    npc.core.inventory.push({ id: 'plain', itemId: IT.charmed_ring });
     expect(applyGearOps(s, s.player, [{ op: 'summon', item: 'plain' }]).invalid).toHaveLength(1);
   });
 
@@ -87,7 +87,7 @@ describe('192 the Threadbound start', () => {
       expect(inst.equippedIn).toEqual(['acc:0']);
       delete inst.equippedIn;
       s.actors[0].core.inventory.push(...s.player.core.inventory.splice(s.player.core.inventory.indexOf(inst), 1));
-      for (let n = 0; n < CONFIG.ACCESSORY_SLOTS; n++) s.player.core.inventory.push({ id: `ring${n}`, itemId: IT.signet_ring, equippedIn: [`acc:${n}`] });
+      for (let n = 0; n < CONFIG.ACCESSORY_SLOTS; n++) s.player.core.inventory.push({ id: `ring${n}`, itemId: IT.charmed_ring, equippedIn: [`acc:${n}`] });
       applyGearOps(s, s.player, [{ op: 'summon', item: 'loop' }]);
       expect(inst.equippedIn).toBeUndefined();
     } finally { delete loop.slot; }

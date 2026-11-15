@@ -49,7 +49,7 @@ it('GD4 a: opened where the guard sees inside with nothing it is after: cleared,
 });
 
 it('GD1/GD4 a: stolen goods inside are caught; forbidden goods too', () => {
-  const stolen = setup([{ id: 'ring', itemId: IT.signet_ring, stolenFrom: 'patron_1' }]);
+  const stolen = setup([{ id: 'ring', itemId: IT.charmed_ring, stolenFrom: 'patron_1' }]);
   const before = pos(stolen.s, stolen.g);
   searched(stolen.s);
   openBox(stolen.s);

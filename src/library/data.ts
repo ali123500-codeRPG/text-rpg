@@ -366,7 +366,6 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
       { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
       { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
     ] } },
-  { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   // accessories: each gives a flat skill bonus while worn, sized by its equipment level (ACC: ACCESSORY_FACTOR × EQUIP_NEED, AX1/AX2)
   { id: IT.spectacles, level: 'common', kind: 'accessory', fragility: 'fragile', name: 'spectacles', look: 'a pair of round glass lenses in a thin wire frame', bulk: 0, value: 5, slot: 'accessory', visible: true,
     effects: [ACC(SK.eyesight)] },

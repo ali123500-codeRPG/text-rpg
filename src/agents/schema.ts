@@ -273,7 +273,7 @@ const arrivals: V<NonNullable<CheckinAnswer['arrivals']>> = (v, p, e) => {
 /** SC8: the Weaver's check-in answer; what it may say is checked by engine/scenarioEnd.ts checkinErrors */
 const checkin = obj<CheckinAnswer>({
   verdict: oneOf(['continue', 'end'] as const), as: str, text: str, beats: optArr(trigger) as V<CheckinAnswer['beats']>, note: str,
-  change: obj<NonNullable<CheckinAnswer['change']>>({ question: str, scale: str, endings: arr(any) as V<NonNullable<NonNullable<CheckinAnswer['change']>['endings']>> }, ['question', 'scale', 'endings']),
+  change: obj<NonNullable<CheckinAnswer['change']>>({ question: str, stake: str, scale: str, endings: arr(any) as V<NonNullable<NonNullable<CheckinAnswer['change']>['endings']>> }, ['question', 'stake', 'scale', 'endings']),
   arrivals,
   frontiers: arr(obj<NonNullable<CheckinAnswer['frontiers']>[number]>({ zone: str, key: str, label: str, brief: str }, ['brief'])),
 }, ['as', 'text', 'beats', 'note', 'change', 'arrivals', 'frontiers']);
