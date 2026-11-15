@@ -124,10 +124,19 @@ export function checkScenarioEnd(state: GameState, events: GameEvent[]): void {
   endScenario(state, st.ending.as, st.ending.text, st.ending.outer, st.ending.roam);
 }
 
-/** SC2/SC12/AT83: how much of its budget the scenario has used (1 = all of it), in game time */
+/** SC2/SC12/AT83: how much of its budget the scenario has used (1 = all of it), in game time; BG-240: an actingOnly scale
+ * leaves out the time spent waiting, resting, sleeping and on trips */
 export function budgetUsed(state: GameState, f: ScenarioFrame): number {
   const c = CONFIG.SCENARIO_SCALE[f.scale];
-  return c?.budgetMin ? Math.max(0, now(state) - f.startMinute) / c.budgetMin : 0;
+  if (!c?.budgetMin) return 0;
+  return Math.max(0, now(state) - f.startMinute - (c.actingOnly ? f.idleMin ?? 0 : 0)) / c.budgetMin;
+}
+
+/** BG-240: the player spent these game minutes waiting, resting, sleeping or on a trip: noted on the running scenario and
+ * the one it sits in */
+export function noteIdle(state: GameState, minutes: number): void {
+  if (!(minutes > 0)) return;
+  for (const f of [state.stage.scenario, state.stage.outer]) if (f) f.idleMin = (f.idleMin ?? 0) + minutes;
 }
 
 /** SC8: may a check-in be asked now (at most CHECKIN_MAX_PER_SCENARIO, CHECKIN_GAP_TURNS apart; /stuck skips both) */

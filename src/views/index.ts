@@ -893,7 +893,7 @@ function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<Weaver
   const c = CONFIG.SCENARIO_SCALE[f.scale];
   return {
     question: f.question, ...(f.stake ? { stake: f.stake } : {}), scale: SCENARIO_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
-    turns: state.turn - f.startTurn, budget: c?.budgetMin ? `${spanText(c.budgetMin)} of game time` : '?',
+    turns: state.turn - f.startTurn, budget: c?.budgetMin ? `${spanText(c.budgetMin)} of ${c.actingOnly ? 'acting time (waits, rest, sleep and trips not counted)' : 'game time'}` : '?',
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
     happened: (f.happened ?? []).map((h) => ({ ...h })),
     remembered: state.actors.filter((a) => state.stage.zoneIds.includes(a.zone)).flatMap((a) =>
