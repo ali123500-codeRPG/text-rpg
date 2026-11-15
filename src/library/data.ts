@@ -515,6 +515,10 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.watcher, 'Watcher', 'combat', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
   role(RO.talker, 'Talker', 'civilian', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
   role(RO.worker, 'Worker', 'civilian', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
+  // NR4: woods folk who live by the bow (hunters, foresters, trappers, poachers); civilian, Commoner class line (NR2)
+  role(RO.hunter, 'Hunter', 'civilian', { high: [SK.ranged_medium, SK.sneaking], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
+  // NR6: barber-surgeons, herb-wives, midwives; the one who sells clinic care (SV.clinic) where a place has it
+  role(RO.healer, 'Healer', 'civilian', { high: [SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
   role(RO.beast, 'Beast', 'beast', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
 ].map((r) => [r.id, r]));
 
@@ -524,6 +528,12 @@ export const THEMES: Record<string, ThemeDef> = {
   [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] }, leans: { values: [VL.duty] }, traits: [PK.insomniac], wealth: 'fine' },
   [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', bands: { moderate: [SK.intimidation], low: [SK.sneaking] }, leans: { values: [VL.wealth, VL.freedom] }, traits: [PK.heavy_sleeper], wealth: 'common' },
   [TH.wild_beasts]: { id: TH.wild_beasts, name: 'Wild beasts' },
+  // NR16: townsfolk who are not the watch; travellers on the roads; a lord's knights and servants; the few always-lethal
+  // monster kinds, each in its own place (slimes and dragons stay Wild beasts: vermin and great beasts)
+  [TH.town_folk]: { id: TH.town_folk, name: 'Town folk', bands: { low: [SK.barter] }, leans: { values: [VL.wealth] }, traits: [PK.insomniac], wealth: 'fine' },
+  [TH.travellers]: { id: TH.travellers, name: 'Travellers', bands: { low: [SK.stamina] }, leans: { values: [VL.freedom, VL.adventure] }, traits: [PK.heavy_sleeper], wealth: 'common' },
+  [TH.lords_household]: { id: TH.lords_household, name: "Lord's household", bands: { low: [SK.persuasion] }, leans: { values: [VL.duty, VL.loyalty] }, wealth: 'superior' },
+  [TH.monsters]: { id: TH.monsters, name: 'Monsters' },
 };
 
 /** NG1, NG21: today's five templates as presets (same TP IDs): race, role, theme and rank, at the ranks they played at.
@@ -586,6 +596,7 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('cowering', 'cowering where they stand', 'alert', 'quiet', 'normal'), // BF37: a broken nerve, no move and no attack
   act('ooze', 'oozing across the grass', 'normal', 'quiet', 'normal'),
   act('prowl', 'keeping to the shadows', 'alert', 'silent', 'close'), // NV4
+  act('lie_in_wait', 'lying in wait', 'alert', 'silent', 'close'), // NR24: a bandit hidden by the road
 ].map((a) => [a.id, a]));
 
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;
@@ -633,6 +644,12 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   { ...timed(sched('prowl', 'Prowls unseen, stop by stop, from afternoon to night; sleeps at dawn and in the morning', true, [['route', 'short', 'prowl']], 'lie_low_alert', null),
     at(['dawn', 'morning'], [['refuge', 'long', 'sleep']])), posture: 'stealthy' as const },
   { ...sched('lie_low_alert', 'Slips off to lie low, on alert', false, [['refuge', 'long', 'cower']], undefined, null), posture: 'stealthy' as const },
+  // NR24: a bandit keeps the camp: idles and talks there by day, drinks in the evening, sleeps at night; on alert, defends it
+  timed(sched('keep_camp', 'Idles and talks at the camp by day; drinks in the evening, sleeps at night', true, [['post', 'medium', 'rest'], ['post', 'short', 'chat']], 'defend_camp_alert', { ...CALL_HELP }), ...OFF_DUTY),
+  sched('defend_camp_alert', 'Stands to at the camp, on alert', true, [['post', 'long', 'stand_watch']], undefined, null),
+  // NR24: a bandit lies hidden at a road spot from dawn to dusk and rushes out onto the road at whoever passes
+  { ...timed(sched('ambush_road', 'Lies hidden beside the road from dawn to dusk; back at camp in the evening, asleep at night', true, [['hide', 'long', 'lie_in_wait']], 'spring_ambush_alert', { ...CALL_HELP }), ...OFF_DUTY), posture: 'stealthy' as const },
+  sched('spring_ambush_alert', 'Rushes out onto the road, on alert', true, [['road', 'long', 'stand_watch']], undefined, null),
   // RT9: a slime settles for the evening and night
   timed(sched('roam_field', 'Oozes across the field by day, then settles; still at night', true, [['route', 'short', 'ooze'], ['post', 'medium', 'rest']], 'roam_field_alert', null),
     at(['evening', 'night'], [['post', 'long', 'rest']])),
@@ -658,6 +675,9 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('sleeper', 'A guest staying the night', ['tavern'], ['sleeper'], ['any'], { bed: z('their bed'), refuge: z('where they would hide'), seat: SEAT, exit: OUT }, ['sleep_in_bed', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
   set('street_worker', 'A labourer or stallholder at work', ['street'], ['worker'], ['any'], { work: z('the work spot'), refuge: z('home or a doorway'), bed: BED }, ['work_shift', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
   set('thief', 'A thief prowling for an easy mark', ['street', 'tavern'], ['thief'], ['any'], { route: r('the stops it prowls, in order'), refuge: z('where it lies low') }, ['prowl', 'lie_low_alert', 'wait', 'wait_alert']),
+  // NR24: bandits keep a camp and lie in wait by a road; a camp's lookout takes the gate_guard set, posted at the camp's edge
+  set('bandit_camp', 'A bandit at the gang\'s camp', ['camp', 'woods'], ['bandit'], ['any'], { post: z('the camp'), seat: SEAT, bed: BED }, ['keep_camp', 'defend_camp_alert', 'wait', 'wait_alert']),
+  set('bandit_ambush', 'A bandit lying in wait by a road', ['road', 'woods'], ['bandit'], ['any'], { hide: z('where it hides beside the road'), road: z('the road it rushes onto'), seat: SEAT, bed: BED }, ['ambush_road', 'spring_ambush_alert', 'wait', 'wait_alert']),
   set('companion', "The player's band; not chosen by tags", [], [], [], {}, ['follow', 'follow_alert', 'wait', 'wait_alert']),
   set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));
