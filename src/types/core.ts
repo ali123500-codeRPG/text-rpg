@@ -134,8 +134,9 @@ export type LandFeature = { id: string; kind: string; name: string; look: string
 
 /** FR1: a named piece of furniture in a zone and where it stands: a compass side or corner ('n', 'ne', …), or the middle
  * when left out. Mostly colour: a move can end beside it, and search and stash work where one stands. FR4: one on an edge
- * (a counter, a rail) shows on both sides of it from this one record. */
-export type Furniture = { id: string; kind: string; name: string; at?: string; edge?: true };
+ * (a counter, a rail) shows on both sides of it from this one record. grade (OD2): set when someone can do something hard
+ * with it, or by the first act on it (OD3); graded: who has tried it, and sees its grade (OD12). */
+export type Furniture = { id: string; kind: string; name: string; at?: string; edge?: true; grade?: Grade; graded?: string[] };
 export type Zone = {
   id: string;
   placeId: PlaceId;
@@ -233,7 +234,8 @@ export type GameEvent = {
   filch?: 'taken' | 'fumbled' | 'caught'; // FL4: how a filch went (src/engine/filch.ts)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;
-  check?: import('./ruleset').CheckResult;
+  /** OD1 b/OD3: an act on a graded thing (use, interact, other): the skill, the grade, and whether it was sure, out of reach or rolled */
+  obstacle?: { skill: string; grade: Grade; gate: 'sure' | 'out' | 'roll' };
   /** Q17: the player's look, a sight roll */
   roll?: import('./ruleset').RollResult;
   /** PG3/PG9: the player's make-out roll on this event (something half seen or half heard): its difficulty and whether
@@ -246,7 +248,7 @@ export type GameEvent = {
   /** TF13: the player's words were an offer to stop fighting: how they landed with each listener */
   offers?: { to: string; landed: 'convinced' | 'tempted' | 'unmoved'; demand?: 'yield' }[]; // demand: TF19, it asked them to surrender
   /** BF31: a container broken open (kind break_open): whether it opened; cut: a blade cut a soft one open, no roll */
-  breakOpen?: { opened: boolean; cut?: true; broke?: string[] }; // broke: BK2, instance ids of what broke inside
+  breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // broke: BK2, instance ids of what broke inside; beyond: OD13, out of the breaker's reach (no roll)
   extract?: { essence: string; grade: string }; // DX3: an essence pulled out of the target (an essence row id and its grade)
   /** TF19: a surrender talked out of a foe (kind surrender; actorId gave up to target): bandmates that gave up with it */
   surrender?: { with: string[] };

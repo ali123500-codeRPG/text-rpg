@@ -3,7 +3,7 @@
 import { DU, RL } from '../library/tableIds';
 import { actionRow, actionSeconds } from './actionTime';
 import type {
-  Actor, AttackRequest, NaturalArmor, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
+  Actor, AttackRequest, NaturalArmor, DefenseKind, AttackResult, CheckResult, ContestResult, Effect, GameState, Mod,
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
@@ -11,7 +11,7 @@ import { COVER, HIT_OUTCOMES, TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { sightDistM, withinM } from '../engine/position';
-import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
+import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk, trueSkill } from './perks';
 import { baneMods, defeatsMods } from './bane';
@@ -103,8 +103,8 @@ export function gradeMod(target: number): number {
 export function obstacleGate(effective: number, target: number): 'sure' | 'out' | 'roll' {
   return effective - target >= CONFIG.OBSTACLE_SURE_GAP ? 'sure' : target - effective > CONFIG.OBSTACLE_REACH_GAP ? 'out' : 'roll';
 }
-/** OD10 a: a lock's grade modifier on the roll (SE23's one formula), none at Moderate */
-export const lockMods = (target: number): Mod[] => (gradeMod(target) ? [{ source: 'lock', type: 'situational', value: gradeMod(target) }] : []);
+/** SE23's grade modifier as a roll modifier, none at Moderate: `source` 'lock' for a lock (BA2, BF31; OD10 a), 'grade' for any other graded act (OD3) */
+export const gradeMods = (target: number, source: 'lock' | 'grade'): Mod[] => (gradeMod(target) ? [{ source, type: 'situational', value: gradeMod(target) }] : []);
 /** Part 1 §4: the margin of a skill roll */
 export const rollMargin = (d: number, skill: number, mods: Mod[]) => d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED;
 /** the tier level of a skill roll: the margin's band, any unlocked extra bands, the natural edge and tier shifts. Rolls and
@@ -171,7 +171,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const eff: { skill: string; value: number; parts?: string[] } = req.blend ? blendedSkill(state, actor, req.blend, ctx) : effectiveSkill(state, actor, req.skill, ctx); // a combined roll (Throw)
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
-    modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
+    modifiers.push(...woundsOnRoll(woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }), eff.value)); // PW1 b
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
     modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
     modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses
@@ -190,15 +190,6 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (modifiers.some((m) => m.source === OVERDRIVE)) payStrain(state, actor, 'light', CONFIG.OVERDRIVE_STRAIN / CONFIG.STRAIN_COST.light); // its strain
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
   return out;
-}
-
-function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
-  const actor = mustActor(state, req.actorId);
-  const tool = pickTool(state, actor, req.skill).itemId ?? undefined;
-  const eff = effectiveSkill(state, actor, req.skill, { itemId: tool });
-  const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge];
-  const passed = eff.value + req.modifiers.reduce((s, m) => s + m.value, 0) >= target;
-  return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill ? { asked: req.skill } : {}), target, passed, modifiers: req.modifiers };
 }
 
 /** two rolls as a contest: the gap is b's tier level minus a's; the acting side (a) wins below 0 (Part 1 §4 Contests) */
@@ -516,7 +507,6 @@ function recordUse(actor: Actor, skill: string, result: CheckResult | ContestRes
 
 export const ruleset: Ruleset = {
   initiative: (actor, state, rng) => rng.d100() + initiativeBonus(state, actor), // the engine gives INIT_UNAWARE to an actor unaware of its attacker (initiativeOrder)
-  check,
   contested,
   roll,
   attack,

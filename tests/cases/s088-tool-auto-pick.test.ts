@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { makeVillage, createRng } from '../harness';
-import { pickTool, ruleset } from '../../src/ruleset';
+import { makeVillage } from '../harness';
+import { effectiveSkill, pickTool } from '../../src/ruleset';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 
@@ -15,9 +15,8 @@ describe('88 Tool auto-pick', () => {
     // sword and shield held: the shield (off hand) is stowed for free
     expect(pickTool(s, s.player, SK.lockpicking)).toEqual({ itemId: 'lp2', stowed: `player_${IT.round_shield}_2` });
     const before = JSON.stringify(s);
-    const r = ruleset.check({ actorId: 'player', skill: SK.lockpicking, modifiers: [] }, s, createRng(1));
-    expect(r.passed).toBe(true); // 0 + 35 ≥ 35; the plain kit (25) would fail
-    expect(JSON.stringify(s)).toBe(before); // the check itself spends and changes nothing
+    expect(effectiveSkill(s, s.player, SK.lockpicking, { itemId: 'lp2' }).value).toBe(35); // the fine kit's 35; the plain kit gives 25
+    expect(JSON.stringify(s)).toBe(before); // choosing the tool spends and changes nothing
     // a free hand: nothing stowed
     delete s.player.core.inventory.find((i) => i.id === `player_${IT.round_shield}_2`)!.equippedIn;
     expect(pickTool(s, s.player, SK.lockpicking)).toEqual({ itemId: 'lp2', stowed: null });

@@ -21,7 +21,7 @@ export type SeenGearView = { id: string; name: string; look: string; where: 'hel
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; grade?: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string }[] }; // furniture: FR1/FR5, what stands there
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string; grade?: string }[] }; // furniture: FR1/FR5, what stands there; grade: OD12, once tried
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
 
 export type BeliefView = {
@@ -273,7 +273,8 @@ export type NarrationEvent = {
   offers?: { to: string; landed: string; demand?: 'yield' }[]; // TF12: the player's offer to stop fighting, and how it landed with each listener; demand: TF19, it asked them to surrender
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
   surrender?: { with: string[] }; // TF19: someone talked into surrendering: who gave up with them (names)
-  breakOpen?: { opened: boolean; cut?: true; broke?: string[] }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ...")
+  breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ..."); beyond: OD13, past the breaker (no roll)
+  beyond?: true; // OD1 b: an act on a thing past the actor's reach: it comes to nothing, with no roll
   mentallySteady?: true; // SY1: it left them Mentally steady
   extract?: { essence: string }; // DX3: an essence pulled out of the target: its name (the target is left Hollowed)
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
@@ -383,7 +384,7 @@ export type WeaverView = {
     races: { id: string; name: string }[]; // RC… id and name: what a template's raceId names
     classes: { id: string; name: string }[]; // CL… id and name: what a template's classId names
     /** NG15: what a cast entry's compose names: roles (RO…, with their main skills), themes (TH…) and ranks (key, name, level) */
-    compose: { roles: { id: string; name: string; skills: string[] }[]; themes: { id: string; name: string }[]; ranks: { key: string; name: string; level: number }[];
+    compose: { roles: { id: string; name: string; kind: string; skills: string[] }[]; themes: { id: string; name: string; roleKinds: string[] }[]; ranks: { key: string; name: string; level: number }[];
       groups: { id: string; name: string; lead: string; follow?: string }[] };
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number; container?: string }[]; // boon: worth as a reward (loot V8); container: CT2, worn, fixed or carried

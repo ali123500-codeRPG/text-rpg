@@ -134,3 +134,22 @@ describe('332 rosters and groups', () => {
     expect(s.actors.filter((a) => a.bandId === band && a.label === 'a bandit').length).toBe(followers.length);
   });
 });
+
+describe('332 theme role kinds', () => {
+  it('a theme takes only roles of its kinds: no bandit who cannot fight, no wolf among the village folk', async () => {
+    const { composeError } = await import('../../src/library/spawn');
+    const { TH } = await import('../../src/library/npcLayerIds');
+    const lib = getLibrary();
+    for (const t of Object.values(lib.themes!)) expect(t.roleKinds.length, t.id).toBeGreaterThan(0);
+    expect(composeError({ race: RC.human, role: RO.talker, theme: TH.road_bandits, rank: 'rank_2' })).toMatch(/does not fit theme Road bandits/);
+    expect(composeError({ race: RC.human, role: RO.healer, theme: TH.town_watch, rank: 'rank_2' })).toMatch(/combat/);
+    expect(composeError({ race: RC.wolf, role: RO.beast, theme: TH.village_folk, rank: 'rank_2' })).toMatch(/does not fit/);
+    expect(composeError({ race: RC.human, role: RO.brute, theme: TH.road_bandits, rank: 'rank_2' })).toBeUndefined();
+    // every preset, group and hook already fits
+    for (const tp of Object.values(lib.templates)) if (tp.roleId && tp.themeId) expect(lib.themes![tp.themeId].roleKinds, tp.id).toContain(lib.npcRoles![tp.roleId].kind);
+    for (const g of Object.values(lib.groups!)) for (const p of [g.lead, ...(g.follow ? [g.follow] : [])]) for (const r of [p.role, ...(p.roles ?? [])].filter(Boolean))
+      expect(lib.themes![g.theme].roleKinds, g.id).toContain(lib.npcRoles![r!].kind);
+    for (const [size, row] of Object.entries(lib.rosters!)) for (const h of [...row.must, ...row.pool]) for (const r of lib.hookKinds![h].roles ?? [])
+      expect(lib.themes![lib.hookKinds![h].theme ?? row.theme].roleKinds, `${size} ${h}`).toContain(lib.npcRoles![r].kind);
+  });
+});

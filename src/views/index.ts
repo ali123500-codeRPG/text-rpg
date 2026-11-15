@@ -106,13 +106,13 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
     groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
-    ...furnitureView(state, z.id),
+    ...furnitureView(state, z.id, viewer),
   };
 }
-/** FR1/FR5: what furniture stands in a zone and where */
-function furnitureView(state: GameState, zoneId: string): { furniture?: ZoneView['furniture'] } {
+/** FR1/FR5: what furniture stands in a zone and where; OD12: its grade once the viewer has tried it (always for the Weaver) */
+function furnitureView(state: GameState, zoneId: string, viewer?: Actor): { furniture?: ZoneView['furniture'] } {
   const fs = furnitureIn(state, zoneId);
-  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f) })) } : {};
+  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f), ...(f.grade && (!viewer || f.graded?.includes(viewer.id)) ? { grade: f.grade } : {}) })) } : {};
 }
 /** HF2: an echo's hidden past, for the Narrator only */
 const echoOf = (state: GameState, id: string): { echo?: string } => {
@@ -786,6 +786,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.standDown ? { standDown: { with: e.standDown.with.map((id) => callName(state, me, id)), ...(e.standDown.coin ? { coin: coinWords(e.standDown.coin) } : {}) } } : {}), // TF16
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.extract ? { extract: { essence: getLibrary().essences?.[e.extract.essence]?.name ?? 'an essence' } } : {}), // DX3
+      ...(full && e.obstacle?.gate === 'out' ? { beyond: true as const } : {}), // OD1 b: out of the actor's reach, no roll
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
       ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: wayWords(state, e.way) } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
@@ -1027,8 +1028,8 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       races: Object.values(lib.races ?? {}).map((r) => ({ id: r.id, name: r.name })),
       classes: Object.values(lib.classes).map((c) => ({ id: c.id, name: c.name })),
       compose: { // NG15
-        roles: Object.values(lib.npcRoles ?? {}).map((r) => ({ id: r.id, name: r.name, skills: (r.bands.high ?? []).map((id) => skillName(id)) })),
-        themes: Object.values(lib.themes ?? {}).map((t) => ({ id: t.id, name: t.name })),
+        roles: Object.values(lib.npcRoles ?? {}).map((r) => ({ id: r.id, name: r.name, kind: r.kind, skills: (r.bands.high ?? []).map((id) => skillName(id)) })),
+        themes: Object.values(lib.themes ?? {}).map((t) => ({ id: t.id, name: t.name, roleKinds: [...t.roleKinds] })), // a theme takes roles of these kinds
         ranks: RANKS.keys.map((k) => ({ key: k, name: rankName(k), level: rankRow(k).level })),
         // NR27 (D-308): groups cast as one entry: the leader, and how many follow
         groups: Object.values(lib.groups ?? {}).map((g) => ({ id: g.id, name: g.name, lead: g.lead.label, ...(g.follow ? { follow: `${g.follow.count[0] === g.follow.count[1] ? g.follow.count[0] : g.follow.count.join(' to ')} × ${g.follow.label}` } : {}) })),

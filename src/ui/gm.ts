@@ -104,7 +104,7 @@ export function gmPage(api: GameApi) {
   function update() {
     const g = api.gm(), s = g.state;
     const ways = waysByTier(s?.hidden.scenarios ?? []);
-    const rolls = (s?.events ?? []).filter((e) => e.attack || e.contest || e.check);
+    const rolls = (s?.events ?? []).filter((e) => e.attack || e.contest || e.roll || e.obstacle);
     const confirmRow = (text: string, yes: string, act: () => void) => h('div', { class: 'confirm' }, h('span', { class: 'hs-note' }, text),
       h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = null; act(); update(); } }, yes),
       h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = null; update(); } }, 'Cancel'));
@@ -151,8 +151,8 @@ export function gmPage(api: GameApi) {
         rolls.length ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Actor', 'Kind', 'Target', 'Result', 'Detail'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rolls.map((e) => h('tr', {}, h('td', {}, e.actorId), h('td', {}, e.kind), h('td', {}, e.target ?? '–'),
-            h('td', {}, e.attack ? `${HIT_OUTCOMES.name(e.attack.outcome)} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier !== undefined ? tierName(e.tier) : '–')),
-            h('td', {}, e.attack ? `d100 ${e.attack.attack.d100} vs ${e.attack.defense?.d100 ?? '–'} · gap ${e.attack.gap ?? '–'} · ${e.attack.location ?? '–'}` : '')))))
+            h('td', {}, e.attack ? `${HIT_OUTCOMES.name(e.attack.outcome)} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.obstacle?.gate === 'out' ? 'out of reach' : (e.tier !== undefined ? tierName(e.tier) : '–')),
+            h('td', {}, e.attack ? `d100 ${e.attack.attack.d100} vs ${e.attack.defense?.d100 ?? '–'} · gap ${e.attack.gap ?? '–'} · ${e.attack.location ?? '–'}` : e.obstacle ? `${e.obstacle.grade} · ${e.obstacle.gate}` : '')))))
           : h('p', { class: 'empty' }, 'No rolls this turn.')),
 
       // AG16: exact ages, which the play screen never shows for NPCs; and who an agent runs, with their last agent calls in a pop-up

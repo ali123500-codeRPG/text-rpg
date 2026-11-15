@@ -11,11 +11,12 @@ import { RC } from '../../src/library/raceIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
 import { SK } from '../../src/library/skillIds';
 import { roleWantGroups } from '../../src/ui/gm';
+import { getLibrary } from '../../src/library';
 
 const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
-const byWants = (label: string, skills: string[]): StagePlan => {
+const byWants = (label: string, skills: string[], theme: string = TH.town_watch): StagePlan => {
   const p = villageStagePlan();
-  p.cast.push({ compose: { race: RC.human, theme: TH.town_watch, rank: 'Veteran', wants: { label, skills } } as never, key: 'wanted', label, name: 'Orla',
+  p.cast.push({ compose: { race: RC.human, theme, rank: 'Veteran', wants: { label, skills } } as never, key: 'wanted', label, name: 'Orla',
     appearance: 'a grey cloak', band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, awarenessOfPlayer: 'unaware', motive: 'keeps the gate' });
   return p;
 };
@@ -26,6 +27,7 @@ describe('331 closest role and Roles wanted', () => {
     expect(closestRole([SK.melee_medium, SK.heavy_armor, SK.lockpicking])).toEqual({ role: RO.knight, missing: [SK.lockpicking] });
     expect(closestRole([SK.melee_medium, SK.block]).role).toBe(RO.soldier); // Soldier (High, High) beats Knight (High, Moderate)
     expect(roleMissing(RO.soldier, [SK.parry, SK.block])).toEqual([SK.parry]); // a Low band skill still counts as missing
+    expect(getLibrary().npcRoles![closestRole([SK.healing, SK.insight], TH.road_bandits).role].kind).toBe('combat'); // only roles the theme takes
   });
 
   it('NR28: a composition by wants validates, takes the closest role, and a gap is logged for the GM grouped by who was wanted', () => {
@@ -42,7 +44,7 @@ describe('331 closest role and Roles wanted', () => {
 
   it('NR28: a fully covered want logs nothing; bad wants and a composition with neither role nor wants are refused', () => {
     const s = toStoryStart(makeVillage());
-    const ok = byWants('a herbwife', [SK.healing, SK.insight]);
+    const ok = byWants('a herbwife', [SK.healing, SK.insight], TH.village_folk);
     expect(validateStagePlan(s, ok, ctx)).toEqual([]);
     applyStagePlan(s, ok, ctx, { entry: 'open' }, createRng(1));
     expect(s.hidden.roleWants ?? []).toEqual([]);

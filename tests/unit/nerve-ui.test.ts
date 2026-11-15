@@ -13,8 +13,8 @@ describe('morale stakes and a broken nerve on the play screen', () => {
   it('the stakes line starts at MORALE_HINT_FROM, names the roll penalty, and says what Broken stops and how it passes', () => {
     const from = MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM as never);
     for (const k of MORALE_LEVELS.keys) expect(moraleHint(k) === null).toBe(MORALE_LEVELS.pos(k) < from);
-    expect(moraleHint('terrified')).toMatch(/^−10 on every roll\. If your nerve breaks: you won't be able to walk away or attack\.$/);
-    expect(moraleHint('panicking')).toMatch(/^−15 on every roll\. One more fright and your nerve breaks/);
+    expect(moraleHint('terrified')).toMatch(/^−13% on every roll\. If your nerve breaks: you won't be able to walk away or attack\.$/);
+    expect(moraleHint('panicking')).toMatch(/^−20% on every roll\. One more fright and your nerve breaks/);
     expect(moraleHint('broken')).toContain(`no one has fought you for ${engagementEndS()} s`);
     expect(moraleHint('broken')).toContain('You can still talk, beg, yield, give, hide'); // BF37
   });

@@ -17,10 +17,11 @@ export interface Rng {
 }
 
 export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status';
-export type Mod = { source: string; type: ModType; value: number };
+/** pct: a wound's % of the average roll that `value` came from (PW5 a) */
+export type Mod = { source: string; type: ModType; value: number; pct?: number };
 export type TierShift = { source: string; value: number };
 
-export type CheckRequest = { actorId: string; skill: string; target?: string; modifiers: { source: string; value: number }[] };
+/** what a skill use learns from (recordUse): the skill, the number it was against and whether it got there */
 export type CheckResult = {
   actorId: string;
   skill: string; // the skill actually used (after substitution)
@@ -28,7 +29,7 @@ export type CheckResult = {
   asked?: string;
   target: number;
   passed: boolean;
-  modifiers: CheckRequest['modifiers'];
+  modifiers: { source: string; value: number }[];
 };
 
 export type RollRequest = {
@@ -139,7 +140,6 @@ export type AttackResult = {
 
 export interface Ruleset {
   initiative(actor: Actor, state: GameState, rng: Rng): number;
-  check(req: CheckRequest, state: GameState, rng: Rng): CheckResult;
   contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult;
   roll(req: RollRequest, state: GameState, rng: Rng): RollResult;
   attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult;
@@ -161,6 +161,7 @@ export type Order = {
   type: string; // attack | move | search | hide | sneak | hold | call_help | alarm | flee | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | rest | wait | sleep | idle | other
   target: string | null;
   skill: string | null;
+  grade?: import('./core').Grade; // OD3: the Parser's grade for the act, used when what it acts on has none
   intent: string;
   source: OrderSource;
   move?: string | null; // the turn's one move (toZone), resolved before the main action (player, or an NPC's Planner/Responder)

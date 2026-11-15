@@ -35,8 +35,6 @@ describe('ruleset maths', () => {
     s.player.core.skills[SK.intimidation] = { raw: 20, state: 'normal' };
     s.player.core.skills[SK.persuasion] = { raw: 100, state: 'normal' };
     expect(effectiveSkill(s, s.player, SK.intimidation)).toMatchObject({ skill: SK.persuasion, value: 30 });
-    const c = ruleset.check({ actorId: 'player', skill: SK.intimidation, modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
-    expect(c).toMatchObject({ skill: SK.persuasion, target: 50, passed: true });
   });
   it('grapple substitutes: other unarmed 0.4×, melee 0.2×', () => {
     const s = makeVillage();
@@ -92,18 +90,18 @@ describe('body', () => {
   });
   it('wounds: level plus role penalties, shared roles split, per-limb for the item hand', () => {
     const s = makeVillage();
-    s.player.core.condition.hpLostPct = 20; // Hurt −5
+    s.player.core.condition.hpLostPct = 20; // Hurt −7%
     s.player.core.condition.parts.right_arm = 40; // Damaged (sword arm)
-    expect(woundsMods(s, s.player, SK.melee_medium, { itemId: sword }).map((m) => m.value)).toEqual([-5, -10]);
-    expect(woundsMods(s, s.player, SK.melee_medium).map((m) => m.value)).toEqual([-5]); // best arm without an item
-    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5]);
+    expect(woundsMods(s, s.player, SK.melee_medium, { itemId: sword }).map((m) => m.value)).toEqual([-7, -13]);
+    expect(woundsMods(s, s.player, SK.melee_medium).map((m) => m.value)).toEqual([-7]); // best arm without an item
+    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-7]);
     const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: BT.winged_quadruped, condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
-    expect(woundsMods(s, dragon, SK.dodge)).toEqual([{ source: 'move wounds', type: 'wounds', value: -5 }]);
+    expect(woundsMods(s, dragon, SK.dodge)).toEqual([{ source: 'move wounds', type: 'wounds', value: -13 / 2 }]);
     s.player.core.condition.parts.head = 40; // Damaged head: speech rolls only
-    expect(woundsMods(s, s.player, SK.persuasion)).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });
-    expect(woundsMods(s, s.player, SK.dodge).map((m) => m.value)).toEqual([-5]);
+    expect(woundsMods(s, s.player, SK.persuasion)).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -13 });
+    expect(woundsMods(s, s.player, SK.dodge).map((m) => m.value)).toEqual([-7]);
     s.player.core.condition.parts.head = -10; // Sense Crippled: every roll, plus speech on speech rolls
-    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5, CONFIG.ESSENTIAL_CRIPPLED_PENALTY, -20, -20]); // a crippled head is an essential part too
+    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-7, CONFIG.ESSENTIAL_CRIPPLED_PENALTY, -27, -27]); // a crippled head is an essential part too
   });
 });
 
@@ -191,7 +189,7 @@ describe('ruleset methods', () => {
     expect(tierCostMult(-2)).toBe(3); // two steps past Critical Failure
     p.core.condition.moraleLost = 40; // 50 % of 80: Afraid
     expect(moraleLevel(p)).toBe('afraid');
-    expect(woundsMods(s, p, SK.resolve).find((m) => m.source === 'morale: Afraid')?.value).toBe(-5);
+    expect(woundsMods(s, p, SK.resolve).find((m) => m.source === 'morale: Afraid')?.value).toBe(-7);
     p.core.condition.moraleLost = 80;
     expect(moraleLevel(p)).toBe('broken');
     restoreMorale(p, 25); // engagement end: back 20 of 80

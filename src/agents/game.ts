@@ -16,7 +16,7 @@ import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
 import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, now, now as gameNow, timeOfDay, timeView } from '../time';
 import { outcomeText } from '../ruleset/hits';
-import { HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
+import { GRADE_LEVELS, HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
@@ -1248,6 +1248,9 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       const mine = c.a.actorId === 'player' ? c.a : c.b, other = mine === c.a ? c.b : c.a;
       const result = c.winner === 'tie' ? 'a tie' : (c.winner === 'a') === (mine === c.a) ? 'you win' : 'you lose';
       check = { kind: 'contest', skill: mine.skill, ...tierPart(mine), against: { what: views.callName(s, 'player', other.actorId), ...tierPart(other) }, result };
+    } else if (e.roll && e.obstacle && e.roll.actorId === 'player') {
+      // OD1 b: an act on a graded thing; the story tells what the tier meant (OD5)
+      check = { kind: 'roll', skill: e.roll.skill, ...tierPart(e.roll), result: tierAtLeast(e.roll.tier, 'success') ? 'done' : e.roll.tier === 'near_miss' ? 'not yet' : 'not done' };
     } else if (e.roll && e.roll.actorId === 'player') {
       check = { kind: 'roll', skill: e.roll.skill, ...tierPart(e.roll), result: tierAtLeast(e.roll.tier, 'success') ? 'you make out who is there' : 'nothing clearer' };
     }
@@ -1340,7 +1343,9 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   const name = (id: string) => (id === me ? 'You' : clear.has(id) ? cap(views.callName(s, me, id)) : 'Someone');
   const whose = (id: string) => (id === me ? 'Your' : `${name(id)}’s`);
   const num = (n: number) => String(r1(n));
-  const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${num(x.value)}`).join(', ')}]` : '');
+  const sgn = (n: number) => `${n >= 0 ? '+' : ''}${num(n)}`;
+  // PW5 a: a wound shows its % and the points it came to, "health: Wounded -20% (-15.1)"
+  const mods = (m: { source: string; value: number; pct?: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.pct !== undefined ? `${sgn(x.pct)}% (${sgn(x.value)})` : sgn(x.value)}`).join(', ')}]` : '');
   // BF70: a roll moved by outcome steps (short of gear, cover, fear, perks) shows the outcome before them, the steps and what
   // moved it, then the outcome they made: "Near Miss [weapon +9], 8 steps down [Short of … −8] → Critical Failure−−−−−−"
   const tiered = (r: TierRoll & { modifiers?: { source: string; value: number }[]; tierShifts?: { source: string; value: number }[] }) => {
@@ -1377,11 +1382,12 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
       out.push(`${roll(c.a)} vs ${roll(c.b).replace(/^Your/, 'your')}: ${won}`);
     } else if (e.roll) {
       if (sense(e.roll.asked ?? e.roll.skill) && unseen(e.target)) continue;
-      out.push(roll(e.roll));
-    } else if (e.check) {
-      const k = e.check;
-      if (sense(k.asked ?? k.skill) && unseen(e.target)) continue;
-      out.push(`${whose(k.actorId)} ${skillName(k.skill).toLowerCase()} vs difficulty ${k.target}: ${k.passed ? 'passed' : 'failed'}${mods(k.modifiers)}`);
+      out.push(`${roll(e.roll)}${e.obstacle ? ` (${GRADE_LEVELS.name(e.obstacle.grade)})` : ''}`);
+    } else if (e.obstacle) {
+      // OD1 b: an act on a graded thing that was sure, or out of reach, has no dice
+      const k = e.obstacle;
+      if (sense(k.skill) && unseen(e.target)) continue;
+      out.push(`${whose(e.actorId)} ${skillName(k.skill).toLowerCase()} vs ${GRADE_LEVELS.name(k.grade)}: ${k.gate === 'sure' ? 'sure, no roll' : 'out of reach, no roll'}`);
     }
   }
   // X9: XP awards and level-ups this turn

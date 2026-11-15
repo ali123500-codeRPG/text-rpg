@@ -103,9 +103,9 @@ const DEFAULTS = {
   /** health % lost stops here: Dead at 150% */
   HP_LOST_MAX: 150,
   HEALTH_TRACK: [
-    // [HEALTH_LEVELS key, max % lost, wounds modifier], in the scale's order
-    ['unhurt', 0, 0], ['bruised', 15, 0], ['hurt', 30, -5], ['injured', 45, -10],
-    ['wounded', 60, -15], ['mauled', 75, -20], ['critical', 99.999, -30], ['incapacitated', 149.999, 0],
+    // [HEALTH_LEVELS key, max % lost, wounds modifier in % of the average roll (PW1 b)], in the scale's order
+    ['unhurt', 0, 0], ['bruised', 15, 0], ['hurt', 30, -7], ['injured', 45, -13],
+    ['wounded', 60, -20], ['mauled', 75, -27], ['critical', 99.999, -40], ['incapacitated', 149.999, 0],
     ['dead', Infinity, 0], // dead at 150% lost (was 200%); the player's own Dead is never shown; others clearly seen show Dead
   ] as [HealthLevelKey, number, number][],
   PART_SHARE: { tiny: 0.15, extra_small: 0.15, small: 0.2, normal: 0.3, big: 0.5 } as Record<string, number>,
@@ -115,10 +115,10 @@ const DEFAULTS = {
   GENERAL_MIN_PCT: 30,
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,
-  ROLE_PENALTY: { damaged: -10, crippled: -20 },
+  ROLE_PENALTY: { damaged: -13, crippled: -27 }, // % of the average roll (PW1 b, PW3 a)
   /** a part or pool is in a state while its % left is above that state's floor: Healthy >50, Damaged >0, Crippled >−100; else Destroyed */
   PART_STATE_ABOVE: { healthy: 50, damaged: 0, crippled: -100 } as Record<string, number>,
-  ESSENTIAL_CRIPPLED_PENALTY: -5, // wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
+  ESSENTIAL_CRIPPLED_PENALTY: -7, // % of the average roll (PW3 a); wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
   // CS24: a Destroyed part counts this many times a Crippled one, alike for its role penalty and for switching a shared
   // role off (no running, can't fly)
@@ -285,10 +285,10 @@ const DEFAULTS = {
   NERVE_LINE_POINTS: 40,
   /** AP2: personality points one achievement step is worth; rows write steps (+1, −1), so this one number scales them all */
   ACH_PERSONALITY_STEP: 5,
-  /** [MORALE_LEVELS key, max % of max morale lost, roll penalty (type wounds, MB3)]; broken = out of the fight */
+  /** [MORALE_LEVELS key, max % of max morale lost, roll penalty in % of the average roll (type wounds, MB3, PW1 b)]; broken = out of the fight */
   MORALE_TRACK: [
-    ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -5], ['afraid', 60, -5],
-    ['terrified', 75, -10], ['panicking', 99.999, -15], ['broken', Infinity, 0],
+    ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -7], ['afraid', 60, -7],
+    ['terrified', 75, -13], ['panicking', 99.999, -20], ['broken', Infinity, 0],
   ] as [string, number, number][],
   /** MB6: a rolled fear's cost × this, by the morale roll's tier; each step below Critical Failure adds MORALE_BEYOND_CF */
   MORALE_TIER_MULT: { critical_failure: 2, failure: 1.5, near_miss: 1, success: 0.5, great_success: 0.25, critical_success: 0 } as Record<string, number>,
@@ -306,11 +306,11 @@ const DEFAULTS = {
   /** FT2: the stamina bar (both layers) = STAMINA_BASE + STAMINA_PER_POINT × Stamina, like HP from Endurance */
   STAMINA_BASE: 50,
   STAMINA_PER_POINT: 1,
-  /** FT3/FT22: [FATIGUE_LEVELS key, from % of the long-term bar used, roll penalty (type wounds), short line's band in %
+  /** FT3/FT22: [FATIGUE_LEVELS key, from % of the long-term bar used, roll penalty in % of the average roll (type wounds, PW1 b), short line's band in %
    * of the bar]; collapsed = the bar is full */
   FATIGUE_TRACK: [
-    ['rested', 0, 0, 100], ['fine', 15, 0, 90], ['tired', 30, -5, 80], ['weary', 45, -10, 65], ['exhausted', 60, -15, 50],
-    ['drained', 75, -20, 35], ['dead_on_feet', 90, -30, 20], ['collapsed', 100, -30, 20],
+    ['rested', 0, 0, 100], ['fine', 15, 0, 90], ['tired', 30, -7, 80], ['weary', 45, -13, 65], ['exhausted', 60, -20, 50],
+    ['drained', 75, -27, 35], ['dead_on_feet', 90, -40, 20], ['collapsed', 100, -40, 20],
   ] as [FatigueLevel, number, number, number][],
   /** FT17: others' fatigue shows (as words) from this level down */
   FATIGUE_SHOWN_FROM: 'exhausted' as FatigueLevel,

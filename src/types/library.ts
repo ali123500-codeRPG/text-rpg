@@ -73,6 +73,8 @@ export type MeetRow = { group: LibraryRef; weight: number; when?: 'day' | 'night
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank
  * titles (display only) */
 export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
+  /** the role kinds that fit this world (NpcRoleDef.kind): a road bandit or a watchman fights, a wild beast is a beast; compose refuses others */
+  roleKinds: readonly NpcRoleDef['kind'][];
   /** NG10: the highest equip level its people's gear reaches (an EQUIP_LEVELS key); none = no picked gear */
   wealth?: import('../scales').EquipLevelKey; rankNames?: Partial<Record<import('../scales').RankKey, string>>; talent?: import('../scales').TalentKey /* AG25: its presets' talent when they name none */ };
 
@@ -239,7 +241,7 @@ export type ZoneKind = {
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
 export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
-export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean };
+export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
 export type FurnitureKind = { id: string; name: string };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {

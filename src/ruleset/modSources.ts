@@ -37,6 +37,9 @@ export type ModSource = {
 
 const sg = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}`;
 const list = (o: Record<string, number>, skipZero = true) => Object.entries(o).filter(([, v]) => !skipZero || v).map(([k, v]) => `${k.replace(/_/g, ' ')} ${sg(v)}`).join(' · ');
+/** PW5 a: wound penalties are % of the average roll (woundsOnRoll, src/ruleset/body.ts) */
+const OF_AVG = ` of the average roll (50.5 + ${CONFIG.SKILL_WEIGHT} × effective skill)`;
+const pctList = (o: Record<string, number>) => `${Object.entries(o).map(([k, v]) => `${k} ${sg(v)}%`).join(' · ')}${OF_AVG}`;
 const W = () => CONFIG.SKILL_WEIGHT;
 const perk = (lib: Library, id: string): ModFeed[] => (lib.perks[id] ? [{ table: 'perks', id, name: lib.perks[id].name, value: '' }] : []);
 const itemRollMods = (lib: Library, eventRoll: boolean): ModFeed[] => Object.values(lib.items).flatMap((i) => (i.effects ?? [])
@@ -80,19 +83,19 @@ export const MOD_SOURCES: ModSource[] = [
       value: `${modeName(m)}: ${sg((CONFIG.WEAPON_CLASSES[m.class] ?? CONFIG.UNARMED_PROFILE).hit + (m.hitAdj ?? 0))} (class ${sg((CONFIG.WEAPON_CLASSES[m.class] ?? CONFIG.UNARMED_PROFILE).hit)}, hitAdj ${sg(m.hitAdj ?? 0)})` }))) },
   { type: 'gear', roll: 'skill', source: 'Item roll effects', at: 'src/ruleset/gear.ts', when: 'Rolls of the kind the effect names, while the item is worn, held, in use or carried.',
     value: 'the effect\'s value', feeds: (lib) => itemRollMods(lib, false) },
-  // wounds
+  // wounds: % of the average roll (PW1 b)
   { type: 'wounds', roll: 'skill', source: 'Health level', at: 'src/ruleset/body.ts', when: 'Every roll, by the actor\'s place on the health track.',
-    value: list(Object.fromEntries(CONFIG.HEALTH_TRACK.map(([l, , v]) => [HEALTH_LEVELS.name(l), v]))) },
+    value: pctList(Object.fromEntries(CONFIG.HEALTH_TRACK.filter(([, , v]) => v).map(([l, , v]) => [HEALTH_LEVELS.name(l), v]))) },
   { type: 'wounds', roll: 'skill', source: 'Morale level', at: 'src/ruleset/morale.ts', when: 'Every roll, the morale roll included (fear feeds on itself), by the actor\'s morale level (MB3).',
-    value: CONFIG.MORALE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${MORALE_LEVELS.name(k as MoraleLevel)} ${sg(v as number)}`).join(' · ') },
+    value: pctList(Object.fromEntries(CONFIG.MORALE_TRACK.filter(([, , v]) => v).map(([k, , v]) => [MORALE_LEVELS.name(k as MoraleLevel), v as number]))) },
   { type: 'wounds', roll: 'skill', source: 'Fatigue level', at: 'src/ruleset/fatigue.ts', when: 'Every roll, by the actor\'s fatigue level (FT3): the share of the long-term stamina bar used.',
-    value: CONFIG.FATIGUE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${FATIGUE_LEVELS.name(k)} ${sg(v)}`).join(' · ') },
+    value: pctList(Object.fromEntries(CONFIG.FATIGUE_TRACK.filter(([, , v]) => v).map(([k, , v]) => [FATIGUE_LEVELS.name(k), v]))) },
   { type: 'wounds', roll: 'skill', source: 'Role wounds', at: 'src/ruleset/body.ts',
     when: 'Rolls whose skill uses a body role (grip, strike, sense …) on a damaged or crippled part. Shared roles split it across their parts; a crippled sense part hits every roll.',
-    value: list({ ...Object.fromEntries(Object.entries(CONFIG.ROLE_PENALTY).map(([k, v]) => [PART_STATES.name(k as PartStateKey), v])), [PART_STATES.name('destroyed')]: CONFIG.ROLE_PENALTY.crippled * CONFIG.DESTROYED_PART_WEIGHT }) }, // BG-91, CS24
+    value: pctList({ ...Object.fromEntries(Object.entries(CONFIG.ROLE_PENALTY).map(([k, v]) => [PART_STATES.name(k as PartStateKey), v])), [PART_STATES.name('destroyed')]: CONFIG.ROLE_PENALTY.crippled * CONFIG.DESTROYED_PART_WEIGHT }) }, // BG-91, CS24
   { type: 'wounds', roll: 'skill', source: 'Essential part crippled', at: 'src/ruleset/body.ts',
-    when: 'Every roll while any essential part (head, neck …) is Crippled or worse; once, however many such parts.', value: sg(CONFIG.ESSENTIAL_CRIPPLED_PENALTY) },
-  { type: 'wounds', roll: 'skill', source: 'Shield damaged', at: 'src/ruleset/body.ts', when: 'Block rolls with a Damaged shield.', value: sg(CONFIG.ROLE_PENALTY.damaged) },
+    when: 'Every roll while any essential part (head, neck …) is Crippled or worse; once, however many such parts.', value: `${sg(CONFIG.ESSENTIAL_CRIPPLED_PENALTY)}%${OF_AVG}` },
+  { type: 'wounds', roll: 'skill', source: 'Shield damaged', at: 'src/ruleset/body.ts', when: 'Block rolls with a Damaged shield.', value: `${sg(CONFIG.ROLE_PENALTY.damaged)}%${OF_AVG}` },
   // situational
   { type: 'situational', roll: 'skill', source: 'Light', at: 'src/ruleset/gear.ts', when: 'Rolls whose skill has a light tag (sight, stealth …): the tag\'s sign × the light where the action is.',
     value: Object.entries(CONFIG.LIGHT_MODS).map(([k, v]) => `${LIGHT.name(k as (typeof LIGHT.keys)[number])} ${sg(v)}`).join(' · ') },
@@ -111,7 +114,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: [...new Set([...CONFIG.MAKE_OUT_SIGHT_GRADES, ...CONFIG.MAKE_OUT_SOUND_GRADES].map(([, g]) => g))].map((g) => `${g} ${sg(gradeMod(CONFIG.DIFFICULTY[g]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Attention', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): how closely they watch.', value: Object.entries(CONFIG.FILCH_ATTENTION).filter(([k]) => k !== 'asleep').map(([k, v]) => `${ATTENTION.name(k as AttentionKey)} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Item size', at: 'src/engine/filch.ts', when: 'A watcher\'s Sight and Hearing rolls against a filch (TN4): the item\'s bulk.', value: CONFIG.FILCH_SIZE.map((v, b) => `bulk ${b} ${sg(v)}`).join(' · ') },
-  { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/ruleset/index.ts', when: 'Lockpicking rolls (BA2), and breaking a container open (BF31) with the weapon in hand (bare hands: Improvised): the lock\'s grade (OD10 a: SE23\'s grade modifier).', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(gradeMod(CONFIG.DIFFICULTY[k]))}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'Lock or grade', at: 'src/ruleset/index.ts', when: 'SE23\'s grade modifier, on rolls in doubt (OD1 b): Lockpicking rolls (BA2) and breaking a container open (BF31) with the weapon in hand (bare hands: Improvised), at the lock\'s grade (shown as lock); use, interact, observe and other at the grade of what they act on, else the Parser\'s (OD3, shown as grade).', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(gradeMod(CONFIG.DIFFICULTY[k]))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Repeat try', at: 'src/ruleset/pressure.ts',
     when: 'Persuading, lying, threatening or haggling again at the same listener, out of a fight (plain talk never counts; in a fight there is no repeat penalty, TF9).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
   { type: 'situational', roll: 'skill', source: 'Coin offered', at: 'src/engine/speech.ts', when: 'A bribe in a fight (TF10): the briber\'s Barter roll, by the coin offered against the listener\'s price (OFFER_BRIBE_PRICE per level).',
