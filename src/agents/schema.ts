@@ -78,7 +78,8 @@ const intent = obj<Intent>({
     demand: (v, p, e) => (v === null || v === undefined ? null : oneOf(['yield'] as const)(v, p, e)),
     noSkillFits: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
     grade: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(GRADES)(v, p, e)) as Grade,
-  }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade'])),
+    fall: num as V<number>,
+  }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade', 'fall'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const) })),
   gear: GEAR,
@@ -105,7 +106,9 @@ const npcAction = obj<PlannerOutput['action']>({
   qty: num,
   mode: nul(str),
   intent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
-}, ['qty']);
+  grade: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(GRADES)(v, p, e)) as Grade,
+  fall: num as V<number>,
+}, ['qty', 'grade', 'fall']);
 
 const trigger = obj<{ id: string; ownerId: string; when: unknown; then: unknown; once: boolean }>(
   { id: str, ownerId: str, when: any, then: any, once: (v, p, e) => (v === undefined ? true : bool(v, p, e)) },

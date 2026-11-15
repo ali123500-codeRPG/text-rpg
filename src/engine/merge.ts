@@ -90,6 +90,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     target: a?.target ?? null,
     skill: a?.skill ?? null,
     ...(a?.grade ? { grade: a.grade } : {}),
+    ...(a?.fall ? { fall: a.fall } : {}),
     intent: a?.approach ?? '',
     source: 'player',
     move: mv?.toZone ?? null,
@@ -113,7 +114,8 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
 export function npcActionToOrder(actorId: string, action: NpcAction, extra: Partial<Order>): Order {
   return {
     actorId, type: action.type, target: action.target, skill: action.skill, intent: action.intent, source: 'agent',
-    targetPart: action.targetPart, aimed: !!action.aimed, defense: action.defense, item: action.item, ...(action.qty ? { qty: action.qty } : {}), mode: action.mode, ...extra,
+    targetPart: action.targetPart, aimed: !!action.aimed, defense: action.defense, item: action.item, ...(action.qty ? { qty: action.qty } : {}), mode: action.mode,
+    ...(action.grade ? { grade: action.grade } : {}), ...(action.fall ? { fall: action.fall } : {}), ...extra,
   };
 }
 

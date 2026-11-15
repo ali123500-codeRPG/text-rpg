@@ -13,7 +13,7 @@ import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
 import { freeGrips, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
@@ -49,7 +49,7 @@ import { applyGearOps, bindCarriedCharms, dropToGround, equipArmor, fadeSoulboun
 import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
 import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
 import { cantSteady, steady } from './steady';
-import { breakInside } from './breakage';
+import { breakInside, breakLine, brokenVersion } from './breakage';
 import { furnitureRecord } from './furniture';
 import { isGuard, lockedBoxes, shownInside, suspect } from './suspicion';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
@@ -1404,25 +1404,56 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn }))); // SE14: also a weak search
     ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
   } else if (o.skill && CHECK_TYPES.has(o.type)) {
-    // OD1 b/OD3: an act on a thing rolls against the thing's own grade only when in doubt; the narrator tells what its tier meant (OD5)
+    // OD1 b/OD3: an act on a thing rolls against the thing's own grade only when in doubt; OD5: code holds what each tier does
     const thing = gradedThing(state, o, link);
-    const grade = thing?.grade ?? o.grade ?? 'moderate'; // an NPC's act on an ungraded thing: Moderate until OD14
+    const grade = thing?.grade ?? o.grade ?? 'moderate';
+    // OD14 a: a grade the actor's agent (Parser, Planner, Responder) left out is flagged every time, and is Moderate
+    if (!thing?.grade && !o.grade) logCode(state, 'grade_gap', { actorId: a.id, type: o.type, skill: o.skill, ...(o.target ? { target: o.target } : {}), intent: o.intent.slice(0, 200) });
     if (thing && !thing.grade && o.grade) thing.grade = o.grade; // OD3: kept on the thing, so asking again can't regrade it
     if (thing && !(thing.graded ??= []).includes(a.id)) thing.graded.push(a.id); // OD12: trying it shows its grade
-    const tool = pickTool(state, a, o.skill).itemId ?? undefined;
+    const used = o.type === 'use_item' ? a.core.inventory.find((i) => i.id === o.item || i.itemId === o.item) : undefined;
+    const tool = used?.id ?? pickTool(state, a, o.skill).itemId ?? undefined;
     const target = CONFIG.DIFFICULTY[grade];
-    const gate = obstacleGate(effectiveSkill(state, a, o.skill, { itemId: tool }).value, target);
+    const eff = effectiveSkill(state, a, o.skill, { itemId: tool }).value;
+    const key = `${a.id}:${o.skill}`; // OD5 Failure: beyond this actor at this skill until it is better than when it failed
+    const gate = thing?.beyond?.[key] !== undefined && eff <= thing.beyond[key] ? 'out' : obstacleGate(eff, target);
     const modifiers = gradeMods(target, 'grade');
     const r = gate === 'roll' ? ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], ...(tool ? { itemId: tool } : {}) }, state, rng) : undefined;
     ev.obstacle = { skill: r?.skill ?? o.skill, grade, gate };
     if (r) { ev.roll = r; ev.tier = r.tier; } else if (gate === 'sure') ev.tier = 'success';
     if (gate !== 'out') ruleset.recordUse(a, r?.skill ?? o.skill, { actorId: a.id, skill: r?.skill ?? o.skill, ...(r?.asked ? { asked: r.asked } : {}), target, passed: !r || tierAtLeast(r.tier, 'success'), modifiers }, state);
+    if (r) tierResult(ctx, a, o, ev, r, thing, key, eff, tool);
   }
   emit(ctx, ev);
 }
 
+/** OD5 a: what a graded act's tier does. Critical Failure (or worse): a mishap, the first that fits: the tool used breaks
+ * (as a pick snaps; never one that can't break), a climb or balance falls its drop (the falls table, SD7), else a loud
+ * noise, one step up. Failure: beyond the actor at that skill until its effective skill beats what it had (as BA2), on a
+ * thing that keeps a record. Near Miss: not yet. Success: done. Great Success: done, one noise step quieter. Critical
+ * Success: done, and the Narrator may add one small extra the act opens up. */
+function tierResult(ctx: Ctx, a: Actor, o: Order, ev: GameEvent, r: RollResult, thing: { beyond?: Record<string, number> } | undefined, key: string, eff: number, tool: string | undefined): void {
+  const louder = (n: number) => NOISE.keys[Math.max(0, Math.min(NOISE.keys.length - 1, NOISE.pos(ev.noise) + n))];
+  if (r.tier === 'failure' && thing) (thing.beyond ??= {})[key] = eff;
+  if (r.tier === 'great_success') ev.noise = louder(-1);
+  if (r.tier !== 'critical_failure') return;
+  const inst = tool ? a.core.inventory.find((i) => i.id === tool) : undefined;
+  if (inst && breakLine(itemDef(ctx.state, inst.itemId)) !== null) {
+    inst.itemId = brokenVersion(ctx.state, inst.itemId);
+    ev.mishap = { kind: 'tool', item: inst.id };
+  } else if (o.fall && o.fall > 0) {
+    const f = landFall(ctx.state, a, o.fall, ctx.rng);
+    ev.fall = { metres: o.fall, damage: f.damage, landing: f.landing };
+    ev.effects.push(...f.effects);
+    ev.mishap = { kind: 'fall' };
+  } else {
+    ev.noise = louder(1);
+    ev.mishap = { kind: 'noise' };
+  }
+}
+
 /** OD2: what an act acts on that can carry a grade: a piece of furniture, a container, or the barrier on the way checked */
-function gradedThing(state: GameState, o: Order, link: ZoneLink | undefined): { grade?: Grade; graded?: string[] } | undefined {
+function gradedThing(state: GameState, o: Order, link: ZoneLink | undefined): { grade?: Grade; graded?: string[]; beyond?: Record<string, number> } | undefined {
   if (!o.target) return undefined;
   if (link) return barrierOn(state, link);
   return furnitureRecord(state, o.target) ?? findContainer(state, o.target)?.inst;
