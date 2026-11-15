@@ -878,14 +878,11 @@ function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: PARRY_STRIKE }, true);
 }
 
-/** D-337: how many strike-backs of one kind the owner gets per round: STRIKE_BACK_LIMIT (CEASELESS_GUARD_LIMIT with
- * Ceaseless Guard) times its blow speed (ROUND_S over its blow time), rounded down and never below that number; none
- * with Endless Answer (Every Answer and Ceaseless Guard merged) */
+/** D-337: how many strike-backs of one kind the owner gets per round: STRIKE_BACK_LIMIT, CEASELESS_GUARD_LIMIT with
+ * Ceaseless Guard, none with Endless Answer (Every Answer and Ceaseless Guard merged). Scaling it by speed is parked (D-338) */
 export function strikeBackLimit(owner: Actor): number {
   if (hasPerk(owner, PK.endless_answer)) return Infinity;
-  const base = hasPerk(owner, PK.ceaseless_guard) ? CONFIG.CEASELESS_GUARD_LIMIT : CONFIG.STRIKE_BACK_LIMIT;
-  const speed = CONFIG.ROUND_S / actionSeconds(actionRow(DU.blow)!);
-  return Math.max(base, Math.floor(base * speed + T_EPS));
+  return hasPerk(owner, PK.ceaseless_guard) ? CONFIG.CEASELESS_GUARD_LIMIT : CONFIG.STRIKE_BACK_LIMIT;
 }
 /** D-337: a parry strike-back or a Counter fits in the owner's limit this round (counted per kind; per attacker with Every
  * Answer), and is counted */

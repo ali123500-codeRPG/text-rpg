@@ -132,8 +132,8 @@ const DEFAULTS = {
   HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
   PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
-  /** D-337: parry strike-backs (PA4) and the All-50 Counter each come at most this many times per round per speed (the
-   * owner's blow speed: ROUND_S over its blow time, today 1 for everyone), rounded down and never below this number */
+  /** D-337: parry strike-backs (PA4) and the All-50 Counter each come at most this many times per round (counted apart;
+   * placeholder). Scaling it by speed is parked (D-338) */
   STRIKE_BACK_LIMIT: 1,
   /** D-337: Ceaseless Guard (Parry 100) raises that limit to this many (placeholder) */
   CEASELESS_GUARD_LIMIT: 5,

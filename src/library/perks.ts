@@ -334,7 +334,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner earns a parry strike-back or a Counter.",
       conditions: [],
-      effect: `The strike-back limit (${CONFIG.STRIKE_BACK_LIMIT} per round per speed, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.`,
+      effect: `The strike-back limit (${CONFIG.STRIKE_BACK_LIMIT} per round, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.`,
       lasts: "Always. Merges with Ceaseless Guard into Endless Answer." } },
   // Sword-dancer mirror of Answer the Blow: the same strike back, off a dodge instead of a block
   { id: PK.step_and_cut, ref: "B18b", name: "Step and Cut", skill: SK.blade_dance, place: "higher",
@@ -359,7 +359,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner earns a parry strike-back or a Counter.",
       conditions: [],
-      effect: `The strike-back limit is ${CONFIG.CEASELESS_GUARD_LIMIT} per round per speed (CEASELESS_GUARD_LIMIT) instead of ${CONFIG.STRIKE_BACK_LIMIT}. Parry strike-backs and Counters keep separate counts.`,
+      effect: `The strike-back limit is ${CONFIG.CEASELESS_GUARD_LIMIT} per round (CEASELESS_GUARD_LIMIT) instead of ${CONFIG.STRIKE_BACK_LIMIT}. Parry strike-backs and Counters keep separate counts.`,
       lasts: "Always. Merges with Every Answer into Endless Answer." } },
   { id: PK.go_to_ground, ref: "D9", name: "Go to Ground", skill: SK.sneaking, place: "banked", bankedAs: "milestone", aimAt: 60,
     story: "Lie still long enough and they decide they imagined you. When you sneak, someone who was only suspicious of you can lose you entirely.",

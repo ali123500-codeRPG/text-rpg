@@ -235,7 +235,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner earns a parry strike-back or a Counter.
-- **Effect:** The strike-back limit (1 per round per speed, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.
+- **Effect:** The strike-back limit (1 per round, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.
 - **Lasts:** Always. Merges with Ceaseless Guard into Endless Answer.
 
 ### Bluff (Lying) · LI1c
@@ -671,7 +671,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner earns a parry strike-back or a Counter.
-- **Effect:** The strike-back limit is 5 per round per speed (CEASELESS_GUARD_LIMIT) instead of 1. Parry strike-backs and Counters keep separate counts.
+- **Effect:** The strike-back limit is 5 per round (CEASELESS_GUARD_LIMIT) instead of 1. Parry strike-backs and Counters keep separate counts.
 - **Lasts:** Always. Merges with Every Answer into Endless Answer.
 
 ### Never Surprised (Earshot) · C1
@@ -950,7 +950,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 - **Kind:** Always on
 - **Trigger:** A melee attack on the owner is resolved.
-- **Conditions:** The attack roll ends in Critical Failure or worse. The attack was not itself a free attack. Within the strike-back limit: 1 per round per speed (STRIKE_BACK_LIMIT), counted apart from parry strike-backs; Every Answer, Ceaseless Guard and Endless Answer raise or lift it. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed.
+- **Conditions:** The attack roll ends in Critical Failure or worse. The attack was not itself a free attack. Within the strike-back limit: 1 per round (STRIKE_BACK_LIMIT), counted apart from parry strike-backs; Every Answer, Ceaseless Guard and Endless Answer raise or lift it. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed.
 - **Effect:** The owner makes one attack at the attacker at once, with that mode. It does not use the owner's action.
 - **Lasts:** That attack.
 - **Built:** yes

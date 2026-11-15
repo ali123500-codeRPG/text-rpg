@@ -312,7 +312,7 @@ describe('125 All-50 moves', () => {
     const plain = fight(u, 'patron_1', 'w_player', (r) => ({ ...r, attack: { ...r.attack, tier: 'failure' as const }, outcome: 'missed' as const, damage: 0, location: null }));
     expect(plain[1]).not.toEqual({ by: 'patron_1', at: 'player' }); // a plain Failure gives nothing at once
   });
-  it('Counter comes once per round per speed by default; Endless Answer lifts the limit (D-337)', () => {
+  it('Counter comes once per round by default; Endless Answer lifts the limit (D-337)', () => {
     const counters = (endless: boolean) => {
       const s = makeVillage();
       beside(s, 'patron_1');
