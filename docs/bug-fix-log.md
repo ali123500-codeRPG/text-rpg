@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the plan (SW7 a, SW9 a). Moment, Situation and Episode budgets count only acting time: the player's waits, rests, nights, long walks and road trips are noted on the scenario (and the one it sits in) as idle minutes and left out. Their budgets are now 5, 15 and 45 acting minutes; the check-in comes at the budget and code ends the scenario at twice it, as before. Journey and Venture still count all game time.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #880](https://github.com/ali123500-codeRPG/text-rpg/pull/880)
 
 ## BG-255
 
