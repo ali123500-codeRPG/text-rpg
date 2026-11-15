@@ -340,7 +340,7 @@ export type WeaverView = {
     brief?: string;
     /** SC8: why this check-in was asked, and the running scenario it is about */
     reason?: import('./hidden').CheckinReason;
-    scenario?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean;
+    scenario?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean;
       /** BG-41: what happened since it began (oldest first), and the memory lines people on the stage kept since then */
       happened: { turn: number; text: string }[]; remembered: { who: string; turn: number; text: string }[] };
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */

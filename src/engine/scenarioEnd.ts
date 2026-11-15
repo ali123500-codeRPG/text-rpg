@@ -32,7 +32,7 @@ export function frameOf(state: GameState, scenario: StagePlan['scenario'], tier:
     .map((e) => ({ as: e.as as PlanEnding['as'], text: typeof e.text === 'string' ? e.text : '', when: mapCheck(e.when, ref) }))
     .filter((e) => checkable(state, e.when)); // a plan applied after a failed repair drops the endings that name nothing real
   return {
-    question: scenario?.question ?? '', scale: SCENARIO_SCALES.keyOf(scenario?.scale) ?? 'situation', endings, tier,
+    question: scenario?.question ?? '', ...(typeof scenario?.stake === 'string' && scenario.stake.trim() ? { stake: scenario.stake } : {}), scale: SCENARIO_SCALES.keyOf(scenario?.scale) ?? 'situation', endings, tier,
     startTurn: state.turn, startMinute: now(state), number: state.stage.scenarioNumber,
     upAtStart: state.actors.filter(isActive).map((a) => a.id), heldAtStart: state.player.core.inventory.map((i) => i.itemId),
     xpFrom: roam?.xpFrom ?? state.player.progression?.xpLog?.length ?? 0, xpStart: roam?.xpStart ?? xpBar(state),

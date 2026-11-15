@@ -1170,7 +1170,28 @@ const subRail = h('nav', { class: 'hs-rail lv-subrail', 'aria-label': 'Sub-tabs'
 body.id = 'lv-content';
 body.tabIndex = -1;
 const skip = h('button', { type: 'button', class: 'lv-skip', onclick: () => body.focus() }, 'Skip to the entries');
-document.body.append(skip, rail, main, subRail);
+// Phones (ui-ux-pro-max: no sideways page scroll, nav must not cover content): the table rail becomes a drawer
+// opened from a top bar that names the open table; the sub-tab rail becomes a strip under that bar (CSS).
+const PHONE = matchMedia('(max-width: 760px)');
+rail.id = 'lv-rail';
+const barTitle = h('span', { class: 'lv-phonetitle' });
+const navBtn = h('button', { type: 'button', class: 'lv-navbtn', 'aria-controls': 'lv-rail', 'aria-expanded': 'false' }, h('span', { class: 'lv-burger', 'aria-hidden': 'true' }), 'Tables') as HTMLButtonElement;
+const phoneBar = h('header', { class: 'lv-phonebar' }, navBtn, barTitle, h('span', { class: 'lv-phonebrand' }, `LIB v${lib.version}`));
+const scrim = h('div', { class: 'lv-scrim', hidden: true });
+function drawer(open: boolean, refocus = true): void {
+  document.body.classList.toggle('lv-nav-open', open);
+  navBtn.setAttribute('aria-expanded', String(open));
+  scrim.hidden = !open;
+  if (open) rail.querySelector<HTMLElement>('a[aria-current="page"]')?.scrollIntoView({ block: 'center' });
+  if (open) (rail.querySelector<HTMLElement>('a[aria-current="page"]') ?? rail.querySelector('a'))?.focus({ preventScroll: true });
+  else if (refocus) navBtn.focus();
+}
+navBtn.onclick = () => drawer(!document.body.classList.contains('lv-nav-open'));
+scrim.onclick = () => drawer(false);
+rail.addEventListener('click', (e) => { if ((e.target as Element).closest('a') && PHONE.matches) drawer(false, false); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('lv-nav-open')) drawer(false); });
+PHONE.addEventListener('change', () => { if (!PHONE.matches) drawer(false, false); });
+document.body.append(skip, phoneBar, rail, scrim, main, subRail);
 // "/" jumps to the search, as in most tools
 addEventListener('keydown', (e) => {
   if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1517,7 +1538,8 @@ body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest
 // filters, colour and pins keep working on them; each row mirrors its card.
 const TABLE_FIRST = new Set(['gear', 'status', 'services', 'roles', 'durations', 'zoneKinds', 'edgeKinds', 'zoneSizes', 'roadLengths', 'roadDangers', 'noiseLevels', 'visibilityLevels', 'activities', 'routines', 'healing', 'classes', 'stacking']);
 const viewOfTable: Record<string, 'cards' | 'table'> = remember<Record<string, 'cards' | 'table'>>('lv-view', {});
-const modeOf = (key: string) => viewOfTable[key] ?? (TABLE_FIRST.has(key) ? 'table' : 'cards');
+// on a phone a table only fits by scrolling sideways, so tables open as cards there unless picked
+const modeOf = (key: string) => viewOfTable[key] ?? (TABLE_FIRST.has(key) && !PHONE.matches ? 'table' : 'cards');
 const viewSwitch = h('div', { class: 'lv-seg', role: 'group', 'aria-label': 'Show entries as' });
 compareBtn.before(viewSwitch);
 // All tables (VR7): the search lists matches from every table, grouped by table; it stays on across tables
@@ -1608,6 +1630,7 @@ function route(): void {
   if (sec.key !== shown) {
     shown = sec.key;
     titleEl.replaceChildren(sec.title, h('span', { class: 'lv-size' }, ` · ${sizeOf(sec)}`));
+    barTitle.textContent = sec.title;
     picks.clear();
     if (!allBox.checked) search.value = ''; // a new table starts unfiltered, unless the search covers all tables
     pane = paneOf[sec.key] ?? '';

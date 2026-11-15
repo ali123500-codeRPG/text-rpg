@@ -30,7 +30,7 @@ const village = (): { s: GameState; wim: Actor } => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
   const wim = actorById(s, 'patron_1')!;
   if (wim.pos) s.player.pos = { ...wim.pos };
-  wim.core.inventory.push({ id: 'ring', itemId: IT.signet_ring }, { id: 'purse', itemId: IT.coin, qty: 40 }, { id: 'axe', itemId: IT.greataxe });
+  wim.core.inventory.push({ id: 'ring', itemId: IT.charmed_ring }, { id: 'purse', itemId: IT.coin, qty: 40 }, { id: 'axe', itemId: IT.greataxe });
   return { s, wim };
 };
 const skill = (a: Actor, id: string, raw: number) => { a.core.skills[id] = { raw, state: 'normal' }; };
@@ -61,7 +61,7 @@ it('FL4/FL5: a sharp-eyed owner catches a clumsy hand: nothing taken, two steps 
   expect(e.filch).toBe('caught');
   expect(wim.core.inventory.some((i) => i.id === 'ring')).toBe(true);
   expect(stance(s, wim, s.player)).not.toBe(before);
-  expect(s.hidden.memory.patron_1?.some((m) => /trying to steal my signet ring/.test(m.text))).toBe(true);
+  expect(s.hidden.memory.patron_1?.some((m) => /trying to steal my charmed ring/.test(m.text))).toBe(true);
 });
 
 it('FL6: a filched item keeps its owner: seen on the thief it shows to them, and they refuse to buy it', () => {
@@ -114,7 +114,7 @@ it('whole turn: a filch caught in the act reaches the Narrator as a filch event 
   const s = g.game.state()!;
   const wim = actorById(s, 'patron_1')!;
   if (wim.pos) s.player.pos = { ...wim.pos };
-  wim.core.inventory.push({ id: 'ring', itemId: IT.signet_ring });
+  wim.core.inventory.push({ id: 'ring', itemId: IT.charmed_ring });
   skill(wim, SK.eyesight, 400);
   const { events } = await g.turn(intent({ action: { type: 'filch', target: 'patron_1' } })) // the ring is stowed, unseen (CT6b): whatever comes to hand;
   expect(events.find((e) => e.kind === 'filch')?.filch).toBe('caught');

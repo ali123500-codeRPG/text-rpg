@@ -37,14 +37,14 @@ it('BF16: letting someone search you is said with letsSearch, and lasts this tur
 
 it('BF16: turning out your pockets shows what you carry to those who see it; one thing may be kept back by a Filching roll', () => {
   const { s, t } = tavern();
-  s.player.core.inventory.push({ id: 'ring_1', itemId: IT.signet_ring, qty: 1 } as never);
+  s.player.core.inventory.push({ id: 'ring_1', itemId: IT.charmed_ring, qty: 1 } as never);
   play(s, { intent: intent() }); // the trader takes note of the player first
   const ev = play(s, { intent: intent({ action: { type: 'show' } as never }) }).find((e) => e.actorId === 'player' && e.kind === 'show')!;
   const shown = ev.effects.find((f) => f.kind === 'shown_items')!.data.items as string[];
   expect(shown).toContain('ring_1');
   expect(revealedTo(t, 'player')).toContain('item:ring_1');
   const { s: s2 } = tavern();
-  s2.player.core.inventory.push({ id: 'ring_1', itemId: IT.signet_ring, qty: 1 } as never);
+  s2.player.core.inventory.push({ id: 'ring_1', itemId: IT.charmed_ring, qty: 1 } as never);
   const ev2 = play(s2, { intent: intent({ action: { type: 'show', item: 'ring_1' } as never }) }).find((e) => e.actorId === 'player' && e.kind === 'show')!;
   const f = ev2.effects.find((x) => x.kind === 'shown_items')!.data;
   expect(ev2.roll?.skill).toBeDefined(); // the Filching roll

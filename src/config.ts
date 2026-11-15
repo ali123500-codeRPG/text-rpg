@@ -413,7 +413,7 @@ const DEFAULTS = {
   CLINIC_HEAL_PCT: 100,
   /** NR34 (placeholders): Heal opens at this true Healing; it gives back this share of the target's missing health (and of
    * each part's missing share) by the Healing roll's tier, plus HEAL_PAST_STEP for each step past Critical Success.
-   * Its cost is the action's own effort for now; a resource of its own (mana) comes later (D-339) */
+   * Its cost is the action's own effort for now; a resource of its own (mana) comes later (D-340) */
   HEAL_UNLOCK: 50,
   HEAL_TIER_SHARE: { near_miss: 0.05, success: 0.1, great_success: 0.15, critical_success: 0.25 } as Record<string, number>,
   HEAL_PAST_STEP: 0.1,

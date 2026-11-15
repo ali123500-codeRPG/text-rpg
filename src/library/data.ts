@@ -367,7 +367,6 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
       { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
       { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
     ] } },
-  { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   // accessories: each gives a flat skill bonus while worn, sized by its equipment level (ACC: ACCESSORY_FACTOR × EQUIP_NEED, AX1/AX2)
   { id: IT.spectacles, level: 'common', kind: 'accessory', fragility: 'fragile', name: 'spectacles', look: 'a pair of round glass lenses in a thin wire frame', bulk: 0, value: 5, slot: 'accessory', visible: true,
     effects: [ACC(SK.eyesight)] },
@@ -520,7 +519,7 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.hunter, 'Hunter', 'civilian', { high: [SK.ranged_medium, SK.sneaking], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
   // NR6: barber-surgeons, herb-wives, midwives; the one who sells clinic care (SV.clinic) where a place has it
   role(RO.healer, 'Healer', 'civilian', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
-  // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (D-340)
+  // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (D-341)
   role(RO.leader, 'Leader', 'civilian', { high: [SK.persuasion, SK.intimidation], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
   // NR13: the armoured professional (man-at-arms, knight, champion); its master's class is Knight (CL11)
   role(RO.knight, 'Knight', 'combat', { high: [SK.melee_medium, SK.heavy_armor], moderate: [SK.block, SK.resolve, SK.intimidation], low: [SK.melee_heavy, SK.persuasion] }, { traits: { [PA.discipline]: 40 }, values: [VL.duty, VL.glory] }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_heavy]),

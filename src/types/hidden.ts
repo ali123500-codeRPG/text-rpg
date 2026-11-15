@@ -67,6 +67,8 @@ export type PlanEnding = { when: EndCheck; as: (typeof PLAN_ENDINGS)[number]; te
 /** SC1/SC2/SC7: the scenario's hidden question, its scale and its endings */
 export type ScenarioFrame = {
   question: string; scale: ScenarioScale; endings: PlanEnding[];
+  /** SW8: hidden, what is lost if the player does nothing (absent on an old save) */
+  stake?: string;
   tier: Tier; startTurn: number; startMinute: number; number: number;
   /** who was up and what the player held at the start, for the record */
   upAtStart: string[]; heldAtStart: string[];
@@ -103,7 +105,7 @@ export type WindowAnswer = { start: boolean; note?: string };
  * and add frontiers on stage zones (new ways out, built later like any frontier). It never builds zones. */
 export type CheckinAnswer = {
   verdict: 'continue' | 'end'; as?: string; text?: string; beats?: Trigger[]; note?: string;
-  change?: { question?: string; scale?: string; endings?: { when: EndCheck; as: string; text: string }[] };
+  change?: { question?: string; stake?: string; scale?: string; endings?: { when: EndCheck; as: string; text: string }[] };
   arrivals?: { bands: import('./agents').StagePlan['bands']; cast: import('./agents').StagePlan['cast']; seeds?: import('./agents').StagePlan['seeds'] };
   frontiers?: { zone: string; key: string; label: string; brief?: string }[];
 };

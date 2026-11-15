@@ -35,7 +35,7 @@ export function benefits(def: ItemDef): { what: string; coin: number }[] {
 const priced = (def: ItemDef) => !def.consumable && (!!def.weapon || !!def.armor || !!def.shield || (def.effects ?? []).length > 0);
 
 /** SL12–SL14: an item's value in coin. Minted: its base's value × QUALITY_PRICE_FACTOR × quality (SL8). Improvised
- * weapons are worth 0. Consumables and items with no benefit numbers (a signet ring, a curio, coin) keep their
+ * weapons are worth 0. Consumables and items with no benefit numbers (a curio, coin) keep their
  * hand-set value. Any other piece is worth its summed benefits, at least 1. */
 export function itemValue(state: GameState | null | undefined, def: ItemDef): number {
   if (def.base) return itemValue(state, itemDef(state, def.base.itemId)) * CONFIG.QUALITY_PRICE_FACTOR * qualityMult(def.base.quality);

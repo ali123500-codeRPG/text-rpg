@@ -44,7 +44,7 @@ it('BS1 d: an uncaught filch bests an owner hostile or opposed to you; one from 
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
     const wim = actorById(s, 'patron_1')!;
     if (wim.pos) s.player.pos = { ...wim.pos };
-    wim.core.inventory.push({ id: 'ring', itemId: IT.signet_ring });
+    wim.core.inventory.push({ id: 'ring', itemId: IT.charmed_ring });
     skill(s.player, SK.filching, 400);
     s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor')); // no armor short of its requirement
     skill(wim, SK.eyesight, 0); skill(wim, SK.earshot, 0);
