@@ -1,5 +1,6 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import { landView } from '../land/brief';
+import { withRosters } from '../land/roster';
 import { actionRow } from '../ruleset/actionTime';
 import { doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
@@ -978,7 +979,8 @@ export type WeaverTarget = Omit<WeaverView['target'], 'placeName'>;
 /** WB1: the World builder's view: the Weaver's, less everything of luck and story */
 export function buildWorldView(state: GameState, target: WeaverTarget): WorldView {
   const { tier: _t, stakes: _s, ways: _w, lastScenarios: _l, outerScenario: _o, ...rest } = buildWeaverView(state, target);
-  return { ...rest, previousNote: state.hidden.worldNote ?? '' }; // its own note, never the Weaver's
+  const land = rest.land ? withRosters(state, rest.land, timeOfDay(now(state)) === 'night') : undefined; // NR17 to NR20
+  return { ...rest, ...(land ? { land } : {}), previousNote: state.hidden.worldNote ?? '' }; // its own note, never the Weaver's
 }
 export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
@@ -1028,6 +1030,8 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
         roles: Object.values(lib.npcRoles ?? {}).map((r) => ({ id: r.id, name: r.name, skills: (r.bands.high ?? []).map((id) => skillName(id)) })),
         themes: Object.values(lib.themes ?? {}).map((t) => ({ id: t.id, name: t.name })),
         ranks: RANKS.keys.map((k) => ({ key: k, name: rankName(k), level: rankRow(k).level })),
+        // NR27 (D-308): groups cast as one entry: the leader, and how many follow
+        groups: Object.values(lib.groups ?? {}).map((g) => ({ id: g.id, name: g.name, lead: g.lead.label, ...(g.follow ? { follow: `${g.follow.count[0] === g.follow.count[1] ? g.follow.count[0] : g.follow.count.join(' to ')} × ${g.follow.label}` } : {}) })),
       },
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),

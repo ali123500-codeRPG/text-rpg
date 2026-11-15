@@ -23,6 +23,10 @@ export type HiddenStore = {
   castNotes?: Record<string, { motive: string; routineGap?: string; templateGap?: string }>;
   /** NG15: every templateGap the Weaver wrote, for the GM view's "Templates wanted" list (kept across scenarios) */
   templateWants?: { turn: number; scenario: number; actorId: string; label: string; wanted: string; template: string }[];
+  /** NR17: roster keys already filled by a cast entry; the World view leaves them out */
+  rosterFilled?: string[];
+  /** NR28: each composition whose wanted skills the closest role lacks from its High or Moderate bands (GM view "Roles wanted") */
+  roleWants?: { turn: number; scenario: number; actorId: string; label: string; skills: string[]; role: string; missing: string[] }[];
   /** NG16 b: each scenario's hostile cast power against the player's, with the challenge grade's band; logged only */
   castPower?: { turn: number; scenario: number; challenge: string; hostile: number; player: number; ratio: number; band?: [number, number]; off: boolean }[];
   /** SC6: how each scenario went, oldest first (CONFIG.SCENARIO_RECORDS_SAVED kept); the next Weaver gets the last few */

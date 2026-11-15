@@ -61,6 +61,15 @@ export type PersonalityLean = { nerve?: number; traits?: Record<LibraryRef, numb
 export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civilian' | 'beast'; bands: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
   /** NG10: the gear classes (GC…) its work uses; spawn picks the best item of each its skill meets, up to its theme's wealth */
   gear?: readonly LibraryRef[] };
+/** NR17: a kind of hook: what the person gives play, who can fill it (roles, or a group), and its rank kind (CONFIG.ROSTER_RANKS) */
+export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?: readonly LibraryRef[]; groups?: readonly LibraryRef[]; theme?: LibraryRef; class?: LibraryRef;
+  rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true };
+/** NR27: one part of a group: its role (or a template), race when fixed (else rolled: NR31), label, and rank steps above the group's */
+export type GroupPart = { role?: LibraryRef; roles?: readonly LibraryRef[]; template?: LibraryRef; race?: LibraryRef; label: string; step?: number; class?: LibraryRef };
+/** NR27 (D-308): a group recipe: a leader and its followers, of one theme */
+export type GroupDef = { id: LibraryRef; name: string; theme: LibraryRef; lead: GroupPart; follow?: GroupPart & { count: [number, number] } };
+/** NR18 to NR20: a group that may be met, its weight, and the time of day it is out (both when left out) */
+export type MeetRow = { group: LibraryRef; weight: number; when?: 'day' | 'night' };
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank
  * titles (display only) */
 export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
@@ -182,6 +191,14 @@ export type Library = {
   essences?: Record<string, EssenceDef>; // growth proposal: ES…, packages a beaten foe or a scenario's deeds can offer
   npcRoles?: Record<string, NpcRoleDef>; // NG1: RO…, what an NPC does for a living
   themes?: Record<string, ThemeDef>; // NG1: TH…, the world an NPC belongs to
+  hookKinds?: Record<string, HookKindDef>; // NR17: HK…, why a real person stands in a place
+  groups?: Record<string, GroupDef>; // NR27 (D-308): GP…, cast as one entry
+  /** NR17: the hooks each settlement size holds; code rolls them per site, the World builder fills them */
+  rosters?: Record<'hamlet' | 'village' | 'town', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
+  /** NR18: who travels a road, by its danger: how many groups a stretch holds, and from which rows */
+  roadPeople?: Record<string, { count: [number, number]; rows: MeetRow[] }>;
+  wildPeople?: Record<string, MeetRow[]>; // NR19: by land cover (LC…), who can be met for danger or gain
+  landmarkPeople?: Record<string, MeetRow[]>; // NR20: by landmark kind (LM…), who works or lives there
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks

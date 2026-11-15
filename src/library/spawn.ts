@@ -242,6 +242,22 @@ export function templateLoadout(t: NpcTemplate, skills: Record<string, SkillEntr
   return out;
 }
 
+/** NR28: the role whose bands cover the wanted skills best (High CONFIG.ROLE_WANT_SCORE.high, then moderate, then low,
+ * per wanted skill; ties keep the table's order), and the wanted skills that role lacks from its High and Moderate bands */
+export function closestRole(skills: readonly string[]): { role: string; missing: string[] } {
+  const roles = Object.values(getLibrary().npcRoles ?? {});
+  const band = (r: (typeof roles)[number], id: string): keyof typeof CONFIG.ROLE_WANT_SCORE | undefined =>
+    r.bands.high?.includes(id) ? 'high' : r.bands.moderate?.includes(id) ? 'moderate' : r.bands.low?.includes(id) ? 'low' : undefined;
+  const score = (r: (typeof roles)[number]) => skills.reduce((n, id) => { const b = band(r, id); return n + (b ? CONFIG.ROLE_WANT_SCORE[b] : 0); }, 0);
+  const best = roles.reduce((m, r) => (score(r) > score(m) ? r : m), roles[0]);
+  return { role: best.id, missing: roleMissing(best.id, skills) };
+}
+/** NR28: the wanted skills a role lacks from its High and Moderate bands (GM view "Roles wanted") */
+export function roleMissing(roleId: string, skills: readonly string[]): string[] {
+  const b = getLibrary().npcRoles?.[roleId]?.bands;
+  return skills.filter((id) => !b?.high?.includes(id) && !b?.moderate?.includes(id));
+}
+
 /** NG15: a composed preset (race, role, theme, rank, optional class), as the Weaver names it from the catalog: a copy, with
  * Resolve, control and chase range from its role's kind (CONFIG.COMPOSED_NPC). Its ID names its parts, so the same
  * composition is one story blueprint. */

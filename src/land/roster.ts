@@ -1,0 +1,120 @@
+// NR17 to NR20, NR27, NR31: who the world holds. Code rolls, seeded by the land's own ids so a roll never changes, which
+// hooks a settlement holds, which groups travel a road and who stands at a landmark; the World builder fills them as cast
+// entries naming the roster key. Everyone else is crowd, written into how a place looks.
+import type { GameState, LandFeature, LandView, Region, RoadLine, Site } from '../types';
+import type { RosterView } from '../types/views';
+import type { GroupDef, GroupPart, MeetRow } from '../types/library';
+import { getLibrary } from '../library';
+import { CONFIG } from '../config';
+import { RANKS } from '../scales';
+import { createRng, textSeed } from '../rng';
+import { RC } from '../library/raceIds';
+
+type Rng = ReturnType<typeof createRng>;
+/** a composition as a cast entry names it (NG15) */
+export type RosterCompose = { race: string; role: string; theme: string; rank: string; class?: string };
+/** one rolled roster entry: a single person (compose) or a group (group + rank), with what it gives play */
+export type RosterEntry = { key: string; who: string; gives: string; compose?: RosterCompose; group?: { id: string; rank: string }; goals?: true };
+
+const pick = <T>(rng: Rng, xs: readonly T[]): T => xs[rng.int(0, xs.length - 1)];
+/** a weighted roll over { key: weight } */
+export function rollWeights(rng: Rng, w: Record<string, number>): string {
+  const rows = Object.entries(w).filter(([, n]) => n > 0), total = rows.reduce((n, [, x]) => n + x, 0);
+  let r = rng.next() * total;
+  for (const [k, n] of rows) if ((r -= n) < 0) return k;
+  return rows[rows.length - 1][0];
+}
+/** a rank `steps` above another, by RANKS positions */
+export const rankUp = (rank: string, steps = 1) => RANKS.keys[Math.min(RANKS.keys.length - 1, RANKS.pos(rank as never) + steps)];
+/** NR31 a: a person's race: elves about 1 in 20, else human */
+export const rollRace = (rng: Rng) => (rng.int(1, 100) <= CONFIG.ROSTER_ELF_PCT ? RC.elf : RC.human);
+const rollRow = (rng: Rng, rows: readonly MeetRow[]) => {
+  const g = rollWeights(rng, Object.fromEntries(rows.map((r, i) => [String(i), r.weight])));
+  return rows[Number(g)];
+};
+const groupEntry = (key: string, g: GroupDef, rank: string, hook?: { name: string; gives: string }): RosterEntry =>
+  ({ key, who: hook?.name ?? g.name, gives: hook?.gives ?? g.lead.label, group: { id: g.id, rank } });
+
+/** NR17 a: a settlement's hooks, by its size: the must-have hooks first, then the rest from the size's pool */
+export function siteRoster(site: Site): RosterEntry[] {
+  const lib = getLibrary(), row = lib.rosters?.[site.size];
+  if (!row) return [];
+  const rng = createRng(textSeed(`roster:${site.id}`)), n = rng.int(row.count[0], row.count[1]);
+  const hooks = [...row.must];
+  const pool = [...row.pool];
+  while (hooks.length < n && pool.length) hooks.push(pool.splice(rng.int(0, pool.length - 1), 1)[0]);
+  while (hooks.length < n) hooks.push(pick(rng, row.pool));
+  const R = CONFIG.ROSTER_RANKS;
+  return hooks.slice(0, Math.max(n, row.must.length)).map((id, i) => {
+    const h = lib.hookKinds![id], key = `${site.id}.h${i + 1}`;
+    const rank = h.rank === 'seat' ? (() => { const r = rollWeights(rng, R.seat[site.size]); return rng.int(1, 100) <= CONFIG.SEAT_STEP_UP_PCT ? rankUp(r) : r; })()
+      : rollWeights(rng, h.rank === 'threat' ? R.threat[site.size] : R[h.rank]);
+    if (h.groups?.length) return groupEntry(key, lib.groups![pick(rng, h.groups)], rank, h);
+    const compose: RosterCompose = { race: rollRace(rng), role: pick(rng, h.roles ?? []), theme: h.theme ?? row.theme, rank, ...(h.class ? { class: h.class } : {}) };
+    return { key, who: h.name, gives: h.gives, compose, ...(h.goals ? { goals: true as const } : {}) };
+  });
+}
+
+/** NR18 a: the groups on a stretch of road, by its danger */
+export function roadRoster(road: RoadLine): RosterEntry[] {
+  const lib = getLibrary(), row = lib.roadPeople?.[road.danger];
+  if (!row) return [];
+  const rng = createRng(textSeed(`roster:${road.id}`)), n = rng.int(row.count[0], row.count[1]);
+  return Array.from({ length: n }, (_, i) => groupEntry(`${road.id}.g${i + 1}`, lib.groups![rollRow(rng, row.rows).group], rollWeights(rng, CONFIG.ROSTER_RANKS.road[road.danger])));
+}
+
+/** NR20 a: who is at a landmark: one group from its kind's rows, or nobody */
+export function landmarkRoster(f: LandFeature): RosterEntry[] {
+  const lib = getLibrary(), rows = lib.landmarkPeople?.[f.kind];
+  if (!rows?.length) return [];
+  const rng = createRng(textSeed(`roster:${f.id}`));
+  return [groupEntry(`${f.id}.g1`, lib.groups![rollRow(rng, rows).group], rollWeights(rng, CONFIG.ROSTER_RANKS.wild))];
+}
+
+/** NR19 a: who can be met on each land cover the region has, at this time of day (the World builder casts from it) */
+export function wildTable(r: Region, night: boolean): { cover: string; meet: { group: string; who: string; weight: number }[] }[] {
+  const lib = getLibrary(), covers = [...new Set(r.cover)].map((ch) => `LC${parseInt(ch, 36)}`);
+  return covers.flatMap((c) => {
+    const rows = (lib.wildPeople?.[c] ?? []).filter((m) => !m.when || m.when === (night ? 'night' : 'day'));
+    return rows.length ? [{ cover: lib.landCovers?.[c]?.name ?? c, meet: rows.map((m) => ({ group: m.group, who: lib.groups![m.group].name, weight: m.weight })) }] : [];
+  });
+}
+
+/** every roster entry of a region by key (sites, roads, landmarks) */
+export function regionRoster(r: Region): Map<string, RosterEntry> {
+  return new Map([...r.sites.flatMap(siteRoster), ...r.roads.flatMap(roadRoster), ...r.features.flatMap(landmarkRoster)].map((e) => [e.key, e]));
+}
+/** a roster entry by its key, in any region of the world */
+export function rosterEntry(state: GameState, key: string): RosterEntry | undefined {
+  const r = state.regions?.find((x) => key.startsWith(`${x.id}_`));
+  return r ? regionRoster(r).get(key) : undefined;
+}
+
+/** NR27 (D-308): a group's members as compositions (or templates): the leader `step` ranks up, followers' races rolled (NR31) */
+export function groupMembers(g: GroupDef, rank: string, seed: string): { label: string; compose?: RosterCompose; template?: string; lead: boolean }[] {
+  const rng = createRng(textSeed(`group:${seed}`));
+  const one = (p: GroupPart, lead: boolean) => p.template ? { label: p.label, template: p.template, lead }
+    : { label: p.label, lead, compose: { race: p.race ?? rollRace(rng), role: p.role ?? pick(rng, p.roles ?? []), theme: g.theme, rank: rankUp(rank, p.step ?? 0), ...(p.class ? { class: p.class } : {}) } };
+  const n = g.follow ? rng.int(g.follow.count[0], g.follow.count[1]) : 0;
+  return [one(g.lead, true), ...Array.from({ length: n }, () => one(g.follow!, false))];
+}
+
+/** NR17 to NR20: the World builder's land view: each unfilled roster entry beside its site, road or landmark, and the wild table */
+export function withRosters(state: GameState, land: LandView, night: boolean): LandView {
+  const r = state.regions?.find((x) => x.id === land.region);
+  if (!r) return land;
+  const lib = getLibrary(), filled = new Set(state.hidden.rosterFilled ?? []);
+  const rankName = (k: string) => RANKS.name(k as never);
+  const view = (es: RosterEntry[]): RosterView[] => es.filter((e) => !filled.has(e.key)).map((e) => ({ key: e.key, who: e.who, gives: e.gives,
+    is: e.group ? `${lib.groups?.[e.group.id]?.name ?? e.group.id}, ${rankName(e.group.rank)}`
+      : `${lib.races?.[e.compose!.race]?.name ?? e.compose!.race} ${lib.npcRoles?.[e.compose!.role]?.name ?? e.compose!.role}, ${rankName(e.compose!.rank)}`,
+    ...(e.goals ? { goals: true as const } : {}) }));
+  const nonEmpty = <T extends object>(k: string, xs: RosterView[], o: T) => (xs.length ? { ...o, [k]: xs } : o);
+  return {
+    ...land,
+    sites: land.sites.map((s) => { const site = r.sites.find((x) => x.id === s.id); return site ? nonEmpty('roster', view(siteRoster(site)), s) : s; }),
+    roads: land.roads.map((x) => { const road = r.roads.find((y) => y.id === x.id); return road ? nonEmpty('travellers', view(roadRoster(road)), x) : x; }),
+    landmarks: land.landmarks.map((l, i) => (r.features[i] ? nonEmpty('people', view(landmarkRoster(r.features[i])), l) : l)),
+    wild: wildTable(r, night),
+  };
+}

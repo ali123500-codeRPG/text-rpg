@@ -2,7 +2,7 @@
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
 import { TP } from './templateIds';
-import { RO, TH } from './npcLayerIds';
+import { GP, HK, RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
 import { CONFIG } from '../config';
@@ -16,7 +16,7 @@ import { openAirReachM } from '../perception/noise';
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-import type { AccessCond, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, HookKindDef, GroupDef, MeetRow, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -539,6 +539,37 @@ export const THEMES: Record<string, ThemeDef> = {
   [TH.lords_household]: { id: TH.lords_household, name: "Lord's household", bands: { low: [SK.persuasion] }, leans: { values: [VL.duty, VL.loyalty] }, wealth: 'superior' },
   [TH.monsters]: { id: TH.monsters, name: 'Monsters' },
 };
+
+/** NR17: hook kinds. A real NPC earns its place with a hook (something to sell, work to give, a threat, a rival, a seat of
+ * the Great); everyone else is crowd, written into how a place looks. Rank kinds are rolled from CONFIG.ROSTER_RANKS. */
+export const HOOK_KINDS: Record<string, HookKindDef> = Object.fromEntries(([
+  { id: HK.leader, name: 'Leader', gives: 'runs the place and has work or a quest to give', roles: [RO.leader], rank: 'lead' },
+  { id: HK.service, name: 'Service', gives: 'sells food, drink and a bed, or tends wounds', roles: [RO.talker, RO.healer], rank: 'face' },
+  { id: HK.face, name: 'Someone in need', gives: 'wants something from the player: a job, a favour, a way out of trouble', roles: [RO.talker, RO.worker, RO.hunter, RO.watcher], rank: 'face' },
+  { id: HK.threat, name: 'Threat', gives: 'danger near the place: a gang that preys on it, or beasts that take its stock', groups: [GP.bandit_gang, GP.wolf_pack], rank: 'threat' },
+  { id: HK.rival, name: 'Rival', gives: 'at odds with the leader or another hook: a feud the player can take a side in', roles: [RO.talker, RO.brute, RO.sneak, RO.soldier], rank: 'lead' },
+  { id: HK.trader, name: 'Trader', gives: 'buys and sells goods', roles: [RO.talker], class: CL.trader, rank: 'face' },
+  { id: HK.watch, name: 'Watch', gives: 'keeps the peace; trouble brings them', groups: [GP.watch_patrol], rank: 'face' },
+  { id: HK.seat, name: 'Seat of the Great', gives: 'the one person past ordinary power who stands over this place: a name, the deeds that made them (motive), 1 to 3 goals; people call them the Great, never by a rank', roles: [RO.knight, RO.soldier, RO.leader, RO.hunter, RO.healer, RO.brute], rank: 'seat', goals: true },
+] as HookKindDef[]).map((d) => [d.id, d]));
+
+/** NR27 (D-308): group recipes. The leader is `step` ranks above the group's rank; followers' races are rolled (NR31) unless fixed */
+export const GROUPS: Record<string, GroupDef> = Object.fromEntries(([
+  { id: GP.pedlar, name: 'Pedlar', theme: TH.travellers, lead: { role: RO.talker, label: 'a pedlar', class: CL.trader } },
+  { id: GP.traveller, name: 'Traveller', theme: TH.travellers, lead: { role: RO.talker, label: 'a traveller with news or a job' } },
+  { id: GP.caravan, name: 'Caravan', theme: TH.travellers, lead: { role: RO.talker, label: 'a caravan master', class: CL.trader }, follow: { role: RO.soldier, label: 'a hired guard', count: [2, 2] } },
+  { id: GP.pilgrims, name: 'Pilgrims', theme: TH.travellers, lead: { role: RO.worker, label: 'a pilgrim' }, follow: { role: RO.worker, label: 'a pilgrim', count: [1, 4] } },
+  { id: GP.bandit_gang, name: 'Bandit gang', theme: TH.road_bandits, lead: { role: RO.brute, label: 'a bandit chief', step: 1 }, follow: { roles: [RO.skirmisher, RO.sneak], label: 'a bandit', count: [2, 4] } },
+  { id: GP.watch_patrol, name: 'Watch patrol', theme: TH.town_watch, lead: { role: RO.soldier, label: 'a watch sergeant', step: 1 }, follow: { role: RO.soldier, label: 'a watchman', count: [1, 2] } },
+  { id: GP.watch_post, name: 'Watch post', theme: TH.town_watch, lead: { role: RO.watcher, label: 'a lookout' }, follow: { role: RO.soldier, label: 'a guard', count: [1, 1] } },
+  { id: GP.wolf_pack, name: 'Wolf pack', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.wolf, label: 'the pack leader', step: 1 }, follow: { role: RO.beast, race: RC.wolf, label: 'a wolf', count: [2, 5] } },
+  { id: GP.boar, name: 'Wild boar', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.boar, label: 'a wild boar' } },
+  { id: GP.bear, name: 'Bear', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.bear, label: 'a bear' } },
+  { id: GP.hunter, name: 'Hunter', theme: TH.village_folk, lead: { role: RO.hunter, label: 'a hunter (a guide, or a poacher)' } },
+  { id: GP.dog, name: 'Dog at the fold', theme: TH.wild_beasts, lead: { role: RO.beast, race: RC.dog, label: 'a dog at the fold' } },
+  { id: GP.slimes, name: 'Slimes', theme: TH.wild_beasts, lead: { template: TP.slime, label: 'a slime' }, follow: { template: TP.slime, label: 'a slime', count: [1, 4] } },
+] as GroupDef[]).map((d) => [d.id, d]));
+const meet = (group: string, weight: number, when?: 'day' | 'night'): MeetRow => ({ group, weight, ...(when ? { when } : {}) });
 
 /** NG1, NG21: today's five templates as presets (same TP IDs): race, role, theme and rank, at the ranks they played at.
  * minimums are hand-set floors the story needs; class floors are added in code. Rank floors, Keen Ear for patrols (NG13),
@@ -1136,6 +1167,38 @@ export function prototypeLibrary(): Library {
     templates: { ...TEMPLATES, ...UNIQUES }, // HF34 a: Hall of fame heroes are unique templates in their own file
     npcRoles: NPC_ROLES,
     themes: THEMES,
+    hookKinds: HOOK_KINDS,
+    groups: GROUPS,
+    // NR17 a: hooks by settlement size (the crowd is text); must = always there, the rest rolled from pool without repeats first
+    rosters: {
+      hamlet: { count: [1, 2], must: [], pool: [HK.face, HK.threat], theme: TH.village_folk },
+      village: { count: [3, 5], must: [HK.leader, HK.service, HK.seat], pool: [HK.face, HK.face, HK.threat, HK.rival], theme: TH.village_folk },
+      town: { count: [6, 10], must: [HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival], pool: [HK.service, HK.face, HK.face, HK.trader, HK.threat], theme: TH.town_folk },
+    },
+    // NR18 a: who travels a road, by danger (only who brings gain or danger); code rolls a stretch when the land is drawn
+    roadPeople: {
+      safe: { count: [0, 1], rows: [meet(GP.pedlar, 3), meet(GP.watch_patrol, 2), meet(GP.traveller, 2)] },
+      quiet: { count: [0, 2], rows: [meet(GP.pedlar, 3), meet(GP.traveller, 3), meet(GP.pilgrims, 1)] },
+      wild: { count: [1, 2], rows: [meet(GP.caravan, 3), meet(GP.wolf_pack, 2), meet(GP.traveller, 1)] },
+      dangerous: { count: [1, 3], rows: [meet(GP.bandit_gang, 4), meet(GP.wolf_pack, 2), meet(GP.bear, 1)] },
+    },
+    // NR19 a: the wild by land cover (flocks, herds and deer are scenery text); monsters only at their own places
+    wildPeople: {
+      [LC.farmland]: [meet(GP.dog, 3, 'day'), meet(GP.wolf_pack, 1, 'night')],
+      [LC.pasture]: [meet(GP.dog, 3, 'day'), meet(GP.wolf_pack, 1, 'night')],
+      [LC.woods]: [meet(GP.hunter, 3, 'day'), meet(GP.boar, 2), meet(GP.wolf_pack, 2, 'night'), meet(GP.bear, 1)],
+      [LC.heath]: [meet(GP.wolf_pack, 3), meet(GP.bear, 1)],
+      [LC.moor]: [meet(GP.wolf_pack, 3), meet(GP.bear, 1)],
+      [LC.marsh]: [meet(GP.slimes, 3)],
+      [LC.water_meadow]: [meet(GP.slimes, 3)],
+      [LC.rock]: [meet(GP.bear, 1)],
+    },
+    // NR20 a: people at landmarks (a shrine, mill, quarry, mine and standing stones hold crowd or nobody; a ruin holds one
+    // monster kind in its own place only when the World builder puts it there)
+    landmarkPeople: {
+      [LM.tower]: [meet(GP.watch_post, 1)],
+      [LM.camp]: [meet(GP.bandit_gang, 3), meet(GP.watch_patrol, 1)],
+    },
     activities: ACTIVITIES,
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,

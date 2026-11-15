@@ -14,7 +14,7 @@ import { FU, ZK } from '../library/tableIds';
 import { entryPoint, placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from '../library';
-import { composeTemplate, presetPersonality, spawnNpc } from '../library/spawn';
+import { composeTemplate, roleMissing, presetPersonality, spawnNpc } from '../library/spawn';
 import { personalityFrom } from '../ruleset/personality';
 import { installRoutines, desiredState, detectPlayer, headTo, knownFromTheStart } from '../minds';
 import { perceivesNow } from '../engine/yield';
@@ -505,6 +505,11 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   state.hidden.castNotes ??= {};
   plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}), ...(c.templateGap ? { templateGap: c.templateGap } : {}) }));
   // NG15: who the Weaver wanted and couldn't field, kept for the GM view so a template can be made
+  for (const c of plan.cast) if (c.roster && !state.hidden.rosterFilled?.includes(c.roster)) (state.hidden.rosterFilled ??= []).push(c.roster); // NR17
+  plan.cast.forEach((c, i) => { // NR28: a composition by wanted skills whose role lacks some of them
+    const w = c.compose?.wants, missing = w ? roleMissing(c.compose!.role, w.skills) : [];
+    if (missing.length) (state.hidden.roleWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: w!.label, skills: w!.skills, role: c.compose!.role, missing });
+  });
   plan.cast.forEach((c, i) => { if (c.templateGap) (state.hidden.templateWants ??= []).push({ turn: state.turn, scenario: state.stage.scenarioNumber, actorId: castActors[i].id, label: c.label, wanted: c.templateGap, template: castActors[i].core.templateId ?? '' }); });
   if (ctx.kind === 'scenario') logCastPower(state, plan.event.challenge, castActors); // NG16 b
   // UG3: goal holders: the template's standing goal, then the Weaver's goals, their keys read as ids

@@ -415,6 +415,8 @@ const DEFAULTS = {
    * each part's missing share) by the Healing roll's tier, plus HEAL_PAST_STEP for each step past Critical Success.
    * Its cost is the action's own effort for now; a resource of its own (mana) comes later (D-340) */
   HEAL_UNLOCK: 50,
+  /** NR28: how much each band counts when code picks the closest role for the skills the World builder or Weaver wants */
+  ROLE_WANT_SCORE: { high: 3, moderate: 2, low: 1 },
   HEAL_TIER_SHARE: { near_miss: 0.05, success: 0.1, great_success: 0.15, critical_success: 0.25 } as Record<string, number>,
   HEAL_PAST_STEP: 0.1,
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
@@ -692,6 +694,21 @@ const DEFAULTS = {
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
+  /** NR21 (placeholders until NR21 is answered): rank weights (RANKS keys) for rostered people. face: services, traders, the watch and
+   * people in need; lead: leaders and rivals, one step up; threat: by settlement size; seat: the seat of the Great's lowest rank by
+   * size (TL24 minimums), one step higher on SEAT_STEP_UP_PCT. Roads by danger and the wild use their own rows. */
+  ROSTER_RANKS: {
+    face: { rank_2: 50, rank_3: 40, rank_4: 10 },
+    lead: { rank_3: 50, rank_4: 40, rank_5: 10 },
+    threat: { hamlet: { rank_2: 40, rank_3: 40, rank_4: 20 }, village: { rank_2: 40, rank_3: 40, rank_4: 20 }, town: { rank_2: 20, rank_3: 40, rank_4: 30, rank_5: 10 } },
+    seat: { hamlet: { rank_3: 50, rank_4: 50 }, village: { rank_3: 50, rank_4: 50 }, town: { rank_5: 100 } },
+    road: { safe: { rank_2: 60, rank_3: 40 }, quiet: { rank_2: 60, rank_3: 40 }, wild: { rank_2: 30, rank_3: 50, rank_4: 20 }, dangerous: { rank_3: 50, rank_4: 40, rank_5: 10 } },
+    wild: { rank_2: 30, rank_3: 50, rank_4: 20 },
+  } as { face: Record<string, number>; lead: Record<string, number>; threat: Record<string, Record<string, number>>; seat: Record<string, Record<string, number>>;
+    road: Record<string, Record<string, number>>; wild: Record<string, number> },
+  SEAT_STEP_UP_PCT: 20,
+  /** NR31 a (placeholder): the share of rostered people who are elves; everyone else is human (dragonkin join once their race exists) */
+  ROSTER_ELF_PCT: 5,
   /** TV2/SR5: travel is one pace, a share of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels 4.5 km/h
    * (US Army FM 21-18: about 4 km/h on a day march); NPCs keep it too while a turn's time moves them on (NW11) */
   TRAVEL_SPEED_SHARE: 0.9,
