@@ -3,7 +3,9 @@
 // Blade Dance augments Dodge, Answer the Blow brings the strike 2 gaps sooner with a medium weapon.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place, beside } from '../harness';
-import { effectiveSkill, ruleset } from '../../src/ruleset';
+import { effectiveSkill, hasPerk, ruleset } from '../../src/ruleset';
+import { syncPerkLinks } from '../../src/ruleset/perkLinks';
+import { strikeBackAllowed, strikeBackLimit } from '../../src/engine/resolve';
 import { defaultStandingDefense } from '../../src/ruleset/gear';
 import { CONFIG } from '../../src/config';
 import type { Actor, AttackResult, GameState } from '../../src/types';
@@ -98,12 +100,15 @@ describe('153 Parry', () => {
     expect(strikesAt(true, IT.dagger)).toBe(CONFIG.PARRY_STRIKE_GAP);
   });
 
-  it('a strike back is a free melee attack with the parrying weapon, and every parry at the strike gap brings one (D-336)', () => {
+  /** the player throws a strike and Flurry's free strike in one round, and patron_1 parries both cleanly; who swung at whom */
+  const parriedTwice = (perks: string[]) => {
     const s = setup();
     const p = npc(s, 'patron_1');
     hold(p, [IT.arming_sword]);
     p.core.skills[SK.parry] = { raw: 30, state: 'normal' };
     p.core.standingDefense = 'parry';
+    for (const k of perks) give(p, k);
+    syncPerkLinks(p, 0);
     hold(s.player, []); // Flurry: every unarmed strike brings a free strike at once, in the same round
     give(s.player, PK.flurry);
     const calls: { by: string; at: string; weapon: string }[] = [];
@@ -115,14 +120,41 @@ describe('153 Parry', () => {
       return req.targetId === 'patron_1' ? { ...r, defenseType: 'parry', gap: 3, outcome: 'parried', multiplier: 0, damage: 0, location: null, strikeBack: true } as AttackResult : r;
     });
     play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
-    const blows = calls.filter((c) => c.by === 'player');
-    expect(blows.length).toBeGreaterThanOrEqual(2); // a strike and Flurry's free strike, in one round
-    // each parried blow, the free one too, is answered at once by a strike back with the patron's sword
-    // each parried blow, the free one too, is answered by a strike back with the patron's sword (once per round before D-336)
-    expect(calls.filter((c) => c.by === 'patron_1')).toEqual(blows.map(() => ({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' })));
+    vi.restoreAllMocks();
+    return { p, blows: calls.filter((c) => c.by === 'player'), backs: calls.filter((c) => c.by === 'patron_1') };
+  };
+
+  it('a strike back is a free melee attack with the parrying weapon, one per round by default (D-337)', () => {
+    const { blows, backs } = parriedTwice([]);
+    // a 6 s turn holds two 3 s strikes, each with Flurry's free strike in the same round: only the first of each round is answered
+    expect(blows.length).toBe(4);
+    expect(backs).toEqual([0, 1].map(() => ({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' })));
   });
 
-  it('a strike back earns no strike back of its own, so two parriers never trade them forever (D-336)', () => {
+  it('Ceaseless Guard (Parry 100) raises the limit to 5, and with Every Answer merges into Endless Answer: no limit (D-337)', () => {
+    const guard = parriedTwice([PK.ceaseless_guard]);
+    expect(guard.backs.length).toBe(guard.blows.length); // two blows, both under 5
+    const both = parriedTwice([PK.every_answer, PK.ceaseless_guard]);
+    expect(hasPerk(both.p, PK.endless_answer)).toBe(true);
+    expect(hasPerk(both.p, PK.every_answer) || hasPerk(both.p, PK.ceaseless_guard)).toBe(false); // merged: asleep
+    expect(both.backs.length).toBe(both.blows.length);
+    expect(strikeBackLimit(npc(setup(), 'patron_1'))).toBe(CONFIG.STRIKE_BACK_LIMIT);
+    expect(strikeBackLimit(guard.p)).toBe(CONFIG.CEASELESS_GUARD_LIMIT);
+    expect(strikeBackLimit(both.p)).toBe(Infinity);
+  });
+
+  it('Every Answer (Riposte 20) counts the limit per attacker; parry strike-backs and Counters count apart (D-337)', () => {
+    const s = setup();
+    const owner = npc(s, 'patron_1'), a = s.player, b = npc(s, 'guard_1');
+    const ctx = () => ({ at: 1, strikeBacks: new Map<string, number>() }) as never;
+    const plain = ctx();
+    expect([strikeBackAllowed(plain, owner, a, 'parry'), strikeBackAllowed(plain, owner, b, 'parry'), strikeBackAllowed(plain, owner, a, 'counter')]).toEqual([true, false, true]);
+    give(owner, PK.every_answer);
+    const each = ctx();
+    expect([strikeBackAllowed(each, owner, a, 'parry'), strikeBackAllowed(each, owner, b, 'parry'), strikeBackAllowed(each, owner, a, 'parry')]).toEqual([true, true, false]);
+  });
+
+  it('a strike back earns no strike back of its own, so two parriers never trade them forever (D-336, D-337)', () => {
     const s = setup();
     const p = npc(s, 'patron_1');
     hold(p, [IT.arming_sword]);

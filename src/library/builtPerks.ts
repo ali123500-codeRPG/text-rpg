@@ -63,6 +63,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.in_and_out, // A23: src/engine/resolve.ts doAttack()
   PK.blade_wall, PK.shield_wall, PK.slip_the_crowd, // B19, B9, B8 (Parry, Block, Dodge 60): attack() in src/ruleset/index.ts
   PK.answer_the_blow, // B18 (Riposte 60): attack() lowers the parry strike's gap; src/engine/resolve.ts parryStrike()
+  PK.every_answer, PK.ceaseless_guard, PK.endless_answer, // D-337 (Riposte 20, Parry 100, merged): src/engine/resolve.ts strikeBackAllowed()
   PK.slip_the_blow, PK.turn_aside, // A20, A22: attack() in src/ruleset/index.ts
   PK.dirt_in_the_eyes, // A9: src/engine/perkMoves.ts, the Parser's perkMove
   PK.set_them_up, // B15 (strike 60): src/engine/perkMarks.ts markShifts() and afterAttack()
