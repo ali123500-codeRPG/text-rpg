@@ -38,6 +38,8 @@ export type Intent = {
     mode: string | null;
     approach: string;
     stance: 'careful' | 'normal' | 'reckless';
+    /** the Parser found no skill that fits the deed and used the closest one: the game flags it (skill_gap) */
+    noSkillFits?: boolean;
     /** TF19: a persuade or deceive at a foe in a fight that demands its surrender, not only that it stop */
     demand?: 'yield' | null;
     /** a scenario object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */

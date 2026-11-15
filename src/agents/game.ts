@@ -383,6 +383,8 @@ export function createGame(deps: GameDeps): Game {
       lastLog = [...turnLog];
       return;
     }
+    // a deed no skill fits is flagged every time, so the missing skills show up in play
+    if (intent.action?.noSkillFits) s.log.push({ turn: s.turn, code: 'skill_gap', detail: { words: text.slice(0, 300), type: intent.action.type, skill: intent.action.skill, target: intent.action.target } });
     const rngBefore = s.rngState;
     const rng = createRng(s.rngState);
     const quick = engine.quickWord(s, intent); // A15 in a fight, OA1 asides outside one: a line beside a deed, replied to for free
