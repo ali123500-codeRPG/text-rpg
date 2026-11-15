@@ -170,11 +170,12 @@ export function sellPrice(state: GameState, owner: Actor, seller: Actor, itemId:
   return buyingPrice(owner, seller, value);
 }
 
-/** SL1/SL4: what a buyer pays the owner for something worth `value`: SELL_SHARE of it, moved by haggling and Hard Bargain.
- * Items and essences (ES6 a) both sell through this one equation. */
+/** SL1/SL4: what a buyer pays the owner for something worth `value`: SELL_SHARE of it, moved by haggling, Hard Bargain and
+ * the owner's sellPct achievement reward (XR2). Items and essences (ES6 a) both sell through this one equation. */
 export function buyingPrice(owner: Actor, buyer: Actor, value: number): number {
   const h = owner.haggle?.[buyer.id];
-  const mult = CONFIG.SELL_SHARE * (h === undefined ? 1 : 2 - h) * (hasPerk(owner, PK.haggler) ? CONFIG.HARD_BARGAIN_SELL : 1);
+  const mult = CONFIG.SELL_SHARE * (h === undefined ? 1 : 2 - h) * (hasPerk(owner, PK.haggler) ? CONFIG.HARD_BARGAIN_SELL : 1)
+    * (1 + (bestReward(owner, 'sellPct')?.value ?? 0) / 100);
   return Math.max(1, Math.floor(value * mult + 1e-9));
 }
 

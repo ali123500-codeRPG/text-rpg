@@ -24,7 +24,7 @@ describe('299 achievement trim, round 4', () => {
     expect(counts('speech_won', 'skill')).toEqual([1, 10, 100, 250]);
     expect(counts('holds')).toEqual([1, 10, 100]);
     expect(counts('unseen_moves')).toEqual([1, 10, 50, 250]);
-    expect(counts('vanished')).toEqual([1, 5, 25]);
+    expect(counts('vanished')).toEqual([1, 5, 25, 50]); // XR16 added a 50
     expect(counts('quests_abandoned')).toEqual([1, 5]);
     expect(counts('zones')).toEqual([1, 25, 50, 150, 300]);
     expect(counts('places', 'place_kind')).toEqual([1, 5, 10, 25, 50]);
