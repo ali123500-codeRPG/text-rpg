@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-256
+
+**What was wrong:** Ali's ruling is that a higher level of an achievement chain includes the lower levels' rewards. Bane achievements (per race and per body type) and the total-defeats achievements were the only ones whose bonus was worked out from the level's place instead of adding the levels up: Scourge of the {body_type} Hordes gave +15 skill (+7.5 on the roll), where Ali expected each level to add its own growing step on top of the ones below. The library viewer also listed rewards carried up from lower levels as separate "(from ...)" lines, so a top level looked as if it gave only its own step.
+
+**What was done:** Ali approved the plan. A level's own step is its place in the chain times the step, and the level gives its own step plus every lower level's. Bane: I +5, II +5 + 10 = +15, III +5 + 10 + 15 = +30 skill, which is +2.5, +7.5 and +15 on the roll. Total defeats: I +1, II +3, III +6, IV +10. The library viewer and reward lines now show each number reward as one total with its parts, for example "+15 on rolls vs that body type (+2.5 + +5 + +7.5)" and "+2 max morale in all (+1 from A Life Taken, +1 here)".
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-240
 
 **What was wrong:** On turn 80 of Ali's save, "I wait until the door to the keeper's hut is open" passed 480 game minutes and the Situation ended as "Worn out" with no text. A scenario's budget counted all game time, waiting included, and code ends any scenario at twice its budget (40 game minutes for a Situation, so 80 ended it). Road trips ran budgets out the same way, and at about 30 seconds a turn the budgets were far too long for play.

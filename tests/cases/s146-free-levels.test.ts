@@ -17,7 +17,7 @@ describe('146 free levels', () => {
     const a = getLibrary().achievements!;
     expect(chain.map((id) => a[id].freeLevels)).toEqual([1, 2, 3, 4, 5]);
     expect(chain.map((id) => a[id].name)).toEqual(['Across Two Heights', 'Across Three Heights', 'Across Four Heights', 'Across Five Heights', 'Every Height Climbed']);
-    expect(rewardLines(a[ACH.class_tiers_3])).toEqual(['+1 free level (levels that cost no XP) (from Across Two Heights)', '+2 free levels (levels that cost no XP)']);
+    expect(rewardLines(a[ACH.class_tiers_3])).toEqual(['+3 free levels (levels that cost no XP) in all (+1 from Across Two Heights, +2 here)']);
   });
 
   it('a free level is taken at once like any level, without spending XP', () => {

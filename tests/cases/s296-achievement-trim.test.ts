@@ -52,7 +52,7 @@ describe('296 achievement trim (round 3 answers)', () => {
     grantAchievement(s, ACH.aimed_size_10, part.size, undefined, true);
     grantAchievement(s, ACH.aimed_size_50, part.size, undefined, true);
     expect(aimMod(s, 'head')).toBeCloseTo(base * 0.7);
-    expect(rewardLines(lib()[ACH.aimed_size_50])).toHaveLength(3);
+    expect(rewardLines(lib()[ACH.aimed_size_50])).toEqual(['30% less aim penalty on parts of that size in all (+10 from Found the {size} Mark, +10 from {size} Target, +10 here)']); // BG-256: one total with its parts
   });
 
   it('downing a foe and being rallied are composure rows: flat points back, counted as calmed', () => {
