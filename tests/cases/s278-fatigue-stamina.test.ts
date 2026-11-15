@@ -84,7 +84,7 @@ describe('278 fatigue and stamina', () => {
     expect(fatigueLevel(s.player)).toBe('fine');
     pass(s, 1);
     expect(fatigueLevel(s.player)).toBe('tired');
-    expect(woundsMods(s, s.player, SK.melee_medium)).toContainEqual({ source: 'fatigue: Tired', type: 'wounds', value: -5 });
+    expect(woundsMods(s, s.player, SK.melee_medium)).toContainEqual({ source: 'fatigue: Tired', type: 'wounds', value: -7 });
     expect(lineMax(s.player)).toBeCloseTo(0.8 * barMax(s.player));
     const f = withStamina(quiet(), 50);
     pass(f, 15 * 60 - 1);

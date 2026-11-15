@@ -126,8 +126,9 @@ describe('153 Parry', () => {
 
   it('a strike back is a free melee attack with the parrying weapon, one per round by default (D-337)', () => {
     const { blows, backs } = parriedTwice([]);
-    // a 6 s turn holds two 3 s strikes, each with Flurry's free strike in the same round: only the first of each round is answered
-    expect(blows.length).toBe(4);
+    // a 6 s turn holds three strikes, each with Flurry's free strike, across two 3 s rounds: only the first of each round is
+    // answered (the player's nerve holds now that wounds are a % of the average roll, PW1 b)
+    expect(blows.length).toBe(6);
     expect(backs).toEqual([0, 1].map(() => ({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' })));
   });
 
