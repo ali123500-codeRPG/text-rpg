@@ -40,6 +40,8 @@ export type Intent = {
     stance: 'careful' | 'normal' | 'reckless';
     /** the Parser found no skill that fits the deed and used the closest one: the game flags it (skill_gap) */
     noSkillFits?: boolean;
+    /** OD3: how hard the deed is, from fixed meanings, when what it acts on has no grade of its own */
+    grade?: import('./core').Grade;
     /** TF19: a persuade or deceive at a foe in a fight that demands its surrender, not only that it stop */
     demand?: 'yield' | null;
     /** a scenario object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */
@@ -68,6 +70,8 @@ export type Intent = {
 export const NPC_ACTIONS = ['attack', 'move', 'search', 'sneak', 'vanish', 'hold', 'call_help', 'flee',
   'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'take', 'pick', 'open', 'filch', 'steady', 'show', 'other'] as const; // show: BF16; // open: BG-173, a container (CT3); filch: FL7
 export type NpcActionType = (typeof NPC_ACTIONS)[number];
+/** OD1 b/OD3: the acts that roll against the grade of what they act on (a piece of furniture can be their target) */
+export const GRADED_ACTS = ['observe', 'interact', 'use_item', 'other'] as const;
 export type NpcAction = {
   type: NpcActionType;
   target: string | null;

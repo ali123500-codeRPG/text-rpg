@@ -17,14 +17,14 @@ const ev = (s: GameState, x: Partial<GameEvent>): GameEvent => ({
 } as GameEvent);
 const roll = (actorId: string, skill: string, d100: number, tier: RollResult['tier']): RollResult =>
   ({ actorId, skill, d100, margin: 0, tier, natural: 0, modifiers: [], tierShifts: [] });
-const check = (actorId: string, skill: string) => ({ actorId, skill, target: 35, passed: false, modifiers: [] });
+const out = (skill: string) => ({ skill, grade: 'minor' as const, gate: 'out' as const });
 
 describe('134 mechanics lines', () => {
   it('a sight roll shows only once its target is perceived (UI5); the player\'s own search reads plainly', () => {
     const s = makeVillage();
-    expect(mechanicsLines(s, [ev(s, { target: 'slime_1', check: check('player', SK.eyesight) })])).toEqual([]); // slime in the field, unseen
-    expect(mechanicsLines(s, [ev(s, { target: 'patron_1', check: check('player', SK.eyesight) })])).toEqual(['Your eyesight vs difficulty 35: failed']);
-    expect(mechanicsLines(s, [ev(s, { check: check('player', SK.eyesight) })])).toEqual(['Your eyesight vs difficulty 35: failed']);
+    expect(mechanicsLines(s, [ev(s, { target: 'slime_1', obstacle: out(SK.eyesight) })])).toEqual([]); // slime in the field, unseen
+    expect(mechanicsLines(s, [ev(s, { target: 'patron_1', obstacle: out(SK.eyesight) })])).toEqual(['Your eyesight vs Minor: out of reach, no roll']);
+    expect(mechanicsLines(s, [ev(s, { obstacle: out(SK.eyesight) })])).toEqual(['Your eyesight vs Minor: out of reach, no roll']);
   });
   it('someone only heard shows no dice; someone seen goes by the name the player knows them by', () => {
     const s = makeVillage();

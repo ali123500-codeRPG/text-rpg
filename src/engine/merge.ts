@@ -89,6 +89,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     type: a?.type ?? 'hold',
     target: a?.target ?? null,
     skill: a?.skill ?? null,
+    ...(a?.grade ? { grade: a.grade } : {}),
     intent: a?.approach ?? '',
     source: 'player',
     move: mv?.toZone ?? null,
