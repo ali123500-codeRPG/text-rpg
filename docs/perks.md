@@ -229,6 +229,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner stays Stealthy. The target becomes aware of the owner. Every other observer makes a Combat Stealth contest against the owner instead of seeing it, as for a shot.
 - **Lasts:** That attack.
 
+### Every Answer (Riposte) · LG3
+
+*Story:* Each of them gets an answer. Your strike back after a clean parry, and your Counter, are no longer shared out among everyone attacking you: every attacker can earn its own.
+
+- **Kind:** Always on
+- **Trigger:** The owner earns a parry strike-back or a Counter.
+- **Effect:** The strike-back limit (1 per round per speed, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.
+- **Lasts:** Always. Merges with Ceaseless Guard into Endless Answer.
+
 ### Bluff (Lying) · LI1c
 
 *Story:* Half a second of doubt is all a knife needs. "Behind you!" Once per foe in a fight, and without giving up your action, you throw a lie at a foe near enough to hear it clearly. If it believes you, it hesitates and acts last next turn.
@@ -611,7 +620,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges a melee attack while holding a light or medium melee weapon.
-- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack.
+- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Within the owner's strike-back limit (D-337).
 - **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 
@@ -655,6 +664,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
 
 ## Very high milestone
+
+### Ceaseless Guard (Parry) · SB-P100
+
+*Story:* Blow after blow comes back at them. You can strike back after a clean parry, or Counter a fumble, many times a round instead of once.
+
+- **Kind:** Always on
+- **Trigger:** The owner earns a parry strike-back or a Counter.
+- **Effect:** The strike-back limit is 5 per round per speed (CEASELESS_GUARD_LIMIT) instead of 1. Parry strike-backs and Counters keep separate counts.
+- **Lasts:** Always. Merges with Every Answer into Endless Answer.
 
 ### Never Surprised (Earshot) · C1
 
@@ -932,7 +950,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 - **Kind:** Always on
 - **Trigger:** A melee attack on the owner is resolved.
-- **Conditions:** The attack roll ends in Critical Failure or worse. The attack was not itself a free attack. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed.
+- **Conditions:** The attack roll ends in Critical Failure or worse. The attack was not itself a free attack. Within the strike-back limit: 1 per round per speed (STRIKE_BACK_LIMIT), counted apart from parry strike-backs; Every Answer, Ceaseless Guard and Endless Answer raise or lift it. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed.
 - **Effect:** The owner makes one attack at the attacker at once, with that mode. It does not use the owner's action.
 - **Lasts:** That attack.
 - **Built:** yes
@@ -1323,3 +1341,13 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Conditions:** The owner has both Shield Wall and Cover Ally. Every Cover Ally condition holds (block standing defense with a shield, a better block than the ally's own defense, switched on).
 - **Effect:** Cover Ally covers the melee attack as it covers missiles: the owner blocks in the ally's place and takes any hit that gets through. Shield Wall keeps the cover from counting toward being outnumbered.
 - **Lasts:** Each attack.
+
+### Endless Answer (Parry) · LR5
+
+*Story:* There is no end to your answers. Every clean parry brings a strike back, and every fumble on you brings a Counter.
+
+- **Kind:** Always on (linked perk, merged)
+- **Trigger:** The owner earns a parry strike-back or a Counter.
+- **Conditions:** The owner has both Every Answer and Ceaseless Guard (they merge into this perk).
+- **Effect:** No strike-back limit: parry strike-backs and Counters come every time. A strike back still earns no strike back of its own.
+- **Lasts:** While the owner has both perks.

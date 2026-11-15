@@ -11,4 +11,5 @@ export const PERK_LINKS: PerkLink[] = [
   { id: LK.combination, needs: [PK.set_them_up, PK.one_two], kind: 'grant', perk: PK.combination },
   { id: LK.blind_spot, needs: [PK.dirt_in_the_eyes, PK.melt_away], kind: 'grant', perk: PK.blind_spot },
   { id: LK.bulwark, needs: [PK.shield_wall, PK.cover_ally], kind: 'grant', perk: PK.bulwark },
+  { id: LK.endless_answer, needs: [PK.every_answer, PK.ceaseless_guard], kind: 'merge', perk: PK.endless_answer },
 ];

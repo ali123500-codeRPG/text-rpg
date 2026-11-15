@@ -4,6 +4,7 @@ import { AM } from '../../src/library/tableIds';
 import { TR } from '../../src/library/treeIds';
 import { ACH } from '../../src/library/achievementIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { syncPerkLinks } from '../../src/ruleset/perkLinks';
 import { fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
 import { grantAllSteps, shareSpotted } from '../../src/ruleset/allSteps';
@@ -311,24 +312,31 @@ describe('125 All-50 moves', () => {
     const plain = fight(u, 'patron_1', 'w_player', (r) => ({ ...r, attack: { ...r.attack, tier: 'failure' as const }, outcome: 'missed' as const, damage: 0, location: null }));
     expect(plain[1]).not.toEqual({ by: 'patron_1', at: 'player' }); // a plain Failure gives nothing at once
   });
-  it('Counter answers every fumbled blow, two in one round too (D-336)', () => {
-    const s = makeVillage();
-    beside(s, 'patron_1');
-    arm(s, 'patron_1');
-    for (const i of s.player.core.inventory) delete i.equippedIn; // bare hands: Flurry's free strike lands in the same round
-    give(s.player, PK.flurry);
-    give(s.actors.find((a) => a.id === 'patron_1')!, PK.counter);
-    const calls: { by: string; at: string }[] = [];
-    const real = ruleset.attack;
-    vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
-      calls.push({ by: req.attackerId, at: req.targetId });
-      const r = real(req, st, forcedRng([50, 50, 50, 50]));
-      return req.attackerId === 'player' ? fumble(r) : r;
-    });
-    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
-    const blows = calls.filter((c) => c.by === 'player').length;
-    expect(blows).toBeGreaterThanOrEqual(2);
-    expect(calls.filter((c) => c.by === 'patron_1').length).toBeGreaterThanOrEqual(blows); // a Counter for each (its own blows may add)
+  it('Counter comes once per round per speed by default; Endless Answer lifts the limit (D-337)', () => {
+    const counters = (endless: boolean) => {
+      const s = makeVillage();
+      beside(s, 'patron_1');
+      arm(s, 'patron_1');
+      for (const i of s.player.core.inventory) delete i.equippedIn; // bare hands: Flurry's free strike lands in the same round
+      give(s.player, PK.flurry);
+      const p = s.actors.find((a) => a.id === 'patron_1')!;
+      give(p, PK.counter);
+      if (endless) { give(p, PK.every_answer); give(p, PK.ceaseless_guard); syncPerkLinks(p, 0); }
+      const calls: { by: string; at: string }[] = [];
+      const real = ruleset.attack;
+      vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
+        calls.push({ by: req.attackerId, at: req.targetId });
+        const r = real(req, st, forcedRng([50, 50, 50, 50]));
+        return req.attackerId === 'player' ? fumble(r) : r;
+      });
+      play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
+      vi.restoreAllMocks();
+      // the Counters come at once, before anything else the patron does: the run of its blows right after the player's two
+      const first = calls.findIndex((c) => c.by === 'patron_1');
+      expect(calls.slice(0, first).filter((c) => c.by === 'player').length).toBeGreaterThanOrEqual(2);
+      return calls.slice(first).findIndex((c) => c.by !== 'patron_1') === -1 ? calls.length - first : calls.slice(first).findIndex((c) => c.by !== 'patron_1');
+    };
+    expect(counters(true)).toBe(counters(false) + 1); // two fumbles in one round: one Counter by default, two with no limit
   });
   it('Second Wind: once per engagement, at Wounded or worse the health track moves one level better', () => {
     const s = makeVillage();
