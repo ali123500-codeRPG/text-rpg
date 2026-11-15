@@ -318,11 +318,15 @@ export type NarrationView = {
  * (places[].site), a road zone runs along a road (zones[].road); `where` is how far and which way from the player */
 export type LandView = {
   region: string; name: string; look: string; kind: string; start?: string;
-  sites: { id: string; size: string; name: string; look: string; where: string; place?: string }[];
-  roads: { id: string; kind: string; from: string; to: string; km: number; danger: string; crosses?: string; zone?: string }[];
-  landmarks: { name: string; kind: string; look: string; where: string }[];
+  sites: { id: string; size: string; name: string; look: string; where: string; place?: string; roster?: RosterView[] }[];
+  roads: { id: string; kind: string; from: string; to: string; km: number; danger: string; crosses?: string; zone?: string; travellers?: RosterView[] }[];
+  landmarks: { name: string; kind: string; look: string; where: string; people?: RosterView[] }[];
   beyond: Record<string, string>;
+  /** NR19: the World builder's view only: who can be met on each land cover here, at this time of day */
+  wild?: { cover: string; meet: { group: string; who: string; weight: number }[] }[];
 };
+/** NR17 to NR20: a roster entry the World builder fills (cast roster: key); is = who code rolled */
+export type RosterView = { key: string; who: string; gives: string; is: string; goals?: true };
 /** WB1: what the World builder sees: the Weaver's view with nothing of luck or story (no tier, stakes, ways, past
  * scenarios or outer scenario) */
 export type WorldView = Omit<WeaverView, 'tier' | 'stakes' | 'ways' | 'lastScenarios' | 'outerScenario'>;
@@ -379,7 +383,8 @@ export type WeaverView = {
     races: { id: string; name: string }[]; // RC… id and name: what a template's raceId names
     classes: { id: string; name: string }[]; // CL… id and name: what a template's classId names
     /** NG15: what a cast entry's compose names: roles (RO…, with their main skills), themes (TH…) and ranks (key, name, level) */
-    compose: { roles: { id: string; name: string; skills: string[] }[]; themes: { id: string; name: string }[]; ranks: { key: string; name: string; level: number }[] };
+    compose: { roles: { id: string; name: string; skills: string[] }[]; themes: { id: string; name: string }[]; ranks: { key: string; name: string; level: number }[];
+      groups: { id: string; name: string; lead: string; follow?: string }[] };
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number; container?: string }[]; // boon: worth as a reward (loot V8); container: CT2, worn, fixed or carried
     skills: { id: string; name: string }[];

@@ -11,7 +11,8 @@ import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
-import { composeError, composeTemplate, presetAgeFloor, presetTalent, rankName, templateRank } from '../library/spawn';
+import { rosterEntry, groupMembers } from '../land/roster';
+import { closestRole, rankKeyOf, composeError, composeTemplate, presetAgeFloor, presetTalent, rankName, templateRank } from '../library/spawn';
 import { stageReaches, talentName, youngestAge } from '../ruleset/age';
 import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
@@ -103,6 +104,8 @@ export function fillPlanDefaults(plan: StagePlan): void {
   for (const p of arr(plan.places)) if (p && (p.parent === undefined || p.parent === null)) p.parent = '';
   for (const b of arr(plan.bands)) if (b) { b.goals = trimNote(b.goals) as string; b.temperament = trimNote(b.temperament) as string; }
   for (const c of arr(plan.cast)) if (c) { c.motive = trimNote(c.motive) as string; c.routineGap = trimNote(c.routineGap) as string | undefined; c.templateGap = trimNote(c.templateGap) as string | undefined; }
+  // NR28: a composition with no role names who it wants and its key skills; code picks the closest role (flagged on apply)
+  for (const c of arr(plan.cast)) if (c?.compose && !c.compose.role && c.compose.wants?.skills?.length) c.compose.role = closestRole(c.compose.wants.skills).role;
   const seeds = plan.seeds;
   if (!seeds) return;
   const trig = (t: StagePlan['seeds']['triggers'][number], owner?: string) => {
@@ -125,6 +128,39 @@ export function fillPlanDefaults(plan: StagePlan): void {
   }
 }
 
+/** NR17: a cast entry naming a roster key takes the entry's race and rank, and who it is unless it names a template or
+ * composition; NR27 (D-308): a group entry becomes its leader, with its followers added right after it (groupOf). In place,
+ * once: a filled entry loses its group, so a second pass changes nothing. */
+function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: string, message: string, castKey?: string) => void): void {
+  if (!Array.isArray(plan?.cast)) return;
+  const used = new Set<string>();
+  for (const c of plan.cast) {
+    if (!c?.roster) continue;
+    const e = rosterEntry(state, c.roster);
+    if (!e) { err('bad_roster', `cast ${c.key}: roster ${c.roster} is not a roster key from land`, c.key); continue; }
+    if (state.hidden.rosterFilled?.includes(c.roster) || used.has(c.roster)) { err('bad_roster', `cast ${c.key}: roster ${c.roster} is already filled`, c.key); continue; }
+    used.add(c.roster);
+    if (c.template !== undefined || c.actor !== undefined) continue;
+    if (e.group) { if (!c.compose) c.group = { id: c.group?.id ?? e.group.id, rank: e.group.rank }; else c.compose.rank = e.group.rank; }
+    else if (e.compose) c.compose = c.compose ? { ...c.compose, race: e.compose.race, rank: e.compose.rank } : { ...e.compose };
+  }
+  const lib = getLibrary(), out: StagePlan['cast'] = [];
+  for (const c of plan.cast) {
+    out.push(c);
+    if (!c?.group || c.groupOf) continue;
+    const g = lib.groups?.[c.group.id], rank = rankKeyOf(c.group.rank);
+    if (!g || !rank) { err('bad_group', `cast ${c.key}: group ${c.group.id} at rank ${c.group.rank} unknown; groups: ${Object.keys(lib.groups ?? {}).join(', ')}`, c.key); continue; }
+    if (c.template !== undefined || c.compose !== undefined || c.actor !== undefined) { err('bad_cast', `cast ${c.key}: a group names no template, compose or actor`, c.key); continue; }
+    const [lead, ...rest] = groupMembers(g, rank, c.roster ?? c.key);
+    delete c.group;
+    if (lead.template) c.template = lead.template; else c.compose = lead.compose;
+    rest.forEach((m, i) => out.push({ key: `${c.key}_${i + 2}`, label: m.label, name: '', appearance: m.label, band: c.band, routineSetId: c.routineSetId, slots: c.slots,
+      ...(c.startAt ? { startAt: c.startAt } : {}), awarenessOfPlayer: c.awarenessOfPlayer, ...(c.awarenessOfBands ? { awarenessOfBands: c.awarenessOfBands } : {}),
+      ...(c.overrides ? { overrides: c.overrides } : {}), motive: c.motive, ...(m.template ? { template: m.template } : { compose: m.compose }), groupOf: c.key }));
+  }
+  plan.cast = out;
+}
+
 export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext): PlanError[] {
   fillPlanDefaults(plan);
   const errs: PlanError[] = [];
@@ -135,6 +171,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     errs.push({ code, message, routineOnly, ...(castKey !== undefined ? { castKey } : {}) });
   };
 
+  fillRosterAndGroups(state, plan, err);
   const P = CONFIG.PLAN_CAPS;
   const cap = CONFIG.TEXT_CAP;
   // T8: the Weaver picks the time only when the story's clock is not set yet; after that it must match the clock
@@ -175,7 +212,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
   // ---- caps ----
   const counts: [string, number, number][] = [
-    ['cast', cast.length, P.cast], ['zones', zones.filter((z) => !z?.fromLayout).length, P.zones], ['frontiers', frontiers.length, P.frontiers],
+    // NR27: a group counts once
+    ['cast', cast.filter((c) => !c?.groupOf).length, P.cast], ['zones', zones.filter((z) => !z?.fromLayout).length, P.zones], ['frontiers', frontiers.length, P.frontiers],
     ['places', places.length, P.places], ['bands', bands.length, P.bands],
   ];
   for (const [what, n, max] of counts) if (n > max) err('cap_exceeded', `${what}: ${n} > ${max}`);
@@ -345,7 +383,10 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     } else if (c.template === undefined && c.compose === undefined) err('bad_cast', `cast ${k}: names no template, composition or actor`, k);
     else {
       let tpl;
-      if (c.compose) { const e = composeError(c.compose); if (e) err('bad_compose', `cast ${k}: ${e}`, k); else tpl = composeTemplate(c.compose, c.label); } // NG15
+      const w = c.compose?.wants, lib2 = getLibrary(); // NR28: 2 to 4 known skills
+      if (w && (w.skills.length < 2 || w.skills.length > 4 || w.skills.some((id) => !lib2.skills[id]))) err('bad_compose', `cast ${k}: compose wants needs 2 to 4 skill ids from catalogs.skills`, k);
+      else if (c.compose && !c.compose.role) err('bad_compose', `cast ${k}: compose names no role and no wants`, k);
+      else if (c.compose) { const e = composeError(c.compose); if (e) err('bad_compose', `cast ${k}: ${e}`, k); else tpl = composeTemplate(c.compose, c.label); } // NG15
       else try { tpl = npcTemplate(state, c.template!); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
       // HF11: a unique comes into a world once; already here, it is cast by its actor id
       if (tpl?.generation === 'unique' && uniqueInWorld(state, tpl.id)) err('unique_in_world', `cast ${k}: ${tpl.id} is already in this world; cast its actor instead`, k);

@@ -2,6 +2,8 @@
 // input and output, the red fallback banner, the backup list with restore, and the "Download backup" button.
 import { tierName } from '../ruleset';
 import { getLibrary } from '../library';
+import { skillName } from '../library/skillNames';
+import { siteRoster } from '../land/roster';
 import { ageText, talentName } from '../ruleset/age';
 import type { BlueprintPage, GameApi, GameState, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
@@ -26,6 +28,14 @@ function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: num
 const KIND_WORD: Record<BlueprintPage['kind'], string> = { item: 'an item', body_type: 'a body type', npcTemplate: 'an NPC template' };
 
 const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null, 2) ?? 'null');
+
+/** NR28: the Roles wanted log grouped by who was wanted, its skills and the role used, most often first */
+export function roleWantGroups(log: NonNullable<GameState['hidden']['roleWants']>) {
+  const m = new Map<string, { label: string; skills: string[]; role: string; missing: string[]; count: number }>();
+  for (const w of log) { const k = [w.label.toLowerCase(), [...w.skills].sort().join(','), w.role].join('|'); const g = m.get(k); if (g) g.count++; else m.set(k, { label: w.label, skills: w.skills, role: w.role, missing: w.missing, count: 1 }); }
+  return [...m.values()].sort((a, b) => b.count - a.count);
+}
+const skillLabel = (id: string) => skillName(id);
 
 export function gmPage(api: GameApi) {
   const el = h('main');
@@ -182,6 +192,22 @@ export function gmPage(api: GameApi) {
           h('tbody', {}, [...s.hidden.templateWants].reverse().map((w) => h('tr', {}, h('td', { class: 'hs-num' }, `${w.scenario} · turn ${w.turn}`),
             h('td', {}, w.label), h('td', {}, w.wanted), h('td', {}, w.template || '–')))))
           : h('p', { class: 'empty' }, 'Nothing wanted yet. The Weaver writes templateGap when no template or composition gives who it means.')),
+
+      // NR28: compositions by wanted skills whose closest role lacks some of them, grouped by who was wanted
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Roles wanted · people no role covers yet'),
+        s?.hidden.roleWants?.length ? h('table', { class: 'hs-tbl' },
+          h('thead', {}, h('tr', {}, ['Wanted', 'Skills', 'Role used', 'Missing', 'Times'].map((t) => h('th', {}, t)))),
+          h('tbody', {}, roleWantGroups(s.hidden.roleWants).map((g) => h('tr', {}, h('td', {}, g.label), h('td', {}, g.skills.map(skillLabel).join(', ')),
+            h('td', {}, getLibrary().npcRoles?.[g.role]?.name ?? g.role), h('td', {}, g.missing.map(skillLabel).join(', ')), h('td', { class: 'hs-num' }, String(g.count))))))
+          : h('p', { class: 'empty' }, 'Nothing wanted yet. A composition by wanted skills lands here when the closest role lacks some of them.')),
+
+      // NR17: each settlement's hooks and how many the World builder has filled (it fills them as it builds the ground)
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Rosters · hooks by settlement'),
+        s?.regions?.some((r) => r.sites.length) ? h('table', { class: 'hs-tbl' },
+          h('thead', {}, h('tr', {}, ['Settlement', 'Size', 'Hooks', 'Filled'].map((t) => h('th', {}, t)))),
+          h('tbody', {}, s.regions.flatMap((r) => r.sites).map((site) => { const es = siteRoster(site), done = es.filter((e) => s.hidden.rosterFilled?.includes(e.key));
+            return h('tr', {}, h('td', {}, site.name || site.id), h('td', {}, site.size), h('td', {}, es.map((e) => e.who).join(', ')), h('td', { class: 'hs-num' }, `${done.length} of ${es.length}`)); })))
+          : h('p', { class: 'empty' }, 'No land drawn yet.')),
 
       // NG16 b: the hostile cast's power against the player's, by the challenge grade's band; logged only while the bands are tuned
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Cast power · against the challenge grade'),

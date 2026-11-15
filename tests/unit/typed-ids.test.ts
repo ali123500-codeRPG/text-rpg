@@ -15,7 +15,7 @@ import { IT } from '../../src/library/itemIds';
 import { TR } from '../../src/library/treeIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { TP } from '../../src/library/templateIds';
-import { RO, TH } from '../../src/library/npcLayerIds';
+import { GP, HK, RO, TH } from '../../src/library/npcLayerIds';
 import { AM, DU, GC, HL, PA, PY, RL, TN, VL, ZK } from '../../src/library/tableIds';
 import { modeSkill } from '../../src/ruleset/gear';
 import { ARMOR_SKILL } from '../../src/library/skillIds';
@@ -32,7 +32,7 @@ const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?
 /** a table: its library key, its prefix and its constants */
 const TABLES: [string, string, Record<string, string>][] = [
   ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['gods', 'GD', GD], ['starts', 'ST', ST], ['perks', 'PK', PK], ['items', 'IT', IT], ['trees', 'TR', TR], ['npcRoles', 'RO', RO], ['themes', 'TH', TH],
-  ['races', 'RC', RC], ['bodyTypes', 'BT', BT], ['templates', 'TP', TP],
+  ['races', 'RC', RC], ['bodyTypes', 'BT', BT], ['templates', 'TP', TP], ['hookKinds', 'HK', HK], ['groups', 'GP', GP],
   ['roles', 'RL', RL], ['healing', 'HL', HL], ['durations', 'DU', DU], ['zoneKinds', 'ZK', ZK], ['attackModes', 'AM', AM], ['gearClasses', 'GC', GC],
   ['personalityAxes', 'PA', PA], ['values', 'VL', VL], ['personalityTypes', 'PY', PY], ['tensions', 'TN', TN],
 ];

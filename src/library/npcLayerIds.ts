@@ -7,3 +7,8 @@ export const RO = {
 } as const;
 export const TH = { village_folk: 'TH1', town_watch: 'TH2', road_bandits: 'TH3', wild_beasts: 'TH4',
   town_folk: 'TH5', travellers: 'TH6', lords_household: 'TH7', monsters: 'TH8' } as const; // NR16
+/** NR17: hook kinds, why a real person stands in a place (rosters by settlement size) */
+export const HK = { leader: 'HK1', service: 'HK2', face: 'HK3', threat: 'HK4', rival: 'HK5', trader: 'HK6', watch: 'HK7', seat: 'HK8' } as const;
+/** NR27 (D-308): group recipes, cast as one entry and spawned as a leader and followers */
+export const GP = { pedlar: 'GP1', traveller: 'GP2', caravan: 'GP3', pilgrims: 'GP4', bandit_gang: 'GP5', watch_patrol: 'GP6', watch_post: 'GP7',
+  wolf_pack: 'GP8', boar: 'GP9', bear: 'GP10', hunter: 'GP11', dog: 'GP12', slimes: 'GP13' } as const;
