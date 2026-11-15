@@ -202,10 +202,40 @@ function personalityLines(add?: Record<string, number>): string[] {
 }
 /** a by-kind row's kind in words (a skill's name for by-skill rows) */
 const kindLabel = (d: AchievementDef, kind: string): string => (d.by === 'skill' ? skillName(kind) : kind);
-/** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display; a reward carried up from
- * a lower level names that level */
+/** number rewards that add up along a chain: shown as one total with its parts (BG-256) */
+const SUMMED: Reward[] = ['unawareShift', 'quieter', 'renown', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels',
+  'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'sellPct', 'questPayPct', 'essenceSlots'];
+const SUMMED_BY_KIND: AchievementReward[] = ['skillAddByKind'];
+/** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display. A number reward the row
+ * carries up from lower levels (chain linkage) shows as one total, then its parts: "+15 max morale in all (+5 from
+ * Hands Still Shaking, +5 from Fear Rides With Me, +5 here)"; true skill adds up per skill the same way. Other rewards
+ * carried up name the level they come from. */
 export function rewardLines(d: AchievementDef): string[] {
-  return chainRewards(d).flatMap((e) => linesOf(e.from, e.field).map((l) => e.from === d ? l : `${l} (from ${e.from.name})`));
+  const all = chainRewards(d);
+  const part = (from: AchievementDef, v: number) => `${v > 0 ? '+' : ''}${v} ${from === d ? 'here' : `from ${from.name}`}`;
+  const totalLine = (field: AchievementReward, es: { from: AchievementDef; v: number }[], make: (v: number) => AchievementDef): string[] => {
+    const t = es.reduce((n, e) => n + e.v, 0);
+    const ls = linesOf(make(t), field);
+    return es.length < 2 ? ls.map((l) => (es[0].from === d ? l : `${l} (from ${es[0].from.name})`))
+      : ls.map((l) => `${l} in all (${es.map((e) => part(e.from, e.v)).join(', ')})`);
+  };
+  const out: string[] = [], done = new Set<string>();
+  for (const e of all) {
+    if ((SUMMED as string[]).includes(e.field) || SUMMED_BY_KIND.includes(e.field)) {
+      if (done.has(e.field)) continue;
+      done.add(e.field);
+      const f = e.field as Reward | 'skillAddByKind';
+      const es = all.filter((x) => x.field === f).map((x) => ({ from: x.from, v: x.from[f] as number }));
+      out.push(...totalLine(f, es, (v) => ({ ...d, [f]: v })));
+    } else if (e.field === 'skillAdd') {
+      if (done.has('skillAdd')) continue;
+      done.add('skillAdd');
+      const es = all.filter((x) => x.field === 'skillAdd');
+      const skills = [...new Set(es.flatMap((x) => Object.keys(x.from.skillAdd ?? {})))];
+      for (const sk of skills) out.push(...totalLine('skillAdd', es.filter((x) => x.from.skillAdd?.[sk] !== undefined).map((x) => ({ from: x.from, v: x.from.skillAdd![sk] })), (v) => ({ ...d, skillAdd: { [sk]: v } })));
+    } else out.push(...linesOf(e.from, e.field).map((l) => e.from === d ? l : `${l} (from ${e.from.name})`));
+  }
+  return out;
 }
 
 /** Reward levels are the rows of REWARD_LEVELS (−1 to XV); a level past the top stays at the top. These helpers are the

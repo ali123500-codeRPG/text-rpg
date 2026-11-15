@@ -9,7 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
 import { modTotal, ruleset } from '../../src/ruleset';
 import { grantAchievement } from '../../src/engine';
-import { baneSkill } from '../../src/ruleset/bane';
+import { baneSkill, chainRollLine } from '../../src/ruleset/bane';
+import { getLibrary } from '../../src/library';
 import type { GameState } from '../../src/types';
 import { IT } from '../../src/library/itemIds';
 
@@ -25,9 +26,15 @@ const bane = (s: GameState, target: string) => {
 };
 
 describe('124 Bane bonuses', () => {
-  it('linked levels add up: I = +5, II = +10, III = +15', () => {
-    expect([baneSkill(ACH.first_defeat_race), baneSkill(ACH.defeats_10_race), baneSkill(ACH.defeats_100_race)]).toEqual([5, 10, 15]);
-    expect([baneSkill(ACH.first_defeat_body_type), baneSkill(ACH.defeats_10_body_type), baneSkill(ACH.defeats_100_body_type)]).toEqual([5, 10, 15]);
+  it('BG-256: each level adds its own growing step to the steps below it: I = +5, II = +5 + 10 = +15, III = +5 + 10 + 15 = +30', () => {
+    expect([baneSkill(ACH.first_defeat_race), baneSkill(ACH.defeats_10_race), baneSkill(ACH.defeats_100_race)]).toEqual([5, 15, 30]);
+    expect([baneSkill(ACH.first_defeat_body_type), baneSkill(ACH.defeats_10_body_type), baneSkill(ACH.defeats_100_body_type)]).toEqual([5, 15, 30]); // Scourge of the {body_type} Hordes: +15 on rolls
+  });
+  it('BG-256: the shown reward is the total with each level\'s own part', () => {
+    const a = getLibrary().achievements!;
+    expect(chainRollLine(ACH.defeats_100_body_type, a[ACH.defeats_100_body_type])).toBe('+15 on rolls vs that body type (+2.5 + +5 + +7.5)');
+    expect(chainRollLine(ACH.first_defeat_race, a[ACH.first_defeat_race])).toBe('+2.5 on rolls vs that race');
+    expect(chainRollLine(ACH.defeats_250, a[ACH.defeats_250])).toBe('+10 on every attack and defense roll (+1 + +2 + +3 + +4)');
   });
   it('no achievement, no bonus', () => {
     const s = makeVillage();
@@ -44,19 +51,19 @@ describe('124 Bane bonuses', () => {
     const earned = s.player.progression!.achievements!;
     expect(earned.find((a) => a.id === `${ACH.first_defeat_race}:${RC.human}`)?.replacedBy).toBe(`${ACH.defeats_10_race}:${RC.human}`);
     expect(earned.find((a) => a.id === `${ACH.defeats_10_race}:${RC.elf}`)?.replacedBy).toBeUndefined();
-    expect(bane(s, 'patron_1')).toEqual([{ source: 'bane: Bane of Humankind', type: 'achievement', value: 5 }]);
+    expect(bane(s, 'patron_1')).toEqual([{ source: 'bane: Bane of Humankind', type: 'achievement', value: 7.5 }]);
   });
   it('the best race and best body type both count, the weaker by the stacking rule; defenders get it too', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     grantAchievement(s, ACH.first_defeat_race, RC.human); // +5 skill
     grantAchievement(s, ACH.first_defeat_body_type, BT.humanoid);
-    grantAchievement(s, ACH.defeats_10_body_type, BT.humanoid); // +10 skill
+    grantAchievement(s, ACH.defeats_10_body_type, BT.humanoid); // +15 skill
     const mods = bane(s, 'patron_1');
-    expect(mods.map((m) => m.value).sort()).toEqual([2.5, 5]);
-    expect(modTotal(mods)).toBeCloseTo(5 + 2.5 * stackWeight(2, CONFIG.MOD_STACK_EXP)); // RN2: the second at √2 − 1
+    expect(mods.map((m) => m.value).sort()).toEqual([2.5, 7.5]);
+    expect(modTotal(mods)).toBeCloseTo(7.5 + 2.5 * stackWeight(2, CONFIG.MOD_STACK_EXP)); // RN2: the second at √2 − 1
     arm(s, 'patron_1');
     const d = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 50, 50, 50]));
-    expect(modTotal(d.defense!.modifiers.filter((m) => m.type === 'achievement'))).toBeCloseTo(5 + 2.5 * stackWeight(2, CONFIG.MOD_STACK_EXP));
+    expect(modTotal(d.defense!.modifiers.filter((m) => m.type === 'achievement'))).toBeCloseTo(7.5 + 2.5 * stackWeight(2, CONFIG.MOD_STACK_EXP));
   });
 });

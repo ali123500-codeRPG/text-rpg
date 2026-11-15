@@ -1,8 +1,10 @@
 // D-111 Bane bonuses (AGG comparison A3): an achievement earned against a race or body type ("Bane of
-// {race}kind", "{body_type}bane" …) gives skill on rolls against that race or type. Its bonus is the bonus of the lower
-// level it builds on (AchievementDef.after) plus CONFIG.BANE_SKILL_PER_LEVEL, so I = +5, II = +10, III = +15. Lower levels switched off by a higher one are skipped. The best
-// race one and the best body type one both count, as one modifier type, so the weaker counts at stackWeight(2, MOD_STACK_EXP) by type stacking.
-// D-119 total-defeats achievements (Blooded Fighter …) add +1 per tier to every attack and defense roll, as the same modifier type.
+// {race}kind", "{body_type}bane" …) gives skill on rolls against that race or type. D-119 total-defeats achievements
+// (Blooded Fighter …) add to every attack and defense roll. Both follow the chain linkage ruling (BG-256): a level's own
+// step is its place in the chain times the step (CONFIG.BANE_SKILL_PER_LEVEL, CONFIG.DEFEATS_ROLL_PER_TIER), and a level
+// gives its own step plus every lower level's: Bane I = +5 skill, II = +5 + 10 = +15, III = +5 + 10 + 15 = +30; total
+// defeats I = +1, II = +3, III = +6, IV = +10. Lower levels switched off by a higher one are skipped. The best race one
+// and the best body type one both count, as one modifier type, so the weaker counts at stackWeight(2, MOD_STACK_EXP).
 import { achievementName } from '../engine/xp';
 import type { AchievementDef, Actor, GameState, Mod } from '../types';
 import { getLibrary } from '../library';
@@ -17,12 +19,28 @@ export function chainTier(key: string): number {
 }
 /** a Bane: a defeats chain counted per race or per body type. Other per-group or per-class chains are not Banes. */
 export const isBane = (d: AchievementDef | undefined): boolean => d?.rule === 'defeats' && (d.by === 'race' || d.by === 'body_type');
-/** skill bonus of one achievement level: +BANE_SKILL_PER_LEVEL for it and for every lower level of its chain */
-export const baneSkill = (key: string): number => chainTier(key) * CONFIG.BANE_SKILL_PER_LEVEL;
+/** the own steps of a level and every level below it, lowest first: level n's own step is n × step (BG-256) */
+export const chainSteps = (key: string, step: number): number[] => Array.from({ length: chainTier(key) }, (_, i) => (i + 1) * step);
+const sum = (xs: number[]) => xs.reduce((n, x) => n + x, 0);
+/** skill bonus of one achievement level: its own step (place × BANE_SKILL_PER_LEVEL) plus every lower level's */
+export const baneSkill = (key: string): number => sum(chainSteps(key, CONFIG.BANE_SKILL_PER_LEVEL));
+
+const signed = (n: number) => `+${Math.round(n * 100) / 100}`;
+/** the display line of a Bane or total-defeats level's roll bonus: the total, then each level's own part, lowest first
+ * ("+15 on rolls vs that body type (+2.5 + +5 + +7.5)"); null for any other achievement. Bane parts are skill steps
+ * shown as roll value (× SKILL_WEIGHT), the same value baneMods adds to the roll. */
+export function chainRollLine(key: string, d: AchievementDef | undefined): string | null {
+  const parts = isBane(d) ? chainSteps(key, CONFIG.BANE_SKILL_PER_LEVEL).map((x) => CONFIG.SKILL_WEIGHT * x)
+    : d?.rule === 'defeats' && !d.by ? chainSteps(key, CONFIG.DEFEATS_ROLL_PER_TIER) : null;
+  if (!parts) return null;
+  const what = isBane(d) ? `on rolls vs that ${d!.by === 'body_type' ? 'body type' : 'race'}` : 'on every attack and defense roll';
+  return `${signed(sum(parts))} ${what}${parts.length > 1 ? ` (${parts.map(signed).join(' + ')})` : ''}`;
+}
 
 const COMBAT_ROLLS = new Set(['hit', 'dodge', 'block', 'parry']);
-/** roll bonus of one total-defeats achievement: +DEFEATS_ROLL_PER_TIER for each tier (I = +1, II = +2, III = +3, IV = +4) */
-export const defeatsRoll = (key: string): number => chainTier(key) * CONFIG.DEFEATS_ROLL_PER_TIER;
+/** roll bonus of one total-defeats achievement: its own step (place × DEFEATS_ROLL_PER_TIER) plus every lower level's
+ * (I = +1, II = +3, III = +6, IV = +10) */
+export const defeatsRoll = (key: string): number => sum(chainSteps(key, CONFIG.DEFEATS_ROLL_PER_TIER));
 /** total-defeats achievements (defeats with no `by`): the highest earned one adds its roll bonus to every attack and defense roll */
 export function defeatsMods(actor: Actor, rollKind: string | undefined): Mod[] {
   if (!rollKind || !COMBAT_ROLLS.has(rollKind)) return [];

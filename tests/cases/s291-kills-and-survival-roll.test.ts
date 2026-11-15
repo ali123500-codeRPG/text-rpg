@@ -79,7 +79,7 @@ describe('291 kills and the survival roll', () => {
     for (let i = 10; i < 50; i++) tally(s, 'kills');
     expect(earned(s)).toContain(ACH.kills_50);
     expect(maxMorale(s.player)).toBe(before + 3);
-    expect(rewardLines(a[ACH.kills_10])).toEqual(['+1 max morale (from A Life Taken)', '+1 max morale']);
+    expect(rewardLines(a[ACH.kills_10])).toEqual(['+2 max morale in all (+1 from A Life Taken, +1 here)']);
     expect(s.player.progression!.tally!.defeats).toBeUndefined(); // the two tallies are separate
   });
 

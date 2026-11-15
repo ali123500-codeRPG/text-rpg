@@ -6,7 +6,7 @@ import './styles.css';
 import './libraryViewer.css';
 import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, RoutineSet, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
-import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
+import { baneSkill, chainRollLine, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { branchLabel, branchRoots, chainHead, chainRows, chainTag, isBareHead } from '../ruleset/achChains';
@@ -564,8 +564,9 @@ function achievements(): HTMLElement[] {
   const achCard = ([key, d]: [string, AchievementDef]) => {
     const tags = achTags(d);
     const kind = d.by === 'body_type' ? 'body type' : 'race';
-    const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
+    const bane = isBane(d) ? CONFIG.SKILL_WEIGHT * baneSkill(key) : 0; // D-111: the same functions the rolls use, as roll value
     const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
+    const rollLine = chainRollLine(key, d); // BG-256: the total with each level's own part
     // {level} on an every-N row reads as the levels it is earned at: 10, 20, 30…
     // a row with its own name per earning (names) reads by its first name; the Names row lists them all
     const named = d.names ? Object.entries(d.names).sort(([a], [b]) => Number(a) - Number(b)) : [];
@@ -573,14 +574,13 @@ function achievements(): HTMLElement[] {
     const title = named.length ? named[0][1]
       : d.every && d.name.includes('{level}') ? d.name.replace('{level}', `${[0, 1, 2].map((i) => (d.count ?? d.every!) + i * d.every!).join(', ')}…`) : d.name;
     return card('achievements', key, d, title, [chip(`Level ${rewardName(d.level)}`, toneFor('Level', `Level ${rewardName(d.level)}`)), chip(`${achXp(d)} XP`),
-      bane ? chip(`+${bane} skill vs that ${kind}`) : null, total ? chip(`+${total} combat rolls`) : null,
+      bane ? chip(`+${bane} on rolls vs that ${kind}`) : null, total ? chip(`+${total} combat rolls`) : null,
       rewardLines(d).length ? chip('reward') : null,
       d.scar ? chip('scar', toneFor('Kind', 'scar')) : null, ...tags.map((t) => chip(achTagName(t), toneFor('Tag', achTagName(t))))],
       row('Name', name(title)),
       named.length ? row('Names', h('ul', { class: 'lv-names' }, ...named.map(([k, n]) => h('li', {}, `Level ${k}: ${n}${d.levelStep ? ` · reward level ${rewardName(achLevel(d, k))}, ${achXp(d, k)} XP` : ''}`)),
         after ? h('li', {}, `Levels ${after}, ${after + d.every!}…: ${d.name.replace('{level}', String(after))}, and so on${d.levelStep ? ` · reward level ${rewardName(achLevel(d, String(after)))} and up, ${d.levelStep === 1 ? 'one level' : `${d.levelStep} levels`} a step` : ''}`) : null)) : null,
-      row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
-        ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
+      row('Reward', (() => { const all = [...(rollLine ? [rollLine] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
       d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
@@ -595,9 +595,8 @@ function achievements(): HTMLElement[] {
   const medal = ([key, d]: [string, AchievementDef]) => {
     const c = achCard([key, d]);
     const lv = `Level ${rewardName(d.level)}`, tone = toneFor('Level', lv);
-    const kind = d.by === 'body_type' ? 'body type' : 'race';
-    const bane = isBane(d) ? baneSkill(key) : 0, total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0;
-    const gist = [...(bane ? [`+${bane} skill vs that ${kind}`] : []), ...(total ? [`+${total} on attack and defense rolls`] : []), ...rewardLines(d)];
+    const rollLine = chainRollLine(key, d);
+    const gist = [...(rollLine ? [rollLine] : []), ...rewardLines(d)];
     // an every-N row with a name per level (Woven Past Counting) is one library row but a chain in play: its card stands
     // for the first level and each later level gets a medal of its own, opening the same card
     const named = d.every && d.names ? Object.entries(d.names).sort(([a], [b]) => Number(a) - Number(b)) : [];
