@@ -36,6 +36,7 @@ function in its group; adding a function or group is one row there.
 | Influence | influence | persuasion, intimidation, barter |
 | Speed | initiative | none yet (the best one adds to the initiative d100); dodge joins the Speed group directly, without the function |
 | none | none | feint, riposte, disarm (placeholders) |
+| Medicine | healing | healing (tree "Medicine", NR33; Heal opens at 50, NR34; XP half) |
 
 | Skill | Tree | Roles | Cue | Situation tags |
 |---|---|---|---|---|

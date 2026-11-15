@@ -10,7 +10,7 @@ const PICKS = {
   // items, one per kind of thing (items sharing a type share an icon, IC3)
   sword: 'gi:broadsword', dagger: 'gi:plain-dagger', axe: 'gi:battle-axe', spear: 'gi:barbed-spear', bow: 'fe:bow-and-arrow',
   crossbow: 'gi:crossbow', club: 'gi:wood-club', shield: 'fe:shield', tunic: 'gi:shirt', leather: 'gi:leather-armor',
-  mail: 'gi:chain-mail', plate: 'gi:breastplate', ring: 'fe:ring', earring: 'gi:drop-earrings', charm: 'gi:clover',
+  mail: 'gi:chain-mail', plate: 'gi:breastplate', ring: 'fe:ring', charm: 'gi:clover',
   picks: 'gi:lockpicks', potion: 'gi:standing-potion', bandage: 'gi:bandage-roll', pouch: 'gi:pouch-with-beads',
   coin: 'gi:two-coins', key: 'gi:key', pack: 'gi:knapsack', sack: 'gi:swap-bag', chest: 'gi:locked-chest', crate: 'gi:wooden-crate',
   // classes (and the Starts that begin in them)

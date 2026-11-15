@@ -34,12 +34,14 @@ describe('Threadbound powers on the item card', () => {
     expect(rows.some((r) => /^(Powers|Sealed|Awake)/.test(r))).toBe(false);
   });
 
-  it('whole turn: a worn Loop keeps its card through a turn, sealed powers still hidden', async () => {
+  it('whole turn: a carried Loop binds at the turn\'s end and keeps its card, sealed powers still hidden', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     const s = g.game.state()!;
     s.player.core.inventory.push({ id: 'loop', itemId: IT.varos_loop, qty: 1 });
-    await g.turn(intent({ action: { type: 'equip', skill: '', target: null, targetPart: null, item: 'loop', mode: null, approach: '', stance: 'normal' } }), 'I put on my Varo\'s Loop');
+    expect(text(s, s.player.core.inventory.at(-1)!)).toContain('Threadbound: Rank IV · binds to whoever carries it first');
+    await g.turn(intent({}), 'I wait');
     const worn = s.player.core.inventory.find((i) => i.id === 'loop')!;
+    expect(worn.boundTo).toBe('player');
     const rows = text(s, worn);
     expect(rows.filter((r) => r.startsWith('Sealed')).length + rows.filter((r) => r.startsWith('Awake')).length).toBe(6);
     expect(rows.some((r) => r.includes(getLibrary().perks[getLibrary().items[IT.varos_loop].threadbound!.grants[1].perk].name))).toBe(false);

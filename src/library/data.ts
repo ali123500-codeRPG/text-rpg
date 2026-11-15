@@ -134,6 +134,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   { ...sk(SK.tremor, TR.slime_senses, [], [RL.sense], 'sound', 'tier_0'), groups: [GR.notice], augments: [{ skill: SK.earshot }] },
   // AB18 a: the smell function's skill: notices anyone within Scent metres, seen or not (perception smells)
   sk(SK.scent, TR.scent, [FN.smell], [RL.sense]),
+  sk(SK.healing, TR.medicine, [FN.healing], [RL.grip]), // NR33
   // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
@@ -261,37 +262,37 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'Something was tied to you before you can remember. It has never once left your side for long.',
     rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item of Rank IV or higher is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
   },
-  // D-218: the Varo's Loop's abilities, given while its owner wears it and holds the achievement its grant names.
+  // D-218: the Varo's Loop's abilities, given while its owner carries it and holds the achievement its grant names.
   // The passives widen the event roll both ways and never move its middle; the two actives fire by themselves on essence quality rolls.
   [PK.loose_odds]: {
     id: PK.loose_odds, name: 'Loose Odds', built: true, eventEdges: 5,
     story: 'Fate already turned on you once. Now it turns more easily, either way.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate Meant It as a Curse'], effect: 'the 5 naturals just inside each critical range shift a tier outward: with no tiers opened, 91–95 raise a tier and 06–10 drop one; each opened tier moves them 5 further in', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner carries the Varo\'s Loop and has earned Fate Meant It as a Curse'], effect: 'the 5 naturals just inside each critical range shift a tier outward: with no tiers opened, 91–95 raise a tier and 06–10 drop one; each opened tier moves them 5 further in', lasts: 'while carried' },
   },
   [PK.twin_abyss]: {
     id: PK.twin_abyss, name: 'Twin Abyss', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
-    story: 'You have seen how bad it gets. The earring promises it can get better by as much.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate Has a Sense of Humour'], effect: 'one more tier opens past Critical Success and one below Critical Failure', lasts: 'while worn' },
+    story: 'You have seen how bad it gets. The Loop promises it can get better by as much.',
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner carries the Varo\'s Loop and has earned Fate Has a Sense of Humour'], effect: 'one more tier opens past Critical Success and one below Critical Failure', lasts: 'while carried' },
   },
   [PK.call_the_toss]: {
     id: PK.call_the_toss, name: 'Call the Toss', built: true, essenceAuto: { kind: 'farther', cooldownMin: 1440 },
-    story: 'When something offers you a piece of itself, the earring calls the toss for you. Whatever it gives will not be ordinary.',
-    rules: { kind: 'active', trigger: 'the owner\'s essence quality roll, by itself once the cooldown has passed', conditions: ['the owner wears the Varo\'s Loop and has earned Fortune\'s Favourite Accident', 'All or Nothing is not firing on the same roll'], effect: 'the roll uses two dice and keeps the one farther from the middle (50.5)', lasts: 'that roll', cooldown: 'Once per game day.' },
+    story: 'When something offers you a piece of itself, the Loop calls the toss for you. Whatever it gives will not be ordinary.',
+    rules: { kind: 'active', trigger: 'the owner\'s essence quality roll, by itself once the cooldown has passed', conditions: ['the owner carries the Varo\'s Loop and has earned Fortune\'s Favourite Accident', 'All or Nothing is not firing on the same roll'], effect: 'the roll uses two dice and keeps the one farther from the middle (50.5)', lasts: 'that roll', cooldown: 'Once per game day.' },
   },
   [PK.pull_to_the_edges]: {
     id: PK.pull_to_the_edges, name: 'Pull to the Edges', built: true, eventSpread: 1.5,
     story: 'Nothing that happens around you is merely fine any more.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Cursed by Coincidence'], effect: 'the die counts 1.5 times as far from the middle (50.5) for the margin; modifiers and the natural edges are unchanged', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner carries the Varo\'s Loop and has earned Cursed by Coincidence'], effect: 'the die counts 1.5 times as far from the middle (50.5) for the margin; modifiers and the natural edges are unchanged', lasts: 'while carried' },
   },
   [PK.all_or_nothing]: {
     id: PK.all_or_nothing, name: 'All or Nothing', built: true, essenceAuto: { kind: 'all_or_nothing', cooldownMin: 10080 },
-    story: 'When something offers you a piece of itself, the earring stakes everything. You get the rarest it has, or nothing at all.',
-    rules: { kind: 'active', trigger: 'the owner\'s essence quality roll, by itself once the cooldown has passed', conditions: ['the owner wears the Varo\'s Loop and has earned The Joke Is on Fate'], effect: 'the roll is Critical Success on 51–100 and Critical Failure on 01–50 (a rare essence or none); it fires before Call the Toss, and only one fires per roll', lasts: 'that roll', cooldown: 'Once per 7 game days.' },
+    story: 'When something offers you a piece of itself, the Loop stakes everything. You get the rarest it has, or nothing at all.',
+    rules: { kind: 'active', trigger: 'the owner\'s essence quality roll, by itself once the cooldown has passed', conditions: ['the owner carries the Varo\'s Loop and has earned The Joke Is on Fate'], effect: 'the roll is Critical Success on 51–100 and Critical Failure on 01–50 (a rare essence or none); it fires before Call the Toss, and only one fires per roll', lasts: 'that roll', cooldown: 'Once per 7 game days.' },
   },
   [PK.further_still]: {
     id: PK.further_still, name: 'Further Still', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
     story: 'Fate keeps finding new ways to laugh at you. You have started laughing back.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate\'s Favourite Punchline'], effect: 'one more tier opens past Critical Success and one below Critical Failure (on top of Twin Abyss)', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner carries the Varo\'s Loop and has earned Fate\'s Favourite Punchline'], effect: 'one more tier opens past Critical Success and one below Critical Failure (on top of Twin Abyss)', lasts: 'while carried' },
   },
 };
 
@@ -359,8 +360,8 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, value: 120, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
-  // D-218 Threadbound items: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
-  { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
+  // D-218 Threadbound items: one of a kind; binds to the first who wears it (a charm: who carries it); its abilities open with its owner's achievements
+  { id: IT.varos_loop, kind: 'misc', name: 'Varo\'s Loop', look: 'a small hoop of dark silver on a knotted cord, a charm worn smooth by fingers, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20,
     threadbound: { rank: 'rank_4', grants: [
       { perk: PK.loose_odds, achievement: ACH.event_crit_1 }, { perk: PK.twin_abyss, achievement: ACH.event_crit_fail_1 },
       { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
@@ -517,7 +518,11 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   // NR4: woods folk who live by the bow (hunters, foresters, trappers, poachers); civilian, Commoner class line (NR2)
   role(RO.hunter, 'Hunter', 'civilian', { high: [SK.ranged_medium, SK.sneaking], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
   // NR6: barber-surgeons, herb-wives, midwives; the one who sells clinic care (SV.clinic) where a place has it
-  role(RO.healer, 'Healer', 'civilian', { high: [SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
+  role(RO.healer, 'Healer', 'civilian', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
+  // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (D-341)
+  role(RO.leader, 'Leader', 'civilian', { high: [SK.persuasion, SK.intimidation], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
+  // NR13: the armoured professional (man-at-arms, knight, champion); its master's class is Knight (CL11)
+  role(RO.knight, 'Knight', 'combat', { high: [SK.melee_medium, SK.heavy_armor], moderate: [SK.block, SK.resolve, SK.intimidation], low: [SK.melee_heavy, SK.persuasion] }, { traits: { [PA.discipline]: 40 }, values: [VL.duty, VL.glory] }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_heavy]),
   role(RO.beast, 'Beast', 'beast', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
 ].map((r) => [r.id, r]));
 
@@ -712,6 +717,7 @@ export function prototypeLibrary(): Library {
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
       // AB18 a: animals smell; anyone else only through an essence
       [TR.scent]: { id: TR.scent, name: 'Scent', skills: [SK.scent], access: { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) } },
+      [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking, SK.filching], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
@@ -729,6 +735,9 @@ export function prototypeLibrary(): Library {
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
+      // NR13 (placeholder numbers, benefits later): every Arms skill at 50 (the Arms All-50), one at 75, and Heavy Armor 60
+      [CL.knight]: { id: CL.knight, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight', tier: 'tier_2', label: 'a knight', story: 'Armoured head to foot and sworn to a banner; the blade does not tire and the line does not break.', floors: {},
+        unlock: { [SK.melee_light]: 50, [SK.melee_medium]: 50, [SK.melee_heavy]: 50, [SK.heavy_armor]: 60 }, unlockAny: [{ [SK.melee_light]: 75, [SK.melee_medium]: 75, [SK.melee_heavy]: 75 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
       // unlocked through Commoner 5's perk (its Start, ST3, was removed: CC3)
@@ -793,6 +802,8 @@ export function prototypeLibrary(): Library {
       [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false },
       // AT10 (placeholder): a healing draught, 25% of health and parts up to Damaged, any time
       [HL.draught]: { id: HL.draught, name: 'Healing draught', hpPct: 25, partPct: 25, reach: 'damaged', revivesDead: false },
+      // NR34: Heal (Healing 50); its share is set per use by the roll's tier (CONFIG.HEAL_TIER_SHARE of what is missing)
+      [HL.heal]: { id: HL.heal, name: 'Heal', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
       [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
       // never applied itself: healing straight from a perk (Second Wind) is counted here for achievements; Fast Healer counts as natural recovery

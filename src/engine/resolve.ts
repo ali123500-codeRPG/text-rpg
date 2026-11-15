@@ -44,7 +44,7 @@ import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from '
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
+import { applyGearOps, bindCarriedCharms, dropToGround, equipArmor, fadeSoulbound, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf, theft, wornPack } from './containers';
 import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
 import { cantSteady, steady } from './steady';
@@ -190,6 +190,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
+    case 'heal': return of(DU.bandage); // NR34: hands-on, as long as binding a wound
     case 'vanish': return of(DU.vanish_in_place); // A19 Melt Away: the only Vanish left after setPosture
     case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
@@ -1338,6 +1339,37 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   return true;
 }
 
+/** NR34 (placeholders): Heal, open at true Healing CONFIG.HEAL_UNLOCK, on someone within grip reach or oneself. A Healing
+ * roll at moderate difficulty gives back CONFIG.HEAL_TIER_SHARE (by tier, plus HEAL_PAST_STEP per step past Critical
+ * Success) of what is missing, of health and of each part up to Damaged (the heal row's reach). Below Near Miss, nothing. */
+export const healShare = (level: number): number => {
+  const top = TIERS.pos('critical_success');
+  if (level > top) return Math.min(1, CONFIG.HEAL_TIER_SHARE.critical_success + (level - top) * CONFIG.HEAL_PAST_STEP);
+  return CONFIG.HEAL_TIER_SHARE[TIERS.at(level)] ?? 0;
+};
+function doHeal(ctx: Ctx, a: Actor, o: Order): void {
+  const { state, rng } = ctx;
+  const t = (o.target && actorById(state, o.target)) || a;
+  if (trueSkill(a, SK.healing) < CONFIG.HEAL_UNLOCK) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'no_power' }), o));
+  if (healthLevel(t) === 'dead') return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'no_target' }), o));
+  if (t !== a && !withinGrip(state, a, t)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, reason: 'out_of_reach' }), o));
+  const ev = bark(mk(ctx, a, 'heal', t !== a ? { target: t.id } : {}), o);
+  const c = t.core.condition; // the heal row carries no fixed amount (the roll sets it), so hurt is checked here
+  if (!(c.hpLostPct > 0 || Object.values(c.parts).some((v) => v < 100))) {
+    logCode(state, 'heal_blocked', { actorId: a.id, source: HL.heal, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
+    return emit(ctx, ev);
+  }
+  const r = ruleset.roll({ actorId: a.id, skill: FN.healing, modifiers: [], tierShifts: [], fn: FN.healing }, state, rng);
+  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY.moderate, passed: tierAtLeast(r.tier, 'success'), modifiers: [] }, state);
+  ev.roll = r; ev.tier = r.tier;
+  const share = healShare(tierLevel(r));
+  if (share > 0) {
+    applyHealing(state, t, HL.heal, { pct: Math.max(c.hpLostPct, ...Object.values(c.parts).map((v) => 100 - v)) * share });
+    ev.effects.push({ kind: 'healed', actorId: t.id, data: { source: HL.heal } });
+  }
+  emit(ctx, ev);
+}
+
 /** SE23 (the rule lives in the ruleset) */
 export { gradeMod };
 
@@ -1734,6 +1766,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: 'cannot_put_that_on' }), o)); // BG-149
       return emit(ctx, bark(mk(ctx, a, 'equip', { itemId: o.item ?? undefined }), o));
     }
+    case 'heal':
+      return doHeal(ctx, a, o);
     case 'use_item':
       if (doHealItem(ctx, a, o)) return;
       // BG-171: using an item one does not carry (or none named) comes to nothing, and says why
@@ -2479,6 +2513,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (!CONFIG.GROWTH_AT_SCENARIO_END) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
+  bindCarriedCharms(state); // D-218: a Threadbound charm binds to the player carrying it
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
     syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter

@@ -8,7 +8,7 @@ import { SK } from '../library/skillIds';
 import { CONFIG } from '../config';
 import type { GameState, Intent, Personality, PlayerView } from '../types';
 import { HEALTH_LEVELS } from '../scales';
-import { isDownLevel, othersHealthWord } from '../ruleset';
+import { isDownLevel, othersHealthWord, trueSkill } from '../ruleset';
 import { isHeld } from '../ruleset/slots';
 import { actorBody } from '../library';
 import { cantSteady } from '../engine/steady';
@@ -39,7 +39,7 @@ export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'nor
 
 /** every kind of action the deck can offer; the completeness test checks these cover every Parser action, gear op and
  * way op the game knows (DECK_LEFT_OUT says why the rest are not listed) */
-export const DECK_KINDS = ['attack', 'restrain', 'steady', 'yield', 'stand_down', 'extract', 'talk', 'persuade', 'deceive', 'intimidate',
+export const DECK_KINDS = ['attack', 'restrain', 'steady', 'yield', 'stand_down', 'extract', 'heal', 'talk', 'persuade', 'deceive', 'intimidate',
   'barter', 'demand', 'give', 'take', 'buy', 'sell', 'show', 'lets_search', 'go', 'walk_up', 'back_away', 'follow', 'jump', 'stop',
   'keep_walking', 'way', 'sneak', 'vanish', 'filch', 'stash', 'look', 'look_at', 'listen', 'search', 'use_item', 'equip', 'draw',
   'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'set_down', 'summon', 'loot', 'open', 'break', 'pick', 'wait', 'rest',
@@ -225,6 +225,9 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   if (s && lootSources(pv).length) add('loot', 'use', 'Take things here', [], () => order('', {}), { note: 'pick what to pocket', hot: true });
   const healIds = new Set(s ? healItems(s, s.player).map((x) => x.itemId) : []);
   const heal = inv.filter((i) => healIds.has(i.itemId));
+  // NR34: Heal opens at true Healing 50; on yourself or anyone you see in full
+  if (s && trueSkill(s.player, SK.healing) >= CONFIG.HEAL_UNLOCK) add('heal', 'use', 'Heal', [{ key: 'target', title: 'Heal whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
+    (c) => order(`Heal ${c.target ? them(c) : 'myself'}`, { action: act('heal', { target: c.target || null }) }), { note: 'a Healing roll' });
   if (heal.length) add('use_item', 'use', 'Treat wounds', [{ key: 'item', title: 'With what?', picks: () => heal.map(invPick) }, { key: 'target', title: 'Treat whom?', picks: () => [{ id: '', label: 'Yourself' }, ...full.map(person)] }],
     (c) => order(`Use ${theItem(item(c.item!)?.name ?? '')} on ${c.target ? them(c) : 'myself'}`, { action: act('use_item', { item: c.item!, target: c.target || null }) }));
   const stowed = inv.filter((i) => !i.equippedIn.length && i.kind === 'weapon'), held = inv.filter((i) => isHeld(i));

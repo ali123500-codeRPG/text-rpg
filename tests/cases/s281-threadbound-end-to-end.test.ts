@@ -27,10 +27,10 @@ const scenario = (s: GameState, d: number) => {
 describe('281 a Threadbound item from start to use', () => {
   it('granted, opened by event-roll achievements, used on event rolls and on an essence roll', () => {
     const s = makeVillage();
-    // 1. The Threadbound start's level 1 perk: the earring arrives bound and worn at the end of the turn
+    // 1. The Threadbound start's level 1 perk: the Loop arrives bound and carried at the end of the turn
     s.player.core.perks.push({ perkId: PK.always_yours, source: 'class', gainedTurn: 0 });
     play(s, { intent: intent({}) });
-    expect(loop(s)).toMatchObject({ boundTo: 'player', equippedIn: ['acc:0'] });
+    expect(loop(s)?.boundTo).toBe('player');
     expect(s.player.core.perks.some((p) => p.source === 'item')).toBe(false); // nothing earned yet
 
     // 2. A scenario starts on a natural 100: Critical Success. The next turn earns the achievement and opens Loose Odds
@@ -39,7 +39,7 @@ describe('281 a Threadbound item from start to use', () => {
     expect(earned(s, ACH.event_crit_1)).toBe(true);
     expect(itemPerk(s, PK.loose_odds)).toBe(true);
 
-    // 3. Loose Odds in use: 88 is Great Success without the earring, Critical Success with it
+    // 3. Loose Odds in use: 88 is Great Success without the Loop, Critical Success with it
     expect(scenario(s, 88).tier).toBe('critical_success');
     play(s, { intent: intent({}) });
 
@@ -70,16 +70,15 @@ describe('281 a Threadbound item from start to use', () => {
       CONFIG.ESSENCE_APPEAR_CHANCE.foe = appear;
     }
 
-    // 6. Taken off, the abilities leave at the end of the turn; summoned back from the ground, they return
+    // 6. Set down, the abilities leave at the end of the turn; summoned back from the ground, they return
     const here = s.places.flatMap((p) => p.zones).find((z) => z.id === s.player.zone)!;
     const inst = loop(s)!;
     s.player.core.inventory.splice(s.player.core.inventory.indexOf(inst), 1);
-    delete inst.equippedIn;
     here.groundItems.push(inst);
     play(s, { intent: intent({}) });
     expect(itemPerk(s, PK.loose_odds)).toBe(false);
     play(s, { intent: { ...intent({}), gear: [{ op: 'summon', item: inst.id }] } as never });
-    expect(loop(s)?.equippedIn).toEqual(['acc:0']);
+    expect(loop(s)).toBeDefined();
     expect(itemPerk(s, PK.loose_odds)).toBe(true);
   });
 });
