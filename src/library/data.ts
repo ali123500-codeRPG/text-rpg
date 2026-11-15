@@ -527,18 +527,20 @@ export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
   role(RO.beast, 'Beast', 'beast', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
 ].map((r) => [r.id, r]));
 
+/** theme role kinds: who fits each world (a bandit with no fighting role makes no sense) */
+const PEOPLE = ['combat', 'civilian'] as const, FIGHTERS = ['combat'] as const, BEASTS = ['beast'] as const;
 /** NG21: NPC themes: what their world adds; per-theme rank titles come from the lore thread */
 export const THEMES: Record<string, ThemeDef> = {
-  [TH.village_folk]: { id: TH.village_folk, name: 'Village folk', bands: { low: [SK.persuasion] }, leans: { nerve: -40, values: [VL.family] }, traits: [PK.heavy_sleeper, PK.insomniac], wealth: 'common' }, // townsfolk keep out of danger
-  [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] }, leans: { values: [VL.duty] }, traits: [PK.insomniac], wealth: 'fine' },
-  [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', bands: { moderate: [SK.intimidation], low: [SK.sneaking] }, leans: { values: [VL.wealth, VL.freedom] }, traits: [PK.heavy_sleeper], wealth: 'common' },
-  [TH.wild_beasts]: { id: TH.wild_beasts, name: 'Wild beasts' },
+  [TH.village_folk]: { id: TH.village_folk, name: 'Village folk', roleKinds: PEOPLE, bands: { low: [SK.persuasion] }, leans: { nerve: -40, values: [VL.family] }, traits: [PK.heavy_sleeper, PK.insomniac], wealth: 'common' }, // townsfolk keep out of danger
+  [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', roleKinds: FIGHTERS, bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] }, leans: { values: [VL.duty] }, traits: [PK.insomniac], wealth: 'fine' },
+  [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', roleKinds: FIGHTERS, bands: { moderate: [SK.intimidation], low: [SK.sneaking] }, leans: { values: [VL.wealth, VL.freedom] }, traits: [PK.heavy_sleeper], wealth: 'common' },
+  [TH.wild_beasts]: { id: TH.wild_beasts, name: 'Wild beasts', roleKinds: BEASTS },
   // NR16: townsfolk who are not the watch; travellers on the roads; a lord's knights and servants; the few always-lethal
   // monster kinds, each in its own place (slimes and dragons stay Wild beasts: vermin and great beasts)
-  [TH.town_folk]: { id: TH.town_folk, name: 'Town folk', bands: { low: [SK.barter] }, leans: { values: [VL.wealth] }, traits: [PK.insomniac], wealth: 'fine' },
-  [TH.travellers]: { id: TH.travellers, name: 'Travellers', bands: { low: [SK.stamina] }, leans: { values: [VL.freedom, VL.adventure] }, traits: [PK.heavy_sleeper], wealth: 'common' },
-  [TH.lords_household]: { id: TH.lords_household, name: "Lord's household", bands: { low: [SK.persuasion] }, leans: { values: [VL.duty, VL.loyalty] }, wealth: 'superior' },
-  [TH.monsters]: { id: TH.monsters, name: 'Monsters' },
+  [TH.town_folk]: { id: TH.town_folk, name: 'Town folk', roleKinds: PEOPLE, bands: { low: [SK.barter] }, leans: { values: [VL.wealth] }, traits: [PK.insomniac], wealth: 'fine' },
+  [TH.travellers]: { id: TH.travellers, name: 'Travellers', roleKinds: PEOPLE, bands: { low: [SK.stamina] }, leans: { values: [VL.freedom, VL.adventure] }, traits: [PK.heavy_sleeper], wealth: 'common' },
+  [TH.lords_household]: { id: TH.lords_household, name: "Lord's household", roleKinds: PEOPLE, bands: { low: [SK.persuasion] }, leans: { values: [VL.duty, VL.loyalty] }, wealth: 'superior' },
+  [TH.monsters]: { id: TH.monsters, name: 'Monsters', roleKinds: BEASTS },
 };
 
 /** NR17: hook kinds. A real NPC earns its place with a hook (something to sell, work to give, a threat, a rival, a seat of

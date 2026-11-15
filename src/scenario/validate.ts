@@ -105,7 +105,7 @@ export function fillPlanDefaults(plan: StagePlan): void {
   for (const b of arr(plan.bands)) if (b) { b.goals = trimNote(b.goals) as string; b.temperament = trimNote(b.temperament) as string; }
   for (const c of arr(plan.cast)) if (c) { c.motive = trimNote(c.motive) as string; c.routineGap = trimNote(c.routineGap) as string | undefined; c.templateGap = trimNote(c.templateGap) as string | undefined; }
   // NR28: a composition with no role names who it wants and its key skills; code picks the closest role (flagged on apply)
-  for (const c of arr(plan.cast)) if (c?.compose && !c.compose.role && c.compose.wants?.skills?.length) c.compose.role = closestRole(c.compose.wants.skills).role;
+  for (const c of arr(plan.cast)) if (c?.compose && !c.compose.role && c.compose.wants?.skills?.length) c.compose.role = closestRole(c.compose.wants.skills, c.compose.theme).role;
   const seeds = plan.seeds;
   if (!seeds) return;
   const trig = (t: StagePlan['seeds']['triggers'][number], owner?: string) => {

@@ -73,6 +73,8 @@ export type MeetRow = { group: LibraryRef; weight: number; when?: 'day' | 'night
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank
  * titles (display only) */
 export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
+  /** the role kinds that fit this world (NpcRoleDef.kind): a road bandit or a watchman fights, a wild beast is a beast; compose refuses others */
+  roleKinds: readonly NpcRoleDef['kind'][];
   /** NG10: the highest equip level its people's gear reaches (an EQUIP_LEVELS key); none = no picked gear */
   wealth?: import('../scales').EquipLevelKey; rankNames?: Partial<Record<import('../scales').RankKey, string>>; talent?: import('../scales').TalentKey /* AG25: its presets' talent when they name none */ };
 
