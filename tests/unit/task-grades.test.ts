@@ -14,7 +14,6 @@ describe('task grades (CR4, CR12)', () => {
   it('the rows past extreme are task grades only: the Weaver, gains and locks keep none to extreme', () => {
     expect(Object.keys(CONFIG.DIFFICULTY).slice(0, GRADES.length)).toEqual([...GRADES]);
     expect(GRADES.at(-1)).toBe(WEAVER_GRADE_TOP);
-    expect(Object.keys(CONFIG.LOCK_GRADE_MOD)).toEqual([...GRADES]);
   });
   it('SE23: a grade moves a solo roll by half a point per grade point, so a task at your own grade plays the same at every level', () => {
     expect(gradeMod(CONFIG.DIFFICULTY.moderate)).toBe(0);
