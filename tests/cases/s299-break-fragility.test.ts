@@ -76,7 +76,7 @@ it('BK1 c: the Weaver can set how fragile an item it makes is', () => {
 
 it('BK2: a real break roll checks what is inside against its own tier; the narration names it only once it is open', () => {
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
-    const s = village(), c = box(s);
+    const s = village(), c = box(s, { grade: 'none' }); // within reach of bare hands at 0 (OD13)
     s.player.core.skills[SK.unarmed_improvised] = { raw: 0 } as never;
     for (const i of s.player.core.inventory) if (i.equippedIn?.some((g) => g.startsWith('grip:'))) i.equippedIn = [];
     const evs = play(s, { intent: intent({ action: { type: 'break', target: 'box' } }) }, seed);

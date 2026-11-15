@@ -3,7 +3,7 @@
 // hides anything. FR2: a zone gets its kind's defaults unless a layout or the Weaver lists its own. FR4: a piece on an edge
 // (a counter, a rail) is one record on one zone and shows on the far side of that edge too.
 import type { Furniture, GameState, PlanFurniture, Side, Zone } from '../types';
-import { OPP_SIDE } from '../types';
+import { GRADES, OPP_SIDE } from '../types';
 import { getLibrary } from '../library';
 import { FU } from '../library/tableIds';
 import { compassOf, edgeToward } from '../scenario/geometry';
@@ -17,6 +17,7 @@ const INSET_M = 0.5;
 export const makeFurniture = (zoneId: string, list: PlanFurniture[]): Furniture[] => list.filter((x) => x?.name).map((x, i) => ({
   id: `${zoneId}.fu${i + 1}`, kind: getLibrary().furnitureKinds?.[x.kind] ? x.kind : FU.other, name: x.name,
   ...(x.at && WORDS[x.at.toLowerCase()] || x.at && compassOf(x.at) ? { at: x.at.toLowerCase() } : {}), ...(x.edge && x.at ? { edge: true as const } : {}),
+  ...(x.grade && GRADES.includes(x.grade) ? { grade: x.grade } : {}),
 }));
 
 /** the side of zone `from` that faces `to` (by their centres) */
@@ -52,6 +53,12 @@ export function furniturePos(state: GameState, zoneId: string, f: Furniture): { 
 
 /** a piece in a zone by id (its own or an edge piece seen from this side) */
 export const furnitureById = (state: GameState, zoneId: string, id: string): Furniture | undefined => furnitureIn(state, zoneId).find((f) => f.id === id);
+
+/** the stored record of a piece by id (`${zone}.fu${n}`), not a copy seen across an edge: where its grade is kept (OD3) */
+export function furnitureRecord(state: GameState, id: string): Furniture | undefined {
+  const i = id.lastIndexOf('.fu');
+  return i > 0 ? zoneById(state, id.slice(0, i))?.furniture?.find((f) => f.id === id) : undefined;
+}
 
 /** a piece's place in words: "north side", "south-west corner", "middle" */
 export function furnitureWhere(f: Furniture): string {

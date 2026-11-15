@@ -13,7 +13,8 @@ import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
 import { freeGrips, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import { GRADED_ACTS } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { busyNow } from './busy';
@@ -24,7 +25,7 @@ import { travel, travelSpeed, tripGoal } from './travel';
 import { M_EPS, distM, distOrNull, gateAhead, placeAll, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, lockMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -49,6 +50,7 @@ import { contentsOf, findContainer, guarded, inContainer, openContainer, ownerOf
 import { carriedItem, gripsReach, holdOut, offerBlock, takeBlock, transfer, wantsOffer } from './handover';
 import { cantSteady, steady } from './steady';
 import { breakInside } from './breakage';
+import { furnitureRecord } from './furniture';
 import { isGuard, lockedBoxes, shownInside, suspect } from './suspicion';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
@@ -88,7 +90,7 @@ const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);
 /** first build: checks only change beliefs (OQ-22). */
-const CHECK_TYPES = new Set(['observe', 'interact', 'use_item', 'other']);
+const CHECK_TYPES = new Set<string>(GRADED_ACTS);
 
 /** D-34 stub: every player action is major. */
 export function isMajorAction(_event: GameEvent): boolean {
@@ -1380,7 +1382,6 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const kind = o.type === 'idle' ? 'idle' : o.type;
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
-  let result: CheckResult | undefined;
   // BG-65: checking a door or other way out of the zone says what holds it: open, shut but theirs to open, or locked/barred/blocked
   const link = o.type === 'interact' && o.target ? zoneById(state, a.zone)?.links.find((l) => l.to === o.target) : undefined;
   if (link && !atDoor(state, a, link.to)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
@@ -1403,12 +1404,28 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn }))); // SE14: also a weak search
     ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
   } else if (o.skill && CHECK_TYPES.has(o.type)) {
-    result = ruleset.check({ actorId: a.id, skill: o.skill, target: o.target ?? undefined, modifiers: [] }, state, rng);
-    ev.check = result;
-    ev.effects = ruleset.applyEffects(result, state);
-    ruleset.recordUse(a, result.skill, result, state);
+    // OD1 b/OD3: an act on a thing rolls against the thing's own grade only when in doubt; the narrator tells what its tier meant (OD5)
+    const thing = gradedThing(state, o, link);
+    const grade = thing?.grade ?? o.grade ?? 'moderate'; // an NPC's act on an ungraded thing: Moderate until OD14
+    if (thing && !thing.grade && o.grade) thing.grade = o.grade; // OD3: kept on the thing, so asking again can't regrade it
+    if (thing && !(thing.graded ??= []).includes(a.id)) thing.graded.push(a.id); // OD12: trying it shows its grade
+    const tool = pickTool(state, a, o.skill).itemId ?? undefined;
+    const target = CONFIG.DIFFICULTY[grade];
+    const gate = obstacleGate(effectiveSkill(state, a, o.skill, { itemId: tool }).value, target);
+    const modifiers = gradeMods(target, 'grade');
+    const r = gate === 'roll' ? ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], ...(tool ? { itemId: tool } : {}) }, state, rng) : undefined;
+    ev.obstacle = { skill: r?.skill ?? o.skill, grade, gate };
+    if (r) { ev.roll = r; ev.tier = r.tier; } else if (gate === 'sure') ev.tier = 'success';
+    if (gate !== 'out') ruleset.recordUse(a, r?.skill ?? o.skill, { actorId: a.id, skill: r?.skill ?? o.skill, ...(r?.asked ? { asked: r.asked } : {}), target, passed: !r || tierAtLeast(r.tier, 'success'), modifiers }, state);
   }
-  emit(ctx, ev, result);
+  emit(ctx, ev);
+}
+
+/** OD2: what an act acts on that can carry a grade: a piece of furniture, a container, or the barrier on the way checked */
+function gradedThing(state: GameState, o: Order, link: ZoneLink | undefined): { grade?: Grade; graded?: string[] } | undefined {
+  if (!o.target) return undefined;
+  if (link) return barrierOn(state, link);
+  return furnitureRecord(state, o.target) ?? findContainer(state, o.target)?.inst;
 }
 
 const foundEffects = (a: Actor, won: { found: Actor }[]): Effect[] => won.map(({ found }) => ({ kind: 'found', actorId: found.id, data: { by: a.id } }));
@@ -1519,7 +1536,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const target = CONFIG.DIFFICULTY[b.grade] ?? CONFIG.DIFFICULTY.moderate;
   const gate = obstacleGate(eff, target); // OD1 b: no roll when it is sure or out of reach
   if (gate === 'out') return emit(ctx, way('beyond'));
-  const modifiers = lockMods(target);
+  const modifiers = gradeMods(target, 'lock');
   const r = gate === 'roll' ? ruleset.roll({ actorId: a.id, skill: FN.lockpicking, modifiers, tierShifts: [], fn: FN.lockpicking, ...(tool ? { itemId: tool } : {}) }, state, rng) : undefined;
   const ok = !r || tierAtLeast(r.tier, 'success');
   const used = r?.skill ?? skill;
@@ -1587,10 +1604,15 @@ function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   if (blade && itemDef(state, c.inst.itemId).container?.soft) { open(); return done(ev(true, { breakOpen: { opened: true, cut: true } })); }
   c.inst.grade ??= 'minor';
   const skill = held ? modeSkill(held.mode) : SK.unarmed_improvised;
-  const modifiers = lockMods(CONFIG.DIFFICULTY[c.inst.grade] ?? CONFIG.DIFFICULTY.moderate); // OD10 a
+  const target = CONFIG.DIFFICULTY[c.inst.grade] ?? CONFIG.DIFFICULTY.moderate;
+  if (!(c.inst.graded ??= []).includes(a.id)) c.inst.graded.push(a.id); // OD12: trying it shows its grade
+  // OD13 a: out of reach, nothing is rolled, opened or broken; a sure break opens, and its roll only decides what breaks inside
+  const gate = obstacleGate(effectiveSkill(state, a, skill, held ? { itemId: held.itemId } : {}).value, target);
+  if (gate === 'out') return done(ev(false, { breakOpen: { opened: false, beyond: true } }));
+  const modifiers = gradeMods(target, 'lock'); // OD10 a
   const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], ...(held ? { itemId: held.itemId } : {}) }, state, rng);
-  const opened = tierAtLeast(r.tier, 'success');
-  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY[c.inst.grade] ?? CONFIG.DIFFICULTY.moderate, passed: opened, modifiers }, state);
+  const opened = gate === 'sure' || tierAtLeast(r.tier, 'success');
+  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: opened, modifiers }, state);
   const broke = breakInside(state, a, contentsOf(c), r);
   if (opened) open();
   if (opened && a === state.player) tally(state, 'broke_open');

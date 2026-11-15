@@ -32,5 +32,5 @@ it('108 looking around is a sight roll on the player\'s event', () => {
   const events = play(s, { intent: intent({ action: { type: 'observe', skill: SK.eyesight } }) });
   const look = events.find((e) => e.actorId === 'player' && e.roll);
   expect(look?.roll).toMatchObject({ actorId: 'player', skill: SK.eyesight });
-  expect(look?.check).toBeUndefined();
+  expect(look?.obstacle).toBeUndefined(); // Look around is not an act on a graded thing
 });

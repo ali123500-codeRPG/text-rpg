@@ -1,7 +1,7 @@
 // Legality checks on accepted agent outputs (Leak prevention, validation and failure handling).
 // Parser: against PlayerView. Planner / Responder / Voice: against the actor's own view.
 import type { ActorView, ContainerView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
-import { SPEECH_ACTIONS, WAY_ORDERS } from '../types';
+import { GRADED_ACTS, SPEECH_ACTIONS, WAY_ORDERS } from '../types';
 import { TIME_OF_DAY, WAIT_SOMEONE } from '../scales';
 import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
@@ -46,6 +46,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const ground = new Set([view.zone, ...view.zones].flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...inside(g.container)])));
   const seenItems = new Set(view.actors.flatMap((a) => a.gear.flatMap((g) => [g.id, ...inside(g.container)])));
   const items = new Set([...own.flatMap((i) => [i.id, ...inside(i.container)]), ...ground]);
+  // OD2: furniture the player can see is something to act on (a lever, a shelf, a stuck hatch)
+  const furniture = new Set([view.zone, ...view.zones].flatMap((z) => (z.furniture ?? []).map((f) => f.id)));
   const boxes = new Set([...[view.zone, ...view.zones].flatMap((z) => z.groundItems), ...view.actors.flatMap((a) => a.gear), ...own].filter((g) => g.container).map((g) => g.id));
   const illegal: string[] = [];
   const gearErrors: string[] = [];
@@ -92,7 +94,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
         if (k) a.target = k;
         else illegal.push(`action.time ${a.target}`);
       }
-    } else if (a.target !== null && a.target !== 'player' && !(isSpeechType(a.type) || a.type === 'buy' || a.type === 'barter' ? talking : actors).has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
+    } else if (a.target !== null && a.target !== 'player' && !(isSpeechType(a.type) || a.type === 'buy' || a.type === 'barter' ? talking : actors).has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target) && !((GRADED_ACTS as readonly string[]).includes(a.type) && furniture.has(a.target)))
       illegal.push(`action.target ${a.target}`);
     // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);

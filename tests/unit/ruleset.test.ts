@@ -35,8 +35,6 @@ describe('ruleset maths', () => {
     s.player.core.skills[SK.intimidation] = { raw: 20, state: 'normal' };
     s.player.core.skills[SK.persuasion] = { raw: 100, state: 'normal' };
     expect(effectiveSkill(s, s.player, SK.intimidation)).toMatchObject({ skill: SK.persuasion, value: 30 });
-    const c = ruleset.check({ actorId: 'player', skill: SK.intimidation, modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
-    expect(c).toMatchObject({ skill: SK.persuasion, target: 50, passed: true });
   });
   it('grapple substitutes: other unarmed 0.4×, melee 0.2×', () => {
     const s = makeVillage();

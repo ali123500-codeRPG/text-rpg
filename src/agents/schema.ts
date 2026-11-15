@@ -77,7 +77,8 @@ const intent = obj<Intent>({
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
     demand: (v, p, e) => (v === null || v === undefined ? null : oneOf(['yield'] as const)(v, p, e)),
     noSkillFits: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
-  }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits'])),
+    grade: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(GRADES)(v, p, e)) as Grade,
+  }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const) })),
   gear: GEAR,
@@ -187,7 +188,7 @@ const AWARENESS: V<'unaware' | 'suspicious' | 'aware'> = (v, p, e) => (STANCES.h
   : BELIEF_WORD(v, p, e));
 type Cast = StagePlan['cast'][number];
 /** FR1/FR2: a piece of furniture the Weaver lists */
-const FURNITURE = obj<PlanFurniture>({ kind: str, name: str, at: str, edge: bool }, ['at', 'edge']);
+const FURNITURE = obj<PlanFurniture>({ kind: str, name: str, at: str, edge: bool, grade: oneOf(GRADES) }, ['at', 'edge', 'grade']);
 const weaver = obj<StagePlan>({
   event: obj<StagePlan['event']>({ summary: str, challenge: GRADE, gain: GRADE }),
   timeOfDay: level(TIME_OF_DAY),

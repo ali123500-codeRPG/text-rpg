@@ -2,6 +2,7 @@
 import type { GameEvent, GameState } from '../types';
 import type { ExchangeSpeech } from './types';
 import { slipsFor } from './speech';
+import { tierAtLeast } from '../ruleset';
 
 export function revealToPlayer(state: GameState, secretId: string): void {
   const j = state.player.journal;
@@ -21,8 +22,8 @@ export function checkSecrets(state: GameState, events: GameEvent[], exchange?: E
     } else {
       const sp = exchange?.perSpokesperson[w.againstActorId];
       if (sp) met = slipsFor(state, w.againstActorId, [exchange!.skill, ...(speechSkill ? [speechSkill] : [])], sp.contest).includes(s.id);
-      // a no-dice check has no tier, so a passed check aimed at againstActorId with the skill meets any minTier.
-      met ||= events.some((e) => e.actorId === state.player.id && e.target === w.againstActorId && !!e.check?.passed && e.check.skill === w.skill);
+      // OD11 a: an act aimed at againstActorId with the skill (a roll, or sure with no roll: Success) at minTier or better
+      met ||= events.some((e) => e.actorId === state.player.id && e.target === w.againstActorId && e.obstacle?.skill === w.skill && !!e.tier && tierAtLeast(e.tier, w.minTier));
     }
     if (met) revealToPlayer(state, s.id);
   }
