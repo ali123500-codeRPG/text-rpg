@@ -33,7 +33,7 @@ describe('323 accessories', () => {
   it('AX6 a: five accessory slots; a sixth accessory is not worn', () => {
     expect(CONFIG.ACCESSORY_SLOTS).toBe(5);
     const s = bare(makeVillage());
-    wear(s, ...Array.from({ length: 6 }, (_, n) => ({ id: `sig${n}`, itemId: IT.signet_ring })));
+    wear(s, ...Array.from({ length: 6 }, (_, n) => ({ id: `sig${n}`, itemId: IT.charmed_ring })));
     const worn = s.player.core.inventory.filter((i) => i.id.startsWith('sig') && i.equippedIn?.length);
     expect(worn.map((i) => i.equippedIn![0]).sort()).toEqual(['acc:0', 'acc:1', 'acc:2', 'acc:3', 'acc:4']);
   });

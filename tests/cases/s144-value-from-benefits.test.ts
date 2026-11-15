@@ -40,5 +40,5 @@ it('144c armor, shields and the lucky charm are priced from their numbers', () =
 });
 
 it('144d consumables and items with no benefit numbers keep their hand-set value', () => {
-  for (const id of [IT.healing_draught, IT.bandage, IT.signet_ring, IT.curio, IT.coin]) expect(val(id)).toBe(itemDef(null, id).value);
+  for (const id of [IT.healing_draught, IT.bandage, IT.curio, IT.coin]) expect(val(id)).toBe(itemDef(null, id).value);
 });
