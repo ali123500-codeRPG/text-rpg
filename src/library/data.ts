@@ -899,9 +899,14 @@ export function prototypeLibrary(): Library {
       [DU.rest]: { id: DU.rest, name: 'Rest', effort: 'base', seconds: 60 * 60, orders: ['rest'], locksMove: true, focus: 'deep', output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep (until rested or the time named)', effort: 'base', seconds: 0, focus: 'careful', stop: 'never', output: 'steps', onBreak: [{ upTo: 1, then: 'share' }] },
       [DU.wait]: { id: DU.wait, name: 'Wait (until the time named)', effort: 'base', seconds: 0, focus: 'deep' },
-      // attacks (AT11a-e): a melee or unarmed blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own.
-      // TP9 a: one shot time per weapon class, all Hard: light 3 s (light bows), medium 4 s (medium bows), heavy 5 s (crossbows)
-      [DU.blow]: { id: DU.blow, name: 'Melee or unarmed blow', effort: 'hard', seconds: 3, attack: true },
+      // attacks (AT11a-e): a blow; a throw; a bow drawn and loosed; a crossbow shot, its spanning a row of its own.
+      // TP9 a: one shot time per weapon class, all Hard: light 3 s (light bows), medium 4 s (medium bows), heavy 5 s (crossbows).
+      // Blows go by class the same way: unarmed and natural attacks 2 s, then light, medium and heavy weapons 3, 4 and 5 s
+      // (an improvised strike goes by its weight class)
+      [DU.blow_unarmed]: { id: DU.blow_unarmed, name: 'Unarmed or natural blow', effort: 'hard', seconds: 2, attack: true },
+      [DU.blow]: { id: DU.blow, name: 'Light weapon blow', effort: 'hard', seconds: 3, attack: true },
+      [DU.blow_medium]: { id: DU.blow_medium, name: 'Medium weapon blow', effort: 'hard', seconds: 4, attack: true },
+      [DU.blow_heavy]: { id: DU.blow_heavy, name: 'Heavy weapon blow', effort: 'hard', seconds: 5, attack: true },
       [DU.throw]: { id: DU.throw, name: 'Throw', effort: 'hard', seconds: 3, attack: true, locksMove: true },
       [DU.bow_light]: { id: DU.bow_light, name: 'Light bow shot', effort: 'hard', seconds: 3, attack: true, locksMove: true, focus: 'steady' },
       [DU.bow_medium]: { id: DU.bow_medium, name: 'Medium bow shot', effort: 'hard', seconds: 4, attack: true, locksMove: true, focus: 'steady' },

@@ -99,7 +99,7 @@ describe('213 zones are not distances', () => {
       return calls.slice(0, 2);
     };
     expect(run(0.8)).toEqual(['player', 'patron_1']);
-    expect(run(2)).toEqual(['player', 'player']); // no strike back between the spear's two blows (AT78)
+    expect(run(2)).toEqual(['player']); // no strike back after the spear's blow (one 4 s medium blow fits the turn)
   });
 
   it('Bluff needs the foe to hear the lie clearly at a normal voice, not to share a zone', () => {

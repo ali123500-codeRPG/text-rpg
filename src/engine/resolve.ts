@@ -179,7 +179,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
   switch (o.type) {
     case 'attack': {
       const m = attackMode(state, a, o).m;
-      if (!m || m.mode.tree !== 'ranged') return of(DU.blow);
+      if (!m) return of(DU.blow);
+      if (m.mode.tree === 'unarmed') return of(DU.blow_unarmed); // fists, grapples and natural attacks
+      if (m.mode.tree === 'melee') return of(m.mode.class === 'heavy' ? DU.blow_heavy : m.mode.class === 'medium' ? DU.blow_medium : DU.blow);
       if (m.mode.thrown) return of(DU.throw);
       const it = inv(m.itemId), def = it ? itemDef(state, it.itemId) : undefined;
       // AT11c: a crossbow spans, then shoots: one long action under the spanning row (its focus, its work kept when broken off)
