@@ -251,7 +251,7 @@ export function rewardLines(d: AchievementDef): string[] {
   return out;
 }
 
-/** Reward levels are the rows of REWARD_LEVELS (−1 to XV); a level past the top stays at the top. These helpers are the
+/** Reward levels are the rows of REWARD_LEVELS (−2 to XV); a level past the top stays at the top. These helpers are the
  * one way to read a reward level's position, name and XP. */
 const TOP = () => REWARD_LEVELS.keys.length - 1;
 export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);

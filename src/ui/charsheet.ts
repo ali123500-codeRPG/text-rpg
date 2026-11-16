@@ -374,7 +374,7 @@ function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
 }
 /** the stakes under the morale level, from CONFIG.MORALE_HINT_FROM down (a tip above Broken, a line at Broken); null above it */
 export function moraleHint(k: MoraleLevel): string | null {
-  if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM as MoraleLevel)) return null;
+  if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM)) return null;
   if (k === 'broken') return `${NERVE_PASSES()} ${NERVE_STILL}`;
   const roll = moraleRoll(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
   return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to walk away or attack.`;

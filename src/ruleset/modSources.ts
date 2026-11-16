@@ -6,10 +6,11 @@ import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
 import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
 import { GRADES } from '../types/core';
-import { gradeMod } from './index';
+import { BLADE_WALL_CLASSES, gradeMod } from './index';
 import { MILESTONES } from './perks';
-import { baneSkill, defeatsRoll, isBane } from './bane';
+import { DEFEATS_ROLLS, baneSkill, defeatsRoll, isBane } from './bane';
 import { rewardOf } from './achRewards';
+import { cap, listWords } from '../words';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
 
@@ -54,7 +55,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: `${W()} × (+${CONFIG.BANE_SKILL_PER_LEVEL} skill × place for each level of the chain, added up)`,
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => isBane(a)).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(W() * baneSkill(k)) })) },
   { type: 'achievement', roll: 'skill', source: 'Total defeats', at: 'src/ruleset/bane.ts',
-    when: 'Attack, dodge and block rolls. Only the highest earned one counts.',
+    when: `${cap(listWords(DEFEATS_ROLLS.map((k) => (k === 'hit' ? 'attack' : k))))} rolls. Only the highest earned one counts.`,
     value: `+${CONFIG.DEFEATS_ROLL_PER_TIER} × place for each tier, added up`,
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.rule === 'defeats' && !a.by).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(defeatsRoll(k)) })) },
   { type: 'achievement', roll: 'skill', source: 'Renown', at: 'src/ruleset/achRewards.ts',
@@ -109,7 +110,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile within ${CONFIG.HOSTILE_NEAR_M} m of the shooter, close enough to strike or grab (Point Blank removes it).`,
     value: sg(CONFIG.HOSTILE_NEAR_MOD) },
-  { type: 'situational', roll: 'skill', source: 'Outnumbered', at: 'src/ruleset/index.ts', when: 'Defense rolls after the first this turn (Blade Wall removes it for Parry with a medium weapon, Shield Wall for Block, Slip the Crowd for Dodge).',
+  { type: 'situational', roll: 'skill', source: 'Outnumbered', at: 'src/ruleset/index.ts', when: `Defense rolls after the first this turn (Blade Wall removes it for Parry with a ${listWords([...BLADE_WALL_CLASSES], 'or')} weapon, Shield Wall for Block, Slip the Crowd for Dodge).`,
     value: sg(CONFIG.OUTNUMBERED_MOD) },
   { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming.', value: sg(CONFIG.UNAWARE_MOD) },
   { type: 'situational', roll: 'skill', source: "Can't defend", at: 'src/ruleset/index.ts', when: 'Defense rolls by someone down, asleep or held in a grip (BG-207): no dice, the defense fails outright as a Critical Failure.', value: 'fails outright' },

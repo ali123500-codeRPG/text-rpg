@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-261
+
+**What was wrong:** The library viewer's Stacking tab said Total defeats achievements count on attack, dodge and block rolls, but the code also adds them to parry rolls. It said Blade Wall keeps a parry with a medium weapon from being outnumbered, but the code does it for a medium or heavy weapon. The tab's text was written by hand beside the rules, so it drifted when the rules changed.
+
+**What was done:** Ali OK'd the fix (IC1 on the "Code consistency check, 10% at a time" page). The rules now keep their lists in one place (DEFEATS_ROLLS in src/ruleset/bane.ts, BLADE_WALL_CLASSES in src/ruleset/index.ts) and the two Stacking lines are built from those lists. The game plays the same; only the tab's text changed. No new test, as Ali asked: the text reads the rule's own list.
+
+**Fixed by:** the PR that carries this entry (slice 1 of the code consistency check)
+
 ## BG-260
 
 **What was wrong:** On the Questions hub, a question written in the new colour-block layout showed only the recommendation and never its options, so on "Game items deep dive" Ali could not see what options b and c were for IR13 and IR18 to IR22. The hub drew the option list only for plain questions; the layout's own notes said it showed them, but it never did.

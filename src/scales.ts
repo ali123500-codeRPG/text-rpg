@@ -180,7 +180,7 @@ export type SoundLossKey = (typeof SOUND_LOSS.keys)[number];
 /** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightLevel) */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
-/** how closely someone at an activity is paying attention, most first (an activity's attention; read by nothing yet: D-200) */
+/** how closely someone at an activity is paying attention, most first (an activity's attention; filching reads it, TN4; sight does not yet, D-200) */
 export const ATTENTION = scale([['alert', 'alert'], ['normal', 'normal'], ['distracted', 'distracted'], ['asleep', 'asleep']]);
 export type AttentionKey = (typeof ATTENTION.keys)[number];
 /** worn armor weight, lightest first (AN3); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
