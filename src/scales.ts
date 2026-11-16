@@ -52,6 +52,8 @@ export const RANK_KEY_PAST_100 = { beyond: 'rank_6', mythic: 'rank_7', transcend
  * step, and the name gains a + each step. */
 export const RANKS = scale([['rank_0', 'Untrained'], ['rank_1', 'Novice'], ['rank_2', 'Trained'], ['rank_3', 'Veteran'], ['rank_4', 'Elite'], ['rank_5', 'Paragon'],
   ...PAST_100.map(([k, n]) => [RANK_KEY_PAST_100[k], n] as const)]);
+/** TS2: a report card's letter for each rank row, by key; past the last row the last letter gains a + per step (gradeLetter) */
+export const GRADE_LETTERS: Record<(typeof RANKS.keys)[number], string> = { rank_0: 'F', rank_1: 'E', rank_2: 'D', rank_3: 'C', rank_4: 'B', rank_5: 'A', rank_6: 'S', rank_7: 'SS', rank_transcendent: 'SSS', rank_8: 'MAX' };
 export type RankKey = (typeof RANKS.keys)[number] | `rank_${number}`;
 
 /** check tiers, worst first (Part 1 §4) */

@@ -188,6 +188,8 @@ export type FameEntry = {
   perks: string[]; achievements: string[]; scars: string[];
   defeats: number; turn: number; day: number; place: string;
   downedBy?: import('./game').DownedBy;
+  /** TS1: the report card, a rank key per line (letters come from GRADE_LETTERS); absent on entries from before it */
+  card?: { combat: string; achievements: string; reputation: string };
   fellAt: string; // ISO time the story was archived
 };
 export type StoryOwner = 'player' | 'agent';
