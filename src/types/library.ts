@@ -88,8 +88,9 @@ export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 export type EssenceDef = {
   id: string; name: string;
-  /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list */
-  from: { race?: string; bodyType?: string; deed?: true; echo?: true };
+  /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list; role: only NPCs
+   * of that role (RO id); over: only when that skill is above every skill in the role's high band (a beast's weapons) */
+  from: { race?: string; bodyType?: string; role?: string; over?: string; deed?: true; echo?: true };
   skills: { skill: string; weight: number }[];
   trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
   story: string;

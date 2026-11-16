@@ -992,6 +992,9 @@ export function prototypeLibrary(): Library {
         story: 'A great cat\'s patience settles in your shoulders. Your weight shifts onto your toes before a blow lands, and your hands curl as if they remember raking.' },
       [ES.lashing_tail]: { id: ES.lashing_tail, name: 'Lashing Tail', from: {}, skills: [{ skill: SK.tail, weight: 2 }, { skill: SK.hide, weight: 1 }],
         story: 'A heavy, scaled thing\'s way of fighting came along with you: turning side-on, sweeping wide at whatever comes close, and taking the hits on a hide that barely feels them.' },
+      // D-362: a beast whose Resolve is above every weapon skill (an Untrained one: Resolve 50, weapons about 15) fits no weapon row
+      [ES.cornered_nerve]: { id: ES.cornered_nerve, name: 'Cornered Nerve', from: { role: RO.beast, over: SK.resolve }, skills: [{ skill: SK.resolve, weight: 2 }, { skill: SK.scent, weight: 1 }],
+        story: 'A young animal\'s refusal to back down came along with you. It had little to fight with and stood its ground anyway; when you are cornered now, your feet stay where they are and you smell the fear on whoever cornered you.' },
       [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, skills: [],
         story: 'What you did again and again here has grown on you like a callus. Something in you will remember it.' },
     },

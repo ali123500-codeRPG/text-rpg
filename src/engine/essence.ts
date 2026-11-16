@@ -86,13 +86,16 @@ export function essenceFit(row: EssenceDef, skill: (id: string) => number, best:
 }
 
 /** EN1, EN2: the essence rows a sheet of this race carries: rows of its race or body type, or naming neither (EN2 a), whose fit
- * reaches ESSENCE_FIT_SHARE. Deed rows (scenario endings) and echo rows (one echo's own) are never worked out onto a list. */
-export function fittingEssences(raceId: string | undefined, skills: Record<string, SkillEntry>): { row: EssenceDef; fit: number }[] {
+ * reaches ESSENCE_FIT_SHARE, and whose role and `over` rules (if any) the sheet meets. Deed rows (scenario endings) and echo rows (one echo's own) are never worked out onto a list. */
+export function fittingEssences(raceId: string | undefined, skills: Record<string, SkillEntry>, roleId?: string): { row: EssenceDef; fit: number }[] {
   if (!raceId) return [];
   const body = race(raceId).bodyTypeId, v = (id: string) => (skills[id]?.raw ?? 0) * tierMult(id);
   const best = Math.max(0, ...Object.keys(skills).map(v));
+  const high = (roleId && getLibrary().npcRoles?.[roleId]?.bands.high) || [];
+  const over = (sk: string) => high.every((h) => v(sk) > v(h));
   return Object.values(getLibrary().essences ?? {})
-    .filter((r) => !r.from.deed && !r.from.echo && (!r.from.race || r.from.race === raceId) && (!r.from.bodyType || r.from.bodyType === body))
+    .filter((r) => !r.from.deed && !r.from.echo && (!r.from.race || r.from.race === raceId) && (!r.from.bodyType || r.from.bodyType === body)
+      && (!r.from.role || r.from.role === roleId) && (!r.from.over || over(r.from.over)))
     .map((row) => ({ row, fit: essenceFit(row, v, best) })).filter((x) => x.fit >= CONFIG.ESSENCE_FIT_SHARE);
 }
 
@@ -101,7 +104,7 @@ export function fittingEssences(raceId: string | undefined, skills: Record<strin
 export function templateEssences(t: NpcTemplate): { row: EssenceDef; fit?: number }[] {
   const lib = getLibrary().essences ?? {};
   if (t.essences || t.unique) return (t.essences ?? []).map((id) => ({ row: lib[id] })).filter((x) => x.row); // an echo: only its own
-  return fittingEssences(t.raceId, templateSkills(t));
+  return fittingEssences(t.raceId, templateSkills(t), t.roleId);
 }
 
 /** EN4: the rows a foe offers: its template's list, or with no template the same rule on its own sheet */
