@@ -370,11 +370,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Fast Healer (Endurance) · P12
 
-*Story:* +5 Endurance, +1 Health. Your flesh knits itself shut, twice as fast as it has any right to.
+*Story:* +5 Endurance, +1 Health. Your body mends itself twice as fast as it has any right to: wounds, nerve and breath alike.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group Health. Natural recovery (the hourly healing row read from Endurance) is ×2.
+- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group Health. Every natural recovery is ×2: health (Natural recovery, read from Endurance), morale (Natural composure, read from Resolve) and stamina (Catching your breath).
 - **Lasts:** Always.
 
 ### Marksman's Eye (Eyesight) · P13

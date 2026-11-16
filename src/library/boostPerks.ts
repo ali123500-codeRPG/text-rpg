@@ -46,7 +46,7 @@ const ROWS: Row[] = [
   { id: PK.braced, ref: 'P11', skill: SK.block, group: GR.defense, name: 'Take the Hit', effect: 'health',
     extra: { story: 'Every blow you stop leaves you harder: +10 Endurance.', rule: `+10 true skill in ${skillName(SK.endurance)}.`, trueSkillTo: { [SK.endurance]: 10 } } },
   { id: PK.quick_mend, ref: 'P12', skill: SK.endurance, group: GR.health, name: 'Fast Healer', effect: 'health',
-    extra: { story: 'Your flesh knits itself shut, twice as fast as it has any right to.', rule: `Natural recovery (the hourly healing row read from ${skillName(SK.endurance)}) is ×2.`, numbers: { recoveryMult: 2 } } },
+    extra: { story: 'Your body mends itself twice as fast as it has any right to: wounds, nerve and breath alike.', rule: `Every natural recovery is ×2: health (Natural recovery, read from ${skillName(SK.endurance)}), morale (Natural composure, read from ${skillName(SK.resolve)}) and stamina (Catching your breath).`, numbers: { recoveryMult: 2 } } },
   { id: PK.marksmans_eye, ref: 'P13', skill: SK.eyesight, group: GR.notice, name: "Marksman's Eye", effect: 'attack',
     extra: { story: 'What your eye finds, your arrow follows: +5 Light ranged, +5 Medium ranged.', rule: `+5 true skill in ${skillName(SK.ranged_light)} and +5 in ${skillName(SK.ranged_medium)}.`, trueSkillTo: { [SK.ranged_light]: 5, [SK.ranged_medium]: 5 } } },
   { id: PK.soft_step, ref: 'P14', skill: SK.earshot, group: GR.notice, name: 'Soft Step', effect: 'senses',

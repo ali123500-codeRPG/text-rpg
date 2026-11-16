@@ -10,7 +10,7 @@ import { FU, RV } from '../library/tableIds';
 import { EFFORT, type EffortKey } from '../scales';
 import { now } from '../time';
 import { barMax, fatigueOf, isSpent, lineMax, lineUsed, perkSleepMult, sleepArmorMult, staminaSkill } from '../ruleset/fatigue';
-import { hasPerk } from '../ruleset/perks';
+import { hasPerk, recoveryMult } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markStamina } from '../ruleset';
@@ -143,7 +143,7 @@ export function passiveFatigue(state: GameState, minutes: number): void {
     }
     const calm = t1 - Math.max(t1 - minutes, (f.hardAt ?? -Infinity) + CONFIG.BREATH_CALM_S / 60);
     const b = row(RV.breath)?.perMinute;
-    if (calm > 0 && b) recoverLine(a, RV.breath, (b.pct + staminaSkill(a) * b.perPoint) * calm);
+    if (calm > 0 && b) recoverLine(a, RV.breath, (b.pct + staminaSkill(a) * b.perPoint) * calm * recoveryMult(a)); // Fast Healer: stamina's natural recovery
   }
 }
 

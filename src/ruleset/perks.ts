@@ -106,8 +106,12 @@ export const essenceSkill = (a: Actor, skill: string): number => (a.progression?
 export const standInAdd = (a: Actor, fn: string): number =>
   owned(a).reduce((n, p) => { const s = getLibrary().perks[p.perkId]?.standIn; return n + (s && (!s.fn || s.fn === fn) ? s.add : 0); }, 0);
 
+/** natural recovery's speed: every owned perk's recoveryMult multiplied (Fast Healer ×2). One factor for all three natural rows:
+ * health (Natural recovery), morale (Natural composure) and stamina (Catching your breath) */
+export const recoveryMult = (a: Actor): number =>
+  owned(a).reduce((m, p) => m * (getLibrary().perks[p.perkId]?.numbers?.recoveryMult ?? 1), 1);
 /** a 40/80/120 perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
-export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult' | 'recoveryMult'): number {
+export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult'): number {
   const perks = getLibrary().perks;
   return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? m * (d.numbers?.[key] ?? 1) : m; }, 1);
 }
