@@ -5,7 +5,7 @@
 import { RC } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { awardXp, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
+import { awardXp, charLevel, keepCapstone, levelCost, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { classMaxLevel } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
@@ -29,7 +29,7 @@ describe('131 Class level cap', () => {
     expect(levelTarget(p)).toBeUndefined();
     expect(p.core.classes).toContainEqual({ classId: CL.commoner, state: 'unlocked', level: 0 });
     const before = pr.xp; // XP from the class achievements reached at the top level
-    const banked = CONFIG.LEVEL_XP * (10 + 11 + 12);
+    const banked = levelCost(10) + levelCost(11) + levelCost(12);
     awardXp(s, banked + 5, 'test');
     expect(charLevel(p)).toBe(10); // banked, no level
     expect(pr.xp).toBe(before + banked + 5);

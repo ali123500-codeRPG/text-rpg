@@ -88,7 +88,7 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     const pr = s.player.progression!;
     expect(pr.achievements!.map((a) => a.id)).toEqual([`${ACH.first_defeat_body_type}:${BT.amorphous}`, `${ACH.first_defeat_race}:${RC.slime}`, ACH.bested_1]);
-    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, `achievement:${ACH.first_defeat_race}:${RC.slime}`]); // two level I rewards are not yet a level (LEVEL_XP_FLOOR)
+    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, `achievement:${ACH.first_defeat_race}:${RC.slime}`]); // two level I rewards are not yet a level (LEVEL_XP_EARLY)
     expect(pr.xpLog![0].amount).toBe(xp);
     expect(pr.xpLog![1].amount).toBe(rewardXp('i'));
     const other = actor(s, 'slime_2');
@@ -112,10 +112,10 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source)).toEqual(['defeat:slime_1']);
   });
-  it('levels need the larger of LEVEL_XP_FLOOR and LEVEL_XP × level and go to the chosen class', () => {
+  it('levels need LEVEL_XP × √(level² + LEVEL_XP_EARLY²) and go to the chosen class', () => {
     const s = makeVillage();
     const p = s.player, pr = p.progression!;
-    expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP_FLOOR);
+    expect(xpToNext(p)).toBe(Math.round(CONFIG.LEVEL_XP * Math.sqrt(1 + CONFIG.LEVEL_XP_EARLY ** 2)));
     p.core.classes.push({ classId: CL.trader, state: 'unlocked', level: 0 });
     pr.nextClass = CL.trader;
     awardXp(s, xpToNext(p) + 5, 'test');
@@ -124,10 +124,11 @@ describe('106 XP and levels', () => {
     expect(pr.unspentPerkPoints).toBe(1); // level 2 is even
     expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: CL.trader, level: 2 });
   });
-  it('early levels are harsher: the XP that used to take level 1 to 10 (LEVEL_XP × n) now takes it to 8; later steps are unchanged', () => {
+  it('early levels are harsher: each level costs more than the last, the XP that used to take level 1 to 10 (LEVEL_XP × n) now takes it to 8, and later steps bend back to LEVEL_XP × n', () => {
+    for (let n = 0; n < 200; n++) expect(levelCost(n + 1)).toBeGreaterThan(levelCost(n));
     const old = CONFIG.LEVEL_XP * 45, from1 = (l: number) => xpToReach(l) - xpToReach(1);
     expect(from1(8)).toBeLessThanOrEqual(old);
     expect(from1(9)).toBeGreaterThan(old);
-    for (const n of [7, 10, 20, 50]) expect(levelCost(n)).toBe(CONFIG.LEVEL_XP * n);
+    expect(levelCost(30) / (CONFIG.LEVEL_XP * 30)).toBeLessThan(1.02);
   });
 });
