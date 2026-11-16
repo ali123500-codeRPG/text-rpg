@@ -1,10 +1,16 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
-import type { EffortKey, FatigueLevel, FragilityKey, GradeLevel, GrandeurKey, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
+import type { Past100Key, EffortKey, FatigueLevel, FragilityKey, GradeLevel, GrandeurKey, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
 // Read CONFIG at call time (tests may change a value and call resetConfig()).
+
+/** the one ladder past 100 (names in scales.ts PAST_100): task grades (DIFFICULTY), NPC rank anchors (RANK_ROWS) and equip
+ * needs (EQUIP_NEED) all read these numbers, so a step moves everywhere at once (placeholders); past Divine each step adds
+ * PAST_100_STEP (Divine+, Divine++ …) */
+const PAST_100: Record<Past100Key, number> = { beyond: 150, mythic: 200, transcendent: 300, divine: 400 };
+const PAST_100_STEP = 100;
 
 const DEFAULTS = {
   // ---- Part 1 ----
@@ -44,7 +50,7 @@ const DEFAULTS = {
   TIER_EXTRA_BAND: 50,
   /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human
    * body can do (CR4); they are challenge rows only (CR12): no gain, lock or Weaver use until D-219 says when they apply */
-  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, transcendent: 300, divine: 400 } as Record<GradeLevel, number>,
+  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, ...PAST_100 } as Record<GradeLevel, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
   /** RN2 b: stacking within one modifier type (ruleset/stacking.ts powerStack): n equal modifiers total n^MOD_STACK_EXP, so the
@@ -427,7 +433,7 @@ const DEFAULTS = {
    * NR39: the levels up to Paragon are where a simulated fighter reached each anchor (Trained 4, Veteran 6, Elite 7, Paragon 12);
    * NR41 a: the rows past Paragon scale the same way (Beyond 18, Mythic 24, Transcendent 30, Divine 36, +12 a step past it). An NPC's level is this table read backwards on its own High-band skills
    * (levelFromSkills). */
-  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 6, training: 8 }, rank_4: { anchor: 75, level: 7, training: 12 }, rank_5: { anchor: 100, level: 12, training: 20 }, rank_6: { anchor: 150, level: 18, training: 30 }, rank_7: { anchor: 200, level: 24, training: 40 }, rank_transcendent: { anchor: 300, level: 30, training: 45 } /* D-335 placeholder */, rank_8: { anchor: 400, level: 36, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 6, training: 8 }, rank_4: { anchor: 75, level: 7, training: 12 }, rank_5: { anchor: 100, level: 12, training: 20 }, rank_6: { anchor: PAST_100.beyond, level: 18, training: 30 }, rank_7: { anchor: PAST_100.mythic, level: 24, training: 40 }, rank_transcendent: { anchor: PAST_100.transcendent, level: 30, training: 45 } /* D-335 placeholder */, rank_8: { anchor: PAST_100.divine, level: 36, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
   /** NR40 a: the level read from an NPC's skills times its grandeur (GRANDEUR: the higher of its role's and its theme's;
    * uniques and seats of the Great are always grand) */
   GRANDEUR_LEVEL_MULT: { mundane: 0.75, ordinary: 1, grand: 1.25 } as Record<GrandeurKey, number>,
@@ -437,7 +443,12 @@ const DEFAULTS = {
    * so a Beyond is 150 and a Mythic 200; ranks below it keep the player's cap (NG5 b) */
   NPC_UNCAPPED_FROM: 'rank_6' as const,
   /** NG3: past the last rank row, each step adds this */
-  RANK_BEYOND_STEP: { anchor: 100, level: 12, training: 10 },
+  RANK_BEYOND_STEP: { anchor: PAST_100_STEP, level: 12, training: 10 },
+  /** TS1 (report card, placeholders): the least achievement XP earned, and the fewest people who know the hero's name,
+   * for each rank row's grade; past the last row each step multiplies the last row by GRADE_BEYOND_MULT */
+  GRADE_ACH_XP: { rank_0: 0, rank_1: 100, rank_2: 300, rank_3: 1000, rank_4: 3000, rank_5: 10000, rank_6: 30000, rank_7: 100000, rank_transcendent: 300000, rank_8: 1000000 } as Record<string, number>,
+  GRADE_KNOWN_BY: { rank_0: 0, rank_1: 1, rank_2: 3, rank_3: 10, rank_4: 30, rank_5: 100, rank_6: 300, rank_7: 1000, rank_transcendent: 3000, rank_8: 10000 } as Record<string, number>,
+  GRADE_BEYOND_MULT: 3,
   /** NG2: a role's bands as shares of the rank's anchor */
   ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
@@ -511,8 +522,10 @@ const DEFAULTS = {
   /** SL12 b / SL14: the coin each benefit number is worth; an item's value is its benefits summed (src/ruleset/value.ts).
    * skillPoint: per point of skill bonus (a roll bonus counts as the skill points that move a roll as much);
    * reachM: per metre of reach (its best attack mode; ZR7: 5 coin per 8 m, the old link rate, placeholder); armorStop: per point of damage stopped, per part covered;
-   * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
-  ITEM_VALUE: { skillPoint: 1, reachM: 0.625, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
+   * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool;
+   * IR4 (placeholders): dps: per point of damage a second (class damage over its attack's Action times seconds); reachRangedM: per
+   * metre of a ranged weapon's range (a melee weapon's or a throw's reach takes reachM). A class's hit is not priced: it is the class's trade against its damage */
+  ITEM_VALUE: { skillPoint: 1, reachM: 0.625, reachRangedM: 0.1, dps: 1, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
   ORDER_NOISE: 'normal' as NoiseKey, // RD2: an order is called out in a normal voice; the seller must hear it clearly (trade hearsOrder)
   WARES_CAP: 8, // goods lines plus services per seller
   // BG-95: words skipped when finding the short form of a name said aloud ("Wenna" for Old Wenna)
@@ -537,9 +550,9 @@ const DEFAULTS = {
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
   ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs (placeholders); IR3: past Masterwork (100) the task grade steps, Divine 400 */
-  EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100, beyond: 150, mythic: 200, transcendent: 300, divine: 400 } as Record<string, number>,
+  EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100, ...PAST_100 } as Record<string, number>,
   /** IR3: each step past Divine (Divine+, Divine++ …) needs this much more true skill (placeholder) */
-  EQUIP_BEYOND_STEP: 100,
+  EQUIP_BEYOND_STEP: PAST_100_STEP,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
   EQUIP_SHORT_STEP: 10,
   ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,

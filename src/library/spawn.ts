@@ -103,11 +103,10 @@ const LAST_RANK = RANKS.keys[RANKS.keys.length - 1];
 const stepsPast = (r: string) => Number(r.slice(5)) - Number(LAST_RANK.slice(5));
 /** a rank's position, lowest first: its row in RANKS, or past the last row by its steps (keys are stable, order is the table's) */
 export const rankPos = (r: RankKey): number => (RANKS.has(r) ? RANKS.pos(r) : RANKS.keys.length - 1 + stepsPast(r));
+/** the rank at a position, the reverse of rankPos: past the last row the key goes on from the last row's number */
+export const rankAtPos = (pos: number): RankKey => (pos < RANKS.keys.length ? RANKS.keys[Math.max(0, pos)] : `rank_${Number(LAST_RANK.slice(5)) + pos - (RANKS.keys.length - 1)}`);
 /** the rank `steps` above another, going on past the last row (Divine+ = rank_9 …) */
-export function rankAbove(r: RankKey, steps: number): RankKey {
-  const p = rankPos(r) + steps, last = RANKS.keys.length - 1;
-  return p <= last ? RANKS.keys[Math.max(0, p)] : (`rank_${Number(LAST_RANK.slice(5)) + p - last}` as RankKey);
-}
+export const rankAbove = (r: RankKey, steps: number): RankKey => rankAtPos(rankPos(r) + steps);
 /** NG13: a preset's rank, raised to its role's floor (CONFIG.RANK_FLOOR: a combat role is never under Trained, a civilian
  * under Novice; a beast has none) */
 export function templateRank(t: NpcTemplate): RankKey | undefined {

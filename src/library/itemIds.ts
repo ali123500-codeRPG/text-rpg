@@ -18,4 +18,8 @@ export const IT = {
   pack: 'IT42', sack: 'IT43', chest: 'IT44', crate: 'IT45', // IT46 (belt with pouches), IT47 (bandolier) retired with pockets (PO4)
   // accessories
   spectacles: 'IT48', charmed_ring: 'IT49', ear_cup: 'IT50', amulet: 'IT51', hooded_cloak: 'IT52',
+  // IR2: Superior pieces (need 75, real-world peak) and Masterwork pieces (need 100, past any real smith: tagged 'fantasy')
+  rapier: 'IT53', longsword: 'IT54', turkish_bow: 'IT55', warbow: 'IT56', jack_of_plates: 'IT57', coat_of_plates: 'IT58', heater_shield: 'IT59',
+  peerless_rapier: 'IT60', peerless_longsword: 'IT61', peerless_greatsword: 'IT62', peerless_composite_bow: 'IT63', peerless_warbow: 'IT64',
+  peerless_crossbow: 'IT65', peerless_jack: 'IT66', peerless_coat_of_plates: 'IT67', peerless_plate: 'IT68', peerless_heater: 'IT69',
 } as const;

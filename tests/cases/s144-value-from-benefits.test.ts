@@ -1,9 +1,12 @@
-// 144 Item value from benefits (SL12 b, SL13, SL14): an item's value is its benefit numbers in coin, summed.
+// 144 Item value from benefits (SL12 b, SL13, SL14, IR4): an item's value is its benefit numbers in coin, summed;
+// a weapon's damage counts as damage a second.
 // A stated bonus outside the requirement's skill counts (the basket-hilted sword's +5 Block), as do reach, armor,
 // pools and roll bonuses (the lucky charm). Consumables and items with no benefit numbers keep their hand-set value.
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { benefits, itemValue } from '../../src/ruleset/value';
+import { benefits, itemValue, modeDps } from '../../src/ruleset/value';
+import { actionRow, actionSeconds } from '../../src/ruleset/actionTime';
+import { DU } from '../../src/library/tableIds';
 import { effectiveSkill } from '../../src/ruleset/gear';
 import { itemDef } from '../../src/library';
 import { CONFIG } from '../../src/config';
@@ -13,11 +16,12 @@ import { SK } from '../../src/library/skillIds';
 const V = CONFIG.ITEM_VALUE;
 const val = (id: string) => itemValue(null, itemDef(null, id));
 
-it('144a weapons: kit bonus plus reach', () => {
-  expect(val(IT.arming_sword)).toBe(Math.round(20 * V.skillPoint + 1.6 * V.reachM)); // kit 0.4 × need 50, reach 1.6 m
-  expect(val(IT.shortbow)).toBe(Math.round(10 * V.skillPoint + 50 * V.reachM)); // range counts (SL14): 50 m, per metre (ZR7)
-  expect(val(IT.dagger)).toBe(Math.round(10 * V.skillPoint + CONFIG.THROW_M.knife * V.reachM)); // its throw: 7 m
-  expect(val(IT.cudgel)).toBe(1); // crude: worth 1 (SL13)
+it('144a weapons: kit bonus, damage a second and reach', () => {
+  const dps = (cls: string, row: string) => (CONFIG.WEAPON_CLASSES[cls].damage / actionSeconds(actionRow(row)!)) * V.dps; // IR4
+  expect(val(IT.arming_sword)).toBe(Math.round(20 * V.skillPoint + dps('medium', DU.blow_medium) + 1.6 * V.reachM)); // kit 0.4 × need 50
+  expect(val(IT.shortbow)).toBe(Math.round(10 * V.skillPoint + dps('light', DU.bow_light) + 50 * V.reachRangedM)); // a bow's range at its own rate
+  expect(val(IT.dagger)).toBe(Math.round(10 * V.skillPoint + dps('light', DU.blow) + CONFIG.THROW_M.knife * V.reachM)); // its throw: 7 m
+  expect(modeDps(itemDef(null, IT.dagger), itemDef(null, IT.dagger).weapon!.modes[0])).toBeCloseTo(20 / 3); // light: 20 damage, a 3 s blow
   expect(val(IT.improvised_medium)).toBe(0);
 });
 

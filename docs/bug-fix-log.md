@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-260
+
+**What was wrong:** On the Questions hub, a question written in the new colour-block layout showed only the recommendation and never its options, so on "Game items deep dive" Ali could not see what options b and c were for IR13 and IR18 to IR22. The hub drew the option list only for plain questions; the layout's own notes said it showed them, but it never did.
+
+**What was done:** Ali OK'd the fix (HL3 on the "Hub question layout" page). The hub now draws the options under the recommendation for every question, whether it uses the block layout or not, unless the page already lists them, and it carries the block-layout colours itself so pages need no extra style. A check rendered all 46 hub pages: 413 questions with options, each showing them exactly once (6 showed none before). The hub page (questions/hub/hub.html) was republished as version 16; this entry and the bug log row came in the PR below.
+
+**Fixed by:** [PR #904](https://github.com/ali123500-codeRPG/text-rpg/pull/904)
+
 ## BG-259
 
 **What was wrong:** On every page of the Questions hub, a new question showed up above all the older answered ones, although the threads added it at the end of the page's list. The hub itself split each page into "Waiting for you" first and "Answered" below, and a new question is always still waiting, so it was lifted to the top.

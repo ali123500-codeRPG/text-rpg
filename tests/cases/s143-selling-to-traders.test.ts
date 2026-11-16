@@ -28,13 +28,13 @@ it('143a offers, a sale, and the item joining the stock', () => {
   const s = shop();
   const mags = actorById(s, 'trader')!;
   const offers = buildPlayerView(s).actors.find((a) => a.id === 'trader')!.offers!;
-  expect(offers.find((o) => o.id === SWORD)?.price).toBe('1 silver'); // value 20 × 0.5
+  expect(offers.find((o) => o.id === SWORD)?.price).toBe('1 silver and 3 copper'); // value 27 × 0.5, rounded down
   expect(offers.some((o) => o.id === GAMBESON)).toBe(false); // armor: not a kind Mags sells
   const ev = play(s, { intent: intent({ action: { type: 'sell', target: 'trader', item: SWORD } }) });
   const e = ev.find((x) => x.kind === 'sell')!;
-  expect(buildNarrationView(s, [e]).events[0]).toMatchObject({ item: 'arming sword', price: '1 silver' });
-  expect(coins(s.player)).toBe(10);
-  expect(coins(mags)).toBe(CONFIG.TRADER_PURSE - 10);
+  expect(buildNarrationView(s, [e]).events[0]).toMatchObject({ item: 'arming sword', price: '1 silver and 3 copper' });
+  expect(coins(s.player)).toBe(13);
+  expect(coins(mags)).toBe(CONFIG.TRADER_PURSE - 13);
   const sword = mags.core.inventory.find((i) => i.id === SWORD)!;
   expect(sword.equippedIn).toBeUndefined(); // a held weapon is stowed and sold
   expect(mags.wares!.items).toContain(IT.arming_sword); // SL6: it can be bought back
@@ -59,9 +59,9 @@ it('143c a stack sells in part; haggling and Hard Bargain raise the price', () =
   expect(sell(s, s.player, mags, 'rolls', 3)).toMatchObject({ ok: true, price: 3, qty: 3 }); // value 2 × 0.5 = 1 each
   expect(s.player.core.inventory.find((i) => i.id === 'rolls')!.qty).toBe(1);
   s.player.haggle = { trader: CONFIG.HAGGLE_WIN };
-  expect(sellPrice(s, s.player, mags, IT.arming_sword)).toBe(12); // 10 × 1.2
+  expect(sellPrice(s, s.player, mags, IT.arming_sword)).toBe(16); // 27 × 0.5 × 1.2
   s.player.core.perks.push({ perkId: PK.haggler, source: 'level', gainedTurn: 0 });
-  expect(sellPrice(s, s.player, mags, IT.arming_sword)).toBe(13); // 10 × 1.2 × 1.1, rounded down
+  expect(sellPrice(s, s.player, mags, IT.arming_sword)).toBe(17); // 27 × 0.5 × 1.2 × 1.1, rounded down
 });
 
 it('143d a minted item is worth its base value × 2 × quality', () => {
