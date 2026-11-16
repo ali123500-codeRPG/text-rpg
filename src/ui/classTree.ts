@@ -5,7 +5,7 @@
 // A gold thread, the character's own, joins the classes they levelled in the order they took them, from where they
 // started; picking another class for the next level draws its next stretch, dashed until the level lands.
 // Clicking a class opens its card, where the class the next level goes to is chosen.
-// The links are read from the library's unlock rules (ClassDef.unlockPerk, unlockClass), so a new class links itself.
+// The links are read from the library's unlock rules (ClassDef.unlockClass, orUnlocks), so a new class links itself.
 import type { Actor, ClassDef, GameState } from '../types';
 import { getLibrary } from '../library';
 import { CLASS_TIERS, type ClassTierKey } from '../scales';
@@ -36,20 +36,10 @@ export type ClassNode = {
   pickable: boolean;
 };
 
-const perkOwner = (perk: string): { classId: string; via: string } | null => {
-  for (const c of Object.values(getLibrary().classes)) {
-    if (c.capstone?.includes(perk)) return { classId: c.id, via: `its capstone (level ${classMaxLevel(c.id)})` };
-    for (const [lv, ids] of Object.entries(c.levelPerks ?? {})) if (ids.includes(perk)) return { classId: c.id, via: `its level ${lv} perk` };
-  }
-  return null;
-};
-
 /** every class-to-class link in the library */
 export function classLinks(): ClassLink[] {
   const out: ClassLink[] = [];
   for (const c of Object.values(getLibrary().classes)) {
-    const o = c.unlockPerk ? perkOwner(c.unlockPerk) : null;
-    if (o) out.push({ from: o.classId, to: c.id, via: o.via });
     for (const r of [c, ...(c.orUnlocks ?? [])]) for (const [id, lv] of Object.entries(r.unlockClass ?? {})) out.push({ from: id, to: c.id, via: lv === 'max' ? 'its top level' : `level ${lv}` });
   }
   return out;
@@ -60,17 +50,16 @@ const orList = (g: Record<string, number>): string => {
   return same ? `${e.map(([k]) => skillName(k)).join(' or ')} ${e[0][1]}` : e.map(([k, n]) => `${skillName(k)} ${n}`).join(' or ');
 };
 
-/** where a class comes from other than another class: skills, a perk, a blessing, a start, any class topping out */
+/** where a class comes from other than another class: skills, a blessing, a start, any class topping out */
 export function classSource(c: ClassDef): string | null {
   const lib = getLibrary(), bits: string[] = [];
   if (c.fallback) return 'any class at its top level';
   if (c.blessedBy) bits.push(`a blessing from ${lib.gods?.[c.blessedBy]?.name ?? c.blessedBy}`);
   bits.push(...Object.entries(c.unlock ?? {}).map(([k, n]) => `${skillName(k)} ${n}`), ...(c.unlockAny ?? []).map(orList));
   if (c.unlockPerkWith?.hearingDb) bits.push('a perk that sharpens hearing');
-  if (c.unlockPerk && !perkOwner(c.unlockPerk)) bits.push(`the perk ${lib.perks[c.unlockPerk]?.name ?? c.unlockPerk}`);
   if (bits.length) return bits.join(' and ');
   // a start counts only for a class no other class opens
-  if (Object.values(lib.starts ?? {}).some((st) => st.classId === c.id) && !(c.unlockPerk && perkOwner(c.unlockPerk)) && !c.unlockClass) return 'a start';
+  if (Object.values(lib.starts ?? {}).some((st) => st.classId === c.id) && !c.unlockClass && !c.orUnlocks) return 'a start';
   return null;
 }
 

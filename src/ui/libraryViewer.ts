@@ -123,7 +123,6 @@ const named = (k: string, v: unknown): unknown => {
   }
   // fields that hold perk ids show each perk as a link that opens its details
   const perkLinks = (ids: string[]) => links('perks', ids.map((id) => [id, lib.perks[id]?.name ?? id]));
-  if (k === 'unlockPerk' && typeof v === 'string') return perkLinks([v]);
   if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, perkLinks(ids as string[])]));
   if (/perks?$|quirks?$/i.test(k) && Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && lib.perks[x])) return perkLinks(v as string[]);
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => (SKILL_KEYED.has(k) ? [skillName(a), b] : [a, named(a, b)]))) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
@@ -666,7 +665,6 @@ function unlockRow(c: ClassDef): HTMLElement | null {
   const lines: (Node | string)[][] = [
     ...Object.entries(c.unlock ?? {}).map((e) => sk(e)),
     ...(c.unlockAny ?? []).map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])]),
-    ...(c.unlockPerk ? [['the perk ', link('perks', c.unlockPerk, lib.perks[c.unlockPerk]?.name ?? c.unlockPerk)]] : []),
     ...Object.entries(c.unlockPerkWith ?? {}).map(([k, n]) => {
       const has = Object.values(lib.perks).filter((d) => ((d as unknown as Record<string, number>)[k] ?? 0) >= (n as number));
       return [`an active perk with ${PERK_NUMBERS[k] ?? humanKey(k).toLowerCase()} ${n}`, ...(has.length ? [' (', ...has.flatMap((d, i) => [i ? ', ' : '', link('perks', d.id, d.name)]), ')'] : [])];
@@ -698,7 +696,7 @@ function classes(): HTMLElement[] {
       c.story ? h('p', { class: 'lv-story' }, c.story) : null,
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
       unlockRow(c), floorsRow(c),
-      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerk', 'unlockPerkWith', 'unlockClass', 'orUnlocks', 'floors']),
+      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerkWith', 'unlockClass', 'orUnlocks', 'floors']),
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
         ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate'), ' ', ...access(x.needs))))) : null))),

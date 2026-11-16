@@ -134,8 +134,6 @@ export type ClassDef = {
   orUnlocks?: { unlock?: Record<string, number>; unlockAny?: Record<string, number>[]; unlockClass?: Record<string, number | 'max'> }[];
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
-  /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
-  unlockPerk?: string;
   /** alternate capstones: each can replace the default capstone when its conditions hold as the class reaches its
    * top level (Must / Either of / Blocked by, as in tree access) */
   capstones?: { perk: string; needs: TreeAccess }[];

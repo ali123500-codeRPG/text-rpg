@@ -15,6 +15,7 @@ describe('class tree', () => {
     expect(links).toContainEqual(expect.objectContaining({ from: CL.commoner, to: CL.a_nobody }));
     expect(links).toContainEqual(expect.objectContaining({ from: CL.trader, to: CL.merchant }));
     for (const l of links.filter((x) => x.from === CL.trader || x.from === CL.commoner)) expect(l.via).toBe('its top level');
+    for (const l of links) expect(l.via, `${l.from} → ${l.to}`).toMatch(/^(its top level|level \d+)$/); // capstones never unlock classes
   });
 
   it('classes that no class opens name where they come from', () => {
