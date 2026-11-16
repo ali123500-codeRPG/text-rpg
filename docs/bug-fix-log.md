@@ -10,7 +10,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was wrong:** When you shot from hiding at a target just out of range, your character stepped closer and shot in the same turn. The quiet step was checked against everyone with Sneaking, and because each watcher only gets one stealth check a turn, the bow shot itself was never checked with Combat Stealth. A quiet step could hide a loud shot, and the wrong skill was practised.
 
-**What was done:** Ali OK'd the fix on the decision card. A shot (any attack made while hidden) now always gets its own Combat Stealth check against each watcher who hasn't spotted you yet, even after a step earlier in the turn, as the spec already said (ST7, D-40). Watchers who spotted you on the step don't roll again. A new test in tests/cases/s117-stealth.test.ts walks into range and shoots, and expects a Sneaking roll for the step and a Combat Stealth roll for the shot.
+**What was done:** Ali OK'd the fix on the decision card. A shot (any attack made while hidden) now always gets its own Combat Stealth check against each watcher who hasn't spotted you yet, even after a step earlier in the turn, as the spec already said (ST7, D-40). Watchers who spotted you on the step don't roll again. The shot's check still counts for the rest of the turn, so Strike and Fade's vanish right after a shot adds no second roll (PT9). A new test in tests/cases/s117-stealth.test.ts walks into range and shoots, and expects a Sneaking roll for the step and a Combat Stealth roll for the shot.
 
 **Fixed by:** [PR #927](https://github.com/ali123500-codeRPG/text-rpg/pull/927)
 
