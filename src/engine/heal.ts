@@ -4,7 +4,7 @@ import { CP, HL } from '../library/tableIds';
 import type { Actor, GameState } from '../types';
 import { getLibrary } from '../library';
 import { PART_STATES } from '../scales';
-import { boostMult, healthLevel, partStates, totalHp, trueSkill } from '../ruleset';
+import { recoveryMult, healthLevel, partStates, totalHp, trueSkill } from '../ruleset';
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
@@ -121,11 +121,11 @@ export function passiveHealing(state: GameState, minutes: number): void {
   for (const a of [state.player, ...state.actors]) {
     if (!isActive(a) || (a !== state.player && !stage.has(a.zone))) continue;
     for (const h of rows) {
-      const pct = hourlyPct(a, h.hourly!, minutes) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
+      const pct = hourlyPct(a, h.hourly!, minutes) * recoveryMult(a); // Fast Healer
       if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true });
     }
     for (const c of calmRows) { // MB34
-      const pct = hourlyPct(a, c.hourly!, minutes);
+      const pct = hourlyPct(a, c.hourly!, minutes) * recoveryMult(a); // Fast Healer: morale's natural recovery too
       if (pct > 0) calm(state, a, c.id, { pct });
     }
   }

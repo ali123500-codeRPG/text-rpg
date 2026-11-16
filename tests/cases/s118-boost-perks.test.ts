@@ -87,6 +87,18 @@ describe('118 40/80/120 perks', () => {
     expect(pierced.damage).toBeGreaterThan(plain.damage);
     expect(hit(IT.crossbow, 'patron_1', PK.armor_piercer, undefined, undefined, 85).r.damage).toBe(hit(IT.crossbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // no armor: no change
   });
+  it('Fast Healer doubles natural composure (morale) too', () => {
+    const calmed = (perk: boolean) => {
+      const s = makeVillage();
+      s.player.core.condition.moraleLost = 50;
+      s.player.core.skills[SK.resolve] = { raw: 30, state: 'normal' };
+      if (perk) give(s.player, PK.quick_mend);
+      passiveHealing(s, 60);
+      return 50 - (s.player.core.condition.moraleLost ?? 0);
+    };
+    expect(calmed(false)).toBeGreaterThan(0);
+    expect(calmed(true)).toBeCloseTo(calmed(false) * 2, 5);
+  });
   it('Quick Mend doubles natural recovery', () => {
     const healed = (perk: boolean) => {
       const s = makeVillage();
