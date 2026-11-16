@@ -231,7 +231,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
-    i.gearType ? row('Gear type', lib.gearTypes?.[i.gearType]?.name ?? i.gearType) : null, // IR23: its reach or coverage comes from the type
+    i.gearType ? row('Gear type', link('gearTypes', i.gearType, lib.gearTypes?.[i.gearType]?.name ?? i.gearType)) : null, // IR23: its reach or coverage comes from the type
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${equipName(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.grips !== undefined ? row('Grips', String(i.grips)) : null,
@@ -450,6 +450,20 @@ function gearClasses(): HTMLElement[] {
         row('Use', g.use), row('Skill', link('skills', g.skill, skillName(g.skill))),
         row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${equipName(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
     }))];
+}
+
+// ---------- Gear types ----------
+// IR23: a type sets a weapon's reach or an armor's coverage; every item of the type shares it
+function gearTypes(): HTMLElement[] {
+  const all = Object.values(lib.gearTypes ?? {}), humanoid = lib.bodyTypes[BT.humanoid];
+  const itemsOf = (t: string) => Object.values(lib.items).filter((i) => i.gearType === t);
+  const itemsRow = (t: string) => { const items = itemsOf(t); return row('Items', items.length ? links('gear', items.map((i) => [i.id, label(i.name)])) : none('none yet')); };
+  const group = (title: string, list: typeof all, body: (t: (typeof all)[number]) => (Node | null)[]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title),
+    h('div', { class: 'lv-grid' }, list.map((t) => card('gearTypes', t.id, t, t.name, [chip(t.covers ? 'armor' : 'weapon', toneFor('Kind', t.covers ? 'armor' : 'weapon'))], ...body(t), itemsRow(t.id)))));
+  return [h('p', { class: 'hs-note' }, 'A gear type sets a weapon\'s reach or what an armor piece covers. Every item of the type shares it; a thrown attack keeps its own range.'),
+    group('Weapons: reach', all.filter((t) => t.reachM !== undefined), (t) => [row('Reach', `${t.reachM} m`)]),
+    group('Armor: coverage', all.filter((t) => t.covers), (t) => [h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (t.covers!.includes(p) ? 'lv-on' : 'lv-off')),
+      h('div', {}, row('Covers', val(t.covers!.map(label)))))])];
 }
 
 // Healing: what each source restores in words, morale included, so the table view shows it too (the raw % fields stay in Code)
@@ -1055,6 +1069,7 @@ function essencesView(): HTMLElement[] {
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
   { key: 'gearClasses', title: 'Gear classes', table: 'gearClasses', view: gearClasses },
+  { key: 'gearTypes', title: 'Gear types', table: 'gearTypes', view: gearTypes },
   { key: 'essences', title: 'Essences', table: 'essences', view: essencesView },
   { key: 'threadbound', title: 'Threadbound', table: 'items', view: threadboundView, count: Object.values(lib.items).filter((i) => i.threadbound).length },
   { key: 'perks', title: 'Perks', table: 'perks', view: perks },
@@ -1126,7 +1141,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 // the rail in groups; a table not named here (a new one) lands in More
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Items', ['gear', 'threadbound', 'gearClasses']],
+  ['Items', ['gear', 'threadbound', 'gearClasses', 'gearTypes']],
   ['Library', ['perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
   ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
