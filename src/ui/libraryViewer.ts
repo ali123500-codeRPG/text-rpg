@@ -232,6 +232,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
+    i.gearType ? row('Gear type', lib.gearTypes?.[i.gearType]?.name ?? i.gearType) : null, // IR23: its reach or coverage comes from the type
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${equipName(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.grips !== undefined ? row('Grips', String(i.grips)) : null,

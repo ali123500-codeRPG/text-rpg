@@ -52,6 +52,12 @@ export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',
   throw: 'AM11', thrust: 'AM12', unarmed: 'AM13', bite: 'AM14', claw: 'AM15', kick: 'AM16', gore: 'AM17',
 } as const;
+/** IR23: gear types. A piece's reach (weapons) or coverage (armor) comes from its type, never from the piece */
+export const GT = {
+  knife: 'GT1', short: 'GT2', sword: 'GT3', great: 'GT4', pole: 'GT5',
+  short_bow: 'GT6', flatbow: 'GT7', recurve: 'GT8', longbow: 'GT9', warbow: 'GT10', crossbow_light: 'GT11', crossbow_stirrup: 'GT12', crossbow_heavy: 'GT13',
+  cuirass: 'GT14', coat: 'GT15', half_suit: 'GT16', full_harness: 'GT17', helmet: 'GT18', helmet_neck: 'GT19',
+} as const;
 /** gear classes: a class sets which skill an item asks for (its level sets how much) */
 export const GC = {
   melee_light: 'GC1', melee_medium: 'GC2', melee_heavy: 'GC3', ranged_light: 'GC4', ranged_medium: 'GC5', ranged_heavy: 'GC6',

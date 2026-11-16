@@ -54,6 +54,18 @@ describe('336 equip ladder', () => {
       for (const lv of ['common', 'fine', 'superior', 'masterwork']) expect(items.some((d) => d.gearClass === gc && d.level === lv), `${gc} ${lv}`).toBe(true);
     }
     for (const d of items) if (d.level === 'masterwork') expect(d.tags, d.id).toContain('fantasy');
-    expect(item(IT.rapier).weapon!.modes[0].reachM).toBe(1.7);
+  });
+
+  it('IR23: every weapon and armor piece outside improvised and shields has a gear type, and its reach or coverage is the type\'s', () => {
+    const lib = getLibrary(), types = lib.gearTypes ?? {};
+    for (const d of Object.values(lib.items)) {
+      if (!d.gearClass || d.gearClass === GC.improvised || d.gearClass === GC.shield) continue;
+      const t = types[d.gearType ?? ''];
+      expect(t, d.id).toBeDefined();
+      for (const m of d.weapon?.modes ?? []) if (!m.thrown) expect([m.reachM, m.reach], d.id).toEqual([t.reachM, t.reachM]);
+      if (d.armor) expect(d.armor.covers, d.id).toEqual(t.covers);
+    }
+    expect(item(IT.rapier).weapon!.modes[0].reachM).toBe(1.6); // a Sword: rounds to its type
+    expect(item(IT.dagger).weapon!.modes.find((m) => m.thrown)!.reachM).toBe(CONFIG.THROW_M.knife); // a throw keeps the throw table
   });
 });
