@@ -39,11 +39,19 @@ export function scale<const K extends string>(rows: readonly (readonly [K, strin
   };
 }
 
+/** the one ladder past 100: task grades, NPC ranks and equip levels all end in these rows, in this
+ * order. Names live here, numbers in config.ts PAST_100 (and PAST_100_STEP past the last row); a new step is added here once. */
+export const PAST_100 = [['beyond', 'Beyond'], ['mythic', 'Mythic'], ['transcendent', 'Transcendent'], ['divine', 'Divine']] as const;
+export type Past100Key = (typeof PAST_100)[number][0];
+/** NPC ranks keep their own saved keys for the shared rows */
+export const RANK_KEY_PAST_100 = { beyond: 'rank_6', mythic: 'rank_7', transcendent: 'rank_transcendent', divine: 'rank_8' } as const;
+
 /** NG3: how good one person is, lowest first. Display names live only here; a theme may give its own titles (ThemeDef.rankNames).
  * Keys are stable and order is the row position: Transcendent (D-335, placeholder) was added between Mythic and Divine
  * with its own key. Past the last row a key goes on from Divine's number (rank_9, rank_10 …): CONFIG.RANK_BEYOND_STEP per
  * step, and the name gains a + each step. */
-export const RANKS = scale([['rank_0', 'Untrained'], ['rank_1', 'Novice'], ['rank_2', 'Trained'], ['rank_3', 'Veteran'], ['rank_4', 'Elite'], ['rank_5', 'Paragon'], ['rank_6', 'Beyond'], ['rank_7', 'Mythic'], ['rank_transcendent', 'Transcendent'], ['rank_8', 'Divine']]);
+export const RANKS = scale([['rank_0', 'Untrained'], ['rank_1', 'Novice'], ['rank_2', 'Trained'], ['rank_3', 'Veteran'], ['rank_4', 'Elite'], ['rank_5', 'Paragon'],
+  ...PAST_100.map(([k, n]) => [RANK_KEY_PAST_100[k], n] as const)]);
 export type RankKey = (typeof RANKS.keys)[number] | `rank_${number}`;
 
 /** check tiers, worst first (Part 1 §4) */
@@ -98,7 +106,7 @@ export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
 /** grades, none to divine (D-7; CR4, CR12): how hard a task, a challenge or a lock is, and how big a gain. The Weaver's
  * challenge and gain, barriers, gains and locks use none to WEAVER_GRADE_TOP; the rows past it are task grades only */
 export const GRADE_LEVELS = scale([['none', 'None'], ['minor', 'Minor'], ['moderate', 'Moderate'], ['major', 'Major'], ['extreme', 'Extreme'],
-  ['mortal_limit', 'Mortal limit'], ['beyond', 'Beyond'], ['mythic', 'Mythic'], ['transcendent', 'Transcendent'], ['divine', 'Divine']]);
+  ['mortal_limit', 'Mortal limit'], ...PAST_100]);
 export type GradeLevel = (typeof GRADE_LEVELS.keys)[number];
 /** the top grade the Weaver, barriers, gains and locks use */
 export const WEAVER_GRADE_TOP: GradeLevel = 'extreme';
@@ -176,8 +184,7 @@ export type ArmorWeightKey = (typeof ARMOR_WEIGHTS.keys)[number];
 /** equipment levels (EQ8): what an item asks of its user's skill (CONFIG.EQUIP_NEED). IR3: past Masterwork the task grade
  * names (Beyond, Mythic, Transcendent, Divine); past the last row a key goes on as divine_1, divine_2 … (Divine+, Divine++),
  * each CONFIG.EQUIP_BEYOND_STEP more need. Read positions and names through equipPos, equipAt and equipName. */
-export const EQUIP_LEVELS = scale([['crude', 'Crude'], ['common', 'Common'], ['fine', 'Fine'], ['superior', 'Superior'], ['masterwork', 'Masterwork'],
-  ['beyond', 'Beyond'], ['mythic', 'Mythic'], ['transcendent', 'Transcendent'], ['divine', 'Divine']]);
+export const EQUIP_LEVELS = scale([['crude', 'Crude'], ['common', 'Common'], ['fine', 'Fine'], ['superior', 'Superior'], ['masterwork', 'Masterwork'], ...PAST_100]);
 export type EquipLevelKey = (typeof EQUIP_LEVELS.keys)[number] | `divine_${number}`;
 const LAST_EQUIP = EQUIP_LEVELS.keys.length - 1;
 /** how many steps past the last equip level (0 for a row of the table) */
