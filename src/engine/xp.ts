@@ -183,13 +183,13 @@ export function unlockClasses(state: GameState): void {
   for (const c of Object.values(getLibrary().classes)) {
     if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockPerkWith || c.unlockClass || c.orUnlocks || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.blessedBy && !blessedBy(p, c.blessedBy)) continue; // DX1: a god's Blessed class opens on being blessed by that god
-    if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     const rules = (r: Pick<ClassDef, 'unlock' | 'unlockAny' | 'unlockClass'>) => Object.entries(r.unlock ?? {}).every(met)
       && (r.unlockAny ?? []).every((group) => Object.entries(group).some(met))
       && Object.entries(r.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv));
     const perkWith = !c.unlockPerkWith || Object.entries(c.unlockPerkWith).every(([k, n]) => p.core.perks.some((x) => !x.dormant && (getLibrary().perks[x.perkId]?.[k as 'hearingDb'] ?? 0) >= n));
-    if (!((rules(c) && perkWith) || (c.orUnlocks ?? []).some(rules))) continue; // NR36: any other way in will do
+    const perk = !c.unlockPerk || p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant);
+    if (!((rules(c) && perkWith && perk) || (c.orUnlocks ?? []).some(rules))) continue; // NR36: any other way in will do (Merchant: its perk, or Barter 75)
     openClass(state, c.id);
   }
 }

@@ -25,6 +25,18 @@ describe('147 Merchant and skill augments', () => {
     expect(p.core.classes).toContainEqual({ classId: CL.merchant, state: 'unlocked', level: 0 });
   });
 
+  it('Merchant also unlocks at Barter 75 with no Trader capstone; Barter 74 is not enough', () => {
+    const s = makeVillage(), p = s.player;
+    p.core.classes = [];
+    p.core.perks = [];
+    p.core.skills[SK.barter] = { raw: 74, state: 'normal' };
+    unlockClasses(s);
+    expect(p.core.classes.some((c) => c.classId === CL.merchant)).toBe(false);
+    p.core.skills[SK.barter].raw = 75;
+    unlockClasses(s);
+    expect(p.core.classes).toContainEqual({ classId: CL.merchant, state: 'unlocked', level: 0 });
+  });
+
   it('Shrewd Dealing adds to every Barter roll once the Merchant tree is open; other skills are untouched', () => {
     const s = makeVillage(), p = s.player;
     p.core.skills[SK.barter] = { raw: 30, state: 'normal' };
