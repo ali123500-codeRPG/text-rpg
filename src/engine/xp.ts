@@ -1,8 +1,8 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
-import type { Actor, AchievementBy, AchievementDef, AchievementRule, GameEvent, GameState, XpAward, DefeatWhy } from '../types';
+import type { Actor, AchievementBy, AchievementDef, AchievementRule, GameEvent, GameState, XpAward, DefeatWhy, ClassDef } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary, hasTemplate, itemDef, npcTemplate } from '../library';
-import { templateLevel } from '../library/spawn';
+import { levelFromSkills, templateLevel, templateRank } from '../library/spawn';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
 import { blessedBy } from '../ruleset/blessings';
@@ -181,14 +181,15 @@ export function unlockClasses(state: GameState): void {
   const p = state.player;
   openEveryClass(state);
   for (const c of Object.values(getLibrary().classes)) {
-    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockPerkWith || c.unlockClass || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockPerkWith || c.unlockClass || c.orUnlocks || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.blessedBy && !blessedBy(p, c.blessedBy)) continue; // DX1: a god's Blessed class opens on being blessed by that god
     if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
-    if (!Object.entries(c.unlock ?? {}).every(met)) continue;
-    if (!(c.unlockAny ?? []).every((group) => Object.entries(group).some(met))) continue;
-    if (c.unlockPerkWith && !Object.entries(c.unlockPerkWith).every(([k, n]) => p.core.perks.some((x) => !x.dormant && (getLibrary().perks[x.perkId]?.[k as 'hearingDb'] ?? 0) >= n))) continue;
-    if (!Object.entries(c.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv))) continue;
+    const rules = (r: Pick<ClassDef, 'unlock' | 'unlockAny' | 'unlockClass'>) => Object.entries(r.unlock ?? {}).every(met)
+      && (r.unlockAny ?? []).every((group) => Object.entries(group).some(met))
+      && Object.entries(r.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv));
+    const perkWith = !c.unlockPerkWith || Object.entries(c.unlockPerkWith).every(([k, n]) => p.core.perks.some((x) => !x.dormant && (getLibrary().perks[x.perkId]?.[k as 'hearingDb'] ?? 0) >= n));
+    if (!((rules(c) && perkWith) || (c.orUnlocks ?? []).some(rules))) continue; // NR36: any other way in will do
     openClass(state, c.id);
   }
 }
@@ -267,14 +268,21 @@ export function ratingGroups(a: Actor): RatingGroup[] {
 }
 
 /** X18–X23: an actor's stat rating, the same for the player and a foe: its level part plus its skill groups */
-export function rating(a: Actor): number {
-  return levelRating(a) + ratingGroups(a).reduce((n, g) => n + g.adds, 0);
+export function rating(a: Actor, state?: GameState): number {
+  return levelRating(a, state) + ratingGroups(a).reduce((n, g) => n + g.adds, 0);
 }
 
-/** an actor's level: its full character level (free and bonus levels count), else an NPC's template level */
-export const actorLevel = (a: Actor): number => charLevel(a) || (a.core.templateId && hasTemplate(null, a.core.templateId) ? templateLevel(npcTemplate(null, a.core.templateId)) : 0);
+/** an actor's level: its full character level (free and bonus levels count), else an NPC's level from its own true skills
+ * (NR39: its High-band skills on the rank table, essences included; a unique keeps its sheet's). `state` finds a story's own
+ * templates (a composed NPC's blueprint). */
+export function actorLevel(a: Actor, state?: GameState): number {
+  const own = charLevel(a);
+  if (own || !a.core.templateId || !hasTemplate(state, a.core.templateId)) return own;
+  const t = npcTemplate(state, a.core.templateId);
+  return templateRank(t) && !t.unique ? levelFromSkills(t, a.core.skills, (id) => trueSkill(a, id)) : templateLevel(t);
+}
 /** levels in the rating (the thread the foe wove): LEVEL_RATING_SHARE × what the XP curve asks to reach that level */
-export const levelRating = (a: Actor): number => CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(a));
+export const levelRating = (a: Actor, state?: GameState): number => CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(a, state));
 
 /** a foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of what it holds and wears (gear coin is priced at
  * about one coin per skill point of power). Carried spares and coin don't count. */
@@ -291,11 +299,11 @@ export function gearRatingItems(state: GameState, a: Actor): { id: string; itemI
 
 /** An actor's power: its rating plus its gear rating. The one measure of how strong someone is, used by defeat XP and by
  * the stronger-foe achievements, so a change here changes both. */
-export const power = (state: GameState, a: Actor): number => rating(a) + gearRating(state, a);
+export const power = (state: GameState, a: Actor): number => rating(a, state) + gearRating(state, a);
 
 /** power() in its parts, for the character sheet: level, each skill group, gear; the parts add up to power() */
 export function powerParts(state: GameState, a: Actor) {
-  return { level: actorLevel(a), levelAdds: levelRating(a), groups: ratingGroups(a), gear: gearRatingItems(state, a), total: power(state, a) };
+  return { level: actorLevel(a, state), levelAdds: levelRating(a, state), groups: ratingGroups(a), gear: gearRatingItems(state, a), total: power(state, a) };
 }
 
 /** XP shrinks for foes much weaker than the player: min(1, TAPER × theirs ÷ mine) (X19). Defeat XP and defeat quests (QX2) share it. */

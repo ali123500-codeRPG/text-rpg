@@ -16,7 +16,8 @@ import { cap } from '../words';
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills[SK.endurance];
   const raw = end && !end.dormant && skillOpen(actor, SK.endurance) ? end.raw : 0;
-  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * actorBody(state, actor).hpMultiplier;
+  const prefix = actor.core.prefix ? getLibrary().prefixes?.[actor.core.prefix]?.hpMult ?? 1 : 1; // NR37: Dire x1.5
+  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * actorBody(state, actor).hpMultiplier * prefix;
 }
 
 export function healthLevel(actor: Actor): HealthLevel {

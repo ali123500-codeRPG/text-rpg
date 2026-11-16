@@ -2,13 +2,13 @@
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
 import { TP } from './templateIds';
-import { GP, HK, RO, TH } from './npcLayerIds';
+import { GP, HK, PF, RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
 import { UNIQUES } from './uniques';
-import type { ArmorWeightKey, LifeStageKey } from '../scales';
+import type { ArmorWeightKey, GrandeurKey, LifeStageKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
 
@@ -504,43 +504,44 @@ const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: strin
 const ap = (steps: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(steps).map(([k, n]) => [k, n * CONFIG.ACH_PERSONALITY_STEP]));
 
 /** NG2, NG21: NPC roles: the skills each kind of work trains, by band (CONFIG.ROLE_BAND_SHARE of the rank's anchor); its kind
- * (NG13 rank floor), personality lean (NG14) and rank-trait pool (NG12). Leans and pools are placeholders. */
-const role = (id: string, name: string, kind: NpcRoleDef['kind'], bands: Record<string, readonly string[]>, leans?: NpcRoleDef['leans'], traits?: readonly string[], gear?: readonly string[]): NpcRoleDef =>
-  ({ id, name, kind, bands, ...(leans ? { leans } : {}), ...(traits ? { traits } : {}), ...(gear ? { gear } : {}) });
+ * (NG13 rank floor), grandeur (NR40: mundane Worker, Hunter and Healer, grand Knight, the rest ordinary), personality lean
+ * (NG14) and rank-trait pool (NG12). Leans and pools are placeholders. */
+const role = (id: string, name: string, kind: NpcRoleDef['kind'], grandeur: GrandeurKey, bands: Record<string, readonly string[]>, leans?: NpcRoleDef['leans'], traits?: readonly string[], gear?: readonly string[]): NpcRoleDef =>
+  ({ id, name, kind, grandeur, bands, ...(leans ? { leans } : {}), ...(traits ? { traits } : {}), ...(gear ? { gear } : {}) });
 export const NPC_ROLES: Record<string, NpcRoleDef> = Object.fromEntries([
-  role(RO.soldier, 'Soldier', 'combat', { high: [SK.melee_medium, SK.block], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }, { traits: { [PA.discipline]: 40 } }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_medium]), // Block is their defense
-  role(RO.skirmisher, 'Skirmisher', 'combat', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
-  role(RO.brute, 'Brute', 'combat', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }, { traits: { [PA.temper]: 40 } }, [PK.second_wind, PK.heavy_sleeper], [GC.melee_heavy, GC.armor_heavy]),
-  role(RO.shooter, 'Shooter', 'combat', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }, { traits: { [PA.discipline]: 20 } }, undefined, [GC.ranged_medium, GC.armor_light]),
-  role(RO.sneak, 'Sneak', 'combat', { high: [SK.sneaking, SK.melee_light], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.lying, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
-  role(RO.watcher, 'Watcher', 'combat', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
-  role(RO.talker, 'Talker', 'civilian', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
-  role(RO.worker, 'Worker', 'civilian', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
+  role(RO.soldier, 'Soldier', 'combat', 'ordinary', { high: [SK.melee_medium, SK.block], moderate: [SK.medium_armor, SK.endurance, SK.intimidation], low: [SK.parry] }, { traits: { [PA.discipline]: 40 } }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_medium]), // Block is their defense
+  role(RO.skirmisher, 'Skirmisher', 'combat', 'ordinary', { high: [SK.melee_light, SK.dodge], moderate: [SK.light_armor, SK.ranged_light], low: [SK.sneaking, SK.endurance] }, { traits: { [PA.levity]: 20 } }, [PK.second_wind], [GC.melee_light, GC.armor_light]),
+  role(RO.brute, 'Brute', 'combat', 'ordinary', { high: [SK.melee_heavy, SK.unarmed_strike], moderate: [SK.endurance, SK.intimidation, SK.unarmed_grapple], low: [SK.heavy_armor] }, { traits: { [PA.temper]: 40 } }, [PK.second_wind, PK.heavy_sleeper], [GC.melee_heavy, GC.armor_heavy]),
+  role(RO.shooter, 'Shooter', 'combat', 'ordinary', { high: [SK.ranged_medium], moderate: [SK.ranged_light, SK.eyesight, SK.dodge], low: [SK.light_armor, SK.melee_light] }, { traits: { [PA.discipline]: 20 } }, undefined, [GC.ranged_medium, GC.armor_light]),
+  role(RO.sneak, 'Sneak', 'combat', 'ordinary', { high: [SK.sneaking, SK.melee_light], moderate: [SK.combat_stealth, SK.vanishing, SK.dodge], low: [SK.light_armor, SK.lying, SK.filching, SK.lockpicking] }, { traits: { [PA.honesty]: -40 }, values: [VL.wealth] }, [PK.insomniac], [GC.melee_light, GC.armor_light]),
+  role(RO.watcher, 'Watcher', 'combat', 'ordinary', { high: [SK.eyesight, SK.earshot], moderate: [SK.insight, SK.intimidation], low: [SK.melee_medium, SK.persuasion] }, { traits: { [PA.curiosity]: 20 } }, [PK.insomniac], [GC.melee_medium]),
+  role(RO.talker, 'Talker', 'civilian', 'ordinary', { high: [SK.persuasion, SK.barter], moderate: [SK.insight, SK.lying, SK.earshot], low: [SK.eyesight] }, { traits: { [PA.sociability]: 20 }, values: [VL.wealth] }),
+  role(RO.worker, 'Worker', 'civilian', 'mundane', { high: [SK.endurance], moderate: [SK.unarmed_strike, SK.stamina], low: [SK.persuasion] }, { traits: { [PA.sociability]: 20 } }, [PK.heavy_sleeper]),
   // NR4: woods folk who live by the bow (hunters, foresters, trappers, poachers); civilian, Commoner class line (NR2)
-  role(RO.hunter, 'Hunter', 'civilian', { high: [SK.ranged_medium, SK.sneaking], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
+  role(RO.hunter, 'Hunter', 'civilian', 'mundane', { high: [SK.ranged_medium, SK.sneaking], moderate: [SK.eyesight, SK.earshot, SK.endurance], low: [SK.melee_light, SK.stamina] }, { traits: { [PA.curiosity]: 20 }, values: [VL.nature, VL.freedom] }, undefined, [GC.ranged_medium, GC.melee_light, GC.armor_light]),
   // NR6: barber-surgeons, herb-wives, midwives; the one who sells clinic care (SV.clinic) where a place has it
-  role(RO.healer, 'Healer', 'civilian', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
+  role(RO.healer, 'Healer', 'civilian', 'mundane', { high: [SK.healing, SK.insight, SK.persuasion], moderate: [SK.resolve, SK.earshot], low: [SK.barter] }, { traits: { [PA.sociability]: 20 }, values: [VL.kindness] }),
   // NR8: the person others answer to (headman, reeve, guild master); a quest giver. Its own class comes later (D-341)
-  role(RO.leader, 'Leader', 'civilian', { high: [SK.persuasion, SK.intimidation], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
+  role(RO.leader, 'Leader', 'civilian', 'ordinary', { high: [SK.persuasion, SK.intimidation], moderate: [SK.insight, SK.resolve], low: [SK.melee_medium, SK.barter] }, { traits: { [PA.pride]: 20 }, values: [VL.order, VL.reputation] }),
   // NR13: the armoured professional (man-at-arms, knight, champion); its master's class is Knight (CL11)
-  role(RO.knight, 'Knight', 'combat', { high: [SK.melee_medium, SK.heavy_armor], moderate: [SK.block, SK.resolve, SK.intimidation], low: [SK.melee_heavy, SK.persuasion] }, { traits: { [PA.discipline]: 40 }, values: [VL.duty, VL.glory] }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_heavy]),
-  role(RO.beast, 'Beast', 'beast', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
+  role(RO.knight, 'Knight', 'combat', 'grand', { high: [SK.melee_medium, SK.heavy_armor], moderate: [SK.block, SK.resolve, SK.intimidation], low: [SK.melee_heavy, SK.persuasion] }, { traits: { [PA.discipline]: 40 }, values: [VL.duty, VL.glory] }, [PK.second_wind], [GC.melee_medium, GC.shield, GC.armor_heavy]),
+  role(RO.beast, 'Beast', 'beast', 'ordinary', { high: [SK.bite, SK.claws, SK.hooves_horns, SK.tail, SK.slam], moderate: [SK.scent, SK.hide], low: [SK.dodge, SK.tremor] }), // each only where its body can use it (presetBands)
 ].map((r) => [r.id, r]));
 
 /** theme role kinds: who fits each world (a bandit with no fighting role makes no sense) */
 const PEOPLE = ['combat', 'civilian'] as const, FIGHTERS = ['combat'] as const, BEASTS = ['beast'] as const;
 /** NG21: NPC themes: what their world adds; per-theme rank titles come from the lore thread */
 export const THEMES: Record<string, ThemeDef> = {
-  [TH.village_folk]: { id: TH.village_folk, name: 'Village folk', roleKinds: PEOPLE, bands: { low: [SK.persuasion] }, leans: { nerve: -40, values: [VL.family] }, traits: [PK.heavy_sleeper, PK.insomniac], wealth: 'common' }, // townsfolk keep out of danger
-  [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', roleKinds: FIGHTERS, bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] }, leans: { values: [VL.duty] }, traits: [PK.insomniac], wealth: 'fine' },
-  [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', roleKinds: FIGHTERS, bands: { moderate: [SK.intimidation], low: [SK.sneaking] }, leans: { values: [VL.wealth, VL.freedom] }, traits: [PK.heavy_sleeper], wealth: 'common' },
-  [TH.wild_beasts]: { id: TH.wild_beasts, name: 'Wild beasts', roleKinds: BEASTS },
+  [TH.village_folk]: { id: TH.village_folk, name: 'Village folk', grandeur: 'mundane', roleKinds: PEOPLE, bands: { low: [SK.persuasion] }, leans: { nerve: -40, values: [VL.family] }, traits: [PK.heavy_sleeper, PK.insomniac], wealth: 'common' }, // townsfolk keep out of danger
+  [TH.town_watch]: { id: TH.town_watch, name: 'Town watch', grandeur: 'ordinary', roleKinds: FIGHTERS, bands: { moderate: [SK.eyesight], low: [SK.intimidation, SK.persuasion] }, leans: { values: [VL.duty] }, traits: [PK.insomniac], wealth: 'fine' },
+  [TH.road_bandits]: { id: TH.road_bandits, name: 'Road bandits', grandeur: 'ordinary', roleKinds: FIGHTERS, bands: { moderate: [SK.intimidation], low: [SK.sneaking] }, leans: { values: [VL.wealth, VL.freedom] }, traits: [PK.heavy_sleeper], wealth: 'common' },
+  [TH.wild_beasts]: { id: TH.wild_beasts, name: 'Wild beasts', grandeur: 'ordinary', roleKinds: BEASTS },
   // NR16: townsfolk who are not the watch; travellers on the roads; a lord's knights and servants; the few always-lethal
   // monster kinds, each in its own place (slimes and dragons stay Wild beasts: vermin and great beasts)
-  [TH.town_folk]: { id: TH.town_folk, name: 'Town folk', roleKinds: PEOPLE, bands: { low: [SK.barter] }, leans: { values: [VL.wealth] }, traits: [PK.insomniac], wealth: 'fine' },
-  [TH.travellers]: { id: TH.travellers, name: 'Travellers', roleKinds: PEOPLE, bands: { low: [SK.stamina] }, leans: { values: [VL.freedom, VL.adventure] }, traits: [PK.heavy_sleeper], wealth: 'common' },
-  [TH.lords_household]: { id: TH.lords_household, name: "Lord's household", roleKinds: PEOPLE, bands: { low: [SK.persuasion] }, leans: { values: [VL.duty, VL.loyalty] }, wealth: 'superior' },
-  [TH.monsters]: { id: TH.monsters, name: 'Monsters', roleKinds: BEASTS },
+  [TH.town_folk]: { id: TH.town_folk, name: 'Town folk', grandeur: 'mundane', roleKinds: PEOPLE, bands: { low: [SK.barter] }, leans: { values: [VL.wealth] }, traits: [PK.insomniac], wealth: 'fine' },
+  [TH.travellers]: { id: TH.travellers, name: 'Travellers', grandeur: 'mundane', roleKinds: PEOPLE, bands: { low: [SK.stamina] }, leans: { values: [VL.freedom, VL.adventure] }, traits: [PK.heavy_sleeper], wealth: 'common' },
+  [TH.lords_household]: { id: TH.lords_household, name: "Lord's household", grandeur: 'ordinary', roleKinds: PEOPLE, bands: { low: [SK.persuasion] }, leans: { values: [VL.duty, VL.loyalty] }, wealth: 'superior' },
+  [TH.monsters]: { id: TH.monsters, name: 'Monsters', grandeur: 'ordinary', roleKinds: BEASTS },
 };
 
 /** NR17: hook kinds. A real NPC earns its place with a hook (something to sell, work to give, a threat, a rival, a seat of
@@ -770,7 +771,12 @@ export function prototypeLibrary(): Library {
       [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
       // NR13 (placeholder numbers, benefits later): every Arms skill at 50 (the Arms All-50), one at 75, and Heavy Armor 60
       [CL.knight]: { id: CL.knight, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight', tier: 'tier_2', label: 'a knight', story: 'Armoured head to foot and sworn to a banner; the blade does not tire and the line does not break.', floors: {},
-        unlock: { [SK.melee_light]: 50, [SK.melee_medium]: 50, [SK.melee_heavy]: 50, [SK.heavy_armor]: 60 }, unlockAny: [{ [SK.melee_light]: 75, [SK.melee_medium]: 75, [SK.melee_heavy]: 75 }] },
+        // NR36 b: the Arms All-50, one weapon at 100 and Heavy Armor 75; or Knight Trainee at its top level
+        unlock: { [SK.melee_light]: 50, [SK.melee_medium]: 50, [SK.melee_heavy]: 50, [SK.heavy_armor]: 75 }, unlockAny: [{ [SK.melee_light]: 100, [SK.melee_medium]: 100, [SK.melee_heavy]: 100 }],
+        orUnlocks: [{ unlockClass: { [CL.knight_trainee]: 'max' } }] },
+      // NR36: the squire's road into Knight (placeholder unlock: a melee weapon and Heavy Armor at 40, like Guard's 40s)
+      [CL.knight_trainee]: { id: CL.knight_trainee, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight Trainee', tier: 'tier_1', label: 'a knight trainee', story: 'Carry the shield, wear the weight, learn the blade until the banner takes you.', floors: {},
+        unlock: { [SK.heavy_armor]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
       // unlocked through Commoner 5's perk (its Start, ST3, was removed: CC3)
@@ -1174,6 +1180,9 @@ export function prototypeLibrary(): Library {
     templates: { ...TEMPLATES, ...UNIQUES }, // HF34 a: Hall of fame heroes are unique templates in their own file
     npcRoles: NPC_ROLES,
     themes: THEMES,
+    // NR37 a: the first beast prefix; later ones (mana, demons) add traits on top. A creature carries at most one
+    // NR37 a: Dire's third part, one body size larger, waits for a body-size rule (D-347)
+    prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health.', rankStep: 1, hpMult: 1.5 } },
     hookKinds: HOOK_KINDS,
     groups: GROUPS,
     // NR17 a: hooks by settlement size (the crowd is text); must = always there, the rest rolled from pool without repeats first

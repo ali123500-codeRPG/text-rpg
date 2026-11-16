@@ -6,7 +6,7 @@ import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { FN, GR } from '../library/functionIds';
-import type { HealthLevelKey, PartStateKey, SkillTierKey } from '../scales';
+import type { GrandeurKey, HealthLevelKey, PartStateKey, SkillTierKey } from '../scales';
 
 /** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
@@ -58,9 +58,13 @@ export type SkillBands = { high?: readonly LibraryRef[]; moderate?: readonly Lib
 export type PersonalityLean = { nerve?: number; traits?: Record<LibraryRef, number>; values?: readonly LibraryRef[] };
 /** NG1: an NPC role (RO): the skills its work trains; nothing else rises (NG8). kind sets its rank floor (NG13: combat
  * CONFIG.RANK_FLOOR.combat, civilian .civilian; a beast has none and no personality spread). traits: its rank-trait pool (NG12) */
-export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civilian' | 'beast'; bands: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
+export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civilian' | 'beast'; bands: SkillBands;
+  /** NR40: how grand the role is (GRANDEUR); it moves the level read from an NPC's skills */
+  grandeur: GrandeurKey; leans?: PersonalityLean; traits?: readonly LibraryRef[];
   /** NG10: the gear classes (GC…) its work uses; spawn picks the best item of each its skill meets, up to its theme's wealth */
   gear?: readonly LibraryRef[] };
+/** NR37: a beast prefix: its name in a label (a dire wolf), the rank steps it adds to the sheet, and its health multiplier */
+export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number };
 /** NR17: a kind of hook: what the person gives play, who can fill it (roles, or a group), and its rank kind (CONFIG.ROSTER_RANKS) */
 export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?: readonly LibraryRef[]; groups?: readonly LibraryRef[]; theme?: LibraryRef; class?: LibraryRef;
   rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true };
@@ -73,6 +77,8 @@ export type MeetRow = { group: LibraryRef; weight: number; when?: 'day' | 'night
 /** NG1: an NPC theme (TH): skills its world adds, its personality lean (NG14), its rank-trait pool (NG12) and its own rank
  * titles (display only) */
 export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans?: PersonalityLean; traits?: readonly LibraryRef[];
+  /** NR40: how grand its people are; an NPC takes the higher of its role's and its theme's */
+  grandeur: GrandeurKey;
   /** the role kinds that fit this world (NpcRoleDef.kind): a road bandit or a watchman fights, a wild beast is a beast; compose refuses others */
   roleKinds: readonly NpcRoleDef['kind'][];
   /** NG10: the highest equip level its people's gear reaches (an EQUIP_LEVELS key); none = no picked gear */
@@ -124,6 +130,8 @@ export type ClassDef = {
   unlockPerkWith?: { hearingDb?: number };
   /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for D-159) */
   unlockClass?: Record<string, number | 'max'>;
+  /** other ways in: the class also unlocks when every rule of any one of these holds (Knight: Knight Trainee at its top level) */
+  orUnlocks?: { unlock?: Record<string, number>; unlockAny?: Record<string, number>[]; unlockClass?: Record<string, number | 'max'> }[];
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
   /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
@@ -193,6 +201,7 @@ export type Library = {
   essences?: Record<string, EssenceDef>; // growth proposal: ES…, packages a beaten foe or a scenario's deeds can offer
   npcRoles?: Record<string, NpcRoleDef>; // NG1: RO…, what an NPC does for a living
   themes?: Record<string, ThemeDef>; // NG1: TH…, the world an NPC belongs to
+  prefixes?: Record<string, PrefixDef>; // NR37: PF…, beast prefixes
   hookKinds?: Record<string, HookKindDef>; // NR17: HK…, why a real person stands in a place
   groups?: Record<string, GroupDef>; // NR27 (D-308): GP…, cast as one entry
   /** NR17: the hooks each settlement size holds; code rolls them per site, the World builder fills them */

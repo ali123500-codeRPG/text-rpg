@@ -6,13 +6,15 @@ import type { RosterView } from '../types/views';
 import type { GroupDef, GroupPart, MeetRow } from '../types/library';
 import { getLibrary } from '../library';
 import { CONFIG } from '../config';
-import { RANKS } from '../scales';
+import { RANKS, type GrandeurKey, type RankKey } from '../scales';
+import { rankAbove } from '../library/spawn';
 import { createRng, textSeed } from '../rng';
 import { RC } from '../library/raceIds';
+import { PF } from '../library/npcLayerIds';
 
 type Rng = ReturnType<typeof createRng>;
 /** a composition as a cast entry names it (NG15) */
-export type RosterCompose = { race: string; role: string; theme: string; rank: string; class?: string };
+export type RosterCompose = { race: string; role: string; theme: string; rank: string; class?: string; prefix?: string; grandeur?: GrandeurKey };
 /** one rolled roster entry: a single person (compose) or a group (group + rank), with what it gives play */
 export type RosterEntry = { key: string; who: string; gives: string; compose?: RosterCompose; group?: { id: string; rank: string }; goals?: true };
 
@@ -25,7 +27,7 @@ export function rollWeights(rng: Rng, w: Record<string, number>): string {
   return rows[rows.length - 1][0];
 }
 /** a rank `steps` above another, by RANKS positions */
-export const rankUp = (rank: string, steps = 1) => RANKS.keys[Math.min(RANKS.keys.length - 1, RANKS.pos(rank as never) + steps)];
+export const rankUp = (rank: string, steps = 1): string => rankAbove(rank as RankKey, steps);
 /** NR31 a: a person's race: elves about 1 in 20, else human */
 export const rollRace = (rng: Rng) => (rng.int(1, 100) <= CONFIG.ROSTER_ELF_PCT ? RC.elf : RC.human);
 const rollRow = (rng: Rng, rows: readonly MeetRow[]) => {
@@ -50,7 +52,8 @@ export function siteRoster(site: Site): RosterEntry[] {
     const rank = h.rank === 'seat' ? (() => { const r = rollWeights(rng, R.seat[site.size]); return rng.int(1, 100) <= CONFIG.SEAT_STEP_UP_PCT ? rankUp(r) : r; })()
       : rollWeights(rng, h.rank === 'threat' ? R.threat[site.size] : R[h.rank]);
     if (h.groups?.length) return groupEntry(key, lib.groups![pick(rng, h.groups)], rank, h);
-    const compose: RosterCompose = { race: rollRace(rng), role: pick(rng, h.roles ?? []), theme: h.theme ?? row.theme, rank, ...(h.class ? { class: h.class } : {}) };
+    // NR40 a: a seat of the Great is always grand
+    const compose: RosterCompose = { race: rollRace(rng), role: pick(rng, h.roles ?? []), theme: h.theme ?? row.theme, rank, ...(h.class ? { class: h.class } : {}), ...(h.rank === 'seat' ? { grandeur: 'grand' as const } : {}) };
     return { key, who: h.name, gives: h.gives, compose, ...(h.goals ? { goals: true as const } : {}) };
   });
 }
@@ -91,10 +94,17 @@ export function rosterEntry(state: GameState, key: string): RosterEntry | undefi
 }
 
 /** NR27 (D-308): a group's members as compositions (or templates): the leader `step` ranks up, followers' races rolled (NR31) */
-export function groupMembers(g: GroupDef, rank: string, seed: string): { label: string; compose?: RosterCompose; template?: string; lead: boolean }[] {
-  const rng = createRng(textSeed(`group:${seed}`));
-  const one = (p: GroupPart, lead: boolean) => p.template ? { label: p.label, template: p.template, lead }
-    : { label: p.label, lead, compose: { race: p.race ?? rollRace(rng), role: p.role ?? pick(rng, p.roles ?? []), theme: g.theme, rank: rankUp(rank, p.step ?? 0), ...(p.class ? { class: p.class } : {}) } };
+export function groupMembers(g: GroupDef, rank: string, seed: string, direPct = 0): { label: string; compose?: RosterCompose; template?: string; lead: boolean }[] {
+  const rng = createRng(textSeed(`group:${seed}`)), lib = getLibrary();
+  const one = (p: GroupPart, lead: boolean) => {
+    if (p.template) return { label: p.label, template: p.template, lead };
+    const role = p.role ?? pick(rng, p.roles ?? []);
+    // NR38 a: a beast may roll the Dire prefix (one rank up and more health, in composeTemplate); its label says so
+    const dire = lib.npcRoles?.[role]?.kind === 'beast' && rng.int(1, 100) <= direPct ? PF.dire : undefined;
+    const m = p.label.match(/^(a|an|the) (.*)$/), word = dire ? lib.prefixes![dire].name.toLowerCase() : '';
+    const label = !dire ? p.label : m ? `${m[1] === 'the' ? 'the' : 'a'} ${word} ${m[2]}` : `${word} ${p.label}`;
+    return { label, lead, compose: { race: p.race ?? rollRace(rng), role, theme: g.theme, rank: rankUp(rank, p.step ?? 0), ...(p.class ? { class: p.class } : {}), ...(dire ? { prefix: dire } : {}) } };
+  };
   const n = g.follow ? rng.int(g.follow.count[0], g.follow.count[1]) : 0;
   return [one(g.lead, true), ...Array.from({ length: n }, () => one(g.follow!, false))];
 }

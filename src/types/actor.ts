@@ -98,6 +98,8 @@ export type Core = {
   raceId?: LibraryRef;
   bodyTypeId: LibraryRef;
   templateId?: LibraryRef;
+  /** NR37: a beast's prefix (PF…): Dire = one rank up (in its sheet) and more health (prefixes table) */
+  prefix?: LibraryRef;
   generation?: 'rolled' | 'copy' | 'unique';
   /** HF21: where a unique came from; an echo (a fallen hero from the Hall of fame) keeps its sheet and never learns (D-243) */
   origin?: 'echo';
@@ -268,6 +270,10 @@ export type NpcTemplate = {
   roleId?: LibraryRef;
   themeId?: LibraryRef;
   rank?: import('../scales').RankKey;
+  /** NR37: a beast's prefix (PF…, such as Dire): its rank step is already in `rank`; the actor carries it for health */
+  prefix?: LibraryRef;
+  /** NR40: a grandeur that overrides its role's and theme's (a seat of the Great is grand) */
+  grandeur?: import('../scales').GrandeurKey;
   /** a unique's level, from its saved sheet; presets never set one (NG7) */
   level?: number;
   resolve: number; // starting Resolve (MB30)

@@ -672,6 +672,10 @@ function unlockRow(c: ClassDef): HTMLElement | null {
     }),
     ...Object.entries(c.unlockClass ?? {}).map(([id, lv]) => [link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` at its top level (${classMaxLevel(id)})` : ` level ${lv}`]),
   ];
+  // NR36: other ways in (Knight: Knight Trainee at its top level)
+  const ors = (c.orUnlocks ?? []).map((r) => [...Object.entries(r.unlock ?? {}).flatMap((e, i) => [i ? ', ' : '', ...sk(e)]),
+    ...Object.entries(r.unlockClass ?? {}).flatMap(([id, lv]) => [link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` at its top level (${classMaxLevel(id)})` : ` level ${lv}`])]);
+  if (ors.length) lines.push(...ors.map((l) => ['or instead: ', ...l]));
   return lines.length ? row(lines.length > 1 ? 'Unlocks when all hold' : 'Unlocks when', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
 }
 /** skill floors a character of the class always meets: its own floors plus its unlock skills (classFloors in src/library/spawn.ts) */

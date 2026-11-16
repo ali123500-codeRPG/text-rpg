@@ -6,6 +6,8 @@ import type { GameState, Intent } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { healShare } from '../../src/engine/resolve';
+import { unlockClasses } from '../../src/engine/xp';
+import { classMaxLevel } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
 import { RO } from '../../src/library/npcLayerIds';
 import { SK } from '../../src/library/skillIds';
@@ -31,11 +33,28 @@ describe('330 NPC roles, second round', () => {
     expect(r[RO.knight].bands.high).toEqual([SK.melee_medium, SK.heavy_armor]);
   });
 
-  it('NR13: the Knight class is tier 2 and needs the Arms All-50, one weapon at 75 and Heavy Armor 60 (placeholders)', () => {
+  it('NR13, NR36: Knight is tier 2: the Arms All-50, one weapon at 100 and Heavy Armor 75, or Knight Trainee at its top level', () => {
     const k = getLibrary().classes[CL.knight];
     expect(k.tier).toBe('tier_2');
-    expect(k.unlock).toEqual({ [SK.melee_light]: 50, [SK.melee_medium]: 50, [SK.melee_heavy]: 50, [SK.heavy_armor]: 60 });
-    expect(k.unlockAny).toEqual([{ [SK.melee_light]: 75, [SK.melee_medium]: 75, [SK.melee_heavy]: 75 }]);
+    expect(k.unlock).toEqual({ [SK.melee_light]: 50, [SK.melee_medium]: 50, [SK.melee_heavy]: 50, [SK.heavy_armor]: 75 });
+    expect(k.unlockAny).toEqual([{ [SK.melee_light]: 100, [SK.melee_medium]: 100, [SK.melee_heavy]: 100 }]);
+    expect(k.orUnlocks).toEqual([{ unlockClass: { [CL.knight_trainee]: 'max' } }]);
+    expect(getLibrary().classes[CL.knight_trainee].tier).toBe('tier_1');
+  });
+
+  it('NR36: Knight Trainee opens at Heavy Armor and a melee weapon 40; at its top level it opens Knight', () => {
+    const s = makeVillage(), p = s.player;
+    const has = (id: string) => p.core.classes.some((c) => c.classId === id);
+    p.core.skills[SK.heavy_armor] = { raw: 40, state: 'normal' }; p.core.skills[SK.melee_medium] = { raw: 40, state: 'normal' };
+    unlockClasses(s);
+    expect(has(CL.knight_trainee)).toBe(true);
+    expect(has(CL.knight)).toBe(false);
+    p.core.classes.find((c) => c.classId === CL.knight_trainee)!.level = classMaxLevel(CL.knight_trainee) - 1;
+    unlockClasses(s);
+    expect(has(CL.knight)).toBe(false);
+    p.core.classes.find((c) => c.classId === CL.knight_trainee)!.level = classMaxLevel(CL.knight_trainee);
+    unlockClasses(s);
+    expect(has(CL.knight)).toBe(true);
   });
 
   it('NR33: Healing sits alone in the Medicine tree, closed to bodies with no hands, in its own Medicine group', () => {

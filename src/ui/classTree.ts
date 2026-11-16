@@ -50,7 +50,7 @@ export function classLinks(): ClassLink[] {
   for (const c of Object.values(getLibrary().classes)) {
     const o = c.unlockPerk ? perkOwner(c.unlockPerk) : null;
     if (o) out.push({ from: o.classId, to: c.id, via: o.via });
-    for (const [id, lv] of Object.entries(c.unlockClass ?? {})) out.push({ from: id, to: c.id, via: lv === 'max' ? 'its top level' : `level ${lv}` });
+    for (const r of [c, ...(c.orUnlocks ?? [])]) for (const [id, lv] of Object.entries(r.unlockClass ?? {})) out.push({ from: id, to: c.id, via: lv === 'max' ? 'its top level' : `level ${lv}` });
   }
   return out;
 }

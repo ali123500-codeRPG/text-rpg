@@ -45,6 +45,9 @@ export function scale<const K extends string>(rows: readonly (readonly [K, strin
  * step, and the name gains a + each step. */
 export const RANKS = scale([['rank_0', 'Untrained'], ['rank_1', 'Novice'], ['rank_2', 'Trained'], ['rank_3', 'Veteran'], ['rank_4', 'Elite'], ['rank_5', 'Paragon'], ['rank_6', 'Beyond'], ['rank_7', 'Mythic'], ['rank_transcendent', 'Transcendent'], ['rank_8', 'Divine']]);
 export type RankKey = (typeof RANKS.keys)[number] | `rank_${number}`;
+/** NR40: how grand a role, theme or person is, lowest first; it moves the level read from an NPC's skills (CONFIG.GRANDEUR_LEVEL_MULT) */
+export const GRANDEUR = scale([['mundane', 'Mundane'], ['ordinary', 'Ordinary'], ['grand', 'Grand']]);
+export type GrandeurKey = (typeof GRANDEUR.keys)[number];
 
 /** check tiers, worst first (Part 1 §4) */
 export const TIERS = scale([
