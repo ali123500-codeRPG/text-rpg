@@ -1,7 +1,8 @@
 // Every chosen and banked perk. One source for the game and for docs/perks.md (npm run perks-doc).
 // Two views that must match: `story` is the write-up a player reads when choosing; `rules` is exactly
 // what code applies and is the basis for building it. The Perks screen switches between them. A perk can be
-// taken only once its rules are coded and it is listed in BUILT_PERKS (src/library/builtPerks.ts).
+// taken only once its rules are coded: a ladder, All-step or linked perk is listed in BUILT_PERKS (src/library/builtPerks.ts);
+// a class, race, item or achievement perk written in src/library/data.ts carries its own `built` flag.
 import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
 import { skillName } from './skillNames';
