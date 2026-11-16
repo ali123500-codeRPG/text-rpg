@@ -73,7 +73,7 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
       expect([s[SK.melee_medium].raw, s[SK.medium_armor].raw]).toEqual([rankRow(rank).anchor, Math.round(rankRow(rank).anchor * 0.8)]);
     }
     expect(banded({ ...bandit, rank: 'rank_6' })[SK.melee_medium].raw).toBe(150);
-    expect(rankRow('rank_10')).toEqual({ anchor: 600, level: 120, training: 70 });
+    expect(rankRow('rank_10')).toEqual({ anchor: 600, level: 220, training: 70 });
     expect([rankName('rank_2'), rankName('rank_8'), rankName('rank_10')]).toEqual(['Trained', 'Divine', 'Divine++']);
   });
   it('D-335: Transcendent (300) sits between Mythic and Divine on its own key; saved keys keep their meaning', () => {
