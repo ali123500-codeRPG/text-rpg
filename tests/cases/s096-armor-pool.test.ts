@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
+import { itemDef } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 
@@ -8,7 +9,7 @@ describe('96 Armor pool', () => {
   it('a head hit drains the helm pool before the head pool; the health track ignores the helm pool', () => {
     const s = makeVillage();
     const g = place(s, 'guard_1', 'tav_common');
-    g.core.inventory = g.core.inventory.filter((i) => i.itemId !== IT.mail_hauberk);
+    g.core.inventory = g.core.inventory.filter((i) => !itemDef(null, i.itemId).armor); // no hauberk or helmet: the harness covers both (IR19)
     g.core.inventory.push({ id: 'plate', itemId: IT.plate_harness, equippedIn: ['armor'], pools: { head: 100 } });
     g.core.skills[SK.parry] = { raw: 30, state: 'normal' };
     g.core.skills[SK.endurance] = { raw: 0, state: 'normal' }; // pin HP at HP_BASE 50; the rank sheet gives the guard Endurance

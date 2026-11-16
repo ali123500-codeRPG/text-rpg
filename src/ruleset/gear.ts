@@ -4,6 +4,7 @@ import type { Actor, AugmentKind, AugmentWhen, AttackMode, DefenseKind, GameStat
 import { zoneLight } from '../time';
 import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
+import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
@@ -118,15 +119,19 @@ export function blendedSkill(state: GameState, actor: Actor, blend: { skill: str
 function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string }) {
   const out: { source: string; value: number }[] = [];
   let kit: { source: string; value: number } | null = null;
+  const weight: { source: string; value: number }[] = []; // IR24 a: worn armor pieces' weight costs, stacked below
   for (const { inst, def, e, source } of activeEffects(state, actor, ctx.itemId)) {
     if (e.kind !== 'skill') continue;
     const fits = effectSkill(state, e, inst) === skill ||
       (e.skill === '$mode' && (def.weapon?.modes ?? []).some((m) => (!ctx.modeId || m.id === ctx.modeId) && modeSkill(withRow(actor, def, m)) === skill));
     if (!fits) continue;
     if (e.kit) { const v = kitBonus(def, e); if (!kit || v > kit.value) kit = { source, value: v }; }
+    else if (e.armorWeight) weight.push({ source, value: effectValue(def, e) });
     else out.push({ source, value: effectValue(def, e) });
   }
   if (kit) out.push(kit);
+  if (weight.length === 1) out.push(weight[0]);
+  else if (weight.length) out.push({ source: `Armor weight: ${weight.map((w) => w.source.replace(/^Gear \(worn\): /, '')).join(', ')}`, value: powerStack(weight.map((w) => w.value), CONFIG.MOD_STACK_EXP) });
   return out;
 }
 

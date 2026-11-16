@@ -229,7 +229,8 @@ export function giveItem(state: GameState, actor: Actor, instId: string | null |
   return { id: moved.id, qty: n };
 }
 
-/** equip (main action): put armor on (taking off any worn armor), or take it off when worn. */
+/** equip (main action): put an armor piece on, or take it off when worn. Several pieces can be worn when no body part is
+ * covered twice (IR19): putting one on takes off the worn pieces that cover any of its parts. */
 export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined, dry = false): boolean {
   const inst = actor.core.inventory.find((x) => x.id === instId);
   if (!inst || itemDef(state, inst.itemId).slot !== 'armor') return false;
@@ -239,7 +240,8 @@ export function equipArmor(state: GameState, actor: Actor, instId: string | null
     return true;
   }
   if (inst.equippedIn?.length) return false;
-  actor.core.inventory.forEach((i) => { if (inArmorSlot(i)) delete i.equippedIn; });
+  const parts = new Set(itemDef(state, inst.itemId).armor?.covers ?? []);
+  actor.core.inventory.forEach((i) => { if (inArmorSlot(i) && itemDef(state, i.itemId).armor?.covers.some((p) => parts.has(p))) delete i.equippedIn; });
   inst.equippedIn = ['armor'];
   return true;
 }
