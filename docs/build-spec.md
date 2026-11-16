@@ -1876,7 +1876,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 
 Done means every case test passes except those waiting on other work: 46 and 53 test rules still \[Proposed\]. Also, every non-dialogue turn that doesn't start a scenario shows checked narration after one Parser call plus one full Narrator call.
 
-**First build scope.** A fantasy village with a guard, a trader and a tavern patron to talk to. The player is a swordsman, and slimes living around the village are hunted. Hunting gives XP (Part 1 §5) but no skill changes (recordUse() only logs). The slimes' routine set, slime\_wander, is the test of the Agent Weaver integration (Appendix: prototype routine bank).
+**First build scope.** A fantasy village with a guard, a trader and a tavern patron to talk to. The player is a swordsman, and slimes living around the village are hunted. Hunting gives XP (Part 1 §5) but no skill changes (recordUse() only logs). The slimes' routine set, slime\_wander, is the test of the Agent Weaver integration (library viewer, Routine sets).
 
 Build in this order, so the game is playable with stubs before any agent is wired in:
 
@@ -3673,104 +3673,6 @@ These must be answered before the spec goes to a build agent. Each question has 
 - OQ-29: NPC speech rolls at the player. Answered and built (D-154), except NT14 (intimidation aura and morale), which waits on the perk and morale threads.
   - Build default: NPC speech is narration only.
 
-## Appendix: prototype routine bank
+## Appendix: library rows
 
-Approved as placeholders (Nov 2026): every number, including the activities' noise and visibility values and the DURATIONS placeholders, can still change. It covers one town gate, a street and a tavern, plus a slime field outside the town gate, where slimes roam to be hunted.
-
-**Tags**
-
-| Tag | Values |
-| --- | --- |
-| place | gate, street, tavern, field |
-| role | guard, trader, patron, sleeper, worker, creature |
-| time | day, night, any |
-| event | ordinary |
-
-Standard slots: post, route, refuge, exit, here.
-
-**Durations** (config, placeholder)
-
-| Id | Turns |
-| --- | --- |
-| brief | 1 |
-| short | 3 |
-| medium | 6 |
-| long | 12 |
-
-**Activities**
-
-| Id | Look (public) | Attention | Noise | Visibility |
-| --- | --- | --- | --- | --- |
-| stand\_watch | keeping watch | alert | silent | normal |
-| search | searching | alert | quiet | normal |
-| walk | walking | normal | quiet | normal |
-| work | hard at work | normal | normal | normal |
-| tend\_counter | tending the counter | normal | quiet | normal |
-| drink | nursing a drink | distracted | quiet | normal |
-| chat | chatting | distracted | normal | normal |
-| sleep | asleep | asleep | quiet | low |
-| rest | resting | distracted | silent | low |
-| cower | keeping out of sight | alert | silent | close |
-| ooze | oozing across the grass | normal | quiet | normal |
-
-**Routines.** Steps read slot · duration · activity. A route step expands to one stop per bound zone.
-
-| Id | Kind | Loop | Steps or activity | Alert variant | onAlert | Brief |
-| --- | --- | --- | --- | --- | --- | --- |
-| guard\_post | schedule | yes | post · long · stand\_watch | hold\_post\_alert | call\_help | Stands watch at the post |
-| hold\_post\_alert | schedule | yes | post · long · stand\_watch | — | null | Holds the post on alert |
-| patrol | schedule | yes | route · short · walk | search\_route\_alert | call\_help | Walks the beat, stop by stop |
-| search\_route\_alert | schedule | yes | route · brief · search | — | null | Sweeps the beat fast, searching at each stop, on alert |
-| tend\_bar | schedule | yes | counter · long · tend\_counter | flee\_to\_refuge\_alert | null | Works behind the bar |
-| drink\_at\_seat | schedule | yes | seat · medium · drink; seat · short · chat | flee\_to\_refuge\_alert | null | Drinks and chats at a seat |
-| sleep\_in\_bed | schedule | yes | bed · long · sleep | flee\_to\_refuge\_alert | null | Sleeps in bed |
-| work\_shift | schedule | yes | work · long · work; work · brief · rest | flee\_to\_refuge\_alert | null | Works with short breaks |
-| flee\_to\_refuge\_alert | schedule | no | refuge · long · cower | — | null | Hides in the refuge |
-| leave\_by\_exit | schedule | no | exit · long · rest | flee\_to\_refuge\_alert | null | Heads for the exit and lingers |
-| wait | wait | — | rest | wait\_alert | null | Waits where it stands |
-| wait\_alert | wait | — | stand\_watch | — | null | Waits on guard where it stands |
-| follow | follow | — | walk | follow\_alert | null | Follows the player |
-| follow\_alert | follow | — | stand\_watch | — | null | Follows the player, on guard |
-| idle\_here | wait | — | rest | — | null | Fallback only; in no set |
-| roam\_field | schedule | yes | route · short · ooze; post · medium · rest | roam\_field\_alert | null | Oozes across the field, then settles |
-| roam\_field\_alert | schedule | yes | route · brief · ooze | — | null | Sweeps the field fast on alert; never flees |
-
-**Routine sets**
-
-| Id | Place | Role | Time | Slots (kind: hint) | Routines, default first | Brief |
-| --- | --- | --- | --- | --- | --- | --- |
-| gate\_guard | gate, street | guard | any | post (zone: where the guard stands) | guard\_post, hold\_post\_alert, wait, wait\_alert | A guard posted at one spot |
-| patrol\_guard | gate, street | guard | any | route (route: the beat's stops, in order) | patrol, search\_route\_alert, wait, wait\_alert | A guard walking a beat |
-| barkeep | tavern | trader | any | counter (zone: behind the bar); refuge (zone: back room or cellar) | tend\_bar, flee\_to\_refuge\_alert, wait, wait\_alert | Runs the bar |
-| patron | tavern | patron | any | seat (zone: where they sit); refuge (zone: where they would hide); exit (zone: the way out) | drink\_at\_seat, flee\_to\_refuge\_alert, leave\_by\_exit, wait, wait\_alert | A customer drinking |
-| sleeper | tavern | sleeper | night | bed (zone: their bed); refuge (zone: where they would hide) | sleep\_in\_bed, flee\_to\_refuge\_alert, wait, wait\_alert | A guest asleep upstairs |
-| street\_worker | street | worker | day | work (zone: the work spot); refuge (zone: home or a doorway) | work\_shift, flee\_to\_refuge\_alert, wait, wait\_alert | A labourer or stallholder at work |
-| companion | — | — | — | none (here is written by code) | follow, follow\_alert, wait, wait\_alert | The player's band; not chosen by tags |
-| slime\_wander | field | creature | any | route (route: across the field, in order); post (zone: where it settles) | roam\_field, roam\_field\_alert | A slime roaming the field outside the gate |
-
-Totals: 10 activities, 17 routines, 8 sets. Every set passes the routine bank import checks (Leak prevention, validation and failure handling): shared routines read only standard slots, and every alert variant is listed in its set.
-
-## Appendix: prototype item bank
-
-Seventeen library items for the first build, approved as placeholders (Nov 2026); every number can still change. "Kit +25" marks a kit piece: a skill bonus to the skill of the mode used, held, withItem. All kit pieces share one +25 per roll and never stack. Real item stats and kits come later. Armor weight penalties are worn skill effects on Dodge. Pools are fixed points on the item, the same for every user.
-
-| Id | Kind | Modes or protection | Effects | Hands | Bulk | Value |
-| --- | --- | --- | --- | --- | --- | --- |
-| dagger | weapon | slash: melee light, reach 0 · throw: reach 0 + 2, combined roll | Kit +25 | 1 | 1 | 5 |
-| arming\_sword | weapon | cut: melee medium, reach 0 | Kit +25 | 1 | 2 | 20 |
-| greataxe | weapon | chop: melee heavy, reach 0 | Kit +25 | 2 | 3 | 30 |
-| spear | weapon | thrust: melee medium, reach 1 (2 grips) · throw: reach 1 + 2, combined roll (1 grip) | Kit +25 | 1–2 | 3 | 10 |
-| shortbow | weapon | shoot: ranged light, reach 3 | Kit +25 | 2 | 2 | 25 |
-| longbow | weapon | shoot: ranged medium, reach 4 | Kit +25 | 2 | 3 | 35 |
-| crossbow | weapon | shoot: ranged heavy, reach 4 | Kit +25 | 2 | 3 | 40 |
-| hidden\_blade | weapon, concealed | stab: melee light, reach 0 | Kit +25 | 1 | 1 | 30 |
-| gambeson | armor, light | covers general, arms, both legs · 2, ×0.8 | Dodge −5 | — | 2 | 15 |
-| mail\_hauberk | armor, medium | covers general, arms · 4, ×0.65 | Dodge −10 | — | 3 | 60 |
-| plate\_harness | armor, heavy | covers general, arms, both legs, head, neck · 6, ×0.55 · head pool: 20 | Dodge −20 | — | 3 | 200 |
-| round\_shield | shield | shield part, pool 30 | Kit +25 (Block) | 1 | 2 | 10 |
-| lucky\_charm | misc | — | Event roll +5, carried, any (noted roll modifier) | — | 0 | 50 |
-| lockpicks | tool | — | lockpicking +25, inUse, withItem | 1 | 0 | 15 |
-| healing\_draught | consumable, stackable | — | none until Healing is designed | 1 | 1 | 10 |
-| coin | misc, stackable | — | — | — | 0 | 1 |
-
-Not items (ruleset config and body type database): the weapon class table (Part 3, Weapons, armor and shields); the unarmed profile, 15 damage and +10 hit; the humanoid's unarmed modes "punch" (class punch, unarmed\_strike, reach 0, no hands) and "grapple" (class grapple, unarmed\_grapple, reach 0, no hands); QUALITY\_TABLE (Part 5 §7). Natural attacks and natural armor for other body types arrive with their database entries.
+The library's rows (items, activities, routines, routine sets and every other table) live in src/library and are shown in full by the library viewer (https://claude.ai/artifact/9RabjAxeup7mPRREhFML7y), which reads them from the code. The spec keeps the rules, not copies of the rows. The first build's prototype routine bank and item bank tables were removed here (Ali, IC5, 16/11/2026): they had drifted from the library (17 items with reach in zones against 78 with reach in metres).
