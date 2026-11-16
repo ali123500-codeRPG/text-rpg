@@ -626,11 +626,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Blade Wall (Parry) · B19
 
-*Story:* Let them all come. Your sword turns one blow after another. When you parry with a medium or heavy weapon, being outnumbered doesn't hurt your guard.
+*Story:* Let them all come. Your sword turns one blow after another. Your parries never take the outnumbered penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner parries.
-- **Conditions:** The owner parries with a medium or heavy melee weapon.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
 

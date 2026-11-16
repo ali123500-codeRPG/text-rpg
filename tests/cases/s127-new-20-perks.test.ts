@@ -146,7 +146,7 @@ describe('127 20 perks for the new skills', () => {
     expect(r.target).toBe('engaged'); // the target knows who struck, so the two are engaged (YD6)
   });
 
-  it('the 60s against crowds: Blade Wall (Parry, medium weapon), Shield Wall (Block) and Slip the Crowd (Dodge) drop the outnumbered penalty', () => {
+  it('the 60s against crowds: Blade Wall (Parry), Shield Wall (Block) and Slip the Crowd (Dodge) drop the outnumbered penalty', () => {
     const mods = (itemId: string | null, perk: string | null, stance: 'dodge' | 'block' | 'parry') => {
       const s = makeVillage();
       beside(s, 'patron_1');
@@ -161,7 +161,7 @@ describe('127 20 perks for the new skills', () => {
     };
     expect(mods(IT.arming_sword, null, 'parry')).toBe(true);
     expect(mods(IT.arming_sword, PK.blade_wall, 'parry')).toBe(false);
-    expect(mods(IT.dagger, PK.blade_wall, 'parry')).toBe(true);
+    expect(mods(IT.dagger, PK.blade_wall, 'parry')).toBe(false); // any parry, a light blade included
     expect(mods(IT.round_shield, null, 'block')).toBe(true);
     expect(mods(IT.round_shield, PK.blade_wall, 'block')).toBe(true);
     expect(mods(IT.round_shield, PK.shield_wall, 'block')).toBe(false);
