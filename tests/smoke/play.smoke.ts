@@ -166,10 +166,11 @@ describe('play page smoke (TQ7)', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     // someone to hit, half a metre away: the smoke world's opening has no one beside the player
     const id = await page.evaluate(() => {
-      type A = { id: string; kind: string; name?: string; zone: string; pos: { x: number; y: number }; core: { skills: Record<string, unknown> } };
+      type A = { id: string; kind: string; name?: string; zone: string; pos: { x: number; y: number }; core: { skills: Record<string, unknown>; inventory: unknown[] } };
       const s = (globalThis as unknown as { __GAME_API__: { state(): { player: A; actors: A[] } } }).__GAME_API__.state();
       s.player.core.skills.SK2 ??= { raw: 30, state: 'normal' }; // a made character may lack Medium weapons: the order names it
       const d = { ...structuredClone(s.player), id: 'dummy', kind: 'npc', name: 'Straw Dummy', pos: { x: s.player.pos.x + 0.5, y: s.player.pos.y }, mind: { control: 'code', knowledge: {}, knows: [] } };
+      d.core.inventory = []; // BG-258: a straw dummy holds no weapon (a copy of the player's would cut back and could fell the player)
       s.actors.push(d);
       return d.id;
     });

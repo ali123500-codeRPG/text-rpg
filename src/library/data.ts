@@ -1181,7 +1181,7 @@ export function prototypeLibrary(): Library {
     npcRoles: NPC_ROLES,
     themes: THEMES,
     // NR37 a: the first beast prefix; later ones (mana, demons) add traits on top. A creature carries at most one
-    // NR37 a: Dire's third part, one body size larger, waits for a body-size rule (D-347)
+    // NR37 a: Dire's third part, one body size larger, waits for a body-size rule (D-348)
     prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health.', rankStep: 1, hpMult: 1.5 } },
     hookKinds: HOOK_KINDS,
     groups: GROUPS,

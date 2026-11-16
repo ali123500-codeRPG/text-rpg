@@ -101,7 +101,7 @@ export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
 /** grades, none to divine (D-7; CR4, CR12): how hard a task, a challenge or a lock is, and how big a gain. The Weaver's
  * challenge and gain, barriers, gains and locks use none to WEAVER_GRADE_TOP; the rows past it are task grades only */
 export const GRADE_LEVELS = scale([['none', 'None'], ['minor', 'Minor'], ['moderate', 'Moderate'], ['major', 'Major'], ['extreme', 'Extreme'],
-  ['mortal_limit', 'Mortal limit'], ['beyond', 'Beyond'], ['mythic', 'Mythic'], ['divine', 'Divine']]);
+  ['mortal_limit', 'Mortal limit'], ['beyond', 'Beyond'], ['mythic', 'Mythic'], ['transcendent', 'Transcendent'], ['divine', 'Divine']]);
 export type GradeLevel = (typeof GRADE_LEVELS.keys)[number];
 /** the top grade the Weaver, barriers, gains and locks use */
 export const WEAVER_GRADE_TOP: GradeLevel = 'extreme';

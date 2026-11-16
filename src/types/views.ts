@@ -179,7 +179,7 @@ export type ActorView = {
     standingDefense: DefenseKind;
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
-    attackSkill: string; // fallback.attackSkill (template, else body type)
+    attackSkill: string; // BG-258: the held weapon's skill, else fallback.attackSkill (template, else body type)
     bodyAttacks?: BodyAttackView[]; // BG-193
     /** elapsed (NW10): game minutes since it started; dayPart: the time of day now */
     routine?: { id: string; anchorTurn: number; elapsed: number; dayPart: import('../scales').TimeOfDay };
