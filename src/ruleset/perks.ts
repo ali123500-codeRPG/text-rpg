@@ -110,23 +110,25 @@ export const standInAdd = (a: Actor, fn: string): number =>
  * health (Natural recovery), morale (Natural composure) and stamina (Catching your breath) */
 export const recoveryMult = (a: Actor): number =>
   owned(a).reduce((m, p) => m * (getLibrary().perks[p.perkId]?.numbers?.recoveryMult ?? 1), 1);
+/** a ladder perk's numbers work with this skill: its own skill, or the skills it lists (PerkDef.numbersFor: Keen Edge, every weapon) */
+const numbersWork = (d: PerkDef | undefined, skill: string): boolean => !!d?.ladder && (d.numbersFor ?? [d.ladder.skill]).includes(skill);
 /** a 40/80/120 perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
 export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult'): number {
   const perks = getLibrary().perks;
-  return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? m * (d.numbers?.[key] ?? 1) : m; }, 1);
+  return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return numbersWork(d, skill) ? m * (d!.numbers?.[key] ?? 1) : m; }, 1);
 }
 /** 40/80/120 perk roll modifiers for one skill: rollAdd on every roll, hitAdd on attack rolls only, each named by its perk */
 export function boostRollMods(a: Actor, skill: string, attack: boolean): { source: string; type: 'roll_perk'; value: number }[] {
   const perks = getLibrary().perks;
   return owned(a).flatMap((p) => {
     const d = perks[p.perkId];
-    const v = d?.ladder?.skill === skill ? (d.numbers?.rollAdd ?? 0) + (attack ? d.numbers?.hitAdd ?? 0 : 0) : 0;
+    const v = numbersWork(d, skill) ? (d!.numbers?.rollAdd ?? 0) + (attack ? d!.numbers?.hitAdd ?? 0 : 0) : 0;
     return v ? [{ source: d!.name, type: 'roll_perk' as const, value: v }] : [];
   });
 }
 export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
   const perks = getLibrary().perks;
-  return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? n + (d.numbers?.[key] ?? 0) : n; }, 0);
+  return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return numbersWork(d, skill) ? n + (d!.numbers?.[key] ?? 0) : n; }, 0);
 }
 
 /** ladder perks this actor owns in one skill */
