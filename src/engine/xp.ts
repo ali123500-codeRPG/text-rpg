@@ -70,8 +70,9 @@ export function spendXp(state: GameState): void {
     logCode(state, 'level_up', up);
   }
   takeBonusLevels(state); // a class perk can give bonus levels too
+  takePerkPoints(p); // and perk points (Nobody Special)
   classFeats(state);
-  unlockClasses(state); // a class-level perk can unlock a class (Commoner 5 opens A Nobody)
+  unlockClasses(state); // a class level or class-level perk can unlock a class (Commoner 5 opens A Nobody)
   const cur = p.core.classes.find((c) => c.state === 'current');
   if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the top level
     if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
@@ -90,6 +91,18 @@ function takeBonusLevels(state: GameState): void {
     (pr.xpLog ??= []).push({ source: 'bonus level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
+}
+
+/** perk points that active perks give (PerkDef.perkPoints) and that are not yet added */
+export const perkPointsOwed = (a: Actor) => Math.max(0, a.core.perks.filter((x) => !x.dormant)
+  .reduce((n, x) => n + (getLibrary().perks[x.perkId]?.perkPoints ?? 0), 0) - (a.progression?.perkPointsTaken ?? 0));
+
+/** add the perk points perks give to the unspent pool, once each */
+function takePerkPoints(p: Actor): void {
+  const pr = p.progression, owed = perkPointsOwed(p);
+  if (!pr || !owed) return;
+  pr.unspentPerkPoints += owed;
+  pr.perkPointsTaken = (pr.perkPointsTaken ?? 0) + owed;
 }
 
 /** a class the player doesn't have unlocks at level 0, however it opens, and earns {class} Awakened */
@@ -151,6 +164,7 @@ export function keepCapstone(p: Actor, classId: string): boolean {
   if (!pr?.capstoneOptions?.[classId]) return false;
   for (const x of capstonePerks(p, classId)) delete x.dormant;
   delete pr.capstoneOptions[classId];
+  takePerkPoints(p);
   return true;
 }
 
@@ -162,6 +176,7 @@ export function swapCapstone(state: GameState, classId: string, perkId: string):
   p.core.perks = p.core.perks.filter((x) => !(x.source === 'class' && base.includes(x.perkId)));
   p.core.perks.push({ perkId, source: 'class', gainedTurn: turn });
   delete pr.capstoneOptions![classId];
+  takePerkPoints(p);
   openEveryClass(state);
   return true;
 }

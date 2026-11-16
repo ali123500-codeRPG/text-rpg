@@ -335,6 +335,7 @@ export type PerkDef = {
   improveRolls?: { below: number; rolls: number };
   freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
+  perkPoints?: number; // perk points: this many added once to the owner's unspent perk points when the perk is owned and active (Nobody Special)
   searchArea?: number; // SE24: + this % on the owner's search area (and so its fight-turn reach), while owned and active
   searchReach?: number; // SE24: + this many metres of fight-turn search reach (and SEARCH_M2_PER_FIGHT_M m² of search area per metre)
   /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open; kind as AugmentKind).

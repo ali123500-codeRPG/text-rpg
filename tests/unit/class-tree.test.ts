@@ -10,11 +10,11 @@ import { CL } from '../../src/library/classIds';
 import { levelTarget, spendXp } from '../../src/engine/xp';
 
 describe('class tree', () => {
-  it('links come from the unlock rules: Commoner opens A Nobody, Trader opens Merchant, both by their capstone', () => {
+  it('links come from the unlock rules: Commoner opens A Nobody, Trader opens Merchant, both at its top level', () => {
     const links = classLinks();
     expect(links).toContainEqual(expect.objectContaining({ from: CL.commoner, to: CL.a_nobody }));
     expect(links).toContainEqual(expect.objectContaining({ from: CL.trader, to: CL.merchant }));
-    for (const l of links.filter((x) => x.from === CL.trader || x.from === CL.commoner)) expect(l.via).toMatch(/capstone/);
+    for (const l of links.filter((x) => x.from === CL.trader || x.from === CL.commoner)) expect(l.via).toBe('its top level');
   });
 
   it('classes that no class opens name where they come from', () => {

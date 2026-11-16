@@ -1,4 +1,4 @@
-// 147 Merchant (tier 1) unlocks through the Trader (tier 0) capstone Known at Every Stall, granted at Trader's top level. Its skill Shrewd Dealing augments Barter: its true skill
+// 147 Merchant (tier 1) unlocks at Trader's (tier 0) top level, or at Barter 75 on its own. Its skill Shrewd Dealing augments Barter: its true skill
 // (× share × tier) is added to every roll that asks for Barter. Augments can be limited to roll kinds.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -11,7 +11,7 @@ import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
 
 describe('147 Merchant and skill augments', () => {
-  it('Trader is tier 0, Merchant tier 1; the Trader capstone unlocks Merchant', () => {
+  it('Trader is tier 0, Merchant tier 1; Trader at its top level unlocks Merchant', () => {
     const s = makeVillage(), p = s.player, lib = getLibrary();
     expect([lib.classes[CL.trader].tier, lib.classes[CL.merchant].tier]).toEqual(['tier_0', 'tier_1']);
     expect([classMaxLevel(CL.trader), classMaxLevel(CL.merchant)]).toEqual([5, 10]);
@@ -20,12 +20,12 @@ describe('147 Merchant and skill augments', () => {
     p.core.perks = [];
     unlockClasses(s);
     expect(p.core.classes.some((c) => c.classId === CL.merchant)).toBe(false);
-    awardXp(s, xpToNext(p), 'test'); // Trader 4 → 5, its top level: the capstone comes and unlocks Merchant
+    awardXp(s, xpToNext(p), 'test'); // Trader 4 → 5, its top level: Merchant unlocks (the capstone still comes)
     expect(p.core.perks.map((x) => x.perkId)).toContain(PK.known_at_every_stall);
     expect(p.core.classes).toContainEqual({ classId: CL.merchant, state: 'unlocked', level: 0 });
   });
 
-  it('Merchant also unlocks at Barter 75 with no Trader capstone; Barter 74 is not enough', () => {
+  it('Merchant also unlocks at Barter 75 with no Trader levels; Barter 74 is not enough', () => {
     const s = makeVillage(), p = s.player;
     p.core.classes = [];
     p.core.perks = [];

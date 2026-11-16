@@ -1,6 +1,6 @@
 // 131 Class level cap: a class's top level is set by its tier (tier 0 → 5, +5 a tier, at most CLASS_MAX_LEVEL 20).
 // XP past it banks until a class with room is picked, then every banked level is taken at once. The default class
-// (Commoner, tier 0) opens at the top level; its capstone at 5 unlocks A Nobody, the class of a Start, with Quick Study at
+// (Commoner, tier 0) opens at the top level; reaching 5 unlocks A Nobody, and its capstone Nobody Special gives +1 perk point. A Nobody has Quick Study at
 // level 1 and the capstone Every Fall a Lesson at its top level (15, tier 2). Capstones come at the top level.
 import { RC } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
@@ -39,8 +39,13 @@ describe('131 Class level cap', () => {
     expect(pr.xp).toBe(before + 5);
     expect(p.core.perks.filter((x) => x.source === 'class')).toEqual([]);
     p.core.classes[1].level = 4;
-    awardXp(s, xpToNext(p), 'test'); // Commoner 4 → 5, its top level: the capstone Nobody Special unlocks A Nobody
+    const pts = pr.unspentPerkPoints;
+    awardXp(s, xpToNext(p), 'test'); // Commoner 4 → 5, its top level: A Nobody unlocks, and the capstone Nobody Special comes
     expect(p.core.perks.map((x) => x.perkId)).toContain(PK.nobody_special);
+    expect(charLevel(p)).toBe(15); // an odd level: no level perk point
+    expect(pr.unspentPerkPoints).toBe(pts + 1); // Nobody Special's one perk point
+    spendXp(s);
+    expect(pr.unspentPerkPoints).toBe(pts + 1); // given once
     expect(p.core.classes).toContainEqual({ classId: CL.a_nobody, state: 'unlocked', level: 0 });
     expect(levelTarget(p)).toBeUndefined(); // Commoner is at its top level too: XP banks until A Nobody is picked
   });
@@ -51,7 +56,7 @@ describe('131 Class level cap', () => {
     for (const c of Object.values(lib.classes)) for (const id of c.capstone ?? []) expect(lib.perks[id]?.classLevel, id).toEqual({ classId: c.id, level: classMaxLevel(c.id) });
   });
 
-  it('A Nobody: Quick Study at level 1 (its Start is gone, CC3; Commoner\'s capstone opens it)', () => {
+  it('A Nobody: Quick Study at level 1 (its Start is gone, CC3; Commoner\'s top level opens it)', () => {
     expect(getLibrary().classes[CL.a_nobody].name).toBe('A Nobody');
     expect(getLibrary().classes[CL.a_nobody].levelPerks?.[1]).toEqual([PK.quick_study]);
     expect(Object.values(getLibrary().starts).some((s) => s.classId === CL.a_nobody)).toBe(false);
