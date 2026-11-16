@@ -1,8 +1,9 @@
-// IR3, IR5, IR7, IR8: equip levels past Masterwork with no top, priced items carry no hand-set value, quality 2 is
+// IR2, IR3, IR5, IR7, IR8: a piece for every gear class and level to Masterwork, equip levels past Masterwork with no top, priced items carry no hand-set value, quality 2 is
 // Sound, and armor covers what its real garment covers.
 import { describe, expect, it } from 'vitest';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
+import { GC } from '../../src/library/tableIds';
 import { CONFIG } from '../../src/config';
 import { EQUIP_LEVELS, FRAGILITY, QUALITY_LEVELS, equipAt, equipName, equipPos } from '../../src/scales';
 import { equipNeed, itemLevel, requirement } from '../../src/ruleset/requirements';
@@ -43,5 +44,16 @@ describe('336 equip ladder', () => {
     expect(covers(IT.boiled_leather)).toEqual(['general']);
     expect(covers(IT.gambeson)).toEqual(['general', 'left_arm', 'right_arm']);
     expect(covers(IT.mail_hauberk)).toEqual(['general', 'left_arm', 'right_arm']);
+  });
+
+  it('IR2: every gear class but improvised has a piece at every level from Common to Masterwork; Masterwork ones are fantasy', () => {
+    const lib = getLibrary(), items = Object.values(lib.items);
+    expect(Object.keys(lib.gearClasses ?? {}).length).toBe(11);
+    for (const gc of Object.keys(lib.gearClasses ?? {})) {
+      if (gc === GC.improvised) continue;
+      for (const lv of ['common', 'fine', 'superior', 'masterwork']) expect(items.some((d) => d.gearClass === gc && d.level === lv), `${gc} ${lv}`).toBe(true);
+    }
+    for (const d of items) if (d.level === 'masterwork') expect(d.tags, d.id).toContain('fantasy');
+    expect(item(IT.rapier).weapon!.modes[0].reachM).toBe(1.7);
   });
 });

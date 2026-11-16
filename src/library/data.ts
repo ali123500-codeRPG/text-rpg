@@ -362,6 +362,41 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } }, // IR8: breastplate with arm and leg plates, as its look says
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
+  // IR2 Superior (need 75): the best real pieces. Reach is the blade plus a 0.7 m arm, as the dagger's 1.0 m is.
+  { id: IT.rapier, edge: true, level: 'superior', gearClass: GC.melee_light, kind: 'weapon', name: 'rapier', look: 'a long, slender rapier with a swept hilt', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.7, grips: 1 })] } }, // blade 104 cm on average, one-handed (Wikipedia "Rapier")
+  { id: IT.longsword, edge: true, level: 'superior', gearClass: GC.melee_medium, kind: 'weapon', name: 'longsword', look: 'a long, two-handed sword with a cruciform hilt', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.65, grips: 2 })] } }, // blade 80-110 cm, mostly two-handed (Wikipedia "Longsword")
+  { id: IT.turkish_bow, level: 'superior', gearClass: GC.ranged_light, kind: 'weapon', shotTime: DU.bow_light, name: 'Turkish composite bow', look: 'a short, sharply recurved bow of horn, wood and sinew', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 80, grips: 2 })] } }, // placeholder: no war range given; its flight records (434 m) pass the English bows' (315 m Finsbury mark) (Wikipedia "Turkish archery", "English longbow")
+  { id: IT.warbow, level: 'superior', gearClass: GC.ranged_medium, kind: 'weapon', shotTime: DU.bow_medium, name: 'warbow', look: 'a tall yew warbow of enormous draw', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 150, grips: 2 })] } }, // Mary Rose bows, 100-185 lbf; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
+  { id: IT.jack_of_plates, level: 'superior', gearClass: GC.armor_light, kind: 'armor', name: 'jack of plates', look: 'a canvas jack quilted over small iron plates', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { covers: ['general'], ...ARMOR('light', 'superior') } }, // IR8: iron squares sewn between canvas, about 7.7 kg, a torso garment (Wikipedia "Jack of plate")
+  { id: IT.coat_of_plates, level: 'superior', gearClass: GC.armor_medium, kind: 'armor', name: 'coat of plates with mail', look: 'a riveted coat of plates over a sleeved mail shirt', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'superior') } }, // IR8: plates over the torso, worn with mail (Wikipedia "Coat of plates"); the mail's sleeves cover the arms (Wikipedia "Hauberk")
+  { id: IT.heater_shield, level: 'superior', gearClass: GC.shield, kind: 'shield', name: 'heater shield', look: 'a flat-topped heater shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('superior') }, // smaller and lighter than the kite shield (Wikipedia "Heater shield")
+  // IR2 Masterwork (need 100): made past any real smith, so tagged 'fantasy'. Each keeps its real form's reach and coverage;
+  // only its level makes it stronger. Names are placeholders.
+  { id: IT.peerless_rapier, edge: true, level: 'masterwork', gearClass: GC.melee_light, tags: ['fantasy'], kind: 'weapon', name: 'peerless rapier', look: 'a rapier of impossible craft', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.7, grips: 1 })] } },
+  { id: IT.peerless_longsword, edge: true, level: 'masterwork', gearClass: GC.melee_medium, tags: ['fantasy'], kind: 'weapon', name: 'peerless longsword', look: 'a longsword of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.65, grips: 2 })] } },
+  { id: IT.peerless_greatsword, edge: true, level: 'masterwork', gearClass: GC.melee_heavy, tags: ['fantasy'], kind: 'weapon', name: 'peerless greatsword', look: 'a greatsword of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, grips: 2 })] } },
+  { id: IT.peerless_composite_bow, level: 'masterwork', gearClass: GC.ranged_light, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_light, name: 'peerless composite bow', look: 'a composite bow of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 80, grips: 2 })] } },
+  { id: IT.peerless_warbow, level: 'masterwork', gearClass: GC.ranged_medium, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_medium, name: 'peerless warbow', look: 'a warbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 150, grips: 2 })] } },
+  { id: IT.peerless_crossbow, level: 'masterwork', gearClass: GC.ranged_heavy, tags: ['fantasy'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'peerless crossbow', look: 'a steel-bowed crossbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, grips: 2 })] } },
+  { id: IT.peerless_jack, level: 'masterwork', gearClass: GC.armor_light, tags: ['fantasy'], kind: 'armor', name: 'peerless jack', look: 'a jack of plates of impossible craft', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { covers: ['general'], ...ARMOR('light', 'masterwork') } },
+  { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'masterwork') } },
+  { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'masterwork'), pools: { head: 20 } } },
+  { id: IT.peerless_heater, level: 'masterwork', gearClass: GC.shield, tags: ['fantasy'], kind: 'shield', name: 'peerless heater shield', look: 'a heater shield of impossible craft', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('masterwork') },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it (a charm: who carries it); its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'misc', name: 'Varo\'s Loop', look: 'a small hoop of dark silver on a knotted cord, a charm worn smooth by fingers, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20,
     threadbound: { rank: 'rank_4', grants: [
