@@ -1,5 +1,5 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
-// items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
+// items and the routine bank (the library viewer shows every row). All numbers are placeholders.
 import { AM, BK, CP, DU, RV, EK, FR, FU, GC, GT, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
 import { TP } from './templateIds';
 import { GP, HK, PF, RO, TH } from './npcLayerIds';
