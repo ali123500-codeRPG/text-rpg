@@ -1134,7 +1134,7 @@ function autoFacets(table: Record<string, Entry>): Facets {
   return (e: Entry) => keys.map((k) => [humanKey(k), typeof e[k] === 'string' ? typedId(e[k] as string)?.textContent ?? (e[k] as string) : (e[k] as string)]);
 }
 
-const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', npcRoles: 'NPC roles', themes: 'NPC themes', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts' };
+const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', npcRoles: 'NPC roles', themes: 'NPC themes', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts', status: 'Old skill IDs' };
 const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[])
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? humanKey(k), table: k }))];
@@ -1143,7 +1143,8 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Items', ['gear', 'threadbound', 'gearClasses', 'gearTypes']],
   ['Library', ['perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'healing', 'composure', 'quests', 'fears', 'status']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'quests']],
+  ['Body and mind', ['healing', 'composure', 'fears']],
   ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'npcRoles', 'themes', 'roles', 'activities', 'routines', 'routineSets', 'services']],
   ['Personality', ['nerve', 'personalityAxes', 'personalityTypes', 'tensions', 'values']],
@@ -1154,7 +1155,7 @@ const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).le
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
   RAIL_GROUPS.flatMap(([g, keys]) => {
     const list = keys ? keys.flatMap((k) => SECTIONS.filter((s) => s.key === k)) : SECTIONS.filter((s) => !RAIL_GROUPS.some(([, k]) => k?.includes(s.key)));
-    const grp = g.toLowerCase(); // each group has its own colour (CSS [data-group]), so the breaks between them read at a glance
+    const grp = g.toLowerCase().replace(/ /g, '-'); // each group has its own colour (CSS [data-group]), so the breaks between them read at a glance
     const items = list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'data-group': grp, class: railFolds.has(grp) ? 'lv-railfold' : '', 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); });
     // clicking a group's label folds its tables away (the open table stays); remembered in this browser
     const head = h('button', { type: 'button', class: 'lv-railgroup', 'data-group': grp, 'aria-expanded': String(!railFolds.has(grp)), onclick: () => {
