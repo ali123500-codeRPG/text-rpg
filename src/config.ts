@@ -438,6 +438,11 @@ const DEFAULTS = {
   NPC_UNCAPPED_FROM: 'rank_6' as const,
   /** NG3: past the last rank row, each step adds this */
   RANK_BEYOND_STEP: { anchor: PAST_100_STEP, level: 20, training: 10 },
+  /** TS1 (report card, placeholders): the least achievement XP earned, and the fewest people who know the hero's name,
+   * for each rank row's grade; past the last row each step multiplies the last row by GRADE_BEYOND_MULT */
+  GRADE_ACH_XP: { rank_0: 0, rank_1: 100, rank_2: 300, rank_3: 1000, rank_4: 3000, rank_5: 10000, rank_6: 30000, rank_7: 100000, rank_transcendent: 300000, rank_8: 1000000 } as Record<string, number>,
+  GRADE_KNOWN_BY: { rank_0: 0, rank_1: 1, rank_2: 3, rank_3: 10, rank_4: 30, rank_5: 100, rank_6: 300, rank_7: 1000, rank_transcendent: 3000, rank_8: 10000 } as Record<string, number>,
+  GRADE_BEYOND_MULT: 3,
   /** NG2: a role's bands as shares of the rank's anchor */
   ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */

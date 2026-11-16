@@ -5,6 +5,7 @@ import { skillName } from '../library/skillNames';
 import { trueSkill } from '../ruleset/perks';
 import { achievementName, charLevel, wornTitle } from '../engine/xp';
 import { dayOf, now } from '../time';
+import { reportCard } from '../ruleset/reportCard';
 
 const TOP_SKILLS = 8;
 
@@ -35,6 +36,7 @@ export function fameEntry(s: GameState, lines: LogLine[], place: string, at: str
     defeats: tally.defeats ?? 0,
     turn: s.turn, day: dayOf(now(s)), place,
     ...((() => { const d = [...lines].reverse().find((l) => l.downedBy)?.downedBy; return d ? { downedBy: d } : {}; })()),
+    card: reportCard(s),
     fellAt: at,
   };
 }
