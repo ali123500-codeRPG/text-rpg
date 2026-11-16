@@ -2,6 +2,7 @@ import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
 import type { Past100Key, EffortKey, FatigueLevel, FragilityKey, GradeLevel, GrandeurKey, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
+import { ES } from './library/essenceIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
 // Read CONFIG at call time (tests may change a value and call resetConfig()).
@@ -663,6 +664,13 @@ const DEFAULTS = {
   ESSENCE_FREE_CHANGES: 3,
   /** EB1: an ending's second offer comes from one of this many bested people with the highest power (placeholder) */
   ESSENCE_TOP_BESTED: 3,
+  /** EG9 a, NE3: every essence row's pick weight. Of the rows an NPC carries, one is picked with chance weight ÷ the sum of
+   * theirs (a guard carrying Gate-Warden's Habit 1 and Lookout's Eyes 0.25 gives Lookout's Eyes 1 time in 5). Every row has
+   * one (test s341); placeholders but Lookout's Eyes, which fits every person so is picked rarely */
+  ESSENCE_PICK_WEIGHT: {
+    [ES.gel_patience]: 1, [ES.gate_habit]: 1, [ES.street_instinct]: 1, [ES.hard_won_habit]: 1, [ES.haggler_ear]: 1, [ES.tavern_brawler]: 1,
+    [ES.fang_nose]: 1, [ES.horn_hide]: 1, [ES.claw_pounce]: 1, [ES.lashing_tail]: 1, [ES.lookout_eyes]: 0.25,
+  } as Record<string, number>,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18/AT31: a chase is lost when no pursuer has seen or heard the player for this many game seconds (placeholder) */

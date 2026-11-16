@@ -1061,7 +1061,7 @@ function essencesView(): HTMLElement[] {
       row('Comes from', fromText(e)),
       e.from.deed ? null : row('NPC templates', ((ts) => (ts.length ? h('span', {}, ...ts.flatMap(([t, fit], i) => [i ? ', ' : '', link('templates', t.id, t.label ?? t.id), ` (${fitText(fit)})`])) : none('none carry it')))(
         Object.values(lib.templates).flatMap((t): [NpcTemplate, number | undefined][] => templateEssences(t).filter((x) => x.row.id === e.id).map((x) => [t, x.fit])))),
-      e.from.deed ? null : ((n) => row('Picked', n === 1 ? `always: the only essence of that ${e.from.race ? 'race' : 'body type'}` : `by weight ${e.weight} among the ${n} essences of that ${e.from.race ? 'race' : 'body type'}`))((e.from.race ? all.filter((x) => x.from.race === e.from.race) : all.filter((x) => x.from.bodyType === e.from.bodyType)).length)))),
+      e.from.deed ? null : row('Picked', `by weight ${CONFIG.ESSENCE_PICK_WEIGHT[e.id]} against the other essences the same NPC carries`)))),
   ];
 }
 

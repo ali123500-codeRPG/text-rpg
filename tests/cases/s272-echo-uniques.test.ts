@@ -44,7 +44,7 @@ function sendHero(s: GameState): void {
   p.progression!.achievements = [{ id: 'a1', key: Object.keys(lib.achievements ?? {})[0], turn: 3 }];
   const t = { ...uniqueTemplate(ECHO, RC.human, 'a grim swordsman', echoSheet(s, p, ECHO, 'Aldric, a level 3 Swordsman; fell to a slime in the east field on day 2.')), essences: [ECHO_ESSENCE] };
   // EN3 b: an echo carries only its own essence
-  const own = { id: ECHO_ESSENCE, name: 'Aldric\'s Last Stand', from: { echo: true as const }, weight: 1, skills: [{ skill: SK.melee_medium, weight: 1 }], story: 'test' };
+  const own = { id: ECHO_ESSENCE, name: 'Aldric\'s Last Stand', from: { echo: true as const }, skills: [{ skill: SK.melee_medium, weight: 1 }], story: 'test' };
   setLibrary({ ...lib, templates: { ...lib.templates, [ECHO]: t }, essences: { ...lib.essences, [ECHO_ESSENCE]: own } });
 }
 const spawnEcho = (s: GameState) => {

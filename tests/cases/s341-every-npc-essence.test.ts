@@ -1,7 +1,7 @@
 // 341 Every NPC has an essence (NE1-NE5): every template and every person or beast the composer can build carries at least
 // one essence row. Beasts get shared rows by natural weapon (NE1 a), people rows come from the humanoid body so elves carry
 // them (NE2 a), Lookout's Eyes is for watchers and hunters (NE3 a). An NPC the player kills or bests with no row is flagged
-// as a bug report, essence_gap (NE4).
+// as a bug report, essence_gap (NE4). Every row's pick weight lives in one table, CONFIG.ESSENCE_PICK_WEIGHT.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { composeError, composeTemplate, spawnNpc } from '../../src/library/spawn';
@@ -12,6 +12,7 @@ import { RC, BT } from '../../src/library/raceIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
 import { offersFromDefeats, templateEssences } from '../../src/engine/essence';
 import { isBugCode } from '../../src/save/bugs';
+import { CONFIG } from '../../src/config';
 import type { Rng } from '../../src/types';
 
 const ids = (c: { race: string; role: string; theme: string; rank: string }) => templateEssences(composeTemplate(c, 'x')).map((x) => x.row.id);
@@ -51,12 +52,18 @@ describe('every NPC has an essence', () => {
     }
   });
 
-  it('NE3 a: Lookout\'s Eyes is on watchers and hunters only; the five templates keep their rows', () => {
+  it('NE3 a: watchers and hunters carry Lookout\'s Eyes; every other person carries it too, picked rarely (weight 0.25)', () => {
     makeVillage();
     expect(ids({ race: RC.human, role: RO.watcher, theme: TH.town_watch, rank: 'rank_3' })).toEqual([ES.lookout_eyes]);
     expect(ids({ race: RC.human, role: RO.hunter, theme: TH.village_folk, rank: 'rank_3' })).toEqual([ES.lookout_eyes]);
-    expect(ids({ race: RC.human, role: RO.soldier, theme: TH.town_watch, rank: 'rank_3' })).not.toContain(ES.lookout_eyes);
-    for (const t of Object.values(getLibrary().templates)) expect(templateEssences(t).map((x) => x.row.id), t.id).not.toContain(ES.lookout_eyes);
+    expect(ids({ race: RC.human, role: RO.soldier, theme: TH.town_watch, rank: 'rank_3' })).toEqual([ES.gate_habit, ES.lookout_eyes]);
+    const w = CONFIG.ESSENCE_PICK_WEIGHT;
+    expect(w[ES.lookout_eyes] / (w[ES.lookout_eyes] + w[ES.gate_habit])).toBe(0.2); // a guard gives it 1 time in 5
+  });
+
+  it('every essence row has its pick weight in the one table, CONFIG.ESSENCE_PICK_WEIGHT', () => {
+    makeVillage();
+    for (const id of Object.keys(getLibrary().essences!)) expect(CONFIG.ESSENCE_PICK_WEIGHT[id], id).toBeGreaterThan(0);
   });
 
   it('NE4: an NPC the player killed with no row on its list is flagged as a bug report', () => {
@@ -65,7 +72,8 @@ describe('every NPC has an essence', () => {
     const thief = spawnNpc(s, TP.thief, { id: 'thief_x', zone: s.player.zone, placeId: s.player.placeId, bandId: 'tavern_folk' });
     s.actors.push(thief);
     thief.core.condition.hpLostPct = 200; thief.mind!.hitByPlayer = true;
-    lib.essences = Object.fromEntries(Object.entries(saved).filter(([id]) => id !== ES.street_instinct)); // the thief's only row gone
+    const carried = templateEssences(lib.templates[TP.thief]).map((x) => x.row.id);
+    lib.essences = Object.fromEntries(Object.entries(saved).filter(([id]) => !carried.includes(id))); // every row the thief carries gone
     const dice: Rng = { state: 1, next: () => 0, int: (lo) => lo, d100: () => 1 };
     offersFromDefeats(s, [thief], dice);
     lib.essences = saved;
