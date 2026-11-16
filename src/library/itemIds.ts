@@ -28,4 +28,5 @@ export const IT = {
   nasal_helm: 'IT78', bascinet: 'IT79', great_helm: 'IT80', peerless_great_helm: 'IT81',
   // IR25-IR29: gauntlets, an unarmed weapon held in both grips, one pair per level
   leather_gloves: 'IT82', mail_mittens: 'IT83', plate_gauntlets: 'IT84', peerless_gauntlets: 'IT85',
+  war_spear: 'IT86', // IC6 a: the two-handed spear beside the one-handed one
 } as const;

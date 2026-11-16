@@ -349,8 +349,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 1 })] } },
   { id: IT.greataxe, edge: true, level: 'superior', gearClass: GC.melee_heavy, gearType: GT.great, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, grips: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  // IC4, IC6 a: two spears. The spear thrusts and throws in one grip, so it can go beside a shield; the war spear takes both grips, not thrown
   { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, gearType: GT.pole, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', grips: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
+  { id: IT.war_spear, level: 'common', gearClass: GC.melee_heavy, gearType: GT.pole, kind: 'weapon', name: 'war spear', look: 'a long, heavy-headed spear for both hands', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'heavy', grips: 2 })] } },
   { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, gearType: GT.short_bow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, grips: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
   { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, gearType: GT.longbow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, grips: 2, effects: [KIT()],

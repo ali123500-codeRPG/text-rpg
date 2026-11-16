@@ -14,6 +14,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #927](https://github.com/ali123500-codeRPG/text-rpg/pull/927)
 
+## BG-262
+
+**What was wrong:** A spear was held in one grip, but its thrust took two. The game allows an attack whenever the fighter has that many working grips in all, without asking whether the other grip is busy, so a fighter with a spear and a shield thrust two-handed and still blocked with the shield. The player's starter kit and NPC gear picks could both put a round shield beside a spear.
+
+**What was done:** Ali chose two kinds of spear (IC4, then IC6 a on the "Code consistency check, 10% at a time" page). The spear now thrusts and throws in one grip, so it goes beside a shield as before. A new war spear (IT86, Common, Pole 2.8 m) takes both grips to hold and thrusts as a heavy weapon; it can't be thrown. A library check (tests/cases/s340-two-spears.test.ts) fails if any attack mode needs more grips than its item takes.
+
+**Fixed by:** [PR #926](https://github.com/ali123500-codeRPG/text-rpg/pull/926)
+
 ## BG-261
 
 **What was wrong:** The library viewer's Stacking tab said Total defeats achievements count on attack, dodge and block rolls, but the code also adds them to parry rolls. It said Blade Wall keeps a parry with a medium weapon from being outnumbered, but the code does it for a medium or heavy weapon. The tab's text was written by hand beside the rules, so it drifted when the rules changed.
