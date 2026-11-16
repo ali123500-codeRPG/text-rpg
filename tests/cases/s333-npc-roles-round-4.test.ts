@@ -69,12 +69,12 @@ describe('333 NPC roles, fourth round', () => {
   });
 
   it('NR39: the rank table read backwards: anchors give their levels, between them the level moves evenly', () => {
-    expect(CONFIG.RANK_ROWS.rank_2.level).toBe(4);
-    expect(CONFIG.RANK_ROWS.rank_3.level).toBe(6);
-    expect(CONFIG.RANK_ROWS.rank_4.level).toBe(7);
-    expect(CONFIG.RANK_ROWS.rank_5.level).toBe(12);
-    expect(levelAtSkill(50)).toBe(4);
-    expect(levelAtSkill(87.5)).toBe(9.5); // halfway from Elite (75, L7) to Paragon (100, L12)
+    expect(CONFIG.RANK_ROWS.rank_2.level).toBe(8);
+    expect(CONFIG.RANK_ROWS.rank_3.level).toBe(12);
+    expect(CONFIG.RANK_ROWS.rank_4.level).toBe(15);
+    expect(CONFIG.RANK_ROWS.rank_5.level).toBe(20);
+    expect(levelAtSkill(50)).toBe(8);
+    expect(levelAtSkill(87.5)).toBe(17.5); // halfway from Elite (75, L15) to Paragon (100, L20)
     expect(levelAtSkill(500)).toBe(CONFIG.RANK_ROWS.rank_8.level + CONFIG.RANK_BEYOND_STEP.level); // one step past Divine
   });
 
@@ -84,11 +84,11 @@ describe('333 NPC roles, fourth round', () => {
     const a = spawnNpc(s, composeTemplate(soldier, 'a soldier').id, { id: 'x1', zone: s.player.zone, placeId: s.player.placeId, bandId: 'b' });
     s.actors.push(a);
     const before = actorLevel(a, s);
-    expect(before).toBeGreaterThanOrEqual(3);
-    expect(before).toBeLessThanOrEqual(5);
+    expect(before).toBeGreaterThanOrEqual(6);
+    expect(before).toBeLessThanOrEqual(10);
     for (const id of Object.keys(a.core.skills)) if (a.core.skills[id].state === 'tagged') a.core.skills[id].raw = 100;
-    expect(actorLevel(a, s)).toBeGreaterThanOrEqual(12); // true skill: its perks may add a little
-    expect(actorLevel(a, s)).toBeLessThanOrEqual(14);
+    expect(actorLevel(a, s)).toBeGreaterThanOrEqual(20); // true skill: its perks may add a little
+    expect(actorLevel(a, s)).toBeLessThanOrEqual(23);
     expect(actorLevel(a)).toBe(0); // without the story its blueprint can't be found
   });
 
@@ -97,9 +97,9 @@ describe('333 NPC roles, fourth round', () => {
     expect(npcGrandeur(composeTemplate({ ...soldier, role: RO.worker, theme: TH.town_watch }, 'x'))).toBe('ordinary');
     expect(npcGrandeur(composeTemplate({ ...soldier, role: RO.knight }, 'a knight'))).toBe('grand');
     const paragon = { ...soldier, rank: 'rank_5' };
-    expect(templateLevel(composeTemplate(paragon, 'a soldier'))).toBe(12);
-    expect(templateLevel(composeTemplate({ ...paragon, grandeur: 'grand' }, 'the lord'))).toBe(15);
-    expect(templateLevel(composeTemplate({ ...paragon, role: RO.worker, theme: TH.village_folk }, 'a farmhand'))).toBe(9);
+    expect(templateLevel(composeTemplate(paragon, 'a soldier'))).toBe(20);
+    expect(templateLevel(composeTemplate({ ...paragon, grandeur: 'grand' }, 'the lord'))).toBe(25);
+    expect(templateLevel(composeTemplate({ ...paragon, role: RO.worker, theme: TH.village_folk }, 'a farmhand'))).toBe(15);
   });
 
   it('NR40: a settlement\'s seat of the Great is cast grand', () => {

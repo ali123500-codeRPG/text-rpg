@@ -34,12 +34,12 @@ describe('146 Gear in the rating', () => {
   it('levels add LEVEL_RATING_SHARE × what the XP curve asks to reach them, on both sides', () => {
     const s = makeVillage();
     const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
-    expect(actorLevel(g)).toBe(4); // an NPC's level is its template's
+    expect(actorLevel(g)).toBe(CONFIG.RANK_ROWS.rank_2.level); // an NPC's level is its template's (a Trained guard)
     expect(xpToReach(4)).toBe(levelCost(0) + levelCost(1) + levelCost(2) + levelCost(3)); // asks the XP curve
-    expect(levelRating(g)).toBeCloseTo(CONFIG.LEVEL_RATING_SHARE * xpToReach(4));
-    const lx = CONFIG.LEVEL_XP; // the two are linked: a steeper curve raises the rating too
+    expect(levelRating(g)).toBeCloseTo(CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(g)));
+    const before = levelRating(g), lx = CONFIG.LEVEL_XP; // the two are linked: a steeper curve raises the rating too
     (CONFIG as { LEVEL_XP: number }).LEVEL_XP = lx * 2;
-    expect(levelRating(g)).toBeCloseTo(CONFIG.LEVEL_RATING_SHARE * 2 * (lx + lx + 2 * lx + 3 * lx));
+    expect(levelRating(g)).toBeCloseTo(2 * before);
     (CONFIG as { LEVEL_XP: number }).LEVEL_XP = lx;
     const keep = CONFIG.LEVEL_RATING_SHARE;
     const base = rating(g);

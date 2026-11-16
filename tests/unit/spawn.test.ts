@@ -73,7 +73,7 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
       expect([s[SK.melee_medium].raw, s[SK.medium_armor].raw]).toEqual([rankRow(rank).anchor, Math.round(rankRow(rank).anchor * 0.8)]);
     }
     expect(banded({ ...bandit, rank: 'rank_6' })[SK.melee_medium].raw).toBe(150);
-    expect(rankRow('rank_10')).toEqual({ anchor: 600, level: 60, training: 70 });
+    expect(rankRow('rank_10')).toEqual({ anchor: 600, level: 220, training: 70 });
     expect([rankName('rank_2'), rankName('rank_8'), rankName('rank_10')]).toEqual(['Trained', 'Divine', 'Divine++']);
   });
   it('D-335: Transcendent (300) sits between Mythic and Divine on its own key; saved keys keep their meaning', () => {
@@ -102,14 +102,14 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
     expect(() => spawnNpc(null, 'bandit', opts)).toThrow(/seeded rng/);
     const b = spawnNpc(null, 'bandit', opts, createRng(5));
     expect(b.core.skills).toEqual(presetSkills(bandit, createRng(5)));
-    expect(templateLevel(bandit)).toBe(4);
-    const spent = b.core.perks.filter((p) => p.source === 'level').length; // NG11: its level's 2 points go on milestone perks
+    expect(templateLevel(bandit)).toBe(8);
+    const spent = b.core.perks.filter((p) => p.source === 'level').length; // NG11: its level's points go on milestone perks
     expect(spent).toBeGreaterThan(0);
-    expect(b.progression!.unspentPerkPoints).toBe(2 - spent);
+    expect(b.progression!.unspentPerkPoints).toBe(perkPointsUpTo(templateLevel(bandit)) - spent);
     const g1 = spawnNpc(null, TP.guard, opts), g2 = spawnNpc(null, TP.guard, { ...opts, id: 'b2' });
     expect(JSON.stringify(g1.core.skills)).not.toBe(JSON.stringify(g2.core.skills));
     expect(spawnNpc(null, TP.guard, opts).core.skills).toEqual(g1.core.skills);
-    expect(g1.core.classes[0].level).toBe(4);
+    expect(g1.core.classes[0].level).toBe(8);
   });
   it('NG2: one lever over every NPC (NPC_BAND_MULT) reaches existing copies: refreshCopies rebuilds them', () => {
     const s = makeVillage();
