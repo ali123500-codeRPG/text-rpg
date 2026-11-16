@@ -6,7 +6,7 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, skillRating, gearRating, defeatXp, payDefeats, rating, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, levelCost, xpToReach, skillRating, gearRating, defeatXp, payDefeats, rating, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
@@ -88,13 +88,13 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     const pr = s.player.progression!;
     expect(pr.achievements!.map((a) => a.id)).toEqual([`${ACH.first_defeat_body_type}:${BT.amorphous}`, `${ACH.first_defeat_race}:${RC.slime}`, ACH.bested_1]);
-    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, 'level', `achievement:${ACH.first_defeat_race}:${RC.slime}`, 'level']); // level I pays enough for level 2, then 3
+    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, `achievement:${ACH.first_defeat_race}:${RC.slime}`]); // two level I rewards are not yet a level (LEVEL_XP_FLOOR)
     expect(pr.xpLog![0].amount).toBe(xp);
     expect(pr.xpLog![1].amount).toBe(rewardXp('i'));
     const other = actor(s, 'slime_2');
     other.core.condition.hpLostPct = 100; // downed by someone else: nothing
     payDefeats(s, []);
-    expect(pr.xpLog).toHaveLength(5);
+    expect(pr.xpLog).toHaveLength(3);
   });
   it('RS7: a downed NPC the player hit pays whatever its stance; a surrender to someone else does not', () => {
     const s = makeVillage();
@@ -112,16 +112,22 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source)).toEqual(['defeat:slime_1']);
   });
-  it('levels need LEVEL_XP × level and go to the chosen class', () => {
+  it('levels need the larger of LEVEL_XP_FLOOR and LEVEL_XP × level and go to the chosen class', () => {
     const s = makeVillage();
     const p = s.player, pr = p.progression!;
-    expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP);
+    expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP_FLOOR);
     p.core.classes.push({ classId: CL.trader, state: 'unlocked', level: 0 });
     pr.nextClass = CL.trader;
-    awardXp(s, CONFIG.LEVEL_XP + 5, 'test');
+    awardXp(s, xpToNext(p) + 5, 'test');
     expect(pr.xp).toBe(5);
     expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], [CL.trader, 'current', 1]]);
     expect(pr.unspentPerkPoints).toBe(1); // level 2 is even
     expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: CL.trader, level: 2 });
+  });
+  it('early levels are harsher: the XP that used to take level 1 to 10 (LEVEL_XP × n) now takes it to 8; later steps are unchanged', () => {
+    const old = CONFIG.LEVEL_XP * 45, from1 = (l: number) => xpToReach(l) - xpToReach(1);
+    expect(from1(8)).toBeLessThanOrEqual(old);
+    expect(from1(9)).toBeGreaterThan(old);
+    for (const n of [7, 10, 20, 50]) expect(levelCost(n)).toBe(CONFIG.LEVEL_XP * n);
   });
 });

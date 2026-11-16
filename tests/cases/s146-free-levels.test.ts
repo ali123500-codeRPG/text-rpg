@@ -2,8 +2,7 @@
 // Every Height Climbed) gives +1, +2, +3, +4, +5 by its place, each level including the lower ones (+3 in all at the second).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { bonusLevelsOwed, charLevel, freeLevelsOwed, grantAchievement, spendXp, xpToNext } from '../../src/engine/xp';
-import { CONFIG } from '../../src/config';
+import { bonusLevelsOwed, charLevel, freeLevelsOwed, grantAchievement, levelCost, spendXp, xpToNext } from '../../src/engine/xp';
 import { freeLevelsEarned, rewardLines } from '../../src/ruleset/achRewards';
 import { classMaxLevel } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
@@ -44,7 +43,7 @@ describe('146 free levels', () => {
     pr.freeLevelsTaken = 2; // two levels that came free
     expect(charLevel(p)).toBe(level + 2);
     expect(xpToNext(p)).toBe(cost);
-    expect(cost).toBe(CONFIG.LEVEL_XP * Math.max(1, level));
+    expect(cost).toBe(levelCost(level));
   });
 
   it('free levels bank while no class has room, and arrive when a class is picked', () => {
@@ -83,7 +82,7 @@ describe('146 free levels', () => {
       expect(charLevel(p)).toBe(level + 2 + xpLevels);
       expect(classLevels()).toBe(before + xpLevels); // no class got the bonus levels
       expect(pr.unspentPerkPoints).toBe(points + ups.filter((x) => x.levelUp!.level % 2 === 0).length); // a point on each even level
-      expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP * Math.max(1, charLevel(p) - 2)); // bonus levels don't make the next level dearer
+      expect(xpToNext(p)).toBe(levelCost(charLevel(p) - 2)); // bonus levels don't make the next level dearer
     } finally { delete row.bonusLevels; }
   });
 });

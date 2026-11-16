@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { createPlayer, recommendedBuild, validateBuild } from '../../src/library/spawn';
-import { awardXp, unlockClasses } from '../../src/engine/xp';
+import { awardXp, unlockClasses, xpToNext } from '../../src/engine/xp';
 import { improveMarked } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
@@ -42,7 +42,7 @@ describe('128 Late bloomer and class-level perks', () => {
     const s = makeVillage();
     getLibrary().classes[CL.swordsman].levelPerks = { 5: [PK.quick_study] };
     s.player.core.classes = [{ classId: CL.swordsman, state: 'current', level: 4 }];
-    awardXp(s, 400, 'test');
+    awardXp(s, xpToNext(s.player), 'test');
     expect(s.player.core.perks.filter((x) => x.source === 'class').map((x) => x.perkId)).toEqual([PK.quick_study]);
     delete getLibrary().classes[CL.swordsman].levelPerks;
   });

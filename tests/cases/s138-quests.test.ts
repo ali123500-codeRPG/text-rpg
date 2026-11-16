@@ -101,7 +101,7 @@ describe('138 quests', () => {
     const avg = (power(s, actor(s, 'slime_1')) + power(s, actor(s, 'slime_2'))) / 2;
     expect(q.foePower).toBeCloseTo(avg * 2);
     expect(questXp(s, q)).toBe(Math.round(full * weakFoeTaper(avg, power(s, s.player))));
-    s.player.core.classes[0].level = 12; // a much stronger player by hand-in: the slimes are worth little
+    s.player.core.classes[0].level = 15; // a much stronger player by hand-in: the slimes are worth little
     expect(questXp(s, q)).toBeLessThan(full / 2);
     expect(questXp(s, { ...q, goal: { kind: 'reach', place: 'x' } })).toBe(full);
   });
