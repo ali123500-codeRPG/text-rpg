@@ -224,6 +224,7 @@ export type Library = {
   noiseLevels?: Record<string, NoiseLevel>;
   visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
+  itemFamilies?: Record<string, { id: string; name: string; rule: string }>; // IF…: Mundane and the special families (IR30)
   gearTypes?: Record<string, { id: string; name: string; reachM?: number; covers?: string[] }>; // GT…: a gear type's reach or coverage (IR23)
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' | 'unarmed' }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one

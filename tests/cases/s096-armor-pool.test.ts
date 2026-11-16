@@ -1,13 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
-import { itemDef } from '../../src/library';
+import { getLibrary, itemDef, resetLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
+
+afterEach(() => resetLibrary());
 
 describe('96 Armor pool', () => {
   it('a head hit drains the helm pool before the head pool; the health track ignores the helm pool', () => {
     const s = makeVillage();
+    // no Mundane piece carries a helm pool (IR31: nothing set by hand); a special piece may, so the rule is tested on a stand-in
+    getLibrary().items[IT.plate_harness].armor!.pools = { head: 20 };
     const g = place(s, 'guard_1', 'tav_common');
     g.core.inventory = g.core.inventory.filter((i) => !itemDef(null, i.itemId).armor); // no hauberk or helmet: the harness covers both (IR19)
     g.core.inventory.push({ id: 'plate', itemId: IT.plate_harness, equippedIn: ['armor'], pools: { head: 100 } });

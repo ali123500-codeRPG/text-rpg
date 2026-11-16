@@ -37,6 +37,9 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
+  /** IF id (IR30): its family. Mundane pieces scale only by their level (IR31); a special family (Threadbound, Relic) stands on a
+   * Mundane base and adds its own extras (IR33). Set for every equipment piece when the library loads */
+  family?: string;
   gearType?: string; // GT id (IR23): its reach (weapons) or coverage (armor), from the library gearTypes table
   base?: { itemId: LibraryRef; quality: import('../scales').QualityKey; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll); 'broken' a broken item (BK3: its name starts "broken", it does nothing); 'fantasy' a piece past any real smith (IR2: Masterwork and up)
