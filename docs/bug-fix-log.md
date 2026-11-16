@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali OK'd the fix (HL3 on the "Hub question layout" page). The hub now draws the options under the recommendation for every question, whether it uses the block layout or not, unless the page already lists them, and it carries the block-layout colours itself so pages need no extra style. A check rendered all 46 hub pages: 413 questions with options, each showing them exactly once (6 showed none before). The hub page (questions/hub/hub.html) was republished as version 16; this entry and the bug log row came in the PR below.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #904](https://github.com/ali123500-codeRPG/text-rpg/pull/904)
 
 ## BG-259
 
