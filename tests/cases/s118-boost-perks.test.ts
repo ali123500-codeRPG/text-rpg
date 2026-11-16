@@ -57,11 +57,14 @@ describe('118 40/80/120 perks', () => {
     expect(trueSkill(p, SK.dodge)).toBe(before[SK.dodge]);
     expect(trueSkill(p, SK.eyesight)).toBe(before[SK.eyesight]);
   });
-  it('Keen Edge: +10 to hit with light weapons only; Steady Draw: +5 to hit and ×1.1 damage with medium ranged', () => {
+  it('Keen Edge: +10 to hit with any melee weapon; Steady Draw: +5 to hit and ×1.1 damage with any ranged weapon', () => {
     expect(hit(IT.dagger, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
-    expect(hit(IT.greataxe, 'patron_1', PK.keen_edge).perkMods).toEqual([]);
+    expect(hit(IT.greataxe, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]); // weapons in general
+    expect(hit(IT.longbow, 'patron_1', PK.keen_edge).perkMods).toEqual([]); // not ranged
     expect(hit(IT.dagger, 'patron_1').perkMods).toEqual([]);
     expect(hit(IT.longbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
+    expect(hit(IT.crossbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]); // ranged weapons in general
+    expect(hit(IT.dagger, 'patron_1', PK.steady_draw).perkMods).toEqual([]);
     const plain = hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage; // both rolls in the same tier
     expect(plain).toBeGreaterThan(0);
     expect(hit(IT.longbow, 'patron_1', PK.steady_draw, undefined, undefined, 85).r.damage).toBeCloseTo(plain * 1.1, 5);
@@ -74,11 +77,13 @@ describe('118 40/80/120 perks', () => {
     const d = ruleset.roll({ actorId: 'player', skill: SK.dodge, modifiers: [], tierShifts: [] }, s, forcedRng([50]));
     expect(d.modifiers.some((m) => m.type === 'roll_perk')).toBe(false);
   });
-  it('Heavy Hand: heavy melee damage ×1.2', () => {
+  it('Heavy Hand: melee weapon damage ×1.2, any weight', () => {
     const plain = hit(IT.greataxe, 'patron_1', undefined, undefined, undefined, 85).r, boosted = hit(IT.greataxe, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r;
     expect(plain.damage).toBeGreaterThan(0);
     expect(boosted.damage).toBeCloseTo(plain.damage * 1.2, 5);
-    expect(hit(IT.dagger, 'patron_1', PK.heavy_hand).r.damage).toBe(hit(IT.dagger, 'patron_1').r.damage);
+    const light = hit(IT.dagger, 'patron_1', undefined, undefined, undefined, 85).r.damage;
+    expect(hit(IT.dagger, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBeCloseTo(light * 1.2, 5); // weapons in general
+    expect(hit(IT.longbow, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBe(hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // not ranged
   });
   it('Armor Piercer: each armor stops 2 less of a heavy ranged hit', () => {
     const plain = hit(IT.crossbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r;
