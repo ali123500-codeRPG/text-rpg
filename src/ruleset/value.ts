@@ -40,6 +40,6 @@ const priced = (def: ItemDef) => !def.consumable && (!!def.weapon || !!def.armor
 export function itemValue(state: GameState | null | undefined, def: ItemDef): number {
   if (def.base) return itemValue(state, itemDef(state, def.base.itemId)) * CONFIG.QUALITY_PRICE_FACTOR * qualityMult(def.base.quality);
   if (def.tags?.includes('improvised')) return 0;
-  if (!priced(def)) return def.value;
+  if (!priced(def)) return def.value ?? 0;
   return Math.max(1, Math.round(benefits(def).reduce((n, b) => n + b.coin, 0)));
 }

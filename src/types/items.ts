@@ -11,7 +11,9 @@ export type ItemDef = {
   name: string;
   look: string; // public text
   bulk: 0 | 1 | 2 | 3;
-  value: number; // hand-set coin value, used only by consumables and items with no benefit numbers; other items are priced from their benefits (src/ruleset/value.ts)
+  /** coin value, hand-set only on items priced by hand: consumables and items with no benefit numbers (IR5); every other item
+   * is priced from its benefits (src/ruleset/value.ts) and sets none */
+  value?: number;
   heal?: string; // a healing source id (H2): using the item applies that row and uses it up
   boon?: number; // hand-set Boon, overrides value ÷ BOON_COIN (loot V8b)
   stackable?: true;

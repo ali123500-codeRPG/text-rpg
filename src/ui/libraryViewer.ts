@@ -21,7 +21,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, BLESSING_TIERS, GOD_RANKS, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { RANKS, TALENTS, ESSENCE_GRADES, TREE_RATINGS, LIFE_STAGES, THREADBOUND_RANKS, type ThreadboundRankKey, NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, BLESSING_TIERS, GOD_RANKS, CLASS_TIERS, EQUIP_LEVELS, equipName, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -176,7 +176,7 @@ const leanText = (l?: PersonalityLean) => {
 };
 /** NG10: gear as item links with their level; picked items (not pinned on the template) say so */
 const itemLinks = (ids: string[], pins: readonly string[]) => h('span', {}, ...ids.flatMap((id, i) => [i ? ', ' : '',
-  link('gear', id, lib.items[id] ? label(lib.items[id].name) : id), lib.items[id] ? ` (${EQUIP_LEVELS.name(itemLevel(lib.items[id]) ?? 'crude')}${pins.includes(id) ? '' : ', picked'})` : '']));
+  link('gear', id, lib.items[id] ? label(lib.items[id].name) : id), lib.items[id] ? ` (${equipName(itemLevel(lib.items[id]) ?? 'crude')}${pins.includes(id) ? '' : ', picked'})` : '']));
 /** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged */
 const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : ''}`])) : none('none')))(
   Object.entries(skills).sort(([, a], [, b]) => b.raw - a.raw));
@@ -194,7 +194,7 @@ function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: stri
     row('Leans', leanText(d.leans)),
     row('Rank traits', d.traits?.length ? links('perks', d.traits.map((x) => [x, lib.perks[x]?.name ?? x])) : none('none')),
     role ? row('Gear classes', role.gear?.length ? links('gearClasses', role.gear.map((g) => [g, lib.gearClasses?.[g]?.name ?? g])) : none('none')) : null,
-    sec === 'themes' ? row('Wealth', d.wealth ? `gear up to ${EQUIP_LEVELS.name(d.wealth)}` : none('no picked gear')) : null,
+    sec === 'themes' ? row('Wealth', d.wealth ? `gear up to ${equipName(d.wealth)}` : none('no picked gear')) : null,
     sec === 'themes' && d.talent ? row('Talent', TALENTS.name(d.talent as (typeof TALENTS.keys)[number])) : null,
     sec === 'themes' ? row('Rank titles', titles.length ? titles.join(', ') : none('the usual names')) : null,
     row('NPC templates', usedBy((t) => t[key] === id)));
@@ -232,7 +232,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
-    req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
+    req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${equipName(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.grips !== undefined ? row('Grips', String(i.grips)) : null,
     i.slot ? row('Slot', i.slot) : null,
@@ -448,7 +448,7 @@ function gearClasses(): HTMLElement[] {
       const items = itemsOfClass(g.id);
       return card('gearClasses', g.id, g, g.name, [chip(g.use, toneFor('Use', g.use))],
         row('Use', g.use), row('Skill', link('skills', g.skill, skillName(g.skill))),
-        row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${EQUIP_LEVELS.name(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
+        row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${equipName(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
     }))];
 }
 
@@ -1018,7 +1018,7 @@ function threadboundView(): HTMLElement[] {
         h('div', { class: 'lv-tb-paths' }, [...chains].map(([root, gs]) => h('section', { class: 'lv-tb-path' },
           h('h4', { class: 'lv-chainlabel' }, `${ach[root]?.name ?? root} chain`),
           h('ol', { class: 'lv-tb-steps' }, gs.sort((x, y) => depth(x.achievement) - depth(y.achievement)).map(step))))),
-        row('Value', `${it.value.toLocaleString('en')} coin${it.boon ? `, boon ${it.boon}` : ''}`),
+        row('Value', `${itemValue(null, it).toLocaleString('en')} coin${it.boon ? `, boon ${it.boon}` : ''}`),
         row('How to get it', giv.length ? h('span', {}, 'Found in the world, or given by ', links('perks', giv.map((pk) => [pk.id, pk.name])),
           ...giv.flatMap((pk) => pk.classLevel ? [` (${className(pk.classLevel.classId)} level ${pk.classLevel.level})`] : []),
           `, which hands over one Threadbound item of ${THREADBOUND_RANKS.name(giv[0].grantsThreadboundItem!.minRank)} or higher, picked at random from those not yet in the world`) : 'found in the world'));

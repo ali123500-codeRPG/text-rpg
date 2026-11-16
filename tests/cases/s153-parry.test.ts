@@ -116,8 +116,10 @@ describe('153 Parry', () => {
     vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
       calls.push({ by: req.attackerId, at: req.targetId, weapon: req.weaponId });
       const r = real(req, st, forcedRng([50, 50, 50, 50]));
-      // every attack on the patron is parried cleanly
-      return req.targetId === 'patron_1' ? { ...r, defenseType: 'parry', gap: 3, outcome: 'parried', multiplier: 0, damage: 0, location: null, strikeBack: true } as AttackResult : r;
+      // every attack on the patron is parried cleanly, and every strike back misses (this counts strikes, not wounds: the
+      // player's armor and nerve stay out of it)
+      return req.targetId === 'patron_1' ? { ...r, defenseType: 'parry', gap: 3, outcome: 'parried', multiplier: 0, damage: 0, location: null, strikeBack: true } as AttackResult
+        : { ...r, outcome: 'missed', multiplier: 0, damage: 0, location: null } as AttackResult;
     });
     play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
     vi.restoreAllMocks();
@@ -127,7 +129,7 @@ describe('153 Parry', () => {
   it('a strike back is a free melee attack with the parrying weapon, one per round by default (D-337)', () => {
     const { blows, backs } = parriedTwice([]);
     // a 6 s turn holds three strikes, each with Flurry's free strike, across two 3 s rounds: only the first of each round is
-    // answered (the player's nerve holds now that wounds are a % of the average roll, PW1 b)
+    // answered
     expect(blows.length).toBe(6);
     expect(backs).toEqual([0, 1].map(() => ({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' })));
   });
