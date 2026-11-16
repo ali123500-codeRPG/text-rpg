@@ -23,7 +23,7 @@ describe('every NPC has an essence', () => {
     for (const t of Object.values(lib.templates)) expect(templateEssences(t).length, t.id).toBeGreaterThan(0);
     for (const role of Object.values(lib.npcRoles!)) for (const theme of Object.values(lib.themes!)) for (const race of Object.values(lib.races ?? {})) {
       if ((role.kind !== 'beast') !== (race.bodyTypeId === BT.humanoid)) continue; // people are humanoid, beasts are not
-      // D-361: an Untrained (rank_0) beast's Resolve 50 outweighs its weapons, so it carries none; the game flags it (NE4)
+      // D-362: an Untrained (rank_0) beast's Resolve 50 outweighs its weapons, so it carries none; the game flags it (NE4)
       for (const rank of role.kind === 'beast' ? ['rank_1', 'rank_3', 'rank_6', 'rank_8'] : ['rank_0', 'rank_3', 'rank_6', 'rank_8']) {
         const c = { race: race.id, role: role.id, theme: theme.id, rank };
         if (!composeError(c)) expect(ids(c).length, `${role.name} ${theme.name} ${race.name} ${rank}`).toBeGreaterThan(0);
