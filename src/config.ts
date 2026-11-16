@@ -425,9 +425,9 @@ const DEFAULTS = {
   // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
   /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, in human years (AB7: scaled by race, TRAINING_ADULT_AGE).
    * NR39: the levels up to Paragon are where a simulated fighter reached each anchor (Trained 4, Veteran 6, Elite 7, Paragon 12);
-   * the rows past Paragon are unchanged placeholders. An NPC's level is this table read backwards on its own High-band skills
+   * NR41 a: the rows past Paragon scale the same way (Beyond 18, Mythic 24, Transcendent 30, Divine 36, +12 a step past it). An NPC's level is this table read backwards on its own High-band skills
    * (levelFromSkills). */
-  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 6, training: 8 }, rank_4: { anchor: 75, level: 7, training: 12 }, rank_5: { anchor: 100, level: 12, training: 20 }, rank_6: { anchor: 150, level: 30, training: 30 }, rank_7: { anchor: 200, level: 40, training: 40 }, rank_transcendent: { anchor: 300, level: 50, training: 45 } /* D-335 placeholder */, rank_8: { anchor: 400, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 6, training: 8 }, rank_4: { anchor: 75, level: 7, training: 12 }, rank_5: { anchor: 100, level: 12, training: 20 }, rank_6: { anchor: 150, level: 18, training: 30 }, rank_7: { anchor: 200, level: 24, training: 40 }, rank_transcendent: { anchor: 300, level: 30, training: 45 } /* D-335 placeholder */, rank_8: { anchor: 400, level: 36, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
   /** NR40 a: the level read from an NPC's skills times its grandeur (GRANDEUR: the higher of its role's and its theme's;
    * uniques and seats of the Great are always grand) */
   GRANDEUR_LEVEL_MULT: { mundane: 0.75, ordinary: 1, grand: 1.25 } as Record<GrandeurKey, number>,
@@ -437,7 +437,7 @@ const DEFAULTS = {
    * so a Beyond is 150 and a Mythic 200; ranks below it keep the player's cap (NG5 b) */
   NPC_UNCAPPED_FROM: 'rank_6' as const,
   /** NG3: past the last rank row, each step adds this */
-  RANK_BEYOND_STEP: { anchor: 100, level: 20, training: 10 },
+  RANK_BEYOND_STEP: { anchor: 100, level: 12, training: 10 },
   /** NG2: a role's bands as shares of the rank's anchor */
   ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
