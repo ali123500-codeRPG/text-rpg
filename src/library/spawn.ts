@@ -8,7 +8,7 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { CLASS_TIERS, equipPos, LIFE_STAGES, NERVE_LINES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
+import { CLASS_TIERS, equipPos, GRANDEUR, LIFE_STAGES, NERVE_LINES, RANKS, type GrandeurKey, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
 import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng, textSeed } from '../rng';
@@ -105,6 +105,8 @@ const stepsPast = (r: string) => Number(r.slice(5)) - Number(LAST_RANK.slice(5))
 export const rankPos = (r: RankKey): number => (RANKS.has(r) ? RANKS.pos(r) : RANKS.keys.length - 1 + stepsPast(r));
 /** the rank at a position, the reverse of rankPos: past the last row the key goes on from the last row's number */
 export const rankAtPos = (pos: number): RankKey => (pos < RANKS.keys.length ? RANKS.keys[Math.max(0, pos)] : `rank_${Number(LAST_RANK.slice(5)) + pos - (RANKS.keys.length - 1)}`);
+/** the rank `steps` above another, going on past the last row (Divine+ = rank_9 …) */
+export const rankAbove = (r: RankKey, steps: number): RankKey => rankAtPos(rankPos(r) + steps);
 /** NG13: a preset's rank, raised to its role's floor (CONFIG.RANK_FLOOR: a combat role is never under Trained, a civilian
  * under Novice; a beast has none) */
 export function templateRank(t: NpcTemplate): RankKey | undefined {
@@ -113,8 +115,36 @@ export function templateRank(t: NpcTemplate): RankKey | undefined {
   const floor = kind && kind !== 'beast' ? CONFIG.RANK_FLOOR[kind] : undefined;
   return floor && rankPos(floor) > rankPos(t.rank) ? floor : t.rank;
 }
-/** NG7: a template's level: its rank's (a preset), or its saved sheet's (a unique) */
-export const templateLevel = (t: NpcTemplate): number => { const r = templateRank(t); return r ? rankRow(r).level : t.level ?? 0; };
+/** NR39 a: the level the rank table gives a skill value, read backwards: between two rows' anchors it moves evenly between
+ * their levels; under the first row it falls toward 0; past the last row it goes on by RANK_BEYOND_STEP */
+export function levelAtSkill(v: number): number {
+  const rows = RANKS.keys.map((k) => CONFIG.RANK_ROWS[k]), top = rows[rows.length - 1], step = CONFIG.RANK_BEYOND_STEP;
+  if (v <= rows[0].anchor) return (rows[0].level * Math.max(0, v)) / rows[0].anchor;
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1], b = rows[i];
+    if (v <= b.anchor) return a.level + ((v - a.anchor) / (b.anchor - a.anchor)) * (b.level - a.level);
+  }
+  return top.level + ((v - top.anchor) / step.anchor) * step.level;
+}
+/** NR40 a: how grand an NPC is: its template's own (a seat of the Great), grand for a unique, else the higher of its role's
+ * and its theme's */
+export function npcGrandeur(t: NpcTemplate): GrandeurKey {
+  if (t.grandeur) return t.grandeur;
+  if (t.unique) return 'grand';
+  const lib = getLibrary(), own = [t.roleId && lib.npcRoles?.[t.roleId]?.grandeur, t.themeId && lib.themes?.[t.themeId]?.grandeur].filter((g): g is GrandeurKey => !!g);
+  return own.length ? own.reduce((x, y) => (GRANDEUR.pos(y) > GRANDEUR.pos(x) ? y : x)) : 'ordinary';
+}
+/** NR39 a, NR40 a: a preset NPC's level from its own skills: the average of its High-band skills (the tagged ones; `read`
+ * gives each its value, true skill on a live actor), read on the rank table (levelAtSkill), times its grandeur
+ * (CONFIG.GRANDEUR_LEVEL_MULT); at least 1. With no tagged skill, its rank row's level times its grandeur. */
+export function levelFromSkills(t: NpcTemplate, skills: Record<string, SkillEntry>, read: (id: string) => number = (id) => skills[id]?.raw ?? 0): number {
+  const high = Object.keys(skills).filter((id) => skills[id].state === 'tagged');
+  const r = templateRank(t);
+  const base = high.length ? levelAtSkill(high.reduce((n, id) => n + read(id), 0) / high.length) : r ? rankRow(r).level : 0;
+  return Math.max(1, Math.round(base * CONFIG.GRANDEUR_LEVEL_MULT[npcGrandeur(t)]));
+}
+/** NG7, NR39: a template's level: from its centre skills (a preset), or its saved sheet's (a unique) */
+export const templateLevel = (t: NpcTemplate): number => (templateRank(t) && !t.unique ? levelFromSkills(t, templateSkills(t)) : t.level ?? 0);
 
 type Band = keyof typeof CONFIG.ROLE_BAND_SHARE;
 /** NG2, NG8: the band each skill sits in for this preset: its role's and theme's, the higher wins; then the skills every
@@ -264,10 +294,12 @@ export function roleMissing(roleId: string, skills: readonly string[]): string[]
 /** NG15: a composed preset (race, role, theme, rank, optional class), as the Weaver names it from the catalog: a copy, with
  * Resolve, control and chase range from its role's kind (CONFIG.COMPOSED_NPC). Its ID names its parts, so the same
  * composition is one story blueprint. */
-export function composeTemplate(c: { race: string; role: string; theme: string; rank: string; class?: string }, label: string): NpcTemplate {
+export function composeTemplate(c: { race: string; role: string; theme: string; rank: string; class?: string; prefix?: string; grandeur?: GrandeurKey }, label: string): NpcTemplate {
   const kind = getLibrary().npcRoles?.[c.role]?.kind ?? 'civilian', d = CONFIG.COMPOSED_NPC[kind];
+  const rank = rankKeyOf(c.rank) ?? 'rank_0', step = c.prefix ? getLibrary().prefixes?.[c.prefix]?.rankStep ?? 0 : 0; // NR37: Dire is one rank up
   return { id: composedId(c), raceId: c.race, ...(c.class ? { classId: c.class } : {}), generation: 'copy', minimums: {},
-    roleId: c.role, themeId: c.theme, rank: rankKeyOf(c.rank) ?? 'rank_0', resolve: d.resolve, control: d.control, chase: d.chase, label };
+    roleId: c.role, themeId: c.theme, rank: rankAbove(rank, step),
+    ...(c.prefix ? { prefix: c.prefix } : {}), ...(c.grandeur ? { grandeur: c.grandeur } : {}), resolve: d.resolve, control: d.control, chase: d.chase, label };
 }
 /** NG15: a rank as the Weaver may write it: its key (rank_3, rank_10), or its name (Veteran, Divine++) */
 export function rankKeyOf(w: unknown): RankKey | undefined {
@@ -280,7 +312,7 @@ export function rankKeyOf(w: unknown): RankKey | undefined {
 }
 
 /** NG15: what is wrong with a composition, or undefined: every part an ID from the catalog, the rank a rank */
-export function composeError(c: { race: string; role: string; theme: string; rank: string; class?: string }): string | undefined {
+export function composeError(c: { race: string; role: string; theme: string; rank: string; class?: string; prefix?: string }): string | undefined {
   const lib = getLibrary(), list = (o: Record<string, { name: string }> | undefined) => Object.entries(o ?? {}).map(([id, d]) => `${id} (${d.name})`).join(', ');
   if (!lib.races?.[c.race]) return `compose race ${c.race} unknown; known: ${list(lib.races)}`;
   if (!lib.npcRoles?.[c.role]) return `compose role ${c.role} unknown; known: ${list(lib.npcRoles)}`;
@@ -289,11 +321,13 @@ export function composeError(c: { race: string; role: string; theme: string; ran
   if (!kinds.includes(kind)) return `compose role ${c.role} (${lib.npcRoles[c.role].name}, ${kind}) does not fit theme ${lib.themes[c.theme].name}: it takes ${kinds.join(' or ')} roles`;
   if (!rankKeyOf(c.rank)) return `compose rank ${c.rank} unknown; ranks: ${RANKS.list()}, then Divine+, Divine++ …`;
   if (c.class !== undefined && !lib.classes[c.class]) return `compose class ${c.class} unknown`;
+  if (c.prefix !== undefined && !lib.prefixes?.[c.prefix]) return `compose prefix ${c.prefix} unknown; known: ${list(lib.prefixes)}`;
+  if (c.prefix !== undefined && kind !== 'beast') return `compose prefix ${c.prefix}: only beasts carry a prefix`; // NR38 a
   return undefined;
 }
 
-export const composedId = (c: { race: string; role: string; theme: string; rank: string; class?: string }) =>
-  ['NC', c.race, c.role, c.theme, rankKeyOf(c.rank) ?? c.rank, ...(c.class ? [c.class] : [])].join('_');
+export const composedId = (c: { race: string; role: string; theme: string; rank: string; class?: string; prefix?: string; grandeur?: string }) =>
+  ['NC', c.race, c.role, c.theme, rankKeyOf(c.rank) ?? c.rank, ...(c.class ? [c.class] : []), ...(c.prefix ? [c.prefix] : []), ...(c.grandeur ? [c.grandeur] : [])].join('_');
 
 /** the perks a member of this race is born with: its innate perks and innate quirks */
 
@@ -335,6 +369,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   const skills = t.generation === 'rolled' ? presetSkills(t, rng!) : templateSkills(t, opts.id); // NG9: a copy's spread is seeded by its ID
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
   const loadout = templateLoadout(t, skills); // NG10: its pinned items, then gear by role, skill and theme wealth
+  const level = templateRank(t) ? levelFromSkills(t, skills) : t.level ?? 0; // NR39: from its own skills, spread included
   const a: Actor = {
     id: opts.id,
     storyId: opts.storyId ?? state?.storyId ?? 'story',
@@ -348,9 +383,10 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       bodyTypeId: ct.id,
       raceId: t.raceId,
       templateId: t.id,
+      ...(t.prefix ? { prefix: t.prefix } : {}), // NR37
       generation: t.generation,
       skills,
-      classes: t.classId ? [{ classId: t.classId, state: 'current', level: Math.min(templateLevel(t), classMaxLevel(t.classId)) }] : [], // NG7: capped by the class's top level
+      classes: t.classId ? [{ classId: t.classId, state: 'current', level: Math.min(level, classMaxLevel(t.classId)) }] : [], // NG7: capped by the class's top level
       perks: [...racePerks(t.raceId, state?.turn ?? 0), ...templatePerks(t, opts.id).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 })), ...tagQuirks(t, opts.id, state?.turn ?? 0)],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, loadout, opts.id),
@@ -361,7 +397,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     // a rolled NPC keeps its level's perk points (one per even level, Part 1 §5) in a Progression module; NG11 spends them below
     ...(t.generation === 'rolled' ? { progression: {
       startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
-      potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(templateLevel(t)), marks: [],
+      potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(level), marks: [],
     } } : {}),
     mind: {
       control: t.control,
@@ -369,7 +405,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       knows: [],
     },
   };
-  const took = npcMilestonePerks(a, t, perkPointsUpTo(templateLevel(t)), state?.turn ?? 0); // NG11
+  const took = npcMilestonePerks(a, t, perkPointsUpTo(level), state?.turn ?? 0); // NG11
   if (a.progression) a.progression.unspentPerkPoints -= took.length;
   return a;
 }

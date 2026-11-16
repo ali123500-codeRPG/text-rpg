@@ -205,6 +205,10 @@ export type StagePlan = {
     template?: string; actor?: string;
     /** NG15: instead of a template, a composition from the catalog's IDs; code builds the sheet (a story blueprint) */
     compose?: { race: string; role: string; theme: string; rank: string; class?: string;
+      /** NR37, NR38: a beast's prefix (catalogs.compose.prefixes, such as Dire) */
+      prefix?: string;
+      /** NR40: set by code on a seat of the Great's roster entry (grand); the Weaver does not write it */
+      grandeur?: import('../scales').GrandeurKey;
       /** NR28: when no role fits, who is wanted and the 2 to 4 skills that matter most; code picks the role (role left out) */
       wants?: { label: string; skills: string[] } };
     /** NR17: the roster entry this actor fills (land.sites[].roster, roads[].travellers, landmarks[].people): code takes its race,

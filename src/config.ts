@@ -1,5 +1,5 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
-import type { Past100Key, EffortKey, FatigueLevel, FragilityKey, GradeLevel, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
+import type { Past100Key, EffortKey, FatigueLevel, FragilityKey, GradeLevel, GrandeurKey, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -429,15 +429,21 @@ const DEFAULTS = {
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
   // NPC generation (NG1–NG21; placeholders). A preset names a race, role, theme and rank; skills come from the rank's anchor.
-  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, in human years (AB7: scaled by race, TRAINING_ADULT_AGE) */
-  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 8, training: 8 }, rank_4: { anchor: 75, level: 12, training: 12 }, rank_5: { anchor: 100, level: 20, training: 20 }, rank_6: { anchor: PAST_100.beyond, level: 30, training: 30 }, rank_7: { anchor: PAST_100.mythic, level: 40, training: 40 }, rank_transcendent: { anchor: PAST_100.transcendent, level: 50, training: 45 } /* D-335 placeholder */, rank_8: { anchor: PAST_100.divine, level: 60, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  /** NG3: each rank's anchor skill and level; AG12, AG22: training = the years of training it takes, in human years (AB7: scaled by race, TRAINING_ADULT_AGE).
+   * NR39: the levels up to Paragon are where a simulated fighter reached each anchor (Trained 4, Veteran 6, Elite 7, Paragon 12);
+   * NR41 a: the rows past Paragon scale the same way (Beyond 18, Mythic 24, Transcendent 30, Divine 36, +12 a step past it). An NPC's level is this table read backwards on its own High-band skills
+   * (levelFromSkills). */
+  RANK_ROWS: { rank_0: { anchor: 15, level: 1, training: 0 }, rank_1: { anchor: 30, level: 2, training: 1 }, rank_2: { anchor: 50, level: 4, training: 4 }, rank_3: { anchor: 65, level: 6, training: 8 }, rank_4: { anchor: 75, level: 7, training: 12 }, rank_5: { anchor: 100, level: 12, training: 20 }, rank_6: { anchor: PAST_100.beyond, level: 18, training: 30 }, rank_7: { anchor: PAST_100.mythic, level: 24, training: 40 }, rank_transcendent: { anchor: PAST_100.transcendent, level: 30, training: 45 } /* D-335 placeholder */, rank_8: { anchor: PAST_100.divine, level: 36, training: 50 } } as Record<string, { anchor: number; level: number; training: number }>,
+  /** NR40 a: the level read from an NPC's skills times its grandeur (GRANDEUR: the higher of its role's and its theme's;
+   * uniques and seats of the Great are always grand) */
+  GRANDEUR_LEVEL_MULT: { mundane: 0.75, ordinary: 1, grand: 1.25 } as Record<GrandeurKey, number>,
   /** AB7 a: a rank's training years are human years; a race trains in (its Adult start ÷ this) of them (humans unchanged) */
   TRAINING_ADULT_AGE: 18,
   /** D-314 c (placeholder): from this rank up, an NPC preset's skills skip the raw-skill cap (SKILL_CAP, tagged + TAG_CAP_BONUS),
    * so a Beyond is 150 and a Mythic 200; ranks below it keep the player's cap (NG5 b) */
   NPC_UNCAPPED_FROM: 'rank_6' as const,
   /** NG3: past the last rank row, each step adds this */
-  RANK_BEYOND_STEP: { anchor: PAST_100_STEP, level: 20, training: 10 },
+  RANK_BEYOND_STEP: { anchor: PAST_100_STEP, level: 12, training: 10 },
   /** TS1 (report card, placeholders): the least achievement XP earned, and the fewest people who know the hero's name,
    * for each rank row's grade; past the last row each step multiplies the last row by GRADE_BEYOND_MULT */
   GRADE_ACH_XP: { rank_0: 0, rank_1: 100, rank_2: 300, rank_3: 1000, rank_4: 3000, rank_5: 10000, rank_6: 30000, rank_7: 100000, rank_transcendent: 300000, rank_8: 1000000 } as Record<string, number>,
@@ -709,19 +715,23 @@ const DEFAULTS = {
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
-  /** NR21 (placeholders until NR21 is answered): rank weights (RANKS keys) for rostered people. face: services, traders, the watch and
-   * people in need; lead: leaders and rivals, one step up; threat: by settlement size; seat: the seat of the Great's lowest rank by
-   * size (TL24 minimums), one step higher on SEAT_STEP_UP_PCT. Roads by danger and the wild use their own rows. */
+  /** NR21 a: rank weights (RANKS keys) for rostered people. crowd: a crowd person the player picks out (made a Commoner then);
+   * face: services, traders, the watch and people in need; lead: leaders and rivals, one step up; threat: by settlement size
+   * (hamlet and village up to Elite, town up to Paragon); seat: the seat of the Great's lowest rank by size (TL24 minimums), one
+   * step higher on SEAT_STEP_UP_PCT. Roads by danger and the wild use their own rows. Transcendent only by region brief. */
   ROSTER_RANKS: {
+    crowd: { rank_1: 70, rank_2: 30 },
     face: { rank_2: 50, rank_3: 40, rank_4: 10 },
     lead: { rank_3: 50, rank_4: 40, rank_5: 10 },
     threat: { hamlet: { rank_2: 40, rank_3: 40, rank_4: 20 }, village: { rank_2: 40, rank_3: 40, rank_4: 20 }, town: { rank_2: 20, rank_3: 40, rank_4: 30, rank_5: 10 } },
     seat: { hamlet: { rank_3: 50, rank_4: 50 }, village: { rank_3: 50, rank_4: 50 }, town: { rank_5: 100 } },
     road: { safe: { rank_2: 60, rank_3: 40 }, quiet: { rank_2: 60, rank_3: 40 }, wild: { rank_2: 30, rank_3: 50, rank_4: 20 }, dangerous: { rank_3: 50, rank_4: 40, rank_5: 10 } },
     wild: { rank_2: 30, rank_3: 50, rank_4: 20 },
-  } as { face: Record<string, number>; lead: Record<string, number>; threat: Record<string, Record<string, number>>; seat: Record<string, Record<string, number>>;
+  } as { crowd: Record<string, number>; face: Record<string, number>; lead: Record<string, number>; threat: Record<string, Record<string, number>>; seat: Record<string, Record<string, number>>;
     road: Record<string, Record<string, number>>; wild: Record<string, number> },
   SEAT_STEP_UP_PCT: 20,
+  /** NR38 a: the chance a beast in a group rolls the Dire prefix, outside safe and quiet roads */
+  DIRE_PCT: 10,
   /** NR31 a (placeholder): the share of rostered people who are elves; everyone else is human (dragonkin join once their race exists) */
   ROSTER_ELF_PCT: 5,
   /** TV2/SR5: travel is one pace, a share of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels 4.5 km/h

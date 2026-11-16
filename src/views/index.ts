@@ -1032,6 +1032,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
         roles: Object.values(lib.npcRoles ?? {}).map((r) => ({ id: r.id, name: r.name, kind: r.kind, skills: (r.bands.high ?? []).map((id) => skillName(id)) })),
         themes: Object.values(lib.themes ?? {}).map((t) => ({ id: t.id, name: t.name, roleKinds: [...t.roleKinds] })), // a theme takes roles of these kinds
         ranks: RANKS.keys.map((k) => ({ key: k, name: rankName(k), level: rankRow(k).level })),
+        prefixes: Object.values(lib.prefixes ?? {}).map((p) => ({ id: p.id, name: p.name, text: p.text })), // NR37: beasts only
         // NR27 (D-308): groups cast as one entry: the leader, and how many follow
         groups: Object.values(lib.groups ?? {}).map((g) => ({ id: g.id, name: g.name, lead: g.lead.label, ...(g.follow ? { follow: `${g.follow.count[0] === g.follow.count[1] ? g.follow.count[0] : g.follow.count.join(' to ')} × ${g.follow.label}` } : {}) })),
       },

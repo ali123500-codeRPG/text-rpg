@@ -55,6 +55,9 @@ export const RANKS = scale([['rank_0', 'Untrained'], ['rank_1', 'Novice'], ['ran
 /** TS2: a report card's letter for each rank row, by key; past the last row the last letter gains a + per step (gradeLetter) */
 export const GRADE_LETTERS: Record<(typeof RANKS.keys)[number], string> = { rank_0: 'F', rank_1: 'E', rank_2: 'D', rank_3: 'C', rank_4: 'B', rank_5: 'A', rank_6: 'S', rank_7: 'SS', rank_transcendent: 'SSS', rank_8: 'MAX' };
 export type RankKey = (typeof RANKS.keys)[number] | `rank_${number}`;
+/** NR40: how grand a role, theme or person is, lowest first; it moves the level read from an NPC's skills (CONFIG.GRANDEUR_LEVEL_MULT) */
+export const GRANDEUR = scale([['mundane', 'Mundane'], ['ordinary', 'Ordinary'], ['grand', 'Grand']]);
+export type GrandeurKey = (typeof GRANDEUR.keys)[number];
 
 /** check tiers, worst first (Part 1 §4) */
 export const TIERS = scale([

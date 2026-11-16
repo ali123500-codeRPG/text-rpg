@@ -142,7 +142,7 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
     used.add(c.roster);
     if (c.template !== undefined || c.actor !== undefined) continue;
     if (e.group) { if (!c.compose) c.group = { id: c.group?.id ?? e.group.id, rank: e.group.rank }; else c.compose.rank = e.group.rank; }
-    else if (e.compose) c.compose = c.compose ? { ...c.compose, race: e.compose.race, rank: e.compose.rank } : { ...e.compose };
+    else if (e.compose) c.compose = c.compose ? { ...c.compose, race: e.compose.race, rank: e.compose.rank, ...(e.compose.grandeur ? { grandeur: e.compose.grandeur } : {}) } : { ...e.compose };
   }
   const lib = getLibrary(), out: StagePlan['cast'] = [];
   for (const c of plan.cast) {
@@ -151,7 +151,9 @@ function fillRosterAndGroups(state: GameState, plan: StagePlan, err: (code: stri
     const g = lib.groups?.[c.group.id], rank = rankKeyOf(c.group.rank);
     if (!g || !rank) { err('bad_group', `cast ${c.key}: group ${c.group.id} at rank ${c.group.rank} unknown; groups: ${Object.keys(lib.groups ?? {}).join(', ')}`, c.key); continue; }
     if (c.template !== undefined || c.compose !== undefined || c.actor !== undefined) { err('bad_cast', `cast ${c.key}: a group names no template, compose or actor`, c.key); continue; }
-    const [lead, ...rest] = groupMembers(g, rank, c.roster ?? c.key);
+    // NR38 a: beasts roll Dire, except on safe and quiet roads
+    const road = c.roster ? state.regions?.flatMap((r) => r.roads).find((r) => c.roster!.startsWith(`${r.id}.`)) : undefined;
+    const [lead, ...rest] = groupMembers(g, rank, c.roster ?? c.key, road && (road.danger === 'safe' || road.danger === 'quiet') ? 0 : CONFIG.DIRE_PCT);
     delete c.group;
     if (lead.template) c.template = lead.template; else c.compose = lead.compose;
     rest.forEach((m, i) => out.push({ key: `${c.key}_${i + 2}`, label: m.label, name: '', appearance: m.label, band: c.band, routineSetId: c.routineSetId, slots: c.slots,

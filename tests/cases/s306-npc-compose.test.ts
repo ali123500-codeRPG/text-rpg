@@ -77,7 +77,7 @@ describe('306 NPC gear, compositions and the cast check', () => {
     expect(s.hidden.castNotes![orla.id].templateGap).toBe('a mounted courier with a fast horse');
     const v = buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' });
     expect(v.catalogs.compose.roles.map((r) => r.id)).toContain(RO.soldier);
-    expect(v.catalogs.compose.ranks[3]).toEqual({ key: 'rank_3', name: 'Veteran', level: 8 });
+    expect(v.catalogs.compose.ranks[3]).toEqual({ key: 'rank_3', name: 'Veteran', level: 6 });
   });
 
   it('NG16 b: the hostile cast\'s power over the player\'s is logged against the grade\'s band, and never refused', () => {

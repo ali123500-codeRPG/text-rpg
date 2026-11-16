@@ -220,8 +220,8 @@ const weaver = obj<StagePlan>({
     key: str, band: str, routineSetId: str,
     slots: record<string | string[]>((v, p, e) => (Array.isArray(v) ? arr(str)(v, p, e) : str(v, p, e))),
     startAt: str, routineGap: str, awarenessOfPlayer: AWARENESS,
-    compose: obj<NonNullable<Cast['compose']>>({ race: str, role: str, theme: str, rank: str, class: str,
-      wants: obj<NonNullable<NonNullable<Cast['compose']>['wants']>>({ label: str, skills: arr(str) }) }, ['class', 'role', 'wants']), templateGap: str, // NG15, NR28
+    compose: obj<NonNullable<Cast['compose']>>({ race: str, role: str, theme: str, rank: str, class: str, prefix: str,
+      wants: obj<NonNullable<NonNullable<Cast['compose']>['wants']>>({ label: str, skills: arr(str) }) }, ['class', 'role', 'wants', 'prefix']), templateGap: str, // NG15, NR28
     awarenessOfBands: arr(obj<{ band: string; awareness: 'unaware' | 'suspicious' | 'aware' }>({ band: str, awareness: AWARENESS })),
     overrides: arr(obj<{ actor: string; stance: Stance }>({ actor: str, stance: STANCE_WORD })),
     motive: str,
