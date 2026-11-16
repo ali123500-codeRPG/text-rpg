@@ -84,13 +84,13 @@ export function essenceFit(row: EssenceDef, skill: (id: string) => number, best:
 }
 
 /** EN1, EN2: the essence rows a sheet of this race carries: rows of its race or body type, or naming neither (EN2 a), whose fit
- * reaches ESSENCE_FIT_SHARE. Deed rows (scenario endings) and echo rows (one echo's own) are never worked out onto a list. */
-export function fittingEssences(raceId: string | undefined, skills: Record<string, SkillEntry>): { row: EssenceDef; fit: number }[] {
+ * reaches ESSENCE_FIT_SHARE; a row naming roles only for a sheet of one of them (NE3). Deed rows (scenario endings) and echo rows (one echo's own) are never worked out onto a list. */
+export function fittingEssences(raceId: string | undefined, skills: Record<string, SkillEntry>, roleId?: string): { row: EssenceDef; fit: number }[] {
   if (!raceId) return [];
   const body = race(raceId).bodyTypeId, v = (id: string) => (skills[id]?.raw ?? 0) * tierMult(id);
   const best = Math.max(0, ...Object.keys(skills).map(v));
   return Object.values(getLibrary().essences ?? {})
-    .filter((r) => !r.from.deed && !r.from.echo && (!r.from.race || r.from.race === raceId) && (!r.from.bodyType || r.from.bodyType === body))
+    .filter((r) => !r.from.deed && !r.from.echo && (!r.from.race || r.from.race === raceId) && (!r.from.bodyType || r.from.bodyType === body) && (!r.from.roles || (!!roleId && r.from.roles.includes(roleId))))
     .map((row) => ({ row, fit: essenceFit(row, v, best) })).filter((x) => x.fit >= CONFIG.ESSENCE_FIT_SHARE);
 }
 
@@ -99,7 +99,7 @@ export function fittingEssences(raceId: string | undefined, skills: Record<strin
 export function templateEssences(t: NpcTemplate): { row: EssenceDef; fit?: number }[] {
   const lib = getLibrary().essences ?? {};
   if (t.essences || t.unique) return (t.essences ?? []).map((id) => ({ row: lib[id] })).filter((x) => x.row); // an echo: only its own
-  return fittingEssences(t.raceId, templateSkills(t));
+  return fittingEssences(t.raceId, templateSkills(t), t.roleId);
 }
 
 /** EN4: the rows a foe offers: its template's list, or with no template the same rule on its own sheet */
@@ -107,6 +107,13 @@ export const rowsFor = (state: GameState, who: Actor): EssenceDef[] => {
   const id = who.core.templateId;
   return (id && hasTemplate(state, id) ? templateEssences(npcTemplate(state, id)) : fittingEssences(who.core.raceId, who.core.skills)).map((x) => x.row);
 };
+
+/** NE4: an NPC with no row on its list is a content gap to fill later; the game flags it (a bug report) */
+function listOrFlag(state: GameState, who: Actor): EssenceDef[] {
+  const rows = rowsFor(state, who);
+  if (!rows.length) logCode(state, 'essence_gap', { npc: who.id, name: who.names.current, template: who.core.templateId, race: who.core.raceId });
+  return rows;
+}
 
 /** 2.2: points = max(1, round(ESSENCE_SHARE × source skill × grade multiplier)), split over the row's skills by weight.
  * `source` gives the skill each point is measured from (a foe's raw × tier, or the player's own true skill). */
@@ -148,7 +155,7 @@ export function offersFromDefeats(state: GameState, _defeated: Actor[], rng: Rng
   for (const foe of state.actors) {
     if (!foe.mind?.hitByPlayer || foe.mind.essenceRolled || healthLevel(foe) !== 'dead') continue;
     foe.mind.essenceRolled = true;
-    const rows = rowsFor(state, foe);
+    const rows = listOrFlag(state, foe);
     if (!rows.length || (!isEcho(foe) && !appearRoll(rng, notable(state, foe) ? 'foe' : 'mob'))) continue; // HF29 a: an echo always offers one
     const row = pick(rows, rng)!;
     appearAndRoll(state, rng, row, CONFIG.ESSENCE_ROLL_BASE.foe, 'foe', foe.names.current, row.skills, measureOf(foe), isEcho(foe));
@@ -163,7 +170,7 @@ export function offersFromDefeats(state: GameState, _defeated: Actor[], rng: Rng
 export function offerAtEnding(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng: Rng, owed: [string, number][]): void {
   const base = CONFIG.ESSENCE_ROLL_BASE[f.tier];
   if (as !== 'resolved' || base === undefined) return;
-  const bestedOnes = (f.bested ?? []).map((id) => state.actors.find((a) => a.id === id)).filter((a): a is Actor => !!a && rowsFor(state, a).length > 0);
+  const bestedOnes = (f.bested ?? []).map((id) => state.actors.find((a) => a.id === id)).filter((a): a is Actor => !!a && listOrFlag(state, a).length > 0);
   const deed = Object.values(getLibrary().essences ?? {}).filter((r) => r.from.deed);
   if (!appearRoll(rng, f.tier)) return;
   const p = state.player;

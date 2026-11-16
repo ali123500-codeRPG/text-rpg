@@ -944,15 +944,28 @@ export function prototypeLibrary(): Library {
     essences: {
       [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
         story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Who passed by reaches you as a smell before your eyes find them, and your body starts to feel like the weapon.' },
-      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      // NE2 a: people rows come from the humanoid body type, so elves carry them as humans do (a row for one race can come later, D-229)
+      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { bodyType: BT.humanoid }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if you had brought someone else\'s long watches home with you.' },
-      [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
+      [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { bodyType: BT.humanoid }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
       // EN6: placeholder rows so the barkeep and the tavern patron each carry one
-      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { bodyType: BT.humanoid }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'A haggler\'s ear sits beside your own now. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
-      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
+      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { bodyType: BT.humanoid }, weight: 1, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
         story: 'Someone\'s long nights of tavern brawls came along with you. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
+      // NE3 a: for watchers and hunters only (Eyesight and Earshot are their best skills; every person has some, so it would fit everyone)
+      [ES.lookout_eyes]: { id: ES.lookout_eyes, name: 'Lookout\'s Eyes', from: { bodyType: BT.humanoid, roles: [RO.watcher, RO.hunter] }, weight: 1, skills: [{ skill: SK.eyesight, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+        story: 'Someone\'s long hours on a wall or in a hide came along with you. Your eyes go to the treeline and the far end of the road on their own, and a twig snapping behind you turns your head before you think to.' },
+      // NE1 a: beast rows name no race or body type, so the fit rule hands each beast the rows of the natural weapons it has
+      [ES.fang_nose]: { id: ES.fang_nose, name: 'Fang and Nose', from: {}, weight: 1, skills: [{ skill: SK.bite, weight: 2 }, { skill: SK.scent, weight: 1 }],
+        story: 'A hunting animal\'s hunger sits beside your own now. Your jaw sets hard when a fight starts, and the air carries who passed by and how afraid they were.' },
+      [ES.horn_hide]: { id: ES.horn_hide, name: 'Horn and Hide', from: {}, weight: 1, skills: [{ skill: SK.hooves_horns, weight: 2 }, { skill: SK.hide, weight: 1 }],
+        story: 'Something of a charging beast came with you: the urge to lower your head and drive straight through, and a skin that shrugs off what should have cut it.' },
+      [ES.claw_pounce]: { id: ES.claw_pounce, name: 'Claw and Pounce', from: {}, weight: 1, skills: [{ skill: SK.claws, weight: 2 }, { skill: SK.dodge, weight: 1 }],
+        story: 'A great cat\'s patience settles in your shoulders. Your weight shifts onto your toes before a blow lands, and your hands curl as if they remember raking.' },
+      [ES.lashing_tail]: { id: ES.lashing_tail, name: 'Lashing Tail', from: {}, weight: 1, skills: [{ skill: SK.tail, weight: 2 }, { skill: SK.hide, weight: 1 }],
+        story: 'A heavy, scaled thing\'s way of fighting came along with you: turning side-on, sweeping wide at whatever comes close, and taking the hits on a hide that barely feels them.' },
       [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
         story: 'What you did again and again here has grown on you like a callus. Something in you will remember it.' },
     },
