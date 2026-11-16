@@ -70,7 +70,6 @@ describe('typed IDs', () => {
       for (const id of Object.values(c.levelPerks ?? {}).flat()) known(id, `${c.id} levelPerks`);
       for (const id of c.capstone ?? []) known(id, `${c.id} capstone`);
       for (const x of c.capstones ?? []) known(x.perk, `${c.id} capstones`);
-      if (c.unlockPerk) known(c.unlockPerk, `${c.id} unlockPerk`);
     }
     for (const r of Object.values(L.races ?? {})) for (const id of [...(r.innatePerks ?? []), ...(r.innateQuirks ?? [])]) known(id, `race ${r.id}`);
     for (const t of Object.values(L.templates)) for (const id of t.perks ?? []) known(id, `template ${t.id}`);

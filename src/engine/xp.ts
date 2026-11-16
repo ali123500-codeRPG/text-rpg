@@ -190,21 +190,20 @@ function openEveryClass(state: GameState): void {
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
- * ClassDef.unlockAny is listed, at least one of those does, and when ClassDef.unlockPerk is listed, the player has that perk (for example Swordsman at Parry 40 and Medium or Heavy Weapons 40;
- * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
+ * ClassDef.unlockAny is listed, at least one of those does, and every class in ClassDef.unlockClass is at its level (Swordsman at Parry 80 and
+ * Medium or Heavy Weapons 60; A Nobody at Commoner's top level). A capstone never unlocks a class: the class level does. An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
   openEveryClass(state);
   for (const c of Object.values(getLibrary().classes)) {
-    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockPerkWith || c.unlockClass || c.orUnlocks || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!(c.unlock || c.unlockAny || c.unlockPerkWith || c.unlockClass || c.orUnlocks || c.blessedBy) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.blessedBy && !blessedBy(p, c.blessedBy)) continue; // DX1: a god's Blessed class opens on being blessed by that god
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     const rules = (r: Pick<ClassDef, 'unlock' | 'unlockAny' | 'unlockClass'>) => Object.entries(r.unlock ?? {}).every(met)
       && (r.unlockAny ?? []).every((group) => Object.entries(group).some(met))
       && Object.entries(r.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv));
     const perkWith = !c.unlockPerkWith || Object.entries(c.unlockPerkWith).every(([k, n]) => p.core.perks.some((x) => !x.dormant && (getLibrary().perks[x.perkId]?.[k as 'hearingDb'] ?? 0) >= n));
-    const perk = !c.unlockPerk || p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant);
-    if (!((rules(c) && perkWith && perk) || (c.orUnlocks ?? []).some(rules))) continue; // NR36: any other way in will do (Merchant: its perk, or Barter 75)
+    if (!((rules(c) && perkWith) || (c.orUnlocks ?? []).some(rules))) continue; // NR36: any other way in will do (Merchant: Trader 5, or Barter 75)
     openClass(state, c.id);
   }
 }
