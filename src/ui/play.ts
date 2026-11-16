@@ -627,7 +627,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     // who's here: one row each; only actors the character fully perceives (PlayerView); others' health from Wounded down.
     // AD4: pinned first, then those fighting you, then the rest; the list scrolls when it is long
-    const foe = (a: PlayerView['actors'][number]) => !!(a.talkDown || a.demandYield || pv?.player.spar?.opponents.includes(a.name ?? a.label));
+    const foe = (a: PlayerView['actors'][number]) => !!(a.foe || pv?.player.spar?.opponents.includes(a.name ?? a.label)); // BG-265: beasts too
     const rank = (a: PlayerView['actors'][number]) => (pins.has(a.id) ? 0 : foe(a) ? 1 : a.health && isDownLevel(a.health) ? 3 : 2);
     const seen = (pv?.actors.filter((a) => a.level === 'full') ?? []).map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
     const whoKids = seen.length ? seen.map((a) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: 'What you can do to or with them' },

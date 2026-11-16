@@ -219,6 +219,26 @@ function seenClearly(state: GameState, viewerId: string, aboutId: string): boole
     e.actorId === aboutId && e.turn >= state.stage.scenarioStartTurn && e.perception[viewerId]?.level === 'full');
 }
 
+/** BG-265: in a fight, someone the viewer counts as a foe, from what it knows: one fighting it (a beast too, not only someone
+ * it could talk down), or one it saw strike first, this scenario, at someone who is not fighting the viewer (a slime mauling a
+ * bystander). strikes: whom that one struck, as the viewer names them (absent when it fights the viewer). A blow struck back
+ * at whoever struck first makes no foe, so a guard cutting at a slime that went for him is not one. */
+function foeOf(state: GameState, viewer: Actor, a: Actor): { strikes?: string } | undefined {
+  if (state.mode !== 'tactical' || a === viewer || !isActive(a)) return undefined;
+  if (fightingWith(state, a, viewer)) return {};
+  const blows = [...(state.recentEvents ?? []), ...state.events].filter((e) => e.kind === 'attack' && !e.spar && !!e.target
+    && e.turn >= state.stage.scenarioStartTurn && e.perception[viewer.id]?.level === 'full');
+  const firstBlow = (from: string, to: string) => blows.findIndex((e) => e.actorId === from && e.target === to);
+  for (const [i, e] of blows.entries()) {
+    if (e.actorId !== a.id || e.target === viewer.id) continue;
+    const t = actorById(state, e.target!);
+    if (!t || fightingWith(state, t, viewer)) continue;
+    const back = firstBlow(t.id, a.id);
+    if (back < 0 || back > i) return { strikes: nameFor(state, viewer, t) ?? t.label };
+  }
+  return undefined;
+}
+
 /** ZR6: how far off a person is made out, by the sight table: someone still at low visibility; someone who did something this
  * turn (walked, spoke, fought) at the most visible of what they did */
 const personVisibility = (a: Actor, events: GameEvent[]): VisibilityKey =>
@@ -277,6 +297,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
       ...(level === 'full' && offerTo(state, a, viewer.id) ? { holdsOut: { item: a.offer!.item, name: itemName(state, a.offer!.item) ?? 'something' } } : {}), // BF34
+      ...(viewer === state.player && level === 'full' && foeOf(state, viewer, a) ? { foe: foeOf(state, viewer, a)! } : {}), // BG-265
       ...(viewer === state.player && level === 'full' && canOffer(state, viewer, a) && fightingWith(state, a, viewer) ? { talkDown: true as const } : {}), // TF13
       ...(viewer === state.player && level === 'full' && canDemand(state, viewer, a) && (fightingWith(state, a, viewer) || a.mind?.moraleState === 'broken') ? { demandYield: true as const } : {}), // TF19
     });
