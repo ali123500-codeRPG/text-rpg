@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali OK'd the fix on the decision card. A shot (any attack made while hidden) now always gets its own Combat Stealth check against each watcher who hasn't spotted you yet, even after a step earlier in the turn, as the spec already said (ST7, D-40). Watchers who spotted you on the step don't roll again. A new test in tests/cases/s117-stealth.test.ts walks into range and shoots, and expects a Sneaking roll for the step and a Combat Stealth roll for the shot.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #927](https://github.com/ali123500-codeRPG/text-rpg/pull/927)
 
 ## BG-261
 
