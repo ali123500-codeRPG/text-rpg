@@ -21,6 +21,7 @@ export const BUG_CODES = new Set([
   'bed_missing', // BF68: an NPC's routine sent it to sleep with no bed given; it slept where it stood
   'skill_gap', // the Parser found no skill that fits the player's deed and used the closest (flagged each time)
   'grade_gap', // OD14: an agent left out the grade of a graded act on an ungraded thing; Moderate was used (flagged each time)
+  'essence_gap', // NE4: an NPC the player killed or bested carries no essence row (engine/essence.ts listOrFlag)
   'code_error', // a throw the game caught so play could go on (a background Planner, the story text save)
 ]);
 export const isBugCode = (code: string): boolean => code.startsWith('invalid_') || BUG_CODES.has(code);

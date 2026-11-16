@@ -90,7 +90,6 @@ export type EssenceDef = {
   id: string; name: string;
   /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list */
   from: { race?: string; bodyType?: string; deed?: true; echo?: true };
-  weight: number;
   skills: { skill: string; weight: number }[];
   trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
   story: string;
