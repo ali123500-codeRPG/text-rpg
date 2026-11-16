@@ -196,6 +196,7 @@ export type Progression = {
   capstoneOptions?: Record<LibraryRef, LibraryRef[]>;
   freeLevelsTaken?: number; // free levels already taken (owed = rewardSum(a, 'freeLevels') − this)
   bonusLevelsTaken?: number; // bonus levels already taken: character levels outside every class (owed = rewardSum(a, 'bonusLevels') − this)
+  perkPointsTaken?: number; // perk points already added from perks (owed = the active perks' PerkDef.perkPoints − this)
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   /** growth proposal 2.5: essences held (at most essenceSlots), and essences on offer (each until its turn, or a new scenario) */
   essences?: HeldEssence[];

@@ -211,12 +211,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   [PK.nobody_special]: {
     id: PK.nobody_special, name: 'Nobody Special', built: true, classLevel: { classId: CL.commoner, level: 5 },
     story: 'Five seasons of ordinary work, and nobody noticed you. That can be a start.',
-    rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: ['the owner does not have the A Nobody class'], effect: 'the A Nobody class unlocks at class level 0', lasts: 'always' },
+    perkPoints: 1,
+    rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: [], effect: '+1 perk point', lasts: 'once' },
   },
   [PK.known_at_every_stall]: {
-    id: PK.known_at_every_stall, name: 'Known at Every Stall', built: true, classLevel: { classId: CL.trader, level: 5 },
+    id: PK.known_at_every_stall, name: 'Known at Every Stall', built: false, classLevel: { classId: CL.trader, level: 5 },
     story: 'Every stallholder knows your face and your prices. Time for a shop of your own.',
-    rules: { kind: 'passive', trigger: 'the owner gains this perk at Trader class level 5', conditions: ['the owner does not have the Merchant class'], effect: 'the Merchant class unlocks at class level 0', lasts: 'always' },
+    rules: { kind: 'passive', trigger: 'the owner gains this perk at Trader class level 5', conditions: [], effect: 'none yet: a new Trader capstone is still to be designed (D-358)', lasts: 'always' },
   },
   [PK.every_fall_a_lesson]: {
     id: PK.every_fall_a_lesson, name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 15 },
@@ -865,10 +866,10 @@ export function prototypeLibrary(): Library {
       // NR36: the squire's road into Knight (placeholder unlock: a melee weapon and Heavy Armor at 40, like Guard's 40s)
       [CL.knight_trainee]: { id: CL.knight_trainee, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight Trainee', tier: 'tier_1', label: 'a knight trainee', story: 'Carry the shield, wear the weight, learn the blade until the banner takes you.', floors: {},
         unlock: { [SK.heavy_armor]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
-      // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
+      // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) gives a perk point
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
-      // unlocked through Commoner 5's perk (its Start, ST3, was removed: CC3)
-      [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockPerk: PK.nobody_special,
+      // unlocks at Commoner's top level (its Start, ST3, was removed: CC3)
+      [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockClass: { [CL.commoner]: 'max' },
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
@@ -877,7 +878,8 @@ export function prototypeLibrary(): Library {
           { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30, [SK.parry]: 30 }] as Record<string, number>[],
         unlockPerkWith: { hearingDb: 1 } },
       [CL.trader]: { id: CL.trader, personality: { [PA.sociability]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
-      [CL.merchant]: { id: CL.merchant, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
+      [CL.merchant]: { id: CL.merchant, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockClass: { [CL.trader]: 'max' }, // Trader at its top level
+        orUnlocks: [{ unlock: { [SK.barter]: 75 } }] }, // or Barter 75 on its own
     },
     // DX1: the Starts, the ways to begin on the creation screen, in the order the screen shows them. points/level left out =
     // CONFIG.CREATION_POINTS / START_LEVEL
