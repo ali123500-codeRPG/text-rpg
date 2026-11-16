@@ -718,14 +718,15 @@ const DEFAULTS = {
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
   /** NR21 a: rank weights (RANKS keys) for rostered people. crowd: a crowd person the player picks out (made a Commoner then);
    * face: services, traders, the watch and people in need; lead: leaders and rivals, one step up; threat: by settlement size
-   * (hamlet and village up to Elite, town up to Paragon); seat: the seat of the Great's lowest rank by size (TL24 minimums), one
+   * (hamlet and village up to Elite, town up to Paragon, city and court up to Beyond); seat: the seat of the Great's lowest rank
+   * by size (TL24 minimums: village Veteran or Elite, town Paragon, city Beyond, court Mythic), one
    * step higher on SEAT_STEP_UP_PCT. Roads by danger and the wild use their own rows. Transcendent only by region brief. */
   ROSTER_RANKS: {
     crowd: { rank_1: 70, rank_2: 30 },
     face: { rank_2: 50, rank_3: 40, rank_4: 10 },
     lead: { rank_3: 50, rank_4: 40, rank_5: 10 },
-    threat: { hamlet: { rank_2: 40, rank_3: 40, rank_4: 20 }, village: { rank_2: 40, rank_3: 40, rank_4: 20 }, town: { rank_2: 20, rank_3: 40, rank_4: 30, rank_5: 10 } },
-    seat: { hamlet: { rank_3: 50, rank_4: 50 }, village: { rank_3: 50, rank_4: 50 }, town: { rank_5: 100 } },
+    threat: { hamlet: { rank_2: 40, rank_3: 40, rank_4: 20 }, village: { rank_2: 40, rank_3: 40, rank_4: 20 }, town: { rank_2: 20, rank_3: 40, rank_4: 30, rank_5: 10 }, city: { rank_3: 20, rank_4: 40, rank_5: 30, rank_6: 10 }, court: { rank_3: 20, rank_4: 40, rank_5: 30, rank_6: 10 } },
+    seat: { hamlet: { rank_3: 50, rank_4: 50 }, village: { rank_3: 50, rank_4: 50 }, town: { rank_5: 100 }, city: { rank_6: 100 }, court: { rank_7: 100 } },
     road: { safe: { rank_2: 60, rank_3: 40 }, quiet: { rank_2: 60, rank_3: 40 }, wild: { rank_2: 30, rank_3: 50, rank_4: 20 }, dangerous: { rank_3: 50, rank_4: 40, rank_5: 10 } },
     wild: { rank_2: 30, rank_3: 50, rank_4: 20 },
   } as { crowd: Record<string, number>; face: Record<string, number>; lead: Record<string, number>; threat: Record<string, Record<string, number>>; seat: Record<string, Record<string, number>>;

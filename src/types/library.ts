@@ -203,7 +203,7 @@ export type Library = {
   hookKinds?: Record<string, HookKindDef>; // NR17: HK…, why a real person stands in a place
   groups?: Record<string, GroupDef>; // NR27 (D-308): GP…, cast as one entry
   /** NR17: the hooks each settlement size holds; code rolls them per site, the World builder fills them */
-  rosters?: Record<'hamlet' | 'village' | 'town', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
+  rosters?: Record<'hamlet' | 'village' | 'town' | 'city' | 'court', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
   /** NR18: who travels a road, by its danger: how many groups a stretch holds, and from which rows */
   roadPeople?: Record<string, { count: [number, number]; rows: MeetRow[] }>;
   wildPeople?: Record<string, MeetRow[]>; // NR19: by land cover (LC…), who can be met for danger or gain
