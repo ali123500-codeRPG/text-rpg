@@ -219,7 +219,7 @@ const DEFAULTS = {
    * (something, not who), in metres, in daylight with a clear view, from real references (the library's
    * visibilityLevels rows); null = nothing to see. Sight distance is never under NEAREST_M (seeingM), so a level made
    * out only nearer than that (faint) is at most glimpsed. A dark zone caps sight at partial. */
-  SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
+  SIGHT_M: { unseen: null, faint: [0.5, 2], slight: [2, 6], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], bright: [100, 1000], glaring: [200, 2000] } as Record<string, [number, number] | null>,
   // ---- making out what is half seen or half heard (PG3-PG9; placeholders) ----
   /** PG4 a: a make-out roll's grade for something half seen: by how far past its clear range it is, as a share of the way
    * to its glimpse range (CONFIG.SIGHT_M), the first row whose share it is within */
