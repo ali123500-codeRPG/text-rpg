@@ -26,4 +26,6 @@ export const IT = {
   arming_cap: 'IT70', leather_cap: 'IT71', secret: 'IT72', peerless_cap: 'IT73',
   mail_coif: 'IT74', kettle_hat: 'IT75', sallet: 'IT76', peerless_sallet: 'IT77',
   nasal_helm: 'IT78', bascinet: 'IT79', great_helm: 'IT80', peerless_great_helm: 'IT81',
+  // IR25-IR29: gauntlets, an unarmed weapon held in both grips, one pair per level
+  leather_gloves: 'IT82', mail_mittens: 'IT83', plate_gauntlets: 'IT84', peerless_gauntlets: 'IT85',
 } as const;

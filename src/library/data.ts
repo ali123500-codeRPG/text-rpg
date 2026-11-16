@@ -173,6 +173,7 @@ export const GEAR_TYPES: Record<string, { id: string; name: string; reachM?: num
   [GT.half_suit, 'Half suit', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg']], // breastplate with arm and leg plates
   [GT.full_harness, 'Full harness', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck']], // a full harness came with its helmet (Wikipedia "Plate armour")
   [GT.helmet, 'Helmet', ['head']], [GT.helmet_neck, 'Helmet with neck', ['head', 'neck']],
+  [GT.fist, 'Fist', 0.7], // gauntlets: a punch reaches as far as the arm (the humanoid grip part's 0.7 m)
 ] as [string, string, number | string[]][]).map(([id, name, v]) => [id, { id, name, ...(Array.isArray(v) ? { covers: v } : { reachM: v }) }]));
 /** IR23: fill a typed piece's reach (non-thrown modes) and coverage from its gear type */
 function typed(d: ItemDef): ItemDef {
@@ -465,6 +466,16 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     armor: { ...ARMOR('heavy', 'superior') } }, // a closed steel helm over the whole head (Wikipedia "Great helm")
   { id: IT.peerless_great_helm, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless great helm', look: 'a great helm of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { ...ARMOR('heavy', 'masterwork') } },
+  // IR25-IR29: gauntlets are an unarmed weapon (gear class Gauntlets, asking Unarmed strike): a pair held in both grips, so a
+  // gauntleted hand holds nothing else. A punch with them is still a punch (15 damage, +10 hit); the kit bonus adds to the roll (IR26 b).
+  { id: IT.leather_gloves, level: 'common', gearClass: GC.gauntlets, gearType: GT.fist, tags: ['starter'], kind: 'weapon', name: 'leather gloves', look: 'a pair of stout leather gloves', bulk: 1, grips: 2, effects: [KIT()], // leather gloves, worn under or without armour (Wikipedia "Gauntlet (glove)")
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
+  { id: IT.mail_mittens, level: 'fine', gearClass: GC.gauntlets, gearType: GT.fist, tags: ['starter'], kind: 'weapon', name: 'mail mittens', look: 'a pair of riveted mail mittens', bulk: 1, grips: 2, effects: [KIT()], // mail mittens (mufflers), extending the hauberk's sleeves (Wikipedia "Gauntlet (glove)")
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
+  { id: IT.plate_gauntlets, level: 'superior', gearClass: GC.gauntlets, gearType: GT.fist, kind: 'weapon', name: 'plate gauntlets', look: 'a pair of fingered plate gauntlets', bulk: 1, grips: 2, effects: [KIT()], // articulated steel plate over each finger (Wikipedia "Gauntlet (glove)")
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
+  { id: IT.peerless_gauntlets, level: 'masterwork', gearClass: GC.gauntlets, gearType: GT.fist, tags: ['fantasy'], kind: 'weapon', name: 'peerless gauntlets', look: 'a pair of gauntlets of impossible craft', bulk: 1, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, grips: 1 })] } },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it (a charm: who carries it); its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'misc', name: 'Varo\'s Loop', look: 'a small hoop of dark silver on a knotted cord, a charm worn smooth by fingers, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20,
     threadbound: { rank: 'rank_4', grants: [
@@ -1188,7 +1199,7 @@ export function prototypeLibrary(): Library {
       [GC.melee_light, 'Light melee weapon', SK.melee_light, 'melee'], [GC.melee_medium, 'Medium melee weapon', SK.melee_medium, 'melee'], [GC.melee_heavy, 'Heavy melee weapon', SK.melee_heavy, 'melee'],
       [GC.ranged_light, 'Light ranged weapon', SK.ranged_light, 'ranged'], [GC.ranged_medium, 'Medium ranged weapon', SK.ranged_medium, 'ranged'], [GC.ranged_heavy, 'Heavy ranged weapon', SK.ranged_heavy, 'ranged'],
       [GC.improvised, 'Improvised weapon', SK.unarmed_improvised, 'improvised'], [GC.armor_light, 'Light armor', SK.light_armor, 'armor'], [GC.armor_medium, 'Medium armor', SK.medium_armor, 'armor'],
-      [GC.armor_heavy, 'Heavy armor', SK.heavy_armor, 'armor'], [GC.shield, 'Shield', SK.block, 'shield'],
+      [GC.armor_heavy, 'Heavy armor', SK.heavy_armor, 'armor'], [GC.shield, 'Shield', SK.block, 'shield'], [GC.gauntlets, 'Gauntlets', SK.unarmed_strike, 'unarmed'],
     ] as const).map(([id, name, skill, use]) => [id, { id, name, skill, use }])),
     // attack modes: what an attack does; weapon modes and natural attacks name one by id
     // Throw carries the throw action's combined roll for every weapon that lists it; a throw mode's reachM is its own throw range (CONFIG.THROW_M)

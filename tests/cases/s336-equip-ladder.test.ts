@@ -48,7 +48,7 @@ describe('336 equip ladder', () => {
 
   it('IR2: every gear class but improvised has a piece at every level from Common to Masterwork; Masterwork ones are fantasy', () => {
     const lib = getLibrary(), items = Object.values(lib.items);
-    expect(Object.keys(lib.gearClasses ?? {}).length).toBe(11);
+    expect(Object.keys(lib.gearClasses ?? {}).length).toBe(12);
     for (const gc of Object.keys(lib.gearClasses ?? {})) {
       if (gc === GC.improvised) continue;
       for (const lv of ['common', 'fine', 'superior', 'masterwork']) expect(items.some((d) => d.gearClass === gc && d.level === lv), `${gc} ${lv}`).toBe(true);
