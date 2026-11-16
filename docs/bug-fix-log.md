@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali chose two kinds of spear (IC4, then IC6 a on the "Code consistency check, 10% at a time" page). The spear now thrusts and throws in one grip, so it goes beside a shield as before. A new war spear (IT86, Common, Pole 2.8 m) takes both grips to hold and thrusts as a heavy weapon; it can't be thrown. A library check (tests/cases/s340-two-spears.test.ts) fails if any attack mode needs more grips than its item takes.
 
-**Fixed by:** [PR #926](https://github.com/ali123500-codeRPG/text-rpg/pull/926)
+**Fixed by:** [PR #930](https://github.com/ali123500-codeRPG/text-rpg/pull/930)
 
 ## BG-261
 
