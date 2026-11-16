@@ -7,7 +7,7 @@ import './libraryViewer.css';
 import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, RoutineSet, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, chainRollLine, defeatsRoll, isBane } from '../ruleset/bane';
-import { achLevel, achXp, rewardLines, rewardName, rewardXp, tierUnlockLine } from '../ruleset/achRewards';
+import { achLevel, achXp, questLevelXp, questXpLevel, rewardLines, rewardName, tierUnlockLine } from '../ruleset/achRewards';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { branchLabel, branchRoots, chainHead, chainRows, chainTag, isBareHead } from '../ruleset/achChains';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
@@ -928,11 +928,11 @@ function questsView(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, 'Quests have no fixed list: each one is a job someone gives you in play, held in a deal, and kept in your save (see them on the Play screen\'s Quests page or with /quests). These are the rules every quest follows. Quest achievements are under Achievements.'),
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Rules'), h('div', { class: 'lv-grid wide' },
-      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('REWARD_XP_CURVE · rewardXp · QUEST_GAIN_LEVEL')],
-        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scenario stands to gain. A quest pays the XP of its reward level from the same equation as achievements.'),
-        tbl(['Level', 'XP', 'Scenario gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
+      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('REWARD_XP_CURVE · questLevelXp · QUEST_XP_LEVELS_UP · QUEST_GAIN_LEVEL')],
+        h('p', { class: 'hs-note' }, `A quest's reward level is set when you accept it, from how much the scenario stands to gain. A quest pays the XP of an achievement ${CONFIG.QUEST_XP_LEVELS_UP} reward levels higher, from the same equation: a level 0 quest pays what a level ${rewardName(questXpLevel('zero'))} achievement does.`),
+        tbl(['Level', 'XP', 'Same as achievement level', 'Scenario gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
           const g = gainsFor(lv);
-          return [QUEST_REWARD_LEVELS.name(lv), String(rewardXp(lv)), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
+          return [QUEST_REWARD_LEVELS.name(lv), String(questLevelXp(lv)), rewardName(questXpLevel(lv)), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
         })))),
       fixed(card('quests', 'defeat-xp', {}, 'Defeat jobs against weak foes', [chip('questXp · weakFoeTaper')],
         h('p', { class: 'lv-formula' }, `XP × min(1, ${CONFIG.DEFEAT_XP_TAPER} × average foe power ÷ your power)`),
