@@ -56,10 +56,10 @@ export const AM = {
 export const GT = {
   knife: 'GT1', short: 'GT2', sword: 'GT3', great: 'GT4', pole: 'GT5',
   short_bow: 'GT6', flatbow: 'GT7', recurve: 'GT8', longbow: 'GT9', warbow: 'GT10', crossbow_light: 'GT11', crossbow_stirrup: 'GT12', crossbow_heavy: 'GT13',
-  cuirass: 'GT14', coat: 'GT15', half_suit: 'GT16', full_harness: 'GT17', helmet: 'GT18', helmet_neck: 'GT19',
+  cuirass: 'GT14', coat: 'GT15', half_suit: 'GT16', full_harness: 'GT17', helmet: 'GT18', helmet_neck: 'GT19', fist: 'GT20',
 } as const;
 /** gear classes: a class sets which skill an item asks for (its level sets how much) */
 export const GC = {
   melee_light: 'GC1', melee_medium: 'GC2', melee_heavy: 'GC3', ranged_light: 'GC4', ranged_medium: 'GC5', ranged_heavy: 'GC6',
-  improvised: 'GC7', armor_light: 'GC8', armor_medium: 'GC9', armor_heavy: 'GC10', shield: 'GC11',
+  improvised: 'GC7', armor_light: 'GC8', armor_medium: 'GC9', armor_heavy: 'GC10', shield: 'GC11', gauntlets: 'GC12', // IR28: an unarmed weapon
 } as const;
