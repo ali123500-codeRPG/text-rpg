@@ -3,13 +3,15 @@
 // values see what changed (M-74), and every duration is a --m-* token with no glows anywhere (M-50, M-70).
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { partsWorse } from '../../src/agents/game';
 import { partStates } from '../../src/ruleset';
 import { sentences } from '../../src/ui/motion';
 import { gearNote, shownValues } from '../../src/ui/charsheet';
-import { getLibrary } from '../../src/library';
+import { getLibrary, resetLibrary } from '../../src/library';
+
+afterEach(() => resetLibrary());
 
 describe('play screen motion', () => {
   it('a turn line names only the parts that got worse', () => {
@@ -54,7 +56,8 @@ describe('play screen motion', () => {
     const s = makeVillage();
     const items = getLibrary().items;
     const shieldId = Object.keys(items).find((k) => items[k].shield)!;
-    const armorId = Object.keys(items).find((k) => Object.keys(items[k].armor?.pools ?? {}).length)!;
+    const armorId = Object.keys(items).find((k) => items[k].armor?.covers.includes('head'))!;
+    items[armorId].armor!.pools = { head: 20 }; // no Mundane piece has a pool (IR31); a stand-in shows the rule
     s.player.core.inventory.push({ id: 'sh', itemId: shieldId, qty: 1, equippedIn: ['grip:left'] }, { id: 'ar', itemId: armorId, qty: 1, equippedIn: ['body'] });
     const sh = s.player.core.inventory.find((i) => i.id === 'sh')!;
     expect(gearNote(s, sh)).toEqual({ text: 'Healthy', cls: 'ps-healthy' });

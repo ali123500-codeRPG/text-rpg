@@ -58,6 +58,9 @@ export const GT = {
   short_bow: 'GT6', flatbow: 'GT7', recurve: 'GT8', longbow: 'GT9', warbow: 'GT10', crossbow_light: 'GT11', crossbow_stirrup: 'GT12', crossbow_heavy: 'GT13',
   cuirass: 'GT14', coat: 'GT15', half_suit: 'GT16', full_harness: 'GT17', helmet: 'GT18', helmet_neck: 'GT19', fist: 'GT20',
 } as const;
+/** IR30-IR33: item families. Mundane pieces scale only by their level; special families (Threadbound, Relic) stand on a
+ * Mundane base and add their own extras */
+export const IF = { mundane: 'IF1', threadbound: 'IF2', relic: 'IF3' } as const;
 /** gear classes: a class sets which skill an item asks for (its level sets how much) */
 export const GC = {
   melee_light: 'GC1', melee_medium: 'GC2', melee_heavy: 'GC3', ranged_light: 'GC4', ranged_medium: 'GC5', ranged_heavy: 'GC6',

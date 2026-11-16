@@ -230,6 +230,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const covers = new Set(i.armor?.covers ?? []);
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
+    i.family ? row('Family', lib.itemFamilies?.[i.family]?.name ?? i.family) : null, // IR30: Mundane, or a special family
     i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
     i.gearType ? row('Gear type', link('gearTypes', i.gearType, lib.gearTypes?.[i.gearType]?.name ?? i.gearType)) : null, // IR23: its reach or coverage comes from the type
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${equipName(req.level)} item)`) : row('Needs', none('nothing')),
@@ -248,8 +249,12 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
 }
 function gear(): HTMLElement[] {
   const kinds = [...new Set(Object.values(lib.items).map((i) => i.kind))];
-  const all = kinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${label(kind)}`),
-    h('div', { class: 'lv-grid' }, Object.values(lib.items).filter((i) => i.kind === kind).map((i) => gearCard(i)))));
+  const byKind = (items: ItemDef[], pre = '') => kinds.filter((k) => items.some((i) => i.kind === k)).map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${label(kind)}`),
+    h('div', { class: 'lv-grid' }, items.filter((i) => i.kind === kind).map((i) => gearCard(i, pre ? `${pre}-${i.id}` : i.id)))));
+  const all = byKind(Object.values(lib.items));
+  // IR30: one pane per item family (Mundane pieces scale only by their level; special families stand on a Mundane base)
+  const families = Object.values(lib.itemFamilies ?? {}).map((f) => ({ f, items: Object.values(lib.items).filter((i) => i.family === f.id) })).filter((x) => x.items.length)
+    .map(({ f, items }) => ({ key: `family-${f.id}`, title: f.name, n: items.length, content: [h('p', { class: 'lv-look' }, f.rule), ...byKind(items, f.id)] }));
   // the starter kit: every item tagged 'starter' (starterKit in src/library/spawn.ts)
   const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter'));
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts')),
@@ -261,6 +266,7 @@ function gear(): HTMLElement[] {
   const kitKinds = [...new Set(kit.map((i) => i.kind))];
   return panes([
     { key: 'all', title: 'All gear', n: Object.keys(lib.items).length, content: all },
+    ...families,
     { key: 'starter', title: 'Starter kit', n: kit.length, content: [
       h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Starter kit'), h('div', { class: 'lv-grid wide' }, rule)),
       ...kitKinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `Starter ${label(kind)}`),
