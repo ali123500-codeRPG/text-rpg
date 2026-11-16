@@ -13,7 +13,7 @@ import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL, ROLLED_SKILL } from '../library/skillIds';
 import { createRng, textSeed } from '../rng';
-import { itemLevel, requirement, requiredSkill } from './requirements';
+import { equipNeed, itemLevel, requirement, requiredSkill } from './requirements';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 import { skillName } from '../library/skillNames';
@@ -57,7 +57,7 @@ export function pieceName(state: GameState | null | undefined, inst: { id: strin
 /** an effect's size: a kit piece's EQUIP_FACTOR × need, an accessory's ACCESSORY_FACTOR × its level's need (AX1/AX2), else its own value */
 export function effectValue(def: ItemDef, e: ItemEffect): number {
   if (e.kit) return kitBonus(def, e);
-  if (e.byLevel) { const lv = itemLevel(def); return lv ? CONFIG.ACCESSORY_FACTOR * (CONFIG.EQUIP_NEED[lv] ?? 0) : 0; }
+  if (e.byLevel) { const lv = itemLevel(def); return lv ? CONFIG.ACCESSORY_FACTOR * equipNeed(lv) : 0; }
   return e.value;
 }
 /** an effect's skill for this piece: a rolled one names the piece's own (rolledSkill) */

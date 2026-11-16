@@ -14,7 +14,7 @@ import { RC } from '../../src/library/raceIds';
 import { CL } from '../../src/library/classIds';
 import { IT } from '../../src/library/itemIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
-import { EQUIP_LEVELS } from '../../src/scales';
+import { EQUIP_LEVELS, equipPos } from '../../src/scales';
 import { itemLevel } from '../../src/ruleset/requirements';
 import { CONFIG } from '../../src/config';
 import { buildWeaverView } from '../../src/views';
@@ -38,9 +38,9 @@ describe('306 NPC gear, compositions and the cast check', () => {
     const vet = composeTemplate(watchman, 'a watch captain');
     const gear = templateLoadout(vet, templateSkills(vet, 'x')).map((id) => getLibrary().items[id]);
     expect(gear.map((d) => (d.armor ? 'armor' : d.shield ? 'shield' : d.kind)).sort()).toEqual(['armor', 'shield', 'weapon']);
-    for (const d of gear) expect(EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude')).toBeLessThanOrEqual(EQUIP_LEVELS.pos('fine')); // town watch: Fine
+    for (const d of gear) expect(equipPos(itemLevel(d) ?? 'crude')).toBeLessThanOrEqual(EQUIP_LEVELS.pos('fine')); // town watch: Fine
     const poor = composeTemplate({ ...watchman, theme: TH.road_bandits }, 'a bandit');
-    for (const id of templateLoadout(poor, templateSkills(poor, 'x'))) expect(EQUIP_LEVELS.pos(itemLevel(itemDef(null, id)) ?? 'crude')).toBeLessThanOrEqual(EQUIP_LEVELS.pos('common'));
+    for (const id of templateLoadout(poor, templateSkills(poor, 'x'))) expect(equipPos(itemLevel(itemDef(null, id)) ?? 'crude')).toBeLessThanOrEqual(EQUIP_LEVELS.pos('common'));
   });
 
   it('NG15: a composed cast entry validates, spawns from a story blueprint (one per composition) and survives a reload', () => {
