@@ -11,7 +11,7 @@ import { groupMembers, landmarkRoster, roadRoster, siteRoster, wildTable } from 
 import { buildWorldView } from '../../src/views';
 import { getLibrary } from '../../src/library';
 import { RK, LM, LC } from '../../src/library/tableIds';
-import { GP, HK, RO } from '../../src/library/npcLayerIds';
+import { GP, HK, RO, TH as THEME } from '../../src/library/npcLayerIds';
 import { RC } from '../../src/library/raceIds';
 import { RANKS } from '../../src/scales';
 import { CONFIG } from '../../src/config';
@@ -69,6 +69,22 @@ describe('332 rosters and groups', () => {
     expect(t.find((e) => e.who === hooks[HK.watch].name)!.group!.id).toBe(GP.watch_patrol);
     expect(v[0].compose!.role).toBe(RO.leader);
     for (const e of [...v, ...t, ...h]) if (e.compose) expect([RC.human, RC.elf]).toContain(e.compose.race);
+  });
+
+  it('TL24: a city seats a Beyond and a court a Mythic; their must-haves are always there', () => {
+    const hooks = getLibrary().hookKinds!;
+    for (let i = 0; i < 20; i++) {
+      const c = siteRoster({ ...site('town'), id: `city_${i}`, size: 'city' as never }), k = siteRoster({ ...site('town'), id: `court_${i}`, size: 'court' as never });
+      expect(c.length).toBeGreaterThanOrEqual(10); expect(c.length).toBeLessThanOrEqual(16);
+      expect(k.length).toBeGreaterThanOrEqual(5); expect(k.length).toBeLessThanOrEqual(8);
+      expect(c.slice(0, 7).map((e) => e.who)).toEqual([HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival, HK.threat].map((id) => hooks[id].name));
+      expect(k.slice(0, 4).map((e) => e.who)).toEqual([HK.leader, HK.seat, HK.watch, HK.rival].map((id) => hooks[id].name));
+      expect(pos(c.find((e) => e.goals)!.compose!.rank)).toBeGreaterThanOrEqual(pos('rank_6'));
+      expect(pos(k.find((e) => e.goals)!.compose!.rank)).toBeGreaterThanOrEqual(pos('rank_7'));
+      expect(k[0].compose!.theme).toBe(THEME.lords_household);
+      const threat = c.find((e) => e.who === hooks[HK.threat].name)!.group!.rank;
+      expect(pos(threat)).toBeLessThanOrEqual(pos('rank_6'));
+    }
   });
 
   it('NR31: about 1 in 20 rostered people are elves', () => {
