@@ -65,6 +65,7 @@ const first = roll();
 const identity: { name: string; pronouns: Pronouns; raceId: string; age?: number } = { name: first.name, pronouns: first.pronouns, raceId: first.raceId, age: first.age }; // age: left out = the start's default (AG15)
 const persona = { p: first.personality }; // PL14: carries over too
 const world: { id?: string; list: FreeWorld[] } = { list: [] }; // HF31: the free world picked (left out = a new world); carries over too
+const kept: { b?: Pick<CreationBuild, 'startId' | 'skills' | 'tagged'> } = {}; // BG-264: the skill points carry over a race change
 
 function startScreen(api: GameApi, onStarted: () => void, startId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
@@ -81,6 +82,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
   const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, startId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(startId), raceId: identity.raceId });
   const picker = personalityPicker(persona, () => createPlayer(build(), 'preview', { preview: true }));
+  const keep = () => { kept.b = { startId, skills: { ...st.v }, tagged: [...st.tags] }; };
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(k), st.v[k] + left(), Math.round(n))); render(); };
 
   const tilesHost = h('div');
@@ -186,7 +188,12 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     onStarted();
   }
 
-  recommended();
+  const carry = kept.b?.startId === startId ? kept.b : undefined; kept.b = undefined;
+  if (carry) { // skills the new race can't open drop; their points come back to spend
+    reset();
+    for (const k of open) if (carry.tagged.includes(k) && st.tags.size < maxTags()) st.tags.add(k);
+    for (const k of open) if (k in carry.skills) st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(k), carry.skills[k]));
+  } else recommended();
   render();
   const stopped = api.notices().find((n) => n.kind === 'stop_play');
   const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Start' }, Object.values(lib.starts).map((s) =>
@@ -242,7 +249,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     // CC7 a: the playable races; picking one rolls an age in its range and builds the screen again (its trees and ages)
     const race = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Race' }, playableRaces().map((id) =>
       h('button', { type: 'button', 'aria-pressed': String(identity.raceId === id), title: lib.races?.[id]?.name ?? id,
-        onclick: () => { if (id === identity.raceId) return; identity.raceId = id; identity.age = randomIdentity(createRng(Math.floor(Math.random() * 2 ** 31) || 1), id).age; switchTo(startId); } },
+        onclick: () => { if (id === identity.raceId) return; identity.raceId = id; identity.age = randomIdentity(createRng(Math.floor(Math.random() * 2 ** 31) || 1), id).age; keep(); switchTo(startId); } },
       lib.races?.[id]?.name ?? id)));
     const row: HTMLElement = h('div', { class: 'who-row' },
       h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: CONFIG.NAME_CAP, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
@@ -251,7 +258,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       h('button', { class: 'hs-btn-text', type: 'button', title: 'Pick a new random race, name, gender, age and personality', onclick: () => {
         const r = roll(), same = r.raceId === identity.raceId;
         Object.assign(identity, { name: r.name, pronouns: r.pronouns, raceId: r.raceId, age: r.age }); persona.p = r.personality;
-        if (!same) return switchTo(startId); // a new race can open other trees and ages: the screen is built again
+        if (!same) { keep(); return switchTo(startId); } // a new race can open other trees and ages: the screen is built again
         row.replaceWith(whoRow()); picker.refresh(); // the skill points stay as they are
       } }, 'Random'));
     return row;

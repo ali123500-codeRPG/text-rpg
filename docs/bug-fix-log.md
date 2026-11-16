@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-264
+
+**What was wrong:** On the creation screen, Random picks a new race as well as a name, gender, age and personality. Whenever it landed on the other race (about half the time), your skill points went back to the recommended build. Clicking the other race button did the same. A race change builds the screen again (a race can open other skill trees and ages), and the new screen always loaded the recommended build.
+
+**What was done:** Ali OK'd the fix on the decision card. A race change, by Random or the race buttons, now keeps your skill points and tagged skills. A skill the new race can't learn drops and its points come back to spend; the rest stay within the class floors and caps. Switching Start still loads that Start's recommended build, since each Start has its own floors and points. A new browser check (tests/smoke/play.smoke.ts) changes two skills, switches race and presses Random six times, and expects the points to stay the same.
+
+**Fixed by:** [PR #936](https://github.com/ali123500-codeRPG/text-rpg/pull/936)
+
 ## BG-263
 
 **What was wrong:** When you shot from hiding at a target just out of range, your character stepped closer and shot in the same turn. The quiet step was checked against everyone with Sneaking, and because each watcher only gets one stealth check a turn, the bow shot itself was never checked with Combat Stealth. A quiet step could hide a loud shot, and the wrong skill was practised.
