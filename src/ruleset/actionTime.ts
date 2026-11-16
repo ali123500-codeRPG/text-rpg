@@ -2,8 +2,19 @@
 // × the actor's time factor, sped by the row's speed function when it names one.
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import type { DurationDef } from '../types';
+import type { AttackMode, DurationDef, ItemDef } from '../types';
 import { FN } from '../library/functionIds';
+import { DU } from '../library/tableIds';
+
+/** AT11: the Action times rows one attack with a mode takes, in order: an unarmed or natural blow, a melee blow by its class,
+ * a throw, or a ranged weapon's spanning (if it has one) then its shot. One list for the turn's clock (resolve orderCost)
+ * and an item's price (value.ts, IR4) */
+export function attackRowIds(def: ItemDef | undefined, mode: AttackMode): string[] {
+  if (mode.tree === 'unarmed') return [DU.blow_unarmed];
+  if (mode.tree === 'melee') return [mode.class === 'heavy' ? DU.blow_heavy : mode.class === 'medium' ? DU.blow_medium : DU.blow];
+  if (mode.thrown) return [DU.throw];
+  return [...(def?.spanTime ? [def.spanTime] : []), def?.shotTime ?? DU.bow_light];
+}
 
 /** AT22: an actor's time factor; 1 for everyone until the speed skills exist (D-248) */
 export const timeFactor = (): number => 1;

@@ -16,7 +16,7 @@ import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
-import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
+import { actionRow, actionSeconds, attackRowIds, reactSeconds } from '../ruleset/actionTime';
 import { busyNow } from './busy';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
@@ -182,13 +182,10 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
     case 'attack': {
       const m = attackMode(state, a, o).m;
       if (!m) return of(DU.blow);
-      if (m.mode.tree === 'unarmed') return of(DU.blow_unarmed); // fists, grapples and natural attacks
-      if (m.mode.tree === 'melee') return of(m.mode.class === 'heavy' ? DU.blow_heavy : m.mode.class === 'medium' ? DU.blow_medium : DU.blow);
-      if (m.mode.thrown) return of(DU.throw);
-      const it = inv(m.itemId), def = it ? itemDef(state, it.itemId) : undefined;
+      const it = inv(m.itemId), ids = attackRowIds(it ? itemDef(state, it.itemId) : undefined, m.mode);
       // AT11c: a crossbow spans, then shoots: one long action under the spanning row (its focus, its work kept when broken off)
-      const span = def?.spanTime ? actionRow(def.spanTime) : undefined, shot = of(def?.shotTime ?? DU.bow_light);
-      return span && shot ? { row: span, seconds: actionSeconds(span) + shot.seconds } : shot;
+      const rows = ids.map(actionRow).filter((r): r is DurationDef => !!r);
+      return rows.length ? { row: rows[0], seconds: rows.reduce((n, r) => n + actionSeconds(r), 0) } : undefined;
     }
     case 'use_item': {
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;

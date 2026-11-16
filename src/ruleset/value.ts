@@ -1,13 +1,21 @@
 // SL12 b: an item's value is the coin its benefit numbers are worth, summed. Every benefit an item gives is read
 // from the item itself (kit bonus, stated skill and roll bonuses, reach, armor, pools), so an item whose benefits
 // don't come from its need is priced right too. Quality multiplies on top (SL8).
-import type { GameState, ItemDef } from '../types';
+import type { AttackMode, GameState, ItemDef } from '../types';
 import { qualityMult } from './quality';
 import { CONFIG } from '../config';
 import { itemDef } from '../library';
 import { effectValue, modeReach } from './gear';
+import { actionRow, actionSeconds, attackRowIds } from './actionTime';
 
 const V = () => CONFIG.ITEM_VALUE;
+
+/** IR4: a mode's damage per second: the class's damage (+ the mode's damageAdj) over the seconds its attack rows take. */
+export function modeDps(def: ItemDef, m: AttackMode): number {
+  const dmg = (CONFIG.WEAPON_CLASSES[m.class]?.damage ?? 0) + (m.damageAdj ?? 0);
+  const secs = attackRowIds(def, m).reduce((n, id) => { const r = actionRow(id); return n + (r ? actionSeconds(r) : 0); }, 0);
+  return dmg > 0 && secs > 0 ? dmg / secs : 0;
+}
 
 /** each benefit an item gives and the coin it is worth (positive benefits only; a penalty never lowers value) */
 export function benefits(def: ItemDef): { what: string; coin: number }[] {
@@ -20,8 +28,14 @@ export function benefits(def: ItemDef): { what: string; coin: number }[] {
       ? { what: `+${v} to ${e.roll} rolls`, coin: (v / CONFIG.SKILL_WEIGHT) * V().skillPoint }
       : { what: `+${v} ${e.kit ? 'kit bonus' : 'skill bonus'}`, coin: v * V().skillPoint });
   }
-  const reach = Math.max(0, ...(def.weapon?.modes ?? []).map((m) => modeReach(m))); // metres (ZR7); a throw counts at its own range
-  if (reach > 0) out.push({ what: `reach ${reach} m`, coin: reach * V().reachM });
+  const modes = def.weapon?.modes ?? [];
+  // IR4: damage as damage per second: the class's damage (+ the mode's damageAdj) over the seconds its attack takes, best mode
+  const dps = Math.max(0, ...modes.map((m) => modeDps(def, m)));
+  if (dps > 0) out.push({ what: `${+dps.toFixed(2)} damage a second`, coin: dps * V().dps });
+  // reach in metres (ZR7), best mode; a throw counts at its own range; a ranged weapon's at its own lower rate (IR4)
+  const reach = Math.max(0, ...modes.map((m) => modeReach(m) * (m.tree === 'ranged' && !m.thrown ? V().reachRangedM : V().reachM)));
+  const far = Math.max(0, ...modes.map((m) => modeReach(m)));
+  if (reach > 0) out.push({ what: `reach ${far} m`, coin: reach });
   if (def.armor) {
     const parts = def.armor.covers.length;
     const perPart = def.armor.reduction * V().armorStop + (1 - def.armor.multiplier) * 100 * V().armorCut;
