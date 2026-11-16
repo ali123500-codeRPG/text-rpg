@@ -26,8 +26,8 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
   const nerve = MORALE_LEVELS.pos(me.morale as never);
   const reach = me.reaches?.[0];
   const up = pv.actors.filter((a) => a.health !== 'dead' && !(a.health && isDownLevel(a.health)));
-  // foes the character knows of: those fighting it (they can be talked down or made to yield) or the other side of a spar
-  const foes = up.filter((a) => a.talkDown || a.demandYield || me.spar?.opponents.includes(a.name ?? a.label));
+  // foes the character knows of (BG-265): those fighting it, beasts too, those it saw strike first at someone else, or the other side of a spar
+  const foes = up.filter((a) => a.foe || me.spar?.opponents.includes(a.name ?? a.label));
   const nameOf = (a: PlayerView['actors'][number]) => a.name ?? a.label;
 
   if (ctx.broken) put('yield', {}, W.broken, 'Your nerve is broken: no attack or walk can come, and yielding ends the fight if they take it.');
@@ -43,7 +43,8 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
     // the most hurt foe in reach, else the nearest
     const inReach = foes.filter((a) => reach && a.distanceM !== undefined && a.distanceM <= reach.metres);
     const pick = [...(inReach.length ? inReach : foes)].sort((a, b) => HEALTH_LEVELS.pos(b.health ?? 'unhurt') - HEALTH_LEVELS.pos(a.health ?? 'unhurt') || (a.distanceM ?? 1e9) - (b.distanceM ?? 1e9))[0];
-    const look = pick.health && pick.health !== 'unhurt' ? `${cap(nameOf(pick))} is ${othersHealthWord(pick.health, pick.level === 'full')}` : `${cap(nameOf(pick))} is fighting you`;
+    const doing = pick.foe?.strikes ? `is attacking ${pick.foe.strikes}` : 'is fighting you';
+    const look = pick.health && pick.health !== 'unhurt' ? `${cap(nameOf(pick))} is ${othersHealthWord(pick.health, pick.level === 'full')}` : `${cap(nameOf(pick))} ${doing}`;
     put('attack', { target: pick.id }, W.attack + (inReach.includes(pick) ? W.inReach : 0), `${look}${inReach.includes(pick) && reach ? ` and within your ${reach.name}'s reach` : ''}.`);
   }
   if (me.walking) put('keep_walking', {}, W.walking, `You are on your way to ${me.walking.to}.`);
@@ -54,7 +55,7 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
     const ready = s?.quests.find((q) => q.state === 'ready');
     if (ready && up.length) put('talk', { target: up[0].id }, W.quest, `Your job "${ready.text}" is done: tell whoever gave it.`);
   }
-  put('look', {}, W.look, 'Nothing presses: take in what is around you.');
+  put('look', {}, W.look, fight ? 'No one here is fighting you: take in the fight around you.' : 'Nothing presses: take in what is around you.');
   // the character's leanings tip close calls
   const p = ctx.self;
   const LEAN: Partial<Record<DeckAction['kind'], IdeaKind>> = { attack: 'attack', steady: 'steady', yield: 'yield', go: 'go_new', look: 'look', talk: 'talk', take: 'pick_up', loot: 'pick_up' };

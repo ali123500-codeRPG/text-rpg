@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-266
+
+**What was wrong:** In the action-deck playtest the Weaver put three cellar slimes in as one group entry and labelled it "slimes in the cellar". Code turns a group entry into its leader and adds the others as "a slime", so the leader, a single slime, was listed as "Slimes in the cellar" beside "a slime" and "the other slime".
+
+**What was done:** The Weaver's and World builder's rules now say a group entry is its leader: its label, name and look describe that one person or beast (a slime, the bandit chief), never the group. Code is unchanged, so a leader the Weaver names (a bandit chief) keeps the name.
+
+**Fixed by:** [PR #942](https://github.com/ali123500-codeRPG/text-rpg/pull/942)
+
+## BG-265
+
+**What was wrong:** In the action-deck playtest three slimes in arm's reach were mauling the old reed-cutter, and the Suggested button still said "Look around: Nothing presses". The suggestion (and the red foe marker in Who's here) only counted people you could talk down or demand surrender from. A slime can't be talked to, so it never counted, even when fighting you, and nobody attacking someone else counted at all.
+
+**What was done:** The screen now marks as a foe anyone fighting you (beasts too) and anyone you saw strike first at someone who isn't fighting you. Someone only hitting back at whoever struck first is not marked. The suggestion and Who's here use that mark, so that turn suggests "Attack a slime: a slime is attacking an old reed-cutter and within your hand axe's reach". In a fight with no foe, Look no longer says "Nothing presses".
+
+**Fixed by:** [PR #942](https://github.com/ali123500-codeRPG/text-rpg/pull/942)
+
 ## BG-264
 
 **What was wrong:** On the creation screen, Random picks a new race as well as a name, gender, age and personality. Whenever it landed on the other race (about half the time), your skill points went back to the recommended build. Clicking the other race button did the same. A race change builds the screen again (a race can open other skill trees and ages), and the new screen always loaded the recommended build.
