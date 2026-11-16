@@ -158,10 +158,12 @@ export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burd
   return { margin, level, gain: Math.max(0, Math.min(gain, skillCap(s) - s.raw)) }; // raw never passes its cap
 }
 
-/** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit */
+/** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit
+ * (a fixed `below`, or `belowShare` of the owner's highest raw skill) */
 function improveRolls(a: Actor, raw: number): number {
-  const perks = getLibrary().perks;
-  return Math.max(1, ...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.improveRolls).filter((r) => r && raw < r.below).map((r) => r!.rolls));
+  const perks = getLibrary().perks, best = Math.max(0, ...Object.values(a.core.skills).map((s) => s.raw));
+  const limit = (r: { below?: number; belowShare?: number }) => Math.max(r.below ?? 0, (r.belowShare ?? 0) * best);
+  return Math.max(1, ...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.improveRolls).filter((r) => r && raw < limit(r)).map((r) => r!.rolls));
 }
 
 export type SkillGain = { skill: string; from: number; to: number; milestone?: number };

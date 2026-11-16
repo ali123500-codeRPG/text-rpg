@@ -290,6 +290,11 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'The step and the cut become one motion. The Sword-dancer drills have begun.',
     rules: { kind: 'passive', trigger: 'the owner reaches Sword-dancer class level 1', conditions: [], effect: 'opens the Sword-dancer tree: the Blade Dance skill', lasts: 'always' },
   },
+  [PK.late_bloom]: {
+    id: PK.late_bloom, name: 'Late Bloom', built: true, classLevel: { classId: CL.a_somebody, level: 1 }, improveRolls: { belowShare: CONFIG.LATE_BLOOM_SHARE, rolls: 2 },
+    story: 'The skills you left behind catch up fast once people start watching.',
+    rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: [`the skill's raw value is below ${CONFIG.LATE_BLOOM_SHARE} × the owner's highest raw skill (CONFIG.LATE_BLOOM_SHARE, placeholder)`], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
+  },
   [PK.quick_study]: {
     id: PK.quick_study, name: 'Quick Study', built: true, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
@@ -857,7 +862,7 @@ export function prototypeLibrary(): Library {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
       [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_2', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 80 }, unlockAny: [{ [SK.melee_medium]: 60, [SK.melee_heavy]: 60 }], levelPerks: { 1: [PK.blade_against_blade] } },
       // the class of the late bloomer start (ST2): a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
+      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, unlockClass: { [CL.a_somebody]: 'max' }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes], // CB3: also opens at A Somebody's top level
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // TB7: the Threadbounded class, used only by The Threadbound start (ST4); its level 1 perk gives a random Threadbound item. No unlock
@@ -881,6 +886,9 @@ export function prototypeLibrary(): Library {
       // unlocks at Commoner's top level (its Start, ST3, was removed: CC3)
       [CL.a_nobody]: { id: CL.a_nobody, personality: { [PA.pride]: -CONFIG.ACH_PERSONALITY_STEP }, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that.', floors: {}, unlockClass: { [CL.commoner]: 'max' },
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
+      // CB1-CB7: between A Nobody and Unwritten Legend; opens at A Nobody's top level (no skill road), Late Bloom at 1; its capstone is parked (D-360)
+      [CL.a_somebody]: { id: CL.a_somebody, personality: { [PA.pride]: CONFIG.ACH_PERSONALITY_STEP }, name: 'A Somebody', tier: 'tier_3', label: 'a somebody', story: 'People finally know your name, though most of them still get it wrong.', floors: {},
+        unlockClass: { [CL.a_nobody]: 'max' }, levelPerks: { 1: [PK.late_bloom] } },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
       [CL.guard]: { id: CL.guard, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Guard', tier: 'tier_1', label: 'a guard', story: 'Stand at the gate and listen for trouble.', floors: {},

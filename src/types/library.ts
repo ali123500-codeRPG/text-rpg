@@ -330,7 +330,7 @@ export type PerkDef = {
   /** a class-level perk (ClassDef.levelPerks): the class and level that grant it */
   classLevel?: { classId: string; level: number };
   /** improvement rolls a marked skill gets while its raw value is below `below` (Quick Study: 2 below 15) */
-  improveRolls?: { below: number; rolls: number };
+  improveRolls?: { below?: number; belowShare?: number; rolls: number }; // belowShare (Late Bloom): below this share of the owner's highest raw skill
   freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
   perkPoints?: number; // perk points: this many added once to the owner's unspent perk points when the perk is owned and active (Nobody Special)
