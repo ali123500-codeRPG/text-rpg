@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-263
+
+**What was wrong:** When you shot from hiding at a target just out of range, your character stepped closer and shot in the same turn. The quiet step was checked against everyone with Sneaking, and because each watcher only gets one stealth check a turn, the bow shot itself was never checked with Combat Stealth. A quiet step could hide a loud shot, and the wrong skill was practised.
+
+**What was done:** Ali OK'd the fix on the decision card. A shot (any attack made while hidden) now always gets its own Combat Stealth check against each watcher who hasn't spotted you yet, even after a step earlier in the turn, as the spec already said (ST7, D-40). Watchers who spotted you on the step don't roll again. A new test in tests/cases/s117-stealth.test.ts walks into range and shoots, and expects a Sneaking roll for the step and a Combat Stealth roll for the shot.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-261
 
 **What was wrong:** The library viewer's Stacking tab said Total defeats achievements count on attack, dodge and block rolls, but the code also adds them to parry rolls. It said Blade Wall keeps a parry with a medium weapon from being outnumbered, but the code does it for a medium or heavy weapon. The tab's text was written by hand beside the rules, so it drifted when the rules changed.

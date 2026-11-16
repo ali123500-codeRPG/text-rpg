@@ -253,11 +253,13 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const skill = vanish ? SK.vanishing : stealthSkill(s, event);
   const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, still);
   const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone);
-  // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
+  // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events. BG-263: a shot
+  // (any attack while stealthy) keeps its own contest, so a step earlier in the turn never stands in for its Combat Stealth roll
   const done = contestedThisTurn(state);
+  const shot = event.kind === 'attack' ? ':shot' : '';
   let saw = 0, lost = 0; // a player's Vanish: those who saw them, and those it lost (N2)
   for (const a of allActors(state)) {
-    const key = pairKey(s, a);
+    const key = pairKey(s, a) + shot;
     if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a) || done.ids.includes(key)) continue;
     const cur = beliefStatus(state, a, s);
     const sees = atLeast(cur, 'aware');

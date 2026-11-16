@@ -126,6 +126,19 @@ describe('117 stealth', () => {
     expect(s.player.posture).toBe('stealthy');
     expect(calls.some(([a, b]) => a.skill === SK.combat_stealth && b.actorId === 'slime_1')).toBe(true);
   });
+  it('a shot after a step in the same turn still gets its own Combat Stealth contest (BG-263)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'field_edge');
+    s.player.pos = { x: 52, y: -14 }; // 58 m from slime_1, past the shortbow's 50 m
+    for (const i of s.player.core.inventory) delete i.equippedIn;
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
+    s.player.posture = 'stealthy';
+    const calls = rig();
+    turn(s, intent(null, { type: 'attack', target: 'slime_1' })); // the order steps into range first, then shoots
+    expect(s.log.some((l) => l.turn === s.turn && l.code === 'stealth_contest' && (l.detail as { kind: string }).kind === 'move')).toBe(true);
+    const vsSlime = calls.filter(([, b]) => b.actorId === 'slime_1').map(([a]) => a.skill);
+    expect(vsSlime).toEqual([SK.sneaking, SK.combat_stealth]); // the step, then the shot
+  });
   it('darkness and cover help a sneak; it feels leg wounds (ST6, ST10, HA1)', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_cellar');
