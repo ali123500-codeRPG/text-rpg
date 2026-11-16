@@ -6,7 +6,7 @@ import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, TIERS, type HealthLevelKey, type MoraleLevel, type PartStateKey } from '../scales';
 import { skillOpen } from './access';
-import { achievementMaxMorale, currentAchievements } from './achRewards';
+import { achievementMaxMorale, chainRewards, currentAchievements } from './achRewards';
 
 /** MB29: max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (raw, like Endurance for HP), plus the flat points the
  * actor's current achievements add (AchievementDef.maxMorale) */
@@ -32,10 +32,11 @@ export function moraleMods(a: Actor): Mod[] {
 /** MB16: others' morale shows from CONFIG.MORALE_SHOWN_FROM down */
 export const moraleShows = (l: MoraleLevel): boolean => MORALE_LEVELS.pos(l) >= MORALE_LEVELS.pos(CONFIG.MORALE_SHOWN_FROM as MoraleLevel);
 
-/** MB21: the health level a health fear starts from, moved by the owner's perks and achievements (fearFrom) */
+/** MB21: the health level a health fear starts from, moved by the owner's perks and achievements (fearFrom; an achievement
+ * carries its lower levels' steps too, by chain linkage) */
 export function fearFrom(a: Actor, f: FearDef): number {
   const perks = getLibrary().perks ?? {};
-  const steps = [...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.fearFrom), ...currentAchievements(a).map((x) => x.d.fearFrom)]
+  const steps = [...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.fearFrom), ...currentAchievements(a).flatMap((x) => chainRewards(x.d).filter((e) => e.field === 'fearFrom').map((e) => e.from.fearFrom))]
     .reduce((n, x) => n + (x && x.fear === f.id ? x.steps : 0), 0);
   return HEALTH_LEVELS.pos(f.health!.from) + steps;
 }

@@ -13,7 +13,7 @@ import { SENSE_SKILL } from '../library/skillIds';
 import { levelMaxPct } from './body';
 
 type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll'];
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll', 'fearFrom'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -185,6 +185,8 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'questPayPct': return [`+${d.questPayPct}% on the coin a quest giver promises you`];
     case 'defenseRoll': return [`+${d.defenseRoll} on your defense rolls (dodge, block, parry)`];
     case 'spotRoll': return [`+${d.spotRoll} on your spotting rolls (sight, hearing, smell)`];
+    case 'fearFrom': { const f = getLibrary().fears?.[d.fearFrom!.fear];
+      return [`the fear "${f?.name ?? d.fearFrom!.fear}" starts ${steps(d.fearFrom!.steps, 'health level')} later`]; }
     case 'essenceSlots': return [`+${d.essenceSlots} essence slot${d.essenceSlots === 1 ? '' : 's'}`];
     case 'safeBreak': return [`forcing a container open breaks less: every fragility line ${steps(d.safeBreak!, 'tier')} worse`];
     case 'firstSight': {
