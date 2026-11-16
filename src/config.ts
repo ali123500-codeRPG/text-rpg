@@ -839,10 +839,10 @@ const DEFAULTS = {
   BOON_QUALITY: { plain: 1, quality_1: 2, quality_2: 3, quality_3: 5, quality_4: 8 } as Record<QualityKey | 'plain', number>, // Boon multiplier by minted quality (plain: not minted)
   BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
   // XP and levels (X1–X10). Placeholders, kept small at first (X1).
-  LEVEL_XP: 100, // XP from level n to n+1 = max(LEVEL_XP_FLOOR, LEVEL_XP × n)
-  /** the least any level costs (placeholder): early levels are harsher, so the XP that used to reach level 10
-   * reaches about level 8; from level 7 on (LEVEL_XP × n passes the floor) the curve is unchanged */
-  LEVEL_XP_FLOOR: 625,
+  LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × √(n² + LEVEL_XP_EARLY²), rounded
+  /** the early bump in the XP curve (placeholder): every level costs more than the one before, the XP that used to reach
+   * level 10 (LEVEL_XP × n) reaches level 8, and the cost of a level bends back to LEVEL_XP × n as n grows */
+  LEVEL_XP_EARLY: 4.75,
   PERK_POINT_EVERY: 2, // Part 1 §5: a perk point at every character level that is a multiple of this (every even level)
   /** no class levels higher than this; XP past a class's top level banks until a class with room is picked */
   CLASS_MAX_LEVEL: 20,

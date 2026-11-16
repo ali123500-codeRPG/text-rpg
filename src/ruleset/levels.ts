@@ -2,7 +2,7 @@
 import { CONFIG } from '../config';
 
 /** the XP curve: what the step from level n to n + 1 costs. xpToNext and xpToReach both ask it, so changing it changes both. */
-export const levelCost = (n: number) => Math.max(CONFIG.LEVEL_XP_FLOOR, CONFIG.LEVEL_XP * Math.max(1, n));
+export const levelCost = (n: number) => Math.round(CONFIG.LEVEL_XP * Math.hypot(n, CONFIG.LEVEL_XP_EARLY));
 /** the XP the curve asks to reach level L from 0: the sum of every step on the way */
 export const xpToReach = (l: number) => { let n = 0; for (let i = 0; i < l; i++) n += levelCost(i); return n; };
 /** Part 1 §5: a character level that gives a perk point (every PERK_POINT_EVERY levels: every even level) */
