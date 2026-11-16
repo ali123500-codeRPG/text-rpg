@@ -349,7 +349,7 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
   return out;
 }
 
-/** Part 5 §5 default mode: first held mode whose reach covers `distance` links, else the unarmed mode. */
+/** Part 5 §5 default mode: the first usable mode whose reach covers `distance` metres, else none. */
 export function defaultMode(state: GameState, actor: Actor, distance: number): { itemId: string; mode: AttackMode } | null {
   return usableModes(state, actor).find((m) => m.mode.reach >= distance) ?? null;
 }

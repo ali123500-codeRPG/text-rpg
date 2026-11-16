@@ -12,7 +12,7 @@ export function mentions(text: string, phrase: string): boolean {
 export const nameSaid = (text: string, name: string): boolean => {
   const short = name.split(/\s+/).find((w) => !CONFIG.NAME_TITLE_WORDS.includes(w.toLowerCase()));
   // case kept, so the name Will is not the word "will"
-  return [name, short].some((w) => !!w && new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text));
+  return [name, short].some((w) => !!w && new RegExp(`\\b${esc(w)}\\b`).test(text));
 };
 /** NM3: a name the speaker gives for themselves ("Name's Tam", "call me Tam") that is not theirs, or undefined */
 export function falseName(speaker: { names: { current: string } }, text: string | undefined): string | undefined {
@@ -22,13 +22,13 @@ export function falseName(speaker: { names: { current: string } }, text: string 
   return undefined;
 }
 
-/** the text with its first letter in capitals */
 /** "a lean man" -> "the lean man": someone already met, said again */
 export const theOf = (label: string): string => label.replace(/^(a|an)\s+/i, 'the ');
 /** BG-218: a place or zone name in a phrase. A name that starts with an article, a capital (a proper name, Thornbury) or a
  *  place word (behind the counter) stands as it is; any other takes "the" (common room → the common room). */
 export const theName = (n: string): string =>
   /^(the|a|an|behind|beside|outside|inside|under|above|below|beyond|by|near|past|across|along|off)\s/i.test(n) || /^[A-Z]/.test(n) ? n : `the ${n}`;
+/** the text with its first letter in capitals */
 export const cap = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 /** "a, b and c" (or "a, b or c"): a list as a sentence says it */
 export const listWords = (xs: string[], last: 'and' | 'or' = 'and'): string =>

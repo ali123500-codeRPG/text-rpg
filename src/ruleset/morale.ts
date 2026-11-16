@@ -30,7 +30,7 @@ export function moraleMods(a: Actor): Mod[] {
   return v ? [{ source: `morale: ${MORALE_LEVELS.name(l)}`, type: 'wounds', value: v }] : [];
 }
 /** MB16: others' morale shows from CONFIG.MORALE_SHOWN_FROM down */
-export const moraleShows = (l: MoraleLevel): boolean => MORALE_LEVELS.pos(l) >= MORALE_LEVELS.pos(CONFIG.MORALE_SHOWN_FROM as MoraleLevel);
+export const moraleShows = (l: MoraleLevel): boolean => MORALE_LEVELS.pos(l) >= MORALE_LEVELS.pos(CONFIG.MORALE_SHOWN_FROM);
 
 /** MB21: the health level a health fear starts from, moved by the owner's perks and achievements (fearFrom; an achievement
  * carries its lower levels' steps too, by chain linkage) */

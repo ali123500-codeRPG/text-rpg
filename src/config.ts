@@ -184,8 +184,6 @@ const DEFAULTS = {
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
   AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)
-  // E1/YD6/AT72: an engagement ends, and hunting and engaged drop to tracking, after ENGAGEMENT_END with no blow or closing in:
-  // worked out from the Action times table (ruleset/actionTime engagementEndS: the slowest attack cycle + one round)
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
@@ -304,9 +302,9 @@ const DEFAULTS = {
   /** a single loss of this % of max morale or more marks the player's Resolve (like ENDURANCE_MARK_PCT) */
   RESOLVE_MARK_PCT: 10,
   /** others' morale shows (as words) from this level down (MB16), like HEALTH_SHOWN_FROM */
-  MORALE_SHOWN_FROM: 'afraid',
+  MORALE_SHOWN_FROM: 'afraid' as MoraleLevel,
   /** the sheet's morale bar spells out the stakes (roll penalty, what Broken stops) from this level down */
-  MORALE_HINT_FROM: 'terrified',
+  MORALE_HINT_FROM: 'terrified' as MoraleLevel,
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
   // ---- fatigue and stamina (FT1-FT28; src/ruleset/fatigue.ts, src/engine/fatigue.ts). All placeholders ----
   /** FT2: the stamina bar (both layers) = STAMINA_BASE + STAMINA_PER_POINT × Stamina, like HP from Endurance */
@@ -379,7 +377,9 @@ const DEFAULTS = {
   /** AT20/TP4: carried time lasts this many turns, and each pool carries at most CARRY_MAX_TURNS fight turns of it */
   CARRY_TURNS: 2,
   CARRY_MAX_TURNS: 2,
-  /** TP10: an engagement or hunt never ends sooner than this many fight turns with no blow (engagementEndS) */
+  /** E1/YD6/AT72: an engagement ends, and hunting and engaged drop to tracking, after ENGAGEMENT_END with no blow or closing
+   * in, worked out from the Action times table (ruleset/actionTime engagementEndS: the slowest attack cycle + one round).
+   * TP10: never sooner than this many fight turns with no blow */
   ENGAGEMENT_END_MIN_TURNS: 3,
   /** AT46: the most a turn outside a fight lasts, in seconds (as long as the player's order); longer actions, walks, rests
    * and waits run on the world clock instead (AT45) */
@@ -421,10 +421,10 @@ const DEFAULTS = {
    * each part's missing share) by the Healing roll's tier, plus HEAL_PAST_STEP for each step past Critical Success.
    * Its cost is the action's own effort for now; a resource of its own (mana) comes later (D-340) */
   HEAL_UNLOCK: 50,
-  /** NR28: how much each band counts when code picks the closest role for the skills the World builder or Weaver wants */
-  ROLE_WANT_SCORE: { high: 3, moderate: 2, low: 1 },
   HEAL_TIER_SHARE: { near_miss: 0.05, success: 0.1, great_success: 0.15, critical_success: 0.25 } as Record<string, number>,
   HEAL_PAST_STEP: 0.1,
+  /** NR28: how much each band counts when code picks the closest role for the skills the World builder or Weaver wants */
+  ROLE_WANT_SCORE: { high: 3, moderate: 2, low: 1 },
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
