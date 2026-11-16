@@ -23,6 +23,7 @@ describe('146 Gear in the rating', () => {
     const s = makeVillage();
     const slime = s.actors.find((a) => a.core.templateId === TP.slime)!;
     slime.core.skills[SK.scent].raw = 0; // a weak foe, so the taper bites
+    s.player.core.classes[0].level = 5;
     const mine = gearRating(s, s.player);
     expect(mine).toBeGreaterThan(0);
     const theirs = rating(slime) + gearRating(s, slime);
@@ -37,10 +38,10 @@ describe('146 Gear in the rating', () => {
     expect(actorLevel(g)).toBe(CONFIG.RANK_ROWS.rank_2.level); // an NPC's level is its template's (a Trained guard)
     expect(xpToReach(4)).toBe(levelCost(0) + levelCost(1) + levelCost(2) + levelCost(3)); // asks the XP curve
     expect(levelRating(g)).toBeCloseTo(CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(g)));
-    const before = levelRating(g), lx = CONFIG.LEVEL_XP; // the two are linked: a steeper curve raises the rating too
-    (CONFIG as { LEVEL_XP: number }).LEVEL_XP = lx * 2;
+    const before = levelRating(g), lx = CONFIG.LEVEL_XP, fl = CONFIG.LEVEL_XP_FLOOR; // the two are linked: a steeper curve raises the rating too
+    Object.assign(CONFIG, { LEVEL_XP: lx * 2, LEVEL_XP_FLOOR: fl * 2 });
     expect(levelRating(g)).toBeCloseTo(2 * before);
-    (CONFIG as { LEVEL_XP: number }).LEVEL_XP = lx;
+    Object.assign(CONFIG, { LEVEL_XP: lx, LEVEL_XP_FLOOR: fl });
     const keep = CONFIG.LEVEL_RATING_SHARE;
     const base = rating(g);
     (CONFIG as { LEVEL_RATING_SHARE: number }).LEVEL_RATING_SHARE = keep * 2; // a balance lever
