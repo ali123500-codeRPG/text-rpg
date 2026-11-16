@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali asked to reverse the split: answered questions come first and the ones waiting are below them, each in the order they were asked, so the newest question is always at the very bottom. A question whose group is missing goes at the end instead of disappearing. Autosave, Submit and reopening where Ali left off are unchanged. The hub page (questions/hub/hub.html) was republished as version 15; this entry and the bug log row came in the PR below.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #898](https://github.com/ali123500-codeRPG/text-rpg/pull/898)
 
 ## BG-258
 
