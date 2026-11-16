@@ -6,10 +6,10 @@ import { getLibrary, itemDef } from '../library';
 import { hiddenFrom } from '../engine/gear';
 import { CONFIG } from '../config';
 import { now, secondsSince, timeOfDay } from '../time';
-import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
+import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
-import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, defaultMode, modeSkill, effectiveSkill } from '../ruleset';
+import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
 import { rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
 import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
@@ -452,10 +452,7 @@ export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void
 /** the attack skill for the weapon used (ambush skill; OQ-4 settled: every attack on an unaware actor rolls). */
 function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefined): string {
   const used = itemId ? usableModes(state, attacker).find((m) => m.itemId === itemId) : undefined;
-  const m = used ?? defaultMode(state, attacker, 0);
-  if (m) return modeSkill(m.mode);
-  const tpl = attacker.core.templateId ? npcTemplate(state, attacker.core.templateId) : undefined;
-  return tpl?.fallback?.attackSkill ?? actorBody(state, attacker).fallback.attackSkill;
+  return used ? modeSkill(used.mode) : fallbackAttackSkill(state, attacker);
 }
 
 export function resolveAmbush(state: GameState, attackerId: string, targetId: string, attackEvent: GameEvent, rng: Rng): { surprised: boolean } {
