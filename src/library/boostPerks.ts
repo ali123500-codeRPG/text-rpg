@@ -37,7 +37,7 @@ const ROWS: Row[] = [
   { id: PK.steady_draw, ref: 'P5', skill: SK.ranged_medium, group: GR.ranged, name: 'Steady Draw', effect: 'attack',
     extra: { story: 'Steady hands, a heavier bite: +5 to hit with any ranged weapon, and it hits 10% harder.', rule: `+5 on attack rolls with ${skillList(RANGED_WEAPONS)}, and their damage is ×1.1, before armor.`, numbers: { hitAdd: 5, damageMult: 1.1 }, numbersFor: RANGED_WEAPONS } },
   { id: PK.armor_piercer, ref: 'P6', skill: SK.ranged_heavy, group: GR.ranged, name: 'Armor Piercer', effect: 'attack',
-    extra: { story: 'Steel plate is just a suggestion to your bolts: it stops 2 less of each hit.', rule: `On a hit with skill ${skillName(SK.ranged_heavy)}, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).`, numbers: { armorPierce: 2 } } },
+    extra: { story: 'Steel plate is just a suggestion to your arrows and bolts: it stops 2 less of each hit.', rule: `On a hit with ${skillList(RANGED_WEAPONS)}, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).`, numbers: { armorPierce: 2 }, numbersFor: RANGED_WEAPONS } },
   { id: PK.street_fighter, ref: 'P7', skill: SK.unarmed_strike, group: GR.melee, name: 'Street Fighter', effect: 'attack',
     extra: { story: 'Fists taught you that anything in reach is a weapon: +10 Improvisation.', rule: `+10 true skill in ${skillName(SK.unarmed_improvised)}.`, trueSkillTo: { [SK.unarmed_improvised]: 10 } } },
   { id: PK.iron_grip, ref: 'P8', skill: SK.unarmed_grapple, group: GR.melee, name: 'Iron Grip', effect: 'attack',

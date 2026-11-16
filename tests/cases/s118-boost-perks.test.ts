@@ -85,11 +85,13 @@ describe('118 40/80/120 perks', () => {
     expect(hit(IT.dagger, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBeCloseTo(light * 1.2, 5); // weapons in general
     expect(hit(IT.longbow, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBe(hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // not ranged
   });
-  it('Armor Piercer: each armor stops 2 less of a heavy ranged hit', () => {
+  it('Armor Piercer: each armor stops 2 less of any ranged hit', () => {
     const plain = hit(IT.crossbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r;
     const pierced = hit(IT.crossbow, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness).r;
     expect(pierced.location).toBe('left_leg');
     expect(pierced.damage).toBeGreaterThan(plain.damage);
+    const bow = hit(IT.longbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r, bowPierced = hit(IT.longbow, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness).r;
+    expect(bowPierced.damage).toBeGreaterThan(bow.damage); // ranged in general
     expect(hit(IT.crossbow, 'patron_1', PK.armor_piercer, undefined, undefined, 85).r.damage).toBe(hit(IT.crossbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // no armor: no change
   });
   it('Fast Healer doubles natural composure (morale) too', () => {

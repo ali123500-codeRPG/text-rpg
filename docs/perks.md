@@ -316,11 +316,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Armor Piercer (Heavy ranged) · P6
 
-*Story:* +5 Heavy ranged, +1 Ranged. Steel plate is just a suggestion to your bolts: it stops 2 less of each hit.
+*Story:* +5 Heavy ranged, +1 Ranged. Steel plate is just a suggestion to your arrows and bolts: it stops 2 less of each hit.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with skill Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with Light ranged, Medium ranged or Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
 - **Lasts:** Always.
 
 ### Street Fighter (Strike) · P7
