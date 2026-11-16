@@ -32,7 +32,7 @@ const ICON_OF: Record<string, IconName> = {
 };
 const CLASS_ICON: Record<string, IconName> = {
   [CL.swordsman]: 'swordsman', [CL.late_bloomer]: 'late_bloomer', [CL.sword_dancer]: 'sword_dancer', [CL.commoner]: 'commoner',
-  [CL.a_nobody]: 'a_nobody', [CL.trader]: 'trader', [CL.merchant]: 'merchant', [CL.guard]: 'guard',
+  [CL.a_nobody]: 'a_nobody', [CL.a_somebody]: 'a_somebody', [CL.trader]: 'trader', [CL.merchant]: 'merchant', [CL.guard]: 'guard',
   [CL.threadbounded]: 'threadbounded', [CL.blessed_by_imbra]: 'blessed', [CL.knight]: 'plate', [CL.knight_trainee]: 'plate', // NR13: plate until it has art of its own
 };
 /** a class's icon; a class not listed yet shows the Commoner's */

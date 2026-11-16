@@ -846,6 +846,8 @@ const DEFAULTS = {
   PERK_POINT_EVERY: 2, // Part 1 §5: a perk point at every character level that is a multiple of this (every even level)
   /** no class levels higher than this; XP past a class's top level banks until a class with room is picked */
   CLASS_MAX_LEVEL: 20,
+  /** CB5: Late Bloom gives the double improvement roll to a skill whose raw is below this share of the owner's highest raw skill (placeholder) */
+  LATE_BLOOM_SHARE: 0.5,
   /** CS11: a ladder perk milestone every this many points of true skill, and an All step every ALL_STEP_EVERY, with no top */
   PERK_MILESTONE_EVERY: 20,
   ALL_STEP_EVERY: 50,
