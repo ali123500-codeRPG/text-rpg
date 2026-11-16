@@ -37,6 +37,7 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
+  gearType?: string; // GT id (IR23): its reach (weapons) or coverage (armor), from the library gearTypes table
   base?: { itemId: LibraryRef; quality: import('../scales').QualityKey; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll); 'broken' a broken item (BK3: its name starts "broken", it does nothing); 'fantasy' a piece past any real smith (IR2: Masterwork and up)
   /** D-218 Threadbound item: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each

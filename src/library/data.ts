@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, BK, CP, DU, RV, EK, FR, FU, GC, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+import { AM, BK, CP, DU, RV, EK, FR, FU, GC, GT, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
 import { TP } from './templateIds';
 import { GP, HK, PF, RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
@@ -154,8 +154,34 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
-/** an attack mode with its reach in metres (real references) */
-const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'> & { reachM: number }) => ({ ...m, reach: m.reachM });
+/** a weapon mode; a typed piece's non-thrown modes take their reach from its gear type (typed below), so they state none */
+const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'>) => ({ ...m, ...(m.reachM === undefined ? {} : { reach: m.reachM }) });
+/** IR23: gear types. Reach is the blade plus a 0.7 m arm (as the dagger's 1.0 m); a bow's or crossbow's is its effective range
+ * against a man, not its longest shot; armor covers the parts its real garment covers most of (IR8). Every piece of the type
+ * takes the type's number (pieces round to it). Thrown range stays CONFIG.THROW_M. */
+export const GEAR_TYPES: Record<string, { id: string; name: string; reachM?: number; covers?: string[] }> = Object.fromEntries(([
+  [GT.knife, 'Knife', 1], // dagger: a 30 cm blade + arm
+  [GT.short, 'Short', 1.3], // short sword, hand axe, cudgel
+  [GT.sword, 'Sword', 1.6], // arming sword; longsword blade 80-110 cm (Wikipedia "Longsword"), rapier 104 cm (Wikipedia "Rapier")
+  [GT.great, 'Great', 2.3], // two-handed greatsword and greataxe
+  [GT.pole, 'Pole', 2.8], // spear
+  [GT.short_bow, 'Short bow', 50], [GT.flatbow, 'Flatbow', 60], [GT.recurve, 'Recurve', 70], [GT.longbow, 'Longbow', 90],
+  [GT.warbow, 'Warbow', 150], // Mary Rose bows; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
+  [GT.crossbow_light, 'Light crossbow', 60], [GT.crossbow_stirrup, 'Stirrup crossbow', 70], [GT.crossbow_heavy, 'Heavy crossbow', 80],
+  [GT.cuirass, 'Cuirass', ['general']], // a torso garment (Wikipedia "Cuirass", "Brigandine", "Jack of plate")
+  [GT.coat, 'Coat', ['general', 'left_arm', 'right_arm']], // sleeved: gambeson, hauberk (Wikipedia "Gambeson", "Hauberk")
+  [GT.half_suit, 'Half suit', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg']], // breastplate with arm and leg plates
+  [GT.full_harness, 'Full harness', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck']], // a full harness came with its helmet (Wikipedia "Plate armour")
+  [GT.helmet, 'Helmet', ['head']], [GT.helmet_neck, 'Helmet with neck', ['head', 'neck']],
+] as [string, string, number | string[]][]).map(([id, name, v]) => [id, { id, name, ...(Array.isArray(v) ? { covers: v } : { reachM: v }) }]));
+/** IR23: fill a typed piece's reach (non-thrown modes) and coverage from its gear type */
+function typed(d: ItemDef): ItemDef {
+  const t = d.gearType ? GEAR_TYPES[d.gearType] : undefined;
+  if (!t) return d;
+  if (d.weapon && t.reachM !== undefined) d.weapon.modes = d.weapon.modes.map((m) => (m.thrown ? m : { ...m, reachM: t.reachM!, reach: t.reachM! }));
+  if (d.armor && t.covers) d.armor = { ...d.armor, covers: [...t.covers] };
+  return d;
+}
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
 /** Improvised weapons: a melee strike and a throw (like throwing a vase), both rolled with
@@ -298,104 +324,104 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
-  { id: IT.dagger, edge: true, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, grips: 1, thrown: true })] } },
-  { id: IT.arming_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, grips: 1 })] } },
-  { id: IT.greataxe, edge: true, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, grips: 2 })] } },
-  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, grips: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
-  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, grips: 2 })] } },
-  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 90, grips: 2 })] } },
-  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, grips: 2 })] } },
+  { id: IT.dagger, edge: true, level: 'common', gearClass: GC.melee_light, gearType: GT.knife, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', grips: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, grips: 1, thrown: true })] } },
+  { id: IT.arming_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, gearType: GT.sword, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.greataxe, edge: true, level: 'superior', gearClass: GC.melee_heavy, gearType: GT.great, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, gearType: GT.pole, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', grips: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, grips: 1, thrown: true })] } },
+  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, gearType: GT.short_bow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'shortbow', look: 'a short hunting bow', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
+  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, gearType: GT.longbow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'longbow', look: 'a tall longbow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
+  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, gearType: GT.crossbow_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
   // SL12 test piece: a medium weapon whose basket hilt gives +5 Parry while held, apart from its requirement's skill
-  { id: IT.basket_hilt_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, grips: 1,
+  { id: IT.basket_hilt_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, gearType: GT.sword, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, grips: 1,
     effects: [KIT(), { kind: 'skill', skill: SK.parry, value: 5, active: 'held', scope: 'any' }],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.7, grips: 1 })] } },
-  { id: IT.hidden_blade, edge: true, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, grips: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.hidden_blade, edge: true, level: 'fine', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, grips: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
     effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } },
   // IR8: an armor piece covers a body part when its real garment covers most of it, with the source on the row
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
-  { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, slot: 'armor',
-    armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
-  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reachM: 1.3, grips: 1 })] } },
-  { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 0.9, grips: 1 })] } },
-  { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('light', 'common') } }, // IR8: a padded, sleeved jacket to the hips or thigh (Wikipedia "Gambeson")
-  { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'fine') } }, // IR8: a sleeved mail shirt to mid-thigh (Wikipedia "Hauberk")
-  { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
+  { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, slot: 'armor',
+    armor: { reduction: 0, multiplier: 1, weight: 'light' } },
+  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, gearType: GT.short, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', grips: 1 })] } },
+  { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'common') } }, // IR8: a padded, sleeved jacket to the hips or thigh (Wikipedia "Gambeson")
+  { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'fine') } }, // IR8: a sleeved mail shirt to mid-thigh (Wikipedia "Hauberk")
+  { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.full_harness, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
   { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   // Starter pairs: every gear class but improvised has a Common (need 25) and a Fine (need 50) starter piece;
   // creation gives the highest one met per class (starterKit). Superior and Masterwork gear stays out of the kit.
-  { id: IT.short_sword, edge: true, level: 'fine', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.3, grips: 1 })] } },
-  { id: IT.hand_axe, edge: true, level: 'common', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reachM: 1.2, grips: 1 })] } },
-  { id: IT.woodsman_axe, edge: true, level: 'common', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 1.6, grips: 2 })] } },
-  { id: IT.greatsword, edge: true, level: 'fine', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, grips: 2 })] } },
-  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 70, grips: 2 })] } },
-  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 60, grips: 2 })] } },
-  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 60, grips: 2 })] } },
-  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 70, grips: 2 })] } },
-  { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general'], ...ARMOR('light', 'fine') } }, // IR8: a cuirass guards the torso only (Wikipedia "Cuirass")
-  { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general'], ...ARMOR('medium', 'common') } }, // IR8: a plated cloth garment over the torso (Wikipedia "Brigandine")
-  { id: IT.lamellar_coat, level: 'common', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'lamellar coat', look: 'a coat of laced lamellar plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('heavy', 'common') } }, // IR8: a laced-plate coat with shoulder and upper-arm guards; its skirt covers the thigh, not most of the leg (Wikipedia "Lamellar armour")
-  { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } }, // IR8: breastplate with arm and leg plates, as its look says
+  { id: IT.short_sword, edge: true, level: 'fine', gearClass: GC.melee_light, gearType: GT.short, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } },
+  { id: IT.hand_axe, edge: true, level: 'common', gearClass: GC.melee_medium, gearType: GT.short, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', grips: 1 })] } },
+  { id: IT.woodsman_axe, edge: true, level: 'common', gearClass: GC.melee_heavy, gearType: GT.sword, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.greatsword, edge: true, level: 'fine', gearClass: GC.melee_heavy, gearType: GT.great, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, gearType: GT.recurve, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_light, name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
+  { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, gearType: GT.flatbow, tags: ['starter'], kind: 'weapon', shotTime: DU.bow_medium, name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
+  { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, gearType: GT.crossbow_light, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_light, name: 'light crossbow', look: 'a light crossbow', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, gearType: GT.crossbow_stirrup, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'fine') } }, // IR8: a cuirass guards the torso only (Wikipedia "Cuirass")
+  { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'common') } }, // IR8: a plated cloth garment over the torso (Wikipedia "Brigandine")
+  { id: IT.lamellar_coat, level: 'common', gearClass: GC.armor_heavy, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'lamellar coat', look: 'a coat of laced lamellar plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'common') } }, // IR8: a laced-plate coat with shoulder and upper-arm guards; its skirt covers the thigh, not most of the leg (Wikipedia "Lamellar armour")
+  { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.half_suit, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'fine') } }, // IR8: breastplate with arm and leg plates, as its look says
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // IR2 Superior (need 75): the best real pieces. Reach is the blade plus a 0.7 m arm, as the dagger's 1.0 m is.
-  { id: IT.rapier, edge: true, level: 'superior', gearClass: GC.melee_light, kind: 'weapon', name: 'rapier', look: 'a long, slender rapier with a swept hilt', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.7, grips: 1 })] } }, // blade 104 cm on average, one-handed (Wikipedia "Rapier")
-  { id: IT.longsword, edge: true, level: 'superior', gearClass: GC.melee_medium, kind: 'weapon', name: 'longsword', look: 'a long, two-handed sword with a cruciform hilt', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.65, grips: 2 })] } }, // blade 80-110 cm, mostly two-handed (Wikipedia "Longsword")
-  { id: IT.turkish_bow, level: 'superior', gearClass: GC.ranged_light, kind: 'weapon', shotTime: DU.bow_light, name: 'Turkish composite bow', look: 'a short, sharply recurved bow of horn, wood and sinew', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 80, grips: 2 })] } }, // placeholder: no war range given; its flight records (434 m) pass the English bows' (315 m Finsbury mark) (Wikipedia "Turkish archery", "English longbow")
-  { id: IT.warbow, level: 'superior', gearClass: GC.ranged_medium, kind: 'weapon', shotTime: DU.bow_medium, name: 'warbow', look: 'a tall yew warbow of enormous draw', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 150, grips: 2 })] } }, // Mary Rose bows, 100-185 lbf; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
-  { id: IT.jack_of_plates, level: 'superior', gearClass: GC.armor_light, kind: 'armor', name: 'jack of plates', look: 'a canvas jack quilted over small iron plates', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general'], ...ARMOR('light', 'superior') } }, // IR8: iron squares sewn between canvas, about 7.7 kg, a torso garment (Wikipedia "Jack of plate")
-  { id: IT.coat_of_plates, level: 'superior', gearClass: GC.armor_medium, kind: 'armor', name: 'coat of plates with mail', look: 'a riveted coat of plates over a sleeved mail shirt', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'superior') } }, // IR8: plates over the torso, worn with mail (Wikipedia "Coat of plates"); the mail's sleeves cover the arms (Wikipedia "Hauberk")
+  { id: IT.rapier, edge: true, level: 'superior', gearClass: GC.melee_light, gearType: GT.sword, kind: 'weapon', name: 'rapier', look: 'a long, slender rapier with a swept hilt', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } }, // blade 104 cm on average, one-handed (Wikipedia "Rapier")
+  { id: IT.longsword, edge: true, level: 'superior', gearClass: GC.melee_medium, gearType: GT.sword, kind: 'weapon', name: 'longsword', look: 'a long, two-handed sword with a cruciform hilt', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 2 })] } }, // blade 80-110 cm, mostly two-handed (Wikipedia "Longsword")
+  { id: IT.turkish_bow, level: 'superior', gearClass: GC.ranged_light, gearType: GT.recurve, kind: 'weapon', shotTime: DU.bow_light, name: 'Turkish composite bow', look: 'a short, sharply recurved bow of horn, wood and sinew', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } }, // placeholder: no war range given; its flight records (434 m) pass the English bows' (315 m Finsbury mark) (Wikipedia "Turkish archery", "English longbow")
+  { id: IT.warbow, level: 'superior', gearClass: GC.ranged_medium, gearType: GT.warbow, kind: 'weapon', shotTime: DU.bow_medium, name: 'warbow', look: 'a tall yew warbow of enormous draw', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } }, // Mary Rose bows, 100-185 lbf; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
+  { id: IT.jack_of_plates, level: 'superior', gearClass: GC.armor_light, gearType: GT.cuirass, kind: 'armor', name: 'jack of plates', look: 'a canvas jack quilted over small iron plates', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'superior') } }, // IR8: iron squares sewn between canvas, about 7.7 kg, a torso garment (Wikipedia "Jack of plate")
+  { id: IT.coat_of_plates, level: 'superior', gearClass: GC.armor_medium, gearType: GT.coat, kind: 'armor', name: 'coat of plates with mail', look: 'a riveted coat of plates over a sleeved mail shirt', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'superior') } }, // IR8: plates over the torso, worn with mail (Wikipedia "Coat of plates"); the mail's sleeves cover the arms (Wikipedia "Hauberk")
   { id: IT.heater_shield, level: 'superior', gearClass: GC.shield, kind: 'shield', name: 'heater shield', look: 'a flat-topped heater shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('superior') }, // smaller and lighter than the kite shield (Wikipedia "Heater shield")
   // IR2 Masterwork (need 100): made past any real smith, so tagged 'fantasy'. Each keeps its real form's reach and coverage;
   // only its level makes it stronger. Names are placeholders.
-  { id: IT.peerless_rapier, edge: true, level: 'masterwork', gearClass: GC.melee_light, tags: ['fantasy'], kind: 'weapon', name: 'peerless rapier', look: 'a rapier of impossible craft', bulk: 2, grips: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.7, grips: 1 })] } },
-  { id: IT.peerless_longsword, edge: true, level: 'masterwork', gearClass: GC.melee_medium, tags: ['fantasy'], kind: 'weapon', name: 'peerless longsword', look: 'a longsword of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.65, grips: 2 })] } },
-  { id: IT.peerless_greatsword, edge: true, level: 'masterwork', gearClass: GC.melee_heavy, tags: ['fantasy'], kind: 'weapon', name: 'peerless greatsword', look: 'a greatsword of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, grips: 2 })] } },
-  { id: IT.peerless_composite_bow, level: 'masterwork', gearClass: GC.ranged_light, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_light, name: 'peerless composite bow', look: 'a composite bow of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 80, grips: 2 })] } },
-  { id: IT.peerless_warbow, level: 'masterwork', gearClass: GC.ranged_medium, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_medium, name: 'peerless warbow', look: 'a warbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 150, grips: 2 })] } },
-  { id: IT.peerless_crossbow, level: 'masterwork', gearClass: GC.ranged_heavy, tags: ['fantasy'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'peerless crossbow', look: 'a steel-bowed crossbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, grips: 2 })] } },
-  { id: IT.peerless_jack, level: 'masterwork', gearClass: GC.armor_light, tags: ['fantasy'], kind: 'armor', name: 'peerless jack', look: 'a jack of plates of impossible craft', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general'], ...ARMOR('light', 'masterwork') } },
-  { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'masterwork') } },
-  { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'masterwork'), pools: { head: 20 } } },
+  { id: IT.peerless_rapier, edge: true, level: 'masterwork', gearClass: GC.melee_light, gearType: GT.sword, tags: ['fantasy'], kind: 'weapon', name: 'peerless rapier', look: 'a rapier of impossible craft', bulk: 2, grips: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', grips: 1 })] } },
+  { id: IT.peerless_longsword, edge: true, level: 'masterwork', gearClass: GC.melee_medium, gearType: GT.sword, tags: ['fantasy'], kind: 'weapon', name: 'peerless longsword', look: 'a longsword of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 2 })] } },
+  { id: IT.peerless_greatsword, edge: true, level: 'masterwork', gearClass: GC.melee_heavy, gearType: GT.great, tags: ['fantasy'], kind: 'weapon', name: 'peerless greatsword', look: 'a greatsword of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', grips: 2 })] } },
+  { id: IT.peerless_composite_bow, level: 'masterwork', gearClass: GC.ranged_light, gearType: GT.recurve, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_light, name: 'peerless composite bow', look: 'a composite bow of impossible craft', bulk: 2, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } },
+  { id: IT.peerless_warbow, level: 'masterwork', gearClass: GC.ranged_medium, gearType: GT.warbow, tags: ['fantasy'], kind: 'weapon', shotTime: DU.bow_medium, name: 'peerless warbow', look: 'a warbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
+  { id: IT.peerless_crossbow, level: 'masterwork', gearClass: GC.ranged_heavy, gearType: GT.crossbow_heavy, tags: ['fantasy'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'peerless crossbow', look: 'a steel-bowed crossbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
+  { id: IT.peerless_jack, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['fantasy'], kind: 'armor', name: 'peerless jack', look: 'a jack of plates of impossible craft', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'masterwork') } },
+  { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'masterwork') } },
+  { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.full_harness, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'masterwork'), pools: { head: 20 } } },
   { id: IT.peerless_heater, level: 'masterwork', gearClass: GC.shield, tags: ['fantasy'], kind: 'shield', name: 'peerless heater shield', look: 'a heater shield of impossible craft', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('masterwork') },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it (a charm: who carries it); its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'misc', name: 'Varo\'s Loop', look: 'a small hoop of dark silver on a knotted cord, a charm worn smooth by fingers, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20,
@@ -436,7 +462,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.chest, kind: 'misc', name: 'chest', look: 'an iron-bound wooden chest', bulk: 3, value: 20, container: { fixed: true } },
   { id: IT.crate, kind: 'misc', name: 'crate', look: 'a nailed wooden crate', bulk: 3, value: 2, container: { fixed: true } },
   { id: IT.coin, kind: 'misc', fragility: 'unbreakable', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
-] as ItemDef[]).map((i) => [i.id, i]));
+] as ItemDef[]).map((i) => [i.id, typed(i)]));
 
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
@@ -1111,6 +1137,7 @@ export function prototypeLibrary(): Library {
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     // gear classes (GC): the class sets which skill an item asks for; its level sets how much (EQUIP_NEED)
+    gearTypes: GEAR_TYPES, // IR23: reach and coverage by type
     gearClasses: Object.fromEntries(([
       [GC.melee_light, 'Light melee weapon', SK.melee_light, 'melee'], [GC.melee_medium, 'Medium melee weapon', SK.melee_medium, 'melee'], [GC.melee_heavy, 'Heavy melee weapon', SK.melee_heavy, 'melee'],
       [GC.ranged_light, 'Light ranged weapon', SK.ranged_light, 'ranged'], [GC.ranged_medium, 'Medium ranged weapon', SK.ranged_medium, 'ranged'], [GC.ranged_heavy, 'Heavy ranged weapon', SK.ranged_heavy, 'ranged'],
