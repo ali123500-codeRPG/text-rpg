@@ -44,7 +44,7 @@ const DEFAULTS = {
   TIER_EXTRA_BAND: 50,
   /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human
    * body can do (CR4); they are challenge rows only (CR12): no gain, lock or Weaver use until D-219 says when they apply */
-  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 400 } as Record<GradeLevel, number>,
+  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, transcendent: 300, divine: 400 } as Record<GradeLevel, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
   /** RN2 b: stacking within one modifier type (ruleset/stacking.ts powerStack): n equal modifiers total n^MOD_STACK_EXP, so the
