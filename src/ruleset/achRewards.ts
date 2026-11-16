@@ -12,8 +12,8 @@ import { groupsOf } from '../library/functionNames';
 import { SENSE_SKILL } from '../library/skillIds';
 import { levelMaxPct } from './body';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'searchArea' | 'searchReach' | 'maxMorale' | 'aimEase' | 'safeBreak' | 'sellPct' | 'questPayPct' | 'essenceSlots' | 'defenseRoll' | 'spotRoll';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks', 'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'skillAddByKind', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -47,6 +47,15 @@ export function bestReward(a: Actor, f: Reward, only: (x: { key: string; of?: st
   const dir = f === 'deathsDoor' ? 1 : -1;
   const best = currentAchievements(a).filter(only).map((x) => ({ ...x, v: rewardOf(x.d, f) })).filter((x) => x.v > 0).sort((x, y) => dir * (x.v - y.v))[0];
   return best ? { key: best.key, name: best.d.name, value: best.v } : undefined;
+}
+const DEFENSE_ROLLS: RollKind[] = ['dodge', 'block', 'parry'];
+/** XR7/XR37: the roll bonus of the owner's best current achievement for this roll: defense rolls take defenseRoll, spotting
+ * rolls (a perception roll of sight, hearing or smell) take spotRoll. Type achievement, so it stacks with Bane and
+ * total-defeats bonuses as one modifier type. */
+export function achievementRollMods(a: Actor, kind: RollKind | undefined, fn?: string): Mod[] {
+  const f = kind && DEFENSE_ROLLS.includes(kind) ? 'defenseRoll' : kind === 'perception' && fn && fn in SENSE_SKILL ? 'spotRoll' : undefined;
+  const b = f && bestReward(a, f);
+  return b ? [{ source: `achievement: ${b.name}`, type: 'achievement', value: b.value }] : [];
 }
 /** readsHealth: the viewer sees the other's health level when it holds a current achievement with readsHealth for the
  * other's body type or race */
@@ -174,6 +183,8 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'skillAddByKind': return [`+${d.skillAddByKind} true skill in ${d.by === 'group' ? 'every skill of that group' : d.by === 'function' ? 'that sense\'s skill' : 'that skill'}`];
     case 'sellPct': return [`traders pay you +${d.sellPct}% for what you sell`];
     case 'questPayPct': return [`+${d.questPayPct}% on the coin a quest giver promises you`];
+    case 'defenseRoll': return [`+${d.defenseRoll} on your defense rolls (dodge, block, parry)`];
+    case 'spotRoll': return [`+${d.spotRoll} on your spotting rolls (sight, hearing, smell)`];
     case 'essenceSlots': return [`+${d.essenceSlots} essence slot${d.essenceSlots === 1 ? '' : 's'}`];
     case 'safeBreak': return [`forcing a container open breaks less: every fragility line ${steps(d.safeBreak!, 'tier')} worse`];
     case 'firstSight': {
@@ -204,7 +215,7 @@ function personalityLines(add?: Record<string, number>): string[] {
 const kindLabel = (d: AchievementDef, kind: string): string => (d.by === 'skill' ? skillName(kind) : kind);
 /** number rewards that add up along a chain: shown as one total with its parts (BG-256) */
 const SUMMED: Reward[] = ['unawareShift', 'quieter', 'renown', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels',
-  'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'sellPct', 'questPayPct', 'essenceSlots'];
+  'searchArea', 'searchReach', 'maxMorale', 'aimEase', 'safeBreak', 'sellPct', 'questPayPct', 'essenceSlots', 'defenseRoll', 'spotRoll'];
 const SUMMED_BY_KIND: AchievementReward[] = ['skillAddByKind'];
 /** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display. A number reward the row
  * carries up from lower levels (chain linkage) shows as one total, then its parts: "+15 max morale in all (+5 from

@@ -15,6 +15,7 @@ import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMod
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk, trueSkill } from './perks';
 import { baneMods, defeatsMods } from './bane';
+import { achievementRollMods } from './achRewards';
 import { pressureMods } from './pressure';
 import { achievementAimEase, bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
 import { besidePlayer } from '../engine/engagement';
@@ -30,7 +31,7 @@ import { augmentK, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
-import { wornArmor } from './slots';
+import { pieceOn, wornPieces } from './worn';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, burdenParts, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
@@ -176,6 +177,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
     modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses
     modifiers.push(...defeatsMods(actor, req.rollKind)); // D-119 total-defeats achievements
+    modifiers.push(...achievementRollMods(actor, req.rollKind, req.fn)); // XR7 clean defenses, XR37 spotting
     modifiers.push(...pressureMods(actor, req.against)); // OQ-29 Shaken and Swayed
     modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
     modifiers.push(...overdrive(actor, eff.skill)); // SS15 Overdrive: Stamina 140
@@ -326,9 +328,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze
-  const worn = wornArmor(D.core.inventory);
-  const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
-  if (type === 'dodge' && armor?.weight === 'light' && hasPerk(D, PK.slip_the_blow) && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
+  const pieces = wornPieces(state, D); // Slip the Blow: wearing armor, all of it light
+  if (type === 'dodge' && pieces.length > 0 && pieces.every((p) => p.armor.weight === 'light') && hasPerk(D, PK.slip_the_blow) && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
@@ -387,7 +388,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   }
 
   // A22 Turn Aside: heavy armor turns a heavy or crushing hit on a part it covers into a full hit
-  if (HIT_OUTCOMES.pos(outcome) >= HIT_OUTCOMES.pos('heavy_hit') && armor?.weight === 'heavy' && armor.covers.includes(location) && hasPerk(D, PK.turn_aside)) {
+  if (HIT_OUTCOMES.pos(outcome) >= HIT_OUTCOMES.pos('heavy_hit') && pieceOn(state, D, location)?.armor.weight === 'heavy' && hasPerk(D, PK.turn_aside)) {
     outcome = 'full_hit';
     multiplier = 1;
   }
@@ -397,7 +398,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
-    for (const a of [armor, nat]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
+    for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
@@ -441,8 +442,8 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   const hp = totalHp(state, T);
   const levelBefore = healthLevel(T);
   // armor pool on the struck part drains first; it never counts on the health track
-  const worn = wornArmor(T.core.inventory);
-  const poolPts = worn ? itemDef(state, worn.itemId).armor?.pools?.[result.location] : undefined;
+  const piece = pieceOn(state, T, result.location), worn = piece?.inst; // the piece covering the part hit (IR19)
+  const poolPts = piece?.armor.pools?.[result.location];
   if (worn && poolPts) {
     const left = ((worn.pools?.[result.location] ?? 100) / 100) * poolPts;
     const absorbed = Math.max(0, Math.min(dmg, left));

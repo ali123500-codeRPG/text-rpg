@@ -194,7 +194,7 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
 /** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
 const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
-const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });
+const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any', armorWeight: true });
 /** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
 const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });
 /** AX4 c: a charmed ring's skill weights by tree (placeholders): fighting and senses most, other common trees next, the rest 1 */
@@ -423,6 +423,32 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.full_harness, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { ...ARMOR('heavy', 'masterwork'), pools: { head: 20 } } },
   { id: IT.peerless_heater, level: 'masterwork', gearClass: GC.shield, tags: ['fantasy'], kind: 'shield', name: 'peerless heater shield', look: 'a heater shield of impossible craft', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('masterwork') },
+  // IR21: helmets, armor pieces of their weight's class covering the head (type Helmet, or Helmet with neck), worn beside any
+  // body piece that leaves those parts bare (IR19). Masterwork ones are tagged 'fantasy' (IR2).
+  { id: IT.arming_cap, level: 'common', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'arming cap', look: 'a quilted linen cap', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'common') } }, // a padded cap, worn alone or under a helm (Wikipedia "Arming cap")
+  { id: IT.leather_cap, level: 'fine', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'leather cap', look: 'a cap of hardened leather', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'fine') } }, // a hardened-leather skull cap (Wikipedia "Leather helmet")
+  { id: IT.secret, level: 'superior', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'secret', look: 'a soft hat over a hidden iron skull', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'superior') } }, // an iron skull cap worn under a hat (Wikipedia "Secret (helmet)")
+  { id: IT.peerless_cap, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless cap', look: 'a leather cap of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'masterwork') } },
+  { id: IT.mail_coif, level: 'common', gearClass: GC.armor_medium, gearType: GT.helmet_neck, kind: 'armor', name: 'mail coif', look: 'a hood of riveted mail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'common') } }, // a mail hood over head and neck (Wikipedia "Coif")
+  { id: IT.kettle_hat, level: 'fine', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'kettle hat', look: 'a broad-brimmed steel hat', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'fine') } }, // an open, brimmed steel hat (Wikipedia "Kettle hat")
+  { id: IT.sallet, level: 'superior', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'sallet', look: 'a swept steel sallet', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'superior') } }, // a steel helmet with a long tail over the nape (Wikipedia "Sallet")
+  { id: IT.peerless_sallet, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless sallet', look: 'a sallet of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'masterwork') } },
+  { id: IT.nasal_helm, level: 'common', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'nasal helm', look: 'a conical helm with a nose guard', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'common') } }, // a conical steel helm with a nasal bar (Wikipedia "Nasal helmet")
+  { id: IT.bascinet, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.helmet_neck, kind: 'armor', name: 'bascinet', look: 'a visored bascinet with a mail aventail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'fine') } }, // a steel bascinet; its mail aventail hangs over the neck (Wikipedia "Bascinet")
+  { id: IT.great_helm, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'great helm', look: 'a flat-topped great helm with eye slits', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'superior') } }, // a closed steel helm over the whole head (Wikipedia "Great helm")
+  { id: IT.peerless_great_helm, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless great helm', look: 'a great helm of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'masterwork') } },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it (a charm: who carries it); its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'misc', name: 'Varo\'s Loop', look: 'a small hoop of dark silver on a knotted cord, a charm worn smooth by fingers, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20,
     threadbound: { rank: 'rank_4', grants: [
@@ -1331,7 +1357,7 @@ export function prototypeLibrary(): Library {
       [ACH.crits_100]: { id: ACH.crits_100, name: 'Master of the Moment ({group})', level: 'iii', rule: 'crits', tags: ['skill'], count: 100, by: 'group', after: ACH.crits_50, standIn: 0.2 },
       [ACH.beyond_1]: { id: ACH.beyond_1, name: 'Beyond Perfect', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1 },
       [ACH.beyond_2]: { id: ACH.beyond_2, name: 'Past the Limit', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, after: ACH.beyond_1 },
-      [ACH.beyond_3]: { id: ACH.beyond_3, name: 'Touched by Fate', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, after: ACH.beyond_2 },
+      [ACH.beyond_3]: { id: ACH.beyond_3, name: 'Touched by Fate', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, after: ACH.beyond_2, tierUnlocks: [{ roll: 'any', side: 'up', steps: 1 }] },
       [ACH.beyond_group_1]: { id: ACH.beyond_group_1, name: 'Beyond Perfect ({group})', level: 'i', rule: 'beyond_crit', tags: ['skill'], count: 1, by: 'group', branchOf: ACH.beyond_1, skillAddByKind: 1 },
       [ACH.beyond_group_2]: { id: ACH.beyond_group_2, name: 'Past the Limit ({group})', level: 'ii', rule: 'beyond_crit', tags: ['skill'], count: 2, by: 'group', after: ACH.beyond_group_1, skillAddByKind: 1 },
       [ACH.beyond_group_3]: { id: ACH.beyond_group_3, name: 'Touched by Fate ({group})', level: 'iii', rule: 'beyond_crit', tags: ['skill'], count: 3, by: 'group', after: ACH.beyond_group_2, skillAddByKind: 1 },
@@ -1355,10 +1381,10 @@ export function prototypeLibrary(): Library {
       [ACH.quests_abandoned_1]: { id: ACH.quests_abandoned_1, name: 'Left Undone', level: 'zero', rule: 'quests_abandoned', tags: ['social'], count: 1, scar: true }, // TM29: the first one (placeholder name)
       [ACH.quests_abandoned_5]: { id: ACH.quests_abandoned_5, name: 'Word Not Kept', level: 'i', rule: 'quests_abandoned', tags: ['social'], count: 5, after: ACH.quests_abandoned_1, scar: true, personality: ap({ [PA.honesty]: -1 }) },
       // TM8: 1 / 10 / 100 / 500 (the first of an act is an achievement; the first row's name is a placeholder)
-      [ACH.clean_1]: { id: ACH.clean_1, name: 'Turned Aside', level: 'zero', rule: 'clean_defense', tags: ['combat'], count: 1 },
-      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10, after: ACH.clean_1 },
-      [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10 },
-      [ACH.clean_500]: { id: ACH.clean_500, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 500, after: ACH.clean_100 },
+      [ACH.clean_1]: { id: ACH.clean_1, name: 'Turned Aside', level: 'zero', rule: 'clean_defense', tags: ['combat'], count: 1, defenseRoll: 1 },
+      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10, after: ACH.clean_1, defenseRoll: 2 },
+      [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10, defenseRoll: 3 },
+      [ACH.clean_500]: { id: ACH.clean_500, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 500, after: ACH.clean_100, defenseRoll: 4 },
       [ACH.unseen_1]: { id: ACH.unseen_1, name: 'Unnoticed', level: 'zero', rule: 'unseen_moves', tags: ['stealth'], count: 1 }, // TM24 (placeholder name)
       [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10, after: ACH.unseen_1, skillAdd: { [SK.sneaking]: 1 } },
       [ACH.unseen_50]: { id: ACH.unseen_50, name: 'Slipped Past', level: 'ii', rule: 'unseen_moves', tags: ['stealth'], count: 50, after: ACH.unseen_10, skillAdd: { [SK.sneaking]: 2 } },
@@ -1368,14 +1394,15 @@ export function prototypeLibrary(): Library {
       [ACH.vanished_25]: { id: ACH.vanished_25, name: 'Smoke on the Wind', level: 'ii', rule: 'vanished', tags: ['stealth'], count: 25, after: ACH.vanished_5, skillAdd: { [SK.vanishing]: 2 } },
       [ACH.vanished_50]: { id: ACH.vanished_50, name: 'As If Never There', level: 'iii', rule: 'vanished', tags: ['stealth'], count: 50, after: ACH.vanished_25, skillAdd: { [SK.vanishing]: 3 } }, // XR16 (placeholder name)
       [ACH.spotted_10]: { id: ACH.spotted_10, name: 'Nothing Gets Past', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10 },
-      [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10 },
+      [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10, spotRoll: 1 },
+      [ACH.spotted_250]: { id: ACH.spotted_250, name: 'Nothing Moves Unseen', level: 'iii', rule: 'spotted', tags: ['stealth'], count: 250, after: ACH.spotted_100, spotRoll: 2 },
       [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function', branchOf: ACH.spotted_10 },
       [ACH.spotted_fn_10]: { id: ACH.spotted_fn_10, name: '{function} That Never Sleeps', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10, after: ACH.spotted_fn_1, by: 'function', skillAddByKind: 2 },
       [ACH.spotted_fn_100]: { id: ACH.spotted_fn_100, name: 'Nothing Hides from Your {function}', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_fn_10, by: 'function', skillAddByKind: 2 },
       [ACH.speech_1]: { id: ACH.speech_1, name: 'First Word Won ({skill})', level: 'zero', rule: 'speech_won', tags: ['social'], count: 1, by: 'skill' }, // TM20 (placeholder name)
-      [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', after: ACH.speech_1, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
-      [ACH.speech_100]: { id: ACH.speech_100, name: 'Voice That Carries ({skill})', level: 'ii', rule: 'speech_won', tags: ['social'], count: 100, after: ACH.speech_10, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
-      [ACH.speech_250]: { id: ACH.speech_250, name: 'Words That Move Crowds ({skill})', level: 'iii', rule: 'speech_won', tags: ['social'], count: 250, after: ACH.speech_100, by: 'skill', personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill', after: ACH.speech_1, skillAddByKind: 2, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.speech_100]: { id: ACH.speech_100, name: 'Voice That Carries ({skill})', level: 'ii', rule: 'speech_won', tags: ['social'], count: 100, after: ACH.speech_10, by: 'skill', skillAddByKind: 2, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
+      [ACH.speech_250]: { id: ACH.speech_250, name: 'Words That Move Crowds ({skill})', level: 'iii', rule: 'speech_won', tags: ['social'], count: 250, after: ACH.speech_100, by: 'skill', skillAddByKind: 2, personality: ap({ [PA.sociability]: 1 }), personalityByKind: { [SK.lying]: ap({ [PA.honesty]: -1 }) } },
       [ACH.talked_down_1]: { id: ACH.talked_down_1, name: 'Blood Unspilled', level: 'i', rule: 'talked_down', tags: ['social'], count: 1, personality: ap({ [PA.temper]: -1 }) },
       [ACH.talked_down_10]: { id: ACH.talked_down_10, name: 'Peacemaker', level: 'ii', rule: 'talked_down', tags: ['social'], count: 10, after: ACH.talked_down_1, personality: ap({ [PA.temper]: -1 }) },
       [ACH.talked_down_50]: { id: ACH.talked_down_50, name: 'Every Fight Ends in Talk', level: 'iii', rule: 'talked_down', tags: ['social'], count: 50, after: ACH.talked_down_10, personality: ap({ [PA.temper]: -1 }) },
@@ -1396,7 +1423,7 @@ export function prototypeLibrary(): Library {
       [ACH.mended_1]: { id: ACH.mended_1, name: 'Mended', level: 'zero', rule: 'mended', tags: ['survival'], count: 1 },
       [ACH.mended_10]: { id: ACH.mended_10, name: 'Patched and Stitched', level: 'i', rule: 'mended', tags: ['survival'], count: 10, after: ACH.mended_1 },
       [ACH.mended_50]: { id: ACH.mended_50, name: 'Hard to Keep Down', level: 'ii', rule: 'mended', tags: ['survival'], count: 50, after: ACH.mended_10 },
-      [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1 },
+      [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1, maxMorale: 5 },
       // the deepest of the near-death depths (Critical, Down and back, the survival roll): depth pays more than count
       [ACH.survival_roll_1]: { id: ACH.survival_roll_1, name: 'Woke Up Anyway', level: 'ii', rule: 'survival_rolls', tags: ['combat', 'survival'], count: 1, maxMorale: 10 },
       // D-292: one time; your contest rolls can go one tier past Critical Success (name and reward level are placeholders)

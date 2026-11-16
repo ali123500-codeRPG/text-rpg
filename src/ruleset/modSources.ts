@@ -9,6 +9,7 @@ import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
 import { baneSkill, defeatsRoll, isBane } from './bane';
+import { rewardOf } from './achRewards';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
 
@@ -62,6 +63,11 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'achievement', roll: 'skill', source: 'Rally', at: 'src/ruleset/achRewards.ts',
     when: 'An ally\'s morale roll while it fights beside a player holding a rally achievement.', value: 'plus the achievement\'s rally',
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.rally).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.rally!) })) },
+  { type: 'achievement', roll: 'skill', source: 'Defense and spotting achievements', at: 'src/ruleset/achRewards.ts',
+    when: 'Defense rolls (dodge, block, parry) take the best defenseRoll achievement (clean defenses); spotting rolls (sight, hearing and smell perception rolls) take the best spotRoll achievement (spotted). Same type as Bane and total defeats.',
+    value: 'the achievement\'s amount plus every lower level\'s, added up',
+    feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.defenseRoll || a.spotRoll)
+      .map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: `${sg(rewardOf(a, a.defenseRoll ? 'defenseRoll' : 'spotRoll'))} ${a.defenseRoll ? 'defense' : 'spotting'} rolls` })) },
   // roll_perk
   { type: 'roll_perk', roll: 'skill', source: `${MILESTONES.filter((_, i) => i % 2 === 1).join('/')} perk numbers`, at: 'src/ruleset/perks.ts',
     when: 'Rolls of the perk\'s skill: rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',

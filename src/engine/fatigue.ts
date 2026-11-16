@@ -9,7 +9,7 @@ import { actorBody, getLibrary } from '../library';
 import { FU, RV } from '../library/tableIds';
 import { EFFORT, type EffortKey } from '../scales';
 import { now } from '../time';
-import { barMax, fatigueOf, isSpent, lineMax, lineUsed, perkSleepMult, staminaSkill, wornWeight } from '../ruleset/fatigue';
+import { barMax, fatigueOf, isSpent, lineMax, lineUsed, perkSleepMult, sleepArmorMult, staminaSkill } from '../ruleset/fatigue';
 import { hasPerk } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { usableThisEngagement, useThisEngagement } from './engagement';
@@ -100,7 +100,7 @@ export function recoverDebt(a: Actor, sourceId: string, pct: number): number {
 }
 /** FT8: sleep's speed here: in a bed or elsewhere, × the worn armour's weight, × the owner's sleepClear perks (SS14) */
 export const sleepMult = (state: GameState, a: Actor): number =>
-  CONFIG.SLEEP_SPOT_MULT[zoneById(state, a.zone)?.furniture?.some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * (CONFIG.SLEEP_ARMOR_MULT[wornWeight(state, a) ?? ''] ?? 1) * perkSleepMult(a, 'sleepClear');
+  CONFIG.SLEEP_SPOT_MULT[zoneById(state, a.zone)?.furniture?.some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * sleepArmorMult(state, a) * perkSleepMult(a, 'sleepClear');
 
 /** FT7: a rest that ran `share` of its hour refills the line; with Catnap (SS1) it also clears the sleep debt CATNAP_SLEEP_HOURS
  * of sleep would here. Both rest paths call this */

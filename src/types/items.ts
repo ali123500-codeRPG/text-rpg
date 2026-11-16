@@ -66,6 +66,8 @@ export type ItemEffect = {
   byLevel?: true;
   /** AX4: a rolled skill's weight by its skill tree (TR id); a tree not listed weighs 1 */
   weights?: Record<string, number>;
+  /** IR24: an armor piece's weight cost (its Dodge penalty); several worn pieces' costs stack by the stacking rule */
+  armorWeight?: true;
 };
 
 export type AttackMode = {

@@ -76,7 +76,7 @@ import { met, struck } from '../ruleset/hits';
 import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
-import { wornArmor } from '../ruleset/slots';
+import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
@@ -262,9 +262,8 @@ function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): G
  * a Stealthy move is one step quieter */
 function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): NoiseKey {
   if (!BODY_MOVING.has(kind)) return noise;
-  const worn = wornArmor(a.core.inventory);
-  const w = worn && itemDef(state, worn.itemId).armor?.weight;
-  const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
+  const loud = Math.round(stackCost(wornPieces(state, a).map(({ armor }) => CONFIG.ARMOR_NOISE_STEPS[armor.weight] ?? 0))); // IR24 a: each piece, stacked
+  const steps = loud ? Math.max(0, loud - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
   const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, PK.soft_tread) ? 1 : 0;
   const quiet = kind === 'move' ? bestReward(a, 'quieter')?.value ?? 0 : 0; // an achievement reward
   return NOISE.at(NOISE.pos(noise) + steps - soft - quiet);
@@ -418,8 +417,7 @@ function struckSeen(ctx: Ctx, t: Actor, ev: GameEvent, before: { lost: number; a
  * missed target notices it here. It shows where it landed, never where it came from. */
 function landImpact(ctx: Ctx, t: Actor, ev: GameEvent, res: AttackResult, struckBy: GameEvent['perception']): void {
   const { state } = ctx;
-  const worn = wornArmor(t.core.inventory);
-  const armored = !!res.location && !!worn && !!itemDef(state, worn.itemId).armor?.covers.includes(res.location);
+  const armored = !!pieceOn(state, t, res.location);
   const hit = struck(res.outcome);
   const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || !zoneById(state, t.zone)?.outdoor); // blocked or parried: on a shield or weapon
   const kind = hard ? 'hard' as const : 'soft' as const;
