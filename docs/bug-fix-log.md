@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-259
+
+**What was wrong:** On every page of the Questions hub, a new question showed up above all the older answered ones, although the threads added it at the end of the page's list. The hub itself split each page into "Waiting for you" first and "Answered" below, and a new question is always still waiting, so it was lifted to the top.
+
+**What was done:** Ali asked to reverse the split: answered questions come first and the ones waiting are below them, each in the order they were asked, so the newest question is always at the very bottom. A question whose group is missing goes at the end instead of disappearing. Autosave, Submit and reopening where Ali left off are unchanged. The hub page (questions/hub/hub.html) was republished as version 15; this entry and the bug log row came in the PR below.
+
+**Fixed by:** [PR #898](https://github.com/ali123500-codeRPG/text-rpg/pull/898)
+
 ## BG-258
 
 **What was wrong:** A guard run by code, holding its arming sword, punched the player whenever the player stood within fist reach (0.7 m), and only used the sword from about 1 m out. Its fallback attack always named the human body's attack skill (unarmed strike), even with a sword in hand, and an attack that names a skill uses the attack with that skill when it reaches. An NPC run by Claude was also told its attack skill was unarmed strike.
