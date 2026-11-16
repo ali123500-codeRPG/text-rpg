@@ -1,6 +1,9 @@
 // Seeded RNG with saved state (mulberry32). Replay is exact given rngState.
 import type { Rng } from './types';
 
+/** the d100's average roll (1 to 100), the middle every roll is measured from */
+export const D100_MEAN = 50.5;
+
 /** a seed from text (a story or actor id): the same text always gives the same seed */
 export const textSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
 

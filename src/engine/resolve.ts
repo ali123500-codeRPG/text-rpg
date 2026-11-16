@@ -851,7 +851,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
     && isActive(t) && hasFreeGrip(state, a)) {
-    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike);
     if (fist && withinM(sightDistM(state, a, t), fist.mode.reach)) { ctx.oneTwo = true; doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true); }
   }
   // AT79 Flurry: every unarmed strike thrown with two Grip parts free, hit or miss, brings one free strike at the same target
@@ -871,8 +871,8 @@ function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   if (!res.strikeBack || !isActive(t) || !isActive(a)) return;
   const weapon = parryItem(state, t);
   const modes = usableModes(state, t);
-  const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
-    : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+  const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee')
+    : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike);
   if (!back || !withinM(sightDistM(state, t, a), back.mode.reach)) return; // the blow back reaches only as far as its weapon (metres)
   if (!strikeBackAllowed(ctx, t, a, 'parry')) return;
   doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: PARRY_STRIKE }, true);
