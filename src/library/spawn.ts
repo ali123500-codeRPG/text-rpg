@@ -257,19 +257,25 @@ export function templateLoadout(t: NpcTemplate, skills: Record<string, SkillEntr
   const role = t.roleId ? lib.npcRoles?.[t.roleId] : undefined, wealth = t.themeId ? lib.themes?.[t.themeId]?.wealth : undefined;
   if (!role?.gear?.length || !wealth) return pins;
   const who = { core: { raceId: t.raceId, bodyTypeId: race(t.raceId).bodyTypeId, classes: [], perks: [], skills } } as unknown as Actor;
-  const slot = (d: ItemDef) => (d.armor ? 'armor' : d.shield ? 'shield' : d.kind === 'weapon' ? 'weapon' : undefined);
+  // IR19/IR21: armor goes on in two places, the body and the head, and no part is covered twice
+  const head = (d: ItemDef) => !!d.armor?.covers.every((p) => p === 'head' || p === 'neck');
+  const slot = (d: ItemDef) => (d.armor ? (head(d) ? 'helmet' : 'armor') : d.shield ? 'shield' : d.kind === 'weapon' ? 'weapon' : undefined);
+  const covered = new Set(pins.flatMap((id) => lib.items[id]?.armor?.covers ?? []));
   const lvl = (d: ItemDef) => equipPos(itemLevel(d) ?? 'crude');
   const filled = new Set(pins.map((id) => lib.items[id]).filter(Boolean).map(slot));
   let twoHanded = pins.some((id) => (lib.items[id]?.grips ?? 1) > 1);
   const out = [...pins];
   for (const gc of role.gear) {
-    const best = Object.values(lib.items).filter((d) => d.gearClass === gc && !d.threadbound && slot(d) && lvl(d) <= equipPos(wealth) && !shortBy(who, d))
-      .sort((x, y) => lvl(y) - lvl(x) || Number(!!y.tags?.includes('starter')) - Number(!!x.tags?.includes('starter')) || (x.id < y.id ? -1 : 1))[0];
-    const s = best && slot(best);
-    if (!best || filled.has(s) || (s === 'shield' && twoHanded)) continue;
-    filled.add(s);
-    if ((best.grips ?? 1) > 1) twoHanded = true;
-    out.push(best.id);
+    const fits = Object.values(lib.items).filter((d) => d.gearClass === gc && !d.threadbound && slot(d) && lvl(d) <= equipPos(wealth) && !shortBy(who, d))
+      .sort((x, y) => lvl(y) - lvl(x) || Number(!!y.tags?.includes('starter')) - Number(!!x.tags?.includes('starter')) || (x.id < y.id ? -1 : 1));
+    for (const s of [...new Set(fits.map(slot))].sort((x, y) => Number(x === 'helmet') - Number(y === 'helmet'))) { // the body piece first, then a helmet over what is still bare
+      const best = fits.find((d) => slot(d) === s && !d.armor?.covers.some((p) => covered.has(p)));
+      if (!best || filled.has(s) || (s === 'shield' && twoHanded)) continue;
+      filled.add(s);
+      for (const p of best.armor?.covers ?? []) covered.add(p);
+      if ((best.grips ?? 1) > 1) twoHanded = true;
+      out.push(best.id);
+    }
   }
   return out;
 }

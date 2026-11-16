@@ -17,7 +17,7 @@ import { augmentFactors, augmentsOf, tradesOut } from './gear';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { isEcho } from '../library/echo';
-import { wornArmor } from './slots';
+import { pieceOn } from './worn';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
@@ -82,9 +82,9 @@ function markAugments(state: GameState, actor: Actor | undefined, r: { skill: st
 function markArmor(state: GameState, result: AttackResult): void {
   const t = actorById(state, result.targetId), a = actorById(state, result.attack.actorId);
   if (!t || !a || t.id !== state.player.id || !result.location || result.location === 'shield') return;
-  const worn = wornArmor(t.core.inventory);
-  const def = worn && itemDef(state, worn.itemId), req = def && requirement(def);
-  if (!def?.armor?.covers.includes(result.location) || !req) return;
+  const worn = pieceOn(state, t, result.location); // the piece covering the part hit (IR19)
+  const req = worn && requirement(itemDef(state, worn.inst.itemId));
+  if (!req) return;
   if (close(t, req.skill, trueSkill(a, result.attack.skill)) || close(t, req.skill, req.need)) mark(t, req.skill);
 }
 

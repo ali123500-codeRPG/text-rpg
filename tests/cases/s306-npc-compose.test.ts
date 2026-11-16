@@ -32,12 +32,12 @@ describe('306 NPC gear, compositions and the cast check', () => {
   it('NG10: gear by role, skill and theme wealth; pins stay; the thief gets the dagger and gambeson it used to pin', () => {
     const thief = npcTemplate(null, TP.thief);
     expect(thief.loadout ?? []).toEqual([]);
-    expect(templateLoadout(thief, templateSkills(thief, 'x'))).toEqual([IT.dagger, IT.gambeson]); // village folk: Common at most
+    expect(templateLoadout(thief, templateSkills(thief, 'x'))).toEqual([IT.dagger, IT.gambeson, IT.arming_cap]); // village folk: Common at most; a helmet over the bare head (IR21)
     const guard = npcTemplate(null, TP.guard);
-    expect(templateLoadout(guard, templateSkills(guard, 'x'))).toEqual(guard.loadout); // its pins fill weapon, armor and shield
+    expect(templateLoadout(guard, templateSkills(guard, 'x'))).toEqual([...guard.loadout!, IT.kettle_hat]); // its pins fill weapon, armor and shield; a Fine helmet beside the hauberk (IR21)
     const vet = composeTemplate(watchman, 'a watch captain');
     const gear = templateLoadout(vet, templateSkills(vet, 'x')).map((id) => getLibrary().items[id]);
-    expect(gear.map((d) => (d.armor ? 'armor' : d.shield ? 'shield' : d.kind)).sort()).toEqual(['armor', 'shield', 'weapon']);
+    expect(gear.map((d) => (d.armor ? 'armor' : d.shield ? 'shield' : d.kind)).sort()).toEqual(['armor', 'armor', 'shield', 'weapon']); // body armor and a helmet (IR21)
     for (const d of gear) expect(equipPos(itemLevel(d) ?? 'crude')).toBeLessThanOrEqual(EQUIP_LEVELS.pos('fine')); // town watch: Fine
     const poor = composeTemplate({ ...watchman, theme: TH.road_bandits }, 'a bandit');
     for (const id of templateLoadout(poor, templateSkills(poor, 'x'))) expect(equipPos(itemLevel(itemDef(null, id)) ?? 'crude')).toBeLessThanOrEqual(EQUIP_LEVELS.pos('common'));

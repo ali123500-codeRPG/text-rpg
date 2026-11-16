@@ -194,7 +194,7 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
 /** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
 const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
-const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });
+const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any', armorWeight: true });
 /** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
 const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });
 /** AX4 c: a charmed ring's skill weights by tree (placeholders): fighting and senses most, other common trees next, the rest 1 */
@@ -423,6 +423,32 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.full_harness, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { ...ARMOR('heavy', 'masterwork'), pools: { head: 20 } } },
   { id: IT.peerless_heater, level: 'masterwork', gearClass: GC.shield, tags: ['fantasy'], kind: 'shield', name: 'peerless heater shield', look: 'a heater shield of impossible craft', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('masterwork') },
+  // IR21: helmets, armor pieces of their weight's class covering the head (type Helmet, or Helmet with neck), worn beside any
+  // body piece that leaves those parts bare (IR19). Masterwork ones are tagged 'fantasy' (IR2).
+  { id: IT.arming_cap, level: 'common', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'arming cap', look: 'a quilted linen cap', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'common') } }, // a padded cap, worn alone or under a helm (Wikipedia "Arming cap")
+  { id: IT.leather_cap, level: 'fine', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'leather cap', look: 'a cap of hardened leather', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'fine') } }, // a hardened-leather skull cap (Wikipedia "Leather helmet")
+  { id: IT.secret, level: 'superior', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'secret', look: 'a soft hat over a hidden iron skull', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'superior') } }, // an iron skull cap worn under a hat (Wikipedia "Secret (helmet)")
+  { id: IT.peerless_cap, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless cap', look: 'a leather cap of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { ...ARMOR('light', 'masterwork') } },
+  { id: IT.mail_coif, level: 'common', gearClass: GC.armor_medium, gearType: GT.helmet_neck, kind: 'armor', name: 'mail coif', look: 'a hood of riveted mail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'common') } }, // a mail hood over head and neck (Wikipedia "Coif")
+  { id: IT.kettle_hat, level: 'fine', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'kettle hat', look: 'a broad-brimmed steel hat', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'fine') } }, // an open, brimmed steel hat (Wikipedia "Kettle hat")
+  { id: IT.sallet, level: 'superior', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'sallet', look: 'a swept steel sallet', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'superior') } }, // a steel helmet with a long tail over the nape (Wikipedia "Sallet")
+  { id: IT.peerless_sallet, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless sallet', look: 'a sallet of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { ...ARMOR('medium', 'masterwork') } },
+  { id: IT.nasal_helm, level: 'common', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'nasal helm', look: 'a conical helm with a nose guard', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'common') } }, // a conical steel helm with a nasal bar (Wikipedia "Nasal helmet")
+  { id: IT.bascinet, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.helmet_neck, kind: 'armor', name: 'bascinet', look: 'a visored bascinet with a mail aventail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'fine') } }, // a steel bascinet; its mail aventail hangs over the neck (Wikipedia "Bascinet")
+  { id: IT.great_helm, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'great helm', look: 'a flat-topped great helm with eye slits', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'superior') } }, // a closed steel helm over the whole head (Wikipedia "Great helm")
+  { id: IT.peerless_great_helm, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless great helm', look: 'a great helm of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { ...ARMOR('heavy', 'masterwork') } },
   // D-218 Threadbound items: one of a kind; binds to the first who wears it (a charm: who carries it); its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'misc', name: 'Varo\'s Loop', look: 'a small hoop of dark silver on a knotted cord, a charm worn smooth by fingers, stamped with the coin of Varo, god of extreme fortunes', bulk: 0, value: 400, boon: 20,
     threadbound: { rank: 'rank_4', grants: [

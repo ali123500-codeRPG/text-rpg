@@ -5,12 +5,12 @@
 import type { Actor, GameState, Mod, PerkDef } from '../types';
 import { CONFIG } from '../config';
 import { SK } from '../library/skillIds';
-import { getLibrary, itemDef } from '../library';
+import { getLibrary } from '../library';
 import { PK } from '../library/perkIds';
 import { hasPerk } from './perks';
 import { FATIGUE_LEVELS, type FatigueLevel } from '../scales';
 import { skillOpen } from './access';
-import { wornArmor } from './slots';
+import { stackCost, wornPieces } from './worn';
 
 /** raw Stamina (like Endurance for HP); a closed or dormant skill counts 0 */
 export function staminaSkill(a: Actor): number {
@@ -42,8 +42,6 @@ export function fatigueMods(a: Actor): Mod[] {
 }
 /** FT17: others' fatigue shows from CONFIG.FATIGUE_SHOWN_FROM down */
 export const fatigueShows = (l: FatigueLevel): boolean => FATIGUE_LEVELS.pos(l) >= FATIGUE_LEVELS.pos(CONFIG.FATIGUE_SHOWN_FROM);
-/** the weight of the armour the actor wears, if any */
-export function wornWeight(state: GameState | null, a: Actor): string | undefined {
-  const worn = wornArmor(a.core.inventory);
-  return worn ? itemDef(state, worn.itemId).armor?.weight : undefined;
-}
+/** sleeping in armour: each worn piece's SLEEP_ARMOR_MULT cut, stacked (IR24 a); 1 when nothing is worn */
+export const sleepArmorMult = (state: GameState | null, a: Actor): number =>
+  1 - stackCost(wornPieces(state, a).map(({ armor }) => 1 - (CONFIG.SLEEP_ARMOR_MULT[armor.weight] ?? 1)));
