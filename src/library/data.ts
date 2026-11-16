@@ -1346,7 +1346,7 @@ export function prototypeLibrary(): Library {
     themes: THEMES,
     // NR37 a: the first beast prefix; later ones (mana, demons) add traits on top. A creature carries at most one
     // NR37 a: Dire's third part, one body size larger, waits for a body-size rule (D-354)
-    prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health.', rankStep: 1, hpMult: 1.5 } },
+    prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health, a fifth more skill.', rankStep: 1, hpMult: 1.5, skillMult: 1.2 } },
     hookKinds: HOOK_KINDS,
     groups: GROUPS,
     // NR17 a: hooks by settlement size (the crowd is text); must = always there, the rest rolled from pool without repeats first

@@ -64,7 +64,7 @@ export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civil
   /** NG10: the gear classes (GC…) its work uses; spawn picks the best item of each its skill meets, up to its theme's wealth */
   gear?: readonly LibraryRef[] };
 /** NR37: a beast prefix: its name in a label (a dire wolf), the rank steps it adds to the sheet, and its health multiplier */
-export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number };
+export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number; /** NR46: every banded skill × this, after the rank step */ skillMult?: number };
 /** NR17: a kind of hook: what the person gives play, who can fill it (roles, or a group), and its rank kind (CONFIG.ROSTER_RANKS) */
 export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?: readonly LibraryRef[]; groups?: readonly LibraryRef[]; theme?: LibraryRef; class?: LibraryRef;
   rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true };
