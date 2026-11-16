@@ -264,6 +264,10 @@ export function rewardXpAt(p: number): number {
 }
 /** a reward level's XP, for achievements and quests alike (quest levels are REWARD_LEVELS keys too) */
 export const rewardXp = (key: string): number => (REWARD_LEVELS.has(key) ? rewardXpAt(REWARD_LEVELS.pos(key as 'i') - REWARD_LEVELS.pos('zero')) : 0);
+/** the achievement reward level whose XP a quest of this level pays: CONFIG.QUEST_XP_LEVELS_UP places higher */
+export const questXpLevel = (key: string): string => rewardKeyAt(rewardPos(key) + CONFIG.QUEST_XP_LEVELS_UP);
+/** a quest reward level's XP: the XP of its achievement level (questXpLevel) */
+export const questLevelXp = (key: string): number => rewardXp(questXpLevel(key));
 
 /** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
  * step past its first count (an every-N row climbs as it is earned again), capped at the top level (XV). */

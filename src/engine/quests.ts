@@ -9,7 +9,7 @@ import { TIME_OF_DAY } from '../scales';
 import { DAY_MINUTES, dayOf, now } from '../time';
 import { IT } from '../library/itemIds';
 import { healthLevel } from '../ruleset/body';
-import { bestReward, rewardXp } from '../ruleset/achRewards';
+import { bestReward, questLevelXp } from '../ruleset/achRewards';
 import { buildLeakContext, leakScan } from '../agents/narration';
 import { actorById, allActors, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
@@ -102,10 +102,10 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
   logCode(state, 'quest_made', { id, giver: giver.id, goal: goal.kind, level: q.level });
 }
 
-/** a done quest's XP: its reward level's amount; a defeat job is cut by the defeat-XP taper of its foes' average power
+/** a done quest's XP: its reward level's amount (questLevelXp: an achievement two levels higher); a defeat job is cut by the defeat-XP taper of its foes' average power
  * (as each fell) against the player's power at hand-in (QX2, QX4) */
 export function questXp(state: GameState, q: Quest): number {
-  const xp = rewardXp(q.level);
+  const xp = questLevelXp(q.level);
   if (q.goal.kind !== 'defeat' || !q.progress || q.foePower === undefined) return xp;
   return Math.round(xp * weakFoeTaper(q.foePower / q.progress, power(state, state.player)));
 }

@@ -900,6 +900,8 @@ const DEFAULTS = {
   REWARD_XP_CURVE: { base: 50, shift: 2, div: 2, power: 3 },
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
+  /** a quest pays the XP of the achievement reward level this many places above its own (quest 0 = achievement II) */
+  QUEST_XP_LEVELS_UP: 2,
   GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item
   // ---- Part 2 engine ----
   LIE_PLAIN_GAP: 2, // BF8: a lie seen through by this many tiers or more is plainly a lie; a narrower win gives the hint

@@ -245,12 +245,13 @@ describe('answers CS15 to CS17', () => {
     const readers = files('src').filter((f) => f !== 'src/config.ts' && /CONFIG\.REWARD_XP_CURVE/.test(readFileSync(f, 'utf8') as string));
     expect(readers).toEqual(['src/ruleset/achRewards.ts']);
   });
-  it('CS16: a quest pays the same XP as an achievement of its reward level', () => {
+  it('CS16: a quest pays the same XP as an achievement two reward levels higher (quest 0 = achievement II)', () => {
     const s = makeVillage();
     for (const level of QUEST_REWARD_LEVELS.keys) {
       const q = { level, goal: { kind: 'deliver' } } as unknown as Quest;
-      expect(questXp(s, q)).toBe(rewardXp(level));
+      expect(questXp(s, q)).toBe(rewardXp(REWARD_LEVELS.at(REWARD_LEVELS.pos(level) + 2)));
     }
+    expect(questXp(s, { level: 'zero', goal: { kind: 'deliver' } } as unknown as Quest)).toBe(rewardXp('ii'));
   });
   it('CS17: items and attack modes count grips, never hands', () => {
     const offenders = files('src').filter((f) => /([{,]|^)\s*hands\??:|\.hands\b|'hands'/m.test(readFileSync(f, 'utf8') as string));
