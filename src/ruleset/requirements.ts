@@ -3,18 +3,22 @@
 // EQUIP_SHORT_STEP points short (EQ12 c); worn armor's shortfall reaches Dodge and stealth rolls.
 import type { Actor, GameState, ItemDef, ItemInstance, RollKind, TierShift } from '../types';
 import { CONFIG } from '../config';
-import { EQUIP_LEVELS, QUALITY_LEVELS, type EquipLevelKey } from '../scales';
+import { EQUIP_LEVELS, QUALITY_LEVELS, equipAt, equipPos, equipStepsPast, type EquipLevelKey } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { trueSkill } from './perks';
 import { achievementReqLower } from './achRewards';
 import { standInShare, standInTable } from './gear';
 import { inArmorSlot } from './slots';
 
-/** EQ11: a minted item of QUALITY_LEVEL_UP_FROM or better is one level above its base, up to the top */
+/** EQ11: a minted item of QUALITY_LEVEL_UP_FROM or better is one level above its base (IR3: no top) */
 export function itemLevel(def: ItemDef): EquipLevelKey | undefined {
   if (!def.level) return undefined;
-  return EQUIP_LEVELS.at(EQUIP_LEVELS.pos(def.level) + (def.base && QUALITY_LEVELS.pos(def.base.quality) >= QUALITY_LEVELS.pos(CONFIG.QUALITY_LEVEL_UP_FROM) ? 1 : 0));
+  return equipAt(equipPos(def.level) + (def.base && QUALITY_LEVELS.pos(def.base.quality) >= QUALITY_LEVELS.pos(CONFIG.QUALITY_LEVEL_UP_FROM) ? 1 : 0));
 }
+
+/** the true skill an equip level asks (EQUIP_NEED; past the last row, + EQUIP_BEYOND_STEP per step) */
+export const equipNeed = (k: EquipLevelKey): number =>
+  EQUIP_LEVELS.has(k) ? CONFIG.EQUIP_NEED[k] ?? 0 : CONFIG.EQUIP_NEED[EQUIP_LEVELS.keys[EQUIP_LEVELS.keys.length - 1]] + equipStepsPast(k) * CONFIG.EQUIP_BEYOND_STEP;
 
 /** the skill an item asks for: its gear class's (the class sets the type, the level the amount) */
 export function requiredSkill(def: ItemDef): string | undefined {
@@ -23,7 +27,7 @@ export function requiredSkill(def: ItemDef): string | undefined {
 
 export function requirement(def: ItemDef): { skill: string; level: EquipLevelKey; need: number } | null {
   const level = itemLevel(def), skill = requiredSkill(def);
-  return level && skill ? { skill, level, need: CONFIG.EQUIP_NEED[level] ?? 0 } : null;
+  return level && skill ? { skill, level, need: equipNeed(level) } : null;
 }
 
 /** true skill toward a requirement: the skill itself, or the best stand-in at its share */

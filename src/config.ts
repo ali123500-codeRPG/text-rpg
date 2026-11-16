@@ -530,8 +530,10 @@ const DEFAULTS = {
   SUSPECT_ASK_TURNS: 3,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
   ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
-  /** EQ9: true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */
-  EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100 } as Record<string, number>,
+  /** EQ9: true skill each equipment level needs (placeholders); IR3: past Masterwork (100) the task grade steps, Divine 400 */
+  EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100, beyond: 150, mythic: 200, transcendent: 300, divine: 400 } as Record<string, number>,
+  /** IR3: each step past Divine (Divine+, Divine++ …) needs this much more true skill (placeholder) */
+  EQUIP_BEYOND_STEP: 100,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
   EQUIP_SHORT_STEP: 10,
   ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,

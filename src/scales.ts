@@ -117,7 +117,7 @@ export type FragilityKey = (typeof FRAGILITY.keys)[number];
 
 /** a minted item's quality, lowest first (CS9). Its multiplier in the quality formulas is its position + 1
  * (src/ruleset/quality.ts). */
-export const QUALITY_LEVELS = scale([['quality_1', 'Passable'], ['quality_2', 'Solid'], ['quality_3', 'Exceptional'], ['quality_4', 'Flawless']]);
+export const QUALITY_LEVELS = scale([['quality_1', 'Passable'], ['quality_2', 'Sound'], ['quality_3', 'Exceptional'], ['quality_4', 'Flawless']]);
 export type QualityKey = (typeof QUALITY_LEVELS.keys)[number];
 
 /** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
@@ -173,9 +173,21 @@ export type AttentionKey = (typeof ATTENTION.keys)[number];
 /** worn armor weight, lightest first (AN3); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
 export const ARMOR_WEIGHTS = scale([['light', 'Light'], ['medium', 'Medium'], ['heavy', 'Heavy']]);
 export type ArmorWeightKey = (typeof ARMOR_WEIGHTS.keys)[number];
-/** equipment levels (EQ8): what an item asks of its user's skill (CONFIG.EQUIP_NEED) */
-export const EQUIP_LEVELS = scale([['crude', 'Crude'], ['common', 'Common'], ['fine', 'Fine'], ['superior', 'Superior'], ['masterwork', 'Masterwork']]);
-export type EquipLevelKey = (typeof EQUIP_LEVELS.keys)[number];
+/** equipment levels (EQ8): what an item asks of its user's skill (CONFIG.EQUIP_NEED). IR3: past Masterwork the task grade
+ * names (Beyond, Mythic, Transcendent, Divine); past the last row a key goes on as divine_1, divine_2 … (Divine+, Divine++),
+ * each CONFIG.EQUIP_BEYOND_STEP more need. Read positions and names through equipPos, equipAt and equipName. */
+export const EQUIP_LEVELS = scale([['crude', 'Crude'], ['common', 'Common'], ['fine', 'Fine'], ['superior', 'Superior'], ['masterwork', 'Masterwork'],
+  ['beyond', 'Beyond'], ['mythic', 'Mythic'], ['transcendent', 'Transcendent'], ['divine', 'Divine']]);
+export type EquipLevelKey = (typeof EQUIP_LEVELS.keys)[number] | `divine_${number}`;
+const LAST_EQUIP = EQUIP_LEVELS.keys.length - 1;
+/** how many steps past the last equip level (0 for a row of the table) */
+export const equipStepsPast = (k: EquipLevelKey): number => (EQUIP_LEVELS.has(k) ? 0 : Number(k.slice(k.lastIndexOf('_') + 1)) || 0);
+/** an equip level's position, lowest first, with no top */
+export const equipPos = (k: EquipLevelKey): number => (EQUIP_LEVELS.has(k) ? EQUIP_LEVELS.pos(k) : LAST_EQUIP + equipStepsPast(k));
+/** the equip level at a position (never below the first row, never a top) */
+export const equipAt = (i: number): EquipLevelKey => (i <= LAST_EQUIP ? EQUIP_LEVELS.at(i) : `divine_${i - LAST_EQUIP}`);
+/** an equip level's name: past the last row it gains a + per step (Divine+, Divine++) */
+export const equipName = (k: EquipLevelKey): string => (EQUIP_LEVELS.has(k) ? EQUIP_LEVELS.name(k) : EQUIP_LEVELS.name(EQUIP_LEVELS.keys[LAST_EQUIP]) + '+'.repeat(equipStepsPast(k)));
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
 /** CO16 zone sizes, smallest first; the m² of each is CONFIG.ZONE_SIZE_M2 and its real or fantasy reference is the library's zoneSizes row */

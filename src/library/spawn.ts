@@ -8,7 +8,7 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, NERVE_LINES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
+import { CLASS_TIERS, equipPos, LIFE_STAGES, NERVE_LINES, RANKS, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
 import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng, textSeed } from '../rng';
@@ -226,12 +226,12 @@ export function templateLoadout(t: NpcTemplate, skills: Record<string, SkillEntr
   if (!role?.gear?.length || !wealth) return pins;
   const who = { core: { raceId: t.raceId, bodyTypeId: race(t.raceId).bodyTypeId, classes: [], perks: [], skills } } as unknown as Actor;
   const slot = (d: ItemDef) => (d.armor ? 'armor' : d.shield ? 'shield' : d.kind === 'weapon' ? 'weapon' : undefined);
-  const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
+  const lvl = (d: ItemDef) => equipPos(itemLevel(d) ?? 'crude');
   const filled = new Set(pins.map((id) => lib.items[id]).filter(Boolean).map(slot));
   let twoHanded = pins.some((id) => (lib.items[id]?.grips ?? 1) > 1);
   const out = [...pins];
   for (const gc of role.gear) {
-    const best = Object.values(lib.items).filter((d) => d.gearClass === gc && !d.threadbound && slot(d) && lvl(d) <= EQUIP_LEVELS.pos(wealth) && !shortBy(who, d))
+    const best = Object.values(lib.items).filter((d) => d.gearClass === gc && !d.threadbound && slot(d) && lvl(d) <= equipPos(wealth) && !shortBy(who, d))
       .sort((x, y) => lvl(y) - lvl(x) || Number(!!y.tags?.includes('starter')) - Number(!!x.tags?.includes('starter')) || (x.id < y.id ? -1 : 1))[0];
     const s = best && slot(best);
     if (!best || filled.has(s) || (s === 'shield' && twoHanded)) continue;
@@ -477,7 +477,7 @@ export function newPlayer(startId = PLAYER_START, storyId?: string, raceId: stri
  * that weapon takes two grips; worn: the highest-level armor met, and a plain pack (CT7) that holds the rest. */
 export function starterKit(a: Actor): ItemInstance[] {
   const lib = getLibrary();
-  const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
+  const lvl = (d: ItemDef) => equipPos(itemLevel(d) ?? 'crude');
   const top = new Map<string, ItemDef>(); // per gear class, only the highest level met
   for (const d of Object.values(lib.items)) if (d.tags?.includes('starter') && !shortBy(a, d)) {
     const k = d.gearClass ?? d.id, b = top.get(k);
