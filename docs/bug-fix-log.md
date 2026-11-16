@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali OK'd the fix (IC1 on the "Code consistency check, 10% at a time" page). The rules now keep their lists in one place (DEFEATS_ROLLS in src/ruleset/bane.ts, BLADE_WALL_CLASSES in src/ruleset/index.ts) and the two Stacking lines are built from those lists. The game plays the same; only the tab's text changed. No new test, as Ali asked: the text reads the rule's own list.
 
-**Fixed by:** the PR that carries this entry (slice 1 of the code consistency check)
+**Fixed by:** [PR #923](https://github.com/ali123500-codeRPG/text-rpg/pull/923)
 
 ## BG-260
 
