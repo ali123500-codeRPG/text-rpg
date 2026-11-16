@@ -10,7 +10,7 @@ import { TP } from '../../src/library/templateIds';
 describe('161 class floors from unlock conditions', () => {
   it('floors include the unlock skills; either-of groups stay groups', () => {
     expect(classFloors(CL.trader).all[SK.barter]).toBe(20);
-    expect(classFloors(CL.sword_dancer).all[SK.dodge]).toBe(40);
+    expect(classFloors(CL.sword_dancer).all[SK.dodge]).toBe(80);
     expect(classFloors(CL.guard).any).toHaveLength(3);
   });
   it('every template with a class meets all its class floors', () => {

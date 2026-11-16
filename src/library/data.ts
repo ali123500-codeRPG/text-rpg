@@ -280,6 +280,16 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'Always on (quirk)', trigger: 'The owner sleeps.', conditions: [],
       effect: `Sleep clears sleep debt ×${CONFIG.INSOMNIAC_CLEAR} (sleepClear, CONFIG.INSOMNIAC_CLEAR, placeholder), with the bed and worn armour multipliers.`, lasts: 'Always.' },
   },
+  [PK.blade_against_blade]: {
+    id: PK.blade_against_blade, name: 'Blade Against Blade', built: true, classLevel: { classId: CL.swordsman, level: 1 },
+    story: 'Every parry now carries the answer inside it. The Swordsman drills have begun.',
+    rules: { kind: 'passive', trigger: 'the owner reaches Swordsman class level 1', conditions: [], effect: 'opens the Swordsman tree: the Riposte skill', lasts: 'always' },
+  },
+  [PK.first_steps_of_the_dance]: {
+    id: PK.first_steps_of_the_dance, name: 'First Steps of the Dance', built: true, classLevel: { classId: CL.sword_dancer, level: 1 },
+    story: 'The step and the cut become one motion. The Sword-dancer drills have begun.',
+    rules: { kind: 'passive', trigger: 'the owner reaches Sword-dancer class level 1', conditions: [], effect: 'opens the Sword-dancer tree: the Blade Dance skill', lasts: 'always' },
+  },
   [PK.quick_study]: {
     id: PK.quick_study, name: 'Quick Study', built: true, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
@@ -835,9 +845,9 @@ export function prototypeLibrary(): Library {
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
       [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying, SK.filching], access: { blockedBy: [AMORPHOUS] } },
-      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'perk', id: PK.blade_against_blade }] } }, // opened by Swordsman's level 1 perk
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
-      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
+      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'perk', id: PK.first_steps_of_the_dance }] } }, // mirrors Swordsman: opened by its level 1 perk
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Tremor senses', rating: 'inferior', skills: [SK.tremor], access: { either: [RC.python, RC.spider].map((id) => ({ kind: 'race' as const, id })) } }, // AB11, AB19: snakes and spiders feel vibration; slimes smell instead
       [TR.medicine]: { id: TR.medicine, name: 'Medicine', skills: [SK.healing], access: { blockedBy: [AMORPHOUS] } }, // NR33: hands to mend with
@@ -845,7 +855,7 @@ export function prototypeLibrary(): Library {
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
-      [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 40 }, unlockAny: [{ [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
+      [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_2', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 80 }, unlockAny: [{ [SK.melee_medium]: 60, [SK.melee_heavy]: 60 }], levelPerks: { 1: [PK.blade_against_blade] } },
       // the class of the late bloomer start (ST2): a unique class with a level 1 perk
       [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
@@ -857,7 +867,7 @@ export function prototypeLibrary(): Library {
       [CL.blessed_by_imbra]: { id: CL.blessed_by_imbra, name: 'Blessed by Imbra', tier: 'tier_2', label: 'a young stranger', story: 'Imbra looked your way once, and part of that look stayed with you.', floors: {}, blessedBy: GD.imbra },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
-      [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
+      [CL.sword_dancer]: { id: CL.sword_dancer, personality: { [PA.levity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Sword-dancer', tier: 'tier_2', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 80 }, unlockAny: [{ [SK.melee_light]: 60, [SK.melee_medium]: 60 }], levelPerks: { 1: [PK.first_steps_of_the_dance] } },
       // NR13 (placeholder numbers, benefits later): every Arms skill at 50 (the Arms All-50), one at 75, and Heavy Armor 60
       [CL.knight]: { id: CL.knight, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Knight', tier: 'tier_2', label: 'a knight', story: 'Armoured head to foot and sworn to a banner; the blade does not tire and the line does not break.', floors: {},
         // NR36 b: the Arms All-50, one weapon at 100 and Heavy Armor 75; or Knight Trainee at its top level

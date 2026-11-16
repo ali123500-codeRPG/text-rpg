@@ -56,26 +56,26 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(q.core.inventory.find((i) => i.equippedIn?.includes('grip:right_arm'))?.itemId).toBe(IT.hand_axe);
   });
 
-  it('Swordsman unlocks at Medium Weapons 40 and Parry 40', () => {
+  it('Swordsman unlocks at Medium Weapons 60 and Parry 80', () => {
     const s = makeVillage();
     s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     unlockClasses(s);
     expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer, CL.commoner]);
-    s.player.core.skills[SK.melee_medium].raw = 40;
-    s.player.core.skills[SK.parry].raw = 40;
+    s.player.core.skills[SK.melee_medium].raw = 60;
+    s.player.core.skills[SK.parry].raw = 80;
     unlockClasses(s);
     expect(s.player.core.classes).toContainEqual({ classId: CL.swordsman, state: 'unlocked', level: 0 });
     expect(s.log.some((l) => l.code === 'class_unlocked')).toBe(true);
   });
 
-  it('Sword-dancer unlocks at Dodge 40 and either Light or Medium Weapons 40', () => {
+  it('Sword-dancer unlocks at Dodge 80 and either Light or Medium Weapons 60', () => {
     const s = makeVillage();
     s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     s.player.core.skills[SK.melee_medium].raw = 30;
-    s.player.core.skills[SK.dodge].raw = 40;
+    s.player.core.skills[SK.dodge].raw = 80;
     unlockClasses(s);
     expect(s.player.core.classes.map((c) => c.classId)).toEqual([CL.late_bloomer, CL.commoner]); // Dodge alone is not enough
-    s.player.core.skills[SK.melee_light] = { ...s.player.core.skills[SK.melee_light], raw: 40 };
+    s.player.core.skills[SK.melee_light] = { ...s.player.core.skills[SK.melee_light], raw: 60 };
     unlockClasses(s);
     expect(s.player.core.classes).toContainEqual({ classId: CL.sword_dancer, state: 'unlocked', level: 0 });
     expect(s.player.core.classes.some((c) => c.classId === CL.swordsman)).toBe(false);

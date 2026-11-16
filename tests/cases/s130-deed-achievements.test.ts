@@ -63,8 +63,8 @@ describe('130 deed achievements', () => {
   it('unlocking a class earns it once, named for the class', () => {
     const s = makeVillage();
     s.player.core.classes = s.player.core.classes.filter((c) => c.classId !== CL.swordsman);
-    s.player.core.skills[SK.melee_medium] = { raw: 40, state: 'normal' };
-    s.player.core.skills[SK.parry] = { raw: 40, state: 'normal' };
+    s.player.core.skills[SK.melee_medium] = { raw: 60, state: 'normal' };
+    s.player.core.skills[SK.parry] = { raw: 80, state: 'normal' };
     unlockClasses(s);
     unlockClasses(s);
     const a = s.player.progression!.achievements!.filter((x) => x.key === ACH.class_unlock);

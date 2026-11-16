@@ -38,6 +38,7 @@ export const PK = {
   patient_knife: 'PK147', protagonist_mentality: 'PK148', chorus: 'PK151', // CN6-CN8: payoff perks (D-260)
   extract_essence: 'PK149', hollowed: 'PK150', // DX1-DX5: essence extraction (a blessing of Imbra) and the quirk it leaves
   every_answer: 'PK152', ceaseless_guard: 'PK153', endless_answer: 'PK154', // D-337: strike-back limit perks (Riposte 20, Parry 100, merged)
+  blade_against_blade: 'PK155', first_steps_of_the_dance: 'PK156', // level 1 perks of Swordsman and Sword-dancer: they open Riposte and Blade Dance
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;
