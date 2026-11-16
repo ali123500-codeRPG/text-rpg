@@ -79,8 +79,6 @@ export function band(margin: number): number {
 }
 type Reach = { up: number; down: number };
 const NO_REACH: Reach = { up: 0, down: 0 };
-/** weapon classes whose parry B19 Blade Wall keeps from being outnumbered (the Stacking tab names them from this list) */
-export const BLADE_WALL_CLASSES = ['medium', 'heavy'] as const;
 /** D-211 on skill rolls (an extra band past the end): each tier a perk or achievement opens (tierUnlocks, tierReach) adds
  * a band CONFIG.TIER_EXTRA_BAND wider past the end of MARGIN_BANDS: Critical Success+ from margin 75 + 50, Critical
  * Failure− below −75 − 50. Without an unlock a roll reads the table as before. */
@@ -295,10 +293,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const openArm = type === 'parry' && !blocker ? openHandArm(state, D) : null; // A7 Open-Hand Guard (PA10): a barehanded parry
   const parryClass = (c: string) => type === 'parry' && !!blocker && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === c);
   const mediumParry = parryClass('medium');
-  const bladeParry = BLADE_WALL_CLASSES.some(parryClass); // B19 Blade Wall: a medium or heavy blade
   const dm: Mod[] = [];
-  // never outnumbered: B19 Blade Wall (Parry 60, a medium or heavy weapon), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
-  const noCrowd = (bladeParry && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
+  // never outnumbered: B19 Blade Wall (Parry 60), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
+  const noCrowd = (type === 'parry' && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
   if ((req.context?.defensesThisTurn ?? 0) >= 1 && !noCrowd) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
