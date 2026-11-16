@@ -183,7 +183,8 @@ describe('153 Parry', () => {
     const dodge = effectiveSkill(s, s.player, SK.dodge).value;
     s.player.core.skills[SK.riposte] = { raw: 20, state: 'normal' };
     s.player.core.skills[SK.blade_dance] = { raw: 15, state: 'normal' };
-    s.player.core.classes.push({ classId: CL.sword_dancer, state: 'previous', level: 1 }); // Blade Dance's tree opens with a level in the class
+    s.player.core.classes.push({ classId: CL.sword_dancer, state: 'previous', level: 1 });
+    for (const perkId of [PK.blade_against_blade, PK.first_steps_of_the_dance]) s.player.core.perks.push({ perkId, source: 'class', gainedTurn: 0 }); // the level 1 perks open Riposte and Blade Dance
     expect(effectiveSkill(s, s.player, SK.parry).value).toBeCloseTo(parry + 20);
     expect(effectiveSkill(s, s.player, SK.dodge).value).toBeCloseTo(dodge + 15);
   });

@@ -1,6 +1,6 @@
 // 157 All-50 round 3 (PT8–PT11): Grit (Resolve's part: Endurance augments Resolve at 0.25, through PerkDef.augments),
 // Against the Grain (Parry's part: no heavy-weapon gap shift on the owner's parries), Iron Rim (Block's part: the shield
-// pool takes ×0.75). Swordsman unlocks with Medium or Heavy Weapons 40 and Parry 40, and Blade Wall works with either.
+// pool takes ×0.75). Swordsman unlocks with Medium or Heavy Weapons 60 and Parry 80, and Blade Wall works with either.
 // PT12: Misdirection (Vanishing's part: Lying augments Vanishing at 0.25); Fade Back parked (D-232).
 // PT9: Strike and Fade leaves attacks from hiding as they were: nobody rolls twice against the owner in a turn.
 import { describe, expect, it } from 'vitest';
@@ -97,19 +97,19 @@ describe('157 All-50 round 3', () => {
     expect(lost()).toBeCloseTo(base * CONFIG.IRON_RIM_MULT, 9);
   });
 
-  it('Swordsman unlocks with Parry 40 and Medium or Heavy Weapons 40', () => {
+  it('Swordsman unlocks with Parry 80 and Medium or Heavy Weapons 60', () => {
     const run = (medium: number, heavy: number) => {
       const s = makeVillage();
       s.player.core.classes = s.player.core.classes.filter((c) => c.classId !== CL.swordsman);
-      skill(s.player, SK.parry, 40);
+      skill(s.player, SK.parry, 80);
       skill(s.player, SK.melee_medium, medium);
       skill(s.player, SK.melee_heavy, heavy);
       unlockClasses(s);
       return s.player.core.classes.some((c) => c.classId === CL.swordsman);
     };
-    expect(run(40, 0)).toBe(true);
-    expect(run(0, 40)).toBe(true);
-    expect(run(39, 39)).toBe(false);
+    expect(run(60, 0)).toBe(true);
+    expect(run(0, 60)).toBe(true);
+    expect(run(59, 59)).toBe(false);
   });
 
   it('Blade Wall: a heavy weapon parry is never outnumbered either', () => {

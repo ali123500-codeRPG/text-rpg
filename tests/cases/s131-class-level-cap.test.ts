@@ -22,9 +22,9 @@ describe('131 Class level cap', () => {
     const p = s.player, pr = p.progression!;
     expect(CONFIG.CLASS_MAX_LEVEL).toBe(20);
     expect(getLibrary().classes[CL.commoner].name).toBe('Commoner');
-    p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 9 }];
+    p.core.classes = [{ classId: CL.guard, state: 'current', level: 9 }];
     p.core.perks = [];
-    awardXp(s, xpToNext(p), 'test'); // 9 → 10, the Swordsman's top level (tier 1)
+    awardXp(s, xpToNext(p), 'test'); // 9 → 10, the Guard's top level (tier 1)
     expect(p.core.classes[0].level).toBe(10);
     expect(levelTarget(p)).toBeUndefined();
     expect(p.core.classes).toContainEqual({ classId: CL.commoner, state: 'unlocked', level: 0 });
@@ -35,7 +35,7 @@ describe('131 Class level cap', () => {
     expect(pr.xp).toBe(before + banked + 5);
     pr.nextClass = CL.commoner; // the sheet's picker
     spendXp(s);
-    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 10], [CL.commoner, 'current', 3]]);
+    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.guard, 'previous', 10], [CL.commoner, 'current', 3]]);
     expect(pr.xp).toBe(before + 5);
     expect(p.core.perks.filter((x) => x.source === 'class')).toEqual([]);
     p.core.classes[1].level = 4;
@@ -51,7 +51,7 @@ describe('131 Class level cap', () => {
   });
 
   it('a class\'s top level comes from its tier, and the capstone comes at it', () => {
-    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(classMaxLevel)).toEqual([5, 10, 10, 15, 20]);
+    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(classMaxLevel)).toEqual([5, 15, 15, 15, 20]);
     const lib = getLibrary();
     for (const c of Object.values(lib.classes)) for (const id of c.capstone ?? []) expect(lib.perks[id]?.classLevel, id).toEqual({ classId: c.id, level: classMaxLevel(c.id) });
   });
@@ -87,7 +87,7 @@ describe('131 Class level cap', () => {
         { perk: PK.nobody_special, needs: { must: [{ kind: 'race', id: RC.dragon }] } }];
       p.core.skills[SK.dodge] = { raw: dodge, state: 'normal' };
       p.core.perks = [];
-      p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 9 }];
+      p.core.classes = [{ classId: CL.swordsman, state: 'current', level: classMaxLevel(CL.swordsman) - 1 }];
       awardXp(s, xpToNext(p), 'test');
       return { s, p };
     };
@@ -112,6 +112,6 @@ describe('131 Class level cap', () => {
     const lib = getLibrary();
     for (const c of Object.values(lib.classes)) expect(CLASS_TIERS.has(c.tier), c.name).toBe(true);
     const tier = (id: string) => CLASS_TIERS.pos(lib.classes[id].tier);
-    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(tier)).toEqual([0, 1, 1, 2, 5]);
+    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(tier)).toEqual([0, 2, 2, 2, 5]);
   });
 });
