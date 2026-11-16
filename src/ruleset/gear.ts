@@ -19,6 +19,7 @@ import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
 import { skillName } from '../library/skillNames';
 import { AM } from '../library/tableIds';
+import { FISTS } from '../library/data';
 import { accSlot, gripSlot, gripsOf, isHeld, isWorn } from './slots';
 
 export { accSlot, gripSlot, gripsOf, isAccSlot, isGripSlot, isHeld, isWorn } from './slots';
@@ -329,7 +330,7 @@ export function modeIdOf(word: string): string {
 }
 
 /** fallback unarmed mode for a body type with no natural attacks (class punch) */
-export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' };
+export const UNARMED_MODE: AttackMode = { ...FISTS, id: AM.unarmed };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {

@@ -154,6 +154,8 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
+/** a humanoid's fists (FR2: an adult arm reaches about 0.7 m); also the bare-hands mode of a body with no natural attacks (ruleset/gear UNARMED_MODE) */
+export const FISTS: AttackMode = { id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' };
 /** a weapon mode; a typed piece's non-thrown modes take their reach from its gear type (typed below), so they state none */
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'>) => ({ ...m, ...(m.reachM === undefined ? {} : { reach: m.reachM }) });
 /** IR23: gear types. Reach is the blade plus a 0.7 m arm (as the dagger's 1.0 m); a bow's or crossbow's is its effective range
@@ -520,7 +522,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
-    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' },
+    naturalAttacks: [FISTS,
       { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, grips: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
@@ -833,7 +835,7 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('bandit_camp', 'A bandit at the gang\'s camp', ['camp', 'woods'], ['bandit'], ['any'], { post: z('the camp'), seat: SEAT, bed: BED }, ['keep_camp', 'defend_camp_alert', 'wait', 'wait_alert']),
   set('bandit_ambush', 'A bandit lying in wait by a road', ['road', 'woods'], ['bandit'], ['any'], { hide: z('where it hides beside the road'), road: z('the road it rushes onto'), seat: SEAT, bed: BED }, ['ambush_road', 'spring_ambush_alert', 'wait', 'wait_alert']),
   set('companion', "The player's band; not chosen by tags", [], [], [], {}, ['follow', 'follow_alert', 'wait', 'wait_alert']),
-  set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
+  set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['beast'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));
 
 // BR9: a rule names a body type or a race; a block the shape already gives is not repeated on the race

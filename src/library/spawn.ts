@@ -8,7 +8,7 @@ import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { CLASS_TIERS, equipPos, GRANDEUR, LIFE_STAGES, NERVE_LINES, RANKS, type GrandeurKey, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
+import { CLASS_TIERS, equipPos, GRANDEUR, NERVE_LINES, RANKS, type GrandeurKey, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
 import { ageFloor, rollBornDay } from '../ruleset/age';
 import { DAY_MINUTES, now } from '../time';
 import { createRng, textSeed } from '../rng';
@@ -43,6 +43,11 @@ export function fullParts(state: GameState | null, bodyTypeId: string): Record<s
   return Object.fromEntries(bodyType(state, bodyTypeId).parts.map((p) => [p.id, 100]));
 }
 
+/** a new item's pools start full: a shield's, or each pool its armor lists */
+function fillPools(inst: ItemInstance, d: ItemDef): void {
+  if (d.shield) inst.pools = { shield: 100 };
+  if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
+}
 /** equip a loadout the obvious way: weapons/shields into free grips, armor worn. */
 export function equipLoadout(state: GameState | null, items: string[], idPrefix: string): ItemInstance[] {
   const out: ItemInstance[] = [];
@@ -54,8 +59,7 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
     const inst: ItemInstance = { id: `${idPrefix}_${itemId}_${n}` , itemId };
     if (d.slot === 'armor') inst.equippedIn = ['armor'];
     else if ((d.kind === 'weapon' || d.kind === 'shield') && grips.length) inst.equippedIn = [grips.shift()!];
-    if (d.shield) inst.pools = { shield: 100 };
-    if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
+    fillPools(inst, d);
     out.push(inst);
   }
   return out;
@@ -472,9 +476,11 @@ export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.poi
 export const creationCap = (tagged: boolean): number => (tagged ? CONFIG.CREATION_MAX_TAGGED : CONFIG.CREATION_MAX_UNTAGGED);
 /** AG15: the age picker: from the race's youngest age (no children) to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
 export const creationAge = (startId = PLAYER_START) => startDef(startId)?.age ?? CONFIG.CREATION_AGE_DEFAULT;
+/** the stages the age pickers stop at: a random identity before Old (no one starts in old-age decline), the creation picker at Venerable (AG15) */
+const OLD_STAGE: LifeStageKey = 'stage_4', VENERABLE_STAGE: LifeStageKey = 'stage_5';
 export function creationAgeRange(raceId: string = RC.human): { min: number; max: number } | undefined {
   const st = getLibrary().races?.[raceId]?.ageStages;
-  return st ? { min: st[CONFIG.YOUNGEST_STAGE] ?? 0, max: st[LIFE_STAGES.at(5)] ?? 0 } : undefined;
+  return st ? { min: st[CONFIG.YOUNGEST_STAGE] ?? 0, max: st[VENERABLE_STAGE] ?? 0 } : undefined;
 }
 /** CC6 b: a Start with neither a class nor a blessing begins with no class, at level 0 */
 export const classlessStart = (startId = PLAYER_START): boolean => { const s = startDef(startId); return !!s && !s.classId && !s.blessing; };
@@ -541,8 +547,7 @@ export function starterKit(a: Actor): ItemInstance[] {
     if (d === weapon) inst.equippedIn = grips.slice(0, d.grips ?? 1).map(gripSlot);
     if (d === shield) inst.equippedIn = [gripSlot(grips[weapon?.grips ?? (weapon ? 1 : 0)])];
     if (d === armor) inst.equippedIn = ['armor'];
-    if (d.shield) inst.pools = { shield: 100 };
-    if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
+    fillPools(inst, d);
     return inst;
   }).concat({ id: 'player_pack', itemId: IT.pack, equippedIn: ['pack'] }); // CT7: a worn pack holds what they carry
 }
@@ -564,7 +569,7 @@ export function randomIdentity(rng: Rng, raceId?: string): { name: string; prono
   const pronouns = pick(['he', 'she', 'they'] as const);
   const race = raceId ?? (playableRaces().length ? pick(playableRaces()) : PLAYER_RACE); // CC7 a: a random playable race unless one is kept
   const st = getLibrary().races?.[race]?.ageStages;
-  const lo = st?.[CONFIG.YOUNGEST_STAGE], hi = st?.[LIFE_STAGES.at(4)];
+  const lo = st?.[CONFIG.YOUNGEST_STAGE], hi = st?.[OLD_STAGE];
   const type = pick(Object.values(getLibrary().personalityTypes ?? {}));
   return {
     name: pick(pronouns === 'they' ? [...PLAYER_NAMES.he, ...PLAYER_NAMES.she] : PLAYER_NAMES[pronouns]),
