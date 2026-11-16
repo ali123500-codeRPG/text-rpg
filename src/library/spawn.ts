@@ -165,12 +165,14 @@ function presetBands(t: NpcTemplate): Record<string, Band> {
   return out;
 }
 
-/** NG2, NG5, NG8, NG9: a preset's skills: each banded skill at rank anchor × band share × NPC_BAND_MULT, moved by up to
+/** NG2, NG5, NG8, NG9: a preset's skills: each banded skill at rank anchor × band share × NPC_BAND_MULT (× its prefix's
+ * skillMult, NR46: a Dire beast ×1.2), moved by up to
  * ± COPY_SPREAD (seeded: an actor's ID, or none for the preset itself), capped as the player's are (SKILL_CAP, tagged + TAG_CAP_BONUS)
  * below CONFIG.NPC_UNCAPPED_FROM (D-314 c placeholder: Beyond and up skip the cap); then the preset's minimums and class floors. High-band skills are tagged. Resolve comes from the preset (MB30). */
 export function presetSkills(t: NpcTemplate, rng?: Rng): Record<string, SkillEntry> {
   const raw: Record<string, number> = {}, state: Record<string, 'tagged' | 'normal'> = {};
-  const rank = templateRank(t), anchor = rank ? rankRow(rank).anchor * CONFIG.NPC_BAND_MULT : 0;
+  const rank = templateRank(t), mult = (t.prefix ? getLibrary().prefixes?.[t.prefix]?.skillMult : undefined) ?? 1;
+  const anchor = rank ? rankRow(rank).anchor * CONFIG.NPC_BAND_MULT * mult : 0;
   const uncapped = !!rank && rankPos(rank) >= rankPos(CONFIG.NPC_UNCAPPED_FROM);
   for (const [id, b] of Object.entries(presetBands(t)).sort(([x], [y]) => (x < y ? -1 : 1))) {
     state[id] = b === 'high' ? 'tagged' : 'normal';

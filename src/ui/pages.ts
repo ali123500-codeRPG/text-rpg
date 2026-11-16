@@ -7,7 +7,7 @@ import { getLibrary, itemDef } from '../library';
 import { HEALTH_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, THREADBOUND_RANKS } from '../scales';
 import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
-import { rewardName, rewardXp } from '../ruleset/achRewards';
+import { questLevelXp, rewardName } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
 import { ACH_HEAD_NAMES, ACH_TAGS } from '../library/achievementIds';
 import { CONFIG } from '../config';
@@ -508,7 +508,7 @@ export function questsPage(api: GameApi) {
       for (const q of s.quests) { const root = questChain(s, q)[0].id; chains.set(root, [...(chains.get(root) ?? []), q]); }
       const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
         text: q.text, giver: cap(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
-        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${rewardXp(q.level)} XP`, pay: payText(s, q),
+        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${questLevelXp(q.level)} XP`, pay: payText(s, q),
         due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: QUEST_STATE_NAME[q.state] },
         ...(q.unpaid || !isOpen(q) ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(!isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
       return [...chains.values()].map((qs) => {
@@ -547,7 +547,7 @@ export function questsPage(api: GameApi) {
     },
     line: (s) => {
       const done = s.quests.filter((q) => q.state === 'done');
-      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + rewardXp(q.level), 0)} XP from quests`;
+      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + questLevelXp(q.level), 0)} XP from quests`;
     },
   });
 }

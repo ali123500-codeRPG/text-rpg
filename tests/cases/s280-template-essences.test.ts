@@ -18,10 +18,10 @@ describe('template essences', () => {
   it('EN1, EN5, EN6: each of the five templates carries the rows its stats fit', () => {
     makeVillage();
     expect(ids(TP.slime)).toEqual([ES.gel_patience]);
-    expect(ids(TP.guard)).toEqual([ES.gate_habit]); // a shield and Block
-    expect(ids(TP.trader)).toEqual([ES.haggler_ear]);
-    expect(ids(TP.thief)).toEqual([ES.street_instinct]);
-    expect(ids(TP.patron)).toEqual([ES.tavern_brawler]);
+    expect(ids(TP.guard)).toEqual([ES.gate_habit, ES.lookout_eyes]); // a shield and Block
+    expect(ids(TP.trader)).toEqual([ES.haggler_ear, ES.lookout_eyes]); // NE3: every person fits Lookout's Eyes
+    expect(ids(TP.thief)).toEqual([ES.street_instinct, ES.lookout_eyes]);
+    expect(ids(TP.patron)).toEqual([ES.tavern_brawler, ES.lookout_eyes]);
     for (const t of Object.values(getLibrary().templates)) for (const x of templateEssences(t)) expect(x.fit ?? 1).toBeGreaterThanOrEqual(CONFIG.ESSENCE_FIT_SHARE);
   });
 

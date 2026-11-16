@@ -2,6 +2,7 @@ import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
 import type { Past100Key, EffortKey, FatigueLevel, FragilityKey, GradeLevel, GrandeurKey, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
+import { ES } from './library/essenceIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
 // Read CONFIG at call time (tests may change a value and call resetConfig()).
@@ -663,6 +664,13 @@ const DEFAULTS = {
   ESSENCE_FREE_CHANGES: 3,
   /** EB1: an ending's second offer comes from one of this many bested people with the highest power (placeholder) */
   ESSENCE_TOP_BESTED: 3,
+  /** EG9 a, NE3: every essence row's pick weight. Of the rows an NPC carries, one is picked with chance weight ÷ the sum of
+   * theirs (a guard carrying Gate-Warden's Habit 1 and Lookout's Eyes 0.25 gives Lookout's Eyes 1 time in 5). Every row has
+   * one (test s341); placeholders but Lookout's Eyes, which fits every person so is picked rarely */
+  ESSENCE_PICK_WEIGHT: {
+    [ES.gel_patience]: 1, [ES.gate_habit]: 1, [ES.street_instinct]: 1, [ES.hard_won_habit]: 1, [ES.haggler_ear]: 1, [ES.tavern_brawler]: 1,
+    [ES.fang_nose]: 1, [ES.horn_hide]: 1, [ES.claw_pounce]: 1, [ES.lashing_tail]: 1, [ES.lookout_eyes]: 0.25,
+  } as Record<string, number>,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18/AT31: a chase is lost when no pursuer has seen or heard the player for this many game seconds (placeholder) */
@@ -718,14 +726,15 @@ const DEFAULTS = {
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
   /** NR21 a: rank weights (RANKS keys) for rostered people. crowd: a crowd person the player picks out (made a Commoner then);
    * face: services, traders, the watch and people in need; lead: leaders and rivals, one step up; threat: by settlement size
-   * (hamlet and village up to Elite, town up to Paragon); seat: the seat of the Great's lowest rank by size (TL24 minimums), one
+   * (hamlet and village up to Elite, town up to Paragon, city and court up to Beyond); seat: the seat of the Great's lowest rank
+   * by size (TL24 minimums: village Veteran or Elite, town Paragon, city Beyond, court Mythic), one
    * step higher on SEAT_STEP_UP_PCT. Roads by danger and the wild use their own rows. Transcendent only by region brief. */
   ROSTER_RANKS: {
     crowd: { rank_1: 70, rank_2: 30 },
     face: { rank_2: 50, rank_3: 40, rank_4: 10 },
     lead: { rank_3: 50, rank_4: 40, rank_5: 10 },
-    threat: { hamlet: { rank_2: 40, rank_3: 40, rank_4: 20 }, village: { rank_2: 40, rank_3: 40, rank_4: 20 }, town: { rank_2: 20, rank_3: 40, rank_4: 30, rank_5: 10 } },
-    seat: { hamlet: { rank_3: 50, rank_4: 50 }, village: { rank_3: 50, rank_4: 50 }, town: { rank_5: 100 } },
+    threat: { hamlet: { rank_2: 40, rank_3: 40, rank_4: 20 }, village: { rank_2: 40, rank_3: 40, rank_4: 20 }, town: { rank_2: 20, rank_3: 40, rank_4: 30, rank_5: 10 }, city: { rank_3: 20, rank_4: 40, rank_5: 30, rank_6: 10 }, court: { rank_3: 20, rank_4: 40, rank_5: 30, rank_6: 10 } },
+    seat: { hamlet: { rank_3: 50, rank_4: 50 }, village: { rank_3: 50, rank_4: 50 }, town: { rank_5: 100 }, city: { rank_6: 100 }, court: { rank_7: 100 } },
     road: { safe: { rank_2: 60, rank_3: 40 }, quiet: { rank_2: 60, rank_3: 40 }, wild: { rank_2: 30, rank_3: 50, rank_4: 20 }, dangerous: { rank_3: 50, rank_4: 40, rank_5: 10 } },
     wild: { rank_2: 30, rank_3: 50, rank_4: 20 },
   } as { crowd: Record<string, number>; face: Record<string, number>; lead: Record<string, number>; threat: Record<string, Record<string, number>>; seat: Record<string, Record<string, number>>;
@@ -899,6 +908,8 @@ const DEFAULTS = {
   REWARD_XP_CURVE: { base: 50, shift: 2, div: 2, power: 3 },
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
+  /** a quest pays the XP of the achievement reward level this many places above its own (quest 0 = achievement II) */
+  QUEST_XP_LEVELS_UP: 2,
   GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item
   // ---- Part 2 engine ----
   LIE_PLAIN_GAP: 2, // BF8: a lie seen through by this many tiers or more is plainly a lie; a narrower win gives the hint

@@ -1,5 +1,6 @@
 // Part 3: total HP, health track, body parts, roles, hit table.
 import { RL } from '../library/tableIds';
+import { D100_MEAN } from '../rng';
 import type { Actor, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
@@ -104,7 +105,7 @@ function rolePenalty(a: Actor, raw: PartState): number {
 }
 
 /** PW1 b: a wound's % comes off the average roll, the d100's average (50.5) + SKILL_WEIGHT × the effective skill */
-export const averageRoll = (skill: number): number => 50.5 + CONFIG.SKILL_WEIGHT * skill;
+export const averageRoll = (skill: number): number => D100_MEAN + CONFIG.SKILL_WEIGHT * skill;
 /** PW1 b, PW5 a: woundsMods' % values as margin points for a roll at this effective skill, each keeping its % to show */
 export const woundsOnRoll = (mods: Mod[], skill: number): Mod[] =>
   mods.map((m) => ({ ...m, pct: m.value, value: (m.value / 100) * averageRoll(skill) }));

@@ -64,7 +64,7 @@ export type NpcRoleDef = { id: LibraryRef; name: string; kind: 'combat' | 'civil
   /** NG10: the gear classes (GC…) its work uses; spawn picks the best item of each its skill meets, up to its theme's wealth */
   gear?: readonly LibraryRef[] };
 /** NR37: a beast prefix: its name in a label (a dire wolf), the rank steps it adds to the sheet, and its health multiplier */
-export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number };
+export type PrefixDef = { id: LibraryRef; name: string; text: string; rankStep: number; hpMult: number; /** NR46: every banded skill × this, after the rank step */ skillMult?: number };
 /** NR17: a kind of hook: what the person gives play, who can fill it (roles, or a group), and its rank kind (CONFIG.ROSTER_RANKS) */
 export type HookKindDef = { id: LibraryRef; name: string; gives: string; roles?: readonly LibraryRef[]; groups?: readonly LibraryRef[]; theme?: LibraryRef; class?: LibraryRef;
   rank: 'face' | 'lead' | 'threat' | 'seat'; goals?: true };
@@ -90,7 +90,6 @@ export type EssenceDef = {
   id: string; name: string;
   /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list */
   from: { race?: string; bodyType?: string; deed?: true; echo?: true };
-  weight: number;
   skills: { skill: string; weight: number }[];
   trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
   story: string;
@@ -203,7 +202,7 @@ export type Library = {
   hookKinds?: Record<string, HookKindDef>; // NR17: HK…, why a real person stands in a place
   groups?: Record<string, GroupDef>; // NR27 (D-308): GP…, cast as one entry
   /** NR17: the hooks each settlement size holds; code rolls them per site, the World builder fills them */
-  rosters?: Record<'hamlet' | 'village' | 'town', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
+  rosters?: Record<'hamlet' | 'village' | 'town' | 'city' | 'court', { count: [number, number]; must: LibraryRef[]; pool: LibraryRef[]; theme: LibraryRef }>;
   /** NR18: who travels a road, by its danger: how many groups a stretch holds, and from which rows */
   roadPeople?: Record<string, { count: [number, number]; rows: MeetRow[] }>;
   wildPeople?: Record<string, MeetRow[]>; // NR19: by land cover (LC…), who can be met for danger or gain
@@ -304,6 +303,8 @@ export type PerkDef = {
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
+  /** the skills a ladder perk's `numbers` work with (Keen Edge: every melee weapon skill); none = the perk's own skill */
+  numbersFor?: string[];
   /** SH1/SH4: 120 perks: a share of the ladder skill's true skill (read without shares) added as true skill, to the ladder skill
    * itself (shareOwn) and to it and every skill sharing a group with it (shareGroup); several shares on one skill stack (SH7 b) */
   shareOwn?: number; shareGroup?: number;

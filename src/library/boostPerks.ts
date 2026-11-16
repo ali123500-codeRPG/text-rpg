@@ -18,23 +18,26 @@ type Row = {
   milestone?: 40 | 80 | 120;
   /** display name of the skill, and its group key: every skill of that group, itself included, gets +1 */
   group: SkillGroup;
-  extra: { story: string; rule: string; numbers?: BoostNumbers; trueSkillTo?: Record<string, number> };
+  extra: { story: string; rule: string; numbers?: BoostNumbers; numbersFor?: string[]; trueSkillTo?: Record<string, number> };
 };
+/** the weapon skills (Arms) and the ranged weapon skills: perks whose numbers work with weapons in general */
+const MELEE_WEAPONS = [SK.melee_light, SK.melee_medium, SK.melee_heavy], RANGED_WEAPONS = [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy];
+const skillList = (ids: string[]) => ids.map(skillName).join(', ').replace(/, ([^,]*)$/, ' or $1');
 
 const ROWS: Row[] = [
   // P1: option b (R5), so the aim half stays with Precise, the banked higher perk
   { id: PK.keen_edge, ref: 'P1', skill: SK.melee_light, group: GR.melee, name: 'Keen Edge', effect: 'attack',
-    extra: { story: 'Your blade has learned where flesh is softest: +10 to hit with light weapons.', rule: `+10 on attack rolls with skill ${skillName(SK.melee_light)}.`, numbers: { hitAdd: 10 } } },
+    extra: { story: 'Your blade has learned where flesh is softest: +10 to hit with any weapon.', rule: `+10 on attack rolls with ${skillList(MELEE_WEAPONS)}.`, numbers: { hitAdd: 10 }, numbersFor: MELEE_WEAPONS } },
   { id: PK.guard_drill, ref: 'P2', skill: SK.melee_medium, group: GR.melee, name: 'Guard Drill', effect: 'defense',
     extra: { story: 'Every guard you hold makes the next one harder to break: +10 Parry.', rule: `+10 true skill in ${skillName(SK.parry)}.`, trueSkillTo: { [SK.parry]: 10 } } },
   { id: PK.heavy_hand, ref: 'P3', skill: SK.melee_heavy, group: GR.melee, name: 'Heavy Hand', effect: 'attack',
-    extra: { story: 'Armor dents, bones give: your heavy weapons hit 20% harder.', rule: `Damage of an attack with skill ${skillName(SK.melee_heavy)} is ×1.2, before armor.`, numbers: { damageMult: 1.2 } } },
+    extra: { story: 'Armor dents, bones give: your weapons hit 20% harder.', rule: `Damage of an attack with ${skillList(MELEE_WEAPONS)} is ×1.2, before armor.`, numbers: { damageMult: 1.2 }, numbersFor: MELEE_WEAPONS } },
   { id: PK.sharp_eyes, ref: 'P4', skill: SK.ranged_light, group: GR.ranged, name: 'Sharp Eyes', effect: 'senses',
     extra: { story: `Nothing escapes the archer's eye: +10 ${skillName(SK.eyesight)}.`, rule: `+10 true skill in ${skillName(SK.eyesight)}.`, trueSkillTo: { [SK.eyesight]: 10 } } },
   { id: PK.steady_draw, ref: 'P5', skill: SK.ranged_medium, group: GR.ranged, name: 'Steady Draw', effect: 'attack',
-    extra: { story: 'Steady hands, a heavier bite: +5 to hit with medium ranged weapons, and they hit 10% harder.', rule: `+5 on attack rolls with skill ${skillName(SK.ranged_medium)}, and its damage is ×1.1, before armor.`, numbers: { hitAdd: 5, damageMult: 1.1 } } },
+    extra: { story: 'Steady hands, a heavier bite: +5 to hit with any ranged weapon, and it hits 10% harder.', rule: `+5 on attack rolls with ${skillList(RANGED_WEAPONS)}, and their damage is ×1.1, before armor.`, numbers: { hitAdd: 5, damageMult: 1.1 }, numbersFor: RANGED_WEAPONS } },
   { id: PK.armor_piercer, ref: 'P6', skill: SK.ranged_heavy, group: GR.ranged, name: 'Armor Piercer', effect: 'attack',
-    extra: { story: 'Steel plate is just a suggestion to your bolts: it stops 2 less of each hit.', rule: `On a hit with skill ${skillName(SK.ranged_heavy)}, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).`, numbers: { armorPierce: 2 } } },
+    extra: { story: 'Steel plate is just a suggestion to your arrows and bolts: it stops 2 less of each hit.', rule: `On a hit with ${skillList(RANGED_WEAPONS)}, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).`, numbers: { armorPierce: 2 }, numbersFor: RANGED_WEAPONS } },
   { id: PK.street_fighter, ref: 'P7', skill: SK.unarmed_strike, group: GR.melee, name: 'Street Fighter', effect: 'attack',
     extra: { story: 'Fists taught you that anything in reach is a weapon: +10 Improvisation.', rule: `+10 true skill in ${skillName(SK.unarmed_improvised)}.`, trueSkillTo: { [SK.unarmed_improvised]: 10 } } },
   { id: PK.iron_grip, ref: 'P8', skill: SK.unarmed_grapple, group: GR.melee, name: 'Iron Grip', effect: 'attack',
@@ -76,7 +79,7 @@ export const BOOST_PERKS: PerkWriteup[] = ROWS.map((r) => ({
   id: r.id, ref: r.ref, name: r.name, skill: r.skill, place: '40',
   ladder: { skill: r.skill, milestone: r.milestone ?? 40 }, effect: r.effect, functionBoost: 1,
   ...(r.milestone === 120 ? { shareOwn: CONFIG.HIGH_PERK_SHARE, shareGroup: CONFIG.HIGH_PERK_SPREAD } : { trueSkill: 5 }),
-  ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
+  ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.numbersFor ? { numbersFor: r.extra.numbersFor } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
   story: `${own(r).short}. ${r.extra.story}`,
   rules: {
     kind: 'Always on', trigger: 'Always.', conditions: [],

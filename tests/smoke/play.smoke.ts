@@ -25,7 +25,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => { await browser?.close(); });
 
-beforeEach(async () => {
+beforeEach(async ({ task }) => {
   page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -39,6 +39,7 @@ beforeEach(async () => {
     }
   });
   await page.goto(url);
+  if (task.name.startsWith('creation:')) return; // stays on the creation screen
   await page.getByRole('button', { name: 'Begin the story' }).click();
   await page.getByText(/^Turn 0/).waitFor();
 });
@@ -53,6 +54,20 @@ const nav = (name: string) => page.locator('nav').getByText(name, { exact: true 
 describe('play page smoke (TQ7)', () => {
   it('loads, creates a character and shows the opening', async () => {
     await page.getByText(NARRATION).first().waitFor(); // the opening, narrated
+    expect(errors).toEqual([]);
+  });
+
+  it('creation: BG-264, a race change (the race buttons or Random) keeps the skill points as set', async () => {
+    const race = (n: string) => page.getByRole('group', { name: 'Race' }).getByRole('button', { name: n });
+    const points = () => page.locator('.row[data-k]').evaluateAll((rs) => Object.fromEntries(rs.map((r) => [(r as HTMLElement).dataset.k, r.querySelector('.val')!.textContent])));
+    await race('Human').click();
+    await page.getByRole('button', { name: 'Lower Parry' }).click();
+    await page.getByRole('button', { name: 'Raise Dodge' }).click();
+    const set = await points();
+    await race('Elf').click();
+    expect(await race('Elf').getAttribute('aria-pressed')).toBe('true');
+    expect(await points()).toEqual(set);
+    for (let i = 0; i < 6; i++) { await page.getByRole('button', { name: 'Random' }).click(); expect(await points()).toEqual(set); }
     expect(errors).toEqual([]);
   });
 

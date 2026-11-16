@@ -4,7 +4,8 @@
 // its High-band skills (levels up to Paragon from the training simulation); NR40 a: times its grandeur.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { composeError, composeTemplate, levelAtSkill, npcGrandeur, spawnNpc, templateLevel } from '../../src/library/spawn';
+import { composeError, composeTemplate, levelAtSkill, npcGrandeur, presetSkills, spawnNpc, templateLevel } from '../../src/library/spawn';
+import { SK } from '../../src/library/skillIds';
 import { actorLevel } from '../../src/engine/xp';
 import { siteRoster } from '../../src/land/roster';
 import { getLibrary } from '../../src/library';
@@ -35,6 +36,16 @@ describe('333 NPC roles, fourth round', () => {
     const before = totalHp(s, a);
     a.core.prefix = PF.dire;
     expect(totalHp(s, a)).toBeCloseTo(before * getLibrary().prefixes![PF.dire].hpMult);
+  });
+
+  it('NR46 b: a Dire beast has ×1.2 on every banded skill after the rank step, and its level follows', () => {
+    expect(getLibrary().prefixes![PF.dire].skillMult).toBe(1.2);
+    const veteran = composeTemplate({ ...wolf, rank: 'rank_3' }, 'a wolf'), dire = composeTemplate({ ...wolf, prefix: PF.dire }, 'a dire wolf');
+    const plain = presetSkills(veteran), fierce = presetSkills(dire);
+    const banded = Object.keys(plain).filter((id) => id !== SK.resolve && plain[id].raw > 0 && !(id in (veteran.minimums ?? {})));
+    expect(banded.length).toBeGreaterThan(0);
+    for (const id of banded) expect(Math.abs(fierce[id].raw - plain[id].raw * 1.2)).toBeLessThanOrEqual(1);
+    expect(templateLevel(dire)).toBeGreaterThan(templateLevel(veteran));
   });
 
   it('NR38: only beasts carry a prefix; an unknown prefix is refused', () => {

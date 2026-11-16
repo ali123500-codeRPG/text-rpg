@@ -8,7 +8,7 @@ import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
 import { UNIQUES } from './uniques';
-import type { ArmorWeightKey, GrandeurKey, LifeStageKey } from '../scales';
+import type { ArmorWeightKey, GrandeurKey, LifeStageKey, RankKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
 
@@ -699,6 +699,14 @@ const meet = (group: string, weight: number, when?: 'day' | 'night'): MeetRow =>
  * minimums are hand-set floors the story needs; class floors are added in code. Rank floors, Keen Ear for patrols (NG13),
  * milestone perks (NG11), rank traits (NG12) and personality from the layers (NG14) are the generator's; personality here
  * only pins what differs from the layers. */
+/** named presets from race, role, theme and rank, with the composed defaults for the role's kind (as composeTemplate);
+ * people are rolled (each one its own person), beasts are copies */
+function presets(rows: [string, string, string, string, RankKey, string, Partial<NpcTemplate>?][]): Record<string, NpcTemplate> {
+  return Object.fromEntries(rows.map(([id, raceId, roleId, themeId, rank, label, extra]) => {
+    const d = CONFIG.COMPOSED_NPC[NPC_ROLES[roleId].kind];
+    return [id, { id, raceId, generation: NPC_ROLES[roleId].kind === 'beast' ? 'copy' : 'rolled', minimums: {}, roleId, themeId, rank, resolve: d.resolve, control: d.control, chase: d.chase, label, ...extra }];
+  }));
+}
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.slam]: 30, [SK.scent]: 50 }, // AB19 a: slimes smell, not feel
@@ -727,6 +735,24 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, roleId: RO.worker, themeId: TH.village_folk, rank: 'rank_1',
     resolve: 30, personality: { values: [VL.pleasure] }, control: 'code', label: 'a tavern patron', chase: 'post',
   },
+  // the people and beasts the rosters and groups cast (NR17-NR20, NR27), named so the World builder and the catalog have
+  // them; the rank is the one their roster row rolls most often, and Resolve, control and chase are the composed defaults
+  ...presets([
+    [TP.hunter, RC.human, RO.hunter, TH.village_folk, 'rank_2', 'a hunter'], // a guide, or a poacher (GP11)
+    [TP.healer, RC.human, RO.healer, TH.village_folk, 'rank_2', 'a healer'], // the service hook that tends wounds (HK2)
+    [TP.headman, RC.human, RO.leader, TH.village_folk, 'rank_3', 'a village headman'], // the leader hook: work or a quest (HK1)
+    [TP.knight, RC.human, RO.knight, TH.lords_household, 'rank_4', 'a knight', { classId: CL.knight_trainee }], // a lord's sworn sword (NR36: a Knight Trainee short of the full Knight)
+    [TP.bandit, RC.human, RO.skirmisher, TH.road_bandits, 'rank_2', 'a bandit'], // GP5 follower
+    [TP.bandit_chief, RC.human, RO.brute, TH.road_bandits, 'rank_3', 'a bandit chief'], // GP5 leader, one step up
+    [TP.watch_sergeant, RC.human, RO.soldier, TH.town_watch, 'rank_3', 'a watch sergeant'], // GP6 leader, one step up
+    [TP.pedlar, RC.human, RO.talker, TH.travellers, 'rank_2', 'a pedlar', { classId: CL.trader }], // GP1: goods on the road
+    [TP.hired_guard, RC.human, RO.soldier, TH.travellers, 'rank_2', 'a hired guard'], // GP3 follower
+    [TP.wolf, RC.wolf, RO.beast, TH.wild_beasts, 'rank_2', 'a wolf'], // GP8
+    [TP.boar, RC.boar, RO.beast, TH.wild_beasts, 'rank_3', 'a wild boar'], // GP9
+    [TP.bear, RC.bear, RO.beast, TH.wild_beasts, 'rank_4', 'a bear'], // GP10
+    [TP.dog, RC.dog, RO.beast, TH.wild_beasts, 'rank_1', 'a dog'], // GP12: a dog at the fold
+    [TP.dire_wolf, RC.wolf, RO.beast, TH.wild_beasts, 'rank_3', 'a dire wolf', { prefix: PF.dire }], // NR37: a wolf one rank up, half again the health
+  ]),
 };
 
 const act = (id: string, look: string, attention: ActivityDef['attention'], noise: ActivityDef['noise'], visibility: ActivityDef['visibility']): ActivityDef =>
@@ -942,18 +968,31 @@ export function prototypeLibrary(): Library {
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: never numbers. NM2: an essence is a small foreign addition
     // that sits on someone's Thread, never a strand of it, so stories say it came with you or sits beside you, never that it knots in.
     essences: {
-      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
+      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, skills: [{ skill: SK.slam, weight: 2 }, { skill: SK.scent, weight: 1 }], // EN5: slimes have no Endurance; AB19: Scent, not Tremor
         story: 'The slime\'s slow patience comes with you and settles in your gut like a swallowed stone. Who passed by reaches you as a smell before your eyes find them, and your body starts to feel like the weapon.' },
-      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      // NE2 a: people rows come from the humanoid body type, so elves carry them as humans do (a row for one race can come later, D-229)
+      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if you had brought someone else\'s long watches home with you.' },
-      [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
+      [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
       // EN6: placeholder rows so the barkeep and the tavern patron each carry one
-      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'A haggler\'s ear sits beside your own now. Prices start to sound like opening moves, and you hear the give in a seller\'s voice before they know it is there.' },
-      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
+      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { bodyType: BT.humanoid }, trait: PK.fists_do_the_talking, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
         story: 'Someone\'s long nights of tavern brawls came along with you. Your fists hang easier at your sides, and so do your words: half a fight is talking your way into it, or out.' },
-      [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
+      // NE3 a: watchers' and hunters' only row; every person has some Eyesight and Earshot, so it fits everyone, picked rarely (CONFIG.ESSENCE_PICK_WEIGHT)
+      [ES.lookout_eyes]: { id: ES.lookout_eyes, name: 'Lookout\'s Eyes', from: { bodyType: BT.humanoid }, skills: [{ skill: SK.eyesight, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+        story: 'Someone\'s long hours on a wall or in a hide came along with you. Your eyes go to the treeline and the far end of the road on their own, and a twig snapping behind you turns your head before you think to.' },
+      // NE1 a: beast rows name no race or body type, so the fit rule hands each beast the rows of the natural weapons it has
+      [ES.fang_nose]: { id: ES.fang_nose, name: 'Fang and Nose', from: {}, skills: [{ skill: SK.bite, weight: 2 }, { skill: SK.scent, weight: 1 }],
+        story: 'A hunting animal\'s hunger sits beside your own now. Your jaw sets hard when a fight starts, and the air carries who passed by and how afraid they were.' },
+      [ES.horn_hide]: { id: ES.horn_hide, name: 'Horn and Hide', from: {}, skills: [{ skill: SK.hooves_horns, weight: 2 }, { skill: SK.hide, weight: 1 }],
+        story: 'Something of a charging beast came with you: the urge to lower your head and drive straight through, and a skin that shrugs off what should have cut it.' },
+      [ES.claw_pounce]: { id: ES.claw_pounce, name: 'Claw and Pounce', from: {}, skills: [{ skill: SK.claws, weight: 2 }, { skill: SK.dodge, weight: 1 }],
+        story: 'A great cat\'s patience settles in your shoulders. Your weight shifts onto your toes before a blow lands, and your hands curl as if they remember raking.' },
+      [ES.lashing_tail]: { id: ES.lashing_tail, name: 'Lashing Tail', from: {}, skills: [{ skill: SK.tail, weight: 2 }, { skill: SK.hide, weight: 1 }],
+        story: 'A heavy, scaled thing\'s way of fighting came along with you: turning side-on, sweeping wide at whatever comes close, and taking the hits on a hide that barely feels them.' },
+      [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, skills: [],
         story: 'What you did again and again here has grown on you like a callus. Something in you will remember it.' },
     },
     roles: { [RL.sense]: { name: 'sense', shared: true }, [RL.grip]: { name: 'grip', shared: false }, [RL.move]: { name: 'move', shared: true }, [RL.fly]: { name: 'fly', shared: true }, [RL.strike]: { name: 'strike', shared: false }, [RL.speech]: { name: 'speech', shared: true } },
@@ -1307,7 +1346,7 @@ export function prototypeLibrary(): Library {
     themes: THEMES,
     // NR37 a: the first beast prefix; later ones (mana, demons) add traits on top. A creature carries at most one
     // NR37 a: Dire's third part, one body size larger, waits for a body-size rule (D-354)
-    prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health.', rankStep: 1, hpMult: 1.5 } },
+    prefixes: { [PF.dire]: { id: PF.dire, name: 'Dire', text: 'A bigger, fiercer kind of the same beast: one rank up, half again the health, a fifth more skill.', rankStep: 1, hpMult: 1.5, skillMult: 1.2 } },
     hookKinds: HOOK_KINDS,
     groups: GROUPS,
     // NR17 a: hooks by settlement size (the crowd is text); must = always there, the rest rolled from pool without repeats first
@@ -1315,6 +1354,10 @@ export function prototypeLibrary(): Library {
       hamlet: { count: [1, 2], must: [], pool: [HK.face, HK.threat], theme: TH.village_folk },
       village: { count: [3, 5], must: [HK.leader, HK.service, HK.seat], pool: [HK.face, HK.face, HK.threat, HK.rival], theme: TH.village_folk },
       town: { count: [6, 10], must: [HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival], pool: [HK.service, HK.face, HK.face, HK.trader, HK.threat], theme: TH.town_folk },
+      // TL24 / NR21 a: a city holds a Beyond and a realm's court a Mythic. The land draws no cities or courts yet (a region
+      // holds one town at most); these rows are ready for when a region brief or a bigger region places one
+      city: { count: [10, 16], must: [HK.leader, HK.service, HK.seat, HK.trader, HK.watch, HK.rival, HK.threat], pool: [HK.service, HK.face, HK.face, HK.face, HK.trader, HK.rival, HK.threat], theme: TH.town_folk },
+      court: { count: [5, 8], must: [HK.leader, HK.seat, HK.watch, HK.rival], pool: [HK.rival, HK.face, HK.face, HK.service, HK.trader], theme: TH.lords_household },
     },
     // NR18 a: who travels a road, by danger (only who brings gain or danger); code rolls a stretch when the land is drawn
     roadPeople: {

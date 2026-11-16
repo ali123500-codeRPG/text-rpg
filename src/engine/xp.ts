@@ -34,8 +34,6 @@ export function xpFill(a: Actor): { level: number; xp: number; need: number; pct
   return { level: charLevel(a), xp, need, pct: need > 0 ? Math.max(0, Math.min(100, (xp / need) * 100)) : 100 };
 }
 export { levelCost, perkPointAt, perkPointsUpTo, xpToReach } from '../ruleset/levels';
-/** Part 1 §6 Total: raw skills, Tagged excluded. */
-export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
 /** Award XP to the player with a trail entry, then level up as often as the XP allows (X9: into the chosen class). */
 export function awardXp(state: GameState, amount: number, source: string, why?: DefeatWhy): void {

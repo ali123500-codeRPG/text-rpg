@@ -2,6 +2,7 @@
 // each type. Values are read from CONFIG and the library, so they follow the code. tests/unit/mod-sources.test.ts
 // checks that each place in src that makes a typed modifier has exactly one entry here (same file, same type).
 import { modeName } from './gear';
+import { D100_MEAN } from '../rng';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
 import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
@@ -40,7 +41,7 @@ export type ModSource = {
 const sg = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}`;
 const list = (o: Record<string, number>, skipZero = true) => Object.entries(o).filter(([, v]) => !skipZero || v).map(([k, v]) => `${k.replace(/_/g, ' ')} ${sg(v)}`).join(' · ');
 /** PW5 a: wound penalties are % of the average roll (woundsOnRoll, src/ruleset/body.ts) */
-const OF_AVG = ` of the average roll (50.5 + ${CONFIG.SKILL_WEIGHT} × effective skill)`;
+const OF_AVG = ` of the average roll (${D100_MEAN} + ${CONFIG.SKILL_WEIGHT} × effective skill)`;
 const pctList = (o: Record<string, number>) => `${Object.entries(o).map(([k, v]) => `${k} ${sg(v)}%`).join(' · ')}${OF_AVG}`;
 const W = () => CONFIG.SKILL_WEIGHT;
 const perk = (lib: Library, id: string): ModFeed[] => (lib.perks[id] ? [{ table: 'perks', id, name: lib.perks[id].name, value: '' }] : []);
@@ -71,9 +72,9 @@ export const MOD_SOURCES: ModSource[] = [
       .map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: `${sg(rewardOf(a, a.defenseRoll ? 'defenseRoll' : 'spotRoll'))} ${a.defenseRoll ? 'defense' : 'spotting'} rolls` })) },
   // roll_perk
   { type: 'roll_perk', roll: 'skill', source: `${MILESTONES.filter((_, i) => i % 2 === 1).join('/')} perk numbers`, at: 'src/ruleset/perks.ts',
-    when: 'Rolls of the perk\'s skill: rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',
+    when: 'Rolls of the perk\'s skill (or the skills it names): rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',
     feeds: (lib) => Object.values(lib.perks).filter((d) => d.ladder && (d.numbers?.rollAdd || d.numbers?.hitAdd)).map((d) => ({ table: 'perks', id: d.id, name: d.name,
-      value: [d.numbers?.rollAdd ? `${sg(d.numbers.rollAdd)} every ${skillName(d.ladder!.skill)} roll` : '', d.numbers?.hitAdd ? `${sg(d.numbers.hitAdd)} ${skillName(d.ladder!.skill)} attack rolls` : ''].filter(Boolean).join(' · ') })) },
+      value: ((on) => [d.numbers?.rollAdd ? `${sg(d.numbers.rollAdd)} every ${on} roll` : '', d.numbers?.hitAdd ? `${sg(d.numbers.hitAdd)} ${on} attack rolls` : ''].filter(Boolean).join(' · '))((d.numbersFor ?? [d.ladder!.skill]).map(skillName).join(' / ')) })) },
   { type: 'roll_perk', roll: 'skill', source: 'Steady Guard', at: 'src/ruleset/index.ts', when: 'Parry rolls made with a medium melee weapon.',
     value: sg(W() * CONFIG.STEADY_GUARD), feeds: (lib) => perk(lib, PK.steady_guard) },
   { type: 'roll_perk', roll: 'skill', source: 'Bare-Handed Guard', at: 'src/ruleset/index.ts', when: 'Dodge rolls while the owner holds no weapon.',
