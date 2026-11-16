@@ -33,7 +33,7 @@ export const ACH = {
   held_line_1: 'AC61', held_line_10: 'AC62',
   quests_1: 'AC63', quests_5: 'AC64', quests_10: 'AC65', quests_25: 'AC66', quests_50: 'AC67', quests_abandoned_1: 'AC220', quests_abandoned_5: 'AC68',
   clean_1: 'AC204', clean_10: 'AC69', clean_100: 'AC70', clean_500: 'AC71', holds_1: 'AC217', unseen_1: 'AC218', unseen_10: 'AC72', unseen_50: 'AC73', unseen_250: 'AC74',
-  vanished_1: 'AC219', vanished_5: 'AC75', vanished_25: 'AC76', vanished_50: 'AC242', spotted_10: 'AC77', spotted_100: 'AC78', spotted_fn_1: 'AC79', spotted_fn_10: 'AC80',
+  vanished_1: 'AC219', vanished_5: 'AC75', vanished_25: 'AC76', vanished_50: 'AC242', spotted_10: 'AC77', spotted_100: 'AC78', spotted_250: 'AC243', spotted_fn_1: 'AC79', spotted_fn_10: 'AC80',
   spotted_fn_100: 'AC81', speech_1: 'AC216', speech_10: 'AC82', speech_100: 'AC83', speech_250: 'AC84', talked_down_1: 'AC85', talked_down_10: 'AC86',
   talked_down_50: 'AC87', outmatched_1: 'AC88', outmatched_10: 'AC89', outmatched_fn_1: 'AC90', outmatched_fn_10: 'AC91', enemy_friend_1: 'AC92',
   enemy_friend_5: 'AC93', no_blow_1: 'AC94', no_blow_10: 'AC95', bought_100: 'AC96', bought_1000: 'AC97', bought_10000: 'AC98',
