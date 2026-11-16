@@ -4,7 +4,7 @@ import type { Actor, AugmentKind, AugmentWhen, AttackMode, DefenseKind, GameStat
 import { zoneLight } from '../time';
 import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
-import { actorBody, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
 import type { PayoffCount } from '../library/perkThemes';
@@ -347,6 +347,15 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
 /** Part 5 §5 default mode: first held mode whose reach covers `distance` links, else the unarmed mode. */
 export function defaultMode(state: GameState, actor: Actor, distance: number): { itemId: string; mode: AttackMode } | null {
   return usableModes(state, actor).find((m) => m.mode.reach >= distance) ?? null;
+}
+
+/** BG-258: the skill an attack uses when nothing names one (Fallback behavior, ambush): the held weapon's first, else the NPC
+ *  template's fallback, else the body type's (fists for a human) */
+export function fallbackAttackSkill(state: GameState, actor: Actor): string {
+  const held = usableModes(state, actor).find((m) => m.itemId !== 'unarmed' && !m.itemId.startsWith('natural:'));
+  if (held) return modeSkill(held.mode);
+  const tpl = actor.core.templateId ? npcTemplate(state, actor.core.templateId) : undefined;
+  return tpl?.fallback?.attackSkill ?? actorBody(state, actor).fallback.attackSkill;
 }
 
 /** the mode an attack request names (item instance, 'natural:<id>' or 'unarmed') */

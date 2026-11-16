@@ -38,7 +38,7 @@ import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
 import { blindSpotNow } from '../engine/perkMarks';
-import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
+import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
 import { beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
 import { skillName } from '../library/skillNames';
@@ -534,8 +534,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const a = need(state, actorId);
   if (!a.mind) throw new Error(`actor ${actorId} has no mind`);
   const m = a.mind;
-  const ct = actorBody(state, a);
-  const attackSkill = (a.core.templateId ? npcTemplate(state, a.core.templateId).fallback?.attackSkill : undefined) ?? ct.fallback.attackSkill;
+  const attackSkill = fallbackAttackSkill(state, a); // BG-258: the held weapon's first
   // BF67: a line said beside a deed (a bark) is real speech: those who hear it get its words, and the one who said it sees it in
   // what it said. It still copies no belief (perception's updateBeliefs).
   const history = [...(state.recentEvents ?? []), ...state.events];
