@@ -2,6 +2,7 @@
 // each type. Values are read from CONFIG and the library, so they follow the code. tests/unit/mod-sources.test.ts
 // checks that each place in src that makes a typed modifier has exactly one entry here (same file, same type).
 import { modeName } from './gear';
+import { D100_MEAN } from '../rng';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
 import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
@@ -40,7 +41,7 @@ export type ModSource = {
 const sg = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}`;
 const list = (o: Record<string, number>, skipZero = true) => Object.entries(o).filter(([, v]) => !skipZero || v).map(([k, v]) => `${k.replace(/_/g, ' ')} ${sg(v)}`).join(' · ');
 /** PW5 a: wound penalties are % of the average roll (woundsOnRoll, src/ruleset/body.ts) */
-const OF_AVG = ` of the average roll (50.5 + ${CONFIG.SKILL_WEIGHT} × effective skill)`;
+const OF_AVG = ` of the average roll (${D100_MEAN} + ${CONFIG.SKILL_WEIGHT} × effective skill)`;
 const pctList = (o: Record<string, number>) => `${Object.entries(o).map(([k, v]) => `${k} ${sg(v)}%`).join(' · ')}${OF_AVG}`;
 const W = () => CONFIG.SKILL_WEIGHT;
 const perk = (lib: Library, id: string): ModFeed[] => (lib.perks[id] ? [{ table: 'perks', id, name: lib.perks[id].name, value: '' }] : []);

@@ -1,6 +1,7 @@
 // W2 — Ruleset and gear maths. Part 1 §3–4, Part 3, Part 5 §2–6.
 // Contract: the eight Ruleset methods plus the helpers below. Every number comes from CONFIG.
 import { DU, RL } from '../library/tableIds';
+import { D100_MEAN } from '../rng';
 import { actionRow, actionSeconds } from './actionTime';
 import type {
   Actor, AttackRequest, NaturalArmor, DefenseKind, AttackResult, CheckResult, ContestResult, Effect, GameState, Mod,
@@ -214,7 +215,7 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   const edges = perks.reduce((n, x) => n + (x.eventEdges ?? 0), 0);
   const spread = Math.max(1, ...perks.map((x) => x.eventSpread ?? 1));
   const d = rng.d100();
-  const margin = 50.5 + (d - 50.5) * spread + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
+  const margin = D100_MEAN + (d - D100_MEAN) * spread + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
   // past the Critical tiers only as far as perks and achievements open (tierUnlocks). Each tier opened widens the natural
   // critical range by EVENT_CRIT_NATURALS: with one opened above, 96-100 is Critical Success+ and 91-95 Critical Success
   const reach = tierReach(actor, 'event');

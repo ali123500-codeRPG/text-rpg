@@ -3,6 +3,7 @@
 // or it fades. A held one is an offer: a package of true skill (and later a trait) the player can take
 // into a limited number of slots. Code rolls every offer from tables; no agent names, seeds or changes one.
 import type { Actor, EssenceDef, EssenceOffer, GameState, HeldEssence, NpcTemplate, Rng, ScenarioEnding, ScenarioFrame, SkillEntry } from '../types';
+import { D100_MEAN } from '../rng';
 import { CONFIG } from '../config';
 import { getLibrary, hasTemplate, npcTemplate, race } from '../library';
 import { templateSkills } from '../library/spawn';
@@ -44,10 +45,10 @@ export const appearRoll = (rng: Rng, source: string): boolean => rng.d100() <= (
 export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }, echo = false): { grade: EssenceGradeKey; past: number } | null {
   const auto = by && fireEssenceAuto(by.state, by.actor);
   let d = rng.d100();
-  if (auto?.kind === 'farther') { const d2 = rng.d100(); if (Math.abs(d2 - 50.5) > Math.abs(d - 50.5)) d = d2; }
+  if (auto?.kind === 'farther') { const d2 = rng.d100(); if (Math.abs(d2 - D100_MEAN) > Math.abs(d - D100_MEAN)) d = d2; }
   if (auto) logCode(by!.state, 'essence_roll_auto', { perk: auto.perk, roll: d });
   const top = TIERS.keys.length - 1;
-  const at = auto?.kind === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(d + base - CONFIG.ESSENCE_ROLL_NEEDED);
+  const at = auto?.kind === 'all_or_nothing' ? (d > D100_MEAN ? top : 0) : band(d + base - CONFIG.ESSENCE_ROLL_NEEDED);
   // CS13: a step past Critical Success (a natural high on a Critical Success) counts, one grade up per step, as an echo's does
   const level = Math.max(0, at + naturalEdge(d));
   // HF29 a: an echo's roll goes ECHO_ESSENCE_TIERS up, past the last grade too, and never fades below ECHO_ESSENCE_FLOOR
