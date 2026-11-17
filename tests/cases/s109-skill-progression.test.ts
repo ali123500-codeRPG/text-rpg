@@ -37,7 +37,7 @@ describe('109 skill progression', () => {
     p.core.skills[SK.eyesight] = { raw: 38, state: 'tagged' };
     p.core.skills[SK.earshot] = { raw: 30, state: 'normal' };
     p.progression!.marks = [SK.eyesight, SK.earshot];
-    // sight: 50 + (120 − 38) − 100 = 32, Great Success: +3; hearing: 10 + (100 − 30 − burden) − 100 is below 0: nothing
+    // sight: 50 + (120 − 38) − 100 = 32: ⌈32 ÷ 15⌉ = +3; hearing: 10 + (100 − 30 − burden) − 100 is below 0: nothing
     const gains = improveMarked(s, forcedRng([50, 10]));
     expect(gains).toEqual([{ skill: SK.eyesight, from: 38, to: 41, milestone: 40 }]);
     expect(p.core.skills[SK.eyesight].raw).toBe(41);
@@ -48,13 +48,13 @@ describe('109 skill progression', () => {
     expect(lines).toContain('New perk unlocked: Eyesight 40');
     expect(lines.some((l) => l.startsWith('Earshot'))).toBe(false);
   });
-  it('no hard limit (D-374 TB7): at the cap a natural 100 still gains, then the roll runs out', () => {
+  it('no hard limit (D-374 TB7, D-383): raw stops exactly at the cap because margin 0 gains nothing', () => {
     const s = makeVillage();
     const p = s.player;
-    p.core.skills = { [SK.eyesight]: { raw: 100, state: 'normal' }, [SK.dodge]: { raw: 120, state: 'tagged' } }; // different groups: no group bonus
+    p.core.skills = { [SK.eyesight]: { raw: 99, state: 'normal' }, [SK.dodge]: { raw: 119, state: 'tagged' } }; // different groups: no group bonus
     p.progression!.marks = [SK.eyesight, SK.dodge];
-    expect(improveMarked(s, forcedRng([100, 100]))).toMatchObject([{ skill: SK.eyesight, from: 100, to: 102 }, { skill: SK.dodge, from: 120, to: 122 }]); // margin 0: Success
+    expect(improveMarked(s, forcedRng([100, 100]))).toMatchObject([{ skill: SK.eyesight, from: 99, to: 100 }, { skill: SK.dodge, from: 119, to: 120 }]); // margin 1: +1
     p.progression!.marks = [SK.eyesight, SK.dodge];
-    expect(improveMarked(s, forcedRng([100, 100]))).toEqual([]); // margin −2: nothing
+    expect(improveMarked(s, forcedRng([100, 100]))).toEqual([]); // margin 0: nothing
   });
 });
