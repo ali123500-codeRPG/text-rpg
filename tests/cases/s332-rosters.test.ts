@@ -144,7 +144,7 @@ describe('332 rosters and groups', () => {
     const at = road.pts[Math.floor(road.pts.length / 2)];
     const z = s.places.flatMap((p) => p.zones)[0];
     z.road = road.id;
-    s.stage.encounter = { eventRoll: {} as never, noticed: true, zone: z.id, at };
+    s.stage.encounter = { eventRoll: {} as never, zone: z.id, at };
     const e = buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter!;
     expect(e.travellers!.map((x) => x.key)).toEqual(roadRoster(road).map((x) => x.key));
     const r = s.regions![0], i = cellAt(r, at), cover = getLibrary().landCovers![`LC${parseInt(r.cover[i], 36)}`].name;

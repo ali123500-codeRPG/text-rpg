@@ -3,7 +3,6 @@
 // danger, counted across trips (RE1, BG-291), and an encounter's event roll sets what it is (the next scenario's tier). The trip stops on arrival, at an encounter, or at dusk
 // (unless the trip set off in the dark: then it presses on, more slowly, with a worse event roll and more encounters).
 import { CONFIG } from '../config';
-import { FN } from '../library/functionIds';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
 import { moveSpeed } from './speed';
 import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, type Located, type Pos } from './position';
@@ -15,15 +14,14 @@ import { logCode } from './effects';
 import { passiveHealing } from './heal';
 import { passiveFatigue, payTravel } from './fatigue';
 import { getLibrary } from '../library';
-import { TIERS } from '../scales';
-import { fnRoller, ruleset, situational } from '../ruleset';
-import type { Actor, EventRollResult, GameState, Mod, Order, Rng, Zone } from '../types';
+import { ruleset } from '../ruleset';
+import type { Actor, EventRollResult, GameState, Order, Rng, Zone } from '../types';
 
 const T_EPS = 1e-6; // minutes
 
 export type TripStop = 'arrived' | 'nightfall' | 'encounter';
 export type Trip = { metres: number; minutes: number; legs: number; night: boolean; stop: TripStop; companions: string[]; fromZone: string;
-  encounter?: { eventRoll: EventRollResult; noticed: boolean; at: Pos } };
+  encounter?: { eventRoll: EventRollResult; at: Pos } };
 
 export const isRoad = (z: Zone | undefined) => !!z?.kind && !!getLibrary().zoneKinds?.[z.kind]?.road;
 /** dusk and night are dark enough to stop a trip (TV5) */
@@ -58,16 +56,6 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
  * routine) who is together with it the same way, seeing each other */
 export const companions = (state: GameState, a: Actor): Actor[] => state.actors.filter((x) => isActive(x) && x !== a && (together(state, a, x)
   || (getLibrary().routines?.[x.mind?.routine?.id ?? '']?.kind === 'follow' && eachPerceives(state, a, x))));
-
-/** TV8: one noticing roll: the sight function in the light where the player is */
-function notices(state: GameState, a: Actor, rng: Rng): boolean {
-  const skill = fnRoller(state, a, FN.sight);
-  const modifiers: Mod[] = situational(state, skill, { light: zoneById(state, a.zone), actor: a }).modifiers;
-  const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], fn: FN.sight }, state, rng);
-  const passed = TIERS.pos(r.tier) >= TIERS.pos('success');
-  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY.moderate, passed, modifiers }, state);
-  return passed;
-}
 
 /** walks the trip leg by leg; the clock moves and natural recovery runs for each leg */
 export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng: Rng): Trip {
@@ -115,7 +103,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
       if (rng.d100() <= pct) {
         const extra: EventRollResult['modifiers'] = dark ? [{ source: 'night travel', type: 'situational', value: CONFIG.NIGHT_TRAVEL_EVENT_MOD }] : [];
         const eventRoll = ruleset.eventRoll(a, state, rng, extra);
-        trip.encounter = { eventRoll, noticed: notices(state, a, rng), at: ahead(road!, spotOf(state, a).pos!, last) };
+        trip.encounter = { eventRoll, at: ahead(road!, spotOf(state, a).pos!, last) };
         trip.stop = 'encounter';
         break;
       }
@@ -125,11 +113,13 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
   return trip;
 }
 
-/** where an encounter stands: ENCOUNTER_M on along the road from `p`, the way the player was walking, kept on the road */
+/** RE6: where an encounter stands: where it is first glimpsed (ENCOUNTER_VISIBILITY's glimpse range) on along the road from
+ * `p`, the way the player was walking, kept on the road */
 function ahead(z: Zone, p: Pos, from?: Pos): Pos {
   const r = z.rect!;
   const dx = from ? p.x - from.x : 0, dy = from ? p.y - from.y : 0, len = Math.hypot(dx, dy) || 1;
-  const q = { x: p.x + (dx / len) * CONFIG.ENCOUNTER_M, y: p.y + (dy / len) * CONFIG.ENCOUNTER_M };
+  const m = CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]?.[1] ?? 0;
+  const q = { x: p.x + (dx / len) * m, y: p.y + (dy / len) * m };
   return { x: Math.max(r.x - r.w / 2, Math.min(r.x + r.w / 2, q.x)), y: Math.max(r.y - r.d / 2, Math.min(r.y + r.d / 2, q.y)) };
 }
 

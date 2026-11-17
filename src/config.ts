@@ -769,9 +769,9 @@ const DEFAULTS = {
   /** TV4/TV5 pressing on in the dark: the event roll's modifier and the encounter chance's multiplier (placeholders) */
   NIGHT_TRAVEL_EVENT_MOD: -15,
   NIGHT_ENCOUNTER_MULT: 2,
-  /** TV4 how far ahead on the road an encounter stands when it starts: D&D's encounter distance in a forest, 2d6 × 10 ft
-   * (about 21 m on average) */
-  ENCOUNTER_M: 20,
+  /** RE6: an encounter starts where its people are first glimpsed standing still: this visibility's glimpse range in the
+   * sight table (CONFIG.SIGHT_M low: 60 m), the one sight rule; dark makes them only half seen, hiders use their stealth */
+  ENCOUNTER_VISIBILITY: 'low' as import('./scales').VisibilityKey,
   /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
    * personal distance (Hall's proxemics, 0.45–1.2 m) */
   PLACE_SPACING_M: 1, // BF71: arm's length: the grid code places people on, how far a walk up to someone stops, and a step in from a door
