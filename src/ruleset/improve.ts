@@ -182,7 +182,7 @@ export function burdenOf(a: Actor): number {
   return Math.max(0, Math.floor((total - potential) / CONFIG.K));
 }
 
-/** D-373: the Burden one skill's improvement rolls carry. Its own tag cuts TAG_BURDEN_SELF_PCT %, and each tagged skill
+/** D-374: the Burden one skill's improvement rolls carry. Its own tag cuts TAG_BURDEN_SELF_PCT %, and each tagged skill
  * sharing a group with it (itself included) cuts TAG_BURDEN_GROUP_PCT % more. The cuts add up and may pass 100 %, so Burden can
  * turn into a bonus (below 0). Fractions stay. */
 export function skillBurden(a: Actor, id: string, burden = burdenOf(a)): number {

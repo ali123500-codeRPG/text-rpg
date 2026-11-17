@@ -31,7 +31,7 @@ describe('209 improvement roll on the tier table', () => {
     expect(growthRoll(45, { raw: 50, state: 'normal' }, -5).gain).toBe(2); // margin 45 + 50 + 5 − 90 = 10: Success
   });
 
-  it('D-373: a tag cuts its own Burden 95% and its group\'s 5% each, adding up past 100%', () => {
+  it('D-374: a tag cuts its own Burden 95% and its group\'s 5% each, adding up past 100%', () => {
     const p = makeVillage().player, self = CONFIG.TAG_BURDEN_SELF_PCT / 100, mate = CONFIG.TAG_BURDEN_GROUP_PCT / 100;
     p.core.skills = { [SK.block]: { raw: 30, state: 'tagged' }, [SK.dodge]: { raw: 30, state: 'normal' }, [SK.melee_medium]: { raw: 30, state: 'normal' } };
     expect(skillBurden(p, SK.block, 10)).toBeCloseTo(10 * (1 - self - mate)); // a lone tag: 95% + 5% = none

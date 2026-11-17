@@ -79,7 +79,7 @@ const DEFAULTS = {
   POOL_QUALITY_FACTOR: 0.1,
   POTENTIAL: 300,
   K: 20,
-  /** D-373 (placeholders): a tagged skill cuts its own Burden by TAG_BURDEN_SELF_PCT %, and every skill sharing a group with
+  /** D-374 (placeholders): a tagged skill cuts its own Burden by TAG_BURDEN_SELF_PCT %, and every skill sharing a group with
    * it (itself included) by TAG_BURDEN_GROUP_PCT % more. Cuts add up and may pass 100 %: Burden then turns into a bonus */
   TAG_BURDEN_SELF_PCT: 95,
   TAG_BURDEN_GROUP_PCT: 5,

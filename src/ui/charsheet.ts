@@ -236,7 +236,7 @@ export function skillFacts(p: Actor, id: string) {
     rolls: [...augmentsOf(p, id), ...tradesOut(p, id)].filter((x) => x.value),
     gives: (lib.skills[id]?.augments ?? []).map((g) => skillName(g.skill)),
     window: windowOf(p, id), next, toNext: next - value,
-    // BU3: what Burden takes off this skill's improvement rolls, after its tags' cuts (D-373); below 0 it helps. 0 with no progression record
+    // BU3: what Burden takes off this skill's improvement rolls, after its tags' cuts (D-374); below 0 it helps. 0 with no progression record
     burden: p.progression ? { by: skillBurden(p, id), ...burdenParts(p) } : { by: 0, total: 0, potential: 0 },
   };
 }
