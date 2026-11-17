@@ -10,7 +10,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was wrong:** In the action-deck playtest a dead hero's body lay 1.4 m from the new hero on a dark causeway and showed as a plain "Someone". The deck offered Attack, Talk to, Persuade, Lie to, Threaten and Haggle against it, the player talked to it twice and got silence, and the narrator made the shape stand and move. Someone only half seen carried no health or posture at all, so it slipped past every deck filter that leaves out the down and the dead.
 
-**What was done:** A half-seen person who lies still (down, dead or asleep) is marked lying still, without saying which. The deck shows "lying still" and treats it like someone known to be down (no attack or talk; Look at stays), and the narrator is told it lies still and never stands, moves or answers. PR PRNUM.
+**What was done:** A half-seen person who lies still (down, dead or asleep) is marked lying still, without saying which. The deck shows "lying still" and offers no talk against it (Attack and Look at stay), and the narrator is told it lies still and never stands, moves or answers. PR PRNUM.
 
 ## BG-275
 

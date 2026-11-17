@@ -19,13 +19,14 @@ const targets = (s: ReturnType<typeof dark>, kind: string): { id: string; note?:
   return step && 'picks' in step && step.picks ? step.picks({}) : [];
 };
 
-it('a dead body half seen in the dark lies still, and the deck offers only a look', () => {
+it('a dead body half seen in the dark lies still, and the deck offers a look and a blow but no talk', () => {
   const s = dark();
   actor(s, 'guard_1').core.condition.hpLostPct = 150;
   const seen = buildPlayerView(s).actors.find((a) => a.id === 'guard_1');
   expect(seen).toMatchObject({ label: 'someone', level: 'partial', lying: true });
   expect(seen?.health).toBeUndefined(); // dead, down or asleep: not which
-  for (const kind of ['attack', 'talk', 'persuade', 'deceive', 'intimidate', 'barter']) expect(targets(s, kind).map((p) => p.id)).not.toContain('guard_1');
+  for (const kind of ['talk', 'persuade', 'deceive', 'intimidate', 'barter']) expect(targets(s, kind).map((p) => p.id)).not.toContain('guard_1');
+  expect(targets(s, 'attack').map((p) => p.id)).toContain('guard_1'); // BF84: it can still be struck
   expect(targets(s, 'look_at')).toContainEqual(expect.objectContaining({ id: 'guard_1', note: expect.stringContaining('lying still') }));
   expect(buildNarrationView(s, s.events).actors.find((a) => a.label === 'someone')).toMatchObject({ lying: true });
 });
