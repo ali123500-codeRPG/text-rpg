@@ -14,7 +14,7 @@ describe('34 Fallback is flagged', () => {
     const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const s = makeVillage();
     s.turn = 5;
-    const bad: StagePlan = { ...villageStagePlan('success'), event: { summary: 'x', challenge: 'none', gain: 'extreme' } };
+    const bad: StagePlan = { ...villageStagePlan('success'), places: [], zones: [], bands: [], cast: [], rewards: [], frontiers: [], event: { summary: 'x', challenge: 'none', gain: 'extreme' } };
     const weave = vi.fn(async () => bad);
     const d = new ScenarioDirector({ weave, clock: new VirtualClock() });
     const nActors = s.actors.length;

@@ -29,7 +29,8 @@ describe('323 animal body types', () => {
   it('every animal composes, spawns with its race speed and attacks, and grips only with jaws', () => {
     const s = toStoryStart(makeVillage());
     for (let i = 0; i < ANIMALS.length; i += 3) { // the cast cap is 8: the village's 5 plus 3 animals a plan
-      const p = villageStagePlan();
+      // WI1: the village is built by the first plan; later plans add to it and never declare it again
+      const p = i ? { ...villageStagePlan(), places: [], zones: [], bands: [], frontiers: [] } : villageStagePlan();
       for (const race of ANIMALS.slice(i, i + 3)) p.cast.push({ compose: { race, role: RO.beast, theme: TH.wild_beasts, rank: 'rank_1' }, key: race, label: 'a beast', name: race,
         appearance: 'a beast', band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, awarenessOfPlayer: 'unaware', motive: 'roams' });
       expect(validateStagePlan(s, p, ctx)).toEqual([]);
