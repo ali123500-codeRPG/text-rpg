@@ -205,7 +205,7 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
   mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
   mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, grips, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
-/** QE4/QE5, D-366: armor stops ARMOR_FACTOR × need × ARMOR_WEIGHT_SOAK[weight]; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
+/** QE4/QE5, D-368: armor stops ARMOR_FACTOR × need × ARMOR_WEIGHT_SOAK[weight]; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
  * a Crude piece (need 0) stops nothing: its multiplier is 1 */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level] * CONFIG.ARMOR_WEIGHT_SOAK[w], multiplier: CONFIG.EQUIP_NEED[level] ? CONFIG.ARMOR_MULTIPLIER[w] : 1, weight: w });
 const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
@@ -536,6 +536,8 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
+    // SZ3: a man in ANSUR II (2012 US Army survey): stature 1.76 m, shoulder breadth about 0.5 m, chest depth about 0.25 m (0.3 clothed)
+    size: { lengthM: 0.3, widthM: 0.5, heightM: 1.75 },
     naturalAttacks: [FISTS,
       { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, grips: 0, name: 'grapple' }],
     parts: [
@@ -566,17 +568,21 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
-    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.slam, reachM: 0.5, reach: 0.5, grips: 0, name: 'slam' }],
+    size: { lengthM: 0.5, widthM: 0.5, heightM: 0.3 }, // SZ3: the Slime: a low mound of about 30 kg (its HP multiplier's mass); an estimate
+    // SZ9: reach is metres past the body's edge: a slam lunges a little way out of the mound (estimate)
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.slam, reachM: 0.2, reach: 0.2, grips: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.slam },
   },
   [BT.winged_quadruped]: {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
+    // SZ3: the Dragon: about 1,000 kg, a horse's shape at twice its weight (each measure × 2^(1/3)), wings folded; an estimate
+    size: { lengthM: 3, widthM: 0.85, heightM: 2 },
     naturalAttacks: [],
     parts: [
-      // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does; a horse's head and neck reach about
-      // 1.5 m forward of its chest
-      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], reachM: 1.5 },
+      // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does. SZ9: reach is metres past the body's
+      // edge (its nose): the long neck stretches about 0.8 m further (estimate)
+      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], reachM: 0.8 },
       { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move] },
@@ -588,10 +594,12 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // NR14 a: one four-legged shape for every land beast; each race sets its own speeds and attacks (a dog, a tiger, a horse)
   [BT.quadruped]: {
     id: BT.quadruped, name: 'Quadruped', general: { name: 'body', size: 'big' },
+    size: { lengthM: 1.3, widthM: 0.3, heightM: 0.8 }, // SZ3: the Wolf (head and body 1.0–1.6 m, shoulder 0.6–0.85 m; Mech 1970)
     naturalAttacks: [], // by race: bite force differs too much between a dog and a tiger for one shape attack
     parts: [
-      // FR4: takes and carries things in its jaws; a medium dog's head and neck reach about 0.5 m forward of its chest (estimate)
-      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike, RL.grip], adjacent: ['general', 'neck'], reachM: 0.5 },
+      // FR4: takes and carries things in its jaws. SZ9: reach is metres past the body's edge (its nose): the neck stretches
+      // about 0.2 m (estimate); SZ10: × the race's length
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike, RL.grip], adjacent: ['general', 'neck'], reachM: 0.2 },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
       { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
       { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
@@ -602,6 +610,8 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // legless: the coils move it and squeeze; nothing to carry with (grip reach 0, as amorphous)
   [BT.serpent]: {
     id: BT.serpent, name: 'Serpent', general: { name: 'body', size: 'normal' },
+    // SZ3: the Python lies coiled or bent (5–6 m long, about 0.25 m thick), a coil about 1 m across; an estimate
+    size: { lengthM: 1, widthM: 1, heightM: 0.3 },
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
@@ -613,6 +623,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // a spider's shape (CS24: 5 of 8 legs Crippled, or 4 Destroyed, stop it running); fangs on the head; no grip
   [BT.eight_legged]: {
     id: BT.eight_legged, name: 'Eight-legged', general: { name: 'body', size: 'normal' },
+    size: { lengthM: 1.5, widthM: 1.3, heightM: 0.6 }, // SZ3: the Giant spider, a wolf's weight: legs spread 1.5 by 1.3 m; an estimate
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike] },
@@ -630,6 +641,11 @@ const NAT_SKILL: Record<string, string> = { [AM.bite]: SK.bite, [AM.claw]: SK.cl
 /** a race's natural attack: unarmed tree, its kind's skill unless given, reach in metres from the race's comment */
 const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: string, name: string, skill: string = NAT_SKILL[id]): AttackMode =>
   ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, partId, name });
+/** SZ1: a race's size factors, written from its cited metres [length, width, height] against its body type's size */
+const sized = (bt: string, [l, w, h]: [number, number, number]) => {
+  const s = BODY_TYPES[bt].size!;
+  return { sizeMult: { length: l / s.lengthM, width: w / s.widthM, height: h / s.heightM } };
+};
 
 /** AP2: an achievement's personality points, written in steps of CONFIG.ACH_PERSONALITY_STEP (the one balance lever) */
 const ap = (steps: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(steps).map(([k, n]) => [k, n * CONFIG.ACH_PERSONALITY_STEP]));
@@ -1178,42 +1194,50 @@ export function prototypeLibrary(): Library {
       // on the ground as a horse: walk about 1.8 m/s, gallop about 12 (flight not modelled, D-323). AB17 a: about 1,000 kg,
       // twice a horse: (1000 ÷ 70)^(2/3) = 5.9. AB16: it bites and lashes its tail as the big beasts do (it had no attacks of its own)
       [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 5.9, speed: { walk: 1.8, run: 12 }, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi', ageStages: AGES.dragon,
-        naturalAttacks: [nat(AM.bite, 'heavy', 1.5, 'head', 'bite'), nat(AM.slam, 'slam', 2, 'tail', 'tail lash', SK.tail)] },
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.8, 'head', 'bite'), nat(AM.slam, 'slam', 2, 'tail', 'tail lash', SK.tail)] },
       // Animals (NR14, NR15). hpMultiplier (AB6 a): (mass ÷ a 70 kg person)^(2/3), rounded: dog 30 kg, wolf 40, tiger 220,
       // bear 300, boar 90, horse 500, Komodo 70, python 75. Run = the cited burst; walk = an everyday gait (estimates unless cited).
       // Attack class by bite or blow force [Proposed]: a weak bite light, a tiger's or bear's (about 1,000 psi, National
-      // Geographic) or a horse's kick heavy. Reach in metres: head and neck forward of the chest, a foreleg's swipe, a kick behind.
+      // Geographic) or a horse's kick heavy. SZ9: reach is metres past the body's edge: the neck's stretch past the nose, a
+      // foreleg's swipe, a kick behind the rump (estimates unless cited). SZ3: size from head-and-body length (no tail), widest
+      // width (estimates: rarely published) and shoulder height, from the species' Wikipedia measures unless cited.
       [RC.dog]: { id: RC.dog, name: 'Dog', bodyTypeId: BT.quadruped, hpMultiplier: 0.6, intelligence: 'semi', ageStages: AGES.dog,
         speed: { walk: 1.4, run: 8.9 }, // AKC: most dogs 15–20 mph
-        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite')],
+        ...sized(BT.quadruped, [1, 0.3, 0.57]), // a Labrador: 0.57 m at the shoulder (AKC standard)
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'bite')],
         innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] }, // dogs hear sounds about 10 dB fainter than people at their best pitch (Heffner 1983)
       [RC.wolf]: { id: RC.wolf, name: 'Wolf', bodyTypeId: BT.quadruped, hpMultiplier: 0.7, intelligence: 'semi', ageStages: AGES.wolf,
         speed: { walk: 2.4, run: 15.6 }, // travels at 8.7 km/h (Mech, J. Mammalogy 1994, USGS); bursts 56–64 km/h (Mech and Boitani 2003)
-        naturalAttacks: [nat(AM.bite, 'light', 0.5, 'head', 'bite')],
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'bite')], // the Quadruped's own size
         innatePerks: [PK.keen_ear], innateQuirks: [], tags: [] },
       [RC.tiger]: { id: RC.tiger, name: 'Tiger', bodyTypeId: BT.quadruped, hpMultiplier: 2.1, intelligence: 'semi', ageStages: AGES.tiger,
         speed: { walk: 1.4, run: 15.6 }, // short bursts of about 56 km/h
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'medium', 1, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [1.9, 0.45, 1]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, 'forelegs', 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] }, // a cat sees in about a sixth of the light a person needs
       [RC.bear]: { id: RC.bear, name: 'Bear', bodyTypeId: BT.quadruped, hpMultiplier: 2.6, intelligence: 'semi', ageStages: AGES.bear,
         speed: { walk: 1.4, run: 15.6 }, // a brown bear charges at up to about 56 km/h
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'heavy', 1, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [2, 0.6, 1.1]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'heavy', 0.6, 'forelegs', 'claws')],
         innatePerks: [], innateQuirks: [], tags: [] },
       [RC.boar]: { id: RC.boar, name: 'Wild boar', bodyTypeId: BT.quadruped, hpMultiplier: 1.2, intelligence: 'semi', ageStages: AGES.boar,
         speed: { walk: 1.4, run: 11.1 }, // about 40 km/h
-        naturalAttacks: [nat(AM.gore, 'medium', 0.5, 'head', 'tusks')],
+        ...sized(BT.quadruped, [1.4, 0.35, 0.85]),
+        naturalAttacks: [nat(AM.gore, 'medium', 0.3, 'head', 'tusks')],
         naturalArmor: { covers: ['general'], ...HIDE(1) }, // AB13 a: a shoulder shield of gristle up to about 5 cm thick
         innatePerks: [], innateQuirks: [], tags: [] },
       [RC.horse]: { id: RC.horse, name: 'Horse', bodyTypeId: BT.quadruped, hpMultiplier: 3.7, intelligence: 'semi', ageStages: AGES.horse,
         speed: { walk: 1.8, run: 12 }, // walk about 1.8 m/s, gallop about 12 m/s (as the winged quadruped)
         // the head and neck reach about 1.5 m forward (FR4); a kick lands up to about 1.8 m (6 ft) behind
-        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, 'hind_legs', 'kick'), nat(AM.bite, 'light', 1.5, 'head', 'bite')],
+        ...sized(BT.quadruped, [2.4, 0.65, 1.6]), // nose to buttock about 2.4 m, 1.6 m (about 16 hands) at the withers
+        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, 'hind_legs', 'kick'), nat(AM.bite, 'light', 0.5, 'head', 'bite')],
         innatePerks: [], innateQuirks: [], tags: [] },
       // a monitor lizard sized as the largest, the Komodo dragon: about 3 m long, half of it tail; bursts to about 20 km/h; a weak
       // bite (about 39 N, Fry et al., PNAS 2009) that tears with serrated teeth
       [RC.lizard]: { id: RC.lizard, name: 'Monitor lizard', bodyTypeId: BT.quadruped, hpMultiplier: 1, intelligence: 'unintelligent', ageStages: AGES.lizard,
         speed: { walk: 1, run: 5.6 },
-        naturalAttacks: [nat(AM.bite, 'light', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash', SK.tail)],
+        ...sized(BT.quadruped, [1.3, 0.35, 0.35]), // a Komodo dragon: about 2.6 m, half of it tail
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'bite'), nat(AM.slam, 'slam', 1.3, 'tail', 'tail lash', SK.tail)],
         naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(0.8) }, // AB13 a: small bony scales (osteoderms) in the skin, a lighter hide than the boar's shield (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
       // a large constrictor (reticulated or Burmese python, 5–6 m): strikes about a third of its length, then coils and squeezes;
@@ -1226,26 +1250,30 @@ export function prototypeLibrary(): Library {
       // venom waits on D-322.
       [RC.spider]: { id: RC.spider, name: 'Giant spider', bodyTypeId: BT.eight_legged, hpMultiplier: 0.7, intelligence: 'unintelligent', ageStages: AGES.spider,
         speed: { walk: 0.5, run: 3.6 }, // an Australian huntsman spider sprints 3.59 m/s (EWN news report, July 2026; study not yet peer reviewed)
-        naturalAttacks: [nat(AM.bite, 'light', 0.5, 'head', 'fangs')],
+        naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'fangs')], // the Eight-legged's own size
         innatePerks: [], innateQuirks: [], tags: [] },
       // AB14 a: more predators on the Quadruped
       [RC.lion]: { id: RC.lion, name: 'Lion', bodyTypeId: BT.quadruped, hpMultiplier: 1.9, intelligence: 'semi', ageStages: AGES.lion,
         speed: { walk: 1.4, run: 15.6 }, // short bursts of about 50–60 km/h; 190 kg
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.6, 'head', 'bite'), nat(AM.claw, 'medium', 1, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [1.9, 0.45, 1.2]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, 'forelegs', 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
       [RC.leopard]: { id: RC.leopard, name: 'Leopard', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.leopard,
         speed: { walk: 1.4, run: 16.1 }, // about 58 km/h; 60 kg; a smaller bite than the big cats'
-        naturalAttacks: [nat(AM.bite, 'medium', 0.5, 'head', 'bite'), nat(AM.claw, 'medium', 0.8, 'forelegs', 'claws')],
+        ...sized(BT.quadruped, [1.3, 0.3, 0.65]),
+        naturalAttacks: [nat(AM.bite, 'medium', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, 'forelegs', 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
       [RC.hyena]: { id: RC.hyena, name: 'Hyena', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.hyena,
         speed: { walk: 1.4, run: 16.7 }, // a spotted hyena: up to about 60 km/h; 60 kg; bites about 1,100 psi, as a bear
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.5, 'head', 'bite')],
+        ...sized(BT.quadruped, [1.3, 0.35, 0.8]),
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite')],
         innatePerks: [], innateQuirks: [], tags: [] },
       // a Nile crocodile, about 400 kg: about 14 km/h on land; the strongest bite measured (saltwater crocodile about 3,700 psi,
       // Erickson et al. 2012); swimming is not modelled
       [RC.crocodile]: { id: RC.crocodile, name: 'Crocodile', bodyTypeId: BT.quadruped, hpMultiplier: 3.2, intelligence: 'unintelligent', ageStages: AGES.crocodile,
         speed: { walk: 0.5, run: 3.9 },
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.8, 'head', 'bite'), nat(AM.slam, 'slam', 1.5, 'tail', 'tail lash', SK.tail)],
+        ...sized(BT.quadruped, [2.2, 0.6, 0.5]), // about 4 m, nearly half of it tail
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.8, 'tail', 'tail lash', SK.tail)],
         naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(1.5) }, // AB13 a: large bony plates (scutes) along the back, the heaviest hide here (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
     },

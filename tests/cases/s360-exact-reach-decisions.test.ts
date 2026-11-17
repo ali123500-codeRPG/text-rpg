@@ -7,7 +7,7 @@ import { makeVillage } from '../harness';
 import { act, intent, play, plannerOut } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
-import { closeInM, M_EPS } from '../../src/engine/position';
+import { closeInM, floorGap, M_EPS } from '../../src/engine/position';
 
 const FIST_M = 0.7;
 const room = () => {
@@ -32,14 +32,15 @@ it('closing in from 3 m stops inside the exact reach, a margin short of it, and 
   const a = brawler(s, 3);
   const ev = punch(s, a);
   expect(kinds(ev, a.id)).toEqual(['move', 'attack']);
-  expect(Math.hypot(a.pos!.x, a.pos!.y)).toBeLessThanOrEqual(closeInM(FIST_M) + M_EPS);
+  expect(floorGap(s, a, s.player)).toBeLessThanOrEqual(closeInM(FIST_M) + M_EPS); // SZ5: between their bodies
 });
 
 it('a foe a hair past the exact reach is closed in on first, not struck from where the fighter stands', () => {
   const s = room();
-  const a = brawler(s, FIST_M + CONFIG.REACH_MARGIN_M / 2);
+  const a = brawler(s, 3);
+  a.pos!.x += FIST_M + CONFIG.REACH_MARGIN_M / 2 - floorGap(s, a, s.player); // SZ5: that far between their bodies
   const ev = punch(s, a);
   expect(kinds(ev, a.id)[0]).toBe('move'); // it steps in before the first blow
   expect(kinds(ev, a.id)).toContain('attack');
-  expect(Math.hypot(a.pos!.x, a.pos!.y)).toBeLessThanOrEqual(FIST_M);
+  expect(floorGap(s, a, s.player)).toBeLessThanOrEqual(FIST_M);
 });

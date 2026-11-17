@@ -65,11 +65,12 @@ export function roleOff(state: GameState, actor: Actor, role: RoleId): boolean {
   return hurt >= CONFIG.SHARED_ROLE_OFF_PCT * parts.length - 1e-9; // weights like 1.2 add up with float error
 }
 
-/** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres, from its body
- * type); 0 with none, as an amorphous body */
+/** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres past the body's
+ * edge, from its body type, SZ5); 0 with none, as an amorphous body */
 export function gripReachM(state: GameState, actor: Actor): number {
   const parts = new Set(usableGrips(state, actor));
-  return Math.max(0, ...actorBody(state, actor).parts.filter((p) => parts.has(p.id)).map((p) => p.reachM ?? 0));
+  const body = actorBody(state, actor); // SZ10: a part reaches farther on a bigger race of the shape
+  return Math.max(0, ...body.parts.filter((p) => parts.has(p.id)).map((p) => (p.reachM ?? 0) * body.reachScale));
 }
 
 /** the actor can speak: its race talks (tag 'speaks') and a part with the speech role is not Destroyed */

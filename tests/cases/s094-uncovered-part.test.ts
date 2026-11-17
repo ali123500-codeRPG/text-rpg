@@ -22,6 +22,6 @@ describe('94 Uncovered part', () => {
     // torso: 65 + 37.5 − 63.5 = 39 → Great Success; location roll 80 → general
     const torso = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([65, 40, 80]));
     expect(torso.location).toBe('general');
-    expect(torso.damage).toBeCloseTo(25 * 1.25 * 0.65 - 6, 9); // D-366: share first, then mail's soak 4 × 1.5; 14.3125, not rounded (OQ-25)
+    expect(torso.damage).toBeCloseTo(25 * 1.25 * 0.65 - 6, 9); // D-368: share first, then mail's soak 4 × 1.5; 14.3125, not rounded (OQ-25)
   });
 });

@@ -71,8 +71,8 @@ export function soundDb(state: GameState, noise: NoiseKey | undefined, from: Loc
   const A = spotOf(state, from), B = spotOf(state, to);
   const r = quietestRoute(state, A.zone, B.zone);
   if (!r) return null;
-  let m = pathM(state, A, B, r.path);
-  if (r.loss === 0 && A.zone !== B.zone) m = Math.min(m, sightDistM(state, A, B));
+  let m = pathM(state, from, to, r.path); // SZ5: from body to body (a spot is a point)
+  if (r.loss === 0 && A.zone !== B.zone) m = Math.min(m, sightDistM(state, from, to));
   // HB8: whispering to someone within reach, the speaker leans in to their ear
   const near = leanIn && r.loss === 0 && withinM(m, CONFIG.WHISPER_REACH_M);
   return base + keenDb - 20 * Math.log10(near ? CONFIG.WHISPER_LEAN_M : Math.max(m, CONFIG.NEAREST_M)) - r.loss;

@@ -8,7 +8,8 @@ import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/s
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { drawRegion, type RegionBrief } from '../../src/land/generate';
 import { groupMembers, landmarkRoster, roadRoster, siteRoster, wildTable } from '../../src/land/roster';
-import { buildWorldView } from '../../src/views';
+import { buildWeaverView, buildWorldView } from '../../src/views';
+import { cellAt } from '../../src/land/sight';
 import { getLibrary } from '../../src/library';
 import { RK, LM, LC } from '../../src/library/tableIds';
 import { GP, HK, RO, TH as THEME } from '../../src/library/npcLayerIds';
@@ -134,6 +135,23 @@ describe('332 rosters and groups', () => {
     expect(vs.roster!.length).toBe(siteRoster(site('village')).length - 1);
     expect(v.land!.wild).toBeDefined();
     expect(v.catalogs.compose.groups.map((g) => g.id)).toContain(GP.bandit_gang);
+  });
+
+  it('RE4: an encounter\'s Weaver sees the road\'s unfilled travellers and the wild table for the cover where it happens', () => {
+    const s = makeVillage();
+    s.regions = [structuredClone(region)];
+    const road = s.regions[0].roads.find((r) => roadRoster(r).length)!;
+    const at = road.pts[Math.floor(road.pts.length / 2)];
+    const z = s.places.flatMap((p) => p.zones)[0];
+    z.road = road.id;
+    s.stage.encounter = { eventRoll: {} as never, zone: z.id, at };
+    const e = buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter!;
+    expect(e.travellers!.map((x) => x.key)).toEqual(roadRoster(road).map((x) => x.key));
+    const r = s.regions![0], i = cellAt(r, at), cover = getLibrary().landCovers![`LC${parseInt(r.cover[i], 36)}`].name;
+    expect(e.wild?.length).toBeGreaterThan(0);
+    expect(e.wild).toEqual(wildTable(r, false).find((x) => x.cover === cover)?.meet);
+    s.hidden.rosterFilled = [roadRoster(road)[0].key]; // a filled entry is gone
+    expect(buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter!.travellers?.length ?? 0).toBe(roadRoster(road).length - 1);
   });
 
   it('NR27: a group entry spawns its leader and followers, counts once against the cast cap, and keeps the band', () => {

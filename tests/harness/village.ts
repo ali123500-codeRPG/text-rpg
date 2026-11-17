@@ -10,6 +10,7 @@ import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
 import { doorway, placeZones } from '../../src/scenario/geometry';
+import { floorGap } from '../../src/engine/position';
 import { inferHeights } from '../../src/scenario/heights';
 import { placeAll } from '../../src/engine/position';
 import { SK } from '../../src/library/skillIds';
@@ -169,8 +170,12 @@ export function beside(state: GameState, id: string, near = 'player', m = 0.5): 
   a.zone = b.zone;
   a.placeId = b.placeId;
   const r = state.zones.find((z) => z.id === b.zone)!.rect!;
-  const x = b.pos!.x + m <= r.x + r.w / 2 ? b.pos!.x + m : b.pos!.x - m;
-  a.pos = { x, y: b.pos!.y };
+  // SZ5: m metres between their bodies (each turned as it stands): the centres sit farther apart by both bodies' extents
+  for (const side of [1, -1]) {
+    a.pos = { x: b.pos!.x + side * m, y: b.pos!.y };
+    a.pos.x += side * (m - floorGap(state, b, a));
+    if (Math.abs(a.pos.x - r.x) <= r.w / 2) break;
+  }
   return a;
 }
 

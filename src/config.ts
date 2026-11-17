@@ -560,7 +560,7 @@ const DEFAULTS = {
   SUSPECT_ASK_TURNS: 3,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
   ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
-  /** MD1 (D-366): the flat soak grows with weight: reduction = ARMOR_FACTOR × need × this (placeholders) */
+  /** MD1 (D-368): the flat soak grows with weight: reduction = ARMOR_FACTOR × need × this (placeholders) */
   ARMOR_WEIGHT_SOAK: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs (placeholders); IR3: past Masterwork (100) the task grade steps, Divine 400 */
   EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100, ...PAST_100 } as Record<string, number>,
@@ -771,9 +771,9 @@ const DEFAULTS = {
   /** TV4/TV5 pressing on in the dark: the event roll's modifier and the encounter chance's multiplier (placeholders) */
   NIGHT_TRAVEL_EVENT_MOD: -15,
   NIGHT_ENCOUNTER_MULT: 2,
-  /** TV4 how far ahead on the road an encounter stands when it starts: D&D's encounter distance in a forest, 2d6 × 10 ft
-   * (about 21 m on average) */
-  ENCOUNTER_M: 20,
+  /** RE6: an encounter starts where its people are first glimpsed standing still: this visibility's glimpse range in the
+   * sight table (CONFIG.SIGHT_M low: 60 m), the one sight rule; dark makes them only half seen, hiders use their stealth */
+  ENCOUNTER_VISIBILITY: 'low' as import('./scales').VisibilityKey,
   /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
    * personal distance (Hall's proxemics, 0.45–1.2 m) */
   PLACE_SPACING_M: 1, // BF71: arm's length: the grid code places people on, how far a walk up to someone stops, and a step in from a door

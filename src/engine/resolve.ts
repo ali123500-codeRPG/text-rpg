@@ -23,7 +23,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { M_EPS, closeInM, distM, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -537,7 +537,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
-  const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
+  const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(state, a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(state, a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
@@ -552,8 +552,8 @@ function roundShut(state: GameState, a: Actor, goal: string): { way: string; shu
 }
 
 /** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding: withinM) */
-function reachedSpot(a: Actor, goal: Located, stopShort: number): boolean {
-  return !goal.pos || !a.pos || withinM(Math.hypot(a.pos.x - goal.pos.x, a.pos.y - goal.pos.y), stopShort);
+function reachedSpot(state: GameState, a: Actor, goal: Located, stopShort: number): boolean {
+  return !goal.pos || !a.pos || withinM(floorGap(state, a, goal), stopShort); // SZ5: body to body, or to the spot
 }
 
 /** BG-47: on a leg that stops short of the way to another zone, how far that way still is (whole metres; none once there) */
@@ -715,6 +715,8 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   // BG-50: a speak with no words (a code-run beat, or a call that gave no line) carries no line at all, never an empty one
   const line = o.line?.text?.trim() ? o.line : undefined;
+  const faced = o.target ? actorById(state, o.target) : undefined;
+  if (faced && faced !== a) faceToward(a, faced); // SZ4
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, ...(line ? { line } : {}), noise: VOLUME_NOISE[line?.volume ?? 'normal'] });
   if (a.kind === 'player') ev.speech = { skill: speechSkillOf(o.type), addressees: o.addressees ?? [] };
   // NV5: words aimed at a creature that cannot understand them (a slime, a beast): the story says it does not understand
@@ -786,6 +788,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
   if (truceBars(state, a, t)) { logCode(state, 'truce_no_attack', { actorId: a.id, target: t.id }); return wasted('truce'); } // TF16
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted('spar_held'); }
+  faceToward(a, t); // SZ4
   const dist = sightDistM(state, a, t);
   if (notInHand(state, a, o)) return wasted('not_in_hand'); // BG-186: never a fist in its place
   const named = namedMode(state, a, o);
@@ -2145,7 +2148,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
   if (a.id === state.player.id) noteIdle(state, trip.minutes); // BG-240: a trip is not acting time
   emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
   if (trip.encounter) {
-    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, noticed: trip.encounter.noticed, zone: a.zone, at: trip.encounter.at };
+    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, zone: a.zone, at: trip.encounter.at };
     state.stage.breakCause = 'encounter';
   } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0);
 }

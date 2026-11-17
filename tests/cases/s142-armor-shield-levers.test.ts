@@ -1,5 +1,5 @@
 // QE2: a minted weapon's damage boost is QUALITY_DAMAGE_FACTOR × need × quality × class factor × tree factor.
-// QE4–QE6, D-366: armor stops ARMOR_FACTOR × its need × ARMOR_WEIGHT_SOAK by weight (the multiplier stays with its weight), a shield's pool is
+// QE4–QE6, D-368: armor stops ARMOR_FACTOR × its need × ARMOR_WEIGHT_SOAK by weight (the multiplier stays with its weight), a shield's pool is
 // POOL_BASE + POOL_FACTOR × its need, and a minted piece's quality adds factor × need × quality to either.
 import { describe, expect, it } from 'vitest';
 import { IT } from '../../src/library/itemIds';
@@ -15,7 +15,7 @@ const minted = (base: string, quality: 1 | 2 | 3 | 4, boosts: 'hitAdj' | 'damage
 };
 
 describe('142 armor and shield levers', () => {
-  it('library armor: gambeson 2, mail 4 × 1.5 = 6, plate 6 × 2 = 12 (D-366); the round shield pool is 40', () => {
+  it('library armor: gambeson 2, mail 4 × 1.5 = 6, plate 6 × 2 = 12 (D-368); the round shield pool is 40', () => {
     const I = getLibrary().items;
     expect([IT.gambeson, IT.mail_hauberk, IT.plate_harness].map((id) => I[id].armor!.reduction)).toEqual([2, 6, 12]);
     expect([IT.gambeson, IT.mail_hauberk, IT.plate_harness].map((id) => I[id].armor!.multiplier)).toEqual([0.8, 0.65, 0.55]);

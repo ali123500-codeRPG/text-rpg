@@ -72,7 +72,7 @@ describe('171 positions', () => {
     const trader = place(s, 'trader', 'tav_counter'); // the common room sees the counter
     trader.pos = { x: 7.7, y: 0 };
     s.player.pos = { x: 0, y: 0 };
-    expect(r(distM(s, s.player, trader))).toBe(7.7);
+    expect(r(distM(s, s.player, trader))).toBe(7.3); // SZ5: between their bodies: 7.7 less the player's front (0.15) and the trader's side (0.25)
     const guard = s.actors.find((a) => a.id === 'guard_1')!; // at the gate: no sight from inside the tavern
     expect(sightDistM(s, s.player, guard)).toBe(Infinity);
     expect(distM(s, s.player, guard)).toBeGreaterThan(Math.hypot(guard.pos!.x, guard.pos!.y) - 0.01);
