@@ -5,7 +5,7 @@
 export const FN = {
   arms: 'FN1', unarmed: 'FN2', ranged: 'FN3', defense: 'FN4', armor: 'FN5', health: 'FN6',
   sight: 'FN7', hearing: 'FN8', stealth: 'FN9', influence: 'FN10', initiative: 'FN11', morale: 'FN12',
-  engagement_aura: 'FN13', offensive_aura: 'FN14', // NT14, MB27, MB39: auras, each with its own trigger
+  engagement_aura: 'FN13', projected_aura: 'FN14', // NT14, MB27, MB39: auras, each with its own trigger
   lockpicking: 'FN15', // BA2: opening a lock without its key (the Lockpicking skill)
   filching: 'FN16', // FL1: taking what someone carries or owns without being caught (the Filching skill)
   stamina: 'FN17', // FT15: how long the body keeps going (the Stamina skill)
