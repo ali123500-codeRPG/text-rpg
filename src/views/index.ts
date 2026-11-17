@@ -28,6 +28,7 @@ import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
+import { agreementsOf } from '../engine/memory';
 import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
 import { contentsOf, findContainer, wornPack } from '../engine/containers';
@@ -676,7 +677,7 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
 }
 /** PM3: the deals `viewerId` is a party to, naming the other party as the viewer calls it */
 function agreementViews(state: GameState, viewerId: string): AgreementView[] {
-  return (state.hidden.agreements ?? []).filter((g) => g.parties.includes(viewerId)).map((g) => {
+  return agreementsOf(state, viewerId).map((g) => {
     const other = g.parties[0] === viewerId ? g.parties[1] : g.parties[0];
     const q = state.quests.find((x) => x.dealId === g.id);
     return { id: g.id, with: callName(state, viewerId, other), withId: other, text: g.text, madeTurn: g.madeTurn, ...(q ? { quest: q.id } : {}) };
