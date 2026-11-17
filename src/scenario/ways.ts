@@ -163,3 +163,68 @@ export function makeLandWays(s: GameState, zones: Zone[], sited: Place[]): void 
     }
   }
 }
+
+/** a string anywhere in `v` (not a key) equal to `from` becomes `to` */
+function renameIn(v: unknown, from: string, to: string): void {
+  if (Array.isArray(v)) v.forEach((x, i) => (x === from ? (v[i] = to) : renameIn(x, from, to)));
+  else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) x === from ? ((v as Record<string, unknown>)[k] = to) : renameIn(x, from, to);
+}
+
+/** WI7 a: a world built before WI2 is mended once, at load (each step does nothing on a world that needs none):
+ * 1. a junction with no zone takes the built zone that the zones of two or more of its roads lead into;
+ * 2. a road zone whose one way to new ground leads toward the one end it is not joined to: built, that way becomes a
+ *    plain way to it; unbuilt, the way is keyed by that end's land id;
+ * 3. a second zone on a road folds into the first: its ways, the people and things in it and every mention of it move
+ *    over, and the road points at the first. Returns what it mended. */
+export function mendLandWays(s: GameState): string[] {
+  const out: string[] = [];
+  const named = new Set<ZoneLink>(); // ways back this mend added, named after their zone: a folded copy's own words replace them
+  for (const r of regions(s)) for (const n of r.nodes) {
+    if (n.kind !== 'junction' || (n.zone && zoneById(s, n.zone))) continue;
+    const roadZones = roadsAt(r, n.id).flatMap((l) => s.zones.filter((z) => z.road === l.id));
+    const hub = s.zones.find((z) => !z.road && new Set(roadZones.filter((rz) => z.links.some((l) => l.to === rz.id)).map((rz) => rz.road)).size >= 2);
+    if (hub) { n.zone = hub.id; out.push(`junction ${n.id} is ${hub.id}`); }
+  }
+  for (const z of s.zones) {
+    const rd = z.road ? landRoad(s, z.road) : undefined;
+    if (!rd) continue;
+    const mine = group(s, z);
+    const open = rd.line.ends.filter((e) => { const t = landZone(s, e, rd.line.id); return !t || !mine.some((m) => m.links.some((l) => group(s, t).some((g) => g.id === l.to))); });
+    const own = z.links.filter((l) => l.frontier && !landTarget(s, l.to));
+    if (open.length !== 1 || own.length !== 1) continue;
+    const t = landZone(s, open[0], rd.line.id);
+    if (t) { const had = t.links.find((l) => l.to === z.id); wayBuilt(s, z, own[0].to, t); const back = t.links.find((l) => l.to === z.id); if (back && back !== had) named.add(back); out.push(`the way from ${z.id} toward ${open[0]} leads to ${t.id}`); }
+    else { out.push(`the way from ${z.id} toward ${open[0]} is keyed by it (was ${own[0].to})`); own[0].to = open[0]; }
+  }
+  for (const r of regions(s)) for (const line of r.roads) {
+    const on = s.zones.filter((z) => z.road === line.id);
+    const keep = on[0];
+    for (const copy of on.filter((z) => z !== keep)) {
+      for (const l of copy.links) {
+        const other = zoneById(s, l.to);
+        if (other) {
+          const back = other.links.find((b) => b.to === copy.id);
+          other.links = other.links.filter((b) => b.to !== copy.id);
+          if (other !== keep) joinWay(s, keep, other, { label: l.label, back: back?.label, sight: l.sight });
+          const had = other.links.find((x) => x.to === keep.id);
+          if (had && back && named.has(had)) had.label = back.label;
+        } else if (l.frontier && !keep.links.some((b) => b.to === l.to)) keep.links.push({ ...l });
+      }
+      for (const o of s.zones) if (o.links.some((b) => b.to === copy.id)) {
+        const b = o.links.find((x) => x.to === copy.id)!, had = o.links.find((x) => x.to === keep.id);
+        o.links = o.links.filter((x) => x.to !== copy.id);
+        if (had && named.has(had)) had.label = b.label;
+        else if (o !== keep) joinWay(s, o, keep, { label: b.label, sight: b.sight });
+      }
+      keep.groundItems.push(...copy.groundItems);
+      for (const a of [s.player, ...s.actors]) if (a.zone === copy.id) { a.zone = keep.id; a.placeId = keep.placeId; delete a.pos; }
+      for (const v of [s.actors, s.player, s.hidden, s.stage, s.quests, s.scratch]) renameIn(v, copy.id, keep.id);
+      const p = s.places.find((x) => x.id === copy.placeId);
+      if (p) p.zones = p.zones.filter((x) => x !== copy);
+      s.zones = s.zones.filter((x) => x !== copy);
+      out.push(`${copy.id} folded into ${keep.id}, road ${line.id}`);
+    }
+    if (keep && line.zone !== keep.id) line.zone = keep.id;
+  }
+  return out;
+}

@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-289
+
+**What was wrong:** In run 17's world (carried on in run 18) the road nwroad still had a way to new ground, "back up the road north-west, toward the crossroads", but that crossroads (crossways) had already been built from the other side. Walking it could build a second crossroads, because a junction of the land recorded no area and nothing tied the way to the land. The same world also had a second copy of the road (nwroad_2), and the causeway had a way to each.
+
+**What was done:** Ali's WI2 and WI7 answers. WI2 (PR #982): the land's roads, junctions and settlements are built once and code makes the ways between them, so a new world can't get this. WI7: a world built before that is mended once when it loads. The crossroads becomes the junction's area, nwroad's way to new ground becomes a plain way to the crossroads, nwroad_2 folds into nwroad with everything in it, the causeway keeps one way, and the north and south roads' ways on now carry the land's keys.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-291
 
 **What was wrong:** A road trip rolls for an encounter after each hour of walking, but the hour that arrives never rolled. So any road shorter than an hour's walk (4.5 km by day, 3 km in the dark) could never meet anything, and in run 18's world 18 of 19 roads are that short. Road encounters were close to switched off.
