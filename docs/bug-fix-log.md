@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-298
+
+**What was wrong:** On the Questions hub, Ali typed a new answer to TC31 ("Tactics skill tree"), which had been asked again. Each time the answer saved, the box above it ("Your earlier answer") changed to what he had just typed, and the question kept saying "Asked again". His real earlier answer was overwritten. The page had set the time TC31 was asked again to 21:40, ten minutes after the page was actually written, so at 21:35 every save counted as older than the re-ask and was treated as the earlier answer.
+
+**What was done:** The hub (version 24) never lets an "asked again" time be later than the page write that asked it, and anything typed during a visit always counts as the new answer, even on a device whose clock runs slow. TC31's original earlier answer was put back from the copy quoted on the page. The Tactics page builder now uses the page's own write time, and the hub README says an "asked again" time must be that write time, never a rounded-up guess. Five other pages had the same kind of future time, but all their answers came after it, so none was stuck.
+
+**Fixed by:** [PR #1012](https://github.com/ali123500-codeRPG/text-rpg/pull/1012)
+
 ## BG-292
 
 **What was wrong:** On the Questions hub, question TC6 ("Tactics skill tree") kept showing "Asked again" and an empty answer box after Ali had answered it. The page marked the question as asked again with the word `true` instead of a time. The hub counts an answer only if it is newer than the time the question was asked again, and `true` is not a time, so no answer could ever count. Questions D-20 and D-21 on "Open parked items" had the same fault.
