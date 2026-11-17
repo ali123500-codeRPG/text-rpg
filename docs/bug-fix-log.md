@@ -94,6 +94,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #963](https://github.com/ali123500-codeRPG/text-rpg/pull/963)
 
+## BG-276
+
+**What was wrong:** The Parser's answer shape listed only the way ops lock, unlock, bar and unbar, while its instructions, the schema and the engine also use open and shut. The six ops were typed out in three places.
+
+**What was done:** One WAY_OPS list in src/engine/barriers.ts; WayOp, the schema and the Parser's shape read it, so the shape now names open and shut too.
+
+**Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
+
 ## BG-275
 
 **What was wrong:** In the action-deck playtest a 4th character in story 2's world stopped after its first turn: the game's own rule check said 17 fights in the inn (the barkeep, Hobb and the carter against the slimes) had gone on long past their end, though they were still fresh. The check measures a fight from the end of the turn before, which here was the story's opening, and an opening turn never recorded when it ended, so the game read it as ending at the current moment. In real play this would file a false bug report.
@@ -101,6 +109,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The opening turn now records its end time like every other turn, for every new story and every new character in an old world.
 
 **Fixed by:** [PR #962](https://github.com/ali123500-codeRPG/text-rpg/pull/962)
+
+## BG-274
+
+**What was wrong:** A Look around showed people in plain sight out to a plain 25 m, but searched for hidden people out to 25.1 m (withinM), because the look range was written in two places.
+
+**What was done:** One look-range check, inLookReach in src/perception/index.ts (the Normal sight metres, compared with withinM), used by the look that shows and the look that searches.
+
+**Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
 
 ## BG-273
 

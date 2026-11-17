@@ -8,7 +8,7 @@ import { CONFIG } from '../config';
 import { now, secondsSince, timeOfDay, zoneLight } from '../time';
 import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
-import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
+import { beliefStatus, computePerception, inLookReach, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
 import { rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
@@ -336,7 +336,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
   // AB18 a: a search rolls the better sense after light; smell only when it beats both (light never touches it)
   const sense: Sense = opts.look ?? ([FN.sight, FN.hearing, FN.smell] as Sense[]).reduce((b, f) => (after(f) > after(b) ? f : b));
   const area = searchAreaM2(a, senseSkill(state, a, sense));
-  const reaches = (h: Actor) => opts.look ? ((d) => d !== null && withinM(d, CONFIG.SIGHT_M.normal![0]))(seeingM(state, a, h)) : inSearch(state, a, h, area);
+  const reaches = (h: Actor) => opts.look ? inLookReach(seeingM(state, a, h)) : inSearch(state, a, h, area);
   const done = contestedThisTurn(state);
   const won: { found: Actor; r: ContestResult }[] = [];
   for (const h of allActors(state)) {

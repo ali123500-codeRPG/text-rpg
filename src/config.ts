@@ -139,8 +139,8 @@ const DEFAULTS = {
   } as Record<string, { damage: number; hit: number }>,
   UNARMED_PROFILE: { damage: 15, hit: 10 },
   HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
-  CLEAN_GAP: 2, // A2 Turn the Blade, A10 Make Them Stumble: a parry or dodge at this gap or better is clean
-  PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
+  CLEAN_GAP: 2, // A2 Turn the Blade, A10 Make Them Stumble: a parry or dodge at this gap or better is clean (the whole blow stopped)
+  PARRY_STRIKE_GAP: 3, // PA4: a full parry, at this gap or better, earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
   /** D-337: parry strike-backs (PA4) and the All-50 Counter each come at most this many times per round (counted apart;
    * placeholder). Scaling it by speed is parked (D-338) */
@@ -155,8 +155,8 @@ const DEFAULTS = {
   GAP_LADDER: {
     dodge: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1.375, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
     block: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
-    // PA3 (placeholders): cuts less than Block at small gaps, stops the blow fully from +3; a failed parry punishes harder
-    parry: { [-10]: 5, [-9]: 4.5, [-8]: 4, [-7]: 3.5, [-6]: 3, [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0.65, 3: 0, 4: 0, 5: 0 },
+    // PA3 (placeholders): cuts less than Block at +1, stops the blow fully from CLEAN_GAP (+2, a clean parry); a failed parry punishes harder
+    parry: { [-10]: 5, [-9]: 4.5, [-8]: 4, [-7]: 3.5, [-6]: 3, [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0, 3: 0, 4: 0, 5: 0 },
   } as Record<DefenseKind, Record<number, number>>,
   /** the gap ladder's outcome and location thresholds (Part 3, Defense), beside GAP_LADDER's multipliers */
   HIT_GAPS: {
