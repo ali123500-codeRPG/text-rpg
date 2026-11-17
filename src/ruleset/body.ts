@@ -1,7 +1,7 @@
 // Part 3: total HP, health track, body parts, roles, hit table.
 import { RL } from '../library/tableIds';
 import { D100_MEAN } from '../rng';
-import type { Actor, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
+import type { Actor, AttackMode, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
 import { CONFIG } from '../config';
 import { armReachM } from '../library/bodySize';
 import { actorBody, getLibrary, itemDef } from '../library';
@@ -14,6 +14,11 @@ import { fatigueMods } from './fatigue';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { gripsOf } from './slots';
 import { cap } from '../words';
+
+/** the Strike parts a natural attack uses: one part, or either part of a pair (BV7 a) */
+export function attackParts(mode: AttackMode | undefined): readonly string[] {
+  return mode?.partIds ?? (mode?.partId ? [mode.partId] : []);
+}
 
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills[SK.endurance];
@@ -153,8 +158,8 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
         const pens = (held.length ? held : parts.map((p) => p.id)).map((id) => pen(id));
         v = held.length ? Math.min(...pens) : Math.max(...pens);
       } else if (role === RL.strike && ctx.itemId?.startsWith('natural:')) {
-        const partId = ct.naturalAttacks.find((m) => m.id === ctx.itemId!.slice(8))?.partId;
-        if (partId) v = pen(partId);
+        const ids = attackParts(ct.naturalAttacks.find((m) => m.id === ctx.itemId!.slice(8)));
+        if (ids.length) v = Math.max(...ids.map((id) => pen(id))); // BV7 a: a pair strikes with its better leg (penalties are negative)
       }
     }
     if (v) out.push({ source: `${lib.roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
