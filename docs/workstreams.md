@@ -1,6 +1,6 @@
 # Workstream rules (integration owner: W0)
 
-Source of truth: `docs/build-spec.md` (Build Spec v0.6). Every rule there is binding. Values marked placeholder live in
+Source of truth: `docs/build-spec.md` (Build Spec v0.6; its decision log, bug log and case tests live in their own files under `docs/`, named at the spec's top). Every rule there is binding. Values marked placeholder live in
 `src/config.ts`. Items marked [Proposed] are built as written. Do not invent mechanics: if the spec has a gap, pick the
 smallest reading, mark it `// GAP:` in code with a one-line note, and list it in your final report.
 

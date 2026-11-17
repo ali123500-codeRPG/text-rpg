@@ -2,9 +2,9 @@
 
 Every fixed bug (BG-n): what was wrong, and what was done to fix it. Newest first.
 
-Every thread that fixes a bug adds its entry here in the fixing PR, newest at the top (tests/unit/bug-fix-log.test.ts checks that every
-fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
-words it, or, where the log only names a PR, that PR's title.
+Every thread that fixes a bug adds its entry here in the fixing PR, newest at the top, and moves the bug's row from docs/bug-log.md
+to docs/bug-log-archive.md (tests/unit/bug-fix-log.test.ts checks that every fixed row has an entry). Entries up to BG-189 were
+filled in from that bug log: the fix as the log words it, or, where the log only names a PR, that PR's title.
 
 ## BG-291
 

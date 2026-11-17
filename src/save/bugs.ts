@@ -1,8 +1,9 @@
 // Bug reports for the build threads (BF45): the game files each report unnumbered, as a new report
 // (bugs/new-<time>, status new). Claude looks at the new reports and gives each real bug one number from the counter
 // (BG-1, BG-2, ...); repeats of one bug share that number, and a report that is not a bug gets none. Threads take numbers
-// for bugs they find from the same counter, so the spec's bug log never reuses a number. A numbered bug stays open until a
-// build thread marks it fixed. Filings in the same window queue behind each other, so two at once never take one id.
+// for bugs they find from the same counter, so the bug log (docs/bug-log.md; closed bugs in docs/bug-log-archive.md) never
+// reuses a number. A numbered bug stays open until a build thread marks it fixed. Filings in the same window queue behind
+// each other, so two at once never take one id.
 import type { Store } from './index';
 
 /** the one BG counter: Claude numbers bugs from it at triage, threads for bugs they find (the game never does) */
