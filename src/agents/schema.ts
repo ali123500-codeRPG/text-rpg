@@ -2,7 +2,7 @@
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // A missing nullable field reads as null; only a missing required field fails the answer (CS9).
 import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
-import { OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
+import { GEAR_OPS, OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type GearOp, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
 import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
@@ -51,8 +51,8 @@ const run = <T>(c: V<T>) => (v: unknown): Checked<T> => {
 const VOLUME = oneOf(['whisper', 'normal', 'shout'] as const);
 /** BF35: a follow's distance: metres, or melee / range */
 const KEEP: V<NonNullable<MoveSpot['keep']>> = (v, p, e) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : v === 'melee' || v === 'range' ? v : (e.push(`${p}: expected metres, "melee" or "range"`), 'melee'));
-const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon' | 'set_down'; item: string; from?: string; into?: string; qty?: number }>(
-  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const), item: str, from: str, into: str, qty: num },
+const gearOp = obj<{ op: GearOp['op']; item: string; from?: string; into?: string; qty?: number }>(
+  { op: oneOf(GEAR_OPS), item: str, from: str, into: str, qty: num },
   ['from', 'into', 'qty'],
 );
 const GEAR = nul(arr(gearOp));
