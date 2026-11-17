@@ -33,8 +33,10 @@ describe('281 a Threadbound item from start to use', () => {
     expect(loop(s)?.boundTo).toBe('player');
     expect(s.player.core.perks.some((p) => p.source === 'item')).toBe(false); // nothing earned yet
 
-    // 2. A scenario starts on a natural 100: Critical Success. The next turn earns the achievement and opens Loose Odds
+    // 2. A scenario starts on a natural 100: Critical Success. Its end grants the achievement (BG-272), which opens Loose Odds
     expect(scenario(s, 100).tier).toBe('critical_success');
+    expect(earned(s, ACH.event_crit_1)).toBe(false); // not at once: it waits for that scenario's end
+    endScenario(s, 'interrupted');
     play(s, { intent: intent({}) });
     expect(earned(s, ACH.event_crit_1)).toBe(true);
     expect(itemPerk(s, PK.loose_odds)).toBe(true);

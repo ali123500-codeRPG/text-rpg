@@ -403,8 +403,11 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
 
 /** D-226: the player's growth waits for the running scenario's end (CONFIG.GROWTH_AT_SCENARIO_END); in free roam, for the next
  * scenario's end (BG-217) */
-export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && (!!state.stage.scenario || !!state.stage.roam) && !flushing;
-let flushing = 0;
+export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && (!!state.stage.scenario || !!state.stage.roam || holding > 0) && !flushing;
+let flushing = 0, holding = 0;
+/** BG-272: runs `fn` as part of a scenario's start (its event roll): growth earned inside it waits for that scenario's end,
+ * even before the scenario has begun (the story's opening, or a start right after a story beat closed the last one) */
+export function forScenarioAhead<T>(fn: () => T): T { holding++; try { return fn(); } finally { holding--; } }
 /** runs `fn` as the scenario's ending moment: growth granted inside it lands at once (flushGrowth) */
 export function atScenarioEnd<T>(fn: () => T): T { flushing++; try { return fn(); } finally { flushing--; } }
 

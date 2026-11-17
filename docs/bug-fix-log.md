@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-272
+
+**What was wrong:** In the action-deck playtest the story's opening event roll was a Critical Success, and its achievement (Fate Meant It as a Curse) landed at once, before the story had even started, instead of at the end of the scenario like every other gain. The game flagged it itself (achievement_outside_end). The roll is made just before the opening scenario begins, when nothing yet holds growth back; the same could happen at a scenario start right after a story beat ended the last one.
+
+**What was done:** Every event roll opens a scenario, so whatever it earns now waits for the end of the scenario it opens, at the opening and after a story beat too, and arrives in that ending's gains moment.
+
+**Fixed by:** [PR #951](https://github.com/ali123500-codeRPG/text-rpg/pull/951)
+
 ## BG-267
 
 **What was wrong:** BG-120 made withinM the one comparison for every reach, so that someone who walked up to a reach is never left a hair outside it by rounding. The code that picks which weapon a blow uses (defaultMode and resolveMode in src/ruleset/gear.ts) still compared reach with a plain >=. A fighter a step's rounding past their weapon's reach counted as in reach for the blow, but no weapon was picked for it, so the blow was lost as out of reach; a parry's strike back could be lost the same way.
