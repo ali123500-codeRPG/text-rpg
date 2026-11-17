@@ -207,6 +207,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const bandIds = new Set(state.bands.map((b) => b.id));
   const actorIds = new Set([state.player.id, ...state.actors.map((a) => a.id)]);
   const isZone = (r: string) => zoneKeys.has(r) || stageZones.has(r);
+  // BG-288 (BF95 a): ground already built but off the stage (saved on its place): a plan may link to it, and applying the
+  // plan brings it back on the stage, so new ground joins it instead of building it again
+  const builtOff = (r: string) => !stageZones.has(r) && !zoneKeys.has(r) && state.places.some((p) => p.zones.some((z) => z.id === r));
   const isFrontier = (r: string) => frontierKeys.has(r) || existingFrontiers.has(r);
   const isBand = (r: string) => bandKeys.has(r) || bandIds.has(r);
   const isActor = (r: string) => castKeys.has(r) || actorIds.has(r);
@@ -216,6 +219,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const stagePlaces = new Map(ctx.arrive ? state.places.filter((p) => p.zones.some((z) => stageZones.has(z.id))).map((p) => [p.id, p.names.current]) : []);
   for (const p of places) if (stagePlaces.has(p.key)) err('place_exists', `place ${p.key} already exists (${stagePlaces.get(p.key)}): use its id ${p.key} as a parent or a zone's place; never declare it again`);
   for (const z of zones) if (ctx.arrive && stageZones.has(z.key)) err('zone_exists', `zone ${z.key} already exists on the stage: use its id ${z.key} in links and slots; never declare it again`);
+  // BG-288 (BF95 a): a road of the land is built once: a zone on a road that already has its zone is refused (link to it)
+  for (const z of zones) {
+    const line = z.road ? state.regions?.flatMap((r) => r.roads).find((x) => x.id === z.road) : undefined;
+    if (line?.zone && state.places.some((p) => p.zones.some((x) => x.id === line.zone))) err('road_built', `zone ${z.key}: road ${z.road} is already built as zone ${line.zone}: link to ${line.zone} instead; never declare it again`);
+  }
 
   // ---- caps ----
   const counts: [string, number, number][] = [
@@ -323,7 +331,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind]?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
-      if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, or a frontier`);
+      if (!isZone(l.to) && !isFrontier(l.to) && !builtOff(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, already built, or a frontier`);
       // SD3–SD5: a barrier on the way
       const b = l.barrier;
       if (b) {
@@ -365,7 +373,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     adj.get(a)!.add(b);
     adj.get(b)!.add(a);
   };
-  for (const z of zones) for (const l of arr(z.links)) if (isZone(l.to)) edge(z.key, l.to);
+  for (const z of zones) for (const l of arr(z.links)) if (isZone(l.to) || builtOff(l.to)) edge(z.key, l.to);
   for (const z of state.zones) for (const l of z.links) if (!l.frontier && stageZones.has(l.to)) edge(z.id, l.to);
   for (const z of state.zones) for (const l of z.links) if (l.frontier && zoneKeys.has(l.to)) edge(z.id, l.to); // BG-286: a frontier built as a plan zone
   const reach = (from: string) => {

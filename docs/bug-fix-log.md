@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-288
+
+**What was wrong:** The hero took the unexplored road north-west from the causeway, and the game built a second copy of the road the previous hero had arrived on. The World builder knew the road was built and tried to join its crossways to it, but plans could only join ground on the stage, so that was refused, and the repair declared the road again under a new name.
+
+**What was done:** New ground may now join ground that is already built but off the stage, and that ground comes back onto the stage. A plan may never add a second zone for a road that already has one; it is told to join it instead. When a newcomer's village goes on the stage, its ways to built ground elsewhere become ways back into that ground, so walking one loads it. This world keeps its two copies.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-287
 
 **What was wrong:** The opening scenario of the action-deck playtest ended when "the common room is cleared", but code could not check that: the slimes there belonged to several groups, and the only ending of that sort checks one group. So the Weaver had to judge it, which files a bug.
