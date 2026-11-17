@@ -237,5 +237,13 @@ export function equations(lib: Library): EquationGroup[] {
         formula: 'a hit on a part your worn armor covers marks the armor\'s skill when the attacker\'s true skill, or the armor\'s requirement, is inside your armor skill\'s learning window',
         notes: ['A hit on a shield doesn\'t count.'] },
     ] },
+    { key: 'essences', title: 'Essences', about: 'Where an essence comes from: one rule for every essence of each kind.', equations: [
+      { name: 'Foe essence', at: 'notable · offersFromDefeats · src/engine/essence.ts',
+        formula: `beating a notable foe of the essence's race or body type offers it; notable = power at least ${Math.round(CONFIG.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC`,
+        notes: ['Each such foe rolls once, ever.', 'A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.'] },
+      { name: 'Deed essence', at: 'offerAtEnding · src/engine/essence.ts',
+        formula: 'a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences, offers a deed essence',
+        notes: ['It is built on the skill you used most in that scenario.'] },
+    ] },
   ];
 }

@@ -374,7 +374,7 @@ const DEFAULTS = {
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
   /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
-   * to every skill sharing a group (beside the +1). Placeholders */
+   * to every skill sharing a group (in place of the 40 and 80 perks' +1). Placeholders */
   HIGH_PERK_SHARE: 0.05,
   HIGH_PERK_SPREAD: 0.01,
   /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */

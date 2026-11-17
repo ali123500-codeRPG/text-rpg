@@ -67,18 +67,19 @@ const ROWS: Row[] = [
       rule: `The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds ${CONFIG.CHORUS_REACH_M} m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M, ${CONFIG.AURA_REACH_M} m) grows by the payoff share of those pieces, ${CONFIG.PAYOFF_SHARE * 100}% × pieces^${CONFIG.PAYOFF_EXP} (placeholders). Chorus alone: ${+(CONFIG.AURA_REACH_M * (1 + payoffShare(1)) + 1 * CONFIG.CHORUS_REACH_M).toFixed(1)} m; with three shout pieces: ${+(CONFIG.AURA_REACH_M * (1 + payoffShare(3)) + 3 * CONFIG.CHORUS_REACH_M).toFixed(1)} m.` } },
 ];
 
-/** SH1-SH4: the 40 and 80 perks give +5 to their own skill; the 120 perk gives HIGH_PERK_SHARE of it instead, and HIGH_PERK_SPREAD of
- * it to every skill sharing a group on top of the +1. Shares read true skill without shares (trueSkill in src/ruleset/perks.ts) */
+/** SH1-SH4: the 40 and 80 perks give +5 to their own skill and +1 to every skill sharing a group; the 120 perk gives HIGH_PERK_SHARE
+ * of it instead, and HIGH_PERK_SPREAD of it to every skill sharing a group in place of the +1 (the share already covers the group).
+ * Shares read true skill without shares (trueSkill in src/ruleset/perks.ts) */
 const own = (r: Row) => r.milestone === 120
-  ? { short: `+${CONFIG.HIGH_PERK_SHARE * 100}% ${skillName(r.skill)}, +1 and +${CONFIG.HIGH_PERK_SPREAD * 100}% ${GROUP_NAMES[r.group]}`,
-    rule: `+${CONFIG.HIGH_PERK_SHARE * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SHARE, placeholder) as true skill in ${skillName(r.skill)}. +1 true skill, and +${CONFIG.HIGH_PERK_SPREAD * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SPREAD, placeholder), in every skill of group ${groupName(r.group)}. Shares read true skill without shares; several on one skill add in full.` }
+  ? { short: `+${CONFIG.HIGH_PERK_SHARE * 100}% ${skillName(r.skill)}, +${CONFIG.HIGH_PERK_SPREAD * 100}% ${GROUP_NAMES[r.group]}`,
+    rule: `+${CONFIG.HIGH_PERK_SHARE * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SHARE, placeholder) as true skill in ${skillName(r.skill)}. +${CONFIG.HIGH_PERK_SPREAD * 100}% of the owner's true ${skillName(r.skill)} (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group ${groupName(r.group)}. Shares read true skill without shares; several on one skill add in full.` }
   : { short: `+5 ${skillName(r.skill)}, +1 ${GROUP_NAMES[r.group]}`,
     rule: `+5 true skill in ${skillName(r.skill)}. +1 true skill in every skill of group ${groupName(r.group)}.` };
 
 export const BOOST_PERKS: PerkWriteup[] = ROWS.map((r) => ({
   id: r.id, ref: r.ref, name: r.name, skill: r.skill, place: '40',
-  ladder: { skill: r.skill, milestone: r.milestone ?? 40 }, effect: r.effect, functionBoost: 1,
-  ...(r.milestone === 120 ? { shareOwn: CONFIG.HIGH_PERK_SHARE, shareGroup: CONFIG.HIGH_PERK_SPREAD } : { trueSkill: 5 }),
+  ladder: { skill: r.skill, milestone: r.milestone ?? 40 }, effect: r.effect,
+  ...(r.milestone === 120 ? { shareOwn: CONFIG.HIGH_PERK_SHARE, shareGroup: CONFIG.HIGH_PERK_SPREAD } : { trueSkill: 5, functionBoost: 1 }),
   ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.numbersFor ? { numbersFor: r.extra.numbersFor } : {}), ...(r.extra.numbersForAttack ? { numbersForAttack: r.extra.numbersForAttack } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
   story: `${own(r).short}. ${r.extra.story}`,
   rules: {

@@ -1,7 +1,10 @@
 // Library viewer: every library table drawn from the same modules the game runs, so it shows the
 // library exactly as code sees it. Bundled into dist/library/ by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
-import { BT } from '../library/raceIds';
+import { BT, RC } from '../library/raceIds';
+import { sizeOf as bodySize } from '../library';
+import { FIGURE_CREDITS, figureKey, figureUpright } from '../library/figureModels';
+import { figure3d } from './figure3d';
 import './styles.css';
 import './libraryViewer.css';
 import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, RoutineSet, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
@@ -205,12 +208,19 @@ const essenceList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.f
 
 // ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
-function figure(ct: BodyType | undefined, cls: (part: string) => string): HTMLElement | null {
-  if (!ct?.figure) return null;
-  const f = h('div', { class: 'bf-svg lv-fig' });
-  f.innerHTML = `<svg viewBox="${ct.figure.viewBox}" role="img" aria-label="${ct.name} body">${Object.entries(ct.figure.parts)
-    .map(([id, d]) => `<path class="${cls(id)}" d="${d}"><title>${id === 'general' ? ct.general.name : label(id)}</title></path>`).join('')}</svg>`;
-  return f;
+/** each tone's colour on the 3D figure (the same tokens the key chips use) */
+const TONE_TOKEN: Record<string, string> = { 'lv-ess': '--danger', 'lv-norm': '--accent', 'lv-non': '--c3', 'lv-on': '--accent', 'lv-off': '--rule' };
+/** BV1 b: the 3D figure of a body type (its built shape) or a race (its model), turnable; a click names the part */
+function figure(ct: BodyType | undefined, cls: (part: string) => string, raceId?: string): HTMLElement | null {
+  if (!ct) return null;
+  const key = figureKey(raceId, ct.id), out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
+  const size = bodySize(ct, raceId ? lib.races?.[raceId] : undefined), name = (id: string) => (id === 'general' ? ct.general.name : label(id));
+  const f = figure3d({ key, upright: figureUpright(key), size, raceSize: size, personSize: bodySize(lib.bodyTypes[BT.humanoid], lib.races?.[RC.human]),
+    tint: (part) => ({ token: TONE_TOKEN[cls(part)] ?? '--accent' }), label: `${ct.name} body`, width: 150, height: 150, turnable: true, ground: false,
+    onPick: (part) => { out.textContent = part ? name(part) : ''; } });
+  const credit = FIGURE_CREDITS[key];
+  // BV12 b: a model's credit wherever it is shown (CC-BY asks for it)
+  return h('div', { class: 'lv-fig' }, f, out, credit ? h('p', { class: 'lv-credit' }, 'Model: ', h('a', { href: credit.url, target: '_blank', rel: 'noopener' }, credit.title), ` by ${credit.author} (${credit.licence})`) : null);
 }
 const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essential' : ct.parts.find((p) => p.id === part)?.impact ?? 'normal');
 
@@ -546,7 +556,7 @@ function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
     return card('races', r.id, r, r.name, [chip(INTELLIGENCE.name(r.intelligence), toneFor('Intelligence', INTELLIGENCE.name(r.intelligence)))],
-      h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)]), h('div', {},
+      h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)], r.id), h('div', {},
         row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
@@ -1054,10 +1064,11 @@ function threadboundView(): HTMLElement[] {
 function essencesView(): HTMLElement[] {
   const C = CONFIG;
   const grades = ESSENCE_GRADES.keys.map((g) => `${ESSENCE_GRADES.name(g)} ×${C.ESSENCE_GRADE_MULT[g] ?? 1}`).join(', ');
+  // the rule itself is the same for every essence of a kind: it lives once, under Equations → Essences
   const fromText = (e: EssenceDef): Node | string => e.from.deed
-    ? 'A deed: a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences. It is built on the skill you used most in that scenario.'
+    ? 'A deed (the rule: Equations → Essences)'
     : h('span', {}, 'Beating a notable ', e.from.race ? link('races', e.from.race, lib.races?.[e.from.race]?.name ?? e.from.race) : e.from.bodyType ? link('bodyTypes', e.from.bodyType, lib.bodyTypes[e.from.bodyType]?.name ?? e.from.bodyType) : '?',
-      ` foe: one whose power is at least ${Math.round(C.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC. Each such foe rolls once, ever. A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.`);
+      ' foe (the rule: Equations → Essences)');
   const split = (e: EssenceDef) => { const w = e.skills.reduce((n, x) => n + x.weight, 0) || 1;
     return e.skills.length ? e.skills.map((x) => `${skillName(x.skill)} ${Math.round((x.weight / w) * 100)}%`).join(', ') : 'the skill you used most in the scenario, all of it'; };
   const all = Object.values(lib.essences ?? {});

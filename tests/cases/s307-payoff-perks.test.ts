@@ -92,7 +92,7 @@ describe('307 payoff perks', () => {
     const s = makeVillage();
     const def = getLibrary().perks[PK.chorus];
     expect(def.ladder).toEqual({ skill: SK.intimidation, milestone: 120 });
-    expect([def.shareOwn, def.shareGroup, def.functionBoost]).toEqual([CONFIG.HIGH_PERK_SHARE, CONFIG.HIGH_PERK_SPREAD, 1]);
+    expect([def.shareOwn, def.shareGroup, def.functionBoost]).toEqual([CONFIG.HIGH_PERK_SHARE, CONFIG.HIGH_PERK_SPREAD, undefined]); // no +1 on a 120 perk
     expect(themesOf(PK.chorus)).toEqual(['shout']);
     expect(auraReachM(s.player)).toBe(CONFIG.AURA_REACH_M);
     give(s.player, PK.chorus);
