@@ -3,6 +3,7 @@ import type { CreationBuild, Bookmark, EnginePage, GameState, Head, Library, Log
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
 import { relayBroken } from '../scenario/geometry';
+import { mendLandWays } from '../scenario/ways';
 import { checkInvariants, checkShape, migrate, LAND_SCHEMA, newReport, reconcile, repairReferences, type CheckReport } from './checks';
 export { memoryStore, artifactDbStore, type MemoryStore, type DB } from './store';
 export { universeDay, reachDay } from './universe';
@@ -205,6 +206,7 @@ export async function loadStory(store: Store, storyId: string, library: Library)
     }
     const state = fromPages(meta, next, pages);
     // MR2: a layout stored before the map rules (MAP-10/11/12) is placed again once; the next save keeps the new one
+    for (const m of mendLandWays(state)) r.repairs.push(`world: ${m}`); // WI7 a: a world built before WI2, mended once
     for (const b of relayBroken(state)) r.repairs.push(`map: placed ${b.placeId} again (${b.why})`);
     return { state, report: [...r.repairs, ...r.warnings.map((w) => `warning: ${w}`)] };
   });
