@@ -73,7 +73,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
       document.getElementById('grp-' + id)?.scrollIntoView({ block: 'nearest' });
     };
     const onField = (row: TRow, key: string) => openPanel(spec.panelTitle,
-      [...spec.cols.map((c) => ({ k: c.title, v: row.cells[c.key] ?? '–', edit: c.key === key })), ...(spec.detail?.(s, row.id) ?? [])],
+      [...spec.cols.map((c) => ({ k: c.title, v: row.cells[c.key] ?? '–', picked: c.key === key })), ...(spec.detail?.(s, row.id) ?? [])],
       'The game changes these through play, so the field is shown read-only here.', spec.panelHead?.(s, row.id));
     const want = spec.focus?.();
     if (want) {
@@ -725,7 +725,7 @@ export function journalPage(api: GameApi) {
   const opened = { people: new Set<string>(), places: new Set<string>(), time: new Set<string>() };
   const sorts = { people: { key: 'name', dir: 0 as 0 | 1 | -1 }, places: { key: 'name', dir: 0 as 0 | 1 | -1 }, time: { key: 'turn', dir: 0 as 0 | 1 | -1 } };
   const el = h('main');
-  const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, edit: k === key })), 'Written by the game as you play, so it is read-only here.');
+  const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, picked: k === key })));
   function update() {
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
