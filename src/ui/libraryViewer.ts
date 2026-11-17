@@ -95,18 +95,21 @@ function typedId(v: string): Node | null {
   }
   return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
 }
-/** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
+/** a plain number as shown: rounded to the third digit after the dot */
+const num = (x: number): string => String(+x.toFixed(3));
+/** any value as code holds it: primitives as text (numbers rounded), lists as chips, objects as nested rows */
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
+  if (typeof v === 'number') return num(v);
   if (v instanceof Node) return v;
   if (typeof v === 'string') { const t = typedId(v); if (t) return t; }
   if (Array.isArray(v)) {
     if (!v.length) return none('empty');
     if (v.every((x) => typeof x === 'string' && typedId(x))) return h('span', {}, ...v.flatMap((x, i) => [i ? ', ' : '', typedId(x as string)!]));
-    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(String(x))));
+    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(typeof x === 'number' ? num(x) : String(x))));
     return h('div', { class: 'lv-sub' }, v.map((x) => h('div', { class: 'lv-subitem' }, val(x, depth + 1))));
   }
-  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
+  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v, (_, x) => (typeof x === 'number' ? +x.toFixed(3) : x)) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
   return String(v);
 }
 /** skill IDs are codes: show a skill field, or a table keyed by skill, by the skill's name */
@@ -205,6 +208,19 @@ function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: stri
 /** EN7 a: a template's essences with their fit (templateEssences, as the game reads them); a hand-set list has no fit */
 const fitText = (fit?: number) => (fit === undefined ? 'set by hand' : `fit ${Math.round(fit * 100)}%`);
 const essenceList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.flatMap((x, i) => [i ? ', ' : '', link('essences', x.row.id, x.row.name), ` (${fitText(x.fit)})`])) : none('none')))(templateEssences(t));
+
+/** every small table of a view (not the table view, which scrolls in its own box, nor the perk ladder grid) is marked
+ * lv-ctbl and names each cell by its column (data-k), so on a phone a row shows as a small card of labelled values
+ * instead of scrolling sideways (CSS, max-width 760px) */
+function labelCells(root: HTMLElement): void {
+  for (const t of Array.from(root.querySelectorAll<HTMLTableElement>('table.hs-tbl'))) {
+    if (t.closest('.lv-ladder')) continue;
+    t.classList.add('lv-ctbl');
+    const heads = Array.from(t.querySelectorAll<HTMLTableCellElement>(':scope > thead > tr:first-child > th')).map((c) => c.textContent?.trim() ?? '');
+    for (const r of Array.from(t.querySelectorAll<HTMLTableRowElement>(':scope > tbody > tr')))
+      Array.from(r.querySelectorAll<HTMLElement>(':scope > td, :scope > th')).forEach((c, i) => { if (heads[i] && !c.dataset.k) c.dataset.k = heads[i]; });
+  }
+}
 
 // ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
@@ -1689,6 +1705,7 @@ function route(): void {
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
     body.replaceChildren(...(notice ? [h('p', { class: 'lv-notice', role: 'status' }, notice)] : []), ...viewOf(sec));
+    labelCells(body);
     notice = '';
     const tabs = body.querySelector('.lv-tabs');
     subRail.replaceChildren(...(tabs ? [tabs] : []));

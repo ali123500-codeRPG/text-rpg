@@ -129,27 +129,26 @@ export function groupedTable(opts: {
     const rows = [...g.rows].sort(cmp);
     const single = rows.length === 1;
     const toggle = () => { open.has(g.id) ? open.delete(g.id) : open.add(g.id); opts.redraw(); };
-    if (single) { body.append(dataRow(rows[0], cols, opts.onField, null, g)); continue; }
+    if (single) { body.append(dataRow(rows[0], cols, opts.onField, false, g)); continue; }
     const isOpen = open.has(g.id);
     body.append(h('tr', { class: 'grp', id: 'grp-' + g.id, 'data-group': g.id, onclick: (e: Event) => { if (!(e.target as HTMLElement).closest('.fld')) toggle(); } },
       cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
         i === 0 ? [h('span', { class: 'hs-chev' }, isOpen ? '⌄' : '›'), g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null, g.title,
-          h('button', { class: 'hs-chip', type: 'button', title: isOpen ? 'Fold the rows' : `Open the ${rows.length} rows`, onclick: (e: Event) => { e.stopPropagation(); toggle(); } }, `↻${rows.length}`)]
+          h('button', { class: 'hs-chip', type: 'button', title: isOpen ? 'Fold the rows' : `Open the ${rows.length} rows`, onclick: (e: Event) => { e.stopPropagation(); toggle(); } }, String(rows.length))]
           : g.combinedTones?.[c.key] ? h('span', { class: 'tone-' + g.combinedTones[c.key] }, g.combined[c.key] ?? '') : g.combined[c.key] ?? ''))));
-    if (isOpen) rows.forEach((r, i) => body.append(dataRow(r, cols, opts.onField, i + 1, g)));
+    if (isOpen) rows.forEach((r) => body.append(dataRow(r, cols, opts.onField, true, g)));
   }
   return h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, th)), body);
 }
 
-function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void, n: number | null, g: TGroup): HTMLElement {
+function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void, sub: boolean, g: TGroup): HTMLElement {
   return h('tr', { 'data-row': r.id, draggable: r.drag || undefined }, cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
-    i === 0 && n !== null ? h('span', { class: 'sn' }, `${n}.`) : null,
-    i === 0 && n === null && g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null,
+    i === 0 && !sub && g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null,
     h('span', { class: 'fld' + (r.tones?.[c.key] ? ' tone-' + r.tones[c.key] : ''), onclick: () => onField(r, c.key) }, r.cells[c.key] ?? '–'))));
 }
 
 // ---------- Side panel ----------
-export type PanelRow = { k: string; v: string | Node; edit?: boolean };
+export type PanelRow = { k: string; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */ };
 let panelHost: HTMLElement | null = null;
 export function setPanelHost(el: HTMLElement) { panelHost = el; }
 export function closePanel() { if (panelHost) { panelHost.hidden = true; panelHost.replaceChildren(); } }
@@ -158,11 +157,10 @@ export function openPanel(title: string, rows: PanelRow[], note?: string, head?:
   panelHost.hidden = false;
   panelHost.replaceChildren(
     h('div', { class: 'hs-panel-head' }, h('span', {}, title), head ?? null, h('button', { class: 'hs-icon-btn', type: 'button', 'aria-label': 'Close', title: 'Close', onclick: closePanel }, '×')),
-    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.edit ? ' edit' : '') }, h('span', { class: 'k' }, r.k),
-      r.edit && typeof r.v === 'string' ? h('input', { class: 'hs-input', value: r.v, readOnly: true, 'aria-label': r.k }) : h('span', {}, r.v))),
+    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.picked ? ' picked' : '') }, h('span', { class: 'k' }, r.k), h('span', {}, r.v))),
     note ? h('p', { class: 'hs-note', style: 'padding-top:12px' }, note) : '',
   );
-  (panelHost.querySelector('.edit input') as HTMLInputElement | null)?.focus();
+  (panelHost.querySelector('.picked input') as HTMLInputElement | null)?.focus();
 }
 
 /** a scroll box without a visible scrollbar: the wheel scrolls it, and so does dragging it with the mouse.
