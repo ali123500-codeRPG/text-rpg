@@ -510,7 +510,8 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // (open to the street on its south side), LY5 gatehouse. A building type may have several; a new layout is a new row.
 // Positions (step 2, ZP1–ZP6, src/engine/position.ts): everyone stands at a point (Actor.pos, metres in the rectangles'
 // frame). Code places them (placeAll, at scenario setup and each turn's start): anyone whose point is missing or outside its
-// zone gets the zone's centre, else the nearest free point on a CONFIG.PLACE_SPACING_M (1 m, arm's length) grid around it.
+// zone gets the zone's centre, else the nearest free point on a half-CONFIG.PLACE_SPACING_M grid around it whose body
+// keeps PLACE_SPACING_M (1 m) from every other body there (SZ6).
 // Distance (distM): a straight line when there is sight between the zones (the same zone, or a path of sight links;
 // sightDistM, which attacks use: a blow or shot never goes round a wall), else the walking path through the doorways,
 // adding any climb. A move walks one leg at a time (walkLeg): to the next zone's doorway, then on; a move to a zone ends
@@ -518,6 +519,21 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // without one throws, as it is a world-building bug. The narration and views carry metres (a move's `metres`, a seen
 // actor's distanceM). PR 2 moves sight and sound to metres; PR 3 the hostile-within-2 m shot rule and the aura. Step 3
 // is travel along a road that is one long zone (CO18, its own deep dive).
+// Body size (SZ1-SZ6, SZ9, SZ10, SZ15, Ali 17/11/2026, Questions hub page "Body size and edge-to-edge reach"): every body
+// type has a size in metres (BodyType.size: length nose to rump without the tail, width at the widest point, height
+// standing: stature upright, shoulder height for beasts; cited, estimates marked) and a race multiplies each measure
+// (RaceDef.sizeMult, written from its cited metres). actorBody works out an actor's size: the one place it is read, so
+// perks and other things can change it later (SZ15). A body takes up a capsule on the floor: radius half its narrower
+// side, spine along its longer side, turned by its facing (the way it last walked, north before; it turns to face whom it
+// strikes or speaks to; turning never collides). Every distance between two people (distM, sightDistM, pathM, hearing,
+// smell) is the gap between their bodies, each standing from its floor to its height (a height gap only where they do not
+// overlap); to a spot (a doorway, an item, a point) it is from the body's edge. The first one measured from turns to face
+// the other; the other keeps its facing. An event is seen and heard from its maker's body while the maker still stands
+// where it happened. Reach (weapons, grips, natural attacks) is metres past the body's edge; a natural attack's reach is
+// re-measured from the edge (SZ9: a horse bites 0.5 m past its nose and kicks 1.8 m behind its rump); a body type part's
+// reach × the race's factor on the shape's longest measure (SZ10). Placing and a walk's end keep PLACE_SPACING_M and
+// PLACE_GAP_M between bodies, and a walk closing in stops where the bodies are its reach apart (SZ6). Tails: D-366.
+// Open on that page: SZ7 (doorways), SZ8 (the arm's reach), SZ11 (how big a body looks), SZ18 (volume), SZ19 (the gaps).
 // Roads (TV3, TV4): a road between places is ONE zone of the road kind (ZK11), however long. The Weaver gives it a length
 // (a ROAD_LENGTHS word: a short walk 0.5 km, half an hour 2, an hour's walk 4.5, half a day 15, a day's walk 30, two days
 // 60, CONFIG.ROAD_LENGTH_KM; or km) and a danger (ROAD_DANGERS: safe, quiet, wild, dangerous; the chance per hour that
@@ -3400,6 +3416,8 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-363 | Vanish as a stealth roll | 1, 2 | Built | Ali answered VS1–VS7 on the Questions hub page "Vanish as a stealth roll" (17/11/2026). VS1 a: slipping away is the Vanishing roll a sneak makes against observers who already see you; the unaware still roll against Sneaking or Combat Stealth. VS2 a: it needs a step or Melt Away (now: a sneak that stays put in cover or shade, or with Blind Spot). VS3 a: Strike and Fade gives the observers the attack made aware a second roll, at Vanishing (PT9 changed). VS4 a: those who lose drop to suspicious at the zone you left. VS5 b, with Ali's change: a foe fighting you within VANISH\_NEAR\_M (5 m) gives a VANISH\_NEAR\_SHIFT (-1) tier shift, by distance, not weapon reach, so ranged weapons get no help. VS6 a: the Vanish action, its button, its Parser and Planner type and the DU28 action-time row are gone. VS7 a: the vanished achievements count turns where everyone who saw you lost you. Open: VS8 (what sneaking costs in time; Ali asked whether it takes any) is on the same page. |
 | D-364 | What sneaking costs | 1, 2 | Built | Ali answered VS8 on the Questions hub page "Vanish as a stealth roll" (17/11/2026): "make it a multiplier on the time cost of all actions including movement". A stealthy actor's time factor is SNEAK\_TIME\_MULT (1.2 since Ali's change, first 2): every action's seconds are multiplied by it and its walk and run speeds divided by it (one factor, src/ruleset/actionTime.ts timeFactor; src/engine/speed.ts speedFactor is its inverse). Reaction time is unchanged. |
 | D-365 | An Insight read of someone's power | 1, 2 | Parked | Ali answered BF97 on the Questions hub page "Playtest bug fixes" (17/11/2026): "park having it measure power level (it will be a different kind of insight check)". Sizing someone up (BF97 a) reads mood, feelings and whether they hide something; reading how strong they are (their level or skills) is a different Insight check, to be designed later. |
+| D-366 | What tails do | 3 | Parked | Ali answered SZ2 on the Questions hub page "Body size and edge-to-edge reach" (17/11/2026): "a, park what to do with tails". A body's length leaves its tail out (head and body only), so a tail takes up no floor. Options: (a) as now: the tail is a part with its own reach (the tail lash) and no floor; (b) the tail adds to the footprint behind the body (a crocodile is about 4 m long, nearly half of it tail); (c) the tail is a separate thin capsule that can be struck or stepped on. |
+| D-367 | Loudness by body size or race | 2 | Parked | Ali answered SZ14 on the Questions hub page "Body size and edge-to-edge reach" (17/11/2026): "a" (sound is measured on the gap between bodies; louder bodies wait). Options: (a) a race row gives a loudness offset in dB for its sounds (a lion's roar about 114 dB at 1 m against a shout's 88; a horse's hooves louder than a person's feet); (b) every sound a being makes is louder by its size (a formula on volume); (c) only some event kinds (footsteps, voice) scale. |
 
 ## Bug log
 

@@ -27,7 +27,7 @@ describe('minimap plans (AD16)', () => {
     const at = centre(s, 'street_square'), p = ok(planTo(s, knownMap(s), 'street_square', at));
     const r = walkRoute(s, s.player, { zone: 'street_square', pos: at }, s.player)!;
     expect(p.metres).toBeCloseTo(r.metres, 9);
-    expect(p.metres).toBeCloseTo(pathM(s, s.player, { zone: 'street_square', pos: at }, ['street_door', 'street_square']), 9);
+    expect(p.metres).toBeCloseTo(pathM(s, { zone: s.player.zone, pos: s.player.pos }, { zone: 'street_square', pos: at }, ['street_door', 'street_square']), 9);
     expect(p.pts).toEqual(r.pts);
     expect(p.seconds).toBeCloseTo(p.metres / moveSpeed(s, s.player).walk, 9);
     expect(p.turns).toBe(1);

@@ -41,7 +41,7 @@ describe('323 animal body types', () => {
       expect(a.core.bodyTypeId).toBe(r.bodyTypeId);
       expect(moveSpeed(s, a)).toEqual(r.speed); // no armor: the race's own speeds
       expect(usableModes(s, a).map((m) => m.itemId)).toEqual(r.naturalAttacks!.map((m) => `natural:${m.id}`));
-      expect(gripReachM(s, a)).toBe(r.bodyTypeId === BT.quadruped ? 0.5 : 0); // a snake carries nothing
+      expect(gripReachM(s, a)).toBeCloseTo(r.bodyTypeId === BT.quadruped ? 0.2 * actorBody(s, a).reachScale : 0, 9); // a snake carries nothing; SZ9, SZ10: jaws 0.2 m past the nose × the race's length
       expect(actorBody(s, a).naturalArmor).toEqual(r.naturalArmor); // AB13: boar, lizard, crocodile
     }
     const tiger = s.actors.find((x) => x.names.current === RC.tiger)!, dog = s.actors.find((x) => x.names.current === RC.dog)!;
