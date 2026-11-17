@@ -556,8 +556,9 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // kind has its own opening (a gate 3 × 2.5 m, a grate a door's, a hatch 0.7 × 0.7 m gone through upright); ways between
 // outdoor zones have none. A body goes through when the narrower of its length and width fits the width (it turns
 // sideways) and its height ducked to DUCK_SHARE (0.5) fits the height; ducking costs no time; crawling is parked (D-369).
-// A walk never plans through a way too small for the walker (wayPath, fitsThrough). Still to build: SZ16 (footprints
-// on the map).
+// A walk never plans through a way too small for the walker (wayPath, fitsThrough). On the map and minimap (SZ16),
+// someone seen clearly at their own point whose body is bigger than its token draws its footprint to scale beneath it:
+// a capsule, its length along the way it faces (ui/map footprintMark; MapPerson.body).
 // Roads (TV3, TV4): a road between places is ONE zone of the road kind (ZK11), however long. The Weaver gives it a length
 // (a ROAD_LENGTHS word: a short walk 0.5 km, half an hour 2, an hour's walk 4.5, half a day 15, a day's walk 30, two days
 // 60, CONFIG.ROAD_LENGTH_KM; or km) and a danger (ROAD_DANGERS: safe, quiet, wild, dangerous; the chance per hour that
