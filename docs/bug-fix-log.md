@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali approved the plan. Submit now skips an answer that was saved before Claude decided its question, because Claude already acted on it. If Ali changes that answer again, it counts as new and Submit names it. The hub page (questions/hub/hub.html) was republished as version 18; this entry and the bug log row came in the PR below. BG-271 was the same bug, numbered twice by mistake.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #950](https://github.com/ali123500-codeRPG/text-rpg/pull/950)
 
 ## BG-269
 
