@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Sizing someone up is now a contest: the looker's Insight against the other person's Lying, only when the looker can see them clearly. A win reads their mood, how they feel about the looker, and whether they are hiding something (never what); an NPC keeps that for its agent, and the player's goes into the story. A loss reads nothing. An act on a person never gets a difficulty. Beats can now carry a difficulty and a fall for acts on things, and every agent is given the same sentence naming every act that needs one. Reading someone's power is parked (D-365).
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #972](https://github.com/ali123500-codeRPG/text-rpg/pull/972)
 
 ## BG-288
 
