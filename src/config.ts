@@ -12,6 +12,8 @@ import { ES } from './library/essenceIds';
  * PAST_100_STEP (Divine+, Divine++ …) */
 const PAST_100: Record<Past100Key, number> = { beyond: 150, mythic: 200, transcendent: 300, divine: 400 };
 const PAST_100_STEP = 100;
+/** a named step of that ladder (essence bounds may name one: min Bite 'divine' = 400) */
+export const past100 = (k: Past100Key): number => PAST_100[k];
 
 const DEFAULTS = {
   // ---- Part 1 ----
@@ -676,7 +678,7 @@ const DEFAULTS = {
    * one (test s341); placeholders but Lookout's Eyes, which fits every person so is picked rarely */
   ESSENCE_PICK_WEIGHT: {
     [ES.gel_patience]: 1, [ES.gate_habit]: 1, [ES.street_instinct]: 1, [ES.hard_won_habit]: 1, [ES.haggler_ear]: 1, [ES.tavern_brawler]: 1,
-    [ES.fang_nose]: 1, [ES.horn_hide]: 1, [ES.claw_pounce]: 1, [ES.lashing_tail]: 1, [ES.lookout_eyes]: 0.25,
+    [ES.fang_nose]: 1, [ES.horn_hide]: 1, [ES.claw_pounce]: 1, [ES.lashing_tail]: 1, [ES.lookout_eyes]: 0.25, [ES.cornered_nerve]: 1,
   } as Record<string, number>,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,

@@ -1,7 +1,7 @@
 // 341 Every NPC has an essence (NE1-NE5): every template and every person or beast the composer can build carries at least
 // one essence row. Beasts get shared rows by natural weapon (NE1 a), people rows come from the humanoid body so elves carry
 // them (NE2 a), Lookout's Eyes is for watchers and hunters (NE3 a). An NPC the player kills or bests with no row is flagged
-// as a bug report, essence_gap (NE4). Every row's pick weight lives in one table, CONFIG.ESSENCE_PICK_WEIGHT.
+// as a bug report, essence_gap (NE4). A row may also set min / max skills its owner must meet, so a row can be kept to Divine owners. Every row's pick weight lives in one table, CONFIG.ESSENCE_PICK_WEIGHT.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { composeError, composeTemplate, spawnNpc } from '../../src/library/spawn';
@@ -10,6 +10,7 @@ import { TP } from '../../src/library/templateIds';
 import { ES } from '../../src/library/essenceIds';
 import { RC, BT } from '../../src/library/raceIds';
 import { RO, TH } from '../../src/library/npcLayerIds';
+import { SK } from '../../src/library/skillIds';
 import { offersFromDefeats, templateEssences } from '../../src/engine/essence';
 import { isBugCode } from '../../src/save/bugs';
 import { CONFIG } from '../../src/config';
@@ -24,8 +25,7 @@ describe('every NPC has an essence', () => {
     for (const t of Object.values(lib.templates)) expect(templateEssences(t).length, t.id).toBeGreaterThan(0);
     for (const role of Object.values(lib.npcRoles!)) for (const theme of Object.values(lib.themes!)) for (const race of Object.values(lib.races ?? {})) {
       if ((role.kind !== 'beast') !== (race.bodyTypeId === BT.humanoid)) continue; // people are humanoid, beasts are not
-      // D-362: an Untrained (rank_0) beast's Resolve 50 outweighs its weapons, so it carries none; the game flags it (NE4)
-      for (const rank of role.kind === 'beast' ? ['rank_1', 'rank_3', 'rank_6', 'rank_8'] : ['rank_0', 'rank_3', 'rank_6', 'rank_8']) {
+      for (const rank of ['rank_0', 'rank_1', 'rank_3', 'rank_6', 'rank_8']) {
         const c = { race: race.id, role: role.id, theme: theme.id, rank };
         if (!composeError(c)) expect(ids(c).length, `${role.name} ${theme.name} ${race.name} ${rank}`).toBeGreaterThan(0);
       }
@@ -41,6 +41,32 @@ describe('every NPC has an essence', () => {
     expect(beast(RC.crocodile)).toEqual([ES.fang_nose, ES.lashing_tail]);
     expect(beast(RC.slime)).toEqual([ES.gel_patience]);
     for (const id of [ES.fang_nose, ES.horn_hide, ES.claw_pounce, ES.lashing_tail]) expect(ids({ race: RC.human, role: RO.brute, theme: TH.road_bandits, rank: 'rank_6' })).not.toContain(id);
+  });
+
+  it('D-362: a beast whose Resolve is above every weapon skill carries Cornered Nerve; one whose weapons outgrow it does not', () => {
+    makeVillage();
+    const beast = (race: string, rank: string) => ids({ race, role: RO.beast, theme: TH.wild_beasts, rank });
+    for (const race of [RC.wolf, RC.boar, RC.tiger, RC.dragon, RC.python]) {
+      expect(beast(race, 'rank_0'), race).toEqual([ES.cornered_nerve]); // Resolve 50, weapons about 15
+      expect(beast(race, 'rank_3'), race).not.toContain(ES.cornered_nerve); // weapons 65 over Resolve 50
+    }
+    expect(ids({ race: RC.human, role: RO.leader, theme: TH.village_folk, rank: 'rank_0' })).not.toContain(ES.cornered_nerve); // beasts only
+  });
+
+  it('min / max: a row can be kept to owners whose skill is at least or at most a value, steps past 100 included', () => {
+    makeVillage();
+    const lib = getLibrary().essences!, row = lib[ES.fang_nose];
+    const wolf = (rank: string) => ids({ race: RC.wolf, role: RO.beast, theme: TH.wild_beasts, rank });
+    expect(Object.values(lib).some((r) => r.from.min || r.from.max)).toBe(false); // the provision only: no row sets one yet
+    try {
+      lib[ES.fang_nose] = { ...row, from: { ...row.from, min: { [SK.bite]: 'divine' } } }; // Divine (400) and up only
+      expect(wolf('rank_transcendent')).not.toContain(ES.fang_nose); // Bite 300
+      expect(wolf('rank_8')).toContain(ES.fang_nose); // Divine: Bite 400
+      expect(wolf('rank_9')).toContain(ES.fang_nose); // Divine+: Bite 500, no top
+      lib[ES.fang_nose] = { ...row, from: { ...row.from, max: { [SK.bite]: 150 } } }; // kept from anyone past Beyond
+      expect(wolf('rank_6')).toContain(ES.fang_nose); // Beyond: Bite 150
+      expect(wolf('rank_7')).not.toContain(ES.fang_nose); // Mythic: Bite 200
+    } finally { lib[ES.fang_nose] = row; }
   });
 
   it('NE2 a: an elf carries what a human of the same role and theme carries', () => {

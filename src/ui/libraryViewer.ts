@@ -1065,6 +1065,7 @@ function essencesView(): HTMLElement[] {
       row('Trait', e.trait ? link('perks', e.trait, lib.perks[e.trait]?.name ?? e.trait) : none('none yet: essence traits are not written')),
       e.quirk ? row('Quirk', link('perks', e.quirk, lib.perks[e.quirk]?.name ?? e.quirk)) : null,
       row('Comes from', fromText(e)),
+      e.from.min || e.from.max ? row('Owner needs', [...Object.entries(e.from.min ?? {}).map(([sk, b]) => `${skillName(sk)} at least ${b}`), ...Object.entries(e.from.max ?? {}).map(([sk, b]) => `${skillName(sk)} at most ${b}`)].join(', ')) : null,
       e.from.deed ? null : row('NPC templates', ((ts) => (ts.length ? h('span', {}, ...ts.flatMap(([t, fit], i) => [i ? ', ' : '', link('templates', t.id, t.label ?? t.id), ` (${fitText(fit)})`])) : none('none carry it')))(
         Object.values(lib.templates).flatMap((t): [NpcTemplate, number | undefined][] => templateEssences(t).filter((x) => x.row.id === e.id).map((x) => [t, x.fit])))),
       e.from.deed ? null : row('Picked', `by weight ${CONFIG.ESSENCE_PICK_WEIGHT[e.id]} against the other essences the same NPC carries`)))),
