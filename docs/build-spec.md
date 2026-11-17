@@ -544,9 +544,15 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // PLACE_GAP_M 0.15, PLACE_SPACING_M 0.75; a move into a zone stands ENTER_M past the doorway to its body's near edge (half
 // its length more), and a spot by a wall ENTER_M from it to the body's edge (half its widest side more); a hostile is near
 // the shooter within HOSTILE_NEAR_STEP_M (0.75) plus its own melee reach (hostileNearM), which also sets when someone
-// coming closer interrupts a long action. Still to build from that page: SZ7 (doorways: the narrower of length and width
-// passes, ducking to half height at no extra time; crawling parked, D-369), SZ11 (how big a body looks: the side the viewer
-// sees), SZ12, SZ13, SZ16.
+// coming closer interrupts a long action. Round 3 (SZ11-SZ13): a body is seen as far again as a person by
+// sightFactor = √(seen area ÷ a person's from level ground), seen area = its longer floor side × (height × cos θ + shorter
+// side × sin θ), θ the look-down angle from a higher zone (0 on level ground; library/bodySize). Every sight range reads the
+// metres ÷ that factor (seeingM, seenSizeFactor): a horse is seen about twice as far as a person, a slime at 0.41 of it.
+// Cover is set for a person: a body gains a cover step for each halving of its height below 1.75 m and loses one for each
+// doubling above (−round(log2(height ÷ 1.75)); never past heavy; a zone with none gives none; coverFor), for hiding and
+// for shots at it. The range penalty reads the shot's metres ÷ the target's factor; a shot still needs the weapon's reach.
+// Still to build from that page: SZ7 (doorways: the narrower of length and width passes, ducking to half height at no
+// extra time; crawling parked, D-369), SZ16 (footprints on the map).
 // Roads (TV3, TV4): a road between places is ONE zone of the road kind (ZK11), however long. The Weaver gives it a length
 // (a ROAD_LENGTHS word: a short walk 0.5 km, half an hour 2, an hour's walk 4.5, half a day 15, a day's walk 30, two days
 // 60, CONFIG.ROAD_LENGTH_KM; or km) and a danger (ROAD_DANGERS: safe, quiet, wild, dangerous; the chance per hour that
@@ -2254,7 +2260,7 @@ The outcome and location thresholds live in CONFIG.HIT\_GAPS beside GAP\_LADDER 
 
 An attack reaches targets within its attack mode's reach (Part 5 §5), with sight on every link of the shortest path.
 
-- **Situational roll modifiers (ranged):** a hostile actor close enough to strike or grab the shooter (SZ19: within a 0.75 m step plus its own melee reach, between bodies), −10 (RD5: HOSTILE\_NEAR\_STEP\_M, HOSTILE\_NEAR\_MOD; Point Blank removes it). Range (`rangeMod`, CONFIG.RANGE\_SHARE\_MODS): the distance as a share of the mode's reach, both from real metres: up to 25% 0, 50% −5, 75% −10, 100% −15. A longbow (90 m, 11 links) at 48 m is −5 where a shortbow (50 m, 6 links) is −15 \[Proposed\].
+- **Situational roll modifiers (ranged):** a hostile actor close enough to strike or grab the shooter (SZ19: within a 0.75 m step plus its own melee reach, between bodies), −10 (RD5: HOSTILE\_NEAR\_STEP\_M, HOSTILE\_NEAR\_MOD; Point Blank removes it). Range (`rangeMod`, CONFIG.RANGE\_SHARE\_MODS): the distance ÷ the target's size factor (SZ13: a horse is as easy as a person at half the metres) as a share of the mode's reach, both from real metres: up to 25% 0, 50% −5, 75% −10, 100% −15. A longbow (90 m, 11 links) at 48 m is −5 where a shortbow (50 m, 6 links) is −15 \[Proposed\].
 - **Light** (any roll that needs sight): dim −5; dark −10. The attacker uses the target's zone; a defender uses the attacker's zone.
 - **Cover** (ranged attacks only): the target's zone cover 1 → gap +1, cover 2 → gap +2.
 

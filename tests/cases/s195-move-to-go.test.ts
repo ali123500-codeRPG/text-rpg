@@ -15,6 +15,7 @@ it('BG-47: a leg that stops short of the door says how many metres are still to 
   const zs = s.places.flatMap((p) => p.zones);
   for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
   placeZones(s, zs);
+  s.actors.find((a) => a.id === 'slime_1')!.zone = 'field_edge'; // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
   placeAll(s);
   const street = zs.find((z) => z.id === 'street_door')!.rect!, room = zs.find((z) => z.id === 'tav_common')!.rect!;
   s.player.pos = { x: street.x + Math.sign(street.x - room.x) * (street.w / 2 - 0.5), y: street.y + Math.sign(street.y - room.y) * (street.d / 2 - 0.5) };
@@ -32,6 +33,7 @@ it('BG-48: a leg toward someone in another zone that stops short says how far th
   const zs = s.places.flatMap((p) => p.zones);
   for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
   placeZones(s, zs);
+  s.actors.find((a) => a.id === 'slime_1')!.zone = 'field_edge'; // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
   placeAll(s);
   const street = zs.find((z) => z.id === 'street_door')!.rect!, room = zs.find((z) => z.id === 'tav_common')!.rect!;
   s.player.pos = { x: street.x + Math.sign(street.x - room.x) * (street.w / 2 - 0.5), y: street.y + Math.sign(street.y - room.y) * (street.d / 2 - 0.5) };

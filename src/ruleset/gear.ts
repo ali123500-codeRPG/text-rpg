@@ -2,7 +2,8 @@
 import { ageMult } from './age';
 import type { Actor, AugmentKind, AugmentWhen, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
-import { LIGHT } from '../scales';
+import { COVER, LIGHT } from '../scales';
+import { coverSteps } from '../library/bodySize';
 import { CONFIG } from '../config';
 import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
@@ -142,15 +143,23 @@ export const rollTags = (skill: string, add: SituationTag[] = []): SituationTag[
 /** the summed sign a situational table gives a roll's tags (+ helps the roll's owner) */
 export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number => tags.reduce((n, t) => n + (CONFIG.SITUATION_TAGS[table][t] ?? 0), 0);
 
+/** SZ12: the cover a body has in a zone: the zone's cover is set for a person; a body gains a step for each halving of its
+ * height below a person's and loses one for each doubling above, never past heavy; a zone with no cover gives none */
+export function coverFor(state: GameState, body: Actor | undefined, zone: Zone): Zone['cover'] {
+  if (!body || zone.cover === 'none') return zone.cover;
+  return COVER.at(Math.max(0, Math.min(COVER.keys.length - 1, COVER.pos(zone.cover) + coverSteps(actorBody(state, body).size))));
+}
+
 /** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover tier
- * shift (the roller's zone) for one roll. A ranged attack's cover is a gap shift instead (ruleset attack). */
-export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
+ * shift (the roller's zone; SZ12: by the size of the `body` it hides, when one does) for one roll. A ranged attack's cover
+ * is a gap shift instead (ruleset attack). */
+export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor; body?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
   // All-50 Child of Night: light reads one step darker for the owner's stealth rolls
   // All-50 Night Eyes: light reads one step brighter for the owner's Eyesight rolls
   const darker = (tags.includes('stealth') && hasPerk(at.actor, PK.child_of_night) ? 1 : 0) - (skill === SK.eyesight && hasPerk(at.actor, PK.night_eyes) ? 1 : 0);
   const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(Math.max(0, LIGHT.pos(zoneLight(state, at.light)) + darker))] ?? 0) : 0;
-  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[at.cover.cover] ?? 0) : 0;
+  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[coverFor(state, at.body, at.cover)] ?? 0) : 0;
   return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
 }
 
