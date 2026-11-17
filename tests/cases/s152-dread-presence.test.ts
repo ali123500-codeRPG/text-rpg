@@ -41,7 +41,7 @@ describe('152 Dread Presence', () => {
     expect(perks[PK.dread_presence]?.ladder).toEqual({ skill: SK.intimidation, milestone: 100 });
     expect(BUILT_PERKS.has(PK.dread_presence)).toBe(true);
     expect(FUNCTION_GROUP[FN.engagement_aura]).toBe(GR.aura);
-    expect(FUNCTION_GROUP[FN.offensive_aura]).toBe(GR.aura);
+    expect(FUNCTION_GROUP[FN.projected_aura]).toBe(GR.aura);
     expect(functionName(FN.engagement_aura)).toBe('Engagement aura');
   });
 
