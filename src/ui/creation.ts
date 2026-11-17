@@ -132,7 +132,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     openPanel('Estimate', [
       { k: 'Figure', v: 'Vs one slime' },
       { k: 'Source', v: 'The game’s attack rules, run as seeded practice swings: you with your starting weapon (or bare hands) against one slime, and its slam against you with your standing defense.' },
-      { k: 'Swings', v: inp, edit: true },
+      { k: 'Swings', v: inp, picked: true },
     ], 'More swings give a steadier estimate. Only this screen changes.');
     inp.focus();
   }
