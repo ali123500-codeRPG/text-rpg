@@ -4,7 +4,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { CONFIG, resetConfig } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
-import { createPlayer, recommendedBuild, validateBuild } from '../../src/library/spawn';
+import { createPlayer, presetSkills, recommendedBuild, validateBuild } from '../../src/library/spawn';
+import { npcTemplate } from '../../src/library';
+import { TP } from '../../src/library/templateIds';
 import { burdenShare, burdenTotal } from '../../src/ruleset/burdenTotal';
 
 afterEach(() => resetConfig());
@@ -43,5 +45,15 @@ describe('FC4 (D-377): flaws raise their group\'s share of the Total', () => {
     const n = (state: 'normal' | 'flawed', raw: number) => ({ raw, state });
     expect(burdenTotal({ [SK.persuasion]: n('flawed', 0), [SK.intimidation]: n('normal', 60), [SK.barter]: n('normal', 40) })).toBeCloseTo(100 * (1 + mate));
     expect(burdenTotal({ [SK.persuasion]: n('flawed', 0), [SK.intimidation]: n('flawed', 60), [SK.barter]: n('flawed', 40) })).toBeCloseTo(100 * (1 + 3 * mate));
+  });
+});
+
+describe('FC8 b: NPCs mirror the tags: low-band skills are flawed', () => {
+  it('a guard preset: high band tagged, moderate normal, low flawed', () => {
+    const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', classId: undefined, generation: 'rolled' as const, minimums: {} };
+    const s = presetSkills(bandit); // Soldier, Town watch, Trained (anchor 50), no class floors
+    expect(s[SK.melee_medium].state).toBe('tagged');
+    expect(s[SK.endurance].state).toBe('normal');
+    expect([s[SK.parry], s[SK.earshot]]).toEqual([{ raw: 30, state: 'flawed' }, { raw: 30, state: 'flawed' }]);
   });
 });
