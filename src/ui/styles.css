@@ -309,14 +309,16 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-bfbtn:hover, .cs-bfbtn:focus-visible { border-color: var(--border); }
 .cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
-.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
-.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--r-lg);
-  background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
-.cs-tile:hover, .cs-tile:focus-visible { border-color: var(--accent); }
+/* HS7: tiles sit flat on the sky, hairlines between them; a lit tile gets a 3px line under it in its colour */
+.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--border); }
+.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 0; border-left: 1px solid var(--border);
+  border-bottom: 3px solid transparent; background: none; color: var(--text); font: inherit; cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
+.cs-tile:first-child { border-left: 0; }
+.cs-tile:hover, .cs-tile:focus-visible { background: var(--accent-soft); }
 .cs-tile b { font-size: 20px; font-weight: 800; line-height: 1.2; }
 .cs-tile-sub { max-width: 100%; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cs-tile.lit[data-tile="essences"] { border-color: color-mix(in oklch, var(--essence) 60%, var(--border)); }
-.cs-tile.lit[data-tile="perks"] { border-color: color-mix(in oklch, var(--perk-20) 60%, var(--border)); }
+.cs-tile.lit[data-tile="essences"] { border-bottom-color: var(--essence); }
+.cs-tile.lit[data-tile="perks"] { border-bottom-color: var(--perk-20); }
 .cs-tile.lit[data-tile="perks"] b { color: var(--perk-20); }
 @media (max-width: 900px) {
   main.cs-page { height: auto; } .cs-page .cs-split { grid-template-columns: minmax(0, 1fr); } .cs-page .cs-card, .cs-right { overflow: visible; }
@@ -413,7 +415,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .pk-full .pk { margin: 0; border: 0; border-radius: 0; padding: 20px var(--space-8) var(--space-6); }
 .pk-full .pk-h { padding-right: 56px; }
 .pk-full .pk-lad { --rh: clamp(200px, calc((var(--vh) - 360px) / 2), 320px); }
-.cs-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px; display: grid; gap: var(--space-4); }
+.cs-card { border-right: 1px solid var(--border); padding: 4px 20px 4px 0; display: grid; gap: var(--space-4); } /* HS7: flat on the sky, a hairline beside the skill trees */
 .cs-who { display: flex; gap: 14px; align-items: center; }
 .cs-who b { font-size: 18px; display: block; }
 .cs-who span { color: var(--muted); font-size: 13px; }
