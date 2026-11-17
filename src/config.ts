@@ -901,6 +901,8 @@ const DEFAULTS = {
   CLASS_MAX_LEVEL: 20,
   /** CB5: Late Bloom gives the double improvement roll to a skill whose raw is below this share of the owner's highest raw skill (placeholder) */
   LATE_BLOOM_SHARE: 0.5,
+  /** UL1: Any Road Will Do adds this to the stand-in share of every function (placeholder) */
+  UL_STAND_IN_ADD: 0.2,
   /** CS11: a ladder perk milestone every this many points of true skill, and an All step every ALL_STEP_EVERY, with no top */
   PERK_MILESTONE_EVERY: 20,
   ALL_STEP_EVERY: 50,

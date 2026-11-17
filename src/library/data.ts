@@ -317,8 +317,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'The skills you left behind catch up fast once people start watching.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: [`the skill's raw value is below ${CONFIG.LATE_BLOOM_SHARE} × the owner's highest raw skill (CONFIG.LATE_BLOOM_SHARE, placeholder)`], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
+  [PK.any_road_will_do]: { // UL1: Unwritten Legend's own level 1 perk (UL2: Quick Study stays A Nobody's)
+    id: PK.any_road_will_do, name: 'Any Road Will Do', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, standIn: { add: CONFIG.UL_STAND_IN_ADD },
+    story: 'No one showed you the way, so every way works for you.',
+    rules: { kind: 'passive', trigger: 'any roll where another skill stands in for the one asked for', conditions: [], effect: `the stand-in share of every function is +${CONFIG.UL_STAND_IN_ADD} (CONFIG.UL_STAND_IN_ADD, placeholder), within 0 to 1`, lasts: 'always' },
+  },
   [PK.quick_study]: {
-    id: PK.quick_study, name: 'Quick Study', built: true, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
+    id: PK.quick_study, name: 'Quick Study', built: true, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, classLevel: { classId: CL.a_nobody, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
@@ -941,7 +946,7 @@ export function prototypeLibrary(): Library {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
       [CL.swordsman]: { id: CL.swordsman, personality: { [PA.discipline]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Swordsman', tier: 'tier_2', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 80 }, unlockAny: [{ [SK.melee_medium]: 60, [SK.melee_heavy]: 60 }], levelPerks: { 1: [PK.blade_against_blade] } },
       // the class of the late bloomer start (ST2): a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, unlockClass: { [CL.a_somebody]: 'max' }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes], // CB3: also opens at A Somebody's top level
+      [CL.late_bloomer]: { id: CL.late_bloomer, personality: { [PA.curiosity]: CONFIG.ACH_PERSONALITY_STEP }, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, unlockClass: { [CL.a_somebody]: 'max' }, levelPerks: { 1: [PK.any_road_will_do] }, capstone: [PK.as_far_as_the_road_goes], // CB3: also opens at A Somebody's top level
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // TB7: the Threadbounded class, used only by The Threadbound start (ST4); its level 1 perk gives a random Threadbound item. No unlock
