@@ -47,6 +47,7 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
     const look = pick.health && pick.health !== 'unhurt' ? `${cap(nameOf(pick))} is ${othersHealthWord(pick.health, pick.level === 'full')}` : `${cap(nameOf(pick))} ${doing}`;
     put('attack', { target: pick.id }, W.attack + (inReach.includes(pick) ? W.inReach : 0), `${look}${inReach.includes(pick) && reach ? ` and within your ${reach.name}'s reach` : ''}.`);
   }
+  if (fight && me.finishable) put('finish', {}, W.finish, 'They are far below you: you can play the whole fight out in one go.'); // IQ7 a
   if (me.walking) put('keep_walking', {}, W.walking, `You are on your way to ${me.walking.to}.`);
   if (!fight) {
     if (find('loot')) put('loot', {}, W.loot, 'There are things here you can take.');

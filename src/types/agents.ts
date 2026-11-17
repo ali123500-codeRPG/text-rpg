@@ -65,6 +65,7 @@ export type Intent = {
   clarify: string | null;
   answers?: string[]; // BG-228: with a clarify, two or three replies the player might pick (shown as buttons that fill the box)
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
+  finish?: boolean; // IQ7 a: the player finishes a fight far below them (player.finishable) on code, in one turn
   standDown?: string | null; // TF11: the player takes the offer to stand down that this one made (player.standDownOffers)
   letsSearch?: string | null; // BF16: the one the player lets search them
   look?: 'stats' | 'inv'; // OA4: the player only looks at their own sheet or what they carry: no turn passes

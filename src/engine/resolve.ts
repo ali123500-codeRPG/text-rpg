@@ -2425,7 +2425,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
 export type FrontierWait = { actorId: string; frontier: string };
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
-  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; } // NW3/NW11: this turn's only
+  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; delete state.scratch.fightFinished; } // NW3/NW11: this turn's only
   (state.scratch ??= {}).agentRun = usableAgentOutputs(input).map((o) => o.actorId); // NW11: their agent moved them this turn
   const clockStart = now(state);
   const startPos = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])); // AT67: where everyone stood
