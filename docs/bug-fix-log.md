@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-300
+
+**What was wrong:** On a phone (390 px wide), six tabs of the library viewer scrolled sideways: Body types (by 22 px), Skills, Stand-ins, Equations, Quests and Nerve (by up to 409 px). Their small tables kept every column, and a card's body sized its column to fit the widest table, so cards and the page grew wider than the screen.
+
+**What was done:** At 760 px and below, every small table in a view (such as a body type's parts, a skill group's skills or an equation's table) now shows one small card per row, with each value labelled by its column. The main table view and the perk ladder grid keep their own phone layout. A card's body can no longer grow wider than its card. All 58 tabs were checked at 390, 600 and 760 px: none scrolls sideways.
+
+**Fixed by:** [PR #1011](https://github.com/ali123500-codeRPG/text-rpg/pull/1011)
+
 ## BG-299
 
 **What was wrong:** On the Questions hub, Ali emptied his new answer to TC31 ("Tactics skill tree"), a question that had been asked again, and his earlier answer disappeared too. The hub keeps the earlier answer inside the same saved record as the new one, and emptying a box deleted that whole record. The BG-298 fix shortly before had been tested on typing only, not on erasing.
