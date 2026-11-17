@@ -6,7 +6,7 @@ import { actorBody, getLibrary, itemDef, raceSize } from '../library';
 import { figureKey, figureUpright } from '../library/figureModels';
 import { BT, RC } from '../library/raceIds';
 import { figure3d } from './figure3d';
-import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
+import { defaultMode, effectiveSkill, FLAW_MARK, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
 import { partName, poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
 import { hollowedMult, type SkillPart } from '../ruleset/perks';
@@ -62,13 +62,15 @@ export function trees(p: Actor, withZero: boolean) {
   return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => {
     // a skill rolled but not on the sheet yet shows at 0 (fists use Strike), so the player sees it learning
     const ks = lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined || used.includes(k));
-    const rows = ks.map((k) => ({ id: k, raw: p.core.skills[k]?.raw ?? 0, tagged: p.core.skills[k]?.state === 'tagged', off: p.core.skills[k] === undefined }));
+    const rows = ks.map((k) => ({ id: k, raw: p.core.skills[k]?.raw ?? 0, tagged: p.core.skills[k]?.state === 'tagged', flawed: p.core.skills[k]?.state === 'flawed', off: p.core.skills[k] === undefined }));
     return { id: t.id, c: t.c, name: lib.trees[t.id].name, block: treeBlock(p, t.id), sum: rows.reduce((a, r) => a + r.raw, 0), rows: withZero ? rows : rows.filter((r) => r.raw > 0 || r.off) };
   }).filter((t) => t.sum > 0 || t.rows.some((r) => r.off));
 }
 
 /** a tagged skill's mark; hovering it says Tagged */
 export const tag = () => h('span', { class: 'tag', title: 'Tagged', 'aria-label': 'tagged' }, TAG_MARK);
+/** FC5: a flawed skill's mark; hovering it says Flawed */
+export const flaw = () => h('span', { class: 'flaw', title: 'Flawed', 'aria-label': 'flawed' }, FLAW_MARK);
 const offNote = () => h('small', { class: 'off', title: 'You have used this skill. It is not on your sheet yet and learns as you use it.' }, 'used');
 /** V3a: a skill marked for an improvement roll */
 const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
@@ -225,7 +227,7 @@ export function treeBars(p: Actor): HTMLElement {
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero'), role: 'button', tabindex: '0', 'aria-haspopup': 'dialog', 'data-skill': r.id,
         title: 'What makes up this skill', onclick: (e: Event) => openSkillPop(p, r.id, e.currentTarget as HTMLElement),
         onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillPop(p, r.id, e.currentTarget as HTMLElement); } } },
-        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
+        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
         bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
 }
 
@@ -255,10 +257,10 @@ export function skillFacts(p: Actor, id: string) {
 export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null): void {
   const f = skillFacts(p, id);
   const line = (label: string, v: string, cls = '') => h('div', { class: 'sk-line ' + cls }, h('span', {}, label), h('b', {}, v));
-  const tagged = p.core.skills[id]?.state === 'tagged';
+  const tagged = p.core.skills[id]?.state === 'tagged', flawed = p.core.skills[id]?.state === 'flawed';
   openPop({ title: skillName(id), cls: 'sk-pop', opener, body: [
     h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), h('span', {}, f.value === f.raw ? 'Skill' : `True skill · raw ${f.raw}`),
-      tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
+      tagged ? h('span', { class: 'sk-chip' }, tag(), ' Tagged') : null, flawed ? h('span', { class: 'sk-chip' }, flaw(), ' Flawed') : null, marked(p, id) ? h('span', { class: 'sk-chip' }, markDot(), ' Marked to improve') : null),
     SKILL_SUB[id] && !f.gives.length ? h('p', { class: 'hs-note' }, cap(SKILL_SUB[id]) + '.') : null,
     h('div', { class: 'sk-list', 'aria-label': 'What adds to it' },
       line('Raw', whole(f.raw), 'sk-raw'), ...f.parts.map((x) => line(x.label, signed(x.adds))),
@@ -268,9 +270,10 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
     f.gives.length ? h('p', {}, `Adds to ${f.gives.join(' and ')} rolls.`) : null,
     h('div', { class: 'sk-list' },
       line('Learns from', winText(f.window)),
+      flawed ? line('Flawed', `learns slower, stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}`, 'sk-bad') : null,
       // BU3 b: shown only once Burden is above 0, and only here
       f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad') : null,
-      f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your skills add up to ${whole(f.burden.total)} (a tag counts 0 and each tag in a group takes ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in it), past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
+      f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your skills add up to ${whole(f.burden.total)} (a tag counts 0, each tag in a group takes ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in it and each flaw adds ${CONFIG.FLAW_BURDEN_GROUP_PCT}%), past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
       f.groupBonus > 0 ? line('Tagged group-mates', `+${whole(f.groupBonus)} to improve`) : null,
       line('Next perk milestone', `${f.next} · ${whole(f.toNext)} to go`)),
   ] });
@@ -526,7 +529,7 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
     ...trees(p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
       t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : ''), 'data-skill': r.id },
-        h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
+        h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, r.flawed ? [' ', flaw()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
         bar(r.raw, windowOf(p, r.id)), h('b', { 'data-m': 'skill' }, String(r.raw)))))),
   ];
 }

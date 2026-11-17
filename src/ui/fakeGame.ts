@@ -355,7 +355,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },
     ];
   }
-  if (opts.autoStart) start({ name: 'Aldric', skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20, [SK.resolve]: 45 }, tagged: [SK.melee_medium, SK.parry, SK.endurance],
+  if (opts.autoStart) start({ name: 'Aldric', skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20, [SK.resolve]: 45 }, tagged: [SK.melee_medium, SK.parry, SK.endurance], flawed: [SK.persuasion, SK.barter, SK.sneaking],
     personality: { nerve: 40, traits: { [PA.honesty]: 50, [PA.pride]: 25, [PA.sociability]: -30 }, values: [VL.duty, VL.freedom] } });
 
   return {

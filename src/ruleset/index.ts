@@ -565,3 +565,5 @@ export function usedOffSheet(actor: Actor): string[] {
 }
 /** the mark for a tagged skill, in /stats text and on the sheets (the play screen explains it on hover) */
 export const TAG_MARK = '✦';
+/** FC5: a flawed skill's mark, beside the tag mark */
+export const FLAW_MARK = '−';
