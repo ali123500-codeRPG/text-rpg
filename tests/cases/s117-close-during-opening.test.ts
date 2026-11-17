@@ -7,7 +7,7 @@ import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agent
 import { loadPendingStart, memoryStore } from '../../src/save';
 import { SK } from '../../src/library/skillIds';
 
-const build = { name: 'Arden', skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
+const build = { name: 'Arden', skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 }, tagged: [SK.melee_medium, SK.parry, SK.endurance], flawed: [SK.persuasion, SK.barter, SK.sneaking] };
 const stuck: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
 
 describe('117 close during the opening', () => {

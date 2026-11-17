@@ -1,7 +1,7 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import { BT, RC } from './raceIds';
 import type { StartDef } from '../types/library';
-import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Personality, Rng, SkillEntry } from '../types';
+import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Personality, Rng, SkillEntry, SkillState } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
@@ -475,8 +475,14 @@ export const playableRaces = (): string[] => Object.values(getLibrary().races ??
 const startDef = (startId: string): StartDef | undefined => getLibrary().starts[startId];
 /** a Start's creation points and starting level (StartDef, else CONFIG) */
 export const creationPoints = (startId = PLAYER_START) => startDef(startId)?.points ?? CONFIG.CREATION_POINTS;
-/** the most points one skill can take at creation: CREATION_MAX_TAGGED when tagged, else CREATION_MAX_UNTAGGED */
-export const creationCap = (tagged: boolean): number => (tagged ? CONFIG.CREATION_MAX_TAGGED : CONFIG.CREATION_MAX_UNTAGGED);
+/** the most points one skill can take at creation: CREATION_MAX_TAGGED when tagged, CREATION_MAX_FLAWED when flawed (FC3),
+ * else CREATION_MAX_UNTAGGED */
+export const creationCap = (tagged: boolean, flawed = false): number =>
+  (tagged ? CONFIG.CREATION_MAX_TAGGED : flawed ? CONFIG.CREATION_MAX_FLAWED : CONFIG.CREATION_MAX_UNTAGGED);
+
+/** a build's state for one skill: tagged, flawed or normal */
+export const buildState = (b: Pick<CreationBuild, 'tagged' | 'flawed'>, k: string): SkillState =>
+  b.tagged.includes(k) ? 'tagged' : b.flawed.includes(k) ? 'flawed' : 'normal';
 /** AG15: the age picker: from the race's youngest age (no children) to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
 export const creationAge = (startId = PLAYER_START) => startDef(startId)?.age ?? CONFIG.CREATION_AGE_DEFAULT;
 /** the stages the age pickers stop at: a random identity before Old (no one starts in old-age decline), the creation picker at Venerable (AG15) */
@@ -589,13 +595,14 @@ export function recommendedBuild(startId = PLAYER_START, raceId?: string): Creat
     name: 'Aldric', startId,
     skills: { [SK.melee_medium]: 40, [SK.parry]: 25, [SK.dodge]: 10, [SK.endurance]: 15, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
+    flawed: [SK.persuasion, SK.barter, SK.sneaking], // FC1 [Proposed]: skills the swordsman build never uses
   };
   return raceId === undefined || raceId === PLAYER_RACE ? base : raceBuild(base, startId, raceId);
 }
 
 /** CC8: the recommended build for a race whose body closes some of its skills (a Slime has no hands, eyes or ears): the
  * closed skills' points go to the open skills of the build, then to the other open skills, in library order, up to the
- * creation cap; tags move to the highest open skills. Class floors stay. */
+ * creation cap; tags move to the highest open skills and flaws to the lowest. Class floors stay. */
 function raceBuild(base: CreationBuild, startId: string, raceId: string): CreationBuild {
   const who = { core: newPlayer(startId, undefined, raceId) } as Actor;
   const open = Object.keys(getLibrary().skills).filter((k) => skillOpen(who, k));
@@ -604,14 +611,17 @@ function raceBuild(base: CreationBuild, startId: string, raceId: string): Creati
   for (const [k, v] of Object.entries(base.skills)) if (open.includes(k)) skills[k] = Math.max(v, floors[k] ?? 0);
   for (const k of Object.keys(floors)) if (open.includes(k) && !(k in skills)) skills[k] = floors[k];
   const tagged = base.tagged.filter((k) => open.includes(k)); // the base tags the body keeps; the rest go below
+  const flawed = base.flawed.filter((k) => open.includes(k));
   let spare = creationPoints(startId) - Object.values(skills).reduce((n, v) => n + v, 0);
   for (const k of [...Object.keys(skills), ...open.filter((k) => !(k in skills))]) {
     if (spare <= 0) break;
-    const add = Math.min(spare, creationCap(tagged.includes(k)) - (skills[k] ?? 0));
+    const add = Math.min(spare, creationCap(tagged.includes(k), flawed.includes(k)) - (skills[k] ?? 0));
     if (add > 0) { skills[k] = (skills[k] ?? 0) + add; spare -= add; }
   }
-  for (const k of Object.keys(skills).sort((a, b) => skills[b] - skills[a])) if (tagged.length < CONFIG.CREATION_TAGS && !tagged.includes(k)) tagged.push(k);
-  return { ...base, skills, tagged, raceId };
+  for (const k of Object.keys(skills).sort((a, b) => skills[b] - skills[a])) if (tagged.length < CONFIG.CREATION_TAGS && !tagged.includes(k) && !flawed.includes(k)) tagged.push(k);
+  for (const k of [...open].sort((a, b) => (skills[a] ?? 0) - (skills[b] ?? 0)))
+    if (flawed.length < CONFIG.CREATION_FLAWS && !tagged.includes(k) && !flawed.includes(k) && (skills[k] ?? 0) <= CONFIG.CREATION_MAX_FLAWED && !(floors[k] > CONFIG.CREATION_MAX_FLAWED)) flawed.push(k);
+  return { ...base, skills, tagged, flawed, raceId };
 }
 
 /** CC8: why a race can't begin a Start: its class needs a skill that race's body can't learn; '' when it can */
@@ -624,7 +634,8 @@ export function raceStartBlock(startId: string, raceId: string = PLAYER_RACE): s
   return `a ${r} can't learn ${closed.map((k) => getLibrary().skills[k] ? skillName(k) : k).join(', ')}, which ${c} needs.`;
 }
 
-/** Empty = valid. Every point spent, skills in trees open to a new player only (TA1), none above the cap, class floors met, exactly CREATION_TAGS tags. */
+/** Empty = valid. Every point spent, skills in trees open to a new player only (TA1), none above the cap, class floors met, exactly
+ * CREATION_TAGS tags and CREATION_FLAWS flaws (FC1), no skill both. */
 export function validateBuild(build: CreationBuild): string[] {
   const lib = getLibrary();
   const errs: string[] = [];
@@ -640,7 +651,8 @@ export function validateBuild(build: CreationBuild): string[] {
   for (const [id, v] of Object.entries(build.skills)) {
     if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} is not open to the point-buy`);
     if (!Number.isInteger(v) || v < 0) errs.push(`${skillName(id)} must be a whole number of points, 0 or more`);
-    else if (v > creationCap(build.tagged.includes(id))) errs.push(`${skillName(id)} is above ${creationCap(build.tagged.includes(id))}${build.tagged.includes(id) ? ' (tagged)' : ' (untagged; tagged skills take up to ' + CONFIG.CREATION_MAX_TAGGED + ')'}`);
+    else if (v > creationCap(build.tagged.includes(id), build.flawed.includes(id)))
+      errs.push(`${skillName(id)} is above ${creationCap(build.tagged.includes(id), build.flawed.includes(id))}${build.tagged.includes(id) ? ' (tagged)' : build.flawed.includes(id) ? ' (flawed)' : ' (untagged; tagged skills take up to ' + CONFIG.CREATION_MAX_TAGGED + ')'}`);
     spent += v;
   }
   const floors = classFloors(cls);
@@ -653,6 +665,11 @@ export function validateBuild(build: CreationBuild): string[] {
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
   if (tags.size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills (${tags.size} tagged)`);
   for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} cannot be tagged`);
+  const flaws = new Set(build.flawed);
+  if (flaws.size !== build.flawed.length) errs.push('A skill is flawed twice');
+  if (flaws.size !== CONFIG.CREATION_FLAWS) errs.push(`Flaw exactly ${CONFIG.CREATION_FLAWS} skills (${flaws.size} flawed)`);
+  for (const id of flaws) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} cannot be flawed`);
+  for (const id of flaws) if (tags.has(id)) errs.push(`${skillName(id)} cannot be both tagged and flawed`);
   const range = creationAgeRange(who.core.raceId);
   if (build.age !== undefined && range && (!Number.isInteger(build.age) || build.age < range.min || build.age > range.max)) errs.push(`Age must be a whole number from ${range.min} to ${range.max}`);
   const pe = build.personality; // PL14: points run −100 to +100; up to two values from the library
@@ -674,8 +691,8 @@ export function validateBuild(build: CreationBuild): string[] {
 export function createPlayer(build: CreationBuild, storyId: string, opts: { preview?: boolean; world?: GameState } = {}): Actor {
   const errs = opts.preview ? [] : validateBuild(build);
   if (errs.length) throw new Error(`invalid build: ${errs.join('; ')}`);
-  const skills = Object.fromEntries(Object.entries(build.skills).filter(([k, v]) => v > 0 || build.tagged.includes(k))
-    .map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }]));
+  const skills = Object.fromEntries([...new Set([...Object.keys(build.skills), ...build.tagged, ...build.flawed])]
+    .filter((k) => (build.skills[k] ?? 0) > 0 || buildState(build, k) !== 'normal').map((k) => [k, { raw: build.skills[k] ?? 0, state: buildState(build, k) }]));
   const p: Actor = {
     id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, ...(build.pronouns ? { pronouns: build.pronouns } : {}),
     label: 'a stranger', // the start class's stranger label, set below
@@ -692,7 +709,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       bornDay: -Math.round((build.age ?? creationAge(build.startId)) * CONFIG.YEAR_DAYS), // AG2, AG15: the story starts on day 1
     },
     progression: {
-      startingTotal: burdenTotal(Object.fromEntries(Object.entries(build.skills).map(([k, raw]) => [k, { raw, state: build.tagged.includes(k) ? 'tagged' : 'normal' }]))),
+      startingTotal: burdenTotal(skills),
       potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(startLevel(build.startId)), marks: [],
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },

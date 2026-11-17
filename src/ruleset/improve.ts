@@ -170,7 +170,7 @@ function improveRolls(a: Actor, raw: number): number {
 
 export type SkillGain = { skill: string; from: number; to: number; milestone?: number };
 
-/** Part 1 §6: the Total (every skill's raw at its burdenShare; flawed skills count in full) and the Potential Burden starts from */
+/** Part 1 §6: the Total (every skill's raw at its burdenShare) and the Potential Burden starts from */
 export function burdenParts(a: Actor): { total: number; potential: number } {
   const pr = a.progression!;
   const total = burdenTotal(a.core.skills);
