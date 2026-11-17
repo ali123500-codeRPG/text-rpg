@@ -273,3 +273,51 @@ export function mendLandWays(s: GameState): string[] {
   }
   return out;
 }
+
+/** WI9 a / WI10 a: the world check. Each broken rule is one line in plain words, naming what broke:
+ * - a road of the land has at most one area, the one it records;
+ * - a junction's area exists and is outdoors and no road's own area; a site's settlement exists and is a top place, and
+ *   no second top place stands on that site (areas around a junction and places inside a settlement are free);
+ * - every built road that ends at a junction or site leads, at that end, into it, or to new ground keyed by it while it
+ *   is unbuilt;
+ * - no new ground leads to land already built, and every plain way leads to an area.
+ * Two ways between the same two areas are allowed (WI6: a place can have two doors). */
+export function worldCheck(s: GameState): string[] {
+  const out: string[] = [];
+  for (const r of regions(s)) {
+    for (const line of r.roads) {
+      const on = s.zones.filter((z) => z.road === line.id);
+      if (line.zone && !zoneById(s, line.zone)) out.push(`road ${line.id} records area ${line.zone}, which does not exist`);
+      if (on.length > 1) out.push(`road ${line.id} has ${on.length} areas (${on.map((z) => z.id).join(', ')}); a road is one area`);
+      else if (on.length === 1 && line.zone !== on[0].id) out.push(`area ${on[0].id} runs along road ${line.id}, but the road records ${line.zone ?? 'no area'}`);
+    }
+    for (const n of r.nodes) {
+      if (n.kind === 'edge') continue;
+      if (n.kind === 'junction' && n.zone) {
+        const z = zoneById(s, n.zone);
+        if (!z) out.push(`junction ${n.id} records area ${n.zone}, which does not exist`);
+        else if (!z.outdoor || z.road) out.push(`junction ${n.id}'s area ${z.id} is ${z.road ? `road ${z.road}'s own area` : 'indoors'}`);
+      }
+      if (n.kind === 'site') {
+        const site = r.sites.find((x) => x.id === n.site), p = site?.placeId ? s.places.find((x) => x.id === site.placeId) : undefined;
+        if (site?.placeId && !p) out.push(`site ${site.id} records settlement ${site.placeId}, which does not exist`);
+        else if (p?.parentId) out.push(`site ${site!.id}'s settlement ${p.id} is not a top place`);
+        const tops = s.places.filter((x) => !x.parentId && x.site === n.site);
+        if (tops.length > 1) out.push(`site ${n.site} has ${tops.length} settlements (${tops.map((x) => x.id).join(', ')}); a site holds one`);
+      }
+      for (const line of roadsAt(r, n.id)) {
+        const rz = line.zone ? zoneById(s, line.zone) : undefined;
+        if (!rz) continue;
+        const t = landZone(s, n.id, line.id);
+        if (t) { if (!group(s, rz).some((z) => z.links.some((l) => group(s, t).some((g) => g.id === l.to)))) out.push(`road ${line.id}'s area ${rz.id} does not lead into ${t.id}, built at its end ${n.id}`); }
+        else if (!rz.links.some((l) => l.frontier && l.to === n.id)) out.push(`road ${line.id}'s area ${rz.id} has no way on toward its unbuilt end ${n.id}`);
+      }
+    }
+  }
+  for (const z of s.zones) for (const l of z.links) {
+    const built = l.frontier && landTarget(s, l.to) ? landZone(s, l.to, z.road) : undefined;
+    if (built) out.push(`${z.id}'s way "${l.label}" is new ground, but ${l.to} is already built as ${built.id}`);
+    else if (!l.frontier && !zoneById(s, l.to)) out.push(`${z.id}'s way "${l.label}" leads to ${l.to}, which is no area`);
+  }
+  return out;
+}
