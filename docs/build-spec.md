@@ -3036,7 +3036,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 
 | ID | Item | Part | Status | Notes |
 | --- | --- | --- | --- | --- |
-| D-1 | Setting, genre, skill trees and skill names | 1 | Deferred | Slot into the framework later. Also supplies turn 0's premise and starting place |
+| D-1 | Setting, genre, skill trees and skill names | 1 | Partly settled | Settled: genre, tone, land and power ladder (TL1–TL29, "World, tone and the power ladder"; the world lore the agents read), and the skill trees and names (the skill library). Magic and mana are parked on their own (D-332). Still open: a setting chosen per story; turn 0 always uses the one CONFIG.STORY\_PREMISE, and the land builder places the start to fit it |
 | D-2 | Training actions | 1 | Partly settled | Settled 07/11/2026 (SP1–SP6): use marks a skill (Part 1 §6). Still open: training only under a tutor (SP1), designed later. Was: what triggers them and what marks a skill; related to improvement-roll timing below |
 | D-3 | Soft cap and hard cap | 1 | Built | Settled by Ali (CS21, leftover scan round 8): the soft cap is the training cap (SKILL\_CAP 100, tagged 125, flawed 75), which limits raw skill only. Effective skill and, more importantly, true skill pass it with no hard cap ("TRUE SKILL allow the user to pass the skill cap"). Conditions stay roll modifiers. |
 | D-4 | Burden fine-tuning | 1 | Deferred | K, default 20 |
