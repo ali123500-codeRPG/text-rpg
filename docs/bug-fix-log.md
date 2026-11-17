@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A new ending, "clear": it is met once nobody hostile to the player still stands in a named place (down, broken or gone, from any group), and only after a foe has stood there during the scenario. The Weaver is told to use it for clearing a place.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
 
 ## BG-286
 
@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A new area the Weaver names after an unexplored way builds that way, as when the player walks through it, so the way is built once. The opening Weaver is told to do this when the newcomer arrives along such a way. This world keeps its two roads, since code cannot tell they are the same.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
 
 ## BG-285
 
@@ -28,7 +28,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** The unexplored way is joined first, then any missing ways back are added, so there is one way in. A save that already has the twin drops the one the code added when it loads.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
 
 ## BG-284
 
@@ -36,7 +36,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A take with nothing else to do walks over the same way a dash does, so a body across the area is usually reached in one turn. One still too far says how far short you are, and you take it next turn, with no bug filed. The minimap now shows two circles in a fight: how far you walk and how far you dash this turn.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #967](https://github.com/ali123500-codeRPG/text-rpg/pull/967)
 
 ## BG-283
 
