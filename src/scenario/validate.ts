@@ -349,6 +349,16 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       else if (z.road !== undefined || !getLibrary().zoneKinds?.[z.kind]?.outdoor) err('bad_zone', `zone ${z.key}: a junction's zone is outdoors and runs along no road (the roads meeting there are their own zones)`);
       else if (zones.some((o) => o !== z && o.node === z.node)) err('bad_zone', `zone ${z.key}: junction ${z.node} is one zone`);
     }
+    if (z.sideWay !== undefined) { // RE8 a
+      const r = state.stage.encounter ? state.regions?.find((x) => x.roads.some((l) => l.id === zoneById(state, state.stage.encounter!.zone)?.road)) : undefined;
+      const to = z.sideWay?.toward;
+      if (!r) err('bad_zone', `zone ${z.key}: sideWay is only for a road encounter on a road of the land (target.encounter)`);
+      else if (z.road !== undefined || z.node !== undefined || !getLibrary().zoneKinds?.[z.kind]?.outdoor) err('bad_zone', `zone ${z.key}: a side way's zone is outdoors, beside the road, with no road or node of its own`);
+      else if (zones.filter((o) => o.sideWay).length > 1) err('bad_zone', `zone ${z.key}: an encounter opens one side way at most`);
+      else if (to !== undefined && !r.sites.some((x) => x.id === to) && !r.features.some((f) => f.id === to || f.name.toLowerCase() === String(to).toLowerCase()))
+        err('bad_zone', `zone ${z.key}: sideWay.toward is a site id from land.sites or a landmark name from land.landmarks, or left out`);
+      else if (z.sideWay?.name !== undefined) text(`zone ${z.key} sideWay name`, z.sideWay.name, true);
+    }
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
     const edgeKinds = getLibrary().edgeKinds ?? {};
     for (const [side, ek] of Object.entries(z.edges ?? {})) {
@@ -356,7 +366,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     }
     if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     // NW4: an onward kind (a street, square, gate, field, woods or road) links somewhere besides the way in
-    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && !z.road && !z.node && neighbours(z.key).size < 2) // WI2 a: code makes a land zone's ways
+    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && !z.road && !z.node && !z.sideWay && neighbours(z.key).size < 2) // WI2 a: code makes a land zone's ways
       err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind]?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);

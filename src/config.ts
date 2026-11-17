@@ -766,6 +766,7 @@ const DEFAULTS = {
   TRAVEL_STRAIN_PER_HOUR: 1,
   LONG_TURN_LINES: 5, // BF2e4: a long turn's summary names at most this many people; the rest are "others came and went"
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
+  SIDE_WAY_M: 800, // RE8: a side way an encounter opens with no landmark or settlement to lead to ends this far off the road (placeholder)
   TRAVEL_LEG_MIN: 60,
   TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn
   /** TV4/TV5 pressing on in the dark: the event roll's modifier and the encounter chance's multiplier (placeholders) */

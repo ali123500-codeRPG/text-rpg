@@ -26,7 +26,7 @@ import { startSpar } from '../engine/spar';
 import { seedGoals } from '../engine/goals';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
-import { joinFrontier, joinWay, landNode, landRoad, landTarget, landZone, makeLandWays } from './ways';
+import { joinFrontier, joinWay, landNode, landRoad, landTarget, landZone, makeLandWays, openSideWay } from './ways';
 import { wornPack } from '../engine/containers';
 import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
@@ -269,6 +269,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (stub) { Object.assign(stub, { ...node, zones: stub.zones }); delete stub.bare; }
     else state.places.push(node);
   }
+  // RE8 a: a road encounter's zone that opens a side way is built at a junction code adds on the road where it stands
+  const enc = state.stage.encounter, encRoad = enc ? zoneById(state, enc.zone) : undefined;
+  const side = encRoad?.road ? plan.zones.find((z) => z.sideWay && !z.node && !z.road) : undefined;
+  if (side) { const jn = openSideWay(state, encRoad!.road!, enc!.at, side.sideWay!.toward, side.sideWay!.name); if (jn) side.node = jn; }
   const newZones: Zone[] = [];
   for (const z of plan.zones) {
     const links: ZoneLink[] = z.links.map((l) => {
@@ -297,6 +301,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (ctx.frontierKey && newZones[0]) joinFrontier(state, ctx.frontierKey, newZones[0]);
   for (const key of builtFrontiers) joinFrontier(state, key, newZones.find((z) => z.id === key)!);
   ensureBackLinks(state, newZones);
+  if (side?.node) { const z = zoneById(state, zoneMap.get(side.key)!); if (z) joinWay(state, encRoad!, z); } // RE8: beside the road
   makeLandWays(state, newZones, sited.map((id) => state.places.find((p) => p.id === id)!)); // WI2 a
   const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);

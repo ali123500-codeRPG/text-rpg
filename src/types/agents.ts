@@ -196,6 +196,7 @@ export type StagePlan = {
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     road?: string; // WZ1 a road zone: the region road it runs along (its length and danger come from the land)
     node?: string; // WI2 a junction's zone: the land junction id (land.junctions) it is built at
+    sideWay?: { toward?: string; name?: string }; // RE8 a: on a road encounter, this zone opens a side way off the road: a path toward a site id or landmark name, or a short path of its own
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
     links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];
