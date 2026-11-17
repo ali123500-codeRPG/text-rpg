@@ -327,6 +327,8 @@ export type LandView = {
   region: string; name: string; look: string; kind: string; start?: string;
   sites: { id: string; size: string; name: string; look: string; where: string; place?: string; roster?: RosterView[] }[];
   roads: { id: string; kind: string; from: string; to: string; km: number; danger: string; crosses?: string; zone?: string; travellers?: RosterView[] }[];
+  /** WI2 a: where roads meet, with the zone built there once someone has */
+  junctions: { id: string; where: string; roads: number; zone?: string }[];
   landmarks: { name: string; kind: string; look: string; where: string; people?: RosterView[] }[];
   beyond: Record<string, string>;
   /** NR19: the World builder's view only: who can be met on each land cover here, at this time of day */
@@ -349,6 +351,8 @@ export type WeaverView = {
     ahead?: true;
     /** WB3: the Weaver's short brief for the ground beyond this frontier (World builder) */
     brief?: string;
+    /** WI2 a: the frontier is the land's own: its first zone must be this road's zone, this junction's, or a settlement on this site */
+    land?: import('../scenario/ways').LandTarget;
     /** SC8: why this check-in was asked, and the running scenario it is about */
     reason?: import('./hidden').CheckinReason;
     scenario?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean;

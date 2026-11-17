@@ -26,6 +26,7 @@ import { startSpar } from '../engine/spar';
 import { seedGoals } from '../engine/goals';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
+import { joinFrontier, joinWay, landNode, landRoad, landTarget, landZone, makeLandWays } from './ways';
 import { wornPack } from '../engine/containers';
 import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
@@ -77,9 +78,8 @@ function ensureBackLinks(state: GameState, newZones: Zone[]): void {
   for (const s of state.zones) for (const l of s.links) if (newZones.some((z) => z.id === l.to)) addBackLink(state, s, l);
 }
 function addBackLink(state: GameState, from: Zone, l: ZoneLink): void {
-  if (l.frontier) return;
-  const other = zoneById(state, l.to);
-  if (other && other !== from && !other.links.some((b) => b.to === from.id)) other.links.push({ to: from.id, label: from.name, sight: l.sight });
+  const other = l.frontier ? undefined : zoneById(state, l.to);
+  if (other) joinWay(state, from, other, { sight: l.sight }); // WI5 a
 }
 
 /** SD3–SD5: the plan's barriers on ways, one record for both sides of each (a way the Weaver barred twice keeps the first);
@@ -109,22 +109,6 @@ function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) =>
     out.push({ b, keys: spec.keys ?? [] });
   }
   return out;
-}
-
-/** an extension's entry: links into the crossed frontier now lead to `entry`. BG-225: done before the new zones are placed,
- * so the entry is placed touching the zone the frontier was on, never apart from it. */
-function joinFrontier(state: GameState, frontierKey: string, entry: Zone): void {
-  for (const z of state.zones) {
-    for (const l of z.links) {
-      if (l.frontier && l.to === frontierKey) {
-        l.to = entry.id;
-        delete l.frontier;
-      }
-    }
-  }
-  ensureBackLinks(state, [entry]);
-  // NW2: anyone heading for the frontier now heads for the zone beyond it
-  for (const a of state.actors) if (a.mind?.slots?.dest === frontierKey) a.mind.slots.dest = entry.id;
 }
 
 /** the player crosses into the placed `entry` (NW3: not when it was built ahead for an NPC). BG-226: they stand a step
@@ -268,8 +252,11 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const anyRef = (r: string) => castMap.get(r) ?? zoneMap.get(r) ?? r;
   const stageZones = new Set(state.zones.map((z) => z.id)); // WI8 a: every built zone
   const isZoneRef = (r: string) => zoneMap.has(r) || stageZones.has(r);
+  // WI2 a: a link to a land road, junction or site id is the way along the land: to its zone if built, else new ground keyed by it
+  const landRef = (r: string) => (zoneMap.has(r) || stageZones.has(r) || !landTarget(state, r) ? undefined : landZone(state, r)?.id ?? r);
 
   // ---- places and zones ----
+  const sited: string[] = []; // WI2 a: settlements set on their sites by this plan
   for (const p of plan.places) {
     const node: Place = {
       id: placeMap.get(p.key)!, storyId: state.storyId, kind: p.kind, parentId: p.parent ? placeRef(p.parent) : null,
@@ -277,7 +264,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     };
     // WZ1/WZ13: a settlement stands on its site; the story's first top-level place stands on the brief's start site
     const site = sites(state).find((x) => x.id === (p.site ?? (!node.parentId && ctx.site && !sites(state).some((y) => y.id === ctx.site && y.placeId) ? ctx.site : undefined)));
-    if (site && !node.parentId) { node.site = site.id; site.placeId = node.id; }
+    if (site && !node.parentId) { node.site = site.id; site.placeId = node.id; sited.push(node.id); }
     const stub = bare(node.id);
     if (stub) { Object.assign(stub, { ...node, zones: stub.zones }); delete stub.bare; }
     else state.places.push(node);
@@ -285,6 +272,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const newZones: Zone[] = [];
   for (const z of plan.zones) {
     const links: ZoneLink[] = z.links.map((l) => {
+      const land = landRef(l.to);
+      if (land !== undefined && land !== l.to) return { to: land, label: l.label, sight: l.sight };
       const fr = frontierMap.get(l.to) ?? (!isZoneRef(l.to) ? l.to : undefined);
       return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight, ...(l.drop ? { drop: true as const } : {}) };
     });
@@ -297,6 +286,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const furn = z.furniture ?? k.furniture; // FR2
     if (furn?.length) zone.furniture = makeFurniture(zone.id, furn);
     if (line) line.zone = zone.id;
+    const jn = z.node ? landNode(state, z.node)?.node : undefined;
+    if (jn?.kind === 'junction') jn.zone = zone.id; // WI2 a: a junction is built once and keeps its zone
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);
@@ -306,6 +297,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (ctx.frontierKey && newZones[0]) joinFrontier(state, ctx.frontierKey, newZones[0]);
   for (const key of builtFrontiers) joinFrontier(state, key, newZones.find((z) => z.id === key)!);
   ensureBackLinks(state, newZones);
+  makeLandWays(state, newZones, sited.map((id) => state.places.find((p) => p.id === id)!)); // WI2 a
   const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);
   placeZones(state, newZones); // after heights: stairs stack zones straight above or below
@@ -584,9 +576,15 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     const taken = new Set([...state.places.flatMap((p) => p.zones.map((z) => z.id)), ...stageFrontiers(state)]);
     taken.delete(ctx.frontierKey);
     const zone = bareZone(freshId(ctx.frontierKey, taken), ctx.placeId, link?.label ?? ctx.frontierKey);
+    // WI2 a: new ground the land draws is that road or junction, even empty, so it is never built a second time
+    const land = landTarget(state, ctx.frontierKey);
+    const line = land && 'road' in land ? landRoad(state, land.road)?.line : undefined;
+    if (line) { Object.assign(zone, { kind: ZK.road, ...roadShape(line.length / 1000, line.danger), road: line.id }); line.zone = zone.id; }
+    if (land && 'junction' in land) landNode(state, land.junction)!.node.zone = zone.id;
     place?.zones.push(zone);
     putOnStage(state, zone);
     joinFrontier(state, ctx.frontierKey, zone);
+    makeLandWays(state, [zone], []);
     placeZones(state, [zone]);
     if (!ctx.ahead) enterFrontier(state, zone);
     if (state.stage.scenario?.ground && ctx.kind === 'extension') state.stage.scenario.ground.push(zone.id); // CH1

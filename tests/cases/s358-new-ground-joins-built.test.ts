@@ -25,7 +25,7 @@ it('a plan may link to built ground: no bad link, and that ground gets its way b
 
 it('a second zone for a road of the land that is already built is refused: link to it instead', () => {
   const s = makeVillage({ playerZone: 'field_far' });
-  s.regions = [{ id: 'rg', roads: [{ id: 'rg_r1', kind: 'road', length: 1700, danger: 'quiet', zone: 'street_square' }] }] as never;
+  s.regions = [{ id: 'rg', roads: [{ id: 'rg_r1', kind: 'road', length: 1700, danger: 'quiet', zone: 'street_square' }], nodes: [], sites: [] }] as never;
   const codes = validateStagePlan(s, glade({ road: 'rg_r1' } as never), ctx).map((e) => e.code);
   expect(codes).toContain('road_built');
 });

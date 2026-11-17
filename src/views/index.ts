@@ -1,4 +1,5 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { landTarget } from '../scenario/ways';
 import { landView } from '../land/brief';
 import { encounterPeople, withRosters } from '../land/roster';
 import { actionRow } from '../ruleset/actionTime';
@@ -1039,6 +1040,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     ways: WAYS_LEAN[state.stage.tier] ?? '',
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
     target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.arrive ? { arrive: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}), ...(target.brief ? { brief: target.brief } : {}),
+      ...((t) => (t ? { land: t } : {}))(target.frontierKey ? landTarget(state, target.frontierKey) : undefined),
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
       ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet',
         ...encounterPeople(state, zoneById(state, state.stage.encounter.zone)?.road, state.stage.encounter.at, timeOfDay(now(state)) === 'night') } } : {}),
