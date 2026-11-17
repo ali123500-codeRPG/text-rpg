@@ -6,7 +6,7 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
-## BG-299
+## BG-300
 
 **What was wrong:** On a phone (390 px wide), the library viewer's Body types tab scrolled about 22 px sideways. Each body type's parts table kept its five columns (Part, Size, Impact, Roles, Next to), and the card's body sized its column to fit that table, so the card grew wider than the screen.
 
