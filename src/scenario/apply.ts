@@ -26,6 +26,7 @@ import { startSpar } from '../engine/spar';
 import { seedGoals } from '../engine/goals';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
+import { isSavedZone, loadSavedZone } from './stage';
 import { wornPack } from '../engine/containers';
 import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
@@ -71,6 +72,9 @@ export function stageSettlement(state: GameState, placeId: string): void {
   const root = top(placeId);
   if (!root) return;
   for (const p of state.places) if (top(p.id) === root) for (const z of p.zones) putOnStage(state, z);
+  // BG-288 (BF95 a): its ways to built ground elsewhere (off the stage) are ways back into saved ground, as a re-entry
+  // leaves them (loadSavedZone): walking one loads that ground
+  for (const z of state.zones) for (const l of z.links) if (!state.stage.zoneIds.includes(l.to) && isSavedZone(state, l.to)) l.frontier = true;
 }
 
 function moveTo(state: GameState, a: Actor, zoneId: string): void {
@@ -277,6 +281,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const bandRef = (r: string) => bandMap.get(r) ?? r;
   const actorRef = (r: string) => castMap.get(r) ?? r;
   const anyRef = (r: string) => castMap.get(r) ?? zoneMap.get(r) ?? r;
+  // BG-288 (BF95 a): built ground off the stage that the plan links to comes back on the stage first (as a walk back into
+  // it would), so the new zones join it and get their ways back from it
+  const planKeys = new Set(plan.zones.map((z) => z.key));
+  for (const z of plan.zones) for (const l of z.links) if (!planKeys.has(l.to) && !state.stage.zoneIds.includes(l.to) && isSavedZone(state, l.to)) loadSavedZone(state, l.to);
   const stageZones = new Set(state.stage.zoneIds);
   const isZoneRef = (r: string) => zoneMap.has(r) || stageZones.has(r);
 

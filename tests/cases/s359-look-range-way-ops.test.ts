@@ -1,4 +1,4 @@
-// 358 Code consistency check. BG-274 (IC8 a): a Look around showed people out to a plain 25 m but searched out to 25.1 m
+// 359 Code consistency check. BG-274 (IC8 a): a Look around showed people out to a plain 25 m but searched out to 25.1 m
 // (withinM); both now use one check, inLookReach. BG-276 (IC10 a): the Parser's answer shape left out the way ops open and
 // shut; one WAY_OPS list now feeds the shape, the schema and the engine.
 import { expect, it } from 'vitest';
