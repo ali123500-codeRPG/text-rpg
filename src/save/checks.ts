@@ -164,7 +164,6 @@ export function checkShape(pages: Pages, r: CheckReport): void {
     const fields = bad(page, shape);
     if (kindOf(key) === 'actor' && !fields.includes('core')) fields.push(...bad((page as Actor).core, SHAPES.core).map((f) => `core.${f}`));
     if (kindOf(key) === 'place' && !((page as Place).parentId === null || typeof (page as Place).parentId === 'string')) fields.push('parentId');
-    if (kindOf(key) === 'engine' && !T((page as EnginePage).stage?.zoneIds, 'array')) fields.push('stage.zoneIds');
     if (fields.length) r.errors.push(`shape: ${key} bad ${fields.join(', ')}`);
   }
 }
@@ -240,7 +239,6 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
   const zonePlace = new Map(places.flatMap((p) => p.zones.map((z) => [z.id, p.id] as const)));
   const actors = actorKeys(pages).map((k) => pages[k] as Actor);
   if (actors.filter((a) => a.kind === 'player').length !== 1) r.errors.push('invariant: exactly one player actor');
-  for (const z of (pages.engine as EnginePage).stage.zoneIds) if (!zonePlace.has(z)) r.errors.push(`invariant: stage zone ${z} is on no place page`);
   for (const a of actors) {
     const c = a.core;
     if (c.classes.length && c.classes.filter((x) => x.state === 'current').length !== 1) r.errors.push(`invariant: ${a.id} must have exactly one current class`);
@@ -306,6 +304,8 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       // an item the library no longer has would make every zone view throw: drop it, as for inventories
       for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
       for (const z of p.zones) for (const c of z.groundItems) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
+      // WI8 a: a frontier mark on a way into a built zone (a re-entry way of the old stage) goes: it is a plain way
+      for (const z of p.zones) for (const l of z.links) if (l.frontier && placePages.some((x) => (pages[x] as Place).zones.some((zz) => zz.id === l.to))) { delete l.frontier; fix(k, `the way from ${z.id} to ${l.to} is a plain way`); }
       // BG-285: a way back added before a frontier was joined left two ways to the same zone; the one added by code (named
       // after the zone) goes, the way the story named stays
       for (const z of p.zones) {

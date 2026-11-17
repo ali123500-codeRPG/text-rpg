@@ -97,10 +97,10 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
   const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, scenarioCaps, clocks, flags, bands, quests, recentEvents, spars, yielding, offers, mercy, barriers, turnEnds } = engine;
   return {
     storyId: meta.storyId, turn, mode,
-    zones: stage.zoneIds.map((id) => zoneById.get(id)!).filter(Boolean),
+    zones: [...zoneById.values()], // WI8 a: every built zone is live
     player, actors: actors.filter((a) => a !== player), bands,
     hidden, events: [], agentLog: [], log: [], ...(recentEvents ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(offers ? { offers } : {}), ...(mercy ? { mercy } : {}), ...(barriers ? { barriers } : {}), ...(turnEnds ? { turnEnds } : {}),
-    rngSeed, rngState, pending, places, ...(regions.length ? { regions } : {}), facts, stage, scenarioCaps, clocks, flags, quests,
+    rngSeed, rngState, pending, places, ...(regions.length ? { regions } : {}), facts, stage: (({ zoneIds: _z, ...st }) => st)(stage as typeof stage & { zoneIds?: string[] }), scenarioCaps, clocks, flags, quests,
     settings: structuredClone(meta.settings), libraryVersion: head.libraryVersion,
     blueprints: of<BlueprintPage>('blueprint.'), meta: structuredClone(meta),
   };

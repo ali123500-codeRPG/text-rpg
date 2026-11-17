@@ -9,7 +9,6 @@ import type { NarrationScale, QuestRewardLevel, TimeOfDay } from '../scales';
 export type Pending = { turn: number; mode: Mode; engaged: string[]; fired: string[] };
 
 export type StageInfo = {
-  zoneIds: string[];
   tier: Tier;
   /** steps the scenario's event roll went past its Critical tier (an achievement opened them) */
   tierBeyond?: number;
@@ -116,7 +115,7 @@ export type GameState = {
   storyId: StoryId;
   turn: number;
   mode: Mode;
-  zones: Zone[]; // the stage: same objects as in places[].zones
+  zones: Zone[]; // WI8 a: every built zone in the world, the same objects as in places[].zones
   player: Actor;
   actors: Actor[]; // NPCs and enemies (never the player)
   bands: Band[];

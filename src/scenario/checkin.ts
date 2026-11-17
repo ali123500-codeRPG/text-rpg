@@ -28,14 +28,14 @@ export function checkinPlanErrors(state: GameState, a: CheckinAnswer): string[] 
     // arrivals come in through ways that exist: each starts on a stage zone the player cannot see now, and walks in
     const seen = new Set(perceivedZoneIds(state, state.player.zone));
     for (const c of plan.cast) {
-      const start = Object.values(c.slots ?? {}).flat().find((z) => typeof z === 'string' && state.stage.zoneIds.includes(z));
+      const start = Object.values(c.slots ?? {}).flat().find((z) => typeof z === 'string' && !!zoneById(state, z));
       if (!start) errors.push(`arrival ${c.key}: bind a slot to a stage zone it comes in by`);
       else if (seen.has(start)) errors.push(`arrival ${c.key}: ${start} is in the player's sight; arrivals come in from out of sight`);
     }
   }
   const taken = new Set([...state.zones.map((z) => z.id), ...stageFrontiers(state)]);
   for (const fr of a.frontiers ?? []) {
-    if (!fr || typeof fr !== 'object' || !state.stage.zoneIds.includes(fr.zone)) errors.push(`frontier ${fr?.key}: zone ${fr?.zone} is not on the stage`);
+    if (!fr || typeof fr !== 'object' || !zoneById(state, fr.zone)) errors.push(`frontier ${fr?.key}: zone ${fr?.zone} is not a built zone`);
     else if (typeof fr.key !== 'string' || !fr.key || taken.has(fr.key)) errors.push(`frontier ${fr.key}: give a new key`);
     else if (typeof fr.label !== 'string' || !fr.label.trim()) errors.push(`frontier ${fr.key}: give a label`);
   }

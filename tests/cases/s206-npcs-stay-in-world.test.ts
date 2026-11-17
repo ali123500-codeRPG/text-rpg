@@ -60,7 +60,7 @@ describe('206 NPCs stay in the world (NW4, NW6)', () => {
     expect(tavern.areas.map((a) => a.id).sort()).toEqual(['tav_cellar', 'tav_common', 'tav_counter']);
     // nobody is hidden: every NPC on the stage is listed under the place of its zone
     const people = v.places.flatMap((p) => p.people.map((x) => [x.id, p.id]));
-    expect(people.map(([id]) => id).sort()).toEqual(s.actors.filter((a) => s.stage.zoneIds.includes(a.zone)).map((a) => a.id).sort());
+    expect(people.map(([id]) => id).sort()).toEqual(s.actors.filter((a) => s.zones.some((z) => z.id === a.zone)).map((a) => a.id).sort());
     for (const [id, place] of people) expect(s.actors.find((a) => a.id === id)!.placeId).toBe(place);
   });
 });

@@ -13,7 +13,6 @@ import type { GameState, StagePlan, WeaverView } from '../../src/types';
 
 function newcomer(): GameState {
   const s = makeVillage();
-  s.stage.zoneIds = [];
   delete s.stage.scenario; delete s.stage.roam;
   s.player.zone = '';
   s.player.placeId = 'tavern';

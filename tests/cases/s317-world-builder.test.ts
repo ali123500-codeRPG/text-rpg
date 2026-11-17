@@ -46,7 +46,7 @@ describe('317 the World builder (WB1-WB4)', () => {
 
   it('WB3: a frontier the Weaver adds in a check-in keeps its brief for the World builder', () => {
     const s = waiting();
-    applyCheckinPlan(s, { as: 'continue', frontiers: [{ zone: s.stage.zoneIds[0], key: 'trapdoor', label: 'a trapdoor', brief: 'the smugglers\' cellar' }] } as never, createRng(1));
+    applyCheckinPlan(s, { as: 'continue', frontiers: [{ zone: s.zones[0].id, key: 'trapdoor', label: 'a trapdoor', brief: 'the smugglers\' cellar' }] } as never, createRng(1));
     const id = s.zones.flatMap((z) => z.links).find((l) => l.label === 'a trapdoor')!.to;
     expect(s.hidden.frontierBriefs?.[id]).toBe('the smugglers\' cellar');
   });

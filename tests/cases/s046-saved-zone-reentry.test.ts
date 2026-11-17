@@ -1,33 +1,42 @@
-// 46 Saved zone re-entry: a zone saved on its place page but off the stage is linked by a frontier and loads again
-// with no Weaver call.
+// 46 Built ground stays live (WI8 a, which replaces saved zone re-entry): the stage keeps no list of zones, so ground built
+// in an earlier story is as live as the rest. A save whose ways into built ground still carry the old re-entry mark loads
+// them as plain ways, and no Weaver call is started for them. The planners see the ground near the player (PLAN_VIEW_WAYS);
+// ground further off is still there to link to.
 import { describe, expect, it, vi } from 'vitest';
-import { makeVillage, createRng, place } from '../harness';
-import { ScenarioDirector, frontiersNearPlayer } from '../../src/scenario';
+import { makeVillage } from '../harness';
+import { ScenarioDirector, frontiersNearPlayer, nearbyZones } from '../../src/scenario';
 import { VirtualClock } from '../../src/scenario/fixtures';
+import { loadStory, memoryStore, saveTurn } from '../../src/save';
+import { getLibrary } from '../../src/library';
+import { zoneById } from '../../src/engine/relations';
+import type { TurnRecord } from '../../src/types';
 
-describe('46 Saved zone re-entry', () => {
-  it('reloads the saved field without the Weaver', async () => {
-    const s = makeVillage({ playerZone: 'tav_common' });
-    // the field is off the stage but saved on its place page; links into it are frontiers
-    const field = ['field_edge', 'field_mid', 'field_far'];
-    s.stage.zoneIds = s.stage.zoneIds.filter((id) => !field.includes(id));
-    s.zones = s.zones.filter((z) => !field.includes(z.id));
-    for (const z of s.zones) for (const l of z.links) if (field.includes(l.to)) l.frontier = true;
-    expect(s.places.find((p) => p.id === 'field')!.zones).toHaveLength(3); // still saved on the place page
-    const gate = s.zones.find((z) => z.id === 'gate_inner')!;
-    expect(gate.links.find((l) => l.to === 'field_edge')!.frontier).toBe(true);
-
+describe('46 Built ground stays live', () => {
+  it('an old re-entry mark loads as a plain way; no Weaver call for it', async () => {
+    const s = makeVillage({ playerZone: 'gate_inner' });
+    zoneById(s, 'gate_inner')!.links.find((l) => l.to === 'field_edge')!.frontier = true; // as the old stage left it
+    const st = memoryStore();
+    await saveTurn(st, s, { storyId: s.storyId, turn: 0, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] } as TurnRecord);
+    const { state } = await loadStory(st, s.storyId, getLibrary());
+    expect(zoneById(state, 'gate_inner')!.links.find((l) => l.to === 'field_edge')!.frontier).toBeUndefined();
+    expect(frontiersNearPlayer(state)).toEqual([]);
     const weave = vi.fn(async () => null);
-    const d = new ScenarioDirector({ weave, clock: new VirtualClock() });
-    place(s, 'player', 'gate_inner');
-    expect(frontiersNearPlayer(s)).toEqual([]);
-    expect(d.afterSave(s)).toEqual([]);
-    const r = await d.cross(s, 'field_edge', createRng(1));
-    expect(r.outcome).toBe('loaded');
-    expect(weave).not.toHaveBeenCalled();
-    expect(s.player.zone).toBe('field_edge');
-    expect(s.stage.zoneIds).toContain('field_edge');
-    expect(gate.links.find((l) => l.to === 'field_edge')!.frontier).toBeUndefined();
-    expect(s.zones.find((z) => z.id === 'field_edge')!.links.find((l) => l.to === 'field_mid')!.frontier).toBe(true);
+    expect(new ScenarioDirector({ weave, clock: new VirtualClock() }).afterSave(state)).toEqual([]);
+    expect(state.zones).toHaveLength(state.places.flatMap((p) => p.zones).length); // every built zone is live
+  });
+
+  it('the planners see the village around the player; ground past PLAN_VIEW_WAYS stays out of view', () => {
+    const s = makeVillage({ playerZone: 'tav_common' });
+    const near = nearbyZones(s, ['tav_common'], ['tavern']).map((z) => z.id);
+    expect(near).toEqual(expect.arrayContaining(['tav_common', 'street_square', 'field_far'])); // the whole village
+    const far = { ...structuredClone(zoneById(s, 'field_far')!), id: 'far_road', placeId: 'far_place', links: [{ to: 'field_far', label: 'back', sight: true }] };
+    s.places.push({ ...structuredClone(s.places.find((p) => p.id === 'field')!), id: 'far_place', parentId: null, zones: [far] });
+    s.zones.push(far);
+    const end = { ...structuredClone(far), id: 'far_end', links: [{ to: 'far_road', label: 'back', sight: true }] };
+    s.places.find((p) => p.id === 'far_place')!.zones.push(end); s.zones.push(end);
+    far.links.push({ to: 'far_end', label: 'on', sight: true });
+    zoneById(s, 'field_far')!.links.push({ to: 'far_road', label: 'the far road', sight: true });
+    expect(nearbyZones(s, ['field_far'], ['field']).map((z) => z.id)).toEqual(expect.arrayContaining(['far_road', 'far_end'])); // 2 ways out
+    expect(nearbyZones(s, ['tav_common'], ['tavern']).map((z) => z.id)).not.toContain('far_end');
   });
 });

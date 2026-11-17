@@ -93,7 +93,7 @@ export function toStoryStart(state: GameState, placeId = 'tavern'): GameState {
   state.zones = [];
   state.actors = [];
   state.bands = state.bands.filter((b) => b.id === state.player.bandId).map((b) => ({ ...b, relations: {} }));
-  state.stage = { zoneIds: [], tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 };
+  state.stage = { tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 };
   state.hidden = { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } };
   state.player.zone = '';
   state.player.placeId = placeId;

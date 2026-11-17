@@ -4,6 +4,7 @@ import { withRosters } from '../land/roster';
 import { actionRow } from '../ruleset/actionTime';
 import { doingOf } from '../engine/busy';
 import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
+import { nearbyZones } from '../scenario/stage';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
 import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
@@ -87,7 +88,6 @@ const reads = (viewer: Actor | undefined, other: Actor | undefined) => !!viewer 
 const healthShows = (level: HealthLevel, sharp: boolean) => HEALTH_LEVELS.pos(level) >= HEALTH_LEVELS.pos(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
 
 // ---------- shared helpers ----------
-const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneById(state, id)).filter((z): z is Zone => !!z);
 
 /** a distance as the story and the Map say it: metres under 1 km, else km to one decimal (4.5 km) */
 export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 100) / 10} km` : `${Math.round(m)} m`);
@@ -628,7 +628,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
     // BA7: code paths treat a way shut to this actor (no key, the far side of the bar, rubble) as no way
-    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
+    map: nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
     zones: perceivedZones(state, a.zone, a),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
@@ -929,7 +929,7 @@ function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<Weaver
     turns: state.turn - f.startTurn, budget: c?.budgetMin ? `${spanText(c.budgetMin)} of ${c.actingOnly ? 'acting time (waits, rest, sleep and trips not counted)' : 'game time'}` : '?',
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
     happened: (f.happened ?? []).map((h) => ({ ...h })),
-    remembered: state.actors.filter((a) => state.stage.zoneIds.includes(a.zone)).flatMap((a) =>
+    remembered: state.actors.filter((a) => !!zoneById(state, a.zone)).flatMap((a) =>
       (state.hidden.memory[a.id] ?? []).filter((m) => m.turn >= f.startTurn).map((m) => ({ who: a.id, turn: m.turn, text: m.text }))),
   };
 }
@@ -971,12 +971,12 @@ const STAKES: Record<Tier, string> = {
 
 const placeName = (state: GameState, id: string) => state.places.find((p) => p.id === id)?.names.current ?? id;
 
-/** NW6: the stage sorted by place, in stage order: each place named, with its parent, its areas and
+/** NW6: the ground around the player (WI8 a: nearbyZones) sorted by place, in world order: each place named, with its parent, its areas and
  * the people standing in them. Nobody is left out; the sorting is what keeps the Weaver on the right place (the test
  * on 12/11 lost the thread with two flat lists). */
-function weaverPlaces(state: GameState, onStage: Actor[]): WeaverView['places'] {
+function weaverPlaces(state: GameState, zones: Zone[], onStage: Actor[]): WeaverView['places'] {
   const out = new Map<string, WeaverView['places'][number]>();
-  for (const z of stageZones(state)) {
+  for (const z of zones) {
     let e = out.get(z.placeId);
     if (!e) {
       const pl = state.places.find((p) => p.id === z.placeId);
@@ -1016,7 +1016,10 @@ export function buildWorldView(state: GameState, target: WeaverTarget): WorldVie
 }
 export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
-  const stage = new Set(state.stage.zoneIds);
+  // WI8 a: the ground around the player and the target (the frontier's edge too), not the whole world
+  const edges = target.frontierKey ? state.zones.filter((z) => z.links.some((l) => l.to === target.frontierKey)).map((z) => z.id) : [];
+  const near = nearbyZones(state, [state.player.zone, ...edges], [target.placeId, state.player.placeId]);
+  const stage = new Set(near.map((z) => z.id));
   const onStage = state.actors.filter((a) => stage.has(a.zone));
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
@@ -1041,7 +1044,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       ...((target.kind === 'scenario' || target.kind === 'window') && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const r = zoneById(state, state.player.zone)?.rect; return r ? { x: r.x, y: r.y } : undefined; })())),
-    places: weaverPlaces(state, onStage),
+    places: weaverPlaces(state, near, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),

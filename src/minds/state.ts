@@ -68,7 +68,7 @@ export function switchRoutine(state: GameState, actor: Actor, routineId: string,
  * A second headTo on the way changes only where it is going. Returns false (logged) for a place not on the stage. */
 export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent' | 'weaver' | 'yield' = 'agent', lead?: string): boolean {
   const mind = actor.mind;
-  const onStage = state.stage.zoneIds.includes(dest) || state.zones.some((z) => state.stage.zoneIds.includes(z.id) && z.links.some((l) => l.frontier && l.to === dest));
+  const onStage = !!zoneById(state, dest) || state.zones.some((z) => z.links.some((l) => l.frontier && l.to === dest));
   if (!mind || !onStage) {
     log(state, 'invalid_head_to', { actorId: actor.id, dest, by });
     return false;

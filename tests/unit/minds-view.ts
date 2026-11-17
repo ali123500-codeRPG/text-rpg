@@ -27,7 +27,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
     }),
     perceived: [], told: [], said: [], secrets: [], firedTriggers: [],
     band: { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
-    map: state.zones.filter((z) => state.stage.zoneIds.includes(z.id)).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
+    map: state.zones.map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
     zones: [], seen: [],
   };
 }

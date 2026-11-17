@@ -18,7 +18,7 @@ describe('30 Background extension', () => {
     d.afterSave(s); // next turn, still beside the frontier: no second call
     expect(weave).toHaveBeenCalledTimes(1);
     expect(d.heldKeys()).toEqual(['woods']);
-    expect(s.stage.zoneIds).not.toContain('grove');
+    expect(s.zones.map((z) => z.id)).not.toContain('grove');
     expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.to === 'woods')!.frontier).toBe(true);
   });
 });

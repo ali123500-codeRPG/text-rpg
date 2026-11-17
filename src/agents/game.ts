@@ -1500,7 +1500,7 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
     hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: seed, rngState: seed,
     pending: { turn: 0, mode: 'explore', engaged: [], fired: [] },
-    places: [], facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
+    places: [], facts: [], stage: { tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
     scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [], settings,
     libraryVersion: getLibrary().version, blueprints: [],
     meta: { storyId, title: CONFIG.STORY_PREMISE, schemaVersion: CONFIG.SCHEMA_VERSION, createdAt, settings },
