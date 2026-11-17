@@ -311,14 +311,13 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-bfbtn:hover, .cs-bfbtn:focus-visible { border-color: var(--border); }
 .cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
-.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
-.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--r-lg);
-  background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
-.cs-tile:hover, .cs-tile:focus-visible { border-color: var(--accent); }
+/* HS7: tiles sit on the sky with no box and no lines; space alone parts them, a hover tints the one under the pointer */
+.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); }
+.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--r-lg);
+  background: none; color: var(--text); font: inherit; cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
+.cs-tile:hover, .cs-tile:focus-visible { background: var(--accent-soft); }
 .cs-tile b { font-size: 20px; font-weight: 800; line-height: 1.2; }
 .cs-tile-sub { max-width: 100%; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cs-tile.lit[data-tile="essences"] { border-color: color-mix(in oklch, var(--essence) 60%, var(--border)); }
-.cs-tile.lit[data-tile="perks"] { border-color: color-mix(in oklch, var(--perk-20) 60%, var(--border)); }
 .cs-tile.lit[data-tile="perks"] b { color: var(--perk-20); }
 @media (max-width: 900px) {
   main.cs-page { height: auto; } .cs-page .cs-split { grid-template-columns: minmax(0, 1fr); } .cs-page .cs-card, .cs-right { overflow: visible; }
@@ -415,7 +414,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .pk-full .pk { margin: 0; border: 0; border-radius: 0; padding: 20px var(--space-8) var(--space-6); }
 .pk-full .pk-h { padding-right: 56px; }
 .pk-full .pk-lad { --rh: clamp(200px, calc((var(--vh) - 360px) / 2), 320px); }
-.cs-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px; display: grid; gap: var(--space-4); }
+.cs-card { padding: 4px 0; display: grid; gap: var(--space-4); } /* HS7: flat on the sky, no box and no line; the gap to the skill trees parts them */
 .cs-who { display: flex; gap: 14px; align-items: center; }
 .cs-who b { font-size: 18px; display: block; }
 .cs-who span { color: var(--muted); font-size: 13px; }
@@ -761,9 +760,8 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .story { overflow-y: auto; min-height: 0; scrollbar-color: var(--rule) transparent;
   mask-image: linear-gradient(to bottom, transparent, black var(--space-4)); } /* lines leave softly under the who's-here row */
 .story .col { padding-top: var(--space-4); }
-/* a stronger veil behind the column (never solid) so the stars and cloud don't pass behind the letters */
-.play { font: var(--story-size)/1.6 var(--font-story); margin-left: calc(-1 * var(--space-8)); padding-left: var(--space-8);
-  background: color-mix(in srgb, var(--bg) var(--veil1), transparent); }
+/* HS7: no extra veil behind the column; it shows the same sky as the rest of the page */
+.play { font: var(--story-size)/1.6 var(--font-story); margin-left: calc(-1 * var(--space-8)); padding-left: var(--space-8); }
 .story .col, .sec.col { padding-right: var(--space-6); }
 .story .col { padding-bottom: var(--space-4); }
 .log { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -1519,15 +1517,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .say-for { align-self: center; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: var(--r-pill);
   padding: 0 var(--space-3); min-height: 30px; font: 700 13px var(--font-round); cursor: pointer; white-space: nowrap; }
 .say-for[hidden] { display: none; }
-.dk-sug { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-3); align-items: center; padding: var(--space-3) var(--space-4);
-  border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border); }
-.dk-sug[hidden] { display: none; }
-.dk-sug .dk-sl { grid-column: 1 / -1; color: var(--scenario-mark); margin: 0; }
-.dk-go { justify-self: start; max-width: 100%; min-height: var(--touch); padding: 0 var(--space-4); border: 0; border-radius: var(--r-md); background: var(--btn-fill); color: var(--on-btn);
-  font: 800 17px var(--font-round); text-align: left; cursor: pointer; transition: opacity var(--m-feedback) var(--m-ease); }
-.dk-go:hover { opacity: .9; } .dk-go:disabled { opacity: .5; cursor: default; }
-.dk-alt[hidden] { display: none; }
-.dk-why { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 13px; }
 .deck { display: grid; gap: var(--space-3); }
 .dk-mods { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: 13px; color: var(--muted); }
 .dk-mods .hs-label { margin: 0; }
