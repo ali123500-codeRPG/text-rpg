@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
+import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -99,7 +99,6 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
   return { el, update };
 }
 
-const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 
 /** CP1: the Character page fits one screen: the hero card on the left, the skill trees on the right, and a strip of tiles
  * under them, one per big section, each opening it in a pop-up: Essences and Gear and Personality partial (they float and

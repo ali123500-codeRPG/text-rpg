@@ -18,7 +18,7 @@ import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure,
 import { checkMap } from './mapCheck';
 
 /** CSS class of each edge kind's line on the To scale view */
-const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
+export const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 
 const SVG = 'http://www.w3.org/2000/svg';
 const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {

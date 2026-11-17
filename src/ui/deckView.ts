@@ -2,11 +2,12 @@
 // its groups. Clicking an action asks what it still needs (whom, with what, which part) in a small pop-up, then plays
 // the turn at once with no Parser call (AD6, AD7); a move planned on the minimap rides along (AD12). Actions that need
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
-import type { GameApi, GameState, PlayerView } from '../types';
+import { ATTACK_STANCES, type AttackStance, type GameApi, type GameState, type PlayerView } from '../types';
 import { personalityOf } from '../ruleset/personality';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { buildPlayerView } from '../views';
 import { h } from './kit';
+import { cap } from '../words';
 import { closePop, openPop } from './pop';
 import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
 import { suggestions, type Suggestion } from './suggest';
@@ -15,8 +16,8 @@ import { instanceIcon } from './itemIcons';
 import type { MinimapPoint } from './minimap';
 
 export type SayMode = { action: DeckAction; choice: Choice; to: string };
-type Stance = 'careful' | 'normal' | 'reckless';
-const STANCES: [Stance, string][] = [['careful', 'Careful'], ['normal', 'Normal'], ['reckless', 'Reckless']];
+type Stance = AttackStance;
+const STANCE_BUTTONS: [Stance, string][] = ATTACK_STANCES.map((k) => [k, cap(k)]);
 
 /** the order with the move planned on the minimap first (a way op takes the move itself, so it plays alone) */
 export function withPlanned(o: Order, p: MinimapPoint | null): Order {
@@ -100,7 +101,7 @@ export function deckView(api: GameApi, o: {
   }
 
   const aimBtn = h('button', { type: 'button', class: 'dk-tog', 'aria-pressed': 'false', title: 'When on, an attack asks which body part to aim at', onclick: () => { aim = !aim; repaint(); } }, 'Aim');
-  const stanceBtns = STANCES.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, 'aria-pressed': String(k === stance), onclick: () => { stance = k; repaint(); } }, name));
+  const stanceBtns = STANCE_BUTTONS.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, 'aria-pressed': String(k === stance), onclick: () => { stance = k; repaint(); } }, name));
   const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label' }, 'Stance'), h('span', { class: 'dk-seg', role: 'group', 'aria-label': 'Stance' }, ...stanceBtns));
   const cols = h('div', { class: 'dk-groups' });
   const el = h('div', { class: 'deck' }, mods, cols);

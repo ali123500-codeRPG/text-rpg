@@ -19,7 +19,7 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize } from './kit';
+import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe } from './kit';
 import { perkSeries } from './perks';
 import { stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -86,7 +86,6 @@ function mapIcon(): HTMLElement {
   i.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>';
   return i;
 }
-const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
 const changesWord = (n: number) => `${n} change${n === 1 ? '' : 's'}`;
 /** "*draws his sword* Stay back" → the stage direction in italics without the asterisks, outside the quote marks */

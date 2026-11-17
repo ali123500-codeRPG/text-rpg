@@ -10,7 +10,7 @@ import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
 import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Measure } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { doorGlyph, floorName, wayGlyph, wayWords, whoInitial } from './map';
+import { EDGE_CLASS, doorGlyph, floorName, wayGlyph, wayWords, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { moveSpeed, slotMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
@@ -83,7 +83,6 @@ const NAME_MAX = 15;
 /** room a name keeps from its zone's walls (MAP-20: 6 px, plus the hair the floor sits inside), and its letters' dark edge */
 const PAD = 7, NAME_EDGE = 3;
 /** CSS class of each edge kind's line, as the full Map draws it */
-const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 const HINT = 'Point anywhere you know to see the way and how long it takes. Click to plan a move; double-click to walk there now.';
 const clip = (a: Box, b: Box): Box | null => {
   const c = { x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) };

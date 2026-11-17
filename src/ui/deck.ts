@@ -19,7 +19,7 @@ import { distText } from '../views';
 import { lootSources } from './loot';
 import { AGAINST_NATURE, pullOf, type IdeaGroup, type IdeaKind } from './ideaLeans';
 import { healItems, partName } from './healing';
-import { cap, r1, theOf } from '../words';
+import { cap, r1, theItem } from '../words';
 
 export const DECK_GROUPS = ['getaway', 'fight', 'talk', 'move', 'stealth', 'use', 'perks'] as const;
 export type DeckGroup = (typeof DECK_GROUPS)[number];
@@ -74,7 +74,6 @@ export function apart(names: string[]): string[] {
     return i === 0 ? n : `the other ${bare}`;
   });
 }
-const theItem = (n: string) => (/^(the|a|an|some)\s/i.test(n) ? theOf(n) : `the ${n}`);
 
 /** the deck for this moment: groups in order, each with its actions (the character's leanings order both; nothing is
  * added or taken away by them). Empty groups are left out. */
