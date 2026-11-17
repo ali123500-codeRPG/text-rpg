@@ -47,6 +47,13 @@ export function speaks(a: Actor): boolean {
   return !!mind && INTELLIGENCE.pos(mind) >= INTELLIGENCE.pos('intelligent');
 }
 
+/** BF88: a creature that can't talk but has some wits (a Semi-intelligent beast: a wolf, a bear) can still be stared down
+ * by a threat; a mindless one (a slime) can't (a Battle Cry still shakes it, as any aura does) */
+export function feelsThreats(a: Actor): boolean {
+  const mind = a.core.raceId ? getLibrary().races?.[a.core.raceId]?.intelligence : undefined;
+  return !!mind && INTELLIGENCE.pos(mind) >= INTELLIGENCE.pos('semi');
+}
+
 /** in a fight, `to` can be offered a stand-down by `from`: both count in the fight, `to` speaks and is hostile to `from` */
 export function canOffer(state: GameState, from: Actor, to: Actor): boolean {
   return from !== to && countsInFight(from) && countsInFight(to) && speaks(to) && hostile(state, to, from) && isEngaged(state, from);
