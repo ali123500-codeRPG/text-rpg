@@ -1,6 +1,6 @@
 // Perks that leave a short-lived mark (rules in src/library/perks.ts). attack() reads marks without
 // changing state; this module makes and clears them after each attack, and clears them when they run out.
-//   Turn the Blade (A2): a clean block (gap +2 or better) with a melee weapon opens the attacker to the owner's next melee attack.
+//   Turn the Blade (A2): a clean parry (gap CLEAN_GAP or better) with a melee weapon opens the attacker to the owner's next melee attack.
 //   Hunter's Mark (A5): a ranged hit marks the target for the owner's next ranged attack.
 //   Make Them Stumble (A10): a clean dodge of a melee attack makes the attacker's next defense one tier worse.
 //   Leg Bolt (A6): a medium or heavy ranged hit that wounds a leg slows the target (no dash) for PERK_MARK_ROUNDS rounds.
@@ -84,7 +84,7 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   // on the attempt, hit or miss; LR2 Combination: One-Two's free Strike leaves a +2 mark
   if (setUp && hasPerk(A, PK.set_them_up)) add(A, { perk: setUp.leaves, target: D.id, ...(oneTwo && hasPerk(A, PK.combination) ? { value: 2 } : {}) });
   if (r.legBolt && hasPerk(A, PK.leg_bolt)) markForRounds(state, D, PK.leg_bolt);
-  const clean = r.gap !== null && r.gap >= 2;
+  const clean = r.gap !== null && r.gap >= CONFIG.CLEAN_GAP;
   // A2 Turn the Blade: a clean parry made with a weapon (not barehanded)
   if (!ranged && clean && r.defenseType === 'parry' && hasPerk(D, PK.turn_the_blade) && parryItem(state, D)) add(D, { perk: PK.turn_the_blade, target: A.id });
   if (ranged && met(r.outcome) && hasPerk(A, PK.hunters_mark)) add(A, { perk: PK.hunters_mark, target: D.id });

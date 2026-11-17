@@ -26,8 +26,6 @@ export function isPursuer(state: GameState, a: Actor): boolean {
 }
 export const pursuers = (state: GameState): Actor[] => state.actors.filter((a) => isPursuer(state, a));
 
-/** CH1: the running scenario's ground (none: no scenario, or a scenario from before ground was kept) */
-export const groundOf = (state: GameState): string[] | undefined => state.stage.scenario?.ground;
 /** BG-43: the places a ground touches; every zone of those places is on the ground (a tavern scenario's ground is the whole
  * tavern: back yard, cellar and upstairs too) */
 const groundPlaces = (state: GameState, ground: string[]) => new Set(ground.map((z) => zoneById(state, z)?.placeId).filter((p): p is string => !!p));
