@@ -105,7 +105,7 @@ describe('save and load', () => {
     expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/player placeId street/)]));
   });
 
-  it('repairs dangling references and reports them; raw above its cap is a warning (a tagged skill may reach 125)', async () => {
+  it('repairs dangling references and reports them; raw past its cap is fine (no hard limit, D-374 TB7)', async () => {
     const s = makeVillage();
     s.player.journal!.factsWitnessed.push('f_missing');
     actor(s, 'guard_1').mind!.knowledge.ghost = { status: 'aware', source: 'seen', revealed: [] };
@@ -116,8 +116,9 @@ describe('save and load', () => {
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.player.journal!.factsWitnessed).toEqual([]);
     expect(actor(state, 'guard_1').mind!.knowledge.ghost).toBeUndefined();
-    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/), `warning: player raw ${SK.melee_medium} 104 above its cap 100`]));
-    expect((await loadStory(st, 'test', lib())).report).toEqual([`warning: player raw ${SK.melee_medium} 104 above its cap 100`]); // repair was saved
+    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/)]));
+    expect(report.some((l) => l.includes('above its cap'))).toBe(false);
+    expect((await loadStory(st, 'test', lib())).report).toEqual([]); // repair was saved
   });
 
   it('drops ground items the library no longer has, so zone views cannot throw', async () => {

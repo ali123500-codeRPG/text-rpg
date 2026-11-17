@@ -148,7 +148,7 @@ export { skillCap } from './skillCap';
 /** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden) − GROWTH_ROLL_NEEDED, read on the tier table; the
  * gain is GROWTH_GAIN by tier, plus GROWTH_GAIN_PAST_CRIT per band past Critical Success. Every state rolls one d100: a
  * tag or a flaw only moves the cap. The room left below the cap is the bonus, so the roll gets harder smoothly near the
- * cap. A tagged skill carries no burden. `bonus` is what tagged group-mates add (groupRollBonus, D-374 TB5). SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
+ * cap. No hard limit (D-374 TB7): past the cap the room is negative and the roll runs out on its own. A tagged skill carries no burden. `bonus` is what tagged group-mates add (groupRollBonus, D-374 TB5). SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
 export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, reach = { up: 0, down: 0 }, bonus = 0): { margin: number; level: number; gain: number } {
   const cap = CONFIG.GROWTH_CAP_IN_ROLL ? skillCap(s) : CONFIG.SKILL_CAP;
   const margin = d + (cap - s.raw - (s.state === 'tagged' ? 0 : burden) + bonus) - CONFIG.GROWTH_ROLL_NEEDED;
@@ -157,7 +157,7 @@ export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burd
   const gain = level < TIERS.pos('success') ? 0
     : level > crit ? (CONFIG.GROWTH_GAIN.critical_success ?? 0) + (level - crit) * CONFIG.GROWTH_GAIN_PAST_CRIT
     : CONFIG.GROWTH_GAIN[TIERS.at(level)] ?? 0;
-  return { margin, level, gain: Math.max(0, Math.min(gain, skillCap(s) - s.raw)) }; // raw never passes its cap
+  return { margin, level, gain };
 }
 
 /** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit

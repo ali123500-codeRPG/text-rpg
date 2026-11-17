@@ -37,7 +37,7 @@ describe('109 skill progression', () => {
     p.core.skills[SK.eyesight] = { raw: 38, state: 'tagged' };
     p.core.skills[SK.earshot] = { raw: 30, state: 'normal' };
     p.progression!.marks = [SK.eyesight, SK.earshot];
-    // sight: 50 + (125 − 38) − 90 = 47, Great Success: +3; hearing: 10 + (100 − 30 − burden) − 90 is below 0: nothing
+    // sight: 50 + (120 − 38) − 100 = 32, Great Success: +3; hearing: 10 + (100 − 30 − burden) − 100 is below 0: nothing
     const gains = improveMarked(s, forcedRng([50, 10]));
     expect(gains).toEqual([{ skill: SK.eyesight, from: 38, to: 41, milestone: 40 }]);
     expect(p.core.skills[SK.eyesight].raw).toBe(41);
@@ -48,15 +48,13 @@ describe('109 skill progression', () => {
     expect(lines).toContain('New perk unlocked: Eyesight 40');
     expect(lines.some((l) => l.startsWith('Earshot'))).toBe(false);
   });
-  it('raw never passes its cap: 100, or 125 tagged, whatever the die shows', () => {
+  it('no hard limit (D-374 TB7): at the cap a natural 100 still gains, then the roll runs out', () => {
     const s = makeVillage();
     const p = s.player;
-    p.core.skills[SK.eyesight] = { raw: 100, state: 'normal' };
-    p.core.skills[SK.earshot] = { raw: 125, state: 'tagged' };
-    p.progression!.marks = [SK.eyesight, SK.earshot];
-    expect(improveMarked(s, forcedRng([100, 100]))).toEqual([]);
-    p.core.skills[SK.earshot].raw = 124;
-    p.progression!.marks = [SK.earshot];
-    expect(improveMarked(s, forcedRng([100]))).toMatchObject([{ skill: SK.earshot, from: 124, to: 125 }]); // margin 11: Success, +1
+    p.core.skills = { [SK.eyesight]: { raw: 100, state: 'normal' }, [SK.dodge]: { raw: 120, state: 'tagged' } }; // different groups: no group bonus
+    p.progression!.marks = [SK.eyesight, SK.dodge];
+    expect(improveMarked(s, forcedRng([100, 100]))).toMatchObject([{ skill: SK.eyesight, from: 100, to: 102 }, { skill: SK.dodge, from: 120, to: 122 }]); // margin 0: Success
+    p.progression!.marks = [SK.eyesight, SK.dodge];
+    expect(improveMarked(s, forcedRng([100, 100]))).toEqual([]); // margin −2: nothing
   });
 });

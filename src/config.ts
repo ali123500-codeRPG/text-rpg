@@ -94,13 +94,13 @@ const DEFAULTS = {
   MARK_STACK_EVERY: 1,
   /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
   SKILL_CAP: 100,
-  /** EG16: a tagged skill's cap is SKILL_CAP plus this */
-  TAG_CAP_BONUS: 25,
+  /** EG16: a tagged skill's cap is SKILL_CAP plus this (D-374 TB7: 25 -> 20, since the roll, not a hard limit, now ends training) */
+  TAG_CAP_BONUS: 20,
   /** a flawed skill's cap is SKILL_CAP minus this */
   FLAW_CAP_PENALTY: 25,
-  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder; with GROWTH_GAIN
-   * below, about 1.6 points a roll at raw 50) */
-  GROWTH_ROLL_NEEDED: 90,
+  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden + group bonus) − this, read on the tier table (placeholder).
+   * D-374 TB7: 100, so with no hard limit raw runs out at about its cap (only a natural 100 succeeds at raw = cap) */
+  GROWTH_ROLL_NEEDED: 100,
   /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
   GROWTH_GAIN: { success: 2, great_success: 3, critical_success: 4 } as Partial<Record<Tier, number>>,
   /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
@@ -108,7 +108,7 @@ const DEFAULTS = {
   /** SG2 a: natural edges (01–05, 96–100) do not move the improvement roll's tier: no skill grows from the die face
    * alone (LF4) */
   GROWTH_NATURAL_EDGES: false,
-  /** SG3 a: true = a skill's own cap (125 tagged, 75 flawed) is in the roll too, so the room left counts from it;
+  /** SG3 a: true = a skill's own cap (120 tagged, 75 flawed) is in the roll too, so the room left counts from it;
    * false = every skill rolls against SKILL_CAP and only its stop moves */
   GROWTH_CAP_IN_ROLL: true,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
