@@ -344,22 +344,28 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
     step(a, out);
     return leg;
   }
-  // through the doorway; a walk to the zone itself goes ENTER_M on toward its centre
+  // through the doorway; a walk to the zone itself goes ENTER_M on toward its centre, to its body's near edge (SZ19)
   let at = next.at, used = leg;
   if (next.zone.id === goal.zone && !goal.pos) {
-    const c = centre(next.zone)!, d = flat(at, c), step = Math.min(CONFIG.ENTER_M, d, metres - leg);
+    const c = centre(next.zone)!, d = flat(at, c), step = Math.min(enterM(state, walker), d, metres - leg);
     if (step > EPS) { at = { x: at.x + (c.x - at.x) * step / d, y: at.y + (c.y - at.y) * step / d }; used += step; }
   }
   enter(at);
   return used;
 }
 
-/** BG-226: where someone stands on coming into zone `zoneId` from the linked zone `fromId`: the doorway between them, a step
- * (ENTER_M) inside, as a walk through it ends. null without rectangles. */
-export function entryPoint(state: GameState, zoneId: string, fromId: string): Pos | null {
+/** SZ19: how far past a doorway a body's middle stands: ENTER_M to its near edge, so a whole horse stands inside
+ * (half its length more; it walks in facing the room) */
+const enterM = (state: GameState, a?: Actor): number => CONFIG.ENTER_M + (a ? actorBody(state, a).size.lengthM / 2 : 0);
+/** SZ19: how far from a wall a body's middle stands: ENTER_M to its edge, whichever way it is turned */
+const wallM = (state: GameState, a?: Actor): number => CONFIG.ENTER_M + (a ? Math.max(actorBody(state, a).size.lengthM, actorBody(state, a).size.widthM) / 2 : 0);
+
+/** BG-226: where someone (`who`) stands on coming into zone `zoneId` from the linked zone `fromId`: the doorway between them,
+ * a step (ENTER_M) inside, as a walk through it ends. null without rectangles. */
+export function entryPoint(state: GameState, zoneId: string, fromId: string, who?: Actor): Pos | null {
   const z = zoneById(state, zoneId), from = zoneById(state, fromId);
   if (!z?.rect || !from?.rect) return null;
-  const at = crossing(from, z).at, c = centre(z)!, d = flat(at, c), m = Math.min(CONFIG.ENTER_M, d);
+  const at = crossing(from, z).at, c = centre(z)!, d = flat(at, c), m = Math.min(enterM(state, who), d);
   return d > EPS ? { x: at.x + (c.x - at.x) * m / d, y: at.y + (c.y - at.y) * m / d } : at;
 }
 
@@ -421,8 +427,9 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
   if (!z?.rect) return null;
   const r = z.rect, c = centre(z)!;
   const start = spotOf(state, from).pos ?? c;
+  const body = walker ?? ('core' in from ? (from as Actor) : undefined), wall = wallM(state, body); // SZ19: to its body's edge
   const inset = (p: Pos): Pos => {
-    const dx = c.x - p.x, dy = c.y - p.y, len = Math.hypot(dx, dy), m = Math.min(CONFIG.ENTER_M, len);
+    const dx = c.x - p.x, dy = c.y - p.y, len = Math.hypot(dx, dy), m = Math.min(wall, len);
     return len > EPS ? { x: p.x + (dx / len) * m, y: p.y + (dy / len) * m } : p;
   };
   /** a person in the zone, or a way out of it: where it is and what the story calls it */
@@ -440,7 +447,7 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     return at ? { at, label: z.links.find((l) => l.to === ref)!.label } : null;
   };
   if (spot.at) { // AD16: the point itself, a step (ENTER_M) in from the walls at most, as the other spots stand
-    const m = Math.min(CONFIG.ENTER_M, r.w / 2, r.d / 2), cl = (v: number, c0: number, half: number) => Math.max(c0 - half + m, Math.min(c0 + half - m, v));
+    const m = Math.min(wall, r.w / 2, r.d / 2), cl = (v: number, c0: number, half: number) => Math.max(c0 - half + m, Math.min(c0 + half - m, v));
     return { pos: { x: cl(spot.at.x, r.x, r.w / 2), y: cl(spot.at.y, r.y, r.d / 2) }, stopShort: 0, words: `to a spot in ${theName(z.name)}` };
   }
   if (spot.near) {

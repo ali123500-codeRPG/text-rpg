@@ -6,7 +6,7 @@ import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
 import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
-import { partPct, poolState, usableGrips, working } from './body';
+import { gripReachM, partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
 import type { PayoffCount } from '../library/perkThemes';
 import { achievementStandIn, bestReward } from './achRewards';
@@ -333,6 +333,19 @@ export function modeIdOf(word: string): string {
 /** fallback unarmed mode for a body type with no natural attacks (class punch) */
 export const UNARMED_MODE: AttackMode = { ...FISTS, id: AM.unarmed };
 
+/** SZ8: a mode wielded in a grip part (one with lengthM: a held weapon, fists, a grapple) reaches the actor's grip reach (its
+ * arm, from its size) plus the weapon's own length; other modes keep their own reach. The one held-reach equation. */
+export function inGrip(state: GameState, actor: Actor, mode: AttackMode): AttackMode {
+  return mode.lengthM === undefined ? mode : { ...mode, reach: gripReachM(state, actor, true) + mode.lengthM + (mode.reach - mode.reachM) };
+}
+
+/** SZ19: the longest melee reach the actor has now (0 with none) */
+export const meleeReachM = (state: GameState, actor: Actor): number =>
+  Math.max(0, ...usableModes(state, actor).filter((m) => m.mode.tree !== 'ranged').map((m) => m.mode.reach));
+
+/** RD5, SZ19: how near (between bodies) a hostile is close enough to strike or grab: a step plus its own melee reach */
+export const hostileNearM = (state: GameState, actor: Actor): number => CONFIG.HOSTILE_NEAR_STEP_M + meleeReachM(state, actor);
+
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {
   const grips = usableGrips(state, actor);
@@ -341,13 +354,13 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
   for (const inst of actor.core.inventory) {
     if (!isHeld(inst) || !gripsOf(inst).every((h) => grips.includes(h))) continue;
     const def = itemDef(state, inst.itemId);
-    for (const mode of def.weapon?.modes ?? []) if (mode.grips <= maxGrips) out.push({ itemId: inst.id, mode: withRow(actor, def, mode) });
+    for (const mode of def.weapon?.modes ?? []) if (mode.grips <= maxGrips) out.push({ itemId: inst.id, mode: inGrip(state, actor, withRow(actor, def, mode)) });
   }
   const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {
-    if (!mode.partId || working(poolState(partPct(actor, mode.partId)))) out.push({ itemId: `natural:${mode.id}`, mode });
+    if (!mode.partId || working(poolState(partPct(actor, mode.partId)))) out.push({ itemId: `natural:${mode.id}`, mode: inGrip(state, actor, mode) });
   }
-  if (!ct.naturalAttacks.length) out.push({ itemId: 'unarmed', mode: UNARMED_MODE });
+  if (!ct.naturalAttacks.length) out.push({ itemId: 'unarmed', mode: inGrip(state, actor, UNARMED_MODE) });
   return out;
 }
 
@@ -372,12 +385,12 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
     const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);
     if (!mode) throw new Error(`no natural attack ${weaponId}`);
-    return { mode, name: modeName(mode) };
+    return { mode: inGrip(state, actor, mode), name: modeName(mode) };
   }
   const inst = actor.core.inventory.find((i) => i.id === weaponId);
   if (!inst) throw new Error(`${actor.id} has no item ${weaponId}`);
   const def = itemDef(state, inst.itemId);
-  const modes = (def.weapon?.modes ?? []).map((m) => withRow(actor, def, m));
+  const modes = (def.weapon?.modes ?? []).map((m) => inGrip(state, actor, withRow(actor, def, m)));
   const mode = modeId ? modes.find((m) => m.id === modeId) : modes.find((m) => withinM(distance, m.reach)) ?? modes[0];
   if (!mode) throw new Error(`no attack mode ${modeId ?? ''} on ${weaponId}`);
   return { mode, name: def.name };

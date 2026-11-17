@@ -43,6 +43,7 @@ import { PK } from '../library/perkIds';
 import { classMaxLevel, creationPoints, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
 import { cap } from '../words';
+import { armReachM, volumeM3 } from '../library/bodySize';
 /** D-276: an augment's share as the viewer shows it: ×share, or a percentage augment's rate of the receiving skill */
 const augmentShareText = (a: { share?: number; kind?: string }): string => a.kind === 'percent'
   ? ` +${Math.round((a.share ?? CONFIG.AUGMENT_PERCENT_RATE) * 100)}% of its own skill per 100`
@@ -466,8 +467,10 @@ function gearTypes(): HTMLElement[] {
   const itemsRow = (t: string) => { const items = itemsOf(t); return row('Items', items.length ? links('gear', items.map((i) => [i.id, label(i.name)])) : none('none yet')); };
   const group = (title: string, list: typeof all, body: (t: (typeof all)[number]) => (Node | null)[]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title),
     h('div', { class: 'lv-grid' }, list.map((t) => card('gearTypes', t.id, t, t.name, [chip(t.covers ? 'armor' : 'weapon', toneFor('Kind', t.covers ? 'armor' : 'weapon'))], ...body(t), itemsRow(t.id)))));
-  return [h('p', { class: 'hs-note' }, 'A gear type sets a weapon\'s reach or what an armor piece covers. Every item of the type shares it; a thrown attack keeps its own range.'),
-    group('Weapons: reach', all.filter((t) => t.reachM !== undefined), (t) => [row('Reach', `${t.reachM} m`)]),
+  return [h('p', { class: 'hs-note' }, 'A gear type sets a weapon\'s length past the hand (it reaches the wielder\'s arm plus that), a bow\'s range, or what an armor piece covers. Every item of the type shares it; a thrown attack keeps its own range.'),
+    group('Weapons: length', all.filter((t) => t.lengthM !== undefined), (t) => [row('Length past the hand', `${t.lengthM} m`),
+      row('Reach', `the wielder's arm + ${t.lengthM} m (${+(armReachM(humanoid.size!) + t.lengthM!).toFixed(3)} m for a person)`)]),
+    group('Weapons: range', all.filter((t) => t.reachM !== undefined), (t) => [row('Reach', `${t.reachM} m`)]),
     group('Armor: coverage', all.filter((t) => t.covers), (t) => [h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (t.covers!.includes(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Covers', val(t.covers!.map(label)))))])];
 }
@@ -561,6 +564,7 @@ function bodyTypes(): HTMLElement[] {
     h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, c.name, [chip(c.general.size, toneFor('Size', c.general.size))],
       h('div', { class: 'lv-armor' }, figure(c, (p) => IMPACT_TONE[impactOf(c, p)]), h('div', {},
         row('General area', `${c.general.name} · ${c.general.size}`),
+        ...(c.size ? [row('Size', `${c.size.lengthM} × ${c.size.widthM} × ${c.size.heightM} m (length × width × height), ${+volumeM3(c.size).toFixed(2)} m³`)] : []),
         row('Natural attacks', c.naturalAttacks.length ? val(c.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`)) : none('none')),
         row('Fallback attack', skillName(c.fallback.attackSkill)),
         row('Races', links('races', Object.values(lib.races ?? {}).filter((r) => r.bodyTypeId === c.id).map((r) => [r.id, r.name]))),

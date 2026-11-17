@@ -48,7 +48,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     story: "Most archers panic when a blade closes in. You just smile: with any ranged weapon you take no penalty for shooting while a hostile is close enough to strike you.",
     rules: { kind: "Always on",
       trigger: "The owner makes a ranged attack.",
-      conditions: ["Any ranged attack, thrown included.", "A hostile actor is within 2 m of the owner (HOSTILE_NEAR_M)."],
+      conditions: ["Any ranged attack, thrown included.", "A hostile actor is near enough to strike the owner: within a step (HOSTILE_NEAR_STEP_M, 0.75 m) plus its own melee reach."],
       effect: "The −10 ranged modifier for a hostile close to the shooter is not applied.",
       lasts: "That attack." } },
   { id: PK.hunters_mark, ref: "A5", name: "Hunter's Mark", skill: SK.ranged_medium, place: "20",
