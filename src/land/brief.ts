@@ -116,6 +116,7 @@ export function landView(state: GameState, from?: Pt): import('../types').LandVi
     sites: r.sites.map((s) => ({ id: s.id, size: s.size, name: s.name, look: s.look, where: way(s.at), ...(s.placeId ? { place: s.placeId } : {}) })),
     roads: r.roads.map((x) => ({ id: x.id, kind: x.kind, from: nodeName(x.ends[0]), to: nodeName(x.ends[1]), km: Math.round(x.length / 100) / 10, danger: x.danger,
       ...(x.crossings.length ? { crosses: x.crossings.map((c) => `a ${c.kind}`).join(', ') } : {}), ...(x.zone ? { zone: x.zone } : {}) })),
+    junctions: r.nodes.filter((n) => n.kind === 'junction').map((n) => ({ id: n.id, where: way(n.at), roads: r.roads.filter((x) => x.ends.includes(n.id)).length, ...(n.zone ? { zone: n.zone } : {}) })),
     landmarks: r.features.map((f) => ({ name: f.name, kind: lib.landmarkKinds?.[f.kind]?.name ?? f.kind, look: f.look, where: way(f.at) })),
     beyond: Object.fromEntries(Object.entries(r.beyond).map(([k, v]) => [SIDE_WORD[k as Side], v!.name])),
   };

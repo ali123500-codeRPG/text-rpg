@@ -17,6 +17,8 @@ import { stageReaches, talentName, youngestAge } from '../ruleset/age';
 import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
+import { zoneById } from '../engine/relations';
+import { landNode, landTarget, landZone } from './ways';
 
 /** what the Weaver may say a cast member knows of the player or a band: AWARENESS up to aware (tracking and up are code's) */
 const BELIEFS: string[] = AWARENESS.keys.slice(0, AWARENESS.pos('aware') + 1);
@@ -206,8 +208,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const placeIds = new Set(state.places.map((p) => p.id));
   const bandIds = new Set(state.bands.map((b) => b.id));
   const actorIds = new Set([state.player.id, ...state.actors.map((a) => a.id)]);
-  const isZone = (r: string) => zoneKeys.has(r) || stageZones.has(r);
-  const isFrontier = (r: string) => frontierKeys.has(r) || existingFrontiers.has(r);
+  // WI2 a: a land road, junction or site id is a way along the land: its zone once built, else new ground
+  const landBuilt = (r: string) => !zoneKeys.has(r) && !stageZones.has(r) && !!landTarget(state, r) && !!landZone(state, r);
+  const landNew = (r: string) => !zoneKeys.has(r) && !stageZones.has(r) && !!landTarget(state, r) && !landZone(state, r);
+  const isZone = (r: string) => zoneKeys.has(r) || stageZones.has(r) || landBuilt(r);
+  const isFrontier = (r: string) => frontierKeys.has(r) || existingFrontiers.has(r) || landNew(r);
   const isBand = (r: string) => bandKeys.has(r) || bandIds.has(r);
   const isActor = (r: string) => castKeys.has(r) || actorIds.has(r);
   const isPlace = (r: string) => placeKeys.has(r) || placeIds.has(r);
@@ -228,6 +233,19 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   for (const z of zones) {
     const line = z.road ? state.regions?.flatMap((r) => r.roads).find((x) => x.id === z.road) : undefined;
     if (line?.zone && state.places.some((p) => p.zones.some((x) => x.id === line.zone))) err('road_built', `zone ${z.key}: road ${z.road} is already built as zone ${line.zone}: link to ${line.zone} instead; never declare it again`);
+    // WI2 a: so is a junction
+    const jn = z.node ? landNode(state, z.node)?.node : undefined;
+    if (jn?.zone && zoneById(state, jn.zone)) err('road_built', `zone ${z.key}: junction ${z.node} is already built as zone ${jn.zone}: link to ${jn.zone} instead; never declare it again`);
+  }
+  // WI2 a: new ground the land draws (a road, a junction or a settlement's site) is built as that, by the zone that builds it
+  const entries = [...(ctx.frontierKey && zones[0] ? [[ctx.frontierKey, zones[0]] as const] : []), ...zones.filter((z) => existingFrontiers.has(z.key)).map((z) => [z.key, z] as const)];
+  for (const [key, z] of entries) {
+    const t = landTarget(state, key);
+    const top = (k: string): typeof places[number] | undefined => { const p = places.find((x) => x.key === k); return p?.parent ? top(p.parent) : p; };
+    if (!t || ('road' in t && z.road === t.road) || ('junction' in t && z.node === t.junction) || ('site' in t && top(z.place)?.site === t.site)) continue;
+    err('land_entry', 'road' in t ? `zone ${z.key} builds ${key}, the land's road ${t.road}: make it that road's zone (kind road, "road": "${t.road}")`
+      : 'junction' in t ? `zone ${z.key} builds ${key}, the land's junction ${t.junction}: make it that junction's zone ("node": "${t.junction}")`
+      : `zone ${z.key} builds ${key}, the way into the land's site ${t.site}: make it a zone of the settlement you build on that site (its top-level place has "site": "${t.site}")`);
   }
 
   // ---- caps ----
@@ -325,6 +343,12 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       else if (!line) err('bad_zone', `zone ${z.key}: road is a road id from target.region.roads`);
       else if (line.zone && line.zone !== z.key) err('bad_zone', `zone ${z.key}: road ${z.road} is already the zone ${line.zone}`);
     }
+    if (z.node !== undefined) {
+      const jn = landNode(state, z.node)?.node;
+      if (jn?.kind !== 'junction') err('bad_zone', `zone ${z.key}: node is a junction id from land.junctions`);
+      else if (z.road !== undefined || !getLibrary().zoneKinds?.[z.kind]?.outdoor) err('bad_zone', `zone ${z.key}: a junction's zone is outdoors and runs along no road (the roads meeting there are their own zones)`);
+      else if (zones.some((o) => o !== z && o.node === z.node)) err('bad_zone', `zone ${z.key}: junction ${z.node} is one zone`);
+    }
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
     const edgeKinds = getLibrary().edgeKinds ?? {};
     for (const [side, ek] of Object.entries(z.edges ?? {})) {
@@ -332,7 +356,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     }
     if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     // NW4: an onward kind (a street, square, gate, field, woods or road) links somewhere besides the way in
-    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && neighbours(z.key).size < 2)
+    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && !z.road && !z.node && neighbours(z.key).size < 2) // WI2 a: code makes a land zone's ways
       err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind]?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
