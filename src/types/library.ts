@@ -260,7 +260,8 @@ export type ZoneKind = {
 };
 /** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
-export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string;
+  /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
 export type FurnitureKind = { id: string; name: string };

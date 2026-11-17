@@ -785,6 +785,12 @@ const DEFAULTS = {
   PLACE_SPACING_M: 0.75, // BF71: the grid code places people on, how far a walk up to someone stops
   PLACE_GAP_M: 0.15, // BF71, SZ19: the room a walk's end keeps from everyone but the one it closes in on (Hall: intimate distance starts at 0.15 m)
   RING_STEPS: 24, // BF71: the spots round someone a walk closing in on them tries when the straight-line spot is taken
+  /** SZ7: a doorway, width × height in metres: a house door about 0.9 × 2 m (interior doors are commonly 0.8–0.9 m by
+   * 2.0 m). Every way into or out of an indoor zone with no barrier of its own has it; ways between outdoor zones have none */
+  DOORWAY_M: [0.9, 2] as [number, number],
+  /** SZ7: a body passes an opening when the narrower of its length and width fits the width (it turns sideways) and its
+   * height ducked to this share fits the height; ducking takes no extra time. Crawling lower is parked (D-369) */
+  DUCK_SHARE: 0.5,
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
    * wall or a way out stops this far inside it. SZ19: measured to the body's near edge, so a whole horse stands inside */
   ENTER_M: 1,
