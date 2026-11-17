@@ -6,7 +6,7 @@ import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { FN, GR } from '../library/functionIds';
-import type { GrandeurKey, HealthLevelKey, PartStateKey, SkillTierKey } from '../scales';
+import type { GrandeurKey, HealthLevelKey, PartStateKey, Past100Key, SkillTierKey } from '../scales';
 
 /** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
@@ -84,13 +84,17 @@ export type ThemeDef = { id: LibraryRef; name: string; bands?: SkillBands; leans
   /** NG10: the highest equip level its people's gear reaches (an EQUIP_LEVELS key); none = no picked gear */
   wealth?: import('../scales').EquipLevelKey; rankNames?: Partial<Record<import('../scales').RankKey, string>>; talent?: import('../scales').TalentKey /* AG25: its presets' talent when they name none */ };
 
+/** skill id → bound (a number, or a Past100Key: 'beyond', 'mythic', 'transcendent', 'divine') */
+export type EssenceBounds = Record<string, number | Past100Key>;
 /** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
  * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
 export type EssenceDef = {
   id: string; name: string;
   /** echo: one echo's own essence, on its template's hand-set list only (EN3 b), never on a worked-out list; role: only NPCs
-   * of that role (RO id); over: only when that skill is above every skill in the role's high band (a beast's weapons) */
-  from: { race?: string; bodyType?: string; role?: string; over?: string; deed?: true; echo?: true };
+   * of that role (RO id); over: only when that skill is above every skill in the role's high band (a beast's weapons);
+   * min / max: only when each named skill of the owner (raw × tier) is at least / at most that value, a number or a step of
+   * the ladder past 100 ('beyond' 150 … 'divine' 400), so a row can be kept for Divine owners or kept from them */
+  from: { race?: string; bodyType?: string; role?: string; over?: string; min?: EssenceBounds; max?: EssenceBounds; deed?: true; echo?: true };
   skills: { skill: string; weight: number }[];
   trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); one so far, Tavern Brawler's Fists Do the Talking (a placeholder; content round D-229)
   story: string;

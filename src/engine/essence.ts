@@ -4,10 +4,10 @@
 // into a limited number of slots. Code rolls every offer from tables; no agent names, seeds or changes one.
 import type { Actor, EssenceDef, EssenceOffer, GameState, HeldEssence, NpcTemplate, Rng, ScenarioEnding, ScenarioFrame, SkillEntry } from '../types';
 import { D100_MEAN } from '../rng';
-import { CONFIG } from '../config';
+import { CONFIG, past100 } from '../config';
 import { getLibrary, hasTemplate, npcTemplate, race } from '../library';
 import { templateSkills } from '../library/spawn';
-import { ESSENCE_GRADES, TIERS, type EssenceGradeKey } from '../scales';
+import { ESSENCE_GRADES, TIERS, type EssenceGradeKey, type Past100Key } from '../scales';
 import { band, naturalEdge } from '../ruleset';
 import { trueSkill } from '../ruleset/perks';
 import { tierMult } from '../ruleset/gear';
@@ -86,16 +86,18 @@ export function essenceFit(row: EssenceDef, skill: (id: string) => number, best:
 }
 
 /** EN1, EN2: the essence rows a sheet of this race carries: rows of its race or body type, or naming neither (EN2 a), whose fit
- * reaches ESSENCE_FIT_SHARE, and whose role and `over` rules (if any) the sheet meets. Deed rows (scenario endings) and echo rows (one echo's own) are never worked out onto a list. */
+ * reaches ESSENCE_FIT_SHARE, and whose role, `over`, min and max rules (if any) the sheet meets. Deed rows (scenario endings) and echo rows (one echo's own) are never worked out onto a list. */
 export function fittingEssences(raceId: string | undefined, skills: Record<string, SkillEntry>, roleId?: string): { row: EssenceDef; fit: number }[] {
   if (!raceId) return [];
   const body = race(raceId).bodyTypeId, v = (id: string) => (skills[id]?.raw ?? 0) * tierMult(id);
   const best = Math.max(0, ...Object.keys(skills).map(v));
   const high = (roleId && getLibrary().npcRoles?.[roleId]?.bands.high) || [];
   const over = (sk: string) => high.every((h) => v(sk) > v(h));
+  const at = (b: number | Past100Key) => (typeof b === 'number' ? b : past100(b));
+  const within = (r: EssenceDef) => Object.entries(r.from.min ?? {}).every(([sk, b]) => v(sk) >= at(b)) && Object.entries(r.from.max ?? {}).every(([sk, b]) => v(sk) <= at(b));
   return Object.values(getLibrary().essences ?? {})
     .filter((r) => !r.from.deed && !r.from.echo && (!r.from.race || r.from.race === raceId) && (!r.from.bodyType || r.from.bodyType === body)
-      && (!r.from.role || r.from.role === roleId) && (!r.from.over || over(r.from.over)))
+      && (!r.from.role || r.from.role === roleId) && (!r.from.over || over(r.from.over)) && within(r))
     .map((row) => ({ row, fit: essenceFit(row, v, best) })).filter((x) => x.fit >= CONFIG.ESSENCE_FIT_SHARE);
 }
 

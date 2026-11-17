@@ -12,6 +12,8 @@ import { ES } from './library/essenceIds';
  * PAST_100_STEP (Divine+, Divine++ …) */
 const PAST_100: Record<Past100Key, number> = { beyond: 150, mythic: 200, transcendent: 300, divine: 400 };
 const PAST_100_STEP = 100;
+/** a named step of that ladder (essence bounds may name one: min Bite 'divine' = 400) */
+export const past100 = (k: Past100Key): number => PAST_100[k];
 
 const DEFAULTS = {
   // ---- Part 1 ----
