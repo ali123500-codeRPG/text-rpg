@@ -79,8 +79,9 @@ const DEFAULTS = {
   POOL_QUALITY_FACTOR: 0.1,
   POTENTIAL: 300,
   K: 20,
-  /** D-374 (placeholders): a tagged skill cuts its own Burden by TAG_BURDEN_SELF_PCT %, and every skill sharing a group with
-   * it (itself included) by TAG_BURDEN_GROUP_PCT % more. Cuts add up and may pass 100 %: Burden then turns into a bonus */
+  /** D-374 TB1 (placeholders): how much of a skill's raw counts toward Burden's Total: 100 % less TAG_BURDEN_SELF_PCT for its
+   * own tag, less TAG_BURDEN_GROUP_PCT per tagged skill sharing a group with it (itself included). A lone tag counts 0; two tags
+   * in one group count below 0 and lower the Total */
   TAG_BURDEN_SELF_PCT: 95,
   TAG_BURDEN_GROUP_PCT: 5,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */

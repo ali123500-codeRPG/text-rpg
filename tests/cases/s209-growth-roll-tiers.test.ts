@@ -5,7 +5,7 @@ import type { Rng } from '../../src/types';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
-import { growthRoll, payRolls, skillBurden, skillCap } from '../../src/ruleset/improve';
+import { growthRoll, payRolls, skillCap } from '../../src/ruleset/improve';
 
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
 const odds = (raw: number, state: 'normal' | 'tagged' | 'flawed') => { let any = 0; for (let d = 1; d <= 100; d++) if (growthRoll(d, { raw, state }, 0).gain) any++; return any; };
@@ -26,20 +26,9 @@ describe('209 improvement roll on the tier table', () => {
     expect(odds(124, 'tagged')).toBe(12);
   });
 
-  it('the roll takes the skill\'s own Burden: below 0 it helps', () => {
-    expect(growthRoll(45, { raw: 50, state: 'normal' }, 10).gain).toBe(0); // margin 45 + 50 − 10 − 90 = −5
-    expect(growthRoll(45, { raw: 50, state: 'normal' }, -5).gain).toBe(2); // margin 45 + 50 + 5 − 90 = 10: Success
-  });
-
-  it('D-374: a tag cuts its own Burden 95% and its group\'s 5% each, adding up past 100%', () => {
-    const p = makeVillage().player, self = CONFIG.TAG_BURDEN_SELF_PCT / 100, mate = CONFIG.TAG_BURDEN_GROUP_PCT / 100;
-    p.core.skills = { [SK.block]: { raw: 30, state: 'tagged' }, [SK.dodge]: { raw: 30, state: 'normal' }, [SK.melee_medium]: { raw: 30, state: 'normal' } };
-    expect(skillBurden(p, SK.block, 10)).toBeCloseTo(10 * (1 - self - mate)); // a lone tag: 95% + 5% = none
-    expect(skillBurden(p, SK.dodge, 10)).toBeCloseTo(10 * (1 - mate)); // dodge shares Defense with block
-    expect(skillBurden(p, SK.melee_medium, 10)).toBe(10); // Melee: no tag in its group
-    p.core.skills[SK.dodge].state = 'tagged';
-    expect(skillBurden(p, SK.block, 10)).toBeCloseTo(10 * (1 - self - 2 * mate)); // two Defense tags: 105%, a bonus
-    expect(skillBurden(p, SK.block, 10)).toBeLessThan(0);
+  it('Burden weighs on untagged skills only', () => {
+    expect(growthRoll(45, { raw: 50, state: 'normal' }, 10).gain).toBe(0);
+    expect(growthRoll(45, { raw: 50, state: 'tagged' }, 10).gain).toBe(3); // margin 45 + 75 − 90 = 30, from the tagged cap 125
   });
 
   it('natural edges do not move the roll (SG2 lever off)', () => {

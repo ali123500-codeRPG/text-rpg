@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
 import { skillCap } from '../ruleset/skillCap';
+import { burdenTotal } from '../ruleset/burdenTotal';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
 import { CLASS_TIERS, equipPos, GRANDEUR, NERVE_LINES, RANKS, type GrandeurKey, type LifeStageKey, type RankKey, type TalentKey } from '../scales';
@@ -408,7 +409,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     },
     // a rolled NPC keeps its level's perk points (one per even level, Part 1 §5) in a Progression module; NG11 spends them below
     ...(t.generation === 'rolled' ? { progression: {
-      startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
+      startingTotal: burdenTotal(skills),
       potential: { base: t.potential ?? CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(level), marks: [],
     } } : {}),
     mind: {
@@ -457,7 +458,7 @@ function spawnUnique(state: GameState | null, t: NpcTemplate, opts: SpawnOpts): 
       ...(u.ageDays !== undefined && state ? { bornDay: now(state) / DAY_MINUTES - u.ageDays } : {}),
     },
     progression: {
-      startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
+      startingTotal: burdenTotal(skills),
       potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [],
       achievements: structuredClone(u.achievements), ...(u.title ? { title: u.title } : {}),
       ...(u.essences ? { essences: structuredClone(u.essences) } : {}),
@@ -691,7 +692,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       bornDay: -Math.round((build.age ?? creationAge(build.startId)) * CONFIG.YEAR_DAYS), // AG2, AG15: the story starts on day 1
     },
     progression: {
-      startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),
+      startingTotal: burdenTotal(Object.fromEntries(Object.entries(build.skills).map(([k, raw]) => [k, { raw, state: build.tagged.includes(k) ? 'tagged' : 'normal' }]))),
       potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: perkPointsUpTo(startLevel(build.startId)), marks: [],
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },

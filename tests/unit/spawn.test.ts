@@ -34,7 +34,7 @@ describe('player creation', () => {
   });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(p.progression!.startingTotal).toBe(100 - 40 - 25 - 15);
+    expect(p.progression!.startingTotal).toBeCloseTo(100 - 40 - 25 - 15 - 10 * CONFIG.TAG_BURDEN_GROUP_PCT / 100); // D-374: dodge shares Defense with tagged parry
     expect(p.core.skills[SK.parry]).toEqual({ raw: 25, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
       // the starter kit: per gear class the highest 'starter' item met (Medium Weapons 40: the Common hand axe; no Light Armor: the
