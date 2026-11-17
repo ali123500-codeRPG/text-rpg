@@ -18,7 +18,7 @@ type Row = {
   milestone?: 40 | 80 | 120;
   /** display name of the skill, and its group key: every skill of that group, itself included, gets +1 */
   group: SkillGroup;
-  extra: { story: string; rule: string; numbers?: BoostNumbers; numbersFor?: string[]; trueSkillTo?: Record<string, number> };
+  extra: { story: string; rule: string; numbers?: BoostNumbers; numbersFor?: string[]; numbersForGroup?: SkillGroup; trueSkillTo?: Record<string, number> };
 };
 /** the weapon skills (Arms) and the ranged weapon skills: perks whose numbers work with weapons in general */
 const MELEE_WEAPONS = [SK.melee_light, SK.melee_medium, SK.melee_heavy], RANGED_WEAPONS = [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy];
@@ -31,7 +31,7 @@ const ROWS: Row[] = [
   { id: PK.guard_drill, ref: 'P2', skill: SK.melee_medium, group: GR.melee, name: 'Guard Drill', effect: 'defense',
     extra: { story: 'Every guard you hold makes the next one harder to break: +10 Parry.', rule: `+10 true skill in ${skillName(SK.parry)}.`, trueSkillTo: { [SK.parry]: 10 } } },
   { id: PK.heavy_hand, ref: 'P3', skill: SK.melee_heavy, group: GR.melee, name: 'Heavy Hand', effect: 'attack',
-    extra: { story: 'Armor dents, bones give: your weapons hit 20% harder.', rule: `Damage of an attack with ${skillList(MELEE_WEAPONS)} is ×1.2, before armor.`, numbers: { damageMult: 1.2 }, numbersFor: MELEE_WEAPONS } },
+    extra: { story: 'Armor dents, bones give: every melee blow you land hits 20% harder.', rule: `Damage of an attack with any ${GROUP_NAMES[GR.melee]} skill (weapons, unarmed, improvised and natural attacks) is ×1.2, before armor.`, numbers: { damageMult: 1.2 }, numbersForGroup: GR.melee } },
   { id: PK.sharp_eyes, ref: 'P4', skill: SK.ranged_light, group: GR.ranged, name: 'Sharp Eyes', effect: 'senses',
     extra: { story: `Nothing escapes the archer's eye: +10 ${skillName(SK.eyesight)}.`, rule: `+10 true skill in ${skillName(SK.eyesight)}.`, trueSkillTo: { [SK.eyesight]: 10 } } },
   { id: PK.steady_draw, ref: 'P5', skill: SK.ranged_medium, group: GR.ranged, name: 'Steady Draw', effect: 'attack',
@@ -79,7 +79,7 @@ export const BOOST_PERKS: PerkWriteup[] = ROWS.map((r) => ({
   id: r.id, ref: r.ref, name: r.name, skill: r.skill, place: '40',
   ladder: { skill: r.skill, milestone: r.milestone ?? 40 }, effect: r.effect, functionBoost: 1,
   ...(r.milestone === 120 ? { shareOwn: CONFIG.HIGH_PERK_SHARE, shareGroup: CONFIG.HIGH_PERK_SPREAD } : { trueSkill: 5 }),
-  ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.numbersFor ? { numbersFor: r.extra.numbersFor } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
+  ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.numbersFor ? { numbersFor: r.extra.numbersFor } : {}), ...(r.extra.numbersForGroup ? { numbersForGroup: r.extra.numbersForGroup } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
   story: `${own(r).short}. ${r.extra.story}`,
   rules: {
     kind: 'Always on', trigger: 'Always.', conditions: [],

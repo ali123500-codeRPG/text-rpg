@@ -110,8 +110,10 @@ export const standInAdd = (a: Actor, fn: string): number =>
  * health (Natural recovery), morale (Natural composure) and stamina (Catching your breath) */
 export const recoveryMult = (a: Actor): number =>
   owned(a).reduce((m, p) => m * (getLibrary().perks[p.perkId]?.numbers?.recoveryMult ?? 1), 1);
-/** a ladder perk's numbers work with this skill: its own skill, or the skills it lists (PerkDef.numbersFor: Keen Edge, every weapon) */
-const numbersWork = (d: PerkDef | undefined, skill: string): boolean => !!d?.ladder && (d.numbersFor ?? [d.ladder.skill]).includes(skill);
+/** a ladder perk's numbers work with this skill: its own skill, the skills it lists (PerkDef.numbersFor: Keen Edge, every weapon),
+ * or every skill of its group (PerkDef.numbersForGroup: Heavy Hand, every melee skill) */
+const numbersWork = (d: PerkDef | undefined, skill: string): boolean => !!d?.ladder &&
+  (d.numbersForGroup ? groupsOf(getLibrary().skills[skill]).includes(d.numbersForGroup) : (d.numbersFor ?? [d.ladder.skill]).includes(skill));
 /** a 40/80/120 perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
 export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult'): number {
   const perks = getLibrary().perks;

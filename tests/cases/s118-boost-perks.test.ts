@@ -10,6 +10,7 @@ import type { Actor, ContestResult, GameState, Intent, RollRequest } from '../..
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { AM } from '../../src/library/tableIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const wield = (s: GameState, itemId: string) => {
@@ -77,13 +78,21 @@ describe('118 40/80/120 perks', () => {
     const d = ruleset.roll({ actorId: 'player', skill: SK.dodge, modifiers: [], tierShifts: [] }, s, forcedRng([50]));
     expect(d.modifiers.some((m) => m.type === 'roll_perk')).toBe(false);
   });
-  it('Heavy Hand: melee weapon damage ×1.2, any weight', () => {
+  it('Heavy Hand: melee damage ×1.2, weapons of any weight and unarmed blows alike', () => {
     const plain = hit(IT.greataxe, 'patron_1', undefined, undefined, undefined, 85).r, boosted = hit(IT.greataxe, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r;
     expect(plain.damage).toBeGreaterThan(0);
     expect(boosted.damage).toBeCloseTo(plain.damage * 1.2, 5);
     const light = hit(IT.dagger, 'patron_1', undefined, undefined, undefined, 85).r.damage;
     expect(hit(IT.dagger, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBeCloseTo(light * 1.2, 5); // weapons in general
     expect(hit(IT.longbow, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBe(hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // not ranged
+    const punch = (perk?: string) => {
+      const s = makeVillage();
+      place(s, 'patron_1', s.player.zone);
+      if (perk) give(s.player, perk);
+      return ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: `natural:${AM.punch}`, modeId: AM.punch, targetPart: null, aimed: false }, s, forcedRng([85, 5, 50, 50])).damage;
+    };
+    expect(punch()).toBeGreaterThan(0);
+    expect(punch(PK.heavy_hand)).toBeCloseTo(punch() * 1.2, 5); // melee in general: a punch too
   });
   it('Armor Piercer: each armor stops 2 less of any ranged hit', () => {
     const plain = hit(IT.crossbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r;

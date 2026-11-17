@@ -289,11 +289,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Heavy Hand (Heavy weapons) · P3
 
-*Story:* +5 Heavy weapons, +1 Melee. Armor dents, bones give: your weapons hit 20% harder.
+*Story:* +5 Heavy weapons, +1 Melee. Armor dents, bones give: every melee blow you land hits 20% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of an attack with Light weapons, Medium weapons or Heavy weapons is ×1.2, before armor.
+- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of an attack with any Melee skill (weapons, unarmed, improvised and natural attacks) is ×1.2, before armor.
 - **Lasts:** Always.
 
 ### Sharp Eyes (Light ranged) · P4
