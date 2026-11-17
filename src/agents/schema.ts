@@ -2,7 +2,7 @@
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // A missing nullable field reads as null; only a missing required field fails the answer (CS9).
 import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
-import { GEAR_OPS, OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type GearOp, type ImprovisedBase } from '../types';
+import { GEAR_OPS, OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, PRONOUNS, type GearOp, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
 import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
@@ -216,7 +216,7 @@ const weaver = obj<StagePlan>({
     chase: level(CHASE_RANGES), // CH5; BG-40: the schema shows the names ("Ground"), so a name is read as its key
   }, ['chase'])),
   cast: arr(obj<Cast>({
-    template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(['he', 'she', 'they', 'it'] as const),
+    template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(PRONOUNS),
     knownOnSight: bool, knows: arr(obj<{ id: string; text: string }>({ id: str, text: str })),
     key: str, band: str, routineSetId: str,
     slots: record<string | string[]>((v, p, e) => (Array.isArray(v) ? arr(str)(v, p, e) : str(v, p, e))),
