@@ -24,6 +24,8 @@ export function falseName(speaker: { names: { current: string } }, text: string 
 
 /** "a lean man" -> "the lean man": someone already met, said again */
 export const theOf = (label: string): string => label.replace(/^(a|an)\s+/i, 'the ');
+/** an item's name with "the": its own article turned to the, else the added */
+export const theItem = (n: string): string => (/^(the|a|an|some)\s/i.test(n) ? theOf(n) : `the ${n}`);
 /** BG-218: a place or zone name in a phrase. A name that starts with an article, a capital (a proper name, Thornbury) or a
  *  place word (behind the counter) stands as it is; any other takes "the" (common room → the common room). */
 export const theName = (n: string): string =>

@@ -37,6 +37,9 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
+  /** IF id (IR30): its family. Mundane pieces scale only by their level (IR31); a special family (Threadbound, Relic) stands on a
+   * Mundane base and adds its own extras (IR33). Set for every equipment piece when the library loads */
+  family?: string;
   gearType?: string; // GT id (IR23): its reach (weapons) or coverage (armor), from the library gearTypes table
   base?: { itemId: LibraryRef; quality: import('../scales').QualityKey; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll); 'broken' a broken item (BK3: its name starts "broken", it does nothing); 'fantasy' a piece past any real smith (IR2: Masterwork and up)
@@ -125,8 +128,10 @@ export type ItemInstance = {
   work?: Record<string, number>; // BA2, as on a barrier
 };
 
+/** every gear op (the type, the schema and the agents' shapes read this list) */
+export const GEAR_OPS = ['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const;
 export type GearOp = {
-  op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon' | 'set_down'; // summon: TB6, the player's own Threadbound item, from wherever it is; set_down: OA4, put down where one stands (free)
+  op: (typeof GEAR_OPS)[number]; // summon: TB6, the player's own Threadbound item, from wherever it is; set_down: OA4, put down where one stands (free)
   qty?: number; // set_down: how many of a stack (all of it when left out)
   item: string; // item instance id
   from?: string; // actor id (pick up from a downed or yielded actor); absent = the ground or an open container (CT3)

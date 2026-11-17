@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { FN } from '../library/functionIds';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
 import { moveSpeed } from './speed';
-import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, type Located, type Pos } from './position';
+import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, type Located, type Pos } from './position';
 export { frontierPoint };
 import { eachPerceives, together } from './yield';
 import { minutesUntil, now, timeOfDay } from '../time';
@@ -85,7 +85,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     let minutes = CONFIG.TRAVEL_LEG_MIN;
     if (!dark) minutes = Math.min(minutes, minutesUntil(t, 'dusk'));
     let left = speed * minutes, walked = 0;
-    for (let n = 0; n < 100 && left > 0.01 && !there(); n++) {
+    for (let n = 0; n < 100 && left > M_EPS && !there(); n++) {
       const before = spotOf(state, a).pos;
       const zone = a.zone;
       const w = walkLeg(state, a, goal, left, 0);

@@ -20,12 +20,12 @@ export const PY = { prideful: 'PY1', mature: 'PY2', childish: 'PY3', honourable:
 export const TN = { unshakeable_scatterbrained: 'TN1', bold_unbacked: 'TN2', wary_dangerous: 'TN4', home_temptation: 'TN5', talent_undisciplined: 'TN6', crooked_means: 'TN7' } as const; // TN3 (old head on young shoulders) retired: no children
 /** linked perks: a set of perks that together grant one more perk, or merge into one (src/library/perkLinks.ts) */
 export const LK = { crushing_presence: 'LK1', ghost_blade: 'LK2', combination: 'LK3', blind_spot: 'LK4', bulwark: 'LK5', endless_answer: 'LK6' } as const;
-/** the Action times table (AT11); DU1 (the fight turn) is retired: it is CONFIG.FIGHT_TURN_S */
+/** the Action times table (AT11); DU1 (the fight turn) is retired: it is CONFIG.FIGHT_TURN_S; DU28 (Vanish in place) is retired: no Vanish action (VS6) */
 export const DU = {
   action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5', blow: 'DU6', throw: 'DU7', bow_light: 'DU8', bow_medium: 'DU9', crossbow_shot: 'DU10',
   span_light: 'DU11', span_stirrup: 'DU12', span_crossbow: 'DU13', battle_cry: 'DU14', talk: 'DU15', draw: 'DU16', stow: 'DU17', swap: 'DU18',
   pick_up_reach: 'DU19', pick_up_ground: 'DU20', hand_over: 'DU21', door: 'DU22', bar: 'DU23', key: 'DU24', pick_lock: 'DU25', bandage: 'DU26',
-  drink: 'DU27', vanish_in_place: 'DU28', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
+  drink: 'DU27', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
   armor_heavy_on: 'DU34', armor_heavy_off: 'DU35', wait: 'DU36', break_open: 'DU37', from_pack: 'DU38',
   blow_unarmed: 'DU39', blow_medium: 'DU40', blow_heavy: 'DU41', // blows by class (DU6 blow is the light weapon blow)
 } as const;
@@ -58,6 +58,9 @@ export const GT = {
   short_bow: 'GT6', flatbow: 'GT7', recurve: 'GT8', longbow: 'GT9', warbow: 'GT10', crossbow_light: 'GT11', crossbow_stirrup: 'GT12', crossbow_heavy: 'GT13',
   cuirass: 'GT14', coat: 'GT15', half_suit: 'GT16', full_harness: 'GT17', helmet: 'GT18', helmet_neck: 'GT19', fist: 'GT20',
 } as const;
+/** IR30-IR33: item families. Mundane pieces scale only by their level; special families (Threadbound, Relic) stand on a
+ * Mundane base and add their own extras */
+export const IF = { mundane: 'IF1', threadbound: 'IF2', relic: 'IF3' } as const;
 /** gear classes: a class sets which skill an item asks for (its level sets how much) */
 export const GC = {
   melee_light: 'GC1', melee_medium: 'GC2', melee_heavy: 'GC3', ranged_light: 'GC4', ranged_medium: 'GC5', ranged_heavy: 'GC6',

@@ -5,7 +5,7 @@
 // own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
 //   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
 import { mkdirSync, writeFileSync, appendFileSync, readFileSync, copyFileSync } from 'node:fs';
-import { readTurnRecord } from '../src/save';
+import { listWorlds, readTurnRecord } from '../src/save';
 import { join } from 'node:path';
 import type { ClaudeClient, ClaudeRequest, ClaudeResponse } from '../src/types';
 import { createGame, parseTolerant, realClock } from '../src/agents';
@@ -28,6 +28,12 @@ import { personalityText } from '../src/ruleset/personality';
 import { skillName as sk } from '../src/library/skillNames';
 import type { LogLine, Personality } from '../src/types';
 import { lengthReport } from '../src/agents/narration';
+import { buildPlayerView } from '../src/views';
+import { moraleLevel } from '../src/ruleset/morale';
+import { personalityOf } from '../src/ruleset/personality';
+import { deck, type Choice, type DeckAction, type Order } from '../src/ui/deck';
+import { suggestions } from '../src/ui/suggest';
+import { lootGear, lootOrder, lootSources } from '../src/ui/loot';
 
 /** what the play screen shows under a line whatever the mechanics switch: skill-ups, perk unlocks, level-ups, achievements */
 const screenNotes = (l: LogLine): string[] => {
@@ -66,6 +72,8 @@ const OUT = arg('out', 'playtest-out');
 /** --resume DIR: carry on a stopped run from the end of its last finished turn (its store.json), on today's code; the new
  * run's files go to --out and its turns keep counting from where DIR stopped */
 const RESUME = arg('resume', '');
+/** --world DIR: a new character in the world of DIR's story, whose character fell (new playtests run on one world) */
+const WORLD = arg('world', '');
 /** --call-model ID / --call-effort low|medium|high: every game call (not the player agent) on this model and effort, to compare setups */
 const CALL_MODEL = arg('call-model', '');
 const CALL_EFFORT = arg('call-effort', '');
@@ -106,6 +114,46 @@ talk to people, explore, take on any trouble you find, fight if it comes to that
 the game. Reply with ONLY what you type next, one short line in plain words (no quotes). Now and then use a command:
 /stats, /inv, /quests, /help or /aim <text>.`;
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
+/** --deck: the player only clicks the Play screen's action deck (AD1–AD16): a numbered menu of every action with its
+ * choices filled in; an action that needs words takes them after a "|". No free typing, no / commands. */
+const DECK = process.argv.includes('--deck');
+const DECK_BRIEF = `You are playtesting a text RPG as its player: a new character who began as ${getLibrary().starts?.[START]?.name ?? 'a newcomer'}. Play naturally and curiously:
+talk to people, explore, take on any trouble you find, fight if it comes to that. You cannot type freely: each turn you
+click one entry from the action list below, exactly as the game's screen offers it. Reply with ONLY the entry's number,
+no plan or reasoning before it.
+For an entry marked (needs your words), reply "N | what you say".`;
+type MenuItem = { label: string; action: DeckAction; choice: Choice; words: boolean; loot?: Order; say?: true };
+/** every deck action with its choices filled in (at most 10 per action), as the screen's pickers would offer them */
+function deckMenu(st: GameState): { items: MenuItem[]; suggested: string } {
+  const pv = buildPlayerView(st);
+  const ctx = { pv, s: st, broken: moraleLevel(st.player) === 'broken', self: personalityOf(st.player) };
+  const groups = deck(ctx);
+  const items: MenuItem[] = [];
+  for (const g of groups) for (const a of g.actions) {
+    if (a.kind === 'loot') {
+      const src = lootSources(pv), all = new Set(src.flatMap((x) => x.items.map((i) => i.id)));
+      const line = lootOrder(src, all);
+      items.push({ label: `[${g.name}] ${a.label}: ${line}`, action: a, choice: {}, words: false, loot: { line, intent: { move: null, action: null, gear: lootGear(src, all), spoken: null, addressees: null, deferred: [], clarify: null } } });
+      continue;
+    }
+    const out: { c: Choice; text: string[] }[] = [];
+    const walk = (c: Choice, text: string[], i: number) => {
+      if (out.length >= 10) return;
+      const st2 = a.steps[i];
+      if (!st2) { out.push({ c, text }); return; }
+      if (st2.key === 'words') return walk(c, text, i + 1);
+      for (const p of st2.picks(c)) walk({ ...c, [st2.key]: p.id }, [...text, `${p.label}${p.note ? ` (${p.note})` : ''}`], i + 1);
+    };
+    walk({}, [], 0);
+    const words = a.steps.some((x) => x.key === 'words');
+    for (const o of out) items.push({ label: `[${g.name}] ${a.label}${o.text.length ? ` → ${o.text.join(' → ')}` : ''}${a.note ? ` · ${a.note}` : ''}${words ? ' (needs your words)' : ''}`, action: a, choice: o.c, words });
+  }
+  // the Say box under the deck: plain words to whoever you name or face, sent as a typed turn (typing is for dialogue, AD1)
+  const anyTalk = items.find((m) => m.action.group === 'talk');
+  if (anyTalk) items.push({ label: '[Talk] Say (the Say box: plain words to whoever you name or face) (needs your words)', action: anyTalk.action, choice: {}, words: true, say: true });
+  const sug = suggestions(groups, ctx)[0];
+  return { items, suggested: sug ? `${sug.action.label} — ${sug.reason}` : '' };
+}
 
 /** --character "nerve=-60,PA1=60,PA3=-60,values=VL10+VL7": the character's personality points on the creation build
  * (the creation screen's picker), so a persona can play a character unlike itself */
@@ -180,6 +228,15 @@ async function main() {
     firstTurn = saved.step + 1;
     writeFileSync(join(OUT, 'resumed-from.json'), JSON.stringify({ dir: RESUME, step: saved.step })); // the replay set starts a resumed run here
     console.log(`resumed ${RESUME} after turn ${saved.step}`);
+  } else if (WORLD) {
+    const saved = JSON.parse(readFileSync(join(WORLD, 'store.json'), 'utf8')) as { docs: Record<string, string> };
+    for (const [k, v] of Object.entries(saved.docs)) store.docs.set(k, v);
+    // the fallen character's story is archived as the game does on New character (reset), which frees its world
+    if (await game.resume()) await game.reset();
+    const w = (await listWorlds(store))[0];
+    if (!w) throw new Error(`no free world in ${WORLD}: its character must have fallen`);
+    await game.newStory({ ...recommendedBuild(START), name: 'Arden', ...(pers ? { personality: pers } : {}) }, { worldId: w.worldId });
+    console.log(`world ${w.worldId} (${w.name}, day ${w.day}) from ${WORLD}, after ${w.past.map((x) => x.name).join(', ')}`);
   } else await game.newStory({ ...recommendedBuild(START), name: 'Arden', ...(pers ? { personality: pers } : {}) });
   const storyId = game.state()?.storyId;
   // the Character page shows the personality; the agent reads it as a player would, but plays as its persona
@@ -212,6 +269,37 @@ async function main() {
       for (const x of lines.filter((x) => /^REPORT:/i.test(x))) { reports.push(`turn ${t}: ${x.replace(/^REPORT:\s*/i, '')}`); console.log(`turn ${t} REPORT: ${x.slice(7).trim()}`); }
       return (lines.find((x) => !/^REPORT:/i.test(x)) ?? 'I look around.').slice(0, 200);
     };
+    if (DECK) {
+      const menu = deckMenu(game.state()!);
+      const list = menu.items.map((m, i) => `${i + 1}. ${m.label}`).join('\n');
+      const dask = `${DECK_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n${GOAL_RULES}\n\nThe story so far (latest last):\n${recent}${map}\n\nSuggested by the game: ${menu.suggested || 'nothing'}\n\nYour actions:\n${list}`;
+      // the agent sometimes thinks aloud before its pick: the entry is the first line that starts with a number; with none, it is asked once more
+      const pickLine = (r: { text: string }) => { const said = first(r); return (r.text || '').split('\n').map((x) => x.trim()).find((x) => /^#?\d+\b/.test(x)) ?? said; };
+      let reply = pickLine(await claudeCli(dask, 'claude-sonnet-5-5'));
+      if (!/^#?\d+\b/.test(reply)) reply = pickLine(await claudeCli(`${dask}\n\nYou replied "${reply}". That is not an entry: reply with ONLY the number of the entry that does it (or "N | what you say").`, 'claude-sonnet-5-5'));
+      const [num, ...rest] = reply.split('|');
+      const pick = menu.items[Number(num.replace(/\D/g, '')) - 1];
+      appendFileSync(join(OUT, 'deck-menus.jsonl'), JSON.stringify({ step: t, reply, menu: menu.items.map((m) => m.label), suggested: menu.suggested }) + '\n');
+      if (!pick) { console.log(`turn ${t}: no such entry in the reply "${reply}"`); reports.push(`turn ${t}: the player replied "${reply}", not an entry`); continue; }
+      const words = rest.join('|').trim();
+      const order = pick.say ? { line: words || '...', intent: null as never } : pick.loot ?? pick.action.play(pick.words ? { ...pick.choice, words: words || '...' } : pick.choice);
+      console.log(`turn ${t}: #${num.trim()} ${pick.label}${words ? ` | ${words}` : ''} => "${order.line}"`);
+      const turnBefore = game.state()?.turn ?? 0, stepT0 = Date.now();
+      for (const k of Object.keys(stepCalls)) delete stepCalls[k];
+      try { if (pick.say) await game.submit(order.line, { aimed: false }); else await game.act(order, { aimed: !!pick.choice.part }); } catch (e) {
+        if (!String((e as Error).message).startsWith('turn check')) throw e;
+        writeFileSync(join(OUT, 'turn-check.log'), `step ${t}: ${order.line}\n${(e as Error).message}\n`);
+        console.log(`turn ${t}: stopped by the turn checker\n${(e as Error).message}`);
+        break;
+      }
+      spendPerkPoints(game, t);
+      appendFileSync(agentLog, JSON.stringify({ step: t, input: order.line, deck: pick.label, notices: game.notices(), agentLog: game.gm().agentLog }) + '\n');
+      tracePacing(game, t, order.line);
+      writeTranscript(game, storyId!, t0);
+      appendFileSync(join(OUT, 'npc-events.jsonl'), JSON.stringify({ step: t, turn: turnBefore, ms: Date.now() - stepT0, calls: { ...stepCalls } }) + '\n');
+      dumpStore(t);
+      continue;
+    }
     let input = first(await claudeCli(ask, 'claude-sonnet-5-5'));
     // a slash command answers at once and passes no time: sending the same one again only repeats its answer (run 33 sent /stats 11 times)
     if (input.startsWith('/') && input === lastInput) input = first(await claudeCli(`${ask}\n\nYou just sent ${input} and its answer is above; it passes no time. Do something in the story instead.`, 'claude-sonnet-5-5'));

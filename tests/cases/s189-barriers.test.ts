@@ -208,6 +208,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
       expect(ev.find((e) => e.kind === 'pick')!.way!.did).toBe('picked');
       expect(b.lock!.locked).toBe(false);
       expect(ev.find((e) => e.kind === 'pick')!.noise).toBe('hushed');
+      expect(ev.find((e) => e.kind === 'pick')!.visibility).toBe('slight'); // the pick itself is made out only up close
       expect((s.clocks.time ?? 0) - t0).toBeGreaterThanOrEqual(1); // at least the turn; 60 s at skill 50
     });
     it('Near Miss: not yet; Failure: beyond the picker until its skill is higher', () => {

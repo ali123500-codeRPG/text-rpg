@@ -29,7 +29,7 @@ import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
 import { wornPack } from '../engine/containers';
 import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
-import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
+import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 
@@ -60,6 +60,17 @@ export { freshId };
 function putOnStage(state: GameState, z: Zone): void {
   if (!state.stage.zoneIds.includes(z.id)) state.stage.zoneIds.push(z.id);
   if (!state.zones.includes(z)) state.zones.push(z);
+}
+
+/** BG-273 (BF82 a): a new character arriving in a world with a past finds the settlement as it was left. Before the Weaver
+ * plans, the settlement around `placeId` (its top-level place and every place inside it) goes on the stage with everyone
+ * in it, so the Weaver's view lists them and the plan builds on them instead of building them again. */
+export function stageSettlement(state: GameState, placeId: string): void {
+  const byId = new Map(state.places.map((p) => [p.id, p]));
+  const top = (id: string) => { let p = byId.get(id); for (let n = 0; p?.parentId && byId.has(p.parentId) && n < 20; n++) p = byId.get(p.parentId); return p?.id; };
+  const root = top(placeId);
+  if (!root) return;
+  for (const p of state.places) if (top(p.id) === root) for (const z of p.zones) putOnStage(state, z);
 }
 
 function moveTo(state: GameState, a: Actor, zoneId: string): void {
@@ -210,7 +221,7 @@ function endYields(state: GameState): void {
   for (const a of state.actors) if (a.mind?.moraleState) delete a.mind.moraleState;
   delete state.yielding; // MB42: the truce lasts the scenario
   delete state.offers; // TF16: so does a stand-down truce
-  for (const a of [state.player, ...state.actors]) if (moraleLevel(a) === 'broken') setMoraleLost(a, maxMorale(a) - 1);
+  for (const a of [state.player, ...state.actors]) if (isBrokenLevel(moraleLevel(a))) setMoraleLost(a, maxMorale(a) - 1);
   for (const a of state.actors) {
     const o = a.mind?.overrides;
     if (!o || !Object.values(o).includes('yielded')) continue;
@@ -309,7 +320,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (ctx.frontierKey && newZones[0] && !ctx.ahead) enterFrontier(state, newZones[0]);
   // at story start the player has no zone on the stage yet; it starts in the plan's first zone (CS2)
   const storyStart = !!firstZone && !state.stage.zoneIds.includes(state.player.zone);
-  if (storyStart) moveTo(state, state.player, firstZone!);
+  // BG-273: a new character arrives where the plan says (arriveAt: an area on the stage or a new zone), else in its first new zone
+  const arriveAt = ctx.arrive && plan.arriveAt ? zoneRef(plan.arriveAt) : undefined;
+  if (arriveAt && zoneById(state, arriveAt)) moveTo(state, state.player, arriveAt);
+  else if (storyStart) moveTo(state, state.player, firstZone!);
   else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
 
   // ---- bands (existing bands keep theirs) ----

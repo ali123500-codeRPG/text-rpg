@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items and the routine bank (the library viewer shows every row). All numbers are placeholders.
-import { AM, BK, CP, DU, RV, EK, FR, FU, GC, GT, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+import { AM, BK, CP, DU, RV, EK, FR, FU, GC, GT, IF, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
 import { TP } from './templateIds';
 import { GP, HK, PF, RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
@@ -177,8 +177,19 @@ export const GEAR_TYPES: Record<string, { id: string; name: string; reachM?: num
   [GT.helmet, 'Helmet', ['head']], [GT.helmet_neck, 'Helmet with neck', ['head', 'neck']],
   [GT.fist, 'Fist', 0.7], // gauntlets: a punch reaches as far as the arm (the humanoid grip part's 0.7 m)
 ] as [string, string, number | string[]][]).map(([id, name, v]) => [id, { id, name, ...(Array.isArray(v) ? { covers: v } : { reachM: v }) }]));
-/** IR23: fill a typed piece's reach (non-thrown modes) and coverage from its gear type */
+/** IR30-IR33: item families. A Mundane piece takes every number from its level, class and type (IR31); a special family
+ * stands on a Mundane base and adds its own extras, grown its own way (IR33). Relics are parked (D-167). */
+export const ITEM_FAMILIES: Record<string, { id: string; name: string; rule: string }> = Object.fromEntries(([
+  [IF.mundane, 'Mundane', 'Every number comes from its level (need) through one factor each, plus its gear class and gear type; nothing is set by hand. A minted piece stays Mundane: its quality adds factor × need × quality.'],
+  [IF.threadbound, 'Threadbound', 'One of a kind, bound to its owner; its abilities open through achievements and grow by its Rank.'],
+  [IF.relic, 'Relic', 'A unique piece that is not Threadbound (parked, D-167).'],
+] as [string, string, string][]).map(([id, name, rule]) => [id, { id, name, rule }]));
+/** IR30: the family of an equipment piece: Threadbound if it is one, else Mundane for any piece with an equipment level */
+const familyOf = (d: ItemDef): string | undefined => d.family ?? (d.threadbound ? IF.threadbound : d.level ? IF.mundane : undefined);
+/** IR23: fill a typed piece's reach (non-thrown modes) and coverage from its gear type; IR30: name its family */
 function typed(d: ItemDef): ItemDef {
+  const f = familyOf(d);
+  if (f) d.family = f;
   const t = d.gearType ? GEAR_TYPES[d.gearType] : undefined;
   if (!t) return d;
   if (d.weapon && t.reachM !== undefined) d.weapon.modes = d.weapon.modes.map((m) => (m.thrown ? m : { ...m, reachM: t.reachM!, reach: t.reachM! }));
@@ -194,8 +205,9 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
   mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
   mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, grips, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
-/** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
-const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
+/** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
+ * a Crude piece (need 0) stops nothing: its multiplier is 1 */
+const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.EQUIP_NEED[level] ? CONFIG.ARMOR_MULTIPLIER[w] : 1, weight: w });
 const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any', armorWeight: true });
 /** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
@@ -360,9 +372,8 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
   { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, gearType: GT.crossbow_heavy, kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'crossbow', look: 'a heavy crossbow', bulk: 3, grips: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
-  // SL12 test piece: a medium weapon whose basket hilt gives +5 Parry while held, apart from its requirement's skill
   { id: IT.basket_hilt_sword, edge: true, level: 'fine', gearClass: GC.melee_medium, gearType: GT.sword, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, grips: 1,
-    effects: [KIT(), { kind: 'skill', skill: SK.parry, value: 5, active: 'held', scope: 'any' }],
+    effects: [KIT()], // IR31: Mundane, so no hand-set Parry bonus
     weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', grips: 1 })] } },
   { id: IT.hidden_blade, edge: true, level: 'fine', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, grips: 1, concealed: true, hiddenAt: 'great_success', // SE9 placeholder
     effects: [KIT()],
@@ -371,7 +382,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
   { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, slot: 'armor',
-    armor: { reduction: 0, multiplier: 1, weight: 'light' } },
+    armor: ARMOR('light', 'crude') },
   { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, gearType: GT.short, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, grips: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', grips: 1 })] } },
   { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
@@ -381,7 +392,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
     armor: { ...ARMOR('medium', 'fine') } }, // IR8: a sleeved mail shirt to mid-thigh (Wikipedia "Hauberk")
   { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.full_harness, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
+    armor: { ...ARMOR('heavy', 'superior') } },
   { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   // Starter pairs: every gear class but improvised has a Common (need 25) and a Fine (need 50) starter piece;
   // creation gives the highest one met per class (starterKit). Superior and Masterwork gear stays out of the kit.
@@ -443,7 +454,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
     armor: { ...ARMOR('medium', 'masterwork') } },
   { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.full_harness, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { ...ARMOR('heavy', 'masterwork'), pools: { head: 20 } } },
+    armor: { ...ARMOR('heavy', 'masterwork') } },
   { id: IT.peerless_heater, level: 'masterwork', gearClass: GC.shield, tags: ['fantasy'], kind: 'shield', name: 'peerless heater shield', look: 'a heater shield of impossible craft', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('masterwork') },
   // IR21: helmets, armor pieces of their weight's class covering the head (type Helmet, or Helmet with neck), worn beside any
   // body piece that leaves those parts bare (IR19). Masterwork ones are tagged 'fantasy' (IR2).
@@ -1144,7 +1155,6 @@ export function prototypeLibrary(): Library {
       [DU.bandage]: { id: DU.bandage, name: 'Bandage', effort: 'moderate', seconds: 20, locksMove: true, focus: 'careful' },
       [DU.drink]: { id: DU.drink, name: 'Drink a potion', effort: 'base', seconds: 3 },
       // senses (AT11o)
-      [DU.vanish_in_place]: { id: DU.vanish_in_place, name: 'Vanish in place', effort: 'moderate', seconds: 2, locksMove: true },
       [DU.look]: { id: DU.look, name: 'Look around', effort: 'light', seconds: 3, focus: 'steady' },
       // armour on and off (AT12): instant and no strain, like all gear (heavy alone keeps ARMOR_ALONE_MULT, × 0 today)
       [DU.armor_light_on]: { id: DU.armor_light_on, name: 'Put on light armour', effort: 'base', seconds: 0, ...ARMOR_TIME },
@@ -1242,6 +1252,7 @@ export function prototypeLibrary(): Library {
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     // gear classes (GC): the class sets which skill an item asks for; its level sets how much (EQUIP_NEED)
     gearTypes: GEAR_TYPES, // IR23: reach and coverage by type
+    itemFamilies: ITEM_FAMILIES, // IR30: Mundane and the special families
     gearClasses: Object.fromEntries(([
       [GC.melee_light, 'Light melee weapon', SK.melee_light, 'melee'], [GC.melee_medium, 'Medium melee weapon', SK.melee_medium, 'melee'], [GC.melee_heavy, 'Heavy melee weapon', SK.melee_heavy, 'melee'],
       [GC.ranged_light, 'Light ranged weapon', SK.ranged_light, 'ranged'], [GC.ranged_medium, 'Medium ranged weapon', SK.ranged_medium, 'ranged'], [GC.ranged_heavy, 'Heavy ranged weapon', SK.ranged_heavy, 'ranged'],
@@ -1335,11 +1346,13 @@ export function prototypeLibrary(): Library {
     } as Record<string, string>)[k] }])),
     visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, like: ({
       unseen: 'Nothing to see: keeping still out of sight',
-      faint: 'A palmed coin, a hand slipping to a purse: made out within half a metre, glimpsed within 2 m',
+      faint: 'A palmed coin, a note passed hand to hand: made out within half a metre, glimpsed within 2 m',
+      slight: 'Lips moving, a lockpick being worked, a hand slipping into a purse: made out at 2 m, glimpsed at 6 m',
       close: 'A nod, a hand sign, a change of expression: read at about 6 m, noticed out to about 20 m',
       low: 'Someone sitting still or resting: a face known at about 15 m (where witnesses stop naming faces reliably), a shape noticed at 60 m',
       normal: 'Someone walking or talking: who it is at about 25 m, a figure moving across open ground at 200 m',
       high: 'A fight, someone running or waving: who is who by build and clothes at 50 m, the movement caught at 500 m',
+      bright: 'A galloping rider, a banner waving, a crowd on the move: made out at 100 m, seen 1 km off',
       glaring: 'A fire, a torch or a lit window at night, sun flashing on steel: made out at 200 m, seen 2 km off',
     } as Record<string, string>)[k] }])),
     layouts: LAYOUTS,

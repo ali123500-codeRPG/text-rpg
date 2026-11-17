@@ -12,13 +12,13 @@ import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength } from '../land/generate';
-import { worldTiles, compassOf, knownMap, pointAlong, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
+import { worldTiles, compassOf, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
 
 /** CSS class of each edge kind's line on the To scale view */
-const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
+export const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 
 const SVG = 'http://www.w3.org/2000/svg';
 const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {
@@ -237,7 +237,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   const placeOf = (id: string) => cur?.places.find((p) => p.id === id);
   // RD2: a road is only a line on the World map, never a map of its own; a place along it (a waystation) is its own map
   const isRoad = (id: string) => placeOf(id)?.kind === 'road';
-  const rootOf = (id: string) => { let p = placeOf(id); for (let n = 0; p?.parentId && placeOf(p.parentId) && !isRoad(p.parentId) && n < 20; n++) p = placeOf(p.parentId); return p?.id ?? id; };
+  const rootOf = (id: string) => (cur ? rootPlace(cur, id) : id);
   /** the map a place is drawn on: its top-level place's, or the World zoomed to the road when it is a road (RD1) */
   const mapOf = (id: string) => (isRoad(rootOf(id)) ? WORLD : rootOf(id));
   /** Move to here's order for a zone; a zone in another town or building than the one you are in names it, so the order

@@ -350,14 +350,14 @@ describe('125 All-50 moves', () => {
     expect(foe.core.condition.hpLostPct).toBeLessThanOrEqual(45.05); // Injured at most (the second graze adds a hair)
     expect(foe.engagement?.uses?.[PK.second_wind]).toBe(1);
   });
-  it('Strike and Fade: right after an attack from hiding the owner is stealthy again and vanishes in place', () => {
+  it('Strike and Fade: right after an attack from hiding the owner is stealthy again, and those the attack made aware roll Vanishing (VS3)', () => {
     const s = makeVillage();
     beside(s, 'patron_1');
     arm(s, 'player');
     give(s.player, PK.strike_and_fade);
     s.player.posture = 'stealthy';
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
-    const fade = ev.find((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish);
+    const fade = ev.find((e) => e.actorId === 'player' && e.kind === 'vanish');
     expect(fade?.effects.map((f) => f.kind)).toContain(PK.strike_and_fade);
     expect(s.log.some((l) => l.code === 'stealth_contest' && (l.detail as { skill: string }).skill === SK.vanishing)).toBe(true);
   });

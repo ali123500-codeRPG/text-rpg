@@ -18,15 +18,22 @@ export const moraleLost = (a: Actor): number => a.core.condition.moraleLost ?? 0
 /** share of max morale lost, in % */
 export const moraleLostPct = (a: Actor): number => (100 * moraleLost(a)) / maxMorale(a);
 
+/** the morale level: CONFIG.MORALE_TRACK by the share lost; at CONFIG.MORALE_COWER_AT × max lost, Cowering (BF79) */
 export function moraleLevel(a: Actor): MoraleLevel {
   const pct = moraleLostPct(a);
+  if (pct >= 100 * CONFIG.MORALE_COWER_AT - 1e-6) return 'cowering';
   return CONFIG.MORALE_TRACK.find(([, max]) => pct <= max)![0] as MoraleLevel;
 }
-export const isBrokenLevel = (l: MoraleLevel): boolean => l === 'broken';
+/** Broken or below it (Cowering): the nerve is gone */
+export const isBrokenLevel = (l: MoraleLevel): boolean => MORALE_LEVELS.pos(l) >= MORALE_LEVELS.pos('broken');
+/** BF79: below Broken: the actor cowers and cannot even flee */
+export const isCoweringLevel = (l: MoraleLevel): boolean => l === 'cowering';
+/** a morale level's roll penalty (CONFIG.MORALE_TRACK), 0 for none */
+export const moralePenalty = (l: string): number => (CONFIG.MORALE_TRACK.find(([k]) => k === l)?.[2] as number | undefined) ?? 0;
 /** MB3/MB35: the level's roll penalty, type wounds, so it shrinks together with health wounds; it also hits the morale roll */
 export function moraleMods(a: Actor): Mod[] {
   const l = moraleLevel(a);
-  const v = CONFIG.MORALE_TRACK.find(([k]) => k === l)?.[2] ?? 0;
+  const v = moralePenalty(l);
   return v ? [{ source: `morale: ${MORALE_LEVELS.name(l)}`, type: 'wounds', value: v }] : [];
 }
 /** MB16: others' morale shows from CONFIG.MORALE_SHOWN_FROM down */
@@ -66,10 +73,11 @@ export function partFearCost(f: FearDef, hit: string[], body: PartDef[]): number
   return hit.reduce((n, id) => { const p = body.find((x) => x.id === id); return n + (p ? base.partCost![p.impact] * scale * mult : 0); }, 0);
 }
 
-/** sets morale lost, kept between 0 and max morale (Broken is 100 %); returns the change */
+/** sets morale lost, kept between 0 and CONFIG.MORALE_COWER_AT × max morale (Broken is 100 %, Cowering the top: BF79);
+ * returns the change */
 export function setMoraleLost(a: Actor, lost: number): number {
   const before = moraleLost(a);
-  a.core.condition.moraleLost = Math.max(0, Math.min(maxMorale(a), lost));
+  a.core.condition.moraleLost = Math.max(0, Math.min(CONFIG.MORALE_COWER_AT * maxMorale(a), lost));
   return a.core.condition.moraleLost - before;
 }
 /** restores `pct` % of max morale (MB8, MB9, MB34) */

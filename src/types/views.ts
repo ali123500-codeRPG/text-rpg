@@ -16,7 +16,7 @@ export type BodyAttackView = { mode: string; name: string; handsFull?: string };
  * once it stands open. The Weaver's view (no viewer) has it all, and its owner. shut: a shut one (BG-175), so a mind knows to
  * open it */
 export type ContainerView = { open?: true; shut?: true; fixed?: true; lock?: 'locked' | 'unlocked'; grade?: string; key?: true; contents?: { id: string; name: string; qty?: number }[]; owner?: string }; // contents qty: PI1, how many of a stack; fixed: CT1, it stays where it stands (a chest)
-export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView; beyondYou?: string }; // beyondYou: BF70, how far its requirement is past the holder's skill
+export type OwnGearView = { id: string; itemId: string; name: string; look: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number; container?: ContainerView; beyondYou?: string; cantSwing?: true }; // cantSwing: BG-283, held but no grip can use it (a crippled arm); beyondYou: BF70, how far its requirement is past the holder's skill
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'pack' | 'carried'; container?: ContainerView; stolenFromYou?: true }; // stolenFromYou: FL6, the viewer knows it on sight // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; grade?: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
@@ -93,6 +93,9 @@ export type SeenActor = {
   wares?: WareView[]; // a seller the player sees, at the player's prices
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
+  mute?: true; // BG-280: seen clearly as one who cannot talk (a slime, a beast): no talk, trade or giving
+  lying?: true; // BG-278: half seen and lying still (down, dead or asleep: the viewer cannot tell which)
+  foe?: { strikes?: string }; // BG-265: in a fight, one fighting the viewer (beasts too), or one it saw strike first at someone not fighting it (strikes: whom)
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
   holdsOut?: { item: string; name: string }; // BF34: what this person holds out to the viewer: it is the viewer's once they take it (action take, item that id)
   demandYield?: true; // TF19: a foe the player can demand surrender from (as talkDown, or it cowers Broken)
@@ -124,7 +127,6 @@ export type PlayerView = {
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)
     mentallySteady?: true; // SY1: the next morale loss is halved
-    blindSpot?: true; // LR3 Blind Spot: Melt Away works here without cover or shade (a foe's sight is spoiled by Dirt in the Eyes)
     stamina: StaminaView; // FT20: the stamina bar and its short line
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
@@ -142,7 +144,7 @@ export type PlayerView = {
   known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
-  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
+  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true; mute?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
   /** NM2: names the player has heard but cannot yet put a face to */
   heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */
@@ -174,7 +176,7 @@ export type ActorView = {
     morale: string; // the morale bar's level
     mentallySteady?: true; // SY1: the next morale loss is halved
     fatigue: string; // FT1: its fatigue level (Collapsed awake: Spent, nothing above Light)
-    active: boolean; broken: boolean; surrendered: boolean;
+    active: boolean; broken: boolean; surrendered: boolean; cowering?: true; // BF79: broken past Broken, at Cowering: it cannot even flee
     control: 'agent' | 'code';
     standingDefense: DefenseKind;
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try

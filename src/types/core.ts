@@ -218,7 +218,7 @@ export type GameEvent = {
    * shut by trying it (locked, barred, blocked), turned or slid on purpose (lock, unlock, bar, unbar), or picked (BA2) */
   way?: { to: string; barrier?: string; did: WayDid }; // barrier: none on a way with nothing to lock (BG-65)
   fall?: { metres: number; damage: number; landing: string }; // SD7: a jump down a drop link: the drop, the flat damage, the landing roll's tier name
-  vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
+  spotted?: string[]; // VS3 Strike and Fade (a 'vanish' event): the observers the attack from hiding made aware
   activity?: string; // idle / presence: ActivityDef id
   itemId?: string; // item instance involved (gear, give, thrown, dropped)
   into?: string; // put_in: the container instance it went into

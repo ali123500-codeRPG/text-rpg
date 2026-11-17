@@ -7,7 +7,7 @@ import type { Actor, GameState, Mod, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
 import { CP, FR } from '../library/tableIds';
 import { moraleRoll, tierLevel } from '../ruleset';
-import { maxMorale, moraleLevel } from '../ruleset/morale';
+import { maxMorale, isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { TIERS } from '../scales';
 import { secondsSince } from '../time';
 import { calm } from './heal';
@@ -19,7 +19,7 @@ export type Steadied = { roll: RollResult; pct: number; points: number; buff: bo
 /** why `a` can't steady itself now, or null */
 export function cantSteady(state: GameState, a: Actor): 'not_in_fight' | 'broken' | 'too_soon' | null {
   if (!isEngaged(state, a)) return 'not_in_fight';
-  if (moraleLevel(a) === 'broken' || a.mind?.moraleState) return 'broken';
+  if (isBrokenLevel(moraleLevel(a)) || a.mind?.moraleState) return 'broken';
   if (a.core.condition.steadiedTurn !== undefined && secondsSince(state, a.core.condition.steadiedTurn) < CONFIG.STEADY_COOLDOWN_S) return 'too_soon';
   return null;
 }

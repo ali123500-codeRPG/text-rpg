@@ -211,6 +211,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const isBand = (r: string) => bandKeys.has(r) || bandIds.has(r);
   const isActor = (r: string) => castKeys.has(r) || actorIds.has(r);
   const isPlace = (r: string) => placeKeys.has(r) || placeIds.has(r);
+  // BG-273: a newcomer's plan builds on the settlement it finds on the stage: it uses those places and areas by their ids and
+  // never declares them again (code would make copies under new ids)
+  const stagePlaces = new Map(ctx.arrive ? state.places.filter((p) => p.zones.some((z) => stageZones.has(z.id))).map((p) => [p.id, p.names.current]) : []);
+  for (const p of places) if (stagePlaces.has(p.key)) err('place_exists', `place ${p.key} already exists (${stagePlaces.get(p.key)}): use its id ${p.key} as a parent or a zone's place; never declare it again`);
+  for (const z of zones) if (ctx.arrive && stageZones.has(z.key)) err('zone_exists', `zone ${z.key} already exists on the stage: use its id ${z.key} in links and slots; never declare it again`);
 
   // ---- caps ----
   const counts: [string, number, number][] = [
@@ -385,8 +390,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     } else if (c.template === undefined && c.compose === undefined) err('bad_cast', `cast ${k}: names no template, composition or actor`, k);
     else {
       let tpl;
-      const w = c.compose?.wants, lib2 = getLibrary(); // NR28: 2 to 4 known skills
-      if (w && (w.skills.length < 2 || w.skills.length > 4 || w.skills.some((id) => !lib2.skills[id]))) err('bad_compose', `cast ${k}: compose wants needs 2 to 4 skill ids from catalogs.skills`, k);
+      const w = c.compose?.wants, lib2 = getLibrary(); // NR28: ROLE_WANT_SKILLS known skills
+      if (w && (w.skills.length < CONFIG.ROLE_WANT_SKILLS[0] || w.skills.length > CONFIG.ROLE_WANT_SKILLS[1] || w.skills.some((id) => !lib2.skills[id]))) err('bad_compose', `cast ${k}: compose wants needs ${CONFIG.ROLE_WANT_SKILLS[0]} to ${CONFIG.ROLE_WANT_SKILLS[1]} skill ids from catalogs.skills`, k);
       else if (c.compose && !c.compose.role) err('bad_compose', `cast ${k}: compose names no role and no wants`, k);
       else if (c.compose) { const e = composeError(c.compose); if (e) err('bad_compose', `cast ${k}: ${e}`, k); else tpl = composeTemplate(c.compose, c.label); } // NG15
       else try { tpl = npcTemplate(state, c.template!); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
@@ -472,7 +477,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
   for (const t of arr(seeds.triggers)) checkTrigger('seeds.triggers', t);
   if (ctx.wake && !zones.length) err('wake_needs_zone', 'the player wakes somewhere safe: plan at least one new zone; the first one is where they wake');
-  if (ctx.arrive && !zones.length) err('arrive_needs_zone', 'a new character arrives: plan at least one new zone; the first one is where they arrive');
+  // BG-273 (BF82 a): a new character arrives somewhere on the stage they find, or in a new zone; a new zone is not required
+  if (ctx.arrive && plan.arriveAt !== undefined && !isZone(plan.arriveAt)) err('bad_arrival', `arriveAt ${plan.arriveAt} unknown: an area id from WEAVER_VIEW.places or a new zone's key`);
+  if (ctx.arrive && plan.arriveAt === undefined && !zones.length) err('arrive_needs_spot', 'a new character arrives: set arriveAt to the area where they arrive (an area id from WEAVER_VIEW.places, or a new zone\'s key)');
   for (const [i, sp] of arr(plan.spars).entries()) {
     const ids = arr(sp.sides).flatMap((x) => arr(x));
     if (arr(sp.sides).length < 2 || arr(sp.sides).some((x) => !arr(x).length)) err('bad_spar', `spar ${i}: needs two sides or more, none empty`);

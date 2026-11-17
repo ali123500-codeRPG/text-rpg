@@ -85,16 +85,13 @@ describe('293 link rows and personality nudges', () => {
       give(s.player, PK.dirt_in_the_eyes, PK.melt_away, PK.blind_spot);
       const foe = place(s, 'patron_1', 'tav_counter');
       foe.mind!.overrides = { player: 'hostile' };
+      foe.mind!.knowledge.player = { status: 'aware', source: 'seen', lastKnownZone: 'tav_counter', lastSeenTurn: s.turn, revealed: [] };
       if (dirt) markForRounds(s, foe, PK.dirt_in_the_eyes);
-      const i = intent({ action: { type: 'vanish' } });
-      const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
-      const ev = play(s, { intent: i });
-      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish) };
+      play(s, { intent: intent({ action: { type: 'sneak' } }) });
+      return s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string; skill: string }).observerId === 'patron_1' && (l.detail as { skill: string }).skill === SK.vanishing).length;
     };
-    expect(run(false).legal).toContain('action.vanish');
-    const r = run(true);
-    expect(r.legal).not.toContain('action.vanish');
-    expect(r.vanished).toBe(true);
+    expect(run(false)).toBe(0);
+    expect(run(true)).toBe(1);
   });
 
   it('LR4 Bulwark: Cover Ally covers a melee attack on a friend too', () => {

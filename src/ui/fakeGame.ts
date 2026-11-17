@@ -6,7 +6,7 @@ import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice, XpPart } from '../types';
 import { CONFIG, defaultSettings } from '../config';
-import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
+import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { abandonQuest, pinQuest } from '../engine/quests';
@@ -406,7 +406,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (/^end\b/i.test(text)) ending = { as: 'resolved', name: 'resolved' }; // the ending's rule draws while the turn runs (SD1)
       emit();
       // NB5: with a broken nerve a punch is turned away before the turn, as the game does (no time passes)
-      if (/^(i )?punch\b/i.test(text) && moraleLevel(state.player) === 'broken') { lines = [...lines, { turn: t, kind: 'clarify', text: NERVE_REFUSED }]; busy = false; emit(); return; }
+      if (/^(i )?punch\b/i.test(text) && isBrokenLevel(moraleLevel(state.player))) { lines = [...lines, { turn: t, kind: 'clarify', text: NERVE_REFUSED }]; busy = false; emit(); return; }
       // "punch the man": the game asks back which man, naming the guard and the field, to show the tappable names (no turn)
       if (/^(i )?punch the man\b/i.test(text)) { lines = [...lines, { turn: t, kind: 'clarify', text: 'Which man do you mean to punch: the village guard by the door, or do you mean the slime?' }]; busy = false; emit(); return; }
       await new Promise((r) => setTimeout(r, 600));
@@ -415,7 +415,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "door" tries and opens doors, to show the play screen's Way rows
       const ways = /^door\b/i.test(text) ? { ways: ['Door to kitchen: locked', 'Door to back yard: barred from the other side', 'Door to village square: unlocked with your key on the way through'] } : null;
       state.turn = t + 1;
-      if (/^(sneak|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
+      if (/^sneak\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
@@ -435,14 +435,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       }
       // "fear" drops the player's morale to the next level down (Terrified, Panicking, Broken), and "calm" brings back a quarter,
       // to show the nerve's warning on the play screen (MW1–MW3)
-      const wasBroken = moraleLevel(state.player) === 'broken';
+      const wasBroken = isBrokenLevel(moraleLevel(state.player));
       if (/^(fear|calm)\b/i.test(text)) {
         const p = state.player, max = maxMorale(p), lostPct = (100 * (p.core.condition.moraleLost ?? 0)) / max;
         const next = CONFIG.MORALE_TRACK.find(([, at]) => at > lostPct + 0.001)?.[1] ?? 100;
         setMoraleLost(p, /^fear/i.test(text) ? (Math.min(100, next) / 100) * max : (p.core.condition.moraleLost ?? 0) - max / 4);
       }
       // the turn "fear" breaks the nerve shows the Nerve broken card; "punch" while Broken is refused (MB12)
-      const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : null;
+      const nerve = !wasBroken && isBrokenLevel(moraleLevel(state.player)) ? { nerveBroke: true as const } : null;
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       if (/^loot\b/i.test(text)) lootTurn(state);

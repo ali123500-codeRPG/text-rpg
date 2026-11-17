@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { SPEECH_ACTIONS } from '../types';
 import { VOLUME_NOISE } from '../perception/noise';
 import { hearsClearly } from '../perception';
-import { alertOrders, brokenOrder, fallbackOrder, followMove, nerveHolds, routineOrder, staying } from '../minds';
+import { alertOrders, brokenHolds, brokenOrder, fallbackOrder, followMove, routineOrder, staying } from '../minds';
 import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
@@ -120,7 +120,7 @@ export function npcActionToOrder(actorId: string, action: NpcAction, extra: Part
 }
 
 /** Q2: a Planner or Responder's move beside its action, as the player's; an action that is itself a move keeps only that */
-const MOVE_ACTIONS = ['move', 'flee', 'sneak', 'vanish'];
+const MOVE_ACTIONS = ['move', 'flee', 'sneak'];
 function npcMove(state: GameState, o: AcceptedAgentOutput): Partial<Order> {
   const act = o.output.action;
   if (MOVE_ACTIONS.includes(act.type)) return {};
@@ -196,7 +196,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     const watch = isEngaged(state, a) ? undefined : suspicionOrder(state, a, v); // GD3: a code-run guard keeps close to someone it suspects
     out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
   }
-  // BF37: a broken nerve takes away any walk, attack or perk move; with nothing allowed left the actor cowers
-  for (const id of ids) if (views.get(id)!.self.broken && !views.get(id)!.self.surrendered) out.set(id, nerveHolds(out.get(id)!).order);
+  // BF37/BF79: a broken nerve takes away any attack or perk move (and a walk toward a foe, where it runs); with nothing
+  // allowed left the actor flees, or cowers when cornered or at Cowering
+  for (const id of ids) if (views.get(id)!.self.broken && !views.get(id)!.self.surrendered) out.set(id, brokenHolds(views.get(id)!, out.get(id)!));
   return out;
 }

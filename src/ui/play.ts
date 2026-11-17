@@ -19,13 +19,13 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize } from './kit';
+import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize, safe } from './kit';
 import { perkSeries } from './perks';
-import { stealthBadge } from './stealth';
+import { stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
@@ -40,7 +40,7 @@ import { instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, type MoraleLevel } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, POSTURES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 import { cap, r1, theOf } from '../words';
 
@@ -86,7 +86,6 @@ function mapIcon(): HTMLElement {
   i.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>';
   return i;
 }
-const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
 const changesWord = (n: number) => `${n} change${n === 1 ? '' : 's'}`;
 /** "*draws his sword* Stay back" → the stage direction in italics without the asterisks, outside the quote marks */
@@ -627,7 +626,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
     // who's here: one row each; only actors the character fully perceives (PlayerView); others' health from Wounded down.
     // AD4: pinned first, then those fighting you, then the rest; the list scrolls when it is long
-    const foe = (a: PlayerView['actors'][number]) => !!(a.talkDown || a.demandYield || pv?.player.spar?.opponents.includes(a.name ?? a.label));
+    const foe = (a: PlayerView['actors'][number]) => !!(a.foe || pv?.player.spar?.opponents.includes(a.name ?? a.label)); // BG-265: beasts too
     const rank = (a: PlayerView['actors'][number]) => (pins.has(a.id) ? 0 : foe(a) ? 1 : a.health && isDownLevel(a.health) ? 3 : 2);
     const seen = (pv?.actors.filter((a) => a.level === 'full') ?? []).map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
     const whoKids = seen.length ? seen.map((a) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: 'What you can do to or with them' },
@@ -719,7 +718,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
 
     // AD2/AD3: the folded health strip and the short sheet; the minimap and Who's here keep their own elements
-    const stripKids = s ? [...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl' }, 'Stealthy') : null].filter((x): x is HTMLElement => !!x) : [];
+    const stripKids = s ? [...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl', title: stealthyTip() }, POSTURES.name('stealthy')) : null].filter((x): x is HTMLElement => !!x) : [];
     const shortKids = s ? shortSheet(s, s.player) : [];
     const sheetNow = [...stripKids, ...shortKids].map((k) => k.outerHTML).join('');
     if (!frozen && sheetNow !== sheetHtml) { strip.replaceChildren(...stripKids); shortEl.replaceChildren(...shortKids); sheetHtml = sheetNow; }
@@ -951,7 +950,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function nerveBeats(from: MoraleLevel, to: MoraleLevel, d: number, red: boolean) {
     const pos = (k: MoraleLevel) => MORALE_LEVELS.pos(k), steadyAt = pos(CONFIG.MOTION_NERVE_STEADY);
     if (pos(to) > pos(from)) {
-      if (to === 'broken') { pulse(sheet.querySelector('[data-m="morale-track"]'), d + ms('--m-count'), 2); arrive(sheet.querySelector('[data-m="morale-until"]'), d + ms('--m-count')); }
+      if (isBrokenLevel(to)) { pulse(sheet.querySelector('[data-m="morale-track"]'), d + ms('--m-count'), 2); arrive(sheet.querySelector('[data-m="morale-until"]'), d + ms('--m-count')); }
       if (red || pos(to) < pos(CONFIG.MOTION_NERVE_FROM)) return;
       play(nerveEdge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: pos(to) >= steadyAt ? 0.45 : 0 }], { dur: ms('--m-scenario'), delay: d });
     } else if (pos(from) >= steadyAt && pos(to) < steadyAt) {

@@ -5,11 +5,11 @@
 // JSON agents call sample(), not sample.json: sample.json resolves only the parsed value and drops
 // modelTierApplied / modelApplied / truncated, which the agent log must record. So we call sample() and parse the reply
 // with sample.json's own tolerant rule (whole reply; else one code fence; else first { or [ to last } or ]).
-import type { ClaudeClient, ClaudeErrorCode, ClaudeRequest, ClaudeResponse } from '../types';
+import type { ClaudeClient, ClaudeErrorCode, ClaudeRequest, ClaudeResponse, Effort, ModelTier } from '../types';
 
 type SampleResult = { text: string; truncated: boolean; modelTierApplied: string; modelApplied?: string };
 type SampleOptions = {
-  signal?: AbortSignal; modelTier?: 'quick' | 'default' | 'complex'; model?: string; effort?: 'low' | 'medium' | 'high'; cache?: boolean;
+  signal?: AbortSignal; modelTier?: ModelTier; model?: string; effort?: Effort; cache?: boolean;
 };
 export type SampleFn = (input: { role: 'user' | 'assistant'; content: string }[], options?: SampleOptions) => Promise<SampleResult>;
 

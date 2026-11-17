@@ -137,6 +137,7 @@ const DEFAULTS = {
   } as Record<string, { damage: number; hit: number }>,
   UNARMED_PROFILE: { damage: 15, hit: 10 },
   HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
+  CLEAN_GAP: 2, // A2 Turn the Blade, A10 Make Them Stumble: a parry or dodge at this gap or better is clean
   PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
   /** D-337: parry strike-backs (PA4) and the All-50 Counter each come at most this many times per round (counted apart;
@@ -190,6 +191,8 @@ const DEFAULTS = {
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
   RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
   HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile within HOSTILE_NEAR_M of the shooter (Point Blank removes it)
+  /** BG-267, IC7 a: every reach check (withinM) allows this many metres past the reach for a step's rounding */
+  REACH_MARGIN_M: 0.1,
   HOSTILE_NEAR_M: 2, // RD5: close enough to strike or grab the shooter (a step and a blow)
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
@@ -219,7 +222,7 @@ const DEFAULTS = {
    * (something, not who), in metres, in daylight with a clear view, from real references (the library's
    * visibilityLevels rows); null = nothing to see. Sight distance is never under NEAREST_M (seeingM), so a level made
    * out only nearer than that (faint) is at most glimpsed. A dark zone caps sight at partial. */
-  SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
+  SIGHT_M: { unseen: null, faint: [0.5, 2], slight: [2, 6], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], bright: [100, 1000], glaring: [200, 2000] } as Record<string, [number, number] | null>,
   // ---- making out what is half seen or half heard (PG3-PG9; placeholders) ----
   /** PG4 a: a make-out roll's grade for something half seen: by how far past its clear range it is, as a share of the way
    * to its glimpse range (CONFIG.SIGHT_M), the first row whose share it is within */
@@ -295,6 +298,9 @@ const DEFAULTS = {
     ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -7], ['afraid', 60, -10],
     ['terrified', 75, -13], ['panicking', 99.999, -20], ['broken', Infinity, 0],
   ] as [string, number, number][],
+  /** BF79: morale lost can pass max morale up to this × max; at the top the actor is Cowering (below Broken): it cowers and
+   * cannot even flee. Broken runs from 100 % lost to here. [balance lever] */
+  MORALE_COWER_AT: 1.2,
   /** MB6: a rolled fear's cost × this, by the morale roll's tier; each step below Critical Failure adds MORALE_BEYOND_CF */
   MORALE_TIER_MULT: { critical_failure: 2, failure: 1.5, near_miss: 1, success: 0.5, great_success: 0.25, critical_success: 0 } as Record<string, number>,
   MORALE_BEYOND_CF: 0.5,
@@ -426,6 +432,7 @@ const DEFAULTS = {
   HEAL_PAST_STEP: 0.1,
   /** NR28: how much each band counts when code picks the closest role for the skills the World builder or Weaver wants */
   ROLE_WANT_SCORE: { high: 3, moderate: 2, low: 1 },
+  ROLE_WANT_SKILLS: [2, 4] as [number, number], // NR28: a cast entry's wants name this many skills, fewest to most
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
@@ -774,6 +781,13 @@ const DEFAULTS = {
   FOLLOW_SNEAK_M: 5,
   FOLLOW_M: 2,
   FOLLOW_RANGE_SHARE: 0.8,
+  /** VS5: a Vanishing roll against a foe fighting you within this many metres (placeholder; by distance, not weapon reach,
+   * so a ranged weapon gets no help from its reach) takes this tier shift (placeholder) */
+  VANISH_NEAR_M: 5,
+  VANISH_NEAR_SHIFT: -1,
+  /** VS8: a stealthy actor's time factor (timeFactor): every action takes this many times as long, and it moves at 1 / this
+   * of its speed (1.2: about 83% speed) */
+  SNEAK_TIME_MULT: 1.2,
   /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
   TAKE_FROM_STANCE: 'neutral' as import('./scales').StanceKey,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
@@ -819,7 +833,7 @@ const DEFAULTS = {
   STEADY_BUFF_MULT: 0.5,
   // ---- filching (FL1–FL7, TN1–TN4; src/engine/filch.ts; placeholders) ----
   /** TN3 (open, round 3 TN3b): how visible a filch is, one row for every filch; Close is made out clearly within 6 m */
-  FILCH_VISIBILITY: 'close' as import('./scales').VisibilityKey,
+  FILCH_VISIBILITY: 'slight' as import('./scales').VisibilityKey,
   /** TN1: the sound of a filch at Near Miss or better; each tier the roll falls below Near Miss makes it one level louder */
   FILCH_NOISE: 'hushed' as import('./scales').NoiseKey,
   /** TN4: added to a watcher's sight and hearing rolls by how closely they watch (their activity's attention; talking with

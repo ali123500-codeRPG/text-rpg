@@ -178,7 +178,7 @@ export type NoiseKey = (typeof NOISE.keys)[number];
 export const SOUND_LOSS = scale([['open', 'Open gap'], ['window', 'Shut window'], ['door', 'Shut door'], ['wall', 'Wall']]);
 export type SoundLossKey = (typeof SOUND_LOSS.keys)[number];
 /** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightLevel) */
-export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
+export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['slight', 'Slight'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['bright', 'Bright'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
 /** how closely someone at an activity is paying attention, most first (an activity's attention; filching reads it, TN4; sight does not yet, D-200) */
 export const ATTENTION = scale([['alert', 'alert'], ['normal', 'normal'], ['distracted', 'distracted'], ['asleep', 'asleep']]);
@@ -216,7 +216,7 @@ export type RoadDangerKey = (typeof ROAD_DANGERS.keys)[number];
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
 export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
 /** morale levels, calmest first (MB2); bands and penalties per level are CONFIG.MORALE_TRACK */
-export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken']]);
+export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken'], ['cowering', 'Cowering']]);
 export type MoraleLevel = (typeof MORALE_LEVELS.keys)[number];
 /** FT3/FT22 fatigue levels, freshest first; where each starts, its roll penalty and its short-line band are CONFIG.FATIGUE_TRACK */
 export const FATIGUE_LEVELS = scale([['rested', 'Rested'], ['fine', 'Fine'], ['tired', 'Tired'], ['weary', 'Weary'], ['exhausted', 'Exhausted'], ['drained', 'Drained'], ['dead_on_feet', 'Dead on your feet'], ['collapsed', 'Collapsed']]);

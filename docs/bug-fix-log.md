@@ -6,6 +6,126 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-283
+
+**What was wrong:** In the action-deck playtest a slime crippled the hero's right arm, the arm holding the hand axe. The deck still offered to attack with the axe; the swing came to nothing and the next slam killed the hero. The deck listed every weapon in hand without asking whether a hand could still use it.
+
+**What was done:** A weapon held in a hand that can't use it (by the same rule the blow resolves with) is marked in the player's view, and the deck leaves it out of "With what?".
+
+**Fixed by:** [PR #966](https://github.com/ali123500-codeRPG/text-rpg/pull/966)
+
+## BG-282
+
+**What was wrong:** In the action-deck playtest the hero tried to Restrain a slime and slipped, but no roll line showed: the grab's contest was never put on its event. A held person's try to break free had the same gap.
+
+**What was done:** The grab and the try to break free carry their contest on their event, so their rolls show like any other contest.
+
+**Fixed by:** [PR #966](https://github.com/ali123500-codeRPG/text-rpg/pull/966)
+
+## BG-281
+
+**What was wrong:** In the action-deck playtest the hero said hello to a shape 25 m off and started walking up to it; the next turn the deck and the game's suggestion read "Keep walking to the fowlers' path", the zone the hero already stood in. A walk up to someone was always named by its zone.
+
+**What was done:** A walk up to someone is named by that person as the player sees them ("Keep walking to someone", "Walking to the guard"); walks to a zone are unchanged.
+
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
+
+## BG-280
+
+**What was wrong:** In the action-deck playtest the deck offered Talk to, Persuade, Lie to, Threaten, Haggle, Give and Let them search you against slimes in sight, and Talk to slimes last seen far away. Slimes and beasts can't be talked to, so these did nothing.
+
+**What was done:** Anyone seen clearly who cannot talk (by race) is marked so, and the deck leaves them out of every talk, trade, gift and search choice, including those last seen elsewhere. Threaten (a threat needs no words), Attack, Restrain and Look at stay; a shape not made out still gets every choice.
+
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
+
+## BG-279
+
+**What was wrong:** In the action-deck playtest the hero looked hard at a shape 23 m off in the dark and rolled a Success, which shows everyone within 25 m clearly, yet it stayed "someone": the slime took a step later that turn, its step rolled a fresh make-out roll, and that failed.
+
+**What was done:** A good look now counts as that turn's make-out for everyone it shows, so their own step later that turn stays seen clearly with no new roll.
+
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
+
+## BG-278
+
+**What was wrong:** In the action-deck playtest a dead hero's body lay 1.4 m from the new hero on a dark causeway and showed as a plain "Someone". The deck offered Attack, Talk to, Persuade, Lie to, Threaten and Haggle against it, the player talked to it twice and got silence, and the narrator made the shape stand and move. Someone only half seen carried no health or posture at all, so it slipped past every deck filter that leaves out the down and the dead.
+
+**What was done:** A half-seen person who lies still (down, dead or asleep) is marked lying still, without saying which. The deck shows "lying still" and offers no talk against it (Attack and Look at stay), and the narrator is told it lies still and never stands, moves or answers.
+
+**Fixed by:** [PR #963](https://github.com/ali123500-codeRPG/text-rpg/pull/963)
+
+## BG-275
+
+**What was wrong:** In the action-deck playtest a 4th character in story 2's world stopped after its first turn: the game's own rule check said 17 fights in the inn (the barkeep, Hobb and the carter against the slimes) had gone on long past their end, though they were still fresh. The check measures a fight from the end of the turn before, which here was the story's opening, and an opening turn never recorded when it ended, so the game read it as ending at the current moment. In real play this would file a false bug report.
+
+**What was done:** The opening turn now records its end time like every other turn, for every new story and every new character in an old world.
+
+**Fixed by:** [PR #962](https://github.com/ali123500-codeRPG/text-rpg/pull/962)
+
+## BG-273
+
+**What was wrong:** In the action-deck playtest a new character started in story 2's world, as asked, but the game built a second copy of the village around them: two Eel and Oars, two Wicklow Reaches, a second Marda Tull and the slimes twice over, while the old fight went on unseen in the first inn. A newcomer's stage starts empty, so the scenario planner (the Weaver) saw no places at all and rebuilt the village from its notes, and the game gave the copies new ids. It was also never told a newcomer was arriving.
+
+**What was done:** When a new character arrives in a world, the settlement they arrive in (all its places and areas, and everyone in them) is put on stage before the Weaver plans, and the Weaver is told they are arriving. It names where they arrive: an area already there, or a new one if it adds one (a new area is not required). A plan that declares a place or area of that settlement again is refused and sent back for repair.
+
+**Fixed by:** [PR #953](https://github.com/ali123500-codeRPG/text-rpg/pull/953)
+
+## BG-272
+
+**What was wrong:** In the action-deck playtest the story's opening event roll was a Critical Success, and its achievement (Fate Meant It as a Curse) landed at once, before the story had even started, instead of at the end of the scenario like every other gain. The game flagged it itself (achievement_outside_end). The roll is made just before the opening scenario begins, when nothing yet holds growth back; the same could happen at a scenario start right after a story beat ended the last one.
+
+**What was done:** Every event roll opens a scenario, so whatever it earns now waits for the end of the scenario it opens, at the opening and after a story beat too, and arrives in that ending's gains moment.
+
+**Fixed by:** [PR #951](https://github.com/ali123500-codeRPG/text-rpg/pull/951)
+
+## BG-267
+
+**What was wrong:** BG-120 made withinM the one comparison for every reach, so that someone who walked up to a reach is never left a hair outside it by rounding. The code that picks which weapon a blow uses (defaultMode and resolveMode in src/ruleset/gear.ts) still compared reach with a plain >=. A fighter a step's rounding past their weapon's reach counted as in reach for the blow, but no weapon was picked for it, so the blow was lost as out of reach; a parry's strike back could be lost the same way.
+
+**What was done:** Ali OK'd the fix (IC7 a on the "Code consistency check, 10% at a time" page) and asked for a full 0.1 m margin. Both functions now use withinM, and withinM allows CONFIG.REACH_MARGIN_M (0.1 m) past every reach instead of 0.01 m. The walk-to-spot check, which already allowed 0.1 m by hand, uses withinM too. A test (tests/cases/s341-reach-margin.test.ts) puts a sword fighter 0.05 m past the sword's reach and checks the sword is picked.
+
+**Fixed by:** [PR #952](https://github.com/ali123500-codeRPG/text-rpg/pull/952)
+
+## BG-270
+
+**What was wrong:** On the Questions hub, Submit's wake line named answers Ali had not changed. On the Vanish page he changed only VS8, but the line said "I answered VS6, VS7, VS8". VS6 and VS7 held "a." (what clicking an option chip writes), saved by the page but never sent with Submit, and Claude had already acted on them and marked both questions decided. Submit names every saved answer that has not gone out with a Submit, so it named them again.
+
+**What was done:** Ali approved the plan. Submit now skips an answer that was saved before Claude decided its question, because Claude already acted on it. If Ali changes that answer again, it counts as new and Submit names it. The hub page (questions/hub/hub.html) was republished as version 18; this entry and the bug log row came in the PR below. BG-271 was the same bug, numbered twice by mistake.
+
+**Fixed by:** [PR #950](https://github.com/ali123500-codeRPG/text-rpg/pull/950)
+
+## BG-269
+
+**What was wrong:** In the action-deck playtest three slimes were in reach, and the Attack list showed "A slime", "The other slime" and "The other slime": two different slimes under the same name, so "Attack the other slime" could mean either. The list turned every repeat of a name into "the other ...", which only works for two.
+
+**What was done:** Two of a name still read "a slime" and "the other slime". Three or more are all numbered: "the 1st slime", "the 2nd slime", "the 3rd slime", in the pickers, the menus on people and the order line.
+
+**Fixed by:** [PR #947](https://github.com/ali123500-codeRPG/text-rpg/pull/947)
+
+## BG-268
+
+**What was wrong:** In the action-deck playtest a slime "surrendered" (the XP line read "A slime defeated (surrendered)"). When a creature's nerve breaks on a morale roll of Critical Failure or worse, or under an Overwhelm, the game made it give itself up, whatever its mind, so mindless slimes could surrender.
+
+**What was done:** Only Intelligent and Semi-intelligent races (people, wolves) can surrender now. An Unintelligent race, such as a slime, whose break would have been a surrender just breaks: it cowers and still counts as beaten.
+
+**Fixed by:** [PR #944](https://github.com/ali123500-codeRPG/text-rpg/pull/944)
+
+## BG-266
+
+**What was wrong:** In the action-deck playtest the Weaver put three cellar slimes in as one group entry and labelled it "slimes in the cellar". Code turns a group entry into its leader and adds the others as "a slime", so the leader, a single slime, was listed as "Slimes in the cellar" beside "a slime" and "the other slime".
+
+**What was done:** The Weaver's and World builder's rules now say a group entry is its leader: its label, name and look describe that one person or beast (a slime, the bandit chief), never the group. Code is unchanged, so a leader the Weaver names (a bandit chief) keeps the name.
+
+**Fixed by:** [PR #942](https://github.com/ali123500-codeRPG/text-rpg/pull/942)
+
+## BG-265
+
+**What was wrong:** In the action-deck playtest three slimes in arm's reach were mauling the old reed-cutter, and the Suggested button still said "Look around: Nothing presses". The suggestion (and the red foe marker in Who's here) only counted people you could talk down or demand surrender from. A slime can't be talked to, so it never counted, even when fighting you, and nobody attacking someone else counted at all.
+
+**What was done:** The screen now marks as a foe anyone fighting you (beasts too) and anyone you saw strike first at someone who isn't fighting you. Someone only hitting back at whoever struck first is not marked. The suggestion and Who's here use that mark, so that turn suggests "Attack a slime: a slime is attacking an old reed-cutter and within your hand axe's reach". In a fight with no foe, Look no longer says "Nothing presses".
+
+**Fixed by:** [PR #942](https://github.com/ali123500-codeRPG/text-rpg/pull/942)
+
 ## BG-264
 
 **What was wrong:** On the creation screen, Random picks a new race as well as a name, gender, age and personality. Whenever it landed on the other race (about half the time), your skill points went back to the recommended build. Clicking the other race button did the same. A race change builds the screen again (a race can open other skill trees and ages), and the new screen always loaded the recommended build.
@@ -172,6 +292,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Ali approved the fix (BF61). Givers may offer only jobs code can check (defeat, deliver, reach, find): "other" is gone from the job schema, the job rule tells them never to offer a chore and never to say a tool or thing is somewhere their view doesn't show, and a job code still can't read is refused (src/engine/quests.ts makeQuest, unchecked_goal) and filed as a gap. Doable chores went to the features thread.
 
 **Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
+
+## BG-234
+
+**What was wrong:** Six Weaver plans on one turn had their road lengths refused (far_road, track, market_road and others).
+
+**What was done:** Same cause as BG-223: lengths given in words were taken only as code keys. Fixed with BG-223.
+
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
 
 ## BG-247
 
@@ -1004,6 +1132,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #604](https://github.com/ali123500-codeRPG/text-rpg/pull/604)
 
+## BG-136
+
+**What was wrong:** An NPC who agreed to go with the player never came along: there was no follow-the-player order, and a road trip took only bandmates.
+
+**What was done:** Going with the player is follow, and followers travel along on the player's trips (BF9).
+
+**Fixed by:** [PR #604](https://github.com/ali123500-codeRPG/text-rpg/pull/604)
+
 ## BG-135
 
 **What was wrong:** Run 75h, turn 43: "turn toward the back door to see what moved there" aimed the look at the common room behind the shut door, not the half-seen someone by it in the yard, so the story told only of the shut door.
@@ -1131,6 +1267,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** BG-117, BG-118, BG-120, BG-122, BF1: words reach their listener; the cast knows who it can see at the start
 
 **Fixed by:** [PR #585](https://github.com/ali123500-codeRPG/text-rpg/pull/585)
+
+## BG-119
+
+**What was wrong:** In run 79 three NPCs changed zones between turns with no move event, so the player watched them vanish and could not name them.
+
+**What was done:** Catch-up legs walked on an action's turn are seen move events (BF2 a to d).
+
+**Fixed by:** [PR #604](https://github.com/ali123500-codeRPG/text-rpg/pull/604)
 
 ## BG-120 (part 2)
 
@@ -1835,6 +1979,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Moves to another zone drop a spot that doesn't fit instead of asking where (BG-31)
 
 **Fixed by:** [PR #458](https://github.com/ali123500-codeRPG/text-rpg/pull/458)
+
+## BG-30
+
+**What was wrong:** The autoplay agent tried to go through a cellar door it had made up from the story lines; the game answered that there was no cellar door there.
+
+**What was done:** The autoplay agent is told, every move, where it stands, the ways out it can see and the places it knows, and to use only those.
+
+**Fixed by:** [PR #514](https://github.com/ali123500-codeRPG/text-rpg/pull/514)
 
 ## BG-29
 

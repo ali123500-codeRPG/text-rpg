@@ -4,6 +4,7 @@
 import type { Actor, GameEvent, GameState, ItemInstance } from '../types';
 import { getLibrary } from '../library';
 import { allActors, zoneById } from '../engine/relations';
+import { inside } from '../engine/position';
 import { fightRenewed } from '../engine/engagement';
 import { healthLevel } from '../ruleset/body';
 import { buildActorView, buildNarrationView, buildPlayerView } from '../views';
@@ -30,9 +31,9 @@ const g = globalThis as { turnCheck?: TurnCheckMode }; // set before any import 
 export const TURN_CHECK: TurnCheckMode = (g.turnCheck ??= { strict: false, skip: () => [] });
 
 const fin = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
-const inside = (s: GameState, a: Actor) => {
-  const r = zoneById(s, a.zone)?.rect;
-  return !r || !a.pos || (Math.abs(a.pos.x - r.x) <= r.w / 2 + 0.01 && Math.abs(a.pos.y - r.y) <= r.d / 2 + 0.01);
+const inZone = (s: GameState, a: Actor) => {
+  const z = zoneById(s, a.zone);
+  return !z?.rect || !a.pos || inside(z, a.pos);
 };
 function items(s: GameState): ItemInstance[] {
   const out: ItemInstance[] = [];
@@ -59,7 +60,7 @@ const RULES: Record<string, (c: Ctx) => string[]> = {
   /** ZR8: every zone on stage has a rectangle, and everyone's point lies inside their zone's */
   inside_zone: ({ s }) => [
     ...s.zones.filter((z) => !z.rect).map((z) => `zone ${z.id} has no rectangle`),
-    ...allActors(s).filter((a) => (a.pos && !(fin(a.pos.x) && fin(a.pos.y))) || !inside(s, a)).map((a) => `${a.id} at ${JSON.stringify(a.pos)} outside ${a.zone}`),
+    ...allActors(s).filter((a) => (a.pos && !(fin(a.pos.x) && fin(a.pos.y))) || !inZone(s, a)).map((a) => `${a.id} at ${JSON.stringify(a.pos)} outside ${a.zone}`),
   ],
   /** a zone change always shows as a move (fromZone), travel, or a logged silent catch-up; a new scenario places everyone */
   move_event: ({ s, before, events }) => before.scenario !== s.stage.scenarioNumber ? [] : allActors(s).filter((a) => {

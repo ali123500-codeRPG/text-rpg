@@ -3,7 +3,7 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import { gripWord, gripsOf } from '../ruleset/gear';
 import { coinWords, coins, countWords } from '../engine/trade';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { IT } from '../library/itemIds';
 import type { AgentName, StoryOwner, TierRoll, DefeatWhy, XpAward, TierShift,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
@@ -14,7 +14,7 @@ import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
-import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, now, now as gameNow, timeOfDay, timeView } from '../time';
+import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, noteTurnEnd, now, now as gameNow, timeOfDay, timeView } from '../time';
 import { outcomeText } from '../ruleset/hits';
 import { GRADE_LEVELS, HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
@@ -22,7 +22,7 @@ import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
 import { busyNow } from '../engine/busy';
-import { NERVE_BLOCKED } from '../minds';
+import { NERVE_BLOCKED, NERVE_MOVES } from '../minds';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
@@ -93,14 +93,20 @@ const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
   '/help, /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
-/** NB5/BF37: what the game says when only what a broken nerve blocks was asked (a walk, an attack, a grab, a filch, a perk
- * move); the order is turned away and no time passes */
-export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to move or attack. Nothing happened and no time passed. You can still talk, beg, yield, give, use an item such as a bandage, pick something up, or open a door or container within reach. With nothing else to do, you cower where you stand.";
-/** BF37: the intent asks only for what a broken nerve blocks: a walk, an attack, a grab, a filch or a perk move, and no words */
-function nerveBlocksAll(i: Intent): boolean {
-  const blocked = (t?: string) => !!t && NERVE_BLOCKED.includes(t);
-  const wants = !!i.move || !!i.perkMove || blocked(i.action?.type);
-  const allowed = !!i.spoken || !!i.gear?.length || !!i.way || (!!i.action && !blocked(i.action.type));
+/** NB5/BF37/BF79: what the game says when only what a broken nerve blocks was asked (an attack, a grab, a filch, a perk
+ * move, a walk toward a foe); the order is turned away and no time passes */
+export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to attack or go toward a foe. Nothing happened and no time passed. You can still back away or run, talk, beg, yield, give, use an item such as a bandage, pick something up, or open a door or container within reach.";
+/** BF79: the same at Cowering, below Broken, where not even flight is left */
+export const NERVE_COWERING_REFUSED = "You are cowering: you can't bring yourself to move or attack. Nothing happened and no time passed. You can still talk, beg, yield, give, use an item such as a bandage, pick something up, or open a door or container within reach. With nothing else to do, you cower where you stand.";
+/** BF37/BF79: the intent asks only for what a broken nerve blocks (an attack, a grab, a filch, a perk move, a walk it turns
+ * back: toward a foe, or any walk at Cowering) and no words */
+function nerveBlocksAll(s: GameState, i: Intent): boolean {
+  const cowering = isCoweringLevel(moraleLevel(s.player));
+  const stops = cowering ? [...NERVE_BLOCKED, ...NERVE_MOVES] : NERVE_BLOCKED;
+  const blocked = (t?: string) => !!t && stops.includes(t);
+  const walkBack = !!i.move && engine.nerveTurnsBack(s, s.player, engine.fromIntent(s, i, false));
+  const wants = walkBack || !!i.perkMove || blocked(i.action?.type);
+  const allowed = !!i.spoken || !!i.gear?.length || !!i.way || (!!i.move && !walkBack) || (!!i.action && !blocked(i.action.type) && !NERVE_MOVES.includes(i.action.type));
   return wants && !allowed;
 }
 export const ASLEEP_TEXT = '(asleep)';
@@ -341,7 +347,7 @@ export function createGame(deps: GameDeps): Game {
     const before = snapTurn(s); // TQ1: the turn checker compares the world after the turn with this
     const answer = answering(lines, s.turn); // BF72: read before this order joins the story
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
-    const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player), brokenBefore = moraleLevel(s.player) === 'broken';
+    const gearBefore = gearSnap(s, s.player), coinBefore = coins(s.player), brokenBefore = isBrokenLevel(moraleLevel(s.player));
     const partsBefore = partStates(s, s.player), zonesBefore = [...visitedZoneIds(s)];
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
@@ -378,8 +384,8 @@ export function createGame(deps: GameDeps): Game {
     }
     // NB5/BF37: with a broken nerve, an order of only what it blocks is turned away before the turn: nothing happens and no
     // time passes. Words or an allowed action beside it go ahead, and the engine takes the blocked part away (nerveHolds)
-    if (moraleLevel(s.player) === 'broken' && nerveBlocksAll(intent)) {
-      lines.push({ turn: s.turn, kind: 'clarify', text: NERVE_REFUSED });
+    if (isBrokenLevel(moraleLevel(s.player)) && nerveBlocksAll(s, intent)) {
+      lines.push({ turn: s.turn, kind: 'clarify', text: isCoweringLevel(moraleLevel(s.player)) ? NERVE_COWERING_REFUSED : NERVE_REFUSED });
       lastLog = [...turnLog];
       return;
     }
@@ -511,8 +517,8 @@ export function createGame(deps: GameDeps): Game {
     // the turn's change in coin, shown as its own row (coin is left out of the gear rows)
     const coin = rec.coinBefore === undefined ? 0 : coins(s.player) - rec.coinBefore;
     // MB12: the player's nerve broke this turn, or a walk or attack was taken away because it is broken (shown again after a reload)
-    const nerveBroke = rec.brokenBefore === false && moraleLevel(s.player) === 'broken';
-    const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken') || s.log.some((l) => l.code === 'broken_cowers'); // BF37
+    const nerveBroke = rec.brokenBefore === false && isBrokenLevel(moraleLevel(s.player));
+    const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken') || s.log.some((l) => l.code === 'broken_cowers' || (l.code === 'nerve_turned_back' && l.detail?.actorId === s.player.id)); // BF37, BF79
     // AT11a: the long actions the player saw: going on (seconds to go), finished, broken off or set aside
     const actions = rec.doingBefore ? actionNotes(s, rec.doingBefore, doingSnap(views.buildPlayerView(s))) : [];
     const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(actions.length ? { actions } : {}), ...(nerveBroke ? { nerveBroke: true as const } : {}), ...(nerveRefused ? { nerveRefused: true as const } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
@@ -735,6 +741,7 @@ export function createGame(deps: GameDeps): Game {
       const rng = createRng(seed);
       const events = await director.startStory(state, rng, ctxFor(0, turnLog));
       state.rngState = rng.state;
+      noteTurnEnd(state); // BG-275: the opening is a turn too: timers and the turn check count from its end
       await finishTurn(state, events, { playerInput: '', rngBefore: seed, aimed: false, intent: null, opening: true }, null);
       if (await save.storySaved(store, storyId).catch(() => false)) await save.clearPendingStart(store, owner).catch(() => {});
     } catch (e) {
@@ -988,7 +995,7 @@ export const inFight = (s: GameState, a: Actor): boolean => fightSides(s, a).len
  * (an ally falls), a nerve breaks or someone surrenders, or someone yields */
 export function fightKey(s: GameState, a: Actor): string {
   const yielded = (x: Actor) => (x === s.player ? !!s.yielding && !s.yielding.ended : Object.values(x.mind?.overrides ?? {}).includes('yielded'));
-  return fightSides(s, a).map((x) => `${x.id}:${isActive(x) ? 'up' : 'down'}:${x.mind?.moraleState ?? (moraleLevel(x) === 'broken' ? 'broken' : '')}:${yielded(x) ? 'yielded' : ''}`).sort().join('|');
+  return fightSides(s, a).map((x) => `${x.id}:${isActive(x) ? 'up' : 'down'}:${x.mind?.moraleState ?? (isBrokenLevel(moraleLevel(x)) ? 'broken' : '')}:${yielded(x) ? 'yielded' : ''}`).sort().join('|');
 }
 /** NV1 b: an offer to stand down, a demand to surrender or the player's yield waits for this AI-run foe's answer */
 const answerDue = (s: GameState, a: Actor): boolean => !!s.yielding?.pending.includes(a.id) || !!s.offers?.pending.some((o) => o.to === a.id);

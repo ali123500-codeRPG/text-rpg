@@ -152,37 +152,89 @@ export function routineOrder(view: ActorView): Order {
 function hostileBeliefs(view: ActorView) {
   return view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && b.status !== 'unaware');
 }
-/** BF37: what a broken nerve blocks, for now: any walk or run (fleeing too), and any attack, grab, filch or perk move, except
- * the perk moves in NERVE_ALLOWED_PERK_MOVES (Battle Cry: a broken one can still roar). Talking, begging, persuading, lying,
- * yielding, giving, using an item, picking up and unlocking or opening a door or container within reach still work. An actor
- * broken with nothing allowed to do cowers where it stands. */
-export const NERVE_BLOCKED: readonly string[] = ['attack', 'move', 'flee', 'filch', 'restrain'];
+/** BF37/BF79: what a broken nerve blocks: any attack, grab, filch or perk move, except the perk moves in
+ * NERVE_ALLOWED_PERK_MOVES (Battle Cry: a broken one can still roar), and any walk toward a foe (the walk itself is judged
+ * where it runs: engine/nerve.ts walksAway). A walk or run away is allowed. Talking, begging, persuading, lying, yielding,
+ * giving, using an item, picking up and unlocking or opening a door or container within reach still work. At Cowering (below
+ * Broken) the walks go too (NERVE_MOVES). */
+export const NERVE_BLOCKED: readonly string[] = ['attack', 'filch', 'restrain'];
+/** BF79: the order types that are only a walk: allowed while broken (away only), blocked at Cowering */
+export const NERVE_MOVES: readonly string[] = ['move', 'flee'];
 export const NERVE_ALLOWED_PERK_MOVES: readonly string[] = [PK.battle_cry];
 const NOTHING_CHOSEN: readonly string[] = ['idle', 'hold', 'wait'];
 /** BF37: the cowering order: no move and no action, only words */
 export const cowerOrder = (actorId: string, source: Order['source']): Order => ({ actorId, type: 'idle', target: null, skill: null, intent: 'cower', source, activity: 'cowering' });
-/** BF37: the order a broken nerve leaves: the blocked parts taken away (the move, an attack, a perk move), the rest kept
- * (its words, gear and an allowed action); nothing allowed left, it cowers. `blocked` says whether anything was taken. */
-export function nerveHolds(o: Order): { order: Order; blocked: boolean } {
-  const { move: _m, moveAfter: _ma, moveSpot: _ms, jump: _j, vanish: _v, perkMove: _pm, ...rest } = o;
+/** what an order keeps beside a cower or a flee: its words, gear, a way within reach, the trigger it answers */
+const keptBeside = (o: Order): Partial<Order> => ({ ...(o.line ? { line: o.line } : {}), ...(o.addressees ? { addressees: o.addressees } : {}), ...(o.gear?.length ? { gear: o.gear } : {}), ...(o.way ? { way: o.way } : {}), ...(o.triggerId ? { triggerId: o.triggerId } : {}) });
+/** BF37/BF79: the order a broken nerve leaves: the blocked parts taken away (an attack, a perk move; at Cowering
+ * the walk too), the rest kept (its words, gear, an allowed action, and a walk, which only goes ahead if it leads away);
+ * nothing allowed left, it cowers. `blocked` says whether anything was taken. */
+export function nerveHolds(o: Order, cowering = false): { order: Order; blocked: boolean } {
+  const { move: _m, moveAfter: _ma, moveSpot: _ms, jump: _j, perkMove: _pm, ...rest } = o;
   const cry = o.perkMove && NERVE_ALLOWED_PERK_MOVES.includes(o.perkMove.perk) ? { perkMove: o.perkMove } : {};
-  const kept: Order = { ...rest, ...cry };
-  const blocked = !!o.move || (!!o.perkMove && !cry.perkMove) || !!o.vanish || NERVE_BLOCKED.includes(o.type);
-  if (!NERVE_BLOCKED.includes(o.type) && !NOTHING_CHOSEN.includes(o.type)) return { order: kept, blocked };
-  const cower = cowerOrder(o.actorId, o.source);
-  return { order: { ...cower, ...cry, ...(kept.line ? { line: kept.line } : {}), ...(kept.addressees ? { addressees: kept.addressees } : {}), ...(kept.gear?.length ? { gear: kept.gear } : {}), ...(kept.way ? { way: kept.way } : {}), ...(kept.triggerId ? { triggerId: kept.triggerId } : {}) }, blocked };
+  const stops = cowering ? [...NERVE_BLOCKED, ...NERVE_MOVES] : NERVE_BLOCKED;
+  // an attack's or a grab's own walk closes in on its target, so it goes with the deed
+  const walk: Partial<Order> = !stops.includes(o.type) && !cowering && o.move ? { move: o.move, ...(o.moveAfter ? { moveAfter: o.moveAfter } : {}), ...(o.moveSpot ? { moveSpot: o.moveSpot } : {}), ...(o.jump ? { jump: o.jump } : {}) } : {};
+  const kept: Order = { ...rest, ...cry, ...walk };
+  const blocked = (!!o.move && !walk.move) || (!!o.perkMove && !cry.perkMove) || stops.includes(o.type);
+  if (!stops.includes(o.type) && !NOTHING_CHOSEN.includes(o.type)) return { order: kept, blocked };
+  return { order: { ...cowerOrder(o.actorId, o.source), ...cry, ...walk, ...keptBeside(kept) }, blocked };
 }
 
-/** a broken actor no one asked anything of cowers (BF37); one that surrendered holds where it is */
+/** whom a broken actor runs from: those it is hostile to, and those it yielded to (Q4) */
+const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.stance === 'yielded') && b.active && b.status !== 'unaware');
+
+/** BF79: a broken NPC with nothing allowed left flees: one link toward its exit or refuge slot, else into a linked zone
+ * farther from the nearest foe it fears (never a way into a foe's zone); with no way away (or already at its exit or
+ * refuge) it cowers. At Cowering it
+ * cowers. Whether the walk really leads away is judged where it runs (engine/nerve.ts walksAway): NPCs stay in real zones. */
+export function fleeOrder(view: ActorView, source: Order['source']): Order {
+  const cower = () => cowerOrder(view.self.id, source);
+  if (view.self.cowering) return cower();
+  const here = view.self.zone;
+  const threats = fleeFrom(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
+  // toward its exit or refuge, unless that way runs into a foe's zone
+  for (const key of ['exit', 'refuge']) {
+    const b = view.self.slots[key];
+    const zone = Array.isArray(b) ? b[0] : b;
+    if (!zone) continue;
+    if (zone === here) return cower();
+    const path = mapPath(view.map, here, zone);
+    if (path?.length && !threats.includes(path[0])) return order(view, 'flee', source, 'flee', { target: path[0] });
+  }
+  const dist = (a: string, b: string) => mapPath(view.map, a, b)?.length ?? Infinity;
+  if (!threats.length) return cower();
+  const threat = threats.reduce((best, z) => (dist(here, z) < dist(here, best) ? z : best));
+  const links = view.map.find((z) => z.id === here)?.links ?? [];
+  let best: string | null = null;
+  let bestD = dist(here, threat);
+  for (const l of links) {
+    if (l.frontier || l.drop || l.shut || !view.map.some((z) => z.id === l.to)) continue;
+    const d = dist(l.to, threat);
+    if (d > bestD) [best, bestD] = [l.to, d];
+  }
+  return best ? order(view, 'flee', source, 'flee', { target: best }) : cower();
+}
+
+/** BF79: what a broken NPC does with its order: nerveHolds; with nothing allowed left and no walk away, it flees (fleeOrder),
+ * keeping its words, gear and a way within reach */
+export function brokenHolds(view: ActorView, o: Order): Order {
+  const { order: held } = nerveHolds(o, !!view.self.cowering);
+  if (held.intent !== 'cower' || held.move) return held;
+  const run = fleeOrder(view, o.source);
+  return { ...run, ...keptBeside(held), ...(held.perkMove ? { perkMove: held.perkMove } : {}) };
+}
+
+/** a broken actor no one asked anything of flees (BF79; cowers when cornered or at Cowering); one that surrendered holds where it is */
 export function brokenOrder(view: ActorView): Order {
-  return view.self.surrendered ? order(view, 'hold', 'broken', 'hold') : cowerOrder(view.self.id, 'broken');
+  return view.self.surrendered ? order(view, 'hold', 'broken', 'hold') : fleeOrder(view, 'broken');
 }
 
 export function fallbackOrder(view: ActorView, rng: Rng): Order {
   const s = view.self;
-  // 1. Broken: cower (BF37); surrendered: hold
+  // 1. Broken: flee, or cower when cornered (BF79); surrendered: hold
   if (s.surrendered) return order(view, 'hold', 'fallback', 'hold');
-  if (s.broken) return cowerOrder(s.id, 'fallback');
+  if (s.broken) return fleeOrder(view, 'fallback');
   // ZR12: a code-run pursuer at the end of its near chase range turns back
   if (s.atChaseLine && hostileBeliefs(view).some((b) => !b.lost)) return routineOrder(view);
   // 2. Attack

@@ -2,7 +2,7 @@
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // A missing nullable field reads as null; only a missing required field fails the answer (CS9).
 import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
-import { OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, type ImprovisedBase } from '../types';
+import { ATTACK_STANCES, GEAR_OPS, OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, PRONOUNS, type GearOp, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
 import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
@@ -51,8 +51,8 @@ const run = <T>(c: V<T>) => (v: unknown): Checked<T> => {
 const VOLUME = oneOf(['whisper', 'normal', 'shout'] as const);
 /** BF35: a follow's distance: metres, or melee / range */
 const KEEP: V<NonNullable<MoveSpot['keep']>> = (v, p, e) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : v === 'melee' || v === 'range' ? v : (e.push(`${p}: expected metres, "melee" or "range"`), 'melee'));
-const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon' | 'set_down'; item: string; from?: string; into?: string; qty?: number }>(
-  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const), item: str, from: str, into: str, qty: num },
+const gearOp = obj<{ op: GearOp['op']; item: string; from?: string; into?: string; qty?: number }>(
+  { op: oneOf(GEAR_OPS), item: str, from: str, into: str, qty: num },
   ['from', 'into', 'qty'],
 );
 const GEAR = nul(arr(gearOp));
@@ -72,7 +72,7 @@ const intent = obj<Intent>({
     for: nul(str),
     mode: nul(str),
     approach: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),
-    stance: (v, p, e) => (v === null || v === undefined ? 'normal' : oneOf(['careful', 'normal', 'reckless'] as const)(v, p, e)),
+    stance: (v, p, e) => (v === null || v === undefined ? 'normal' : oneOf(ATTACK_STANCES)(v, p, e)),
     improvised: (v, p, e) => (v === null || v === undefined ? null
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
     demand: (v, p, e) => (v === null || v === undefined ? null : oneOf(['yield'] as const)(v, p, e)),
@@ -195,6 +195,7 @@ const FURNITURE = obj<PlanFurniture>({ kind: str, name: str, at: str, edge: bool
 const weaver = obj<StagePlan>({
   event: obj<StagePlan['event']>({ summary: str, challenge: GRADE, gain: GRADE }),
   timeOfDay: level(TIME_OF_DAY),
+  arriveAt: str, // BG-273
   // BG-36: every optional field the Weaver may give is named here, or it is dropped before validation
   places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
     layout: str, names: record(str), looks: record(str), furniture: record(arr(FURNITURE)), site: str }, ['layout', 'names', 'looks', 'furniture', 'site'])), // no parent = top level (V5)
@@ -215,7 +216,7 @@ const weaver = obj<StagePlan>({
     chase: level(CHASE_RANGES), // CH5; BG-40: the schema shows the names ("Ground"), so a name is read as its key
   }, ['chase'])),
   cast: arr(obj<Cast>({
-    template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(['he', 'she', 'they', 'it'] as const),
+    template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(PRONOUNS),
     knownOnSight: bool, knows: arr(obj<{ id: string; text: string }>({ id: str, text: str })),
     key: str, band: str, routineSetId: str,
     slots: record<string | string[]>((v, p, e) => (Array.isArray(v) ? arr(str)(v, p, e) : str(v, p, e))),
@@ -259,7 +260,7 @@ const weaver = obj<StagePlan>({
   scenario: any as V<StagePlan['scenario']>, // SC1/SC2/SC7: checked by the validator (src/scenario/validate.ts)
   episode: any as V<StagePlan['episode']>, // SW10 a: checked by the validator too
   forbidden: arr(str), // GD1 b
-}, ['timeOfDay', 'spars', 'scenario', 'episode', 'containers', 'forbidden']);
+}, ['timeOfDay', 'arriveAt', 'spars', 'scenario', 'episode', 'containers', 'forbidden']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);

@@ -113,7 +113,7 @@ vi.mock('../../src/views', () => ({
   seesClearlyNow: () => true,
   buildActorView: (state: GameState, id: string) => {
     const a = state.actors.find((x) => x.id === id)!;
-    return { turn: state.turn, self: { id, zone: a.zone, broken: a.mind?.moraleState === 'broken', surrendered: a.mind?.moraleState === 'surrendered' }, perceived: [] };
+    return { turn: state.turn, self: { id, zone: a.zone, slots: {}, broken: a.mind?.moraleState === 'broken', surrendered: a.mind?.moraleState === 'surrendered' }, perceived: [], beliefs: [], map: [] }; // BF79: a broken one's flight reads its beliefs and map
   },
 }));
 
@@ -130,6 +130,8 @@ vi.mock('../../src/minds', async (importOriginal) => {
     fallbackOrder: (v: { self: { id: string } }) => o(v, 'hold', 'fallback'),
     brokenOrder: (v: { self: { id: string } }) => o(v, 'hold', 'broken'),
     nerveHolds: real.nerveHolds, // BF37: the real rule
+    brokenHolds: real.brokenHolds, // BF79: the real rule
+    fleeOrder: real.fleeOrder,
     bindTemplate: (tpl: Order, v: { self: { id: string } }, ctx: { triggerZone?: string; source: Order['source']; triggerId?: string }) => ({
       ...tpl, actorId: v.self.id, target: tpl.target === '$triggerZone' ? ctx.triggerZone : tpl.target === '$player' ? 'player' : tpl.target, source: ctx.source, triggerId: ctx.triggerId,
     }),

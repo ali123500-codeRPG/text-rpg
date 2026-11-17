@@ -3,7 +3,7 @@
 // Critical Success achievements count in every player roll (rollFeats in xp.ts).
 import { yieldTaken } from './yield';
 import { defended, struck } from '../ruleset/hits';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import type { Actor, AchievementRule, ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
 import { CONFIG } from '../config';
 import { healthLevel, partStates, working } from '../ruleset/body';
@@ -69,7 +69,7 @@ function eventFeats(state: GameState, events: GameEvent[]): void {
 function stateFeats(state: GameState, events: GameEvent[]): void {
   const p = state.player, pr = p.progression!;
   // a sneak past watchers: someone with sight of where you ended is suspicious of you, and none of them sees you (ZR5)
-  if (p.posture === 'stealthy' && events.some((e) => e.actorId === p.id && e.kind === 'move' && !e.vanish)) {
+  if (p.posture === 'stealthy' && events.some((e) => e.actorId === p.id && e.kind === 'move')) {
     const here = state.actors.filter((x) => x.mind && isActive(x) && seeingM(state, x, p) !== null).map((x) => x.mind!.knowledge[p.id]?.status ?? 'unaware');
     if (here.includes('suspicious') && !here.some((s) => atLeast(s, 'aware'))) tally(state, 'unseen_moves');
   }
@@ -171,7 +171,7 @@ function logFight(state: GameState, events: GameEvent[]): void {
   if (allies.length) f.helped = true;
   if (allies.length && foes.length > allies.length + 1) f.heldLine = true; // the foes outnumber your whole side
   if (HEALTH_LEVELS.pos(healthLevel(p)) >= HEALTH_LEVELS.pos('critical')) f.brink = true;
-  if (moraleLevel(p) === 'broken') f.broke = true;
+  if (isBrokenLevel(moraleLevel(p))) f.broke = true;
   // D-177: the strongest hostile foe, against the player's own power (the same power defeat XP uses)
   const mine = power(state, p);
   for (const x of foes.filter((y) => hostile(state, y, p))) {

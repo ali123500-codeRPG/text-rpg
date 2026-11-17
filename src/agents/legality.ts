@@ -3,7 +3,6 @@
 import type { ActorView, ContainerView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
 import { GRADED_ACTS, SPEECH_ACTIONS, WAY_ORDERS } from '../types';
 import { TIME_OF_DAY, WAIT_SOMEONE } from '../scales';
-import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { modeIdOf } from '../ruleset/gear';
 import { compassOf } from '../scenario/geometry';
@@ -26,7 +25,6 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   if (first.startsWith('action.time')) return `Until when? You can wait until ${listWords([...TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()), 'someone appears'], 'or')}.`;
   if (first.startsWith('action.skill')) return 'How do you want to do that?';
-  if (first.startsWith('action.vanish')) return `Where do you slip away to? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   return null;
 }
 
@@ -104,8 +102,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if (a.type === 'heal' && a.target !== null && (!actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // NR34: someone alive in view, or no one (oneself)
     else if ((a.type === 'restrain' || a.type === 'extract') && (a.target === null || !actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // BF5, DX3: someone alive in view
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
-    // sneak and vanish: code picks the stealth skill (ST2), so the Parser's skill there is dropped
-    if (a.type === 'sneak' || a.type === 'vanish' || a.type === 'search' || a.type === 'stash') a.skill = ''; // SE2/SE9: code picks the roll
+    // sneak: code picks the stealth skill (ST2, VS1), so the Parser's skill there is dropped
+    if (a.type === 'sneak' || a.type === 'search' || a.type === 'stash') a.skill = ''; // SE2/SE9: code picks the roll
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     // a buy, or haggling over one, names a ware of the seller it targets (goods:… / service:…), not an item the player can reach
@@ -126,8 +124,6 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     }
   }
   // AE8: a perk move the player doesn't own, or aimed at no one in view, is dropped (the rest of the turn stands)
-  // ST13/ST20: a Vanish moves you; with no move it asks where to
-  if (a?.type === 'vanish' && !out.move && !(view.player.perks.some((x) => x.id === PK.melt_away) && (view.player.blindSpot || meltAwayHere(view.zone.cover, view.zone.light)))) illegal.push('action.vanish'); // A19 Melt Away, LR3 Blind Spot
   const move = out.perkMove && view.player.perkMoves?.find((m) => m.id === out.perkMove!.perk || m.name.toLowerCase() === out.perkMove!.perk.trim().toLowerCase());
   if (out.perkMove && move) out.perkMove.perk = move.id; // a perk move named instead of given by id is read as its id
   if (out.perkMove && (!move || (out.perkMove.target !== null && (!actors.has(out.perkMove.target) || dead.has(out.perkMove.target))))) {

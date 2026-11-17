@@ -21,7 +21,7 @@ import { achievementAimEase, achievementRollMods, bestReward, deathsDoor, rallyM
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
-import { rollFeats, tally } from '../engine/xp';
+import { forScenarioAhead, rollFeats, tally } from '../engine/xp';
 import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
 import { powerStack } from './stacking';
@@ -229,8 +229,11 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   level = Math.max(-reach.down, Math.min(top + reach.up, level));
   const { tier, beyond } = tierAt(level);
   // the chains count how far past Critical you have reached: 1 = Critical, 2 = one + or −, and so on
-  if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits', { to: 1 + (beyond ?? 0) });
-  if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails', { to: 1 - (beyond ?? 0) });
+  // BG-272: every event roll opens a scenario, so what it earns waits for that scenario's end
+  forScenarioAhead(() => {
+    if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits', { to: 1 + (beyond ?? 0) });
+    if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails', { to: 1 - (beyond ?? 0) });
+  });
   return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
 }
 
@@ -523,7 +526,7 @@ export function fallDamage(metres: number, step = 0): number {
 }
 
 /** BA2: seconds to pick a lock at effective Lockpicking `skill`: the Action times pick_lock row with its speed function */
-export const pickSeconds = (skill: number): number => actionSeconds(actionRow(DU.pick_lock)!, skill);
+export const pickSeconds = (skill: number, factor?: number): number => actionSeconds(actionRow(DU.pick_lock)!, skill, factor);
 /** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
  * more; a tier past Critical Failure reads Critical Failure's row */
 export const landingStep = (t: Tiered): number => (CONFIG.FALL_LANDING_STEP[t.tier] ?? 0) - Math.max(0, t.beyond ?? 0) * CONFIG.FALL_LANDING_PAST_STEP;
