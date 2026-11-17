@@ -37,7 +37,6 @@ import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
-import { blindSpotNow } from '../engine/perkMarks';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
 import { beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
@@ -517,7 +516,6 @@ export function buildPlayerView(state: GameState): PlayerView {
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
-      ...(blindSpotNow(state, p) ? { blindSpot: true as const } : {}),
       ...walkingOf(state, p),
       ...followingOf(state, p),
       ...reachesOf(state, p),

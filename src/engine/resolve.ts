@@ -25,7 +25,7 @@ import { travel, travelSpeed, tripGoal } from './travel';
 import { M_EPS, distM, distOrNull, gateAhead, placeAll, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -33,7 +33,7 @@ import { buildActorView, seesClearlyNow } from '../views';
 import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
-import { afterAttack, blindSpotNow, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
+import { afterAttack, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
@@ -66,7 +66,7 @@ import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
 import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
-import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay, zoneLight } from '../time';
+import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
 import type { ExchangeSpeech, TurnInput } from './types';
@@ -192,7 +192,6 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'heal': return of(DU.bandage); // NR34: hands-on, as long as binding a wound
-    case 'vanish': return of(DU.vanish_in_place); // A19 Melt Away: the only Vanish left after setPosture
     case 'break': return of(DU.break_open); // BF31
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
@@ -537,7 +536,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
   const leg = { metres: r1(walked), ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot), ...(o.moveSpot?.lastSeen && o.moveSpot.near ? { lastSeenOf: o.moveSpot.near } : {}) } : {}) };
-  let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}), ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
+  let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(round ? { round } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return walked;
@@ -776,6 +775,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
     return wasted(r !== undefined && t.zone === a.zone && !roomAround(state, a, t, r) ? 'no_room' : 'out_of_reach');
   }
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
+  const sawBefore = fromHiding ? allActors(state).filter((x) => x !== a && atLeast(beliefStatus(state, x, a), 'aware')).map((x) => x.id) : null; // VS3
   const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, PK.in_and_out); // A23 In and Out: only the target sees you
   const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
   if (shows) a.posture = 'open'; // ST5: a melee blow shows you
@@ -858,7 +858,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   // at once (no time, no action). Its own free strike never sets it off again; One-Two's free punch does
   if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a).length >= 2
     && withinM(sightDistM(state, a, t), m.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: m.itemId, mode: m.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, followUp, true);
-  allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
+  allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, sawBefore, followUp);
   if (o.intent !== PARRY_STRIKE) parryStrike(ctx, a, t, res); // a strike back earns none: a parried one ends the exchange
 }
 
@@ -924,7 +924,7 @@ function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerSh
 }
 
 /** All-50 parts that act after an attack (src/library/allPerks.ts) */
-function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, itemId: string | null, res: AttackResult, fromHiding: boolean, followUp: boolean): void {
+function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, itemId: string | null, res: AttackResult, sawBefore: string[] | null, followUp: boolean): void {
   const { state, rng } = ctx;
   // T4b Second Wind: once per engagement, at Wounded or worse (not down), the health track moves one level better
   const L = CONFIG.HEALTH_TRACK;
@@ -951,10 +951,11 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
       doAttack(ctx, a, { ...nullOrder(a.id), type: 'attack', target: pick.id, item: mode.itemId, mode: mode.mode.id }, true);
     }
   }
-  // T6a Strike and Fade: right after an attack from hiding, a free Vanishing roll in place
-  if (fromHiding && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
+  // T6a Strike and Fade (VS3): right after an attack from hiding, those the attack made aware roll against Vanishing at once
+  if (sawBefore && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
     if (a.posture !== 'stealthy') { a.posture = 'stealthy'; stealthStart(state, a); }
-    const ev = mk(ctx, a, 'vanish', { vanish: true });
+    const spotted = allActors(state).filter((x) => x !== a && !sawBefore.includes(x.id) && atLeast(beliefStatus(state, x, a), 'aware')).map((x) => x.id);
+    const ev = mk(ctx, a, 'vanish', { spotted });
     ev.effects.push({ kind: PK.strike_and_fade, actorId: a.id, data: {} });
     emit(ctx, ev);
   }
@@ -1782,9 +1783,6 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
       return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
     }
-    case 'vanish':
-      // A19 Melt Away: a Vanish in place is a Vanishing contest per observer (stealthDetect)
-      return emit(ctx, bark(mk(ctx, a, 'vanish', { vanish: true }), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -2263,23 +2261,17 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 /** AE2: no running (the move role switched off by the shared-role rule, CS8) stops a dash, and so does Leg Bolt's slow (A6) */
 const lame = (state: GameState, a: Actor) => slowed(state, a) || roleOff(state, a, RL.move);
 
-/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a
- * Vanish is the turn's move (in place, with Melt Away, the main action), contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
- * vanish names the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
+/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch (there is no Vanish
+ * action: VS1, its roll comes with the sneak, stealthDetect); words above a whisper end the posture. An NPC's sneak names
+ * the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
  * following the player copies the player's posture (NS9). */
 function setPosture(state: GameState, a: Actor, o: Order): void {
   const was = a.posture ?? 'open';
   const npc = a !== state.player;
   const goTo = npc && o.target && o.target !== a.zone && zoneById(state, o.target) ? o.target : null;
-  if (o.type === 'sneak' || (o.type === 'vanish' && !o.vanish)) {
+  if (o.type === 'sneak') {
     a.posture = 'stealthy';
-    if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
-    // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
-    const zone = zoneById(state, a.zone);
-    // LR3 Blind Spot: with a foe's sight spoiled by Dirt in the Eyes, Melt Away needs no cover or shade
-    const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, PK.melt_away) && !!zone && (blindSpotNow(state, a) || meltAwayHere(zone.cover, zoneLight(state, zone)));
-    if (inPlace) o.vanish = true;
-    o.type = inPlace ? 'vanish' : goTo ? 'move' : 'hold';
+    o.type = goTo ? 'move' : 'hold';
   }
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
   if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';

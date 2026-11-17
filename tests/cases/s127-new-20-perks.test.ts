@@ -67,24 +67,26 @@ describe('127 20 perks for the new skills', () => {
     expect(run(true, false)).toBe(run(false, false));
   });
 
-  it('Melt Away: a Vanish with nowhere to go vanishes in place where there is cover or shade', () => {
+  it('Melt Away: a sneak that stays put where there is cover or shade still rolls Vanishing against those who see you (VS2)', () => {
     expect(meltAwayHere('none', 'bright')).toBe(false);
     expect(meltAwayHere('some', 'bright')).toBe(true);
     expect(meltAwayHere('none', 'dim')).toBe(true);
-    const run = (perk: boolean) => {
+    const run = (perk: boolean, cover: 'none' | 'some') => {
       const s = makeVillage({ playerZone: 'tav_counter' });
-      zoneById(s, 'tav_counter')!.cover = 'some';
+      zoneById(s, 'tav_counter')!.cover = cover;
+      const w = place(s, 'patron_1', 'tav_counter');
+      w.mind!.knowledge.player = { status: 'aware', source: 'seen', lastKnownZone: 'tav_counter', lastSeenTurn: s.turn, revealed: [] };
       if (perk) give(s.player, PK.melt_away);
-      const i = intent({ action: { type: 'vanish' } });
-      const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
-      const ev = play(s, { intent: i });
-      return { legal, vanished: ev.some((e) => e.actorId === 'player' && e.kind === 'vanish' && e.vanish), zone: s.player.zone };
+      const i = intent({ action: { type: 'sneak' } });
+      expect(checkParserLegality(i, buildPlayerView(s)).illegal).toEqual([]);
+      play(s, { intent: i });
+      const rolls = s.log.filter((l) => l.code === 'stealth_contest' && (l.detail as { observerId: string }).observerId === 'patron_1');
+      return { vanishing: rolls.filter((l) => (l.detail as { skill: string }).skill === SK.vanishing).length, zone: s.player.zone };
     };
-    expect(run(false).legal).toContain('action.vanish');
-    expect(run(false).vanished).toBe(false);
-    const r = run(true);
-    expect(r.legal).not.toContain('action.vanish');
-    expect(r.vanished).toBe(true);
+    expect(run(false, 'some').vanishing).toBe(0);
+    expect(run(true, 'none').vanishing).toBe(0);
+    const r = run(true, 'some');
+    expect(r.vanishing).toBe(1);
     expect(r.zone).toBe('tav_counter');
   });
 
