@@ -11,7 +11,7 @@ import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpF
 import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, burdenOf, burdenParts, learningWindow } from '../ruleset/improve';
-import { h } from './kit';
+import { h, safe } from './kit';
 import { classIcon } from './itemIcons';
 import { openPop } from './pop';
 import { powerFigure } from './power';
@@ -31,7 +31,6 @@ export const invFocus: { id: string | null } = { id: null };
 /** Set by a link from another page; the Character page opens that pop-up once on arrival (CP1: its big sections live in pop-ups) */
 export const charFocus: { open: 'essences' | 'perks' | 'classes' | null } = { open: null };
 
-const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const BAR_SCALE = CONFIG.SKILL_CAP; // display only: the bar fills at the mortal limit; true skill can pass it
 
 export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: number | null } {

@@ -4,7 +4,7 @@
 // never lists anything the character doesn't know of; whether each take works is still the turn's to decide.
 import type { GearOp, PlayerView } from '../types';
 import { isDownLevel } from '../ruleset';
-import { cap, listWords, theOf } from '../words';
+import { cap, listWords, theItem, theOf } from '../words';
 import { h } from './kit';
 import { closePop, openPop } from './pop';
 
@@ -12,7 +12,6 @@ export type LootItem = { id: string; name: string; qty?: number };
 /** one place things can be taken from: a body, an open container or the ground; `from` names it in an order ("" = the ground) */
 export type LootSource = { key: string; kind: 'body' | 'container' | 'ground'; title: string; from: string; items: LootItem[] };
 
-const theItem = (n: string) => (/^(the|a|an|some)\s/i.test(n) ? theOf(n) : `the ${n}`);
 
 /** everything the character can see to take here, by where it is */
 export function lootSources(pv: PlayerView): LootSource[] {

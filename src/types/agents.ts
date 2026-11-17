@@ -8,6 +8,9 @@ import type { Plan, Secret, Trigger } from './hidden';
 export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver' | 'world' | 'autopilot';
 
 export type Volume = 'whisper' | 'normal' | 'shout';
+/** how an act is done (flavour only): the Parser's choices and the deck's buttons */
+export const ATTACK_STANCES = ['careful', 'normal', 'reckless'] as const;
+export type AttackStance = (typeof ATTACK_STANCES)[number];
 /** every action the Parser can give (schema and completeness tests read this list) */
 export const PARSER_ACTIONS = ['attack', 'sneak', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate',
   'use_item', 'equip', 'give', 'take', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'break', 'restrain', 'filch', 'steady', 'show', 'extract', 'heal'] as const; // heal: NR34, Heal at Healing 50 on someone within reach (or oneself); extract: DX3, pull out the essence of someone helpless (a blessing); break: BF31, force a locked container open; show: BF16, turn out your own pockets; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
@@ -37,7 +40,7 @@ export type Intent = {
     for?: string | null; // buy: who gets it (null: the buyer)
     mode: string | null;
     approach: string;
-    stance: 'careful' | 'normal' | 'reckless';
+    stance: AttackStance;
     /** the Parser found no skill that fits the deed and used the closest one: the game flags it (skill_gap) */
     noSkillFits?: boolean;
     /** OD3: how hard the deed is, from fixed meanings, when what it acts on has no grade of its own */

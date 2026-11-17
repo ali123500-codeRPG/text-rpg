@@ -28,6 +28,8 @@ export function boxOf(el: Element): { left: number; top: number; right: number; 
 }
 export const pointOf = (e: { clientX: number; clientY: number }): { x: number; y: number } => { const z = pageZoom(); return { x: e.clientX / z, y: e.clientY / z }; };
 
+/** f's value, or null when it throws (a view that can't be built yet shows nothing) */
+export const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = {}, ...kids: (Child | Child[])[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
