@@ -3,9 +3,6 @@
 // costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the
 // scenario (EG7, engine/growth.ts payScenario), in rounds (payRolls). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
 import type { Actor, AttackResult, CheckResult, ContestResult, AugmentWhen, GameState, RollKind, Rng, SkillEntry } from '../types';
-import { TIERS } from '../scales';
-import { band, extraBands, naturalEdge } from './index';
-import { tierReach } from './achRewards';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
 import { hasPerk, milestonesUpTo, trueSkill } from './perks';
@@ -145,19 +142,14 @@ export function markStamina(state: GameState, actor: Actor): void {
 
 export { skillCap } from './skillCap';
 
-/** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden) − GROWTH_ROLL_NEEDED, read on the tier table; the
- * gain is GROWTH_GAIN by tier, plus GROWTH_GAIN_PAST_CRIT per band past Critical Success. Every state rolls one d100: a
+/** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden + bonus) − GROWTH_ROLL_NEEDED; the gain is the margin ÷
+ * GROWTH_MARGIN_PER_POINT, rounded up, and nothing at margin 0 or below (D-378). Every state rolls one d100: a
  * tag or a flaw only moves the cap. The room left below the cap is the bonus, so the roll gets harder smoothly near the
  * cap. No hard limit (D-374 TB7): past the cap the room is negative and the roll runs out on its own. A tagged skill carries no burden. `bonus` is what tagged group-mates add (groupRollBonus, D-374 TB5). SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
-export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, reach = { up: 0, down: 0 }, bonus = 0): { margin: number; level: number; gain: number } {
+export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, bonus = 0): { margin: number; gain: number } {
   const cap = CONFIG.GROWTH_CAP_IN_ROLL ? skillCap(s) : CONFIG.SKILL_CAP;
   const margin = d + (cap - s.raw - (s.state === 'tagged' ? 0 : burden) + bonus) - CONFIG.GROWTH_ROLL_NEEDED;
-  const level = band(margin) + extraBands(margin, reach) + (CONFIG.GROWTH_NATURAL_EDGES ? naturalEdge(d) : 0);
-  const crit = TIERS.pos('critical_success');
-  const gain = level < TIERS.pos('success') ? 0
-    : level > crit ? (CONFIG.GROWTH_GAIN.critical_success ?? 0) + (level - crit) * CONFIG.GROWTH_GAIN_PAST_CRIT
-    : CONFIG.GROWTH_GAIN[TIERS.at(level)] ?? 0;
-  return { margin, level, gain };
+  return { margin, gain: margin > 0 ? Math.ceil(margin / CONFIG.GROWTH_MARGIN_PER_POINT) : 0 };
 }
 
 /** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit
@@ -198,14 +190,13 @@ export function payRolls(state: GameState, rng: Rng, rolls: [string, number][]):
   const a = state.player;
   const left = new Map(rolls.filter(([id, n]) => n > 0 && getLibrary().skills[id] && skillOpen(a, id)));
   const gains: SkillGain[] = [];
-  const reach = tierReach(a, undefined); // only tier unlocks for 'any' roll reach past Critical Success
   while (left.size) {
     const burden = burdenOf(a);
     for (const [id, n] of [...left]) {
       if (n <= 1) left.delete(id); else left.set(id, n - 1);
       const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
       for (let k = improveRolls(a, s.raw); k > 0; k--) { // Quick Study: two rolls below 15, each with its own gain
-        const { gain } = growthRoll(rng.d100(), s, burden, reach, groupRollBonus(a, id)); // one d100 for every state: a flaw only lowers the cap
+        const { gain } = growthRoll(rng.d100(), s, burden, groupRollBonus(a, id)); // one d100 for every state: a flaw only lowers the cap
         if (!gain) continue;
         const from = s.raw, trueBefore = trueSkill(a, id);
         s.raw += gain;

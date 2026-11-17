@@ -33,8 +33,12 @@ describe('128 Late bloomer and class-level perks', () => {
     s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     const p = s.player;
     p.progression!.marks = [SK.dodge, SK.melee_medium]; // dodge 10 (below 15), medium weapons 40 (not below)
-    const gains = improveMarked(s, forcedRng([90, 90, 90])); // each margin 75 or more: Critical Success, +4
-    expect(gains.filter((g) => g.skill === SK.dodge)).toEqual([{ skill: SK.dodge, from: 10, to: 14 }, { skill: SK.dodge, from: 14, to: 18 }]);
+    const gains = improveMarked(s, forcedRng([90, 90, 90])); // every roll gains (D-378: margin ÷ 15, rounded up)
+    const dodge = gains.filter((g) => g.skill === SK.dodge);
+    expect(dodge).toHaveLength(2);
+    expect(dodge[0].from).toBe(10);
+    expect(dodge[1].from).toBe(dodge[0].to); // the second roll starts where the first left it
+    expect(dodge.every((g) => g.to > g.from)).toBe(true);
     expect(gains.filter((g) => g.skill === SK.melee_medium)).toHaveLength(1);
   });
 
