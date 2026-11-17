@@ -1,6 +1,6 @@
 // Travel on the road (TV1–TV9): a walk along a road, which is one long zone, in one turn. Code walks it in legs of up to
-// TRAVEL_LEG_MIN game minutes at the travel speed; each leg on a road rolls for an encounter by the road's danger, and an
-// encounter's event roll sets what it is (the next scenario's tier). The trip stops on arrival, at an encounter, or at dusk
+// TRAVEL_LEG_MIN game minutes at the travel speed; every full leg of minutes on a road rolls for an encounter by the road's
+// danger, counted across trips (RE1, BG-291), and an encounter's event roll sets what it is (the next scenario's tier). The trip stops on arrival, at an encounter, or at dusk
 // (unless the trip set off in the dark: then it presses on, more slowly, with a worse event roll and more encounters).
 import { CONFIG } from '../config';
 import { FN } from '../library/functionIds';
@@ -18,6 +18,8 @@ import { getLibrary } from '../library';
 import { TIERS } from '../scales';
 import { fnRoller, ruleset, situational } from '../ruleset';
 import type { Actor, EventRollResult, GameState, Mod, Order, Rng, Zone } from '../types';
+
+const T_EPS = 1e-6; // minutes
 
 export type TripStop = 'arrived' | 'nightfall' | 'encounter';
 export type Trip = { metres: number; minutes: number; legs: number; night: boolean; stop: TripStop; companions: string[]; fromZone: string;
@@ -82,15 +84,18 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     if (dark) trip.night = true;
     const speed = Math.min(...group.map((x) => travelSpeed(state, x, dark))) * 60; // m per minute: the slowest sets it
     if (speed <= 0) break;
-    let minutes = CONFIG.TRAVEL_LEG_MIN;
+    // RE1: a leg ends where the road minutes carried from earlier trips make a full leg, so the roll falls there
+    const due = CONFIG.TRAVEL_LEG_MIN - (a.roadMin ?? 0);
+    let minutes = due > T_EPS ? Math.min(CONFIG.TRAVEL_LEG_MIN, due) : CONFIG.TRAVEL_LEG_MIN;
     if (!dark) minutes = Math.min(minutes, minutesUntil(t, 'dusk'));
-    let left = speed * minutes, walked = 0;
+    let left = speed * minutes, walked = 0, onRoad = 0;
     for (let n = 0; n < 100 && left > M_EPS && !there(); n++) {
       const before = spotOf(state, a).pos;
       const zone = a.zone;
       const w = walkLeg(state, a, goal, left, 0);
       if (w === null || (!w && a.zone === zone)) break; // BG-170: a 0 m doorway crossing goes on
       if (before) last = before;
+      if (w && (isRoad(zoneById(state, zone)) || isRoad(zoneById(state, a.zone)))) onRoad += w;
       left -= w; walked += w;
     }
     if (walked <= 0) break;
@@ -100,10 +105,13 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     passiveHealing(state, minutes);
     passiveFatigue(state, minutes); // FT4/FT28
     for (const x of group) payTravel(state, x, minutes); // SR5
-    // TV4: on a road, a chance per hour by its danger (more in the dark) that something meets you here
+    // TV4 + RE1 (BG-291): minutes on a road count up across trips; each full leg of them rolls once, by the danger of the
+    // road the player is on then (more in the dark), and the count starts again. A leg filled off the road waits for one.
+    a.roadMin = Math.min(CONFIG.TRAVEL_LEG_MIN, (a.roadMin ?? 0) + onRoad / speed);
     const road = zoneById(state, a.zone);
-    if (isRoad(road) && !there()) {
-      const pct = CONFIG.ROAD_ENCOUNTER_PCT[road!.danger ?? 'quiet'] * (minutes / 60) * (dark ? CONFIG.NIGHT_ENCOUNTER_MULT : 1);
+    if (a.roadMin >= CONFIG.TRAVEL_LEG_MIN - T_EPS && isRoad(road)) {
+      a.roadMin = 0;
+      const pct = CONFIG.ROAD_ENCOUNTER_PCT[road!.danger ?? 'quiet'] * (CONFIG.TRAVEL_LEG_MIN / 60) * (dark ? CONFIG.NIGHT_ENCOUNTER_MULT : 1);
       if (rng.d100() <= pct) {
         const extra: EventRollResult['modifiers'] = dark ? [{ source: 'night travel', type: 'situational', value: CONFIG.NIGHT_TRAVEL_EVENT_MOD }] : [];
         const eventRoll = ruleset.eventRoll(a, state, rng, extra);

@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-291
+
+**What was wrong:** A road trip rolls for an encounter after each hour of walking, but the hour that arrives never rolled. So any road shorter than an hour's walk (4.5 km by day, 3 km in the dark) could never meet anything, and in run 18's world 18 of 19 roads are that short. Road encounters were close to switched off.
+
+**What was done:** Ali's RE1 answer: minutes walked on roads now count up across trips. Every full hour of them, whichever trips it took, rolls once by the danger of the road you are on at that moment, and the count starts again. The trip stops right there if something meets you.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-290
 
 **What was wrong:** In run 18, a story beat had the weir-house man come to his door and size up the hero with Insight. The game rolled it against a set difficulty, as if the hero were a stuck hatch, and filed a missing-difficulty bug. Beats had no way to give a difficulty, two agents were told to give one only for some of the acts that need it, and sizing up a person ignored the person entirely.
