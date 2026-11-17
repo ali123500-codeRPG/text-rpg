@@ -61,15 +61,17 @@ The trees' skills are designed with character and mob generation. A perception r
 
 | State | Counts toward Burden | Affected by Burden | Improvement roll |
 | --- | --- | --- | --- |
-| Tagged | No | No | 1d100, cap 125 |
-| Normal | Yes | Yes | 1d100, cap 100 |
-| Flawed | Yes | Yes | 1d100, cap 75 |
+| Tagged | No | Own tag cuts 95%, each tag in its group 5% (none when alone) | 1d100, cap 125 |
+| Normal | Yes | Yes, less 5% per tag in its group | 1d100, cap 100 |
+| Flawed | Yes | Yes, less 5% per tag in its group | 1d100, cap 75 |
+
+**Tags cut Burden** (D-373, Ali 17/11/2026): each skill carries its own share of Burden. Its own tag cuts TAG\_BURDEN\_SELF\_PCT (95%, placeholder), and every tagged skill sharing a group with it, itself included, cuts TAG\_BURDEN\_GROUP\_PCT (5%, placeholder) more. The cuts add up: a lone tagged skill cuts 100% and carries none; two tagged skills in one group cut 105% each, so their Burden turns into a small bonus; an untagged skill beside one tag carries 95%. Past 100% Burden is allowed to go below 0 (a bonus). Fractions stay.
 
 A Flaw is something the character functionally struggles to improve: its cap is 25 lower (FLAW\_CAP\_PENALTY), so it trains to 75 and slows well before it. Tags and flaws move only the cap; every state rolls one d100 (no roll advantage or disadvantage). A skill that becomes Flawed above 75 keeps its raw and gains nothing more by training.
 
 **Limits:**
 
-- 100 is the mortal limit for raw skill (SKILL\_CAP); a tagged skill's limit is 125 (TAG\_CAP\_BONUS 25, EG16). **The improvement roll** (Skill Gain Roll Options, SG1 C, Ali 12/11/2026) is read off the tier table: margin = d100 + (cap − raw − Burden) − GROWTH\_ROLL\_NEEDED (90, placeholder), and the tier sets the gain: Success +2, Great Success +3, Critical Success +4 (Ali, 13/11/2026: each +2, then pulled back 1), plus 1 per band past it (GROWTH\_GAIN, GROWTH\_GAIN\_PAST\_CRIT, placeholders). The room left below the cap is the bonus, so the roll gets harder smoothly with no wall, and raw never passes its cap. A flawed skill's cap is 75 (FLAW\_CAP\_PENALTY 25, Ali 12/11/2026); tags and flaws move only the cap, and every state rolls one d100. A tagged skill has no Burden, and each skill's own cap is in the roll too (GROWTH\_CAP\_IN\_ROLL, SG3 a), so a tagged skill at 100 rolls like an untagged 75 and a flawed skill at 50 like an untagged 75. Natural edges do not move the roll (GROWTH\_NATURAL\_EDGES off, SG2 a; LF4: no natural roll forces a gain). Odds of any gain with no Burden: 86% at raw 25, 61% at 50, 36% at 75, 12% at 99; average gain about 2.4, 1.6, 0.8 and 0.1 a roll (the cap clips it at 99). Scaling: past the cap raw does not grow by training; perks, achievements and gear still carry true and effective skill to 150, 200 and beyond. Workaround mechanics for raw come later (D-6).
+- 100 is the mortal limit for raw skill (SKILL\_CAP); a tagged skill's limit is 125 (TAG\_CAP\_BONUS 25, EG16). **The improvement roll** (Skill Gain Roll Options, SG1 C, Ali 12/11/2026) is read off the tier table: margin = d100 + (cap − raw − Burden) − GROWTH\_ROLL\_NEEDED (90, placeholder), and the tier sets the gain: Success +2, Great Success +3, Critical Success +4 (Ali, 13/11/2026: each +2, then pulled back 1), plus 1 per band past it (GROWTH\_GAIN, GROWTH\_GAIN\_PAST\_CRIT, placeholders). The room left below the cap is the bonus, so the roll gets harder smoothly with no wall, and raw never passes its cap. A flawed skill's cap is 75 (FLAW\_CAP\_PENALTY 25, Ali 12/11/2026); tags and flaws move only the cap, and every state rolls one d100. A lone tagged skill carries no Burden (its tag's cuts reach 100%, D-373), and each skill's own cap is in the roll too (GROWTH\_CAP\_IN\_ROLL, SG3 a), so a tagged skill at 100 rolls like an untagged 75 and a flawed skill at 50 like an untagged 75. Natural edges do not move the roll (GROWTH\_NATURAL\_EDGES off, SG2 a; LF4: no natural roll forces a gain). Odds of any gain with no Burden: 86% at raw 25, 61% at 50, 36% at 75, 12% at 99; average gain about 2.4, 1.6, 0.8 and 0.1 a roll (the cap clips it at 99). Scaling: past the cap raw does not grow by training; perks, achievements and gear still carry true and effective skill to 150, 200 and beyond. Workaround mechanics for raw come later (D-6).
 - **No cap past training** (D-3, settled by CS21): the training cap above is the only cap, and it limits raw skill alone. True skill and effective skill both go past it with no top: perks, achievements, essences, gear and augments carry a skill past 100, and the true skill past the cap is what the 120 and 140 milestones read. Conditions (wounds, fatigue, morale) are roll modifiers, not a step of effective skill.
 
 **Three skill values** (Ali, 07/11/2026):
@@ -193,9 +195,11 @@ Rolls are made in rounds. At the start of each round:
 In each round, every skill with rolls left makes one (SG1 C):
   Cap    = SKILL_CAP (100); Tagged: + TAG_CAP_BONUS (25) = 125;
            Flawed: - FLAW_CAP_PENALTY (25) = 75
-  Tagged : Margin = d100 + (Cap - Skill) - GROWTH_ROLL_NEEDED (90)
-  Normal : Margin = d100 + (Cap - Skill - Burden) - 90
-  Flawed : Margin = d100 + (Cap - Skill - Burden) - 90
+  Cut    = (own tag ? TAG_BURDEN_SELF_PCT (95) : 0)
+           + TAG_BURDEN_GROUP_PCT (5) x tagged skills sharing a group
+             with it, itself included                     (D-373)
+  Skill Burden = Burden x (1 - Cut / 100)   (below 0 past 100%)
+  Margin = d100 + (Cap - Skill - Skill Burden) - GROWTH_ROLL_NEEDED (90)
   Read Margin on the tier table (natural edges do not move it: SG2 a, LF4)
      Near Miss or worse   +0
      Success              +2
@@ -217,7 +221,7 @@ Repeat rounds until no skill has rolls left. Clear all marks.
 - **StartingTotal:** sum of untagged raw skills at creation. A record only; it never changes.
 - **Potential:** the Total at which Burden begins. Can be changed later by perks or events. At creation it is the fixed POTENTIAL (300, placeholder) for every character. Any character, NPC or player, may carry its own value instead, set case by case: an NPC template's potential, or a value set on one player character.
 - **K:** *placeholder*, default 20.
-- **Shown** (Burden review, Ali 14/11/2026, BU3 b): Burden shows only once it is above 0, and only in a skill's pop-up on the Character page (an untagged skill: "Burden −N to improve" and the untagged total against Potential). Tagged skills never show it. Agents never see it (section 2). The rest of the review kept the rules as they are: one Potential of 300 for every Start (BU1 a), Burden linear with no ceiling (BU2 a), raw counted at face value whatever the skill's tier (BU5 a), and no rule for carried weight (BU6 b). Perks, achievements and events that raise Potential are D-317.
+- **Shown** (Burden review, Ali 14/11/2026, BU3 b): Burden shows only once it is above 0, and only in a skill's pop-up on the Character page ("Burden −N to improve", after its tags' cuts, D-373, or "+N" once the cuts pass 100%, and the untagged total against Potential). A skill whose Burden is 0 shows nothing. Agents never see it (section 2). The rest of the review kept the rules as they are: one Potential of 300 for every Start (BU1 a), Burden linear with no ceiling (BU2 a), raw counted at face value whatever the skill's tier (BU5 a), and no rule for carried weight (BU6 b). Perks, achievements and events that raise Potential are D-317.
 
 ### 7. Player commands \[Proposed\]
 
@@ -3453,6 +3457,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-370 | Tactics words past 100 | 2 | Parked | Ali answered TC4 on the Questions hub page "Tactics skill tree" (17/11/2026): "a, we can look into how it scales later". The Planner's tactics word will come from the NPC's own Battle Sense through the TACTICS scale (simple from 0, competent from 35, cunning from 65; placeholders), so everything past 65 reads the same to the Planner. Options: (a) add TACTICS rows past 100 (names to pick) so a supernatural mind is told it reads fights beyond any human; (b) keep three words and give the Planner the Battle Sense number beside the word; (c) leave it at cunning |
 | D-371 | Fieldcraft for ambushes through an advanced class | 3 | Parked | Ali answered TC8 on the Questions hub page "Tactics skill tree" (17/11/2026): "b, agreed it should be round 2, perhaps we will make a skill that augment it and enable use for ambush from an advanced class later and not now". Fieldcraft (Tactics tree) picks ground in a fight and will help ambushes beside Stealth; how is designed in round 2. Parked here: an advanced class whose own skill augments Fieldcraft and opens it for ambushes. Options: (a) an advanced-class skill augmenting Fieldcraft, as Riposte augments Parry, that lets Fieldcraft roll or add to an ambush; (b) a perk of that class doing the same; (c) leave ambush help to Fieldcraft's own perks |
 | D-372 | Command range and class extensions | 3 | Parked | Ali answered TC7 on the Questions hub page "Tactics skill tree" (17/11/2026): "a, I like this idea and I will expand on it with classes and such to increase the command range and other things". The base rule: a code-run ally that can hear a bandmate with higher Command uses that Command on every fight-list row (range = earshot). Parked: classes, perks and other sources that widen the command range or add other Command effects, to be designed with those classes |
+| D-373 | Tags cut Burden in their group | 1 | Built | Ali (17/11/2026): "a tag also reduces the burden of skills of the same group by 5% (placeholder lever, can make it negative burden)"; "tagged skills get −95% to themselves, and −5% to all skills in their group (additive, so they have −100%)". skillBurden in src/ruleset/improve.ts: Burden x (1 − own tag TAG\_BURDEN\_SELF\_PCT 95% − TAG\_BURDEN\_GROUP\_PCT 5% per tagged skill sharing a group, itself included); cuts add up and may pass 100% into a bonus. Each tag counts once even when it shares two groups. Scaling: Burden counts raw points, which stop at 100 per skill (125 tagged), so the cut matters for training up to the mortal limit and not past it; at 50, 75, 100 and 150+ true skill it behaves the same, since it never reads skill level. With the 3 creation tags (CREATION\_TAGS) a group-mate's cut is at most 15%; the cuts have no cap, so more tags would keep stacking. |
 
 ## Bug log
 

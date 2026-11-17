@@ -32,7 +32,7 @@ describe('Character page pop-ups', () => {
     expect(f.next - CONFIG.PERK_MILESTONE_EVERY).toBeLessThanOrEqual(f.value);
   });
 
-  it('BU3: Burden shows on an untagged skill only once it is above 0, and never on a tagged one', async () => {
+  it('BU3: Burden shows a skill\'s own share, after its tags\' cuts (D-373)', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     await g.turn(intent({ action: { type: 'wait' } }));
     const p = g.game.state()!.player;
@@ -41,7 +41,9 @@ describe('Character page pop-ups', () => {
     expect(skillFacts(p, SK.dodge).burden.by).toBe(0); // at Potential: nothing to show
     p.core.skills[SK.dodge].raw = 40 + 2 * CONFIG.K;
     expect(skillFacts(p, SK.dodge).burden).toEqual({ by: 2, total: 40 + 2 * CONFIG.K, potential: 40 });
-    expect(skillFacts(p, SK.insight).burden.by).toBe(0); // tagged: no Burden
+    expect(skillFacts(p, SK.insight).burden.by).toBe(0); // a lone tag: no Burden
+    p.core.skills[SK.block] = { raw: 10, state: 'tagged' }; // D-373: block shares Defense with dodge
+    expect(skillFacts(p, SK.dodge).burden.by).toBeCloseTo(2 * (1 - CONFIG.TAG_BURDEN_GROUP_PCT / 100));
   });
 
   it('a skill with nothing but raw lists no parts', async () => {

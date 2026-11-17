@@ -149,7 +149,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         how: `Estimated: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, from ${st.swings} practice swings with the game’s attack rules.` },
       { label: 'Potential', value: String(CONFIG.POTENTIAL), unit: 'pts',
         sub: `StartingTotal ${open.filter((k) => !st.tags.has(k)).reduce((a, k) => a + st.v[k], 0)} · ${st.tags.size} of ${maxTags()} tagged`,
-        how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your untagged skills when the story starts. Tagged skills ignore Burden.` },
+        how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your untagged skills when the story starts. A tagged skill carries no Burden alone, and cuts the Burden of skills in its group.` },
     ];
     tilesHost.replaceChildren(readouts(tiles, how));
     src.replaceChildren('≈ Vs one slime is an estimate from ', h('b', {}, `${st.swings} practice swings`), ' each way with the game’s attack rules · ',
