@@ -46,7 +46,7 @@ import { offeredRoutines } from '../minds/routines';
 import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
-import { canDemand, canOffer, OFFER_WORDS, offersTo } from '../engine/offer';
+import { canDemand, canOffer, OFFER_WORDS, offersTo, speaks } from '../engine/offer';
 import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
@@ -285,6 +285,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const look = lookOf(state, events, viewer.id, a.id);
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
+      ...(!speaks(a) ? { mute: true as const } : {}), // BG-280: made out as one who cannot talk (a slime, a beast)
       ...(stageOf(state, a) ? { age: stageOf(state, a)! } : {}), // AG16: the life stage, never the number
       ...place,
       ...(look ? { activityLook: look } : {}),
@@ -460,7 +461,7 @@ function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['
     if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
     // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
-    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
+    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(!speaks(a) ? { mute: true as const } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
   });
 }
 
@@ -471,12 +472,14 @@ const heardOf = (state: GameState): string[] => (state.player.journal?.heardOf ?
 const steadyOf = (a: Actor): { mentallySteady?: true } => (a.core.condition.mentallySteady ? { mentallySteady: true } : {});
 
 /** AT49 (stage 4): the player's walk still on its way, as metres and seconds at a walk to its zone */
-function walkingOf(state: GameState, p: Actor): { walking?: WalkingView } {
+function walkingOf(state: GameState, p: Actor, seen: SeenActor[]): { walking?: WalkingView } {
   const w = p.walking;
   if (!w) return {};
   const m = distOrNull(state, p, { zone: w.toZone }), walk = moveSpeed(state, p).walk;
   if (m === null || walk <= 0) return {};
-  return { walking: { toZone: w.toZone, to: zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
+  // BG-281: a walk up to someone is named by them as the player sees them, never by the zone they stand in
+  const near = w.spot && 'near' in w.spot ? seen.find((a) => a.id === (w.spot as { near: string }).near) : undefined;
+  return { walking: { toZone: w.toZone, to: near ? near.name ?? near.label : zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
 }
 /** each weapon in the player's hands at its longest reach, longest first (natural attacks and fists left out) */
 function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
@@ -519,7 +522,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
-      ...walkingOf(state, p),
+      ...walkingOf(state, p, actors),
       ...followingOf(state, p),
       ...reachesOf(state, p),
       ...bodyAttacks(state, p),
