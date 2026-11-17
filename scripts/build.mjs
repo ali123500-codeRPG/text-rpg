@@ -4,9 +4,10 @@
 // app.js puts the CSS in a <style> itself: older artifact runtimes (the play page's contract) don't apply a linked
 // stylesheet file, but do apply inline styles.
 // dist/play is the game; dist/library is the library viewer (src/ui/libraryViewer.ts).
+// Both also carry assets/figures/: one small 3D figure file per race or built shape (BV15 a), fetched only when shown.
 import { build } from 'esbuild';
 import { execSync } from 'node:child_process';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, relative } from 'node:path';
 
 const git = (args) => { try { return execSync(`git ${args}`, { encoding: 'utf8' }).trim(); } catch { return ''; } };
@@ -27,6 +28,12 @@ async function page(entry, title, dir) {
     await mkdir(dirname(f.path), { recursive: true });
     await writeFile(f.path, f.contents);
     files.push(relative(outdir, f.path));
+  }
+  // BV15 a: the baked figures (not the source models in assets/figures/models)
+  await mkdir(`${outdir}/assets/figures`, { recursive: true });
+  for (const f of (await readdir('assets/figures')).filter((f) => f.endsWith('.json'))) {
+    await copyFile(`assets/figures/${f}`, `${outdir}/assets/figures/${f}`);
+    files.push(`assets/figures/${f}`);
   }
   const pick = (ext) => out.outputFiles.filter((f) => f.path.endsWith(ext)).map((f) => f.text).join('\n');
   const css = pick('.css'), js = pick('.js');

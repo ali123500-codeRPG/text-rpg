@@ -8,7 +8,7 @@ import { FR } from './tableIds';
 export type AuraDef = { perk: string; fn: string; skill: string; fear: string; shaken?: true };
 export const AURAS: AuraDef[] = [
   { perk: PK.dread_presence, fn: FN.engagement_aura, skill: SK.intimidation, fear: FR.dread_presence, shaken: true },
-  { perk: PK.battle_cry, fn: FN.offensive_aura, skill: SK.intimidation, fear: FR.battle_cry }, // triggered by its move (battleCry)
+  { perk: PK.battle_cry, fn: FN.projected_aura, skill: SK.intimidation, fear: FR.battle_cry }, // triggered by its move (battleCry)
 ];
 /** the aura skills: every skill an aura in the game rolls */
 export const AURA_SKILLS: string[] = [...new Set(AURAS.map((a) => a.skill))];
