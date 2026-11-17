@@ -88,11 +88,12 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const names = new Map(seen.map((a, i) => [a.id, apart(seen.map((x) => x.name ?? x.label))[i]]));
   const nameOf = (id: string) => names.get(id) ?? pv.lastSeen?.find((x) => x.id === id)?.name ?? id;
   const reach = pv.player.reaches?.[0]?.metres;
-  const personNote = (a: PlayerView['actors'][number]) => [a.health ? othersHealthWord(a.health, a.level === 'full') : '',
+  const personNote = (a: PlayerView['actors'][number]) => [a.lying ? 'lying still' : '', a.health ? othersHealthWord(a.health, a.level === 'full') : '',
     a.distanceM !== undefined ? (a.distanceM < 10 ? `${r1(a.distanceM)} m` : distText(a.distanceM)) : a.zone !== pv.zone.id ? `in ${pv.zones.find((z) => z.id === a.zone)?.name ?? 'sight'}` : '',
     reach !== undefined && a.distanceM !== undefined && a.distanceM <= reach ? 'in reach' : ''].filter(Boolean).join(' · ');
   const person = (a: PlayerView['actors'][number]): Pick => ({ id: a.id, label: cap(nameOf(a.id)), note: personNote(a) || undefined });
-  const up = seen.filter((a) => !(a.health && isDownLevel(a.health)));
+  // BG-278: one half seen lying still is treated as down: nothing to fight or talk to, only a shape to look at
+  const up = seen.filter((a) => !(a.health && isDownLevel(a.health)) && !a.lying);
   const full = up.filter((a) => a.level === 'full');
   const people = (list = up) => () => list.map(person);
   const who = (title = 'Who?', list = up): Step => ({ key: 'target', title, picks: people(list) });
@@ -227,7 +228,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   // ---- Use: looking, searching, your gear, things here, time ----
   const has = (sk: string) => pv.player.skills.some((x) => x.id === sk);
   add('look', 'use', 'Look around', [], () => order('Look around', { action: act('observe', { skill: has(SK.eyesight) ? SK.eyesight : '' }) }), { note: 'free glance at all in sight' });
-  const sights = [...up.map(person), ...pv.zones.filter((z) => z.id !== pv.zone.id).map((z) => ({ id: z.id, label: cap(z.name) }))];
+  const sights = [...seen.filter((a) => up.includes(a) || a.lying).map(person), ...pv.zones.filter((z) => z.id !== pv.zone.id).map((z) => ({ id: z.id, label: cap(z.name) }))];
   if (sights.length) add('look_at', 'use', 'Look at', [{ key: 'target', title: 'Look at whom or where?', picks: () => sights }], (c) => order(`Look at ${names.has(c.target!) ? them(c) : zoneName(c.target!)}`, { action: act('observe', { skill: has(SK.eyesight) ? SK.eyesight : '', target: c.target! }) }));
   add('listen', 'use', 'Listen', [], () => order('Listen', { action: act('observe', { skill: has(SK.earshot) ? SK.earshot : '' }) }));
   add('search', 'use', 'Search', [{ key: 'target', title: 'Search where?', picks: () => [{ id: '', label: 'Around you' }, ...full.map(person)] }],
