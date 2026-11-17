@@ -43,7 +43,7 @@ const setup = () => {
 describe('153 Parry', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('the parry table: harsher failures, partial turns at +1 and +2, a full stop with a strike from +3', () => {
+  it('the parry table: harsher failures, a partial turn at +1, a full stop (clean) from +2 and a strike back from +3', () => {
     const s = setup();
     const seen = new Set<number>();
     for (const r of swings(s)) {
@@ -52,7 +52,7 @@ describe('153 Parry', () => {
       const g = Math.max(-5, Math.min(5, r.gap!));
       seen.add(g);
       expect(r.multiplier).toBe(CONFIG.GAP_LADDER.parry[g]);
-      if (g >= 3) expect(r.outcome).toBe('parried');
+      if (g >= CONFIG.CLEAN_GAP) expect(r.outcome).toBe('parried');
       else if (g >= 1) expect(r.outcome).toBe('blocked');
       expect(!!r.strikeBack).toBe(g >= 3);
     }

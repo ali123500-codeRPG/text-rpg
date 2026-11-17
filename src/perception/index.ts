@@ -4,7 +4,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { distOrNull, seeingM, type Located } from '../engine/position';
+import { distOrNull, seeingM, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { now, turnTime, zoneLight } from '../time';
@@ -49,8 +49,9 @@ export function spotInSight(state: GameState, at: Located): boolean {
   const p = state.player, d = isActive(p) && !isAsleep(p) ? seeingM(state, p, at) : null;
   return d !== null && d <= stillSeen() && zoneLight(state, zoneById(state, at.zone)) !== 'dark';
 }
-/** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres) */
-const lookReach = (): number => CONFIG.SIGHT_M.normal![0];
+/** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres);
+ * BG-274: the one look-range check, for the look that shows people and the look that searches (withinM, the reach check) */
+export const inLookReach = (d: number | null): boolean => d !== null && withinM(d, CONFIG.SIGHT_M.normal![0]);
 
 /** how well a sound of this noise made there reaches the observer (null: not heard). Perks with hearingDb (A14 Keen Ear)
  * make every sound that many dB louder for the owner (RD4). */
@@ -212,7 +213,7 @@ export function noticeCue(skill: string): 'sight' | 'sound' | undefined {
   return getLibrary().skills[resolveAlias(skill)]?.cue;
 }
 
-/** Q17: a successful look shows everyone in the player's zone and in sight of it, out to lookReach, clearly. */
+/** Q17: a successful look shows everyone in the player's zone and in sight of it, out to the look range (inLookReach), clearly. */
 export function lookAround(state: GameState): string[] {
   const p = state.player;
   if (!p.journal) return [];
@@ -222,7 +223,7 @@ export function lookAround(state: GameState): string[] {
     if (a.id === p.id) continue;
     const d = seeingM(state, p, a);
     // BG-279: a good look is this turn's make-out of everyone it shows, so their own move later this turn keeps them seen
-    if (d !== null && d <= lookReach()) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos }; shown.push(a.id); }
+    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos }; shown.push(a.id); }
   }
   return shown;
 }

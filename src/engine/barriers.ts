@@ -61,7 +61,9 @@ export function noteTried(b: Barrier, a: Actor): void {
   if (!(b.tried ??= []).includes(a.id)) b.tried.push(a.id);
 }
 
-export type WayOp = 'lock' | 'unlock' | 'bar' | 'unbar' | 'open' | 'shut';
+/** BG-276: the one list of way ops, read by the Parser's shape and schema */
+export const WAY_OPS = ['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const;
+export type WayOp = (typeof WAY_OPS)[number];
 /** BA3/BA4: a deliberate turn of the key or slide of the bar, in a move slot: the reason it can't be done, or null when done.
  * BG-70: opening it to stand open (its key turns and the bar on this side slides back with it) or shutting it again; a
  * way shut to `a` returns 'shut' (the caller lets them try it) */

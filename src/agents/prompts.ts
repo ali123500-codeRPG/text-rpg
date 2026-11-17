@@ -12,6 +12,7 @@ import { tierName } from '../ruleset';
 import { ATTACK_STANCES, GEAR_OPS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, OFFERED_GOAL_KINDS, ORDER_TYPES, PARSER_ACTIONS, PLAN_ENDINGS, PRONOUNS } from '../types';
 import { CHASE_RANGES, COVER, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, TALENTS, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 import { WORLD_LORE } from './worldLore';
+import { WAY_OPS } from '../engine/barriers';
 /** a scale's levels as the JSON choices Claude may write (G4) */
 const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
@@ -140,7 +141,7 @@ export const PARSER_SHAPE = `{"move":{"toZone":zone_id,"after"?:true,"spot"?:{"n
    "approach":short phrase,"stance":${ATTACK_STANCES.map((t) => `"${t}"`).join('|')},
    "improvised":{"base":${IMPROVISED_BASES.map((t) => `"${t}"`).join('|')},"name":short phrase}|null,"demand"?:"yield"|null,"noSkillFits"?:true,"grade"?:${GRADES.map((t) => `"${t}"`).join('|')},"fall"?:metres}|null,
  "perkMove":{"perk":perk_id,"target":actor_id|null}|null,
- "way"?:{"toZone":zone_id,"op":"lock"|"unlock"|"bar"|"unbar"}|null,
+ "way"?:{"toZone":zone_id,"op":${WAY_OPS.map((t) => `"${t}"`).join('|')}}|null,
  "gear":${GEAR},
  "spoken":string|null,"volume"?:"whisper"|"normal"|"shout","addressees":[actor_id|band_id|"everyone"]|null,"deferred":[string],"clarify":string|null,"answers"?:[string]|null,"yields"?:true,"letsSearch"?:actor_id|null,"standDown"?:actor_id|null,"look"?:"stats"|"inv"}`;
 const JOB = `{"line":string,"goal":{"kind":${OFFERED_GOAL_KINDS.map((t) => `"${t}"`).join('|')},"target"?:string,"count"?:number,"item"?:item_id,"qty"?:number,"to"?:actor_id},` +

@@ -7,6 +7,7 @@ import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
 import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
 import { qualityOf } from '../ruleset/quality';
+import { WAY_OPS } from '../engine/barriers';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -81,7 +82,7 @@ const intent = obj<Intent>({
     fall: num as V<number>,
   }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade', 'fall'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
-  way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const) })),
+  way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(WAY_OPS) })),
   gear: GEAR,
   spoken: nul(str),
   volume: VOLUME,
