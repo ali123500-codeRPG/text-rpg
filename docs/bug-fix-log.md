@@ -18,7 +18,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was wrong:** In the action-deck playtest the deck offered Talk to, Persuade, Lie to, Threaten, Haggle, Give and Let them search you against slimes in sight, and Talk to slimes last seen far away. Slimes and beasts can't be talked to, so these did nothing.
 
-**What was done:** Anyone seen clearly who cannot talk (by race) is marked so, and the deck leaves them out of every talk, trade, gift and search choice, including those last seen elsewhere. Attack, Restrain and Look at stay; a shape not made out still gets every choice.
+**What was done:** Anyone seen clearly who cannot talk (by race) is marked so, and the deck leaves them out of every talk, trade, gift and search choice, including those last seen elsewhere. Threaten (a threat needs no words), Attack, Restrain and Look at stay; a shape not made out still gets every choice.
 
 **Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
 

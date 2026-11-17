@@ -96,7 +96,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const up = seen.filter((a) => !(a.health && isDownLevel(a.health)) && !a.lying);
   const full = up.filter((a) => a.level === 'full');
   const strikable = seen.filter((a) => up.includes(a) || a.lying);
-  // BG-280: one seen clearly as a slime or beast can't talk: no words, trade, gifts or searches with it
+  // BG-280: one seen clearly as a slime or beast can't talk: no words, trade, gifts or searches with it (a threat still works)
   const talkers = up.filter((a) => !a.mute), fullTalkers = full.filter((a) => !a.mute);
   const people = (list = up) => () => list.map(person);
   const who = (title = 'Who?', list = up): Step => ({ key: 'target', title, picks: people(list) });
@@ -151,7 +151,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       (c) => order(c.words!, { action: act(type, { target: c.target!, ...(demand ? { demand: 'yield' as const } : {}) }), spoken: c.words!, addressees: [c.target!] }), { note });
     speech('persuade', 'persuade', 'Persuade', up.some((a) => a.talkDown) ? 'talk a foe down · easier once they are hurt or scared' : 'your words, Persuasion');
     speech('deceive', 'deceive', 'Lie to', up.some((a) => a.talkDown) ? 'a lie to end it · Lying against their Insight' : 'Lying against their Insight');
-    speech('intimidate', 'intimidate', 'Threaten', 'Intimidation');
+    speech('intimidate', 'intimidate', 'Threaten', 'Intimidation', up); // BF86: a threat needs no words, so beasts too
     speech('barter', 'barter', 'Haggle with', up.some((a) => a.talkDown) ? 'pay a foe to stop: name the coin' : 'Barter');
     const demandable = talkers.filter((a) => a.demandYield);
     if (demandable.length) speech('demand', 'persuade', 'Demand surrender', 'your action · Persuasion; a bigger win', demandable, true);

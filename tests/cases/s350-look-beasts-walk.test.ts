@@ -33,18 +33,19 @@ it('BG-279: a good look keeps a moving slime seen for the rest of the turn', () 
   expect(buildPlayerView(s).actors.find((a) => a.id === 'slime_1')?.level).toBe('full');
 });
 
-it('BG-280: a slime seen clearly, or last seen far off, gets no talk, trade, gift or search; a person still does', () => {
+it('BG-280: a slime seen clearly, or last seen far off, gets no talk, trade, gift or search but can be threatened; a person gets all', () => {
   const s = makeVillage({ playerZone: 'gate_inner', without: ['slime_2'] });
   beside(s, 'slime_1', 'player', 1);
   beside(s, 'guard_1', 'player', 1.5);
   const pv = buildPlayerView(s);
   expect(pv.actors.find((a) => a.id === 'slime_1')).toMatchObject({ level: 'full', mute: true });
   expect(pv.actors.find((a) => a.id === 'guard_1')?.mute).toBeUndefined();
-  for (const kind of ['talk', 'persuade', 'deceive', 'intimidate', 'barter', 'give', 'lets_search']) {
+  for (const kind of ['talk', 'persuade', 'deceive', 'barter', 'give', 'lets_search']) {
     expect(targets(s, kind)).not.toContain('slime_1');
     expect(targets(s, kind)).toContain('guard_1');
   }
   expect(targets(s, 'attack')).toContain('slime_1');
+  expect(targets(s, 'intimidate')).toContain('slime_1'); // BF86: a threat can be without words
   // last seen elsewhere: the guard can be called on, the slime cannot
   s.player.journal!.lastKnown = { slime_1: 'field_mid', guard_1: 'field_mid' };
   for (const id of ['slime_1', 'guard_1']) { actor(s, id).zone = 'field_mid'; actor(s, id).placeId = 'field'; actor(s, id).pos = undefined; }
