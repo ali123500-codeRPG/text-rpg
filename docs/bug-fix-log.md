@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A walk up to someone is named by that person as the player sees them ("Keep walking to someone", "Walking to the guard"); walks to a zone are unchanged.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
 
 ## BG-280
 
@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Anyone seen clearly who cannot talk (by race) is marked so, and the deck leaves them out of every talk, trade, gift and search choice, including those last seen elsewhere. Threaten (a threat needs no words), Attack, Restrain and Look at stay; a shape not made out still gets every choice.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
 
 ## BG-279
 
@@ -28,7 +28,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A good look now counts as that turn's make-out for everyone it shows, so their own step later that turn stays seen clearly with no new roll.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
 
 ## BG-278
 
