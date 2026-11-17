@@ -381,8 +381,6 @@ export type DurationDef = {
   id: string; name: string; seconds: number; orders?: string[];
   /** FT24: the effort tier it pays strain at (once, or per STRAIN_LONG_S seconds for a row longer than that) */
   effort: import('../scales').EffortKey;
-  /** the seconds are per word said (talking) */
-  perWord?: boolean;
   /** AT19: the action takes the same seconds from move time */
   locksMove?: boolean;
   /** AT25/AT57: what breaks it from outside (FOCUS key) */

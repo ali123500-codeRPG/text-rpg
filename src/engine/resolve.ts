@@ -204,13 +204,9 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
     }
     default:
-      // TP6 c: in a fight plain talk is no action (its time stays and carries); outside one it takes its words' time.
-      // TK1 c: words that use a skill (persuade, lie, threaten) take the Speech row's fixed time however long they are
-      if (o.type === 'talk') {
-        if (state.mode === 'tactical') return { row: actionRow(DU.talk)!, seconds: 0 };
-        return o.line ? { row: actionRow(DU.talk)!, seconds: actionSeconds(actionRow(DU.talk)!, undefined, f) * o.line.text.trim().split(/\s+/).length } : undefined;
-      }
-      return isSpeech(o.type) ? of(DU.speech) : undefined;
+      // TP6 c, TK6: plain talk takes no time anywhere (in a fight its time stays and carries); TK1 c: words that use a skill
+      // (persuade, lie, threaten) take the Speech row's fixed time however long they are
+      return o.type === 'talk' ? of(DU.talk) : isSpeech(o.type) ? of(DU.speech) : undefined;
   }
 }
 
@@ -1331,7 +1327,7 @@ function exploreSeconds(ctx: Ctx, o: Order): number {
   const timed = Math.max(slotsOf(ctx, p).walkedS, (ctx.clock.get(p.id) ?? 0) - own.fill) + own.over;
   const plainMove = o.type === 'move' || o.type === 'flee' || (o.type === 'hold' && !!o.move); // BG-16: just the walk
   const untimed = timed <= T_EPS || (own.fill > T_EPS && !plainMove);
-  const free = o.type === 'barter' || o.type === 'buy' || o.type === 'sell'; // trading takes no time (its row is 0 s), so no default turn either
+  const free = o.type === 'barter' || o.type === 'buy' || o.type === 'sell' || o.type === 'talk'; // trading and plain talk (TK6) take no time (their rows are 0 s), so no default turn either
   return Math.min(CONFIG.EXPLORE_TURN_S, untimed && !free ? Math.max(timed, actionRow(DU.action)?.seconds ?? 0) : timed);
 }
 /** AT13/AT78: a fight turn lasts FIGHT_TURN_S, or as long as the player's order when that is one shorter action with no walk

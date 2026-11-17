@@ -38,7 +38,7 @@ it('116 Quick Word: the line and the reply are free; both actions still happen',
   expect(ev.filter((e) => e.bark).length).toBe(0); // neither line is said twice
 });
 
-it('116b TP6 c, TK1 c: plain talk in a fight takes no time; persuading, lying or threatening takes the Speech row\'s fixed time', () => {
+it('116b TP6 c, TK1 c, TK6: plain talk takes no time anywhere; persuading, lying or threatening takes the Speech row\'s fixed time', () => {
   const short = 'Put it down.', long = 'Put the knife down now, friend, and nobody here gets hurt today, I promise you that on my name.';
   for (const mode of ['tactical', 'explore'] as const) for (const [type, spoken] of [['talk', long], ['intimidate', short], ['intimidate', long], ['persuade', long], ['deceive', short]] as const) {
     const s = makeVillage();
@@ -51,9 +51,8 @@ it('116b TP6 c, TK1 c: plain talk in a fight takes no time; persuading, lying or
     const t0 = now(s);
     play(s, { intent: i, spokespeople, exchange, agentOutputs: [] });
     const secs = Math.round((now(s) - t0) * 600) / 10, kept = (s.player.carry ?? []).reduce((n, c) => n + c.main, 0);
-    const words = spoken.split(/\s+/).length;
     if (type === 'talk' && mode === 'tactical') { expect(kept).toBeGreaterThan(0); expect(secs).toBe(CONFIG.FIGHT_TURN_MIN_S); } // no time: it carries
-    else if (type === 'talk') expect(secs).toBeCloseTo(words * getLibrary().durations![DU.talk].seconds, 5); // outside a fight: its words
+    else if (type === 'talk') expect(secs).toBe(0); // TK6: outside a fight the world waits, as for a trade
     else { expect(kept).toBe(0); expect(secs).toBe(getLibrary().durations![DU.speech].seconds); } // however long the words
   }
 });

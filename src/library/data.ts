@@ -1133,9 +1133,9 @@ export function prototypeLibrary(): Library {
       [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },
       // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
       [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
-      // TK1 c: plain talk takes a word's time (none in a fight); persuading, lying or threatening takes a fixed time however
-      // long the words (haggling is a trade)
-      [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
+      // TK6: plain talk takes no time anywhere (outside a fight its turn moves the clock 0 s, like trading); TK1 c: persuading,
+      // lying or threatening takes a fixed time however long the words (haggling is a trade)
+      [DU.talk]: { id: DU.talk, name: 'Talking', effort: 'base', seconds: 0 },
       [DU.speech]: { id: DU.speech, name: 'Persuade, lie or threaten', effort: 'base', seconds: 3 },
       // gear and things in hand (AT11h-j): changing gear is instant and costs no strain (less realism)
       [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 0 },
