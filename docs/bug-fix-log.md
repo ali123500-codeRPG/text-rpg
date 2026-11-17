@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-275
+
+**What was wrong:** In the action-deck playtest a 4th character in story 2's world stopped after its first turn: the game's own rule check said 17 fights in the inn (the barkeep, Hobb and the carter against the slimes) had gone on long past their end, though they were still fresh. The check measures a fight from the end of the turn before, which here was the story's opening, and an opening turn never recorded when it ended, so the game read it as ending at the current moment. In real play this would file a false bug report.
+
+**What was done:** The opening turn now records its end time like every other turn, for every new story and every new character in an old world.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-273
 
 **What was wrong:** In the action-deck playtest a new character started in story 2's world, as asked, but the game built a second copy of the village around them: two Eel and Oars, two Wicklow Reaches, a second Marda Tull and the slimes twice over, while the old fight went on unseen in the first inn. A newcomer's stage starts empty, so the scenario planner (the Weaver) saw no places at all and rebuilt the village from its notes, and the game gave the copies new ids. It was also never told a newcomer was arriving.

@@ -14,7 +14,7 @@ import { pendingEnding } from '../engine/scenarioEnd';
 import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG, defaultSettings } from '../config';
-import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, now, now as gameNow, timeOfDay, timeView } from '../time';
+import { advanceClock, clockText, DAY_MINUTES, dayOf, durationText, noteTurnEnd, now, now as gameNow, timeOfDay, timeView } from '../time';
 import { outcomeText } from '../ruleset/hits';
 import { GRADE_LEVELS, HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
@@ -741,6 +741,7 @@ export function createGame(deps: GameDeps): Game {
       const rng = createRng(seed);
       const events = await director.startStory(state, rng, ctxFor(0, turnLog));
       state.rngState = rng.state;
+      noteTurnEnd(state); // BG-275: the opening is a turn too: timers and the turn check count from its end
       await finishTurn(state, events, { playerInput: '', rngBefore: seed, aimed: false, intent: null, opening: true }, null);
       if (await save.storySaved(store, storyId).catch(() => false)) await save.clearPendingStart(store, owner).catch(() => {});
     } catch (e) {
