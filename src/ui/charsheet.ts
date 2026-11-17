@@ -270,7 +270,7 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
     f.gives.length ? h('p', {}, `Adds to ${f.gives.join(' and ')} rolls.`) : null,
     h('div', { class: 'sk-list' },
       line('Learns from', winText(f.window)),
-      flawed ? line('Flawed', `learns slower, slows to a stop near ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}`, 'sk-bad') : null,
+      flawed ? line('Flawed', `learns slower, stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}`, 'sk-bad') : null,
       // BU3 b: shown only once Burden is above 0, and only here
       f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad') : null,
       f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your skills add up to ${whole(f.burden.total)} (a tag counts 0, each tag in a group takes ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in it and each flaw adds ${CONFIG.FLAW_BURDEN_GROUP_PCT}%), past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
