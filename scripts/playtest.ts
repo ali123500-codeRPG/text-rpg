@@ -120,7 +120,7 @@ talk to people, explore, take on any trouble you find, fight if it comes to that
 click one entry from the action list below, exactly as the game's screen offers it. Reply with ONLY the entry's number,
 no plan or reasoning before it.
 For an entry marked (needs your words), reply "N | what you say".`;
-type MenuItem = { label: string; action: DeckAction; choice: Choice; words: boolean; loot?: Order };
+type MenuItem = { label: string; action: DeckAction; choice: Choice; words: boolean; loot?: Order; say?: true };
 /** every deck action with its choices filled in (at most 10 per action), as the screen's pickers would offer them */
 function deckMenu(st: GameState): { items: MenuItem[]; suggested: string } {
   const pv = buildPlayerView(st);
@@ -146,6 +146,9 @@ function deckMenu(st: GameState): { items: MenuItem[]; suggested: string } {
     const words = a.steps.some((x) => x.key === 'words');
     for (const o of out) items.push({ label: `[${g.name}] ${a.label}${o.text.length ? ` → ${o.text.join(' → ')}` : ''}${a.note ? ` · ${a.note}` : ''}${words ? ' (needs your words)' : ''}`, action: a, choice: o.c, words });
   }
+  // the Say box under the deck: plain words to whoever you name or face, sent as a typed turn (typing is for dialogue, AD1)
+  const anyTalk = items.find((m) => m.action.group === 'talk');
+  if (anyTalk) items.push({ label: '[Talk] Say (the Say box: plain words to whoever you name or face) (needs your words)', action: anyTalk.action, choice: {}, words: true, say: true });
   const sug = suggestions(groups, ctx)[0];
   return { items, suggested: sug ? `${sug.action.label} — ${sug.reason}` : '' };
 }
@@ -268,11 +271,11 @@ async function main() {
       appendFileSync(join(OUT, 'deck-menus.jsonl'), JSON.stringify({ step: t, reply, menu: menu.items.map((m) => m.label), suggested: menu.suggested }) + '\n');
       if (!pick) { console.log(`turn ${t}: no such entry in the reply "${reply}"`); reports.push(`turn ${t}: the player replied "${reply}", not an entry`); continue; }
       const words = rest.join('|').trim();
-      const order = pick.loot ?? pick.action.play(pick.words ? { ...pick.choice, words: words || '...' } : pick.choice);
+      const order = pick.say ? { line: words || '...', intent: null as never } : pick.loot ?? pick.action.play(pick.words ? { ...pick.choice, words: words || '...' } : pick.choice);
       console.log(`turn ${t}: #${num.trim()} ${pick.label}${words ? ` | ${words}` : ''} => "${order.line}"`);
       const turnBefore = game.state()?.turn ?? 0, stepT0 = Date.now();
       for (const k of Object.keys(stepCalls)) delete stepCalls[k];
-      try { await game.act(order, { aimed: !!pick.choice.part }); } catch (e) {
+      try { if (pick.say) await game.submit(order.line, { aimed: false }); else await game.act(order, { aimed: !!pick.choice.part }); } catch (e) {
         if (!String((e as Error).message).startsWith('turn check')) throw e;
         writeFileSync(join(OUT, 'turn-check.log'), `step ${t}: ${order.line}\n${(e as Error).message}\n`);
         console.log(`turn ${t}: stopped by the turn checker\n${(e as Error).message}`);
