@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-302
+
+**What was wrong:** On Play, a few button texts showed in Arial instead of the game font: the hint under every action-deck entry ("hold them back unhurt"), the quick-use healing slot's count and the pin button on the map card. Browsers give buttons their own font, and these three set none.
+
+**What was done:** One rule at the top of the play styles: buttons, inputs, selects and text boxes take the page font. A font scan of creation, Play and every rail page in the fake game now finds no text outside the game fonts, and a styles test keeps the rule.
+
+**Fixed by:** [PR #1016](https://github.com/ali123500-codeRPG/text-rpg/pull/1016)
+
 ## BG-300
 
 **What was wrong:** On a phone (390 px wide), six tabs of the library viewer scrolled sideways: Body types (by 22 px), Skills, Stand-ins, Equations, Quests and Nerve (by up to 409 px). Their small tables kept every column, and a card's body sized its column to fit the widest table, so cards and the page grew wider than the screen.
