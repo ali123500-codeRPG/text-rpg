@@ -54,7 +54,7 @@ function homePlace(state: GameState, a: Actor): string {
   }
   return a.placeId;
 }
-const zonesOfPlaces = (state: GameState, places: Set<string>) => state.stage.zoneIds.filter((z) => places.has(zoneById(state, z)?.placeId ?? ''));
+const zonesOfPlaces = (state: GameState, places: Set<string>) => state.zones.filter((z) => places.has(z.placeId)).map((z) => z.id);
 
 /** ZR12: metres from `at` back to the ground (`inGround`, every zone of its places) by the walking path: 0 on it, else the
  * walk to the nearest way into it. Without a point, from where its zone is left toward the ground. Infinity: no way back. */
@@ -92,7 +92,7 @@ function chaseGround(state: GameState, a: Actor): Set<string> | undefined {
 export function chaseZones(state: GameState, a: Actor): string[] | undefined {
   const inGround = chaseGround(state, a);
   if (!inGround || chaseRange(state, a) !== 'near') return inGround && [...inGround];
-  return state.stage.zoneIds.filter((z) => metresToGround(state, { zone: z }, inGround) <= CONFIG.CHASE_NEAR_M);
+  return state.zones.map((z) => z.id).filter((z) => metresToGround(state, { zone: z }, inGround) <= CONFIG.CHASE_NEAR_M);
 }
 
 /** ZR12: a code-run pursuer with range near that stands CHASE_NEAR_M or more past the ground's edge turns back there, even

@@ -26,7 +26,6 @@ import { startSpar } from '../engine/spar';
 import { seedGoals } from '../engine/goals';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
-import { isSavedZone, loadSavedZone } from './stage';
 import { wornPack } from '../engine/containers';
 import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
@@ -58,23 +57,9 @@ const sites = (state: GameState) => (state.regions ?? []).flatMap((r) => r.sites
 
 export { freshId };
 
+/** WI8 a: a zone just built joins the world's live zones */
 function putOnStage(state: GameState, z: Zone): void {
-  if (!state.stage.zoneIds.includes(z.id)) state.stage.zoneIds.push(z.id);
   if (!state.zones.includes(z)) state.zones.push(z);
-}
-
-/** BG-273 (BF82 a): a new character arriving in a world with a past finds the settlement as it was left. Before the Weaver
- * plans, the settlement around `placeId` (its top-level place and every place inside it) goes on the stage with everyone
- * in it, so the Weaver's view lists them and the plan builds on them instead of building them again. */
-export function stageSettlement(state: GameState, placeId: string): void {
-  const byId = new Map(state.places.map((p) => [p.id, p]));
-  const top = (id: string) => { let p = byId.get(id); for (let n = 0; p?.parentId && byId.has(p.parentId) && n < 20; n++) p = byId.get(p.parentId); return p?.id; };
-  const root = top(placeId);
-  if (!root) return;
-  for (const p of state.places) if (top(p.id) === root) for (const z of p.zones) putOnStage(state, z);
-  // BG-288 (BF95 a): its ways to built ground elsewhere (off the stage) are ways back into saved ground, as a re-entry
-  // leaves them (loadSavedZone): walking one loads that ground
-  for (const z of state.zones) for (const l of z.links) if (!state.stage.zoneIds.includes(l.to) && isSavedZone(state, l.to)) l.frontier = true;
 }
 
 function moveTo(state: GameState, a: Actor, zoneId: string): void {
@@ -281,11 +266,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const bandRef = (r: string) => bandMap.get(r) ?? r;
   const actorRef = (r: string) => castMap.get(r) ?? r;
   const anyRef = (r: string) => castMap.get(r) ?? zoneMap.get(r) ?? r;
-  // BG-288 (BF95 a): built ground off the stage that the plan links to comes back on the stage first (as a walk back into
-  // it would), so the new zones join it and get their ways back from it
-  const planKeys = new Set(plan.zones.map((z) => z.key));
-  for (const z of plan.zones) for (const l of z.links) if (!planKeys.has(l.to) && !state.stage.zoneIds.includes(l.to) && isSavedZone(state, l.to)) loadSavedZone(state, l.to);
-  const stageZones = new Set(state.stage.zoneIds);
+  const stageZones = new Set(state.zones.map((z) => z.id)); // WI8 a: every built zone
   const isZoneRef = (r: string) => zoneMap.has(r) || stageZones.has(r);
 
   // ---- places and zones ----
@@ -331,8 +312,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const firstZone = newZones[0]?.id;
   const startZone = state.player.zone; // CH1: the zone the player stood in when the scenario began is ground
   if (ctx.frontierKey && newZones[0] && !ctx.ahead) enterFrontier(state, newZones[0]);
-  // at story start the player has no zone on the stage yet; it starts in the plan's first zone (CS2)
-  const storyStart = !!firstZone && !state.stage.zoneIds.includes(state.player.zone);
+  // at story start the player stands in no built zone yet; it starts in the plan's first zone (CS2)
+  const storyStart = !!firstZone && !zoneById(state, state.player.zone);
   // BG-273: a new character arrives where the plan says (arriveAt: an area on the stage or a new zone), else in its first new zone
   const arriveAt = ctx.arrive && plan.arriveAt ? zoneRef(plan.arriveAt) : undefined;
   if (arriveAt && zoneById(state, arriveAt)) moveTo(state, state.player, arriveAt);
@@ -409,7 +390,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     plan.cast.forEach((c, i) => updateBeliefs(state, { kind: 'opening', observerId: castActors[i].id, aboutId: state.player.id, status: c.awarenessOfPlayer, zone: state.player.zone, source: 'seen' }));
   }
   // arrival detection for a stealthy entry (step 7): the caller runs stealthyArrival
-  const onStage = new Set(state.stage.zoneIds);
+  const onStage = new Set(state.zones.map((z) => z.id));
   plan.cast.forEach((c, i) => {
     for (const bb of c.awarenessOfBands ?? []) {
       const band = bandRef(bb.band);
@@ -619,7 +600,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
       putOnStage(state, zone);
       placeZones(state, [zone]);
     }
-    if (place?.zones[0] && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, place.zones[0].id);
+    if (place?.zones[0] && !zoneById(state, state.player.zone)) moveTo(state, state.player, place.zones[0].id);
   }
   if (ctx.kind === 'scenario') {
     state.hidden.stage = { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] };
@@ -648,7 +629,7 @@ export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
   const arrival: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   arrival.perception = computePerception(arrival, state, rng);
   out.push(arrival);
-  const stage = new Set(state.stage.zoneIds);
+  const stage = new Set(state.zones.map((z) => z.id));
   for (const a of [...state.actors].sort((x, y) => (x.id < y.id ? -1 : 1))) {
     if (!stage.has(a.zone) || !isActive(a)) continue;
     const act = a.mind ? desiredState(buildActorView(state, a.id))?.activity : undefined;
@@ -699,14 +680,14 @@ export function withBed(state: GameState, setId: string, slots: Record<string, s
   const set = routineSet(setId);
   if (!set?.slots.bed || (slots.bed !== undefined && [slots.bed].flat().length)) return slots;
   const own = Object.entries(slots).filter(([k]) => k !== 'bed').flatMap(([, v]) => [v].flat());
-  const beds = new Set(state.zones.filter((z) => state.stage.zoneIds.includes(z.id) && z.furniture?.some((f) => f.kind === FU.bed)).map((z) => z.id));
+  const beds = new Set(state.zones.filter((z) => z.furniture?.some((f) => f.kind === FU.bed)).map((z) => z.id));
   // breadth first from its own spots (and where it starts) out to BED_NEAR_HOPS links
   let ring = [...new Set([...own, start])];
   const seen = new Set(ring);
   for (let hop = 0; hop <= CONFIG.BED_NEAR_HOPS && ring.length; hop++) {
     const found = ring.find((z) => beds.has(z));
     if (found) return { ...slots, bed: found };
-    ring = ring.flatMap((z) => zoneById(state, z)?.links.map((l) => l.to) ?? []).filter((z) => !seen.has(z) && state.stage.zoneIds.includes(z) && (seen.add(z), true));
+    ring = ring.flatMap((z) => zoneById(state, z)?.links.map((l) => l.to) ?? []).filter((z) => !seen.has(z) && !!zoneById(state, z) && (seen.add(z), true));
   }
   const refuge = [slots.refuge ?? []].flat()[0];
   const work = ['work', 'post', 'counter', 'seat', 'route'].map((k) => [slots[k] ?? []].flat()[0]).find(Boolean);

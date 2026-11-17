@@ -169,7 +169,7 @@ describe('190 chases and free roam', () => {
     const grove = { id: 'grove', placeId: 'field', name: 'a grove', look: '', links: [{ to: 'field_far', label: 'back', sight: true }], cover: 'some' as const, light: 'bright' as const, groundItems: [] };
     s.zones.push(grove);
     s.places.find((p) => p.id === 'field')!.zones.push(grove);
-    s.stage.zoneIds.push('grove');
+    s.zones.push(grove);
     s.player.zone = 'grove';
     const slime = hunts(s, 'slime_1', s.turn, 'field_far');
     const wim = hunts(s, 'patron_1', s.turn, 'field_far');

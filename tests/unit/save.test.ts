@@ -96,14 +96,13 @@ describe('save and load', () => {
     expect((await head(st)).turn).toBe(0);
   });
 
-  it('flags a placeId that disagrees with the zone, and a stage zone on no place page', async () => {
+  it('flags a placeId that disagrees with the zone', async () => {
     const s = makeVillage();
     s.player.placeId = 'street';
-    s.stage.zoneIds.push('nowhere');
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/player placeId street/), expect.stringMatching(/stage zone nowhere/)]));
+    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/player placeId street/)]));
   });
 
   it('repairs dangling references and reports them; raw above its cap is a warning (a tagged skill may reach 125)', async () => {

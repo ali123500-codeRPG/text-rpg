@@ -48,7 +48,7 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     await flush();
     expect(d.applyBuiltAhead(s, createRng(1))).toEqual(['woods']);
     const grove = s.zones.find((z) => z.name === 'a grove')!;
-    expect(s.stage.zoneIds).toContain(grove.id);
+    expect(s.places.flatMap((p) => p.zones)).toContain(grove);
     expect(s.player.zone).toBe('tav_cellar');
     expect(zoneById(s, 'field_far')!.links.find((l) => l.to === grove.id)!.frontier).toBeUndefined();
     expect(g.mind!.slots!.dest).toBe(grove.id); // its head_to now names the zone beyond

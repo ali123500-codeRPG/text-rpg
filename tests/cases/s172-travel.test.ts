@@ -32,7 +32,7 @@ function withRoad(km: number, danger: 'safe' | 'quiet' | 'wild' | 'dangerous' = 
     zones.push(ash);
   }
   s.places.find((p) => p.id === 'gate')!.zones.push(...zones);
-  s.stage.zoneIds.push(...zones.map((z) => z.id));
+  s.zones.push(...zones);
   const all = s.places.flatMap((p) => p.zones);
   for (const z of all) if (!z.area) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
   placeZones(s, all);

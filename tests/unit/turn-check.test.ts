@@ -147,7 +147,7 @@ describe('turn checker (TQ1)', () => {
     ago(s, 4, engagementEndS() + 1);
     expect(rules(s)).toContain('fight_ends');
     const t = makeVillage();
-    t.stage.zoneIds.push('nowhere');
+    t.zones.push({ ...t.zones[0], id: 'nowhere' });
     expect(rules(t)).toContain('real_zone');
   });
 

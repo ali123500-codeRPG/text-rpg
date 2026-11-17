@@ -52,10 +52,11 @@ function pronounGaps(s: GameState, where: string, list: Entry[] = []): string[] 
 }
 
 const RULES: Record<string, (c: Ctx) => string[]> = {
-  /** everyone stands in a zone that exists, on that zone's place */
+  /** everyone stands in a zone that exists, on that zone's place; WI8 a: the live zones are exactly the built ones */
   real_zone: ({ s }) => [
+    ...s.zones.filter((z) => zoneById(s, z.id) !== z).map((z) => `live zone ${z.id} is on no place`),
+    ...s.places.flatMap((p) => p.zones).filter((z) => !s.zones.includes(z)).map((z) => `built zone ${z.id} is not live`),
     ...allActors(s).filter((a) => zoneById(s, a.zone)?.placeId !== a.placeId).map((a) => `${a.id} in ${a.zone} (place ${a.placeId})`),
-    ...s.stage.zoneIds.filter((id) => !zoneById(s, id)).map((id) => `stage zone ${id} does not exist`),
   ],
   /** ZR8: every zone on stage has a rectangle, and everyone's point lies inside their zone's */
   inside_zone: ({ s }) => [

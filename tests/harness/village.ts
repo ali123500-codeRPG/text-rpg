@@ -111,7 +111,6 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
   // pronouns as every stage plan gives them, so the turn checker's view_pronouns rule has something to check (TQ1, F7)
   for (const a of actors) a.pronouns = ({ guard_1: 'he', trader: 'she', patron_1: 'he' } as const)[a.id as 'trader'] ?? 'it';
   actors = actors.filter((a) => !opts.without?.includes(a.id));
-  const zoneIds = places.flatMap((p) => p.zones.map((z) => z.id));
   const seed = opts.seed ?? 12345;
   const state: GameState = {
     storyId, turn: 1, mode: 'explore',
@@ -124,7 +123,7 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     rngSeed: seed, rngState: seed,
     pending: { turn: 1, mode: 'explore', engaged: [], fired: [] },
     places, facts: [],
-    stage: { zoneIds, tier: 'success', scenarioNumber: 1, scenarioStartTurn: 0 },
+    stage: { tier: 'success', scenarioNumber: 1, scenarioStartTurn: 0 },
     scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [],
     settings: { showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,

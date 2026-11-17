@@ -201,15 +201,12 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const frontierKeys = dupes('frontier', frontiers.map((f) => f.key));
   const bandKeys = dupes('band', bands.map((b) => b.key));
   const castKeys = dupes('cast', cast.map((c) => c.key));
-  const stageZones = new Set(state.stage.zoneIds);
+  const stageZones = new Set(state.zones.map((z) => z.id)); // WI8 a: every built zone
   const existingFrontiers = stageFrontiers(state);
   const placeIds = new Set(state.places.map((p) => p.id));
   const bandIds = new Set(state.bands.map((b) => b.id));
   const actorIds = new Set([state.player.id, ...state.actors.map((a) => a.id)]);
   const isZone = (r: string) => zoneKeys.has(r) || stageZones.has(r);
-  // BG-288 (BF95 a): ground already built but off the stage (saved on its place): a plan may link to it, and applying the
-  // plan brings it back on the stage, so new ground joins it instead of building it again
-  const builtOff = (r: string) => !stageZones.has(r) && !zoneKeys.has(r) && state.places.some((p) => p.zones.some((z) => z.id === r));
   const isFrontier = (r: string) => frontierKeys.has(r) || existingFrontiers.has(r);
   const isBand = (r: string) => bandKeys.has(r) || bandIds.has(r);
   const isActor = (r: string) => castKeys.has(r) || actorIds.has(r);
@@ -339,7 +336,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind]?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
-      if (!isZone(l.to) && !isFrontier(l.to) && !builtOff(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, already built, or a frontier`);
+      if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, a built zone, or a frontier`);
       // SD3–SD5: a barrier on the way
       const b = l.barrier;
       if (b) {
@@ -381,7 +378,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     adj.get(a)!.add(b);
     adj.get(b)!.add(a);
   };
-  for (const z of zones) for (const l of arr(z.links)) if (isZone(l.to) || builtOff(l.to)) edge(z.key, l.to);
+  for (const z of zones) for (const l of arr(z.links)) if (isZone(l.to)) edge(z.key, l.to);
   for (const z of state.zones) for (const l of z.links) if (!l.frontier && stageZones.has(l.to)) edge(z.id, l.to);
   for (const z of state.zones) for (const l of z.links) if (l.frontier && zoneKeys.has(l.to)) edge(z.id, l.to); // BG-286: a frontier built as a plan zone
   const reach = (from: string) => {
@@ -585,7 +582,7 @@ export function tidyContainers(state: GameState, plan: StagePlan): { containers:
   const notes: PlanError[] = [];
   const note = (code: string, message: string) => notes.push({ code, message, routineOnly: false, repaired: true });
   const who = new Set([...arr(plan.cast).map((c) => c.key), ...state.actors.map((a) => a.id)]);
-  const zones = new Set([...arr(plan.zones).map((z) => z.key), ...state.stage.zoneIds]);
+  const zones = new Set([...arr(plan.zones).map((z) => z.key), ...state.zones.map((z) => z.id)]);
   const keys = new Set<string>();
   const containers: PlanContainer[] = [];
   arr(plan.containers).forEach((c, i) => {
@@ -625,7 +622,7 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
   const castKeys = new Set(arr(plan.cast).map((c) => c.key));
   const zoneKeys = new Set(arr(plan.zones).map((z) => z.key));
   const actorIds = new Set(state.actors.map((a) => a.id));
-  const stageZones = new Set(state.stage.zoneIds);
+  const stageZones = new Set(state.zones.map((z) => z.id));
   const terms = [...arr(plan.hiddenTerms), ...arr(plan.seeds?.secrets).flatMap((s) => arr(s.leakTerms))]
     .filter((t) => typeof t === 'string' && t.trim());
   // BG-212: hidden terms as whole words, as every other public text in the plan is checked (V10)

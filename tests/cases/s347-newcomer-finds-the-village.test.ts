@@ -1,6 +1,6 @@
 // 347 BG-273 (BF82 a): a new character carried into a fallen character's world finds the settlement as it was left. Before
-// the Weaver plans, the settlement around the start place (its top-level place and every place inside it) goes on the stage
-// with everyone in it; the Weaver's view lists them and says a newcomer arrives. A plan that declares a place or area
+// the Weaver plans, the settlement around the start place (its top-level place and every place inside it) is in its view
+// with everyone in it (WI8 a: the whole built world is live); the Weaver's view lists them and says a newcomer arrives. A plan that declares a place or area
 // already on the stage again is refused (the copies were tavern_2, causeway_2, marda_2). The newcomer arrives where the
 // plan's arriveAt says, an area already there or a new zone; a new zone is not required.
 import { describe, expect, it } from 'vitest';
@@ -13,10 +13,9 @@ import { TIERS } from '../../src/scales';
 import { ZK } from '../../src/library/tableIds';
 import type { GameState, StagePlan, WeaverView } from '../../src/types';
 
-/** a new character standing nowhere yet at the tavern of a village with a past; the stage starts empty (carryOn) */
+/** a new character standing nowhere yet at the tavern of a village with a past (carryOn) */
 function newcomer(): GameState {
   const s = makeVillage();
-  s.stage.zoneIds = [];
   delete s.stage.scenario; delete s.stage.roam;
   s.player.zone = '';
   s.player.placeId = 'tavern';
@@ -59,7 +58,6 @@ describe('347 BG-273: a newcomer finds the village as it was left', () => {
 
   it('an arrival needs a spot: arriveAt, or a new zone (its first); an unknown arriveAt is refused', () => {
     const s = newcomer();
-    s.stage.zoneIds = s.places.flatMap((p) => p.zones.map((z) => z.id));
     const ctx = { tier: 'success' as const, kind: 'scenario' as const, placeId: 'tavern', arrive: true as const };
     const view = { tier: 'Success' } as WeaverView;
     const codes = (p: StagePlan) => validateStagePlan(s, p, ctx).map((e) => e.code);

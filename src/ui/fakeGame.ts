@@ -307,7 +307,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number],
         { turn: 3, agent: 'voice', actorId: 'guard_1', input: { view: 'DialogueView…', heard: 'block and cut back' }, output: { dialogue: { line: 'That’s one! Watch your left!' } }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
-      places: FAKE_PLACES(), facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
+      places: FAKE_PLACES(), facts: [], stage: { tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
       scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
       quests: [
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
@@ -324,8 +324,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point
     const common = state.places.flatMap((x) => x.zones).find((z) => z.id === 'tav_common')?.rect;
     if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
-    // the minimap's walks (AD16) go through the stage's zones, as in the game; a little move time carried from last turn (TP4)
-    state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
+    // the minimap's walks (AD16) go through the world's zones, as in the game; a little move time carried from last turn (TP4)
+    state.zones = state.places.flatMap((x) => x.zones);
     if (state.mode === 'tactical') player.carry = [{ main: 0, move: 2.4, turn: state.turn - 1 }];
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
@@ -451,14 +451,12 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // (AT49); "stop" ends it
       if (/^walk\b/i.test(text)) {
         state.player.walking = { toZone: text.split(/\s+/)[1] || 'tav_upstairs' };
-        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id)); // a way to walk
       }
       if (/^stop\b/i.test(text)) { delete state.player.walking; delete state.player.followLost; }
       // "follow" has you following Bren up to the landing (BG-190); "lose" loses him there, slipped out of sight
       if (/^follow\b/i.test(text)) {
         delete state.player.followLost;
         state.player.walking = { toZone: 'tav_upstairs', spot: { near: 'guard_1', follow: true } };
-        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
       }
       if (/^lose\b/i.test(text)) { delete state.player.walking; state.player.followLost = { who: 'guard_1', why: 'slipped_away', zone: 'tav_upstairs' }; }
       // "tire" adds sleep debt (a fatigue level's worth) and spends half the breath line; "breathe" fills the line again, to

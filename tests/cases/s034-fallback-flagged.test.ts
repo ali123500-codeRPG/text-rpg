@@ -26,7 +26,7 @@ describe('34 Fallback is flagged', () => {
     expect(entry.detail!.errors).toEqual([expect.objectContaining({ code: 'grades_misfit' })]);
     expect(s.hidden.stage).toMatchObject({ challenge: 'none', gain: 'none' });
     expect(s.actors).toHaveLength(nActors); // no new cast
-    expect(s.stage.zoneIds).toContain('tav_common'); // the place's saved zones
+    expect(s.zones.map((z) => z.id)).toContain('tav_common'); // the place's saved zones
 
     // the flags stay until the next scenario start
     weave.mockResolvedValue(null as never);

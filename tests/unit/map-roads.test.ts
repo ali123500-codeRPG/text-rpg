@@ -51,6 +51,7 @@ describe('roads on the map', () => {
     const yard: Zone = { id: 'halt_yard', placeId: 'halt', name: 'the halt', look: 'A stock pen beside the road.', outdoor: true, cover: 'none', light: 'bright', groundItems: [],
       rect: { x: 510, y: 0, w: 20, d: 20 }, links: [{ to: 'e_road', label: 'back out to the road', sight: true }] };
     g.state.places.push(P('east_way', 'road', null, 'the east road', [road]), P('halt', 'waystation', 'east_way', 'the halt', [yard]));
+    g.state.zones.push(road, yard);
     g.state.places.find((p) => p.id === 'gate')!.zones[0].links.push({ to: 'e_road', label: 'the east road', sight: true });
     const p = g.state.player;
     p.zone = 'e_road'; p.placeId = 'east_way'; p.pos = { x: 250, y: 0 };

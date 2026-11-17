@@ -112,10 +112,10 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
 const hourlyPct = (a: Actor, row: { skill: string; pctPerPoint: number }, minutes: number): number => trueSkill(a, row.skill) * row.pctPerPoint * (minutes / 60);
 
 /** H12–H14: hourly rows (natural recovery, and natural composure from the composure table) heal every active actor on the
- * stage for the game minutes that passed, fights included. Off-stage healing waits for offscreen changes (D-67). */
+ * world for the game minutes that passed, fights included (WI8 a: no ground is off the stage). */
 export function passiveHealing(state: GameState, minutes: number): void {
   if (minutes <= 0) return;
-  const stage = new Set(state.stage.zoneIds);
+  const stage = new Set(state.zones.map((z) => z.id));
   const rows = Object.values(getLibrary().healing ?? {}).filter((h) => h.hourly);
   const calmRows = Object.values(getLibrary().composure ?? {}).filter((c) => c.hourly && !c.countOnly);
   for (const a of [state.player, ...state.actors]) {

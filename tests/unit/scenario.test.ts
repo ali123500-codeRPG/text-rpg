@@ -237,7 +237,7 @@ describe('applyStagePlan', () => {
     applyStagePlan(s, villageStagePlan(), ctx, { entry: 'open' }, createRng(1));
     expect(s.places.map((p) => p.id)).toEqual(['village', 'tavern', 'street', 'field']);
     expect(s.places[1].parentId).toBe('village');
-    expect(s.stage.zoneIds).toHaveLength(7);
+    expect(s.zones.map((z) => z.id)).toHaveLength(7);
     expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.to === 'woods')).toEqual({ to: 'woods', label: 'into the woods', sight: false, frontier: true });
     expect(s.player.zone).toBe('tav_common');
     // Z3: the kind fixes outdoor and fills cover and light the plan leaves out
@@ -303,7 +303,7 @@ describe('applyStagePlan', () => {
       zones: [{ key: 'field_mid', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }],
       cast: [{ template: TP.slime, key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
-    expect(s.stage.zoneIds).toContain('field_mid_2');
+    expect(s.zones.map((z) => z.id)).toContain('field_mid_2');
     expect(s.bands.find((b) => b.id === 'slimes_2')!.lethal).toBe(true);
     const a = s.actors.find((x) => x.id === 'slime_1_2')!;
     expect(a.mind!.slots).toEqual({ route: ['field_mid_2', 'field_far'], post: 'field_mid_2' });
@@ -330,10 +330,8 @@ describe('applyStagePlan', () => {
 describe('applyFallbackStage', () => {
   it('scenario: the place\'s saved zones, grades none/none, flagged', () => {
     const s = makeVillage();
-    s.stage.zoneIds = [];
-    s.zones = [];
     applyFallbackStage(s, { tier: 'success', kind: 'scenario', placeId: 'tavern' }, 'invalid_plan', [{ code: 'x', message: 'y', routineOnly: false }]);
-    expect(s.stage.zoneIds).toEqual(['tav_common', 'tav_counter', 'tav_cellar']);
+    expect(s.zones.map((z) => z.id)).toEqual(expect.arrayContaining(['tav_common', 'tav_counter', 'tav_cellar']));
     expect(s.hidden.stage.challenge).toBe('none');
     expect(s.stage.fallback).toEqual({ reason: 'invalid_plan', turn: 1 });
     expect(s.log[0]).toMatchObject({ code: 'weaver_fallback', detail: { errors: [{ code: 'x' }] } });
@@ -352,7 +350,7 @@ describe('applyFallbackStage', () => {
   it('story start with no place yet still gets a zone', () => {
     const s = fresh();
     applyFallbackStage(s, ctx, 'weaver_timeout', []);
-    expect(s.stage.zoneIds).toEqual(['tavern_area']);
+    expect(s.zones.map((z) => z.id)).toEqual(['tavern_area']);
     expect(s.player.zone).toBe('tavern_area');
   });
 });
@@ -408,7 +406,7 @@ describe('ScenarioDirector', () => {
     const d = new ScenarioDirector({ weave, clock });
     expect(d.afterSave(s)).toEqual(['woods']);
     expect(d.afterSave(s)).toEqual([]);
-    expect(s.stage.zoneIds).not.toContain('grove');
+    expect(s.zones.map((z) => z.id)).not.toContain('grove');
     const crossing = d.cross(s, 'woods', createRng(1));
     await clock.advance(5000);
     const r = await crossing;

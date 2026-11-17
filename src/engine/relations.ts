@@ -163,12 +163,12 @@ export function knowsShut(state: GameState, b: Barrier, a: Actor, from: string):
   return !!place && Object.values(a.mind?.slots ?? {}).flat().some((z) => zoneById(state, z)?.placeId === place);
 }
 
-/** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
+/** shortest path over built zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
  * barrier is shut to it (no key, the far side of the bar, rubble) is left out (SD3–SD5); with none, barriers are ignored
  * (how far away, for sound and sight). */
 export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor): string[] | null {
   if (from === to) return [];
-  const stage = new Set(state.stage.zoneIds);
+  const stage = new Set(state.zones.map((z) => z.id));
   const prev = new Map<string, string>();
   const q = [from];
   const seen = new Set([from]);

@@ -26,7 +26,7 @@ function linkLoss(state: GameState, l: ZoneLink): number {
 /** every way a sound leaves zone `z` for another stage zone: its links, and (zones with rectangles) the side it shares with
  * a zone on the same floor it has no link to, through that side's edge (a wall, a counter, a window) */
 function crossings(state: GameState, z: Zone): { to: string; loss: number }[] {
-  const stage = new Set(state.stage.zoneIds);
+  const stage = new Set(state.zones.map((z) => z.id));
   const out = z.links.filter((l) => !l.frontier && stage.has(l.to)).map((l) => ({ to: l.to, loss: linkLoss(state, l) }));
   if (!z.rect) return out;
   const kinds = getLibrary().edgeKinds ?? {};

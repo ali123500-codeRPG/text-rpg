@@ -689,6 +689,8 @@ const DEFAULTS = {
   /** ZR12: how far past the edge of the scenario's ground, by the walking path, a pursuer with chase range near follows the
    * player before it turns back (placeholder: about a village street or two; a game number, not a real-world reference) */
   CHASE_NEAR_M: 200,
+  /** WI8 a: a planner's or NPC agent's view holds the zones within this many ways of where it looks (placeholder) */
+  PLAN_VIEW_WAYS: 2,
   IMPROVISED_HIT_ADJ: -10,
   /** RD7 worn armor's slowing by weight: flat m/s off the body type's speeds, then a share off what is left (an armor item's
    * own `speed` overrides). Placeholders: no study gives speed loss directly; heavy is about a fifth, as asked */

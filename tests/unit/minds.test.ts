@@ -74,7 +74,7 @@ describe('routineOrder', () => {
     g.zone = 'gate_inner';
     o = routineOrder(fakeView(s, 'guard_1'));
     expect(o).toMatchObject({ type: 'idle', source: 'routine', activity: 'stand_watch' });
-    s.stage.zoneIds = s.stage.zoneIds.filter((z) => z !== 'street_square');
+    s.zones = s.zones.filter((z) => z.id !== 'street_square'); // the square out of the guard's map
     g.zone = 'street_door';
     o = routineOrder(fakeView(s, 'guard_1'));
     expect(o).toMatchObject({ type: 'idle', intent: UNREACHABLE, activity: 'stand_watch' });

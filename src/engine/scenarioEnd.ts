@@ -8,7 +8,7 @@ import { createRng } from '../rng';
 import { CONFIG } from '../config';
 import { SCENARIO_SCALES, TIME_OF_DAY, type ScenarioScale } from '../scales';
 import { now, timeOfDay } from '../time';
-import { actorById, isActive, isEngaged, stance } from './relations';
+import { actorById, isActive, isEngaged, stance, zoneById } from './relations';
 import { actorIn, givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
 import { flushGrowth, keepGains, xpBar } from './growth';
@@ -68,13 +68,13 @@ function mapCheck(w: EndCheck, ref: (kind: 'band' | 'place' | 'actor', key: stri
 /** a band is out: every member is down, broken (fled or surrendered) or no longer on the stage */
 function bandOut(state: GameState, band: string): boolean {
   const members = state.actors.filter((a) => a.bandId === band);
-  return members.length > 0 && members.every((a) => !isActive(a) || !!a.mind?.moraleState || !state.stage.zoneIds.includes(a.zone));
+  return members.length > 0 && members.every((a) => !isActive(a) || !!a.mind?.moraleState || !zoneById(state, a.zone));
 }
 
 /** BG-287: those hostile to the player still standing in a place or zone: up, not broken, and on the stage, as bandOut
  * counts a band's members out */
 export const foesIn = (state: GameState, place: string) => state.actors.filter((a) => actorIn(state, a, place) && isActive(a) && !a.mind?.moraleState
-  && state.stage.zoneIds.includes(a.zone) && stance(state, a, state.player) === 'hostile');
+  && !!zoneById(state, a.zone) && stance(state, a, state.player) === 'hostile');
 
 /** is this ending's check met now (judged ones never are: the Weaver check-in decides them) */
 export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], frame: ScenarioFrame | undefined = state.stage.scenario): boolean {
@@ -171,7 +171,7 @@ export function checkinErrors(state: GameState, a: CheckinAnswer | null): string
   if (a.verdict !== 'continue' && a.verdict !== 'end') return ['verdict is continue or end'];
   if (a.verdict === 'end' && !PLAN_AS.has(String(a.as))) return [`as is one of ${[...PLAN_AS].join(', ')}`];
   if (a.beats !== undefined && !Array.isArray(a.beats)) return ['beats is a list'];
-  return (a.beats ?? []).flatMap((t) => triggerErrors(t, { isZone: (r) => state.stage.zoneIds.includes(r), isActor: (r) => !!actorById(state, r) }));
+  return (a.beats ?? []).flatMap((t) => triggerErrors(t, { isZone: (r) => !!zoneById(state, r), isActor: (r) => !!actorById(state, r) }));
 }
 
 /** a check-in's continue checked and applied by the caller: a scenario change, arrivals and frontiers (SC12) */
