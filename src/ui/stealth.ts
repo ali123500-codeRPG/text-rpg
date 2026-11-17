@@ -2,6 +2,7 @@
 // action bar beside Aim (it fills the box; nothing is sent until Send), and while the player is stealthy the header shows a
 // filled "Stealthy" badge in the Stealth tree's colour and the action bar is outlined in it. The name comes from POSTURES.
 import { POSTURES } from '../scales';
+import { CONFIG } from '../config';
 import { h, lineIcon } from './kit';
 
 type Kind = 'sneak' | 'unseen';
@@ -14,7 +15,11 @@ const PATHS: Record<Kind, string[]> = {
 
 export const stealthIcon = (kind: Kind): SVGSVGElement => lineIcon('st-i', PATHS[kind]);
 
+/** what pointing at Stealthy says (VS8: the time cost from CONFIG.SNEAK_TIME_MULT) */
+export const stealthyTip = (): string =>
+  `Stealthy slows all your actions ×${CONFIG.SNEAK_TIME_MULT}, moving included: each takes ${CONFIG.SNEAK_TIME_MULT} times as long. You are moving unseen; speaking above a whisper or a melee attack ends it.`;
+
 /** the header badge while the player is stealthy */
 export const stealthBadge = () =>
-  h('span', { class: 'stealthy-b', role: 'status', title: 'You are moving unseen. Speaking above a whisper or a melee attack ends it.' },
+  h('span', { class: 'stealthy-b', role: 'status', title: stealthyTip() },
     stealthIcon('unseen'), POSTURES.name('stealthy'));

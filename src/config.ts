@@ -785,8 +785,8 @@ const DEFAULTS = {
   VANISH_NEAR_M: 5,
   VANISH_NEAR_SHIFT: -1,
   /** VS8: a stealthy actor's time factor (timeFactor): every action takes this many times as long, and it moves at 1 / this
-   * of its speed (placeholder; 2 = half speed) */
-  SNEAK_TIME_MULT: 2,
+   * of its speed (1.2: about 83% speed) */
+  SNEAK_TIME_MULT: 1.2,
   /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
   TAKE_FROM_STANCE: 'neutral' as import('./scales').StanceKey,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band

@@ -21,7 +21,7 @@ import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
 import { boxOf, h, dragScroll, lineIcon, playDraft, viewSize } from './kit';
 import { perkSeries } from './perks';
-import { stealthBadge } from './stealth';
+import { stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
@@ -40,7 +40,7 @@ import { instanceIcon } from './itemIcons';
 import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, type MoraleLevel } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, NARRATION_SCALES, PART_STATES, POSTURES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 import { cap, r1, theOf } from '../words';
 
@@ -719,7 +719,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
 
     // AD2/AD3: the folded health strip and the short sheet; the minimap and Who's here keep their own elements
-    const stripKids = s ? [...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl' }, 'Stealthy') : null].filter((x): x is HTMLElement => !!x) : [];
+    const stripKids = s ? [...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl', title: stealthyTip() }, POSTURES.name('stealthy')) : null].filter((x): x is HTMLElement => !!x) : [];
     const shortKids = s ? shortSheet(s, s.player) : [];
     const sheetNow = [...stripKids, ...shortKids].map((k) => k.outerHTML).join('');
     if (!frozen && sheetNow !== sheetHtml) { strip.replaceChildren(...stripKids); shortEl.replaceChildren(...shortKids); sheetHtml = sheetNow; }

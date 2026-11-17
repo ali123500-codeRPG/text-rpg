@@ -214,7 +214,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   // ---- Stealth (ST3: sneaking takes no action; VS8: everything takes SNEAK_TIME_MULT times as long; VS1: slipping away from those who see you is the sneak's own roll) ----
   const open = pv.zone.links.filter((l) => !l.frontier && !l.drop);
   add('sneak', broken ? 'getaway' : 'stealth', pv.player.posture === 'stealthy' ? 'Keep sneaking' : 'Sneak', broken ? [] : [{ key: 'target', title: 'Sneak where?', picks: () => [{ id: '', label: 'Stay here', note: 'move unseen from now on' }, ...open.map((l) => ({ id: l.to, label: cap(l.label) }))] }],
-    (c) => order(c.target ? `Sneak to ${zoneName(c.target)}` : 'Sneak', { action: act('sneak', { target: c.target || null }) }), { note: `everything ×${CONFIG.SNEAK_TIME_MULT} slower` });
+    (c) => order(c.target ? `Sneak to ${zoneName(c.target)}` : 'Sneak', { action: act('sneak', { target: c.target || null }) }), { note: `slows all actions ×${CONFIG.SNEAK_TIME_MULT}` });
   const marks = [...full.filter((a) => a.gear.length || a.wares?.length), ...containers.map((g) => ({ id: g.id, label: g.name, gear: [] as never[], container: g.container } as unknown as PlayerView['actors'][number]))];
   if (marks.length) add('filch', 'stealth', 'Filch', [{ key: 'target', title: 'Steal from whom or what?', picks: () => marks.map((a) => names.has(a.id) ? person(a) : { id: a.id, label: cap(a.label) }) },
     { key: 'item', title: 'Steal what?', picks: (c) => {
