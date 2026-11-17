@@ -120,7 +120,7 @@ export function npcActionToOrder(actorId: string, action: NpcAction, extra: Part
 }
 
 /** Q2: a Planner or Responder's move beside its action, as the player's; an action that is itself a move keeps only that */
-const MOVE_ACTIONS = ['move', 'flee', 'sneak', 'vanish'];
+const MOVE_ACTIONS = ['move', 'flee', 'sneak'];
 function npcMove(state: GameState, o: AcceptedAgentOutput): Partial<Order> {
   const act = o.output.action;
   if (MOVE_ACTIONS.includes(act.type)) return {};

@@ -152,7 +152,7 @@ export interface Ruleset {
 export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine' | 'fallback' | 'broken';
 
 /** every order type the engine knows (trigger orders are checked against it) */
-export const ORDER_TYPES = ['attack', 'move', 'search', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
+export const ORDER_TYPES = ['attack', 'move', 'search', 'sneak', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
   'intimidate', 'use_item', 'equip', 'give', 'take', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'pick', 'stash', 'open', 'break', 'restrain', 'filch', 'steady', 'show', 'extract', 'heal', 'other'] as const;
 /** BG-128: orders aimed at a way (a zone), never at a person: picking a lock (the player may also pick a container's, CT3) */
 export const WAY_ORDERS: readonly string[] = ['pick'];
@@ -171,7 +171,6 @@ export type Order = {
   moveSpot?: import('./agents').MoveSpot; // BG-12: where in the move's zone the player heads
   jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
   way?: { toZone: string; op: import('../engine/barriers').WayOp }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot
-  vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;
   aimed?: boolean;

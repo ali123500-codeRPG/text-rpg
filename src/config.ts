@@ -774,6 +774,10 @@ const DEFAULTS = {
   FOLLOW_SNEAK_M: 5,
   FOLLOW_M: 2,
   FOLLOW_RANGE_SHARE: 0.8,
+  /** VS5: a Vanishing roll against a foe fighting you within this many metres (placeholder; by distance, not weapon reach,
+   * so a ranged weapon gets no help from its reach) takes this tier shift (placeholder) */
+  VANISH_NEAR_M: 5,
+  VANISH_NEAR_SHIFT: -1,
   /** BF34: an NPC no agent answered for takes a thing held out to it from anyone it is at least this toward (a STANCES key) */
   TAKE_FROM_STANCE: 'neutral' as import('./scales').StanceKey,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band

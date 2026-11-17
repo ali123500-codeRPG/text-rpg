@@ -41,7 +41,7 @@ export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'nor
  * way op the game knows (DECK_LEFT_OUT says why the rest are not listed) */
 export const DECK_KINDS = ['attack', 'restrain', 'steady', 'yield', 'stand_down', 'extract', 'heal', 'talk', 'persuade', 'deceive', 'intimidate',
   'barter', 'demand', 'give', 'take', 'buy', 'sell', 'show', 'lets_search', 'go', 'walk_up', 'back_away', 'follow', 'jump', 'stop',
-  'keep_walking', 'way', 'sneak', 'vanish', 'filch', 'stash', 'look', 'look_at', 'listen', 'search', 'use_item', 'equip', 'draw',
+  'keep_walking', 'way', 'sneak', 'filch', 'stash', 'look', 'look_at', 'listen', 'search', 'use_item', 'equip', 'draw',
   'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'set_down', 'summon', 'loot', 'open', 'break', 'pick', 'wait', 'rest',
   'sleep', 'perk'] as const;
 export type DeckKind = (typeof DECK_KINDS)[number];
@@ -53,7 +53,7 @@ export const DECK_LEFT_OUT: Record<string, string> = {
 /** how each deck kind leans with the character's personality (ideaLeans) */
 const LEAN: Partial<Record<DeckKind, IdeaKind>> = {
   attack: 'attack', steady: 'steady', yield: 'yield', talk: 'talk', persuade: 'talk', deceive: 'talk', go: 'go', sneak: 'sneak',
-  vanish: 'vanish', stow: 'stow', draw: 'draw', pick_up: 'pick_up', summon: 'summon', look: 'look', search: 'search', perk: 'perk',
+  stow: 'stow', draw: 'draw', pick_up: 'pick_up', summon: 'summon', look: 'look', search: 'search', perk: 'perk',
 };
 
 const BLANK: Intent = { move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null };
@@ -198,12 +198,10 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       (c) => order(`${cap(c.item!)} ${doors.find((l) => l.to === c.target)?.label ?? 'the way'}`, { way: { toZone: c.target!, op: c.item as WayOp } }), { note: 'takes your move' });
   }
 
-  // ---- Stealth (ST3: sneaking is free; ST13: a Vanish slips away by a way out) ----
+  // ---- Stealth (ST3: sneaking is free; VS1: slipping away from those who see you is the sneak's own roll) ----
   const open = pv.zone.links.filter((l) => !l.frontier && !l.drop);
   add('sneak', broken ? 'getaway' : 'stealth', pv.player.posture === 'stealthy' ? 'Keep sneaking' : 'Sneak', broken ? [] : [{ key: 'target', title: 'Sneak where?', picks: () => [{ id: '', label: 'Stay here', note: 'move unseen from now on' }, ...open.map((l) => ({ id: l.to, label: cap(l.label) }))] }],
     (c) => order(c.target ? `Sneak to ${zoneName(c.target)}` : 'Sneak', { action: act('sneak', { target: c.target || null }) }), { note: 'free' });
-  if (!broken && open.length && up.length) add('vanish', 'stealth', 'Vanish', [{ key: 'target', title: 'Slip away which way?', picks: () => open.map((l) => ({ id: l.to, label: cap(l.label) })) }],
-    (c) => order(`Vanish to ${zoneName(c.target!)}`, { action: act('vanish', { target: c.target! }) }), { note: 'breaks sight' });
   const marks = [...full.filter((a) => a.gear.length || a.wares?.length), ...containers.map((g) => ({ id: g.id, label: g.name, gear: [] as never[], container: g.container } as unknown as PlayerView['actors'][number]))];
   if (marks.length) add('filch', 'stealth', 'Filch', [{ key: 'target', title: 'Steal from whom or what?', picks: () => marks.map((a) => names.has(a.id) ? person(a) : { id: a.id, label: cap(a.label) }) },
     { key: 'item', title: 'Steal what?', picks: (c) => {

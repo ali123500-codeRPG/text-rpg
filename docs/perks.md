@@ -186,10 +186,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* Shadow and clutter are enough. With cover or shade around you, you can vanish right where you stand.
 
 - **Kind:** Always on
-- **Trigger:** The owner Vanishes without a zone to go to.
+- **Trigger:** The owner sneaks and stays put this turn.
 - **Conditions:** The owner's zone has some or heavy cover, or its light is dim or dark.
-- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action.
-- **Lasts:** That Vanish.
+- **Effect:** Observers who see the owner still roll against its Vanishing, as when it moves (VS2). One who loses drops to suspicious at that zone. It uses no action.
+- **Lasts:** That turn.
 
 ### Slip the Blow (Light Armor) · A20
 
@@ -566,13 +566,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Unblinking (Eyesight) · B14
 
-*Story:* Once your eyes are on someone, there is nowhere left to run. When someone you can see vanishes and gets past you, they still have to sneak past you as well before you lose them.
+*Story:* Once your eyes are on someone, there is nowhere left to run. When someone you can see slips away and gets past you, they still have to sneak past you as well before you lose them.
 
 - **Kind:** Always on
-- **Trigger:** A character the owner sees (aware or tracking) vanishes, and the owner loses the Vanishing contest.
-- **Conditions:** The owner saw the character before the Vanish.
+- **Trigger:** A character the owner sees (aware or tracking) slips away, and the owner loses the Vanishing contest.
+- **Conditions:** The owner saw the character before the roll.
 - **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
-- **Lasts:** That Vanish.
+- **Lasts:** That roll.
 - **Open:** Eyesight 60. Works for the player too since NPC stealth (NS10).
 
 ### Set Them Up (Strike) · B15
@@ -1208,7 +1208,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Kind:** Automatic
 - **Trigger:** The owner attacks while stealthy.
 - **Conditions:** The owner is still active after the attack.
-- **Effect:** The owner is stealthy again and vanishes in place: each observer makes a Vanishing contest against the owner, as a Vanish does, which can break the sight of those who see the owner. It does not use the owner's action or move.
+- **Effect:** The owner is stealthy again, and each observer the attack made aware of the owner rolls at once against its Vanishing, in place with no cover needed: one who loses drops to suspicious. It is the one second stealth roll an observer makes in a turn (VS3). It does not use the owner's action or move.
 - **Lasts:** That contest.
 - **Built:** yes
 
@@ -1252,7 +1252,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Kind:** Automatic
 - **Trigger:** The owner dodges an attack.
 - **Conditions:** The dodge wins by a gap of +3 or better. Once per engagement.
-- **Effect:** The owner vanishes in place for free right after: each observer makes a Vanishing contest against the owner, as a Vanish does. It does not use the owner's action or move.
+- **Effect:** The owner vanishes in place for free right after: each observer who sees the owner makes a Vanishing contest against it. It does not use the owner's action or move.
 - **Lasts:** That contest.
 - **Cooldown:** Once per engagement.
 - **Open:** Parked (D-232): the Vanishing part offered beside Misdirection in PT12.
@@ -1326,10 +1326,10 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 *Story:* The dirt makes its own cover. While a foe is still clawing at its eyes, you can vanish right in front of it.
 
 - **Kind:** Always on (linked perk)
-- **Trigger:** The owner Vanishes in place (Melt Away).
+- **Trigger:** The owner sneaks and stays put (Melt Away).
 - **Conditions:** The owner has both Dirt in the Eyes and Melt Away. A foe of the owner has its sight spoiled by Dirt in the Eyes right now.
 - **Effect:** Melt Away needs no cover and no dim light. Each observer still makes its Vanishing contest as usual.
-- **Lasts:** That Vanish.
+- **Lasts:** That turn.
 
 ### Bulwark (Block) · LR4
 

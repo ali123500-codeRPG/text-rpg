@@ -169,7 +169,7 @@ export const ALL_PARTS: PerkWriteup[] = [
   part(TR.stealth, { id: PK.strike_and_fade, ref: 'T6a', name: 'Strike and Fade', effect: 'stealth',
     story: 'They see the blow, never the hand. Right after you strike from hiding, you try to vanish again.',
     rules: { kind: 'Automatic', trigger: 'The owner attacks while stealthy.', conditions: ['The owner is still active after the attack.'],
-      effect: 'The owner is stealthy again and vanishes in place: each observer makes a Vanishing contest against the owner, as a Vanish does, which can break the sight of those who see the owner. It does not use the owner\'s action or move.', lasts: 'That contest.' } }),
+      effect: 'The owner is stealthy again, and each observer the attack made aware of the owner rolls at once against its Vanishing, in place with no cover needed: one who loses drops to suspicious. It is the one second stealth roll an observer makes in a turn (VS3). It does not use the owner\'s action or move.', lasts: 'That contest.' } }),
   part(TR.stealth, { id: PK.child_of_night, ref: 'T6c', name: 'Child of Night', effect: 'stealth',
     story: 'The dark knows you. Light counts one step darker for all your stealth.',
     rules: { kind: 'Always on', trigger: 'The owner makes a roll of a stealth skill (Sneaking, Combat Stealth, Vanishing).', conditions: [],
@@ -188,7 +188,7 @@ export const ALL_PARTS: PerkWriteup[] = [
   part(TR.stealth, { id: PK.fade_back, ref: 'T6f', name: 'Fade Back', effect: 'stealth',
     story: 'The blow passes where you were, and so do you. Once a fight, a clean dodge lets you vanish on the spot.',
     rules: { kind: 'Automatic', trigger: 'The owner dodges an attack.', conditions: ['The dodge wins by a gap of +3 or better.', 'Once per engagement.'],
-      effect: 'The owner vanishes in place for free right after: each observer makes a Vanishing contest against the owner, as a Vanish does. It does not use the owner\'s action or move.', lasts: 'That contest.', cooldown: 'Once per engagement.',
+      effect: 'The owner vanishes in place for free right after: each observer who sees the owner makes a Vanishing contest against it. It does not use the owner\'s action or move.', lasts: 'That contest.', cooldown: 'Once per engagement.',
       open: 'Parked (D-232): the Vanishing part offered beside Misdirection in PT12.' } }),
   // ---- Speech ----
   part(TR.speech, { id: PK.soft_landing, ref: 'T7a', name: 'Soft Landing', effect: 'speech',

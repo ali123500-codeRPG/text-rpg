@@ -2,7 +2,8 @@
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
 import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRng, makeVillage, place } from '../harness';
+import { beside, createRng, makeVillage, place } from '../harness';
+import { CONFIG } from '../../src/config';
 import { resolveTurn } from '../../src/engine';
 import { ruleset } from '../../src/ruleset';
 import { stealthyArrival } from '../../src/scenario/apply';
@@ -39,23 +40,24 @@ const aware = (s: GameState, id: string, zone: string) => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('117 stealth', () => {
-  it('3 vanish, per observer: the guard who loses it drops to suspicious where it last saw you, the one who wins stays aware (ST15)', () => {
+  it('3 slipping away, per observer: a sneak move rolls Vanishing against those who see you; the guard who loses drops to suspicious where it last saw you, the one who wins stays aware (ST15, VS1)', () => {
     const s = makeVillage();
     s.actors.push(spawnNpc(null, TP.guard, { id: 'guard_2', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch', name: 'Hal', storyId: 'test' }));
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
     aware(s, 'guard_2', 'gate_inner');
     const calls = rig({ guard_1: -1, guard_2: 1 });
-    turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
+    turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
     expect(s.player.zone).toBe('street_square');
     expect(s.player.posture).toBe('stealthy');
-    expect(calls.every(([a]) => a.skill === SK.vanishing)).toBe(true);
+    expect(calls.filter(([, b]) => b.actorId.startsWith('guard_')).map(([a]) => a.skill)).toEqual([SK.vanishing, SK.vanishing]); // VS1: those who see you roll Vanishing
+    expect(calls.filter(([, b]) => !b.actorId.startsWith('guard_')).every(([a]) => a.skill === SK.sneaking)).toBe(true); // the rest, Sneaking
     const b1 = s.actors.find((a) => a.id === 'guard_1')!.mind!.knowledge.player!;
     expect(b1.status).toBe('suspicious');
     expect(b1.lastKnownZone).toBe('gate_inner');
     expect(['aware', 'tracking']).toContain(status(s, 'guard_2'));
   });
-  it('a sneak never rolls against someone who already sees you (ST12)', () => {
+  it('a sneak that stays put never rolls against someone who already sees you, without Melt Away (VS2)', () => {
     const s = makeVillage();
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
@@ -155,7 +157,7 @@ describe('117 stealth', () => {
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
     expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
   });
-  it('tags decide the tables (ST21, HA1): a sneak and a vanish both get cover (both have the hide tag)', () => {
+  it('tags decide the tables (ST21, HA1): a sneak gets cover, whether the watcher rolls Sneaking or Vanishing', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_counter');
     place(s, 'trader', 'tav_cellar');
@@ -166,17 +168,35 @@ describe('117 stealth', () => {
     const v = makeVillage();
     place(v, 'player', 'tav_counter');
     place(v, 'trader', 'tav_cellar');
+    aware(v, 'trader', 'tav_counter');
     const vc = rig();
-    turn(v, intent({ toZone: 'tav_cellar' }, { type: 'vanish' }));
+    turn(v, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
     expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.vanishing, tierShifts: [{ source: 'cover', value: 1 }] });
   });
-  it('an observer with Unblinking who loses a Vanish must also lose a stealth contest (ST23)', () => {
+  it('VS5: slipping away from a foe fighting you within VANISH_NEAR_M takes a tier shift; one only aware of you, or farther off, does not', () => {
+    const shifts = (engaged: boolean, m: number) => {
+      const s = makeVillage();
+      place(s, 'player', 'gate_inner');
+      const g = beside(s, 'guard_1', 'player', m);
+      aware(s, 'guard_1', 'gate_inner');
+      if (engaged) { g.mind!.knowledge.player!.status = 'engaged'; g.mind!.overrides = { player: 'hostile' }; }
+      const calls = rig({ guard_1: -1 });
+      turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
+      const [a] = calls.find(([, b]) => b.actorId === 'guard_1')!;
+      expect(a.skill).toBe(SK.vanishing);
+      return a.tierShifts.filter((t) => t.source === 'foe close by');
+    };
+    expect(shifts(true, 1)).toEqual([{ source: 'foe close by', value: CONFIG.VANISH_NEAR_SHIFT }]);
+    expect(shifts(false, 1)).toEqual([]);
+    expect(shifts(true, CONFIG.VANISH_NEAR_M + 2)).toEqual([]);
+  });
+  it('an observer with Unblinking who loses a Vanishing roll must also lose a stealth contest (ST23)', () => {
     const s = makeVillage();
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
     s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: PK.unblinking } as never);
     const calls = rig({ guard_1: [-1, 0] });
-    turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
+    turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
     expect(calls.filter(([, b]) => b.actorId === 'guard_1').map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]); // the slimes in the field see it too now
     expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
   });
