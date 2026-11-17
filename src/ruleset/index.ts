@@ -4,7 +4,7 @@ import { DU, RL } from '../library/tableIds';
 import { D100_MEAN } from '../rng';
 import { actionRow, actionSeconds } from './actionTime';
 import type {
-  Actor, AttackRequest, NaturalArmor, DefenseKind, AttackResult, CheckResult, ContestResult, Effect, GameState, Mod,
+  Actor, AttackKind, AttackRequest, NaturalArmor, DefenseKind, AttackResult, CheckResult, ContestResult, Effect, GameState, Mod,
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
@@ -174,7 +174,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) {
     modifiers.push(...woundsOnRoll(woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }), eff.value)); // PW1 b
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
-    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
+    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit', req.attackKind)); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
     modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses
     modifiers.push(...defeatsMods(actor, req.rollKind)); // D-119 total-defeats achievements
     modifiers.push(...achievementRollMods(actor, req.rollKind, req.fn)); // XR7 clean defenses, XR37 spotting
@@ -253,6 +253,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const dist = sightDistM(state, A, D);
   const { mode, name } = resolveMode(state, A, req.weaponId, req.modeId, dist);
   const ranged = mode.tree === 'ranged';
+  const kind: AttackKind = ranged ? 'ranged' : 'melee'; // throws are ranged; unarmed and natural attacks are melee
   const ct = actorBody(state, D);
   const zoneA = zoneById(state, A.zone);
   const zoneD = zoneById(state, D.zone);
@@ -261,7 +262,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const am: Mod[] = [];
   const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') * (1 - achievementAimEase(A, aimedPart.size)) }); // 40/80/120 perk aimMult (none uses it today); TM26 by-size achievements
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult', kind) * (1 - achievementAimEase(A, aimedPart.size)) }); // 40/80/120 perk aimMult (none uses it today); TM26 by-size achievements
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value (CS2)
   const hit = cls.hit + (mode.hitAdj ?? 0);
@@ -280,7 +281,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
     ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
-  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', ...(req.context?.fromHiding ? { when: ['from_hiding' as const] } : {}), against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend }, state, rng);
+  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', ...(req.context?.fromHiding ? { when: ['from_hiding' as const] } : {}), against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend, attackKind: kind }, state, rng);
   const atkEff = mode.blend ? blendedSkill(state, A, mode.blend, { itemId: req.weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit', true));
 
@@ -396,7 +397,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   }
 
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
-  const pierce = boostAdd(A, skill, 'armorPierce'); // 40/80/120 perk: Armor Piercer
+  const pierce = boostAdd(A, skill, 'armorPierce', kind); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
@@ -407,7 +408,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, PK.iron_knuckles) ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
   const improvised = skill === SK.unarmed_improvised || !!mode.blend?.some((b) => b.skill === SK.unarmed_improvised);
   const junk = improvised && hasPerk(A, PK.junk_arsenal) ? CONFIG.JUNK_ARSENAL_MULT : 1; // All-50: Junk Arsenal
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * knuckles * junk; // 40/80/120 perk: Heavy Hand
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult', kind) * knuckles * junk; // 40/80/120 perk: Heavy Hand
   const hide = location !== 'shield' && hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on the body hit before armor
   const body = raw * hide;
   const generalShare = openArm ? afterArmor(body * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') * frame : 0;

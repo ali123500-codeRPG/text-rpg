@@ -2,7 +2,7 @@
 // skill perks; ladder milestones and all-XXX perks read it. A milestone unlocks at 20, 40 … 140 true skill; taking its perk costs one
 // perk point and can be undone until the next turn is played (K3).
 import { achievementSkill } from './achRewards';
-import type { Actor, GameState, PerkDef } from '../types';
+import type { Actor, AttackKind, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
@@ -110,27 +110,27 @@ export const standInAdd = (a: Actor, fn: string): number =>
  * health (Natural recovery), morale (Natural composure) and stamina (Catching your breath) */
 export const recoveryMult = (a: Actor): number =>
   owned(a).reduce((m, p) => m * (getLibrary().perks[p.perkId]?.numbers?.recoveryMult ?? 1), 1);
-/** a ladder perk's numbers work with this skill: its own skill, the skills it lists (PerkDef.numbersFor: Keen Edge, every weapon),
- * or every skill of its group (PerkDef.numbersForGroup: Heavy Hand, every melee skill) */
-const numbersWork = (d: PerkDef | undefined, skill: string): boolean => !!d?.ladder &&
-  (d.numbersForGroup ? groupsOf(getLibrary().skills[skill]).includes(d.numbersForGroup) : (d.numbersFor ?? [d.ladder.skill]).includes(skill));
+/** a ladder perk's numbers work with this roll: its own skill, the skills it lists (PerkDef.numbersFor),
+ * or every attack of one kind, whatever skill rolls it (PerkDef.numbersForAttack: Keen Edge, any melee attack) */
+const numbersWork = (d: PerkDef | undefined, skill: string, kind?: AttackKind): boolean => !!d?.ladder &&
+  (d.numbersForAttack ? kind === d.numbersForAttack : (d.numbersFor ?? [d.ladder.skill]).includes(skill));
 /** a 40/80/120 perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
-export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult'): number {
+export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult', kind?: AttackKind): number {
   const perks = getLibrary().perks;
-  return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return numbersWork(d, skill) ? m * (d!.numbers?.[key] ?? 1) : m; }, 1);
+  return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return numbersWork(d, skill, kind) ? m * (d!.numbers?.[key] ?? 1) : m; }, 1);
 }
 /** 40/80/120 perk roll modifiers for one skill: rollAdd on every roll, hitAdd on attack rolls only, each named by its perk */
-export function boostRollMods(a: Actor, skill: string, attack: boolean): { source: string; type: 'roll_perk'; value: number }[] {
+export function boostRollMods(a: Actor, skill: string, attack: boolean, kind?: AttackKind): { source: string; type: 'roll_perk'; value: number }[] {
   const perks = getLibrary().perks;
   return owned(a).flatMap((p) => {
     const d = perks[p.perkId];
-    const v = numbersWork(d, skill) ? (d!.numbers?.rollAdd ?? 0) + (attack ? d!.numbers?.hitAdd ?? 0 : 0) : 0;
+    const v = numbersWork(d, skill, kind) ? (d!.numbers?.rollAdd ?? 0) + (attack ? d!.numbers?.hitAdd ?? 0 : 0) : 0;
     return v ? [{ source: d!.name, type: 'roll_perk' as const, value: v }] : [];
   });
 }
-export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
+export function boostAdd(a: Actor, skill: string, key: 'armorPierce', kind?: AttackKind): number {
   const perks = getLibrary().perks;
-  return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return numbersWork(d, skill) ? n + (d!.numbers?.[key] ?? 0) : n; }, 0);
+  return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return numbersWork(d, skill, kind) ? n + (d!.numbers?.[key] ?? 0) : n; }, 0);
 }
 
 /** ladder perks this actor owns in one skill */

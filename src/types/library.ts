@@ -12,6 +12,8 @@ import type { GrandeurKey, HealthLevelKey, PartStateKey, Past100Key, SkillTierKe
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
 export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
+/** the kind of an attack, by its mode: 'ranged' = a ranged-tree mode (shots and throws), 'melee' = every other (melee and unarmed, natural attacks included) */
+export type AttackKind = 'melee' | 'ranged';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
@@ -316,8 +318,9 @@ export type PerkDef = {
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
   /** the skills a ladder perk's `numbers` work with (Keen Edge: every melee weapon skill); none = the perk's own skill */
   numbersFor?: string[];
-  /** the skill group its numbers work with instead: every skill in it (Heavy Hand, melee in general); wins over numbersFor */
-  numbersForGroup?: SkillGroup;
+  /** the kind of attack its numbers work with instead of skills: 'melee' (melee and unarmed attacks, natural ones included)
+   * or 'ranged' (shots and throws), whatever skill rolls it; wins over numbersFor */
+  numbersForAttack?: AttackKind;
   /** SH1/SH4: 120 perks: a share of the ladder skill's true skill (read without shares) added as true skill, to the ladder skill
    * itself (shareOwn) and to it and every skill sharing a group with it (shareGroup); several shares on one skill stack (SH7 b) */
   shareOwn?: number; shareGroup?: number;

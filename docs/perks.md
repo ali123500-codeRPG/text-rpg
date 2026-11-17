@@ -271,11 +271,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Keen Edge (Light weapons) · P1
 
-*Story:* +5 Light weapons, +1 Melee. Your blade has learned where flesh is softest: +10 to hit with any weapon.
+*Story:* +5 Light weapons, +1 Melee. You have learned where flesh is softest: +10 to hit with any melee attack.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group Melee. +10 on attack rolls with Light weapons, Medium weapons or Heavy weapons.
+- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group Melee. +10 on the attack roll of every melee attack (a weapon, unarmed or improvised blow, or a natural attack such as a bite).
 - **Lasts:** Always.
 
 ### Guard Drill (Medium weapons) · P2
@@ -293,7 +293,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of an attack with any Melee skill (weapons, unarmed, improvised and natural attacks) is ×1.2, before armor.
+- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of every melee attack (a weapon, unarmed or improvised blow, or a natural attack such as a bite) is ×1.2, before armor.
 - **Lasts:** Always.
 
 ### Sharp Eyes (Light ranged) · P4
@@ -307,20 +307,20 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Steady Draw (Medium ranged) · P5
 
-*Story:* +5 Medium ranged, +1 Ranged. Steady hands, a heavier bite: +5 to hit with any ranged weapon, and it hits 10% harder.
+*Story:* +5 Medium ranged, +1 Ranged. Steady hands, a heavier bite: +5 to hit with any ranged attack, and it hits 10% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group Ranged. +5 on attack rolls with Light ranged, Medium ranged or Heavy ranged, and their damage is ×1.1, before armor.
+- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group Ranged. +5 on the attack roll of every ranged attack (a shot or a throw, whatever skill rolls it), and its damage is ×1.1, before armor.
 - **Lasts:** Always.
 
 ### Armor Piercer (Heavy ranged) · P6
 
-*Story:* +5 Heavy ranged, +1 Ranged. Steel plate is just a suggestion to your arrows and bolts: it stops 2 less of each hit.
+*Story:* +5 Heavy ranged, +1 Ranged. Steel plate is just a suggestion to anything you shoot or throw: it stops 2 less of each hit.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with Light ranged, Medium ranged or Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with any ranged attack (a shot or a throw, whatever skill rolls it), each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
 - **Lasts:** Always.
 
 ### Street Fighter (Strike) · P7
