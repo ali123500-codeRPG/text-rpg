@@ -44,7 +44,7 @@ describe('D-374 TB5: tagged group-mates help the roll', () => {
 
   it('the bonus adds to the room in the roll, tagged or not', () => {
     expect(growthRoll(45, { raw: 50, state: 'normal' }, 0).gain).toBe(0); // margin 45 + 50 − 100 = −5
-    expect(growthRoll(45, { raw: 50, state: 'normal' }, 0, undefined, 5).gain).toBe(2); // +5: margin 0, Success
-    expect(growthRoll(25, { raw: 50, state: 'tagged' }, 0, undefined, 5).gain).toBe(2); // 25 + 70 + 5 − 100 = 0
+    expect(growthRoll(45, { raw: 50, state: 'normal' }, 0, 6).gain).toBe(1); // +6: margin 1
+    expect(growthRoll(26, { raw: 50, state: 'tagged' }, 0, 5).gain).toBe(1); // 26 + 70 + 5 − 100 = 1
   });
 });
