@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** When a new character arrives in a world, the settlement they arrive in (all its places and areas, and everyone in them) is put on stage before the Weaver plans, and the Weaver is told they are arriving. It names where they arrive: an area already there, or a new one if it adds one (a new area is not required). A plan that declares a place or area of that settlement again is refused and sent back for repair.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #953](https://github.com/ali123500-codeRPG/text-rpg/pull/953)
 
 ## BG-272
 
