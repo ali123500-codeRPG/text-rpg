@@ -181,6 +181,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     modifiers.push(...pressureMods(actor, req.against)); // OQ-29 Shaken and Swayed
     modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
     modifiers.push(...overdrive(actor, eff.skill)); // SS15 Overdrive: Stamina 140
+    if (actor.engagement?.rallied) modifiers.push({ source: 'Rallied', type: 'status', value: CONFIG.RALLIED_MOD }); // TC41 a
   }
   const d = rng.d100();
   const margin = rollMargin(d, eff.value, modifiers);

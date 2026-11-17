@@ -22,7 +22,7 @@ import { perceptionOf } from '../perception';
 import { AURAS, type AuraDef } from '../library/auras';
 import { applySpeech } from './speech';
 import { contestFeat } from './feats';
-import { maxMorale } from '../ruleset/morale';
+import { maxMorale, moraleLost } from '../ruleset/morale';
 import { payoffShare, themeCount } from '../ruleset/perks';
 
 export { AURAS, type AuraDef } from '../library/auras';
@@ -118,8 +118,25 @@ export function cryAlly(state: GameState, t: Actor, owner: Actor): boolean {
   return (!!t.bandId && t.bandId === owner.bandId) || atLeastStance(s, 'friend') || (owner === state.player && besidePlayer(state, t));
 }
 
-/** TM28: a battle cry's rally restores morale through the composure table (CP.rallied), unless the actor already broke */
-const rally = (state: GameState, a: Actor): void => { if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.rallied); };
+/** TM28: a battle cry's rally restores morale through the composure table (CP.rallied). BG-301 (TC42 a): it reaches broken
+ * allies too, and once morale lost falls back under 100 % of max the break ends (liftBreak); a spoken surrender stays.
+ * TC41 a: every rally gives Rallied (CONFIG.RALLIED_MOD on every roll) for the rest of the fight, no stacking. */
+const rally = (state: GameState, a: Actor): void => {
+  if (!isActive(a)) return;
+  calm(state, a, CP.rallied);
+  liftBreak(state, a);
+  if (a.engagement) a.engagement.rallied = true;
+};
+
+/** BG-301: a broken actor whose morale lost is back under 100 % of max is no longer broken: it stops yielding to those
+ * it was fighting (loseNerve set them to yielded) and fights on. A spoken surrender (moraleState 'surrendered') stays. */
+export function liftBreak(state: GameState, a: Actor): boolean {
+  const m = a.mind;
+  if (m?.moraleState !== 'broken' || moraleLost(a) >= maxMorale(a)) return false;
+  delete m.moraleState;
+  for (const [id, st] of Object.entries(m.overrides ?? {})) if (st === 'yielded') m.overrides![id] = 'hostile';
+  return true;
+}
 
 /** I9/MB27 Battle Cry (Intimidation 140), a projected aura triggered by its move: the owner's roar (`ev`, a Loud event)
  * reaches everyone who perceives it at any level, however far, and anyone within the projected reach (projectedReachM),

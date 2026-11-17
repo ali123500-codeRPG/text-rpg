@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-301
+
+**What was wrong:** Battle Cry's rally passed over any ally who had already broken, although no decision ever said a broken ally can't be helped (the skip came in with PR #740). Once an NPC broke, it stayed broken, fleeing or yielding to those it fought, until the scenario ended, even if its morale came back.
+
+**What was done:** A rally now reaches broken allies too. When a broken ally's morale lost falls back under 100 % of its max, the break ends: it stops yielding to the foes it was fighting and fights on. A spoken surrender stays. Every rally also gives Rallied, +5 on every roll until the fight ends (no stacking), as Ali chose on the Tactics page (TC41, TC42).
+
+**Fixed by:** [PR #1015](https://github.com/ali123500-codeRPG/text-rpg/pull/1015)
+
 ## BG-299
 
 **What was wrong:** On the Questions hub, Ali emptied his new answer to TC31 ("Tactics skill tree"), a question that had been asked again, and his earlier answer disappeared too. The hub keeps the earlier answer inside the same saved record as the new one, and emptying a box deleted that whole record. The BG-298 fix shortly before had been tested on typing only, not on erasing.

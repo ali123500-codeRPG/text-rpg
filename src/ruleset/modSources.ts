@@ -134,6 +134,8 @@ export const MOD_SOURCES: ModSource[] = [
     when: 'Steadying yourself (SY1): the worst Shaken you carry against anyone.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },
   { type: 'status', roll: 'skill', source: 'Swayed', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose persuasion beat you, until your engagement ends.', value: `−${CONFIG.SWAYED_PER_TIER} × tiers lost by` },
+  { type: 'status', roll: 'skill', source: 'Rallied', at: 'src/ruleset/index.ts',
+    when: 'Every roll after a rally (Battle Cry\'s; Rally later), until your engagement ends. A second rally adds nothing (TC41).', value: `+${CONFIG.RALLIED_MOD}` },
   // aim
   { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at.',
     value: list(CONFIG.AIM_PENALTY) },

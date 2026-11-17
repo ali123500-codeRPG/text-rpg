@@ -86,7 +86,9 @@ export type PerkMark = { perk: string; target?: string; made?: number; /** the t
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
 export type EngagementKind = 'talk' | 'fight' | 'spar';
-export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
+export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog;
+  /** TC41 a: rallied this fight (Battle Cry's rally; Rally later): CONFIG.RALLIED_MOD on every roll until the engagement ends */
+  rallied?: true };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
 export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true;

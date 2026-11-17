@@ -709,7 +709,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Move (projected aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
-- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken, and so does the owner.
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back, loses any Shaken and is Rallied (+5 on every roll until the fight ends; a second rally adds nothing), and so does the owner. A broken ally is helped too: once its morale lost is back under 100 % of max, it stops fleeing and fights on (a spoken surrender stays).
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement. It is the owner's main action.
 
