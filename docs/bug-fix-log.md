@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-276
+
+**What was wrong:** The Parser's answer shape listed only the way ops lock, unlock, bar and unbar, while its instructions, the schema and the engine also use open and shut. The six ops were typed out in three places.
+
+**What was done:** One WAY_OPS list in src/engine/barriers.ts; WayOp, the schema and the Parser's shape read it, so the shape now names open and shut too.
+
+**Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
+
+## BG-274
+
+**What was wrong:** A Look around showed people in plain sight out to a plain 25 m, but searched for hidden people out to 25.1 m (withinM), because the look range was written in two places.
+
+**What was done:** One look-range check, inLookReach in src/perception/index.ts (the Normal sight metres, compared with withinM), used by the look that shows and the look that searches.
+
+**Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
+
 ## BG-287
 
 **What was wrong:** The opening scenario of the action-deck playtest ended when "the common room is cleared", but code could not check that: the slimes there belonged to several groups, and the only ending of that sort checks one group. So the Weaver had to judge it, which files a bug.
