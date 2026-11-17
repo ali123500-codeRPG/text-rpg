@@ -9,7 +9,7 @@ import { CONFIG } from '../../src/config';
 import { spawnNpc } from '../../src/library/spawn';
 import { TP } from '../../src/library/templateIds';
 import { SK } from '../../src/library/skillIds';
-import { walkLeg } from '../../src/engine/position';
+import { floorGap, walkLeg } from '../../src/engine/position';
 
 const room = () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
@@ -26,7 +26,8 @@ const at = (s: GameState, id: string, x: number, y: number): Actor => {
   return a;
 };
 const fists = (id: string) => plannerOut(id, act('attack', 'player', { skill: SK.unarmed_strike, item: 'unarmed' }));
-const d = (a: { pos?: { x: number; y: number } }, b: { pos?: { x: number; y: number } }) => Math.hypot(a.pos!.x - b.pos!.x, a.pos!.y - b.pos!.y);
+/** SZ5: metres between two people's bodies */
+const d = (s: GameState, a: Actor, b: Actor) => floorGap(s, a, b);
 const lost = (ev: GameEvent[], id: string) => ev.find((e) => e.actorId === id && e.kind === 'wasted');
 const struck = (ev: GameEvent[], id: string) => ev.some((e) => e.actorId === id && e.kind === 'attack');
 const agent = (a: Actor) => { a.mind!.control = 'agent'; (a.mind!.overrides ??= {}).player = 'hostile'; return a; };
@@ -40,8 +41,8 @@ describe('319 stepping round to reach', () => {
     const ev = play(s, { intent: intent(), agentOutputs: [fists(g.id)] });
     expect(lost(ev, g.id)).toBeUndefined();
     expect(struck(ev, g.id)).toBe(true);
-    expect(d(g, s.player)).toBeLessThanOrEqual(0.7 + 0.01);
-    expect(d(g, by)).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
+    expect(d(s, g, s.player)).toBeLessThanOrEqual(0.7 + 0.01);
+    expect(d(s, g, by)).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
   });
 
   it('three with fists on one target all reach him, each on a free spot', () => {
@@ -50,8 +51,8 @@ describe('319 stepping round to reach', () => {
     agent(at(s, 'f1', 2, 0)); agent(at(s, 'f2', -2, 0.1)); agent(at(s, 'f3', 0.1, 2));
     const ev = play(s, { intent: intent(), agentOutputs: ids.map(fists) });
     const xs = ids.map((id) => s.actors.find((a) => a.id === id)!);
-    for (const a of xs) { expect(lost(ev, a.id), a.id).toBeUndefined(); expect(d(a, s.player)).toBeLessThanOrEqual(0.71); }
-    for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) expect(d(xs[i], xs[j])).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
+    for (const a of xs) { expect(lost(ev, a.id), a.id).toBeUndefined(); expect(d(s, a, s.player)).toBeLessThanOrEqual(0.71); }
+    for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) expect(d(s, xs[i], xs[j])).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
   });
 
   it('a target hemmed in on every side: the blow is lost with no_room, not out of reach', () => {
@@ -72,10 +73,10 @@ describe('319 stepping round to reach', () => {
     const a = at(s, 'guard_1', 5, 0), b = at(s, 'trader', 0, 5);
     walkLeg(s, a, { zone: 'tav_common', pos: { x: 0, y: 0.1 } }, 10, 0, a);
     walkLeg(s, b, { zone: 'tav_common', pos: { x: 0, y: 0.1 } }, 10, 0, b);
-    expect(d(a, b)).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
+    expect(d(s, a, b)).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
     const c = at(s, 'patron_1', b.pos!.x + 0.1, b.pos!.y); // starts on top of b, walks a step past it
     walkLeg(s, c, { zone: 'tav_common', pos: { x: b.pos!.x - 0.05, y: b.pos!.y } }, 1, 0, c);
-    expect(d(c, b)).toBeGreaterThan(0.09); // never ends nearer than it began
+    expect(Math.hypot(c.pos!.x - b.pos!.x, c.pos!.y - b.pos!.y)).toBeGreaterThan(0.09); // never ends nearer than it began
   });
 
   it('turn 104 of the story: Hob, at the drover\'s side, lands his punch with Osric beside the line in and Sedge behind', () => {

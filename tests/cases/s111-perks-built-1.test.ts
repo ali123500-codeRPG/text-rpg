@@ -93,7 +93,7 @@ describe('111 coded perks, batch 1', () => {
   it('Keen Ear: hears 10 dB quieter, about three times as far; silence stays silent', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    const far = beside(s, 'slime_2', 'player', 20); // quiet (40 dB) fades under the floor by 10 m, with Keen Ear by about 32 m
+    const far = beside(s, 'slime_2', 'player', 19.5); // SZ5: between bodies, inside the 40 m field; quiet (40 dB) fades under the floor by 10 m, with Keen Ear by about 32 m
     const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, pos: far.pos, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
     const before = perceptionOf(ev, s, s.player);
     give(s.player, PK.keen_ear);

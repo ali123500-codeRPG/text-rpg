@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
-import { placeAll } from '../../src/engine/position';
+import { floorGap, placeAll } from '../../src/engine/position';
 import { noteFighting } from '../../src/engine/engagement';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { selectSpokespeople } from '../../src/engine/speech';
@@ -26,6 +26,7 @@ const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: '
 const besidePlayer = (s: GameState, id: string, m: number) => {
   const a = place(s, id, s.player.zone);
   a.pos = { x: s.player.pos!.x + m, y: s.player.pos!.y };
+  a.pos.x += m - floorGap(s, s.player, a); // SZ5: m metres between their bodies
   return a;
 };
 const hold = (a: Actor, itemId: string, id: string) => {
@@ -38,7 +39,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('213 zones are not distances', () => {
   it('closing in is metres: a hostile that steps nearer inside one zone, at no one in particular, is hunting', () => {
     const s = mapped();
-    const foe = besidePlayer(s, 'patron_1', 10);
+    const foe = besidePlayer(s, 'patron_1', 9.6); // SZ5: between bodies, so its centre stays inside the zone
     foe.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] } as never;
     foe.mind!.overrides = { player: 'hostile' };
     const from = { ...foe.pos! };

@@ -79,6 +79,9 @@ export function busyCheck(state: GameState, a: Actor, before: Map<string, Locate
   return stop;
 }
 
+/** SZ5: an actor as it stood at an earlier spot, so the distance then is measured body to body as now */
+const stoodAt = (a: Actor, at: Located | undefined): Located => (at ? { ...a, zone: at.zone, pos: at.pos } : a);
+
 /** AT67/AT68: after a step of `seconds`, given where everyone stood before it: someone not accepted closing in (their path
  * ends at the watcher, or they rush in at over RUSH_SHARE × their walk) within the warning time; or someone accepted who
  * starts closing in, readies a weapon, or is seen sneaking. Someone newly perceived who does not fire it is a passer-by:
@@ -91,7 +94,7 @@ export function checkNear(state: GameState, watch: NearWatch, before: Map<string
     const was = watch.accepted.get(x.id);
     if (!perceived(state, w, x)) { watch.accepted.delete(x.id); continue; }
     const d = safeDistM(state, w, x), from = before.get(x.id);
-    const d0 = from ? safeDistM(state, before.get(w.id) ?? w, from) : Infinity;
+    const d0 = from ? safeDistM(state, stoodAt(w, before.get(w.id)), stoodAt(x, from)) : Infinity;
     const speed = Number.isFinite(d0) && Number.isFinite(d) && seconds > 0 ? (d0 - d) / seconds : 0; // the watcher may have walked too
     const walk = moveSpeed(state, x).walk;
     const coming = speed > 0 && (comingFor(x, w) || speed > CONFIG.RUSH_SHARE * walk);

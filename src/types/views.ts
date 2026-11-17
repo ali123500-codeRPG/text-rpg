@@ -358,8 +358,9 @@ export type WeaverView = {
     scenario?: { question: string; stake?: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean;
       /** BG-41: what happened since it began (oldest first), and the memory lines people on the stage kept since then */
       happened: { turn: number; text: string }[]; remembered: { who: string; turn: number; text: string }[] };
-    /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
-    encounter?: { zone: string; danger: string; noticed: boolean };
+    /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming. RE4: who it can
+     * be: the road's unfilled travellers (cast roster: key) and who roams the land cover there (cast group) */
+    encounter?: { zone: string; danger: string; noticed: boolean; travellers?: RosterView[]; wild?: { group: string; who: string; weight: number }[] };
     /** SW3 a / WB6: what started this scenario, or opened this window, in free roam: why, what happened in the roam, who saw them */
     cause?: { why: string; happened: { turn: number; text: string }[]; seenBy: string[] } };
   headlines: string[];
