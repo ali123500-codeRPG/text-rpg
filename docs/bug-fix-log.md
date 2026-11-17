@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali's WI2 and WI7 answers. WI2 (PR #982): the land's roads, junctions and settlements are built once and code makes the ways between them, so a new world can't get this. WI7: a world built before that is mended once when it loads. The crossroads becomes the junction's area, nwroad's way to new ground becomes a plain way to the crossroads, nwroad_2 folds into nwroad with everything in it, the causeway keeps one way, and the north and south roads' ways on now carry the land's keys.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #988](https://github.com/ali123500-codeRPG/text-rpg/pull/988)
 
 ## BG-291
 
