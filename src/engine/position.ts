@@ -25,6 +25,11 @@ const EPS = M_EPS;
 /** BG-120: `d` metres is within `reach`: the one comparison for every reach, so someone who walked up to stop exactly
  * at a reach (a step-up, closing in) is never left a hair outside it by rounding (BG-267: CONFIG.REACH_MARGIN_M past it) */
 export const withinM = (d: number, reach: number): boolean => d <= reach + CONFIG.REACH_MARGIN_M;
+/** IC12 a: a decision (close in first? is the attack ranged from here?) uses the exact reach; withinM's margin only
+ * soaks up a step's rounding when the blow itself lands */
+export const reachesM = (d: number, reach: number): boolean => d <= reach;
+/** IC12 a: closing in for a blow aims CONFIG.REACH_MARGIN_M inside the reach, so the walk always stops within it */
+export const closeInM = (reach: number): number => Math.max(0, reach - CONFIG.REACH_MARGIN_M);
 const centre = (z: Zone): Pos | undefined => (z.rect ? { x: z.rect.x, y: z.rect.y } : undefined);
 /** p lies in zone z's rectangle (false when it has none), give or take M_EPS */
 export const inside = (z: Zone, p: Pos) => !!z.rect && Math.abs(p.x - z.rect.x) <= z.rect.w / 2 + EPS && Math.abs(p.y - z.rect.y) <= z.rect.d / 2 + EPS;

@@ -73,7 +73,7 @@ describe('111 coded perks, batch 1', () => {
     give(s.player, PK.tough_it_out); // Crippled counts as Damaged
     expect(grip()).toBe(0);
   });
-  it('Read Wounds: a foe’s Damaged parts and its health one level earlier', () => {
+  it('Read Wounds: anyone’s Damaged parts and their health one level earlier, foe or friend', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     s.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'opposed';
@@ -86,6 +86,9 @@ describe('111 coded perks, batch 1', () => {
     expect(seen()).toMatchObject({ health: 'injured', damaged: ['left_arm'] });
     wim.core.condition.hpLostPct = 20; // Hurt: still hidden
     expect(seen().health).toBeUndefined();
+    s.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'friendly'; // IC11 a: not foes only
+    wim.core.condition.hpLostPct = 40;
+    expect(seen()).toMatchObject({ health: 'injured', damaged: ['left_arm'] });
   });
   it('Keen Ear: hears 10 dB quieter, about three times as far; silence stays silent', () => {
     const s = makeVillage();

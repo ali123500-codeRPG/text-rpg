@@ -56,8 +56,10 @@ describe('319 stepping round to reach', () => {
 
   it('a target hemmed in on every side: the blow is lost with no_room, not out of reach', () => {
     const s = room();
-    for (let i = 0; i < 12; i++) {
-      const t = (2 * Math.PI * i) / 12;
+    // 16 sleepers close enough that no spot is free where a punch closes in (IC12 a: REACH_MARGIN_M inside its 0.7 m),
+    // and anyone stopped outside them stands past the blow's reach and margin
+    for (let i = 0; i < 16; i++) {
+      const t = (2 * Math.PI * i) / 16;
       at(s, `wall_${i}`, 0.69 * Math.cos(t), 0.69 * Math.sin(t)).asleep = { since: 0 };
     }
     const g = agent(at(s, 'brawler', 3, 0.3));
