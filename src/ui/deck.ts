@@ -59,12 +59,21 @@ const LEAN: Partial<Record<DeckKind, IdeaKind>> = {
 const BLANK: Intent = { move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null };
 type Act = NonNullable<Intent['action']>;
 
-/** the same name twice in one list reads as "the other …" from its second time on */
-function apart(names: string[]): string[] {
-  const seen = new Set<string>();
-  return names.map((n) => { const k = n.toLowerCase(); if (!seen.has(k)) { seen.add(k); return n; } return `the other ${n.replace(/^(a|an|the)\s+/i, '')}`; });
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st */
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+/** the same name twice in one list reads as "the other …" the second time; three or more times (BG-269, BF80) every one
+ * is numbered, "the 1st …", "the 2nd …", "the 3rd …", so no two entries share a name */
+export function apart(names: string[]): string[] {
+  const key = (n: string) => n.toLowerCase(), count = new Map<string, number>(), seen = new Map<string, number>();
+  for (const n of names) count.set(key(n), (count.get(key(n)) ?? 0) + 1);
+  return names.map((n) => {
+    const k = key(n), i = seen.get(k) ?? 0, bare = n.replace(/^(a|an|the)\s+/i, '');
+    seen.set(k, i + 1);
+    if ((count.get(k) ?? 0) > 2) return `the ${ordinal(i + 1)} ${bare}`;
+    return i === 0 ? n : `the other ${bare}`;
+  });
 }
-const theItem = (n: string) => (/^(the|a|an|some)\s/i.test(n) ? theOf(n) : n.startsWith('the other ') ? n : `the ${n}`);
+const theItem = (n: string) => (/^(the|a|an|some)\s/i.test(n) ? theOf(n) : `the ${n}`);
 
 /** the deck for this moment: groups in order, each with its actions (the character's leanings order both; nothing is
  * added or taken away by them). Empty groups are left out. */
