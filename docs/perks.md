@@ -705,11 +705,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, or stands close enough to feel it, makes a morale roll against you, and you and every such ally take heart and shake off fear.
+*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, or stands close enough to feel it, makes a morale roll against you, and you and every such ally take heart and shake off fear: the steadier the heart, the more it gains.
 
 - **Kind:** Move (projected aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
-- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back, loses any Shaken and is Rallied (+5 on every roll until the fight ends; a second rally adds nothing), and so does the owner. A broken ally is helped too: once its morale lost is back under 100 % of max, it stops fleeing and fights on (a spoken surrender stays).
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) loses any Shaken and makes a rally roll: its morale check (Resolve) plus 50% of the owner's Intimidation (augment equation). Each tier above Near Miss gives 10 morale back, and any gain makes it Rallied (+5 on every roll until the fight ends; a second rally adds nothing). The owner rallies itself the same way. A broken ally is helped too: once its morale lost is back under 100 % of max, it stops fleeing and fights on (a spoken surrender stays).
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement. It is the owner's main action.
 

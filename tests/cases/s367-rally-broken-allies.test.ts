@@ -1,11 +1,12 @@
 // 367 BG-301 (Tactics TC42 a) and the Rallied buff (TC41 a). A rally (Battle Cry's; Rally later) reaches broken allies:
 // once morale lost is back under 100 % of max the break ends, and the ally stops yielding to those it fought. A spoken
-// surrender stays. Every rally gives Rallied: CONFIG.RALLIED_MOD on every roll until the fight ends, no stacking.
+// surrender stays. TC43 a: a rally is the ally's own morale check plus a share of the rallier's skill. A rally that gives
+// anything back gives Rallied: CONFIG.RALLIED_MOD on every roll until the fight ends, no stacking.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
-import { liftBreak } from '../../src/engine/auras';
+import { liftBreak, rallyRoll } from '../../src/engine/auras';
 import { maxMorale, moraleLost } from '../../src/ruleset/morale';
 import { ruleset } from '../../src/ruleset';
 import { PK } from '../../src/library/perkIds';
@@ -40,13 +41,23 @@ describe('367 Rallies reach broken allies (BG-301) and give Rallied', () => {
     expect(ally.mind!.overrides?.guard_1).toBe('hostile');
   });
 
-  it('a rally that leaves it still over 100 % lost keeps the break', () => {
-    const { s, ally } = setup(CONFIG.MORALE_COWER_AT);
-    const before = moraleLost(ally);
-    play(s, { intent: cry });
-    expect(moraleLost(ally)).toBeLessThan(before); // helped, not skipped
-    expect(moraleLost(ally)).toBeGreaterThanOrEqual(maxMorale(ally));
+  it('a break that is still over 100 % lost stays', () => {
+    const { s, ally } = setup(1.1);
+    expect(liftBreak(s, ally)).toBe(false);
     expect(ally.mind!.moraleState).toBe('broken');
+  });
+
+  it('TC43 a: the rally roll is the ally\'s morale check plus a share of the rallier\'s skill; a steadier ally gains as much or more', () => {
+    const { s, ally } = setup(0.5);
+    s.player.core.skills[SK.intimidation] = { raw: 100, state: 'normal' };
+    const help = (r: ReturnType<typeof rallyRoll>) => r.roll.modifiers.find((m) => m.source.startsWith('rallied by'))?.value;
+    ally.core.skills[SK.resolve] = { raw: 20, state: 'normal' };
+    const low = rallyRoll(s, ally, s.player, SK.intimidation, createRng(7));
+    ally.core.skills[SK.resolve] = { raw: 80, state: 'normal' };
+    const high = rallyRoll(s, ally, s.player, SK.intimidation, createRng(7));
+    expect(help(low)).toBeCloseTo(CONFIG.SKILL_WEIGHT * 100 * CONFIG.RALLY_SHARE, 5);
+    expect(high.roll.margin).toBeGreaterThan(low.roll.margin);
+    expect(high.tiers).toBeGreaterThanOrEqual(low.tiers);
   });
 
   it('a spoken surrender stays', () => {

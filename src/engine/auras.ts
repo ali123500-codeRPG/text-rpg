@@ -5,16 +5,16 @@
 // and pays the aura's fear per tier of gap. Several auras check and cost on their own, so their morale costs add up.
 //   Dread Presence (Intimidation 100): Shaken toward the owner by SHAKEN_PER_TIER × gap until the engagement ends (the
 //   bigger of aura and spoken Shaken stands), and FR.dread_presence (10 morale per tier).
-import type { Actor, ContestResult, GameEvent, GameState, Rng } from '../types';
+import type { Actor, ContestResult, GameEvent, GameState, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
-import { hasPerk, markUse, moraleRoll, ruleset, toContest } from '../ruleset';
+import { hasPerk, markUse, moraleRoll, ruleset, tierLevel, toContest, trueSkill } from '../ruleset';
 import { FN } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { CP, FR } from '../library/tableIds';
 import { calm } from './heal';
 import { allActors, atLeast, atLeastStance, isActive, onSightPerks, stance, wary } from './relations';
-import { STANCES } from '../scales';
+import { STANCES, TIERS } from '../scales';
 import { probe } from './yield';
 import { distM, withinM } from './position';
 import { besidePlayer } from './engagement';
@@ -24,6 +24,8 @@ import { applySpeech } from './speech';
 import { contestFeat } from './feats';
 import { maxMorale, moraleLost } from '../ruleset/morale';
 import { payoffShare, themeCount } from '../ruleset/perks';
+import { augmentK } from '../ruleset/gear';
+import { skillName } from '../library/skillNames';
 
 export { AURAS, type AuraDef } from '../library/auras';
 
@@ -118,14 +120,27 @@ export function cryAlly(state: GameState, t: Actor, owner: Actor): boolean {
   return (!!t.bandId && t.bandId === owner.bandId) || atLeastStance(s, 'friend') || (owner === state.player && besidePlayer(state, t));
 }
 
-/** TM28: a battle cry's rally restores morale through the composure table (CP.rallied). BG-301 (TC42 a): it reaches broken
- * allies too, and once morale lost falls back under 100 % of max the break ends (liftBreak); a spoken surrender stays.
- * TC41 a: every rally gives Rallied (CONFIG.RALLIED_MOD on every roll) for the rest of the fight, no stacking. */
-const rally = (state: GameState, a: Actor): void => {
-  if (!isActive(a)) return;
-  calm(state, a, CP.rallied);
+/** TC43 a: a rally is one roll by the one rallied: its morale check (Resolve) plus RALLY_SHARE of the rallier's rallying
+ * skill (Battle Cry: Intimidation; Rally later: Command) through the augment equation, added to the skill like any
+ * augment (× SKILL_WEIGHT on the roll). Each tier above Near Miss gives the composure row CP.rallied's points (10) back,
+ * so a steadier ally and a stronger voice both help, and the ally's own morale penalty still counts.
+ * BG-301 (TC42 a): it reaches broken allies too; back under 100 % of max morale lost, the break ends (liftBreak); a
+ * spoken surrender stays. TC41 a: a rally that gives anything back makes the actor Rallied (CONFIG.RALLIED_MOD on every
+ * roll) for the rest of the fight, no stacking. */
+export function rallyRoll(state: GameState, a: Actor, by: Actor, skill: string, rng: Rng): { roll: RollResult; tiers: number } {
+  const help = CONFIG.SKILL_WEIGHT * trueSkill(by, skill) * augmentK(by, { share: CONFIG.RALLY_SHARE }, skill, SK.resolve);
+  const roll = moraleRoll(state, a, rng, 0, help ? [{ source: `rallied by ${skillName(skill)}`, type: 'situational', value: help }] : []);
+  return { roll, tiers: Math.max(0, tierLevel(roll) - TIERS.pos('near_miss')) };
+}
+const rally = (state: GameState, a: Actor, by: Actor, skill: string, rng: Rng): number => {
+  if (!isActive(a)) return 0;
+  const { tiers } = rallyRoll(state, a, by, skill, rng);
+  if (tiers) {
+    calm(state, a, CP.rallied, { times: tiers });
+    if (a.engagement) a.engagement.rallied = true;
+  }
   liftBreak(state, a);
-  if (a.engagement) a.engagement.rallied = true;
+  return tiers;
 };
 
 /** BG-301: a broken actor whose morale lost is back under 100 % of max is no longer broken: it stops yielding to those
@@ -146,7 +161,7 @@ export function liftBreak(state: GameState, a: Actor): boolean {
 export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rng, fear: AuraFear): CryResult[] {
   const out: CryResult[] = [];
   // the roar rallies the one who roars as it rallies their allies
-  rally(state, owner);
+  rally(state, owner, owner, SK.intimidation, rng);
   for (const p of Object.values(owner.pressure ?? {})) delete p.shaken;
   out.push({ target: owner, rallied: true });
   for (const t of allActors(state)) {
@@ -157,7 +172,7 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
       if (took) fear(t, FR.battle_cry, contest.gap, ow);
       out.push({ target: t, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
     } else if (cryAlly(state, t, owner)) {
-      rally(state, t);
+      rally(state, t, owner, SK.intimidation, rng);
       for (const p of Object.values(t.pressure ?? {})) delete p.shaken;
       out.push({ target: t, rallied: true });
     }

@@ -198,6 +198,8 @@ const DEFAULTS = {
   PROJECTED_AURA_MULT: 2,
   /** TC41 a: Rallied, from any rally: this bonus on every roll for the rest of the fight; a second rally adds nothing */
   RALLIED_MOD: 5,
+  /** TC43 a: a rally roll is the rallied one's morale check plus this share of the rallier's rallying skill (augment equation) [placeholder] */
+  RALLY_SHARE: 0.5,
   AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first

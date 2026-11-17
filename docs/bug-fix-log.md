@@ -18,7 +18,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was wrong:** Battle Cry's rally passed over any ally who had already broken, although no decision ever said a broken ally can't be helped (the skip came in with PR #740). Once an NPC broke, it stayed broken, fleeing or yielding to those it fought, until the scenario ended, even if its morale came back.
 
-**What was done:** A rally now reaches broken allies too. When a broken ally's morale lost falls back under 100 % of its max, the break ends: it stops yielding to the foes it was fighting and fights on. A spoken surrender stays. Every rally also gives Rallied, +5 on every roll until the fight ends (no stacking), as Ali chose on the Tactics page (TC41, TC42).
+**What was done:** A rally now reaches broken allies too. When a broken ally's morale lost falls back under 100 % of its max, the break ends: it stops yielding to the foes it was fighting and fights on. A spoken surrender stays. Every rally is now one roll by the one rallied, its morale check plus half of the rallier's skill, giving 10 morale per tier above Near Miss, so steadier allies gain more (TC43). Any gain also gives Rallied, +5 on every roll until the fight ends (no stacking), as Ali chose on the Tactics page (TC41, TC42).
 
 **Fixed by:** [PR #1015](https://github.com/ali123500-codeRPG/text-rpg/pull/1015)
 ## BG-300
