@@ -16,7 +16,7 @@ import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
-import { actionRow, actionSeconds, attackRowIds, reactSeconds } from '../ruleset/actionTime';
+import { actionRow, actionSeconds, attackRowIds, reactSeconds, timeFactor } from '../ruleset/actionTime';
 import { busyNow } from './busy';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
@@ -120,7 +120,7 @@ const slotsOf = (ctx: Ctx, a: Actor): Slots => {
 const useMain = (ctx: Ctx, a: Actor, cost?: { row?: DurationDef; seconds?: number; lockPaid?: boolean }): boolean => {
   const s = slotsOf(ctx, a);
   if (s.main <= T_EPS) return false;
-  const seconds = cost?.seconds ?? (cost?.row ? actionSeconds(cost.row) : undefined);
+  const seconds = cost?.seconds ?? (cost?.row ? actionSeconds(cost.row, undefined, timeFactor(a)) : undefined);
   const take = seconds === undefined ? s.main : Math.min(s.main, seconds);
   s.main -= take;
   if (cost?.row?.locksMove && !cost.lockPaid) s.move = Math.max(0, s.move - take);
@@ -153,7 +153,7 @@ function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[], pack: Set<GearOp> = new 
     const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
     for (const row of [pack.has(op) ? actionRow(DU.from_pack) : undefined, id ? actionRow(id) : undefined]) {
     if (!row) continue;
-    const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row));
+    const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row, undefined, timeFactor(a)));
     s.main -= take;
     if (row.locksMove) s.move = Math.max(0, s.move - take);
     ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
@@ -165,7 +165,7 @@ function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[], pack: Set<GearOp> = new 
  * short and `mainToo` (nothing else planned) it takes main time only. False when neither has room */
 function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
   const row = actionRow(op === 'lock' || op === 'unlock' ? DU.key : op === 'bar' || op === 'unbar' ? DU.bar : DU.door)!;
-  const s = slotsOf(ctx, a), secs = actionSeconds(row);
+  const s = slotsOf(ctx, a), secs = actionSeconds(row, undefined, timeFactor(a));
   if (s.move + T_EPS < secs && !(mainToo && s.main + T_EPS >= secs)) return false;
   s.move = Math.max(0, s.move - secs);
   s.main = Math.max(0, s.main - secs);
@@ -176,7 +176,8 @@ function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
 /** AT11: the Action times row an order's action uses, and its seconds (a crossbow's shot includes its spanning until
  * spanning is an action of its own); undefined when the order names no row (it takes the turn's main time) */
 function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; seconds: number } | undefined {
-  const of = (id: string | undefined, extra = 0) => { const row = id ? actionRow(id) : undefined; return row ? { row, seconds: actionSeconds(row) + extra } : undefined; };
+  const f = timeFactor(a); // VS8: sneaking multiplies the time
+  const of = (id: string | undefined, extra = 0) => { const row = id ? actionRow(id) : undefined; return row ? { row, seconds: actionSeconds(row, undefined, f) + extra } : undefined; };
   const inv = (ref: string | null | undefined) => (ref ? a.core.inventory.find((i) => i.id === ref || i.itemId === ref) : undefined);
   switch (o.type) {
     case 'attack': {
@@ -185,7 +186,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       const it = inv(m.itemId), ids = attackRowIds(it ? itemDef(state, it.itemId) : undefined, m.mode);
       // AT11c: a crossbow spans, then shoots: one long action under the spanning row (its focus, its work kept when broken off)
       const rows = ids.map(actionRow).filter((r): r is DurationDef => !!r);
-      return rows.length ? { row: rows[0], seconds: rows.reduce((n, r) => n + actionSeconds(r), 0) } : undefined;
+      return rows.length ? { row: rows[0], seconds: rows.reduce((n, r) => n + actionSeconds(r, undefined, f), 0) } : undefined;
     }
     case 'use_item': {
       const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
@@ -205,7 +206,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       // TP6 c: in a fight plain talk is no action (its time stays and carries); words that use a skill (persuade, lie,
       // threaten, haggle) take their words' time
       if (o.type === 'talk' && state.mode === 'tactical') return { row: actionRow(DU.talk)!, seconds: 0 };
-      if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row) * o.line.text.trim().split(/\s+/).length }; }
+      if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row, undefined, f) * o.line.text.trim().split(/\s+/).length }; }
       return undefined;
   }
 }
@@ -1577,7 +1578,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
     (b.beyond ??= {})[a.id] = eff;
     return emit(ctx, way('beyond', extra));
   }
-  const need = pickSeconds(eff);
+  const need = pickSeconds(eff, timeFactor(a));
   if (state.mode === 'tactical') {
     const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + ctx.turnS);
     payRow(state, a, actionRow(DU.pick_lock), ctx.turnS); // FT24: picking has no order row of its own, so it pays here
