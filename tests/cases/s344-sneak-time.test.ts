@@ -10,6 +10,7 @@ import { CONFIG } from '../../src/config';
 import { actionRow, actionSeconds, timeFactor } from '../../src/ruleset/actionTime';
 import { moveSpeed } from '../../src/engine/speed';
 import { pickSeconds } from '../../src/ruleset';
+import { stealthyTip } from '../../src/ui/stealth';
 
 const intent = (action: Partial<NonNullable<Intent['action']>>): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -61,12 +62,17 @@ describe('344 sneak time (VS8)', () => {
       s.mode = 'tactical';
       s.player.react = { s: 0, init: 100, turn: s.turn };
       if (sneak) s.player.posture = 'stealthy';
-      const ev = turn(s, { ...intent({}), action: null, move: { toZone: 'field_mid' } });
+      const ev = turn(s, { ...intent({}), action: null, move: { toZone: 'field_far' } }); // far enough that neither walker arrives
       return ev.filter((e) => e.kind === 'move' && e.actorId === 'player').reduce((n, e) => n + (e.metres ?? 0), 0);
     };
     const open = walked(false), sneaking = walked(true);
     // the move slot walks and the main slot dashes: walk × turn + (run − walk) × turn = run × turn
+    expect(open).toBeCloseTo(openRun * CONFIG.FIGHT_TURN_S, 6);
     expect(sneaking).toBeCloseTo((openRun / CONFIG.SNEAK_TIME_MULT) * CONFIG.FIGHT_TURN_S, 6);
-    expect(sneaking).toBeLessThan(open); // open, the walker reached the next zone
+  });
+
+  it('pointing at Stealthy says it slows all actions by SNEAK_TIME_MULT', () => {
+    expect(stealthyTip()).toContain(`slows all your actions ×${CONFIG.SNEAK_TIME_MULT}`);
+    expect(stealthyTip()).toMatch(/moving included/);
   });
 });
