@@ -432,6 +432,7 @@ const DEFAULTS = {
   HEAL_PAST_STEP: 0.1,
   /** NR28: how much each band counts when code picks the closest role for the skills the World builder or Weaver wants */
   ROLE_WANT_SCORE: { high: 3, moderate: 2, low: 1 },
+  ROLE_WANT_SKILLS: [2, 4] as [number, number], // NR28: a cast entry's wants name this many skills, fewest to most
   REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
   CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----

@@ -390,8 +390,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     } else if (c.template === undefined && c.compose === undefined) err('bad_cast', `cast ${k}: names no template, composition or actor`, k);
     else {
       let tpl;
-      const w = c.compose?.wants, lib2 = getLibrary(); // NR28: 2 to 4 known skills
-      if (w && (w.skills.length < 2 || w.skills.length > 4 || w.skills.some((id) => !lib2.skills[id]))) err('bad_compose', `cast ${k}: compose wants needs 2 to 4 skill ids from catalogs.skills`, k);
+      const w = c.compose?.wants, lib2 = getLibrary(); // NR28: ROLE_WANT_SKILLS known skills
+      if (w && (w.skills.length < CONFIG.ROLE_WANT_SKILLS[0] || w.skills.length > CONFIG.ROLE_WANT_SKILLS[1] || w.skills.some((id) => !lib2.skills[id]))) err('bad_compose', `cast ${k}: compose wants needs ${CONFIG.ROLE_WANT_SKILLS[0]} to ${CONFIG.ROLE_WANT_SKILLS[1]} skill ids from catalogs.skills`, k);
       else if (c.compose && !c.compose.role) err('bad_compose', `cast ${k}: compose names no role and no wants`, k);
       else if (c.compose) { const e = composeError(c.compose); if (e) err('bad_compose', `cast ${k}: ${e}`, k); else tpl = composeTemplate(c.compose, c.label); } // NG15
       else try { tpl = npcTemplate(state, c.template!); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
