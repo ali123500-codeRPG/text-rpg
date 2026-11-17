@@ -160,12 +160,14 @@ function beyond(state: GameState, a: Actor, i: ItemInstance): { beyondYou?: stri
 }
 
 function ownGear(state: GameState, a: Actor): OwnGearView[] {
+  const usable = new Set(usableModes(state, a).map((m) => m.itemId));
   return a.core.inventory.map((i) => {
     const d = itemDef(state, i.itemId);
     const classes = [...new Set((d.weapon?.modes ?? []).map((m) => m.class))];
     return {
       id: i.id, itemId: i.itemId, name: pieceName(state, i), look: d.look, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
       modes: (d.weapon?.modes ?? []).map((m) => ({ id: m.id, name: modeName(m) })),
+      ...(d.weapon && isHeld(i) && !usable.has(i.id) ? { cantSwing: true as const } : {}), // BG-283: in hand, but no usable grip (a crippled arm, a hold)
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
       ...(d.stackable ? { qty: i.qty ?? 1 } : {}),
