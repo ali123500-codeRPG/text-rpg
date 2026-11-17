@@ -8,8 +8,8 @@ import { createRng } from '../rng';
 import { CONFIG } from '../config';
 import { SCENARIO_SCALES, TIME_OF_DAY, type ScenarioScale } from '../scales';
 import { now, timeOfDay } from '../time';
-import { actorById, isActive, isEngaged } from './relations';
-import { givenTo, playerFound, playerIn } from './quests';
+import { actorById, isActive, isEngaged, stance } from './relations';
+import { actorIn, givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
 import { flushGrowth, keepGains, xpBar } from './growth';
 import { triggerErrors } from '../scenario/triggers';
@@ -46,7 +46,7 @@ function checkable(state: GameState, w: EndCheck): boolean {
   const actor = (r: string) => !!actorById(state, r);
   switch (w.kind) {
     case 'band_out': return state.bands.some((b) => b.id === w.band);
-    case 'reach': case 'leave': return place(w.place);
+    case 'reach': case 'leave': case 'clear': return place(w.place);
     case 'find': return actor(w.actor);
     case 'deliver': return actor(w.to) && typeof w.item === 'string';
     case 'hold': return typeof w.item === 'string';
@@ -58,7 +58,7 @@ function checkable(state: GameState, w: EndCheck): boolean {
 function mapCheck(w: EndCheck, ref: (kind: 'band' | 'place' | 'actor', key: string) => string): EndCheck {
   switch (w.kind) {
     case 'band_out': return { kind: w.kind, band: ref('band', w.band) };
-    case 'reach': case 'leave': return { kind: w.kind, place: ref('place', w.place) };
+    case 'reach': case 'leave': case 'clear': return { kind: w.kind, place: ref('place', w.place) };
     case 'find': return { kind: w.kind, actor: ref('actor', w.actor) };
     case 'deliver': return { kind: w.kind, item: w.item, to: ref('actor', w.to) };
     default: return w;
@@ -71,6 +71,11 @@ function bandOut(state: GameState, band: string): boolean {
   return members.length > 0 && members.every((a) => !isActive(a) || !!a.mind?.moraleState || !state.stage.zoneIds.includes(a.zone));
 }
 
+/** BG-287: those hostile to the player still standing in a place or zone: up, not broken, and on the stage, as bandOut
+ * counts a band's members out */
+export const foesIn = (state: GameState, place: string) => state.actors.filter((a) => actorIn(state, a, place) && isActive(a) && !a.mind?.moraleState
+  && state.stage.zoneIds.includes(a.zone) && stance(state, a, state.player) === 'hostile');
+
 /** is this ending's check met now (judged ones never are: the Weaver check-in decides them) */
 export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], frame: ScenarioFrame | undefined = state.stage.scenario): boolean {
   switch (w.kind) {
@@ -82,6 +87,7 @@ export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], fra
     case 'hold': return state.player.core.inventory.some((i) => i.itemId === w.item);
     case 'deliver': return givenTo(state, events, w.item, w.to) > 0;
     case 'time': return timeOfDay(now(state)) === TIME_OF_DAY.keyOf(w.at);
+    case 'clear': return !!frame?.hadFoes?.includes(w.place) && !foesIn(state, w.place).length; // a foe stood there first
     case 'judged': return false;
   }
 }
@@ -100,6 +106,7 @@ export function checkScenarioEnd(state: GameState, events: GameEvent[]): void {
   const st = state.stage;
   for (const f of [st.scenario, st.outer]) for (const e of f?.endings ?? []) {
     if (e.when.kind === 'leave' && playerIn(state, e.when.place) && !f!.beenIn?.includes(e.when.place)) (f!.beenIn ??= []).push(e.when.place);
+    if (e.when.kind === 'clear' && !f!.hadFoes?.includes(e.when.place) && foesIn(state, e.when.place).length) (f!.hadFoes ??= []).push(e.when.place);
   }
   if (!st.ending) {
     for (const [frame, outer] of [[st.scenario, false], [st.outer, true]] as const) {

@@ -7,6 +7,7 @@ import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { distM } from '../../src/engine/position';
+import { slotMetres } from '../../src/engine/speed';
 import { zoneById } from '../../src/engine/relations';
 
 const bodyAt = (m: number) => {
@@ -34,7 +35,8 @@ it('a body too far for one run: the hero runs on, the story says how far short, 
   const { s, t } = bodyAt(100);
   const ev = take(s, t.id);
   expect(s.player.core.inventory.some((i) => i.id === 'pack_1')).toBe(false);
-  expect(distM(s, s.player, t)).toBeLessThan(100 - 10); // more than a walk's 8 m: the main time ran on too
+  // BF91: as far as a dash runs (the move time walked, then the main time run), not a walk's 8 m
+  expect(100 - distM(s, s.player, t)).toBeCloseTo(slotMetres(s, s.player, 'move') + slotMetres(s, s.player, 'main'), 0);
   const short = ev.find((e) => e.actorId === 'player' && e.kind === 'wasted')!;
   expect(short.reason).toBe('out_of_reach');
   expect(short.metres).toBeGreaterThan(0);

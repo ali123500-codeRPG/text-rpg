@@ -1909,7 +1909,11 @@ function step(ctx: Ctx, id: string): void {
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
-  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!, behind); };
+  // BG-284 (BF91 a): a take with nothing else to do (hold) walks over as a dash does, on the dash's own payment (the move
+  // time, then the main time), so a body across the zone is reached in one turn when a run gets there. Only within the
+  // zone ("Take things here"): a thing in another zone is still walked to at walking pace (BG-85)
+  const takeDash = o.type === 'hold' && !o.way && later.length > 0 && near?.at.zone === a.zone;
+  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!, behind, false, takeDash); };
   // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen.
   // BG-86: out of reach of the door, the move slot walks to it, and the op takes the main action if that is free
   let turned = false;
@@ -1931,13 +1935,6 @@ function step(ctx: Ctx, id: string): void {
   if (!turned && !o.moveAfter) move(o.type === 'hold');
   if (!o.way) closer();
   if (later.length) {
-    // BG-284: a take with nothing else to do (hold) runs on with the main time, as a dash does, so a body across the zone
-    // is reached in one turn when a run gets there. Only within the zone ("Take things here"): a thing in another zone
-    // is still walked to at walking pace (BG-85)
-    if (o.type === 'hold' && near && !near.ok() && near.at.zone === a.zone && slotsOf(ctx, a).main > T_EPS) {
-      closeInOn(ctx, a, o, near, behind, true);
-      ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, slotsOf(ctx, a).walkedS));
-    }
     // still out of reach after the walk: the take waits for the next turn. That is play, not a bug (pick_up_short), and
     // the story says how far short it fell (BG-163); a take the walk could not help (the thing is gone) is still invalid_gear
     const short = later.filter((op) => !reachable(state, a, op) && !!pickUpAt(state, op, a));
@@ -2217,12 +2214,13 @@ const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUp
 
 /** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
  * from the actor's zone it is reached over from the actor's side of it (BG-62), unless the actor goes behind it (BG-183) */
-function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false, dash = false): void {
+function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false, dash = false, asDash = false): void {
   const { state } = ctx;
   const over = !behind && near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
   const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
   const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
-  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, dash) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
+  // asDash: paid leg by leg exactly as a dash's move (move(true)): the move time, then the main time
+  walk(ctx, a, goal, o, asDash ? (n) => useMoveSlot(ctx, a, n > 0) : (n) => (n === 0 ? useMoveSlot(ctx, a, dash) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
 }
 
 /** BG-255 (NV9 b): a melee blow still out of reach after the close-in walk is not swung at nothing: the actor runs on at

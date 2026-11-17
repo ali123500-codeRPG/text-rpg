@@ -1619,6 +1619,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .mm-here { fill: none; stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
 .mm-name { font-family: var(--font-round); font-weight: 700; fill: color-mix(in srgb, var(--text) 35%, transparent); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; pointer-events: none; }
 .mm-ring { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-dasharray: 4 4; pointer-events: none; }
+.mm-ring.dash { fill: color-mix(in srgb, var(--accent) 3%, transparent); stroke: color-mix(in srgb, var(--accent) 50%, transparent); stroke-dasharray: 1 5; stroke-linecap: round; } /* BF91: how far a dash runs; told apart from the walk ring by its dots, not colour alone (MAP-34) */
 .mm-path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1 6; pointer-events: none; }
 .mm-path.far { stroke: var(--warn); }
 .mm-path.set { stroke-dasharray: none; opacity: .7; }

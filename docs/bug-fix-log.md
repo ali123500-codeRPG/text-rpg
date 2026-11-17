@@ -6,6 +6,38 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-287
+
+**What was wrong:** The opening scenario of the action-deck playtest ended when "the common room is cleared", but code could not check that: the slimes there belonged to several groups, and the only ending of that sort checks one group. So the Weaver had to judge it, which files a bug.
+
+**What was done:** A new ending, "clear": it is met once nobody hostile to the player still stands in a named place (down, broken or gone, from any group), and only after a foe has stood there during the scenario. The Weaver is told to use it for clearing a place.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-286
+
+**What was wrong:** The causeway offered two roads north-west: the first story's unexplored road, and a road the fifth hero's opening built beside it to arrive on. The Weaver could not say it was building the road already promised.
+
+**What was done:** A new area the Weaver names after an unexplored way builds that way, as when the player walks through it, so the way is built once. The opening Weaver is told to do this when the newcomer arrives along such a way. This world keeps its two roads, since code cannot tell they are the same.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-285
+
+**What was wrong:** The causeway listed the cottage row twice, in Go to and in Look at. When the way to the cottages was built, the new area's own way back added a second way from the causeway before the unexplored way was joined to it.
+
+**What was done:** The unexplored way is joined first, then any missing ways back are added, so there is one way in. A save that already has the twin drops the one the code added when it loads.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-284
+
+**What was wrong:** Taking the pack off a body 19 m along the causeway took three turns. The walk over used only the move time (about 8 m a turn), not the rest of the turn, and each short turn filed a bug report.
+
+**What was done:** A take with nothing else to do walks over the same way a dash does, so a body across the area is usually reached in one turn. One still too far says how far short you are, and you take it next turn, with no bug filed. The minimap now shows two circles in a fight: how far you walk and how far you dash this turn.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-283
 
 **What was wrong:** In the action-deck playtest a slime crippled the hero's right arm, the arm holding the hand axe. The deck still offered to attack with the axe; the swing came to nothing and the next slam killed the hero. The deck listed every weapon in hand without asking whether a hand could still use it.

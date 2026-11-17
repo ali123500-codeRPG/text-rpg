@@ -280,6 +280,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     for (const o of zones) if (o.key !== key && arr(o.links).some((l) => l.to === key)) n.add(o.key);
     for (const o of state.zones) if (o.links.some((l) => !l.frontier && l.to === key)) n.add(o.id);
     if (ctx.frontierKey && zones[0]?.key === key) for (const o of state.zones) if (o.links.some((l) => l.frontier && l.to === ctx.frontierKey)) n.add(o.id);
+    // BG-286 (BF93 a): a zone keyed as a frontier on the stage is that way, built: it touches the zones leading into it
+    if (existingFrontiers.has(key)) for (const o of state.zones) if (o.links.some((l) => l.frontier && l.to === key)) n.add(o.id);
     return n;
   };
   for (const z of zones) {
@@ -365,6 +367,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   };
   for (const z of zones) for (const l of arr(z.links)) if (isZone(l.to)) edge(z.key, l.to);
   for (const z of state.zones) for (const l of z.links) if (!l.frontier && stageZones.has(l.to)) edge(z.id, l.to);
+  for (const z of state.zones) for (const l of z.links) if (l.frontier && zoneKeys.has(l.to)) edge(z.id, l.to); // BG-286: a frontier built as a plan zone
   const reach = (from: string) => {
     const seen = new Set([from]);
     const q = [from];
@@ -531,14 +534,14 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         const w = e.when as EndCheck | undefined;
         switch (w?.kind) {
           case 'band_out': if (!isBand(w.band)) serr('scenario_ending', `${where}: band ${w.band} unknown`); break;
-          case 'reach': case 'leave': if (!isPlace(w.place) && !isZone(w.place)) serr('scenario_ending', `${where}: place ${w.place} unknown`); break;
+          case 'reach': case 'leave': case 'clear': if (!isPlace(w.place) && !isZone(w.place)) serr('scenario_ending', `${where}: place ${w.place} unknown`); break;
           case 'find': if (!isActor(w.actor)) serr('scenario_ending', `${where}: actor ${w.actor} unknown`); break;
           // BG-222: items made in play (IT26_m39_0) are known too, through the same lookup as the rest of the game
           case 'hold': if (!itemKnown(w.item)) serr('scenario_ending', `${where}: item ${w.item} unknown`); break;
           case 'deliver': if (!itemKnown(w.item)) serr('scenario_ending', `${where}: item ${w.item} unknown`); else if (!isActor(w.to)) serr('scenario_ending', `${where}: actor ${w.to} unknown`); break;
           case 'time': if (!TIME_OF_DAY.keyOf(w.at)) serr('scenario_ending', `${where}: time must be one of ${TIME_OF_DAY.list()}`); break;
           case 'judged': break;
-          default: serr('scenario_ending', `${where}: when.kind must be one of band_out, reach, leave, find, hold, deliver, time, judged`);
+          default: serr('scenario_ending', `${where}: when.kind must be one of band_out, reach, leave, find, hold, deliver, time, clear, judged`);
         }
       });
     };
