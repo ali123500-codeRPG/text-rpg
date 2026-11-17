@@ -171,6 +171,8 @@ export type StagePlan = {
   event: { summary: string; challenge: Grade; gain: Grade };
   /** T8: when the story opens; after that, only the current time of day */
   timeOfDay?: TimeOfDay;
+  /** BG-273: a new character arriving in a world with a past arrives here: an area id on the stage or a new zone's key */
+  arriveAt?: string;
   places: {
     key: string; name: string; kind: string; parent: string;
     /** CO17 a prebuilt layout id: code adds its zones as `${key}.${zoneKey}`; names/looks rename them by the layout's zone keys */

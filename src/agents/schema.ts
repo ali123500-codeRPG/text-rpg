@@ -195,6 +195,7 @@ const FURNITURE = obj<PlanFurniture>({ kind: str, name: str, at: str, edge: bool
 const weaver = obj<StagePlan>({
   event: obj<StagePlan['event']>({ summary: str, challenge: GRADE, gain: GRADE }),
   timeOfDay: level(TIME_OF_DAY),
+  arriveAt: str, // BG-273
   // BG-36: every optional field the Weaver may give is named here, or it is dropped before validation
   places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
     layout: str, names: record(str), looks: record(str), furniture: record(arr(FURNITURE)), site: str }, ['layout', 'names', 'looks', 'furniture', 'site'])), // no parent = top level (V5)
@@ -259,7 +260,7 @@ const weaver = obj<StagePlan>({
   scenario: any as V<StagePlan['scenario']>, // SC1/SC2/SC7: checked by the validator (src/scenario/validate.ts)
   episode: any as V<StagePlan['episode']>, // SW10 a: checked by the validator too
   forbidden: arr(str), // GD1 b
-}, ['timeOfDay', 'spars', 'scenario', 'episode', 'containers', 'forbidden']);
+}, ['timeOfDay', 'arriveAt', 'spars', 'scenario', 'episode', 'containers', 'forbidden']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);

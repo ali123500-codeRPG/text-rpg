@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-273
+
+**What was wrong:** In the action-deck playtest a new character started in story 2's world, as asked, but the game built a second copy of the village around them: two Eel and Oars, two Wicklow Reaches, a second Marda Tull and the slimes twice over, while the old fight went on unseen in the first inn. A newcomer's stage starts empty, so the scenario planner (the Weaver) saw no places at all and rebuilt the village from its notes, and the game gave the copies new ids. It was also never told a newcomer was arriving.
+
+**What was done:** When a new character arrives in a world, the settlement they arrive in (all its places and areas, and everyone in them) is put on stage before the Weaver plans, and the Weaver is told they are arriving. It names where they arrive: an area already there, or a new one if it adds one (a new area is not required). A plan that declares a place or area of that settlement again is refused and sent back for repair.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-272
 
 **What was wrong:** In the action-deck playtest the story's opening event roll was a Critical Success, and its achievement (Fate Meant It as a Curse) landed at once, before the story had even started, instead of at the end of the scenario like every other gain. The game flagged it itself (achievement_outside_end). The roll is made just before the opening scenario begins, when nothing yet holds growth back; the same could happen at a scenario start right after a story beat ended the last one.
