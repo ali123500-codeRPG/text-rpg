@@ -66,7 +66,7 @@ import { cantExtract, extractEssence } from './extract';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
-import { answerOffer, answerOffers, canOffer, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
+import { answerOffer, answerOffers, canOffer, feelsThreats, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
@@ -718,7 +718,11 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, ...(line ? { line } : {}), noise: VOLUME_NOISE[line?.volume ?? 'normal'] });
   if (a.kind === 'player') ev.speech = { skill: speechSkillOf(o.type), addressees: o.addressees ?? [] };
   // NV5: words aimed at a creature that cannot understand them (a slime, a beast): the story says it does not understand
-  if (a.kind === 'player') for (const id of new Set([o.target, ...(o.addressees ?? [])])) { const x = id ? actorById(state, id) : undefined; if (x && x !== a && isActive(x) && !speaks(x)) ev.effects.push({ kind: 'not_understood', actorId: x.id, data: {} }); }
+  // BF88: a threat needs no words: a beast with some wits is stared down instead (Intimidation against its own), and it is
+  // never told as words not understood
+  const stared = a.kind === 'player' && o.type === 'intimidate' && o.target ? actorById(state, o.target) : undefined;
+  const beast = stared && stared !== a && isActive(stared) && !speaks(stared) && feelsThreats(stared) ? stared : undefined;
+  if (a.kind === 'player') for (const id of new Set([o.target, ...(o.addressees ?? [])])) { const x = id ? actorById(state, id) : undefined; if (x && x !== a && x !== beast && isActive(x) && !speaks(x)) ev.effects.push({ kind: 'not_understood', actorId: x.id, data: {} }); }
   // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers.
   // NL1/NL2: a lie at another NPC rolls the same way (D-155: other speech at NPCs stays banked)
   const p = state.player;
@@ -738,6 +742,16 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
       if (to === p && OFFER_TYPES.includes(type) && type !== 'barter' && canOffer(state, a, p)) ev.push.offer = makeOffer(state, a, p, type, contest, []).landed;
     }
   }
+  if (beast) {
+    ev.perception = computePerception(ev, state, ctx.rng);
+    if (ev.perception[beast.id]) {
+      const contest = pushContest(state, a, 'intimidate', ctx.rng, beast);
+      ev.contest = contest;
+      const took = applySpeech(a, beast, 'intimidate', contest).status === 'shaken';
+      if (took) fear(ctx, beast, FR.lost_intimidation, { gap: contest.gap });
+      ev.effects.push({ kind: took ? 'threat_took' : 'threat_shrugged', actorId: beast.id, data: { by: a.id } });
+    }
+  }
   // Voice shares: only facts from its knows list
   const voice = o.source === 'agent' ? usableAgentOutputs(ctx.input).find((x) => x.actorId === a.id && x.agent === 'voice') : undefined;
   if (voice?.agent === 'voice') {
@@ -747,7 +761,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
       else logCode(state, 'invalid_share', { actorId: a.id, factId: id });
     }
   }
-  emit(ctx, ev, undefined, push);
+  emit(ctx, ev, undefined, push || !!beast);
   if (type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
 }
 

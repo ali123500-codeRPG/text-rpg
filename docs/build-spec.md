@@ -1876,6 +1876,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 120 | Opening turn end (BG-275) | s348: a new character's opening turn records its end at its own time, and a fight still going in that world is not flagged stale after a long first turn |
 | 121 | Half-seen lying still (BG-278) | s349: a body half seen in the dark is lying still with no health shown; the deck offers no talk against it but offers Attack and Look at; the narrator sees the mark; a sleeper lies still, someone standing does not |
 | 122 | Look, beasts, walk label (BG-279/280/281) | s350: a good look keeps a moving slime seen that turn with no new roll; a slime seen clearly or last seen elsewhere gets no talk, trade, gift or search (Threaten stays) while a guard does; a walk up to someone is named by them |
+| 123 | Threats at beasts (BF88) | s351: a threat at a wolf rolls Intimidation against its own, a win shakes it and costs morale, never "does not understand"; a slime ignores a threat; a Battle Cry still shakes a slime |
 
 ### Deliverables and acceptance criteria
 
