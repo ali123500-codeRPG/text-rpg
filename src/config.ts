@@ -79,6 +79,14 @@ const DEFAULTS = {
   POOL_QUALITY_FACTOR: 0.1,
   POTENTIAL: 300,
   K: 20,
+  /** D-374 TB1 (placeholders): how much of a skill's raw counts toward Burden's Total: 100 % less TAG_BURDEN_SELF_PCT for its
+   * own tag, less TAG_BURDEN_GROUP_PCT per tagged skill sharing a group with it (itself included). A lone tag counts 0; two tags
+   * in one group count below 0 and lower the Total */
+  TAG_BURDEN_SELF_PCT: 95,
+  TAG_BURDEN_GROUP_PCT: 5,
+  /** D-374 TB5 (placeholder): each tagged skill adds this share of its true skill to the improvement rolls of every other
+   * skill sharing a group with it (D-376: true skill or raw is checked at the balance pass) */
+  TAG_GROUP_ROLL_SHARE: 0.05,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
   /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (1: every mark;

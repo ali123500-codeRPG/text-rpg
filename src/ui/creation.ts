@@ -4,6 +4,7 @@ import type { Actor, CreationBuild, GameApi, Pronouns } from '../types';
 import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
+import { burdenTotal } from '../ruleset/burdenTotal';
 import { getLibrary } from '../library';
 import { classFloors, classlessStart, creationCap, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
@@ -148,8 +149,8 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
         how: `Estimated: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, from ${st.swings} practice swings with the game’s attack rules.` },
       { label: 'Potential', value: String(CONFIG.POTENTIAL), unit: 'pts',
-        sub: `StartingTotal ${open.filter((k) => !st.tags.has(k)).reduce((a, k) => a + st.v[k], 0)} · ${st.tags.size} of ${maxTags()} tagged`,
-        how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your untagged skills when the story starts. Tagged skills ignore Burden.` },
+        sub: `StartingTotal ${+burdenTotal(Object.fromEntries(open.map((k) => [k, { raw: st.v[k], state: st.tags.has(k) ? 'tagged' : 'normal' }]))).toFixed(2)} · ${st.tags.size} of ${maxTags()} tagged`,
+        how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your skills when the story starts, each tag taking ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in its group (a lone tag counts 0). Tagged skills ignore Burden.` },
     ];
     tilesHost.replaceChildren(readouts(tiles, how));
     src.replaceChildren('≈ Vs one slime is an estimate from ', h('b', {}, `${st.swings} practice swings`), ' each way with the game’s attack rules · ',

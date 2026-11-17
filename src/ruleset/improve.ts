@@ -15,6 +15,8 @@ import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
 import { augmentFactors, augmentsOf, tradesOut } from './gear';
 import { SK } from '../library/skillIds';
+import { burdenTotal } from './burdenTotal';
+import { groupsOf } from '../library/functionNames';
 import { PK } from '../library/perkIds';
 import { isEcho } from '../library/echo';
 import { pieceOn } from './worn';
@@ -146,10 +148,10 @@ export { skillCap } from './skillCap';
 /** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden) − GROWTH_ROLL_NEEDED, read on the tier table; the
  * gain is GROWTH_GAIN by tier, plus GROWTH_GAIN_PAST_CRIT per band past Critical Success. Every state rolls one d100: a
  * tag or a flaw only moves the cap. The room left below the cap is the bonus, so the roll gets harder smoothly near the
- * cap. A tagged skill carries no burden. SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
-export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, reach = { up: 0, down: 0 }): { margin: number; level: number; gain: number } {
+ * cap. A tagged skill carries no burden. `bonus` is what tagged group-mates add (groupRollBonus, D-374 TB5). SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
+export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, reach = { up: 0, down: 0 }, bonus = 0): { margin: number; level: number; gain: number } {
   const cap = CONFIG.GROWTH_CAP_IN_ROLL ? skillCap(s) : CONFIG.SKILL_CAP;
-  const margin = d + (cap - s.raw - (s.state === 'tagged' ? 0 : burden)) - CONFIG.GROWTH_ROLL_NEEDED;
+  const margin = d + (cap - s.raw - (s.state === 'tagged' ? 0 : burden) + bonus) - CONFIG.GROWTH_ROLL_NEEDED;
   const level = band(margin) + extraBands(margin, reach) + (CONFIG.GROWTH_NATURAL_EDGES ? naturalEdge(d) : 0);
   const crit = TIERS.pos('critical_success');
   const gain = level < TIERS.pos('success') ? 0
@@ -168,11 +170,19 @@ function improveRolls(a: Actor, raw: number): number {
 
 export type SkillGain = { skill: string; from: number; to: number; milestone?: number };
 
-/** Part 1 §6: the raw total of every untagged skill (flawed ones count), and the Potential Burden starts from */
+/** Part 1 §6: the Total (every skill's raw at its burdenShare; flawed skills count in full) and the Potential Burden starts from */
 export function burdenParts(a: Actor): { total: number; potential: number } {
   const pr = a.progression!;
-  const total = Object.values(a.core.skills).filter((s) => s.state !== 'tagged').reduce((n, s) => n + s.raw, 0);
+  const total = burdenTotal(a.core.skills);
   return { total, potential: pr.potential.base + pr.potential.adjustments.reduce((n, x) => n + x.delta, 0) };
+}
+
+/** D-374 TB5: what tagged group-mates add to a skill's improvement roll: TAG_GROUP_ROLL_SHARE × the true skill of every
+ * OTHER tagged skill sharing a group with it, tagged or not itself (TB4 b). A skill never helps its own roll. */
+export function groupRollBonus(a: Actor, id: string): number {
+  const skills = getLibrary().skills, groups = groupsOf(skills[id]);
+  return Object.keys(a.core.skills).filter((k) => k !== id && a.core.skills[k].state === 'tagged' && groupsOf(skills[k]).some((g) => groups.includes(g)))
+    .reduce((n, k) => n + CONFIG.TAG_GROUP_ROLL_SHARE * trueSkill(a, k), 0);
 }
 
 /** Part 1 §6 Burden: how far the untagged raw total is over Potential, in steps of K */
@@ -195,7 +205,7 @@ export function payRolls(state: GameState, rng: Rng, rolls: [string, number][]):
       if (n <= 1) left.delete(id); else left.set(id, n - 1);
       const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
       for (let k = improveRolls(a, s.raw); k > 0; k--) { // Quick Study: two rolls below 15, each with its own gain
-        const { gain } = growthRoll(rng.d100(), s, burden, reach); // one d100 for every state: a flaw only lowers the cap
+        const { gain } = growthRoll(rng.d100(), s, burden, reach, groupRollBonus(a, id)); // one d100 for every state: a flaw only lowers the cap
         if (!gain) continue;
         const from = s.raw, trueBefore = trueSkill(a, id);
         s.raw += gain;

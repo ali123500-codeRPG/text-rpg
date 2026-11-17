@@ -10,7 +10,7 @@ import { hollowedMult, type SkillPart } from '../ruleset/perks';
 import { charLevel, freeLevelsOwed, keepCapstone, levelTarget, swapCapstone, xpFill, xpToNext } from '../engine/xp';
 import { essenceSlots } from '../engine/essence';
 import { treeBlock } from '../ruleset/access';
-import { augmentWindow, burdenOf, burdenParts, learningWindow } from '../ruleset/improve';
+import { augmentWindow, burdenOf, burdenParts, groupRollBonus, learningWindow } from '../ruleset/improve';
 import { h, safe } from './kit';
 import { classIcon } from './itemIcons';
 import { openPop } from './pop';
@@ -238,6 +238,7 @@ export function skillFacts(p: Actor, id: string) {
     window: windowOf(p, id), next, toNext: next - value,
     // BU3: what Burden takes off this skill's improvement rolls (0 for a tagged skill, or with no progression record)
     burden: p.progression && p.core.skills[id]?.state !== 'tagged' ? { by: burdenOf(p), ...burdenParts(p) } : { by: 0, total: 0, potential: 0 },
+    groupBonus: p.progression ? groupRollBonus(p, id) : 0, // D-374 TB5: what tagged group-mates add to its improvement rolls
   };
 }
 
@@ -259,7 +260,8 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
       line('Learns from', winText(f.window)),
       // BU3 b: shown only once Burden is above 0, and only here
       f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad') : null,
-      f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your untagged skills add up to ${f.burden.total}, past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
+      f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your skills add up to ${whole(f.burden.total)} (a tag counts 0 and each tag in a group takes ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in it), past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
+      f.groupBonus > 0 ? line('Tagged group-mates', `+${whole(f.groupBonus)} to improve`) : null,
       line('Next perk milestone', `${f.next} · ${whole(f.toNext)} to go`)),
   ] });
 }
