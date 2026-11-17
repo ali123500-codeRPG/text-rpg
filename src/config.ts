@@ -734,7 +734,7 @@ const DEFAULTS = {
   /** TV3 a road's width in metres: a cart track or Roman road, about 4 m (Roman viae ran about 4 to 6 m with the verges) */
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
-  ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
+  ROAD_ENCOUNTER_PCT: { safe: 5, quiet: 10, wild: 20, dangerous: 35 } as Record<string, number>, // RE3: per hour on a road (placeholders)
   /** NR21 a: rank weights (RANKS keys) for rostered people. crowd: a crowd person the player picks out (made a Commoner then);
    * face: services, traders, the watch and people in need; lead: leaders and rivals, one step up; threat: by settlement size
    * (hamlet and village up to Elite, town up to Paragon, city and court up to Beyond); seat: the seat of the Great's lowest rank
