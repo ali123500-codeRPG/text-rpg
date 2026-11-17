@@ -231,7 +231,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Every Answer (Riposte) · LG3
 
-*Story:* Each of them gets an answer. Your strike back after a clean parry, and your Counter, are no longer shared out among everyone attacking you: every attacker can earn its own.
+*Story:* Each of them gets an answer. Your strike back after a full parry, and your Counter, are no longer shared out among everyone attacking you: every attacker can earn its own.
 
 - **Kind:** Always on
 - **Trigger:** The owner earns a parry strike-back or a Counter.
@@ -607,7 +607,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Answer the Blow (Riposte) · B18
 
-*Story:* A clean parry is half a cut. With a medium weapon you answer sooner: a parry that only turns the blow partly aside already earns your strike back.
+*Story:* A full parry is half a cut. With a medium weapon you answer sooner: a parry that only turns the blow partly aside already earns your strike back.
 
 - **Kind:** Always on
 - **Trigger:** The owner parries a melee attack with a medium melee weapon.
@@ -666,7 +666,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Ceaseless Guard (Parry) · SB-P100
 
-*Story:* Blow after blow comes back at them. You can strike back after a clean parry, or Counter a fumble, many times a round instead of once.
+*Story:* Blow after blow comes back at them. You can strike back after a full parry, or Counter a fumble, many times a round instead of once.
 
 - **Kind:** Always on
 - **Trigger:** The owner earns a parry strike-back or a Counter.
@@ -1343,7 +1343,7 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Endless Answer (Parry) · LR5
 
-*Story:* There is no end to your answers. Every clean parry brings a strike back, and every fumble on you brings a Counter.
+*Story:* There is no end to your answers. Every full parry brings a strike back, and every fumble on you brings a Counter.
 
 - **Kind:** Always on (linked perk, merged)
 - **Trigger:** The owner earns a parry strike-back or a Counter.

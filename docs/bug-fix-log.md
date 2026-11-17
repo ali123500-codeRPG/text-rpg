@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-290
+
+**What was wrong:** In run 18, a story beat had the weir-house man come to his door and size up the hero with Insight. The game rolled it against a set difficulty, as if the hero were a stuck hatch, and filed a missing-difficulty bug. Beats had no way to give a difficulty, two agents were told to give one only for some of the acts that need it, and sizing up a person ignored the person entirely.
+
+**What was done:** Sizing someone up is now a contest: the looker's Insight against the other person's Lying, only when the looker can see them clearly. A win reads their mood, how they feel about the looker, and whether they are hiding something (never what); an NPC keeps that for its agent, and the player's goes into the story. A loss reads nothing. An act on a person never gets a difficulty. Beats can now carry a difficulty and a fall for acts on things, and every agent is given the same sentence naming every act that needs one. Reading someone's power is parked (D-365).
+
+**Fixed by:** [PR #972](https://github.com/ali123500-codeRPG/text-rpg/pull/972)
+
 ## BG-288
 
 **What was wrong:** The hero took the unexplored road north-west from the causeway, and the game built a second copy of the road the previous hero had arrived on. The World builder knew the road was built and tried to join its crossways to it, but plans could only join ground on the stage, so that was refused, and the repair declared the road again under a new name.
@@ -94,6 +102,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #963](https://github.com/ali123500-codeRPG/text-rpg/pull/963)
 
+## BG-276
+
+**What was wrong:** The Parser's answer shape listed only the way ops lock, unlock, bar and unbar, while its instructions, the schema and the engine also use open and shut. The six ops were typed out in three places.
+
+**What was done:** One WAY_OPS list in src/engine/barriers.ts; WayOp, the schema and the Parser's shape read it, so the shape now names open and shut too.
+
+**Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
+
 ## BG-275
 
 **What was wrong:** In the action-deck playtest a 4th character in story 2's world stopped after its first turn: the game's own rule check said 17 fights in the inn (the barkeep, Hobb and the carter against the slimes) had gone on long past their end, though they were still fresh. The check measures a fight from the end of the turn before, which here was the story's opening, and an opening turn never recorded when it ended, so the game read it as ending at the current moment. In real play this would file a false bug report.
@@ -101,6 +117,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** The opening turn now records its end time like every other turn, for every new story and every new character in an old world.
 
 **Fixed by:** [PR #962](https://github.com/ali123500-codeRPG/text-rpg/pull/962)
+
+## BG-274
+
+**What was wrong:** A Look around showed people in plain sight out to a plain 25 m, but searched for hidden people out to 25.1 m (withinM), because the look range was written in two places.
+
+**What was done:** One look-range check, inLookReach in src/perception/index.ts (the Normal sight metres, compared with withinM), used by the look that shows and the look that searches.
+
+**Fixed by:** [PR #969](https://github.com/ali123500-codeRPG/text-rpg/pull/969)
 
 ## BG-273
 
