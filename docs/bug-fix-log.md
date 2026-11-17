@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** The hub (version 24) never lets an "asked again" time be later than the page write that asked it, and anything typed during a visit always counts as the new answer, even on a device whose clock runs slow. TC31's original earlier answer was put back from the copy quoted on the page. The Tactics page builder now uses the page's own write time, and the hub README says an "asked again" time must be that write time, never a rounded-up guess. Five other pages had the same kind of future time, but all their answers came after it, so none was stuck.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1012](https://github.com/ali123500-codeRPG/text-rpg/pull/1012)
 
 ## BG-292
 
