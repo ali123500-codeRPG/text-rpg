@@ -26,7 +26,7 @@ import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
 import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
-import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { agreementsOf } from '../engine/memory';
 import { talkingWith } from '../engine/speech';
@@ -264,7 +264,9 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(a.pos && viewer.pos ? { distanceM: r1(sightDistM(state, viewer, a)) } : {}),
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
     };
-    if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
+    // BG-278: one half seen who lies still (down, dead or asleep) says so, though not which of the three
+    const lying = isDownLevel(healthLevel(a)) || isAsleep(a) ? { lying: true as const } : {};
+    if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place, ...lying }); continue; }
     // P3: in a dark zone someone is half seen, unless within clear sight and the viewer perceived them fully this scenario
     // (spoke face to face, say): then they stay seen
     // Q17/BG-252 (PG11 a): someone the player saw clearly (by distance, a look or a make-out roll) stays seen while they
@@ -273,7 +275,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
     const level = keptSight ? 'full' : sight === 'partial' || dark ? 'partial' : 'full';
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
-    if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
+    if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place, ...lying }); continue; }
     const name = nameFor(state, viewer, a);
     const h = healthLevel(a);
     const parts = partStates(state, a);
@@ -831,7 +833,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       gear: ownGear(state, p).map((g) => `${countWords(g.itemId, g.name, g.qty)}, ${g.look} (${isHeld(g) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})${g.container?.contents?.length ? `, holding ${g.container.contents.map((c) => c.name).join(', ')}` : ''}`) }, // PI1: what is in it
     surroundings: perceivedZones(state, p.zone, p),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...echoOf(state, s.id) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.fatigue ? { fatigue: s.fatigue } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}), ...(s.tended ? { tended: s.tended } : {}), ...(s.doing ? { doing: s.doing } : {}), ...(s.lying ? { lying: true } : {}), ...echoOf(state, s.id) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)

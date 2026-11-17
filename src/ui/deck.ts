@@ -88,12 +88,14 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const names = new Map(seen.map((a, i) => [a.id, apart(seen.map((x) => x.name ?? x.label))[i]]));
   const nameOf = (id: string) => names.get(id) ?? pv.lastSeen?.find((x) => x.id === id)?.name ?? id;
   const reach = pv.player.reaches?.[0]?.metres;
-  const personNote = (a: PlayerView['actors'][number]) => [a.health ? othersHealthWord(a.health, a.level === 'full') : '',
+  const personNote = (a: PlayerView['actors'][number]) => [a.lying ? 'lying still' : '', a.health ? othersHealthWord(a.health, a.level === 'full') : '',
     a.distanceM !== undefined ? (a.distanceM < 10 ? `${r1(a.distanceM)} m` : distText(a.distanceM)) : a.zone !== pv.zone.id ? `in ${pv.zones.find((z) => z.id === a.zone)?.name ?? 'sight'}` : '',
     reach !== undefined && a.distanceM !== undefined && a.distanceM <= reach ? 'in reach' : ''].filter(Boolean).join(' · ');
   const person = (a: PlayerView['actors'][number]): Pick => ({ id: a.id, label: cap(nameOf(a.id)), note: personNote(a) || undefined });
-  const up = seen.filter((a) => !(a.health && isDownLevel(a.health)));
+  // BG-278: one half seen lying still is treated as down: nobody to talk to; it can still be looked at or struck (BF84)
+  const up = seen.filter((a) => !(a.health && isDownLevel(a.health)) && !a.lying);
   const full = up.filter((a) => a.level === 'full');
+  const strikable = seen.filter((a) => up.includes(a) || a.lying);
   const people = (list = up) => () => list.map(person);
   const who = (title = 'Who?', list = up): Step => ({ key: 'target', title, picks: people(list) });
   const them = (c: Choice) => nameOf(c.target!);
@@ -111,7 +113,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
 
   // ---- Fight (MB12/BF37: a broken nerve allows no attack; words, a yield, sneaking and a walk away (BF79) still work) ----
   if (!broken) {
-    if (up.length) {
+    if (strikable.length) {
       const weapons = inv.filter((i) => isHeld(i) && i.kind === 'weapon');
       const withSteps: Step[] = weapons.length + (pv.player.bodyAttacks?.length ?? 0) > 1 ? [{ key: 'item', title: 'With what?', picks: () => [
         ...weapons.map((w) => ({ id: w.id, label: cap(w.name) })), ...(pv.player.bodyAttacks ?? []).filter((b) => !b.handsFull).map((b) => ({ id: `mode:${b.mode}`, label: cap(b.name) }))] }] : [];
@@ -119,14 +121,14 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
         const t = s.actors.find((x) => x.id === c.target);
         return t ? actorBody(s, t).parts.map((p) => ({ id: p.id, label: partName(p.id) })) : [];
       } }] : [];
-      add('attack', 'fight', 'Attack', [who('Attack whom?'), ...partSteps, ...withSteps], (c) => {
+      add('attack', 'fight', 'Attack', [who('Attack whom?', strikable), ...partSteps, ...withSteps], (c) => {
         const mode = c.item?.startsWith('mode:') ? c.item.slice(5) : null;
         const it = c.item && !mode ? c.item : null;
         const aimed = !!c.part;
         return order(`Attack ${them(c)}${c.part ? ` at the ${partName(c.part).toLowerCase()}` : ''}${it ? ` with ${theItem(item(it)?.name ?? '')}` : mode ? ` with ${pv.player.bodyAttacks?.find((b) => b.mode === mode)?.name ?? mode}` : ''}`,
           { action: act('attack', { target: c.target!, targetPart: c.part ?? null, item: it, mode, ...(aimed ? { aimed: true } : {}) }) });
       }, { hot: up.some((a) => a.health && HEALTH_LEVELS.pos(a.health) > 0) ? true : undefined });
-      add('restrain', 'fight', 'Restrain', [who('Hold back whom?', full)], (c) => order(`Restrain ${them(c)}`, { action: act('restrain', { target: c.target! }) }), { note: 'hold them back unhurt' });
+      if (full.length) add('restrain', 'fight', 'Restrain', [who('Hold back whom?', full)], (c) => order(`Restrain ${them(c)}`, { action: act('restrain', { target: c.target! }) }), { note: 'hold them back unhurt' });
     }
     // SY1: in a fight, above Broken and not within its cooldown: one morale roll as the action
     if (s && cantSteady(s, s.player) === null) add('steady', 'fight', 'Steady yourself', [], () => order('Steady yourself', { action: act('steady') }), { note: 'your action · a morale roll' });
@@ -227,7 +229,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   // ---- Use: looking, searching, your gear, things here, time ----
   const has = (sk: string) => pv.player.skills.some((x) => x.id === sk);
   add('look', 'use', 'Look around', [], () => order('Look around', { action: act('observe', { skill: has(SK.eyesight) ? SK.eyesight : '' }) }), { note: 'free glance at all in sight' });
-  const sights = [...up.map(person), ...pv.zones.filter((z) => z.id !== pv.zone.id).map((z) => ({ id: z.id, label: cap(z.name) }))];
+  const sights = [...strikable.map(person), ...pv.zones.filter((z) => z.id !== pv.zone.id).map((z) => ({ id: z.id, label: cap(z.name) }))];
   if (sights.length) add('look_at', 'use', 'Look at', [{ key: 'target', title: 'Look at whom or where?', picks: () => sights }], (c) => order(`Look at ${names.has(c.target!) ? them(c) : zoneName(c.target!)}`, { action: act('observe', { skill: has(SK.eyesight) ? SK.eyesight : '', target: c.target! }) }));
   add('listen', 'use', 'Listen', [], () => order('Listen', { action: act('observe', { skill: has(SK.earshot) ? SK.earshot : '' }) }));
   add('search', 'use', 'Search', [{ key: 'target', title: 'Search where?', picks: () => [{ id: '', label: 'Around you' }, ...full.map(person)] }],

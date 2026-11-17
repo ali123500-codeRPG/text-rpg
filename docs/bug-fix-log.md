@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-278
+
+**What was wrong:** In the action-deck playtest a dead hero's body lay 1.4 m from the new hero on a dark causeway and showed as a plain "Someone". The deck offered Attack, Talk to, Persuade, Lie to, Threaten and Haggle against it, the player talked to it twice and got silence, and the narrator made the shape stand and move. Someone only half seen carried no health or posture at all, so it slipped past every deck filter that leaves out the down and the dead.
+
+**What was done:** A half-seen person who lies still (down, dead or asleep) is marked lying still, without saying which. The deck shows "lying still" and offers no talk against it (Attack and Look at stay), and the narrator is told it lies still and never stands, moves or answers.
+
+**Fixed by:** [PR #963](https://github.com/ali123500-codeRPG/text-rpg/pull/963)
+
 ## BG-275
 
 **What was wrong:** In the action-deck playtest a 4th character in story 2's world stopped after its first turn: the game's own rule check said 17 fights in the inn (the barkeep, Hobb and the carter against the slimes) had gone on long past their end, though they were still fresh. The check measures a fight from the end of the turn before, which here was the story's opening, and an opening turn never recorded when it ended, so the game read it as ending at the current moment. In real play this would file a false bug report.
