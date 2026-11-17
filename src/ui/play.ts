@@ -425,7 +425,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       l.check ? checkLine(l.check) : null,
       ...(l.incomingChecks ?? []).map((c) => checkLine(c, c.by)),
       l.changes?.length ? h('details', { class: 'changes' },
-        h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, `↻${l.changes.length}`),
+        h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, String(l.changes.length)),
           h('span', { class: 'sum' }, l.changes.filter((x) => x.kind !== 'combat').map((x) => x.text).join(' · ') || changesWord(l.changes.length))),
         h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,

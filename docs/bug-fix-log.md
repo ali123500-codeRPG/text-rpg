@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-299
+
+**What was wrong:** On the Questions hub, Ali emptied his new answer to TC31 ("Tactics skill tree"), a question that had been asked again, and his earlier answer disappeared too. The hub keeps the earlier answer inside the same saved record as the new one, and emptying a box deleted that whole record. The BG-298 fix shortly before had been tested on typing only, not on erasing.
+
+**What was done:** Emptying the box of a question that was asked again (hub version 25) now writes the earlier answer back exactly as it was, dated just before the question was asked again. The box is empty, the question shows "Asked again" and nothing is deleted. Questions that were never asked again still clear as before. TC31's earlier answer was put back. The hub README records the rule.
+
+**Fixed by:** [PR #1013](https://github.com/ali123500-codeRPG/text-rpg/pull/1013)
+
 ## BG-298
 
 **What was wrong:** On the Questions hub, Ali typed a new answer to TC31 ("Tactics skill tree"), which had been asked again. Each time the answer saved, the box above it ("Your earlier answer") changed to what he had just typed, and the question kept saying "Asked again". His real earlier answer was overwritten. The page had set the time TC31 was asked again to 21:40, ten minutes after the page was actually written, so at 21:35 every save counted as older than the re-ask and was treated as the earlier answer.
