@@ -26,7 +26,8 @@ const EPS = M_EPS;
  * at a reach (a step-up, closing in) is never left a hair outside it by rounding (BG-267: CONFIG.REACH_MARGIN_M past it) */
 export const withinM = (d: number, reach: number): boolean => d <= reach + CONFIG.REACH_MARGIN_M;
 const centre = (z: Zone): Pos | undefined => (z.rect ? { x: z.rect.x, y: z.rect.y } : undefined);
-const inside = (z: Zone, p: Pos) => !!z.rect && Math.abs(p.x - z.rect.x) <= z.rect.w / 2 + EPS && Math.abs(p.y - z.rect.y) <= z.rect.d / 2 + EPS;
+/** p lies in zone z's rectangle (false when it has none), give or take M_EPS */
+export const inside = (z: Zone, p: Pos) => !!z.rect && Math.abs(p.x - z.rect.x) <= z.rect.w / 2 + EPS && Math.abs(p.y - z.rect.y) <= z.rect.d / 2 + EPS;
 const flat = (a: Pos, b: Pos) => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** where it stands: its own point while that lies in its zone, else the zone's centre; no point in a zone without a rectangle */
