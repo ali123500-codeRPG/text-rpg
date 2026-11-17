@@ -21,6 +21,15 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Every event roll opens a scenario, so whatever it earns now waits for the end of the scenario it opens, at the opening and after a story beat too, and arrives in that ending's gains moment.
 
 **Fixed by:** [PR #951](https://github.com/ali123500-codeRPG/text-rpg/pull/951)
+
+## BG-267
+
+**What was wrong:** BG-120 made withinM the one comparison for every reach, so that someone who walked up to a reach is never left a hair outside it by rounding. The code that picks which weapon a blow uses (defaultMode and resolveMode in src/ruleset/gear.ts) still compared reach with a plain >=. A fighter a step's rounding past their weapon's reach counted as in reach for the blow, but no weapon was picked for it, so the blow was lost as out of reach; a parry's strike back could be lost the same way.
+
+**What was done:** Ali OK'd the fix (IC7 a on the "Code consistency check, 10% at a time" page) and asked for a full 0.1 m margin. Both functions now use withinM, and withinM allows CONFIG.REACH_MARGIN_M (0.1 m) past every reach instead of 0.01 m. The walk-to-spot check, which already allowed 0.1 m by hand, uses withinM too. A test (tests/cases/s341-reach-margin.test.ts) puts a sword fighter 0.05 m past the sword's reach and checks the sword is picked.
+
+**Fixed by:** [PR #952](https://github.com/ali123500-codeRPG/text-rpg/pull/952)
+
 ## BG-270
 
 **What was wrong:** On the Questions hub, Submit's wake line named answers Ali had not changed. On the Vanish page he changed only VS8, but the line said "I answered VS6, VS7, VS8". VS6 and VS7 held "a." (what clicking an option chip writes), saved by the page but never sent with Submit, and Claude had already acted on them and marked both questions decided. Submit names every saved answer that has not gone out with a Submit, so it named them again.

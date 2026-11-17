@@ -551,9 +551,9 @@ function roundShut(state: GameState, a: Actor, goal: string): { way: string; shu
   return { way: l.label, shut: shutBy(b, a.zone) };
 }
 
-/** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding) */
+/** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding: withinM) */
 function reachedSpot(a: Actor, goal: Located, stopShort: number): boolean {
-  return !goal.pos || !a.pos || Math.hypot(a.pos.x - goal.pos.x, a.pos.y - goal.pos.y) <= stopShort + 0.1;
+  return !goal.pos || !a.pos || withinM(Math.hypot(a.pos.x - goal.pos.x, a.pos.y - goal.pos.y), stopShort);
 }
 
 /** BG-47: on a leg that stops short of the way to another zone, how far that way still is (whole metres; none once there) */

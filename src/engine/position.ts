@@ -23,8 +23,8 @@ export type Located = { zone: string; pos?: Pos };
 export const M_EPS = 0.01;
 const EPS = M_EPS;
 /** BG-120: `d` metres is within `reach`: the one comparison for every reach, so someone who walked up to stop exactly
- * at a reach (a step-up, closing in) is never left a hair outside it by rounding */
-export const withinM = (d: number, reach: number): boolean => d <= reach + EPS;
+ * at a reach (a step-up, closing in) is never left a hair outside it by rounding (BG-267: CONFIG.REACH_MARGIN_M past it) */
+export const withinM = (d: number, reach: number): boolean => d <= reach + CONFIG.REACH_MARGIN_M;
 const centre = (z: Zone): Pos | undefined => (z.rect ? { x: z.rect.x, y: z.rect.y } : undefined);
 const inside = (z: Zone, p: Pos) => !!z.rect && Math.abs(p.x - z.rect.x) <= z.rect.w / 2 + EPS && Math.abs(p.y - z.rect.y) <= z.rect.d / 2 + EPS;
 const flat = (a: Pos, b: Pos) => Math.hypot(a.x - b.x, a.y - b.y);

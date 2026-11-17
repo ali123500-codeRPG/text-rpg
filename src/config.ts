@@ -190,6 +190,8 @@ const DEFAULTS = {
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
   RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
   HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile within HOSTILE_NEAR_M of the shooter (Point Blank removes it)
+  /** BG-267, IC7 a: every reach check (withinM) allows this many metres past the reach for a step's rounding */
+  REACH_MARGIN_M: 0.1,
   HOSTILE_NEAR_M: 2, // RD5: close enough to strike or grab the shooter (a step and a blow)
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
