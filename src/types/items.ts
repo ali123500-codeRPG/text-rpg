@@ -80,6 +80,9 @@ export type AttackMode = {
   skill?: LibraryRef; // unarmed only
   /** how far the mode strikes or shoots, in metres, from real weapons (the library's item rows) */
   reachM: number;
+  /** SZ8: a mode wielded in a grip (a held weapon, fists, a grapple): its own length past the hand. In use it reaches the
+   * wielder's grip reach plus this (ruleset/gear inGrip); reachM is then what a Humanoid of the standard size reaches */
+  lengthM?: number;
   /** the metres it reaches in use: reachM, plus a thrown weapon's perk metres (ruleset/gear modeReach) */
   reach: number;
   grips: 0 | 1 | 2; // Grip parts it takes (0 for natural attacks)

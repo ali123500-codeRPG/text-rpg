@@ -136,6 +136,7 @@ export type PlayerView = {
     spar?: SparView; // SP1: the spar the player fights in
     yielded?: YieldView; // MB40: the player yielded in a real fight this scenario
     standDownOffers?: { id: string; name: string; landed: string }[]; // TF11: foes offering the player a stand-down; landed: how it struck the player
+    finishable?: true; // IQ6 a, IQ7 a: the fight is far below the player, so it can be finished on code in one turn (intent finish)
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
@@ -318,6 +319,8 @@ export type NarrationView = {
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
   /** SD1: this turn ended a scenario, and how (an ending name: escaped, resolved...); the Narrator gives a closing line */
   scenarioEnded?: string;
+  /** IQ4 a: this turn finished a fight far below the player on code: how many rounds it played and why it stopped */
+  fightFinished?: { rounds: number; stop: string };
 };
 
 // ---------- WeaverView: Agent Weaver ----------

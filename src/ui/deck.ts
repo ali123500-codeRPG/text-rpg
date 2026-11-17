@@ -40,7 +40,7 @@ export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'nor
 
 /** every kind of action the deck can offer; the completeness test checks these cover every Parser action, gear op and
  * way op the game knows (DECK_LEFT_OUT says why the rest are not listed) */
-export const DECK_KINDS = ['attack', 'restrain', 'steady', 'yield', 'stand_down', 'extract', 'heal', 'talk', 'persuade', 'deceive', 'intimidate',
+export const DECK_KINDS = ['attack', 'finish', 'restrain', 'steady', 'yield', 'stand_down', 'extract', 'heal', 'talk', 'persuade', 'deceive', 'intimidate',
   'barter', 'demand', 'give', 'take', 'buy', 'sell', 'show', 'lets_search', 'go', 'walk_up', 'back_away', 'follow', 'jump', 'stop',
   'keep_walking', 'way', 'sneak', 'filch', 'stash', 'look', 'look_at', 'listen', 'search', 'use_item', 'equip', 'draw',
   'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'set_down', 'summon', 'loot', 'open', 'break', 'pick', 'wait', 'rest',
@@ -130,6 +130,8 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
         return order(`Attack ${them(c)}${c.part ? ` at the ${partName(c.part).toLowerCase()}` : ''}${it ? ` with ${theItem(item(it)?.name ?? '')}` : mode ? ` with ${pv.player.bodyAttacks?.find((b) => b.mode === mode)?.name ?? mode}` : ''}`,
           { action: act('attack', { target: c.target!, targetPart: c.part ?? null, item: it, mode, ...(aimed ? { aimed: true } : {}) }) });
       }, { hot: up.some((a) => a.health && HEALTH_LEVELS.pos(a.health) > 0) ? true : undefined });
+      // IQ7 a: a fight far below the player can be finished on code in one turn; ignoring it plays turn by turn
+      if (pv.player.finishable) add('finish', 'fight', 'Finish the fight', [], () => order('I finish the fight', { finish: true }), { note: 'plays it out to the end' });
       if (full.length) add('restrain', 'fight', 'Restrain', [who('Hold back whom?', full)], (c) => order(`Restrain ${them(c)}`, { action: act('restrain', { target: c.target! }) }), { note: 'hold them back unhurt' });
     }
     // SY1: in a fight, above Broken and not within its cooldown: one morale roll as the action

@@ -40,7 +40,7 @@ describe('327 running on at a foe out of reach', () => {
     expect(lost(ev, g.id)).toBeUndefined();
     expect(struck(ev, g.id)).toBe(false);
     expect(s.log.some((l) => l.code === 'ran_on' && l.detail?.actorId === g.id)).toBe(true);
-    expect(d(g, s.player)).toBeLessThan(20 - ran(ev, g.id) + 0.01);
+    expect(d(g, s.player)).toBeLessThan(20 - ran(ev, g.id) + 0.1); // each move's metres are said to 0.1 m (r1)
     const walked = ev.find((e) => e.actorId === g.id && e.kind === 'move')!.metres!;
     expect(ran(ev, g.id)).toBeGreaterThan(walked + 1); // the move time's walk, then the run on its main time
     const ev2 = play(s, { intent: intent(), agentOutputs: [fists(g.id)] });

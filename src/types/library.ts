@@ -145,8 +145,9 @@ export type ClassDef = {
   capstones?: { perk: string; needs: TreeAccess }[];
 };
 
-/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2) */
-export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number };
+/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2); arm: an arm,
+ * whose reach comes from the body's size instead (SZ8, library/bodySize armReachM) */
+export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number; arm?: true };
 /** AB20: natural armor stops ARMOR_FACTOR × the owner's Hide skill × `hide` (the race's multiplier), then multiplies as worn armor */
 export type NaturalArmor = { covers: string[]; hide: number; multiplier: number; pools?: Record<string, number> };
 /** BR1: a body type is the shape only: parts, general area, silhouette, and the attacks the shape
@@ -237,7 +238,7 @@ export type Library = {
   visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
   itemFamilies?: Record<string, { id: string; name: string; rule: string }>; // IF…: Mundane and the special families (IR30)
-  gearTypes?: Record<string, { id: string; name: string; reachM?: number; covers?: string[] }>; // GT…: a gear type's reach or coverage (IR23)
+  gearTypes?: Record<string, { id: string; name: string; reachM?: number; lengthM?: number; covers?: string[] }>; // GT…: a gear type's reach, length past the hand (SZ8) or coverage (IR23)
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' | 'unarmed' }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
@@ -259,7 +260,8 @@ export type ZoneKind = {
 };
 /** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
-export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string;
+  /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
 export type FurnitureKind = { id: string; name: string };

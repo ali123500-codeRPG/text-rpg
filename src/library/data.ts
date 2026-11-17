@@ -11,6 +11,7 @@ import { UNIQUES } from './uniques';
 import type { ArmorWeightKey, GrandeurKey, LifeStageKey, RankKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
+import { HUMANOID_SIZE, armReachM } from './bodySize';
 
 /** AT12: armour on or off locks movement, is careful work in steps, and keeps what is done when broken off */
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
@@ -154,19 +155,24 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
-/** a humanoid's fists (FR2: an adult arm reaches about 0.7 m); also the bare-hands mode of a body with no natural attacks (ruleset/gear UNARMED_MODE) */
-export const FISTS: AttackMode = { id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, grips: 0, name: 'fists' };
+/** SZ8: what a standard Humanoid's arm reaches past its body (0.625 m); a held weapon's library reach is this plus its length */
+const STD_ARM_M = armReachM(HUMANOID_SIZE);
+/** SZ8: a mode wielded in a grip: its own length past the hand; its library reach is the standard Humanoid's */
+const held = (lengthM: number) => ({ lengthM, reachM: STD_ARM_M + lengthM, reach: STD_ARM_M + lengthM });
+/** a humanoid's fists: as far as the arm (SZ8); also the bare-hands mode of a body with no natural attacks (ruleset/gear UNARMED_MODE) */
+export const FISTS: AttackMode = { id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, ...held(0), grips: 0, name: 'fists' };
 /** a weapon mode; a typed piece's non-thrown modes take their reach from its gear type (typed below), so they state none */
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'grips'>) => ({ ...m, ...(m.reachM === undefined ? {} : { reach: m.reachM }) });
-/** IR23: gear types. Reach is the blade plus a 0.7 m arm (as the dagger's 1.0 m); a bow's or crossbow's is its effective range
- * against a man, not its longest shot; armor covers the parts its real garment covers most of (IR8). Every piece of the type
- * takes the type's number (pieces round to it). Thrown range stays CONFIG.THROW_M. */
-export const GEAR_TYPES: Record<string, { id: string; name: string; reachM?: number; covers?: string[] }> = Object.fromEntries(([
-  [GT.knife, 'Knife', 1], // dagger: a 30 cm blade + arm
-  [GT.short, 'Short', 1.3], // short sword, hand axe, cudgel
-  [GT.sword, 'Sword', 1.6], // arming sword; longsword blade 80-110 cm (Wikipedia "Longsword"), rapier 104 cm (Wikipedia "Rapier")
-  [GT.great, 'Great', 2.3], // two-handed greatsword and greataxe
-  [GT.pole, 'Pole', 2.8], // spear
+/** IR23: gear types. A melee type has its length past the hand (SZ8: it reaches the wielder's arm plus that; a standard
+ * person's arm is 0.625 m, so a dagger reaches 0.925 m); a bow's or crossbow's reach is its effective range against a man,
+ * not its longest shot; armor covers the parts its real garment covers most of (IR8). Every piece of the type takes the
+ * type's number (pieces round to it). Thrown range stays CONFIG.THROW_M. */
+export const GEAR_TYPES: Record<string, { id: string; name: string; reachM?: number; lengthM?: number; covers?: string[] }> = Object.fromEntries(([
+  [GT.knife, 'Knife', { lengthM: 0.3 }], // dagger: a 30 cm blade
+  [GT.short, 'Short', { lengthM: 0.6 }], // short sword, hand axe, cudgel
+  [GT.sword, 'Sword', { lengthM: 0.9 }], // arming sword; longsword blade 80-110 cm (Wikipedia "Longsword"), rapier 104 cm (Wikipedia "Rapier")
+  [GT.great, 'Great', { lengthM: 1.6 }], // two-handed greatsword and greataxe
+  [GT.pole, 'Pole', { lengthM: 2.1 }], // spear
   [GT.short_bow, 'Short bow', 50], [GT.flatbow, 'Flatbow', 60], [GT.recurve, 'Recurve', 70], [GT.longbow, 'Longbow', 90],
   [GT.warbow, 'Warbow', 150], // Mary Rose bows; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
   [GT.crossbow_light, 'Light crossbow', 60], [GT.crossbow_stirrup, 'Stirrup crossbow', 70], [GT.crossbow_heavy, 'Heavy crossbow', 80],
@@ -175,8 +181,8 @@ export const GEAR_TYPES: Record<string, { id: string; name: string; reachM?: num
   [GT.half_suit, 'Half suit', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg']], // breastplate with arm and leg plates
   [GT.full_harness, 'Full harness', ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck']], // a full harness came with its helmet (Wikipedia "Plate armour")
   [GT.helmet, 'Helmet', ['head']], [GT.helmet_neck, 'Helmet with neck', ['head', 'neck']],
-  [GT.fist, 'Fist', 0.7], // gauntlets: a punch reaches as far as the arm (the humanoid grip part's 0.7 m)
-] as [string, string, number | string[]][]).map(([id, name, v]) => [id, { id, name, ...(Array.isArray(v) ? { covers: v } : { reachM: v }) }]));
+  [GT.fist, 'Fist', { lengthM: 0 }], // gauntlets: a punch reaches as far as the arm
+] as [string, string, number | string[] | { lengthM: number }][]).map(([id, name, v]) => [id, { id, name, ...(Array.isArray(v) ? { covers: v } : typeof v === 'number' ? { reachM: v } : v) }]));
 /** IR30-IR33: item families. A Mundane piece takes every number from its level, class and type (IR31); a special family
  * stands on a Mundane base and adds its own extras, grown its own way (IR33). Relics are parked (D-167). */
 export const ITEM_FAMILIES: Record<string, { id: string; name: string; rule: string }> = Object.fromEntries(([
@@ -193,6 +199,7 @@ function typed(d: ItemDef): ItemDef {
   const t = d.gearType ? GEAR_TYPES[d.gearType] : undefined;
   if (!t) return d;
   if (d.weapon && t.reachM !== undefined) d.weapon.modes = d.weapon.modes.map((m) => (m.thrown ? m : { ...m, reachM: t.reachM!, reach: t.reachM! }));
+  if (d.weapon && t.lengthM !== undefined) d.weapon.modes = d.weapon.modes.map((m) => (m.thrown ? m : { ...m, ...held(t.lengthM!) }));
   if (d.armor && t.covers) d.armor = { ...d.armor, covers: [...t.covers] };
   return d;
 }
@@ -202,7 +209,7 @@ const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25,
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
-  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
+  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, ...held(0.5), grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
   mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, grips, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
 /** QE4/QE5, D-368: armor stops ARMOR_FACTOR × need × ARMOR_WEIGHT_SOAK[weight]; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
@@ -539,15 +546,15 @@ const fourLegs = (roles: RoleId[]): PartDef[] => [...FORELEGS, ...HIND_LEGS].map
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
-    // SZ3: a man in ANSUR II (2012 US Army survey): stature 1.76 m, shoulder breadth about 0.5 m, chest depth about 0.25 m (0.3 clothed)
-    size: { lengthM: 0.3, widthM: 0.5, heightM: 1.75 },
+    size: HUMANOID_SIZE, // SZ3 (library/bodySize)
+    // SZ8: a grapple takes hold a hand's breadth inside the arm's full reach
     naturalAttacks: [FISTS,
-      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, grips: 0, name: 'grapple' }],
+      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, ...held(-0.1), grips: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
-      // FR2: an adult's arm reaches about 0.7 m from the shoulder to the fingertips (NASA-STD-3000 anthropometry), as fists do
-      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
-      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip], reachM: 0.7 },
+      // FR2, SZ8: an arm reaches half the arm span less half the shoulders past the body (library/bodySize armReachM)
+      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip], arm: true },
+      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip], arm: true },
       { id: 'left_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'right_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
@@ -1346,14 +1353,18 @@ export function prototypeLibrary(): Library {
       [EK.low, 'Low', false, true, true, true, 'open', 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
       [EK.window, 'Window', false, true, false, false, 'window', 'See through it; no walking or reaching across.'],
     ] as const).map(([id, name, walk, see, reach, climb, sound, text]) => [id, { id, name, walk, see, reach, climb, sound, text }])),
-    // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread)
+    // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread).
+    // SZ7: the opening each leaves, width × height in metres: a house door about 0.9 × 2 m (CONFIG.DOORWAY_M); a farm or
+    // yard gate wide enough for a cart, about 3 m (an estimate); a grate across a passage about a door's (an estimate); a
+    // trapdoor about 0.7 × 0.7 m, gone through upright (an estimate)
     barrierKinds: Object.fromEntries(([
-      [BK.door, 'Door', true, true, false, false, 'door', 'A wooden door: it may be locked with a key, or barred from one side.'],
-      [BK.gate, 'Gate', true, true, false, false, 'door', 'A gate in a wall or fence: locked, or barred from the inside.'],
-      [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.'],
-      [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.'],
+      [BK.door, 'Door', true, true, false, false, 'door', 'A wooden door: it may be locked with a key, or barred from one side.', CONFIG.DOORWAY_M],
+      [BK.gate, 'Gate', true, true, false, false, 'door', 'A gate in a wall or fence: locked, or barred from the inside.', [3, 2.5]],
+      [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.', CONFIG.DOORWAY_M],
+      [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.', [0.7, 0.7], true],
       [BK.rubble, 'Rubble', false, false, true, false, 'wall', 'A cave-in or fallen stone: no way through until it is cleared.'],
-    ] as const).map(([id, name, lock, bar, blocked, seeThrough, sound, text]) => [id, { id, name, lock, bar, blocked, seeThrough, sound, text }])),
+    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical]) =>
+      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}) }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',

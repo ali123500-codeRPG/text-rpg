@@ -12,6 +12,7 @@ import { CONFIG } from '../../src/config';
 import { mechanicsLines } from '../../src/agents/game';
 import { checkNear, contact, startWatch, stepS, warnS } from '../../src/engine/comingNear';
 import { moveSpeed } from '../../src/engine/speed';
+import { hostileNearM } from '../../src/ruleset/gear';
 import { IT } from '../../src/library/itemIds';
 import { DU, HL } from '../../src/library/tableIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
@@ -146,7 +147,7 @@ describe('272 the coming-near check', () => {
       const watch = startWatch(s, s.player, 'standing');
       expect(watch.accepted.has(w.id)).toBe(false); // in the tavern, out of the senses
       const { walk, run } = moveSpeed(s, w);
-      const near = CONFIG.HOSTILE_NEAR_M + run * warnS(watch) - 0.5;
+      const near = hostileNearM(s, w) + run * warnS(watch) - 0.5; // SZ19: a step plus its own reach
       w.zone = 'field_far';
       w.placeId = s.player.placeId;
       w.pos = { x: s.player.pos.x + near, y: field.y };
