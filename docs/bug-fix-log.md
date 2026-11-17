@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-268
+
+**What was wrong:** In the action-deck playtest a slime "surrendered" (the XP line read "A slime defeated (surrendered)"). When a creature's nerve breaks on a morale roll of Critical Failure or worse, or under an Overwhelm, the game made it give itself up, whatever its mind, so mindless slimes could surrender.
+
+**What was done:** Only Intelligent and Semi-intelligent races (people, wolves) can surrender now. An Unintelligent race, such as a slime, whose break would have been a surrender just breaks: it cowers and still counts as beaten.
+
+**Fixed by:** [PR #944](https://github.com/ali123500-codeRPG/text-rpg/pull/944)
+
 ## BG-266
 
 **What was wrong:** In the action-deck playtest the Weaver put three cellar slimes in as one group entry and labelled it "slimes in the cellar". Code turns a group entry into its leader and adds the others as "a slime", so the leader, a single slime, was listed as "Slimes in the cellar" beside "a slime" and "the other slime".
