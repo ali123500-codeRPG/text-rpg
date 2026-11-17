@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-270
+
+**What was wrong:** On the Questions hub, Submit's wake line named answers Ali had not changed. On the Vanish page he changed only VS8, but the line said "I answered VS6, VS7, VS8". VS6 and VS7 held "a." (what clicking an option chip writes), saved by the page but never sent with Submit, and Claude had already acted on them and marked both questions decided. Submit names every saved answer that has not gone out with a Submit, so it named them again.
+
+**What was done:** Ali approved the plan. Submit now skips an answer that was saved before Claude decided its question, because Claude already acted on it. If Ali changes that answer again, it counts as new and Submit names it. The hub page (questions/hub/hub.html) was republished as version 18; this entry and the bug log row came in the PR below. BG-271 was the same bug, numbered twice by mistake.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-269
 
 **What was wrong:** In the action-deck playtest three slimes were in reach, and the Attack list showed "A slime", "The other slime" and "The other slime": two different slimes under the same name, so "Attack the other slime" could mean either. The list turned every repeat of a name into "the other ...", which only works for two.
