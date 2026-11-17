@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-292
+
+**What was wrong:** On the Questions hub, question TC6 ("Tactics skill tree") kept showing "Asked again" and an empty answer box after Ali had answered it. The page marked the question as asked again with the word `true` instead of a time. The hub counts an answer only if it is newer than the time the question was asked again, and `true` is not a time, so no answer could ever count. Questions D-20 and D-21 on "Open parked items" had the same fault.
+
+**What was done:** The three questions were given the time they were asked again (TC6 was then settled on its page). Both page builders now write a fixed time instead of `true`. The hub (version 23) now treats an "asked again" with no time as asked at the page's last update, so a bad value can't block answers again, and the hub README says an "asked again" must store a time.
+
+**Fixed by:** [PR #1001](https://github.com/ali123500-codeRPG/text-rpg/pull/1001)
+
 ## BG-289
 
 **What was wrong:** In run 17's world (carried on in run 18) the road nwroad still had a way to new ground, "back up the road north-west, toward the crossroads", but that crossroads (crossways) had already been built from the other side. Walking it could build a second crossroads, because a junction of the land recorded no area and nothing tied the way to the land. The same world also had a second copy of the road (nwroad_2), and the causeway had a way to each.
