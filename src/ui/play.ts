@@ -1,5 +1,5 @@
 // Play screen (UI1–UI8, then the action deck AD1–AD16): one reading column with each turn's results under its prose and the
-// action deck at its foot (the suggested action, the Say box, Aim and Stance, every action the code allows); a right column
+// action deck at its foot (the Say box, Aim and Stance, every action the code allows); a right column
 // with the health strip (a click opens the full condition), the minimap, Who's here and the short sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
@@ -252,7 +252,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const inputOff = () => input.disabled;
   const doingSlot = h('div', { class: 'doing-slot' }); // AT11a: the player's own long action, above the deck
   let doingHtml = '';
-  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, doingSlot, dk.sugEl, h('div', { class: 'inrow' }, sayChip, input, send), hint, dk.el);
+  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, doingSlot, h('div', { class: 'inrow' }, sayChip, input, send), hint, dk.el);
   const fell = h('div', { class: 'fell', hidden: true });
   const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
   const nerveEdge = h('div', { class: 'm-edge nerve', 'aria-hidden': 'true' }); // MW1: the violet edge as the nerve gives

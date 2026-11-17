@@ -1,4 +1,4 @@
-// The action deck on Play (AD1–AD16): the suggested action, the Aim and Stance rows, and every action the code allows in
+// The action deck on Play (AD1–AD16): the Aim and Stance rows, and every action the code allows in
 // its groups. Clicking an action asks what it still needs (whom, with what, which part) in a small pop-up, then plays
 // the turn at once with no Parser call (AD6, AD7); a move planned on the minimap rides along (AD12). Actions that need
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
@@ -10,7 +10,6 @@ import { h } from './kit';
 import { cap } from '../words';
 import { closePop, openPop } from './pop';
 import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
-import { suggestions, type Suggestion } from './suggest';
 import { openLoot } from './loot';
 import { instanceIcon } from './itemIcons';
 import type { MinimapPoint } from './minimap';
@@ -38,8 +37,8 @@ export function deckView(api: GameApi, o: {
   /** an action waits for words: the Say box takes them (null: it no longer waits) */
   sayMode(m: SayMode | null): void;
 }) {
-  let aim = false, stance: Stance = 'normal', sugAt = 0, sayMode: SayMode | null = null;
-  let groups: ReturnType<typeof deck> = [], sugs: Suggestion[] = [], ctx: DeckCtx | null = null, disabled = false;
+  let aim = false, stance: Stance = 'normal', sayMode: SayMode | null = null;
+  let groups: ReturnType<typeof deck> = [], ctx: DeckCtx | null = null, disabled = false;
   const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, stance, aim, broken: isBrokenLevel(moraleLevel(s.player)), cowering: isCoweringLevel(moraleLevel(s.player)), self: personalityOf(s.player) });
 
   async function play(order: Order, aimed: boolean) {
@@ -84,22 +83,6 @@ export function deckView(api: GameApi, o: {
   }
 
   // ---- the parts on screen ----
-  const sugBtn = h('button', { type: 'button', class: 'dk-go' });
-  const sugWhy = h('p', { class: 'dk-why' });
-  const altBtn = h('button', { type: 'button', class: 'hs-btn-text dk-alt', title: 'Show the next best idea', onclick: () => { sugAt = (sugAt + 1) % Math.max(1, sugs.length); paintSug(); } }, '↻ Another');
-  const sugEl = h('section', { class: 'dk-sug', 'aria-label': 'Suggested action' }, h('p', { class: 'hs-label dk-sl' }, 'Suggested'), sugBtn, altBtn, sugWhy);
-  function paintSug() {
-    const x = sugs[sugAt];
-    sugEl.hidden = !x;
-    if (!x) return;
-    const who = pickLabel(x.action, x.choice);
-    sugBtn.textContent = who && !x.action.label.includes(who) ? `${x.action.label} ${who}` : x.action.label;
-    sugBtn.onclick = () => run(x.action, x.choice, sugBtn);
-    sugBtn.disabled = disabled;
-    sugWhy.textContent = x.reason;
-    altBtn.hidden = sugs.length < 2;
-  }
-
   const aimBtn = h('button', { type: 'button', class: 'dk-tog', 'aria-pressed': 'false', title: 'When on, an attack asks which body part to aim at', onclick: () => { aim = !aim; repaint(); } }, 'Aim');
   const stanceBtns = STANCE_BUTTONS.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, 'aria-pressed': String(k === stance), onclick: () => { stance = k; repaint(); } }, name));
   const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label' }, 'Stance'), h('span', { class: 'dk-seg', role: 'group', 'aria-label': 'Stance' }, ...stanceBtns));
@@ -120,11 +103,7 @@ export function deckView(api: GameApi, o: {
     const pv = s ? safePv(s) : null;
     ctx = s && pv ? ctxOf(s, pv) : null;
     groups = ctx ? deck(ctx) : [];
-    const before = sugs[sugAt]?.reason;
-    sugs = ctx ? suggestions(groups, ctx) : [];
-    if (!sugs.some((x) => x.reason === before)) sugAt = 0; // a new moment starts from the best idea again
     if (sayMode && !groups.some((g) => g.actions.some((a) => a.kind === sayMode!.action.kind))) setSay(null);
-    paintSug();
     const kids = groups.map((g) => h('div', { class: `dk-col g-${g.group}` }, h('p', { class: 'dk-h' }, g.name),
       ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : ''), 'data-kind': a.kind, 'data-i': String(i) },
         h('span', { class: 't' }, a.label), a.note ? h('span', { class: 'n' }, a.note) : null))));
@@ -141,10 +120,10 @@ export function deckView(api: GameApi, o: {
     lock();
   }
   /** M-06: while a turn runs every action is off, with nothing rebuilt */
-  function lock() { el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => { b.disabled = disabled; }); sugBtn.disabled = disabled; altBtn.disabled = disabled; }
+  function lock() { el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => { b.disabled = disabled; }); }
 
   return {
-    el, sugEl, mods, update, personMenu,
+    el, mods, update, personMenu,
     aimOn: () => aim,
     toggleAim() { aim = !aim; repaint(); },
     /** the first action of this kind, with what is already chosen (the heal slot uses it) */

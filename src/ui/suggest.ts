@@ -1,4 +1,4 @@
-// AD9: the suggested action. Code scores what the deck offers right now from what the character knows (danger in reach,
+// AD9: the suggested action, now used only by the deck playtest to pick its move (HS7: the Suggested box left Play). Code scores what the deck offers right now from what the character knows (danger in reach,
 // its own wounds and nerve, a walk under way, something held out, things to take, new ground) and the character's
 // leanings; no Claude call, so it can never hint at anything hidden. Scores read levels and words, never raw skill
 // numbers, so they behave the same at 50, 100 and 200. Every weight is a SUGGEST_* lever in config.
