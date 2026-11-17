@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** The three questions were given the time they were asked again (TC6 was then settled on its page). Both page builders now write a fixed time instead of `true`. The hub (version 23) now treats an "asked again" with no time as asked at the page's last update, so a bad value can't block answers again, and the hub README says an "asked again" must store a time.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1001](https://github.com/ali123500-codeRPG/text-rpg/pull/1001)
 
 ## BG-289
 
