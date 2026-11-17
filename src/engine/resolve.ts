@@ -83,9 +83,9 @@ import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
-  way: ['quiet', 'normal'], pick: ['hushed', 'low'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  way: ['quiet', 'normal'], pick: ['hushed', 'slight'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper, made out only up close (Slight)
   stash: ['hushed', 'low'], // SE9: tucking something away
-  filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts)
+  filch: ['hushed', 'slight'], // a filch's own contest sets both (src/engine/filch.ts)
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);

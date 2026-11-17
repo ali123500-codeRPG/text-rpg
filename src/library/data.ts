@@ -1343,8 +1343,8 @@ export function prototypeLibrary(): Library {
     } as Record<string, string>)[k] }])),
     visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, like: ({
       unseen: 'Nothing to see: keeping still out of sight',
-      faint: 'A palmed coin, a hand slipping to a purse: made out within half a metre, glimpsed within 2 m',
-      slight: 'Lips moving, a lockpick being worked, fingers closing on a hilt: made out at 2 m, glimpsed at 6 m',
+      faint: 'A palmed coin, a note passed hand to hand: made out within half a metre, glimpsed within 2 m',
+      slight: 'Lips moving, a lockpick being worked, a hand slipping into a purse: made out at 2 m, glimpsed at 6 m',
       close: 'A nod, a hand sign, a change of expression: read at about 6 m, noticed out to about 20 m',
       low: 'Someone sitting still or resting: a face known at about 15 m (where witnesses stop naming faces reliably), a shape noticed at 60 m',
       normal: 'Someone walking or talking: who it is at about 25 m, a figure moving across open ground at 200 m',

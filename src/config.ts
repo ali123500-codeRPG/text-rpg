@@ -823,7 +823,7 @@ const DEFAULTS = {
   STEADY_BUFF_MULT: 0.5,
   // ---- filching (FL1–FL7, TN1–TN4; src/engine/filch.ts; placeholders) ----
   /** TN3 (open, round 3 TN3b): how visible a filch is, one row for every filch; Close is made out clearly within 6 m */
-  FILCH_VISIBILITY: 'close' as import('./scales').VisibilityKey,
+  FILCH_VISIBILITY: 'slight' as import('./scales').VisibilityKey,
   /** TN1: the sound of a filch at Near Miss or better; each tier the roll falls below Near Miss makes it one level louder */
   FILCH_NOISE: 'hushed' as import('./scales').NoiseKey,
   /** TN4: added to a watcher's sight and hearing rolls by how closely they watch (their activity's attention; talking with

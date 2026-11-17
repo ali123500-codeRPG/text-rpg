@@ -10,6 +10,8 @@ import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { buildPlayerView } from '../../src/views';
 import { actorById, stance, zoneById } from '../../src/engine/relations';
+import { CONFIG } from '../../src/config';
+import { sightAt } from '../../src/perception';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import { FN, GR } from '../../src/library/functionIds';
@@ -124,4 +126,22 @@ it('whole turn: a filch caught in the act reaches the Narrator as a filch event 
 
 it('guard: no action refuses a guarded container as plain theft any more; it is a filch contest', () => {
   expect(bannedLines(/reason: 'theft'/)).toEqual([]);
+});
+
+it('a filch is a Slight sight: a sharp-eyed watcher 10 m off sees nothing of it (Close once let it be glimpsed to 20 m)', () => {
+  const s = makeVillage({ playerZone: 'field_mid', without: ['slime_1', 'slime_2', 'guard_1'] });
+  const wim = actorById(s, 'patron_1')!, eye = actorById(s, 'trader')!;
+  for (const x of [wim, eye, s.player]) x.zone = 'field_mid';
+  wim.pos = { x: 120, y: 0 };
+  s.player.pos = { x: 120, y: 0 };
+  eye.pos = { x: 130, y: 0 }; // 10 m off in open ground: past Slight's 6 m glimpse, inside Close's 20 m
+  wim.core.inventory.push({ id: 'ring', itemId: IT.charmed_ring });
+  skill(wim, SK.eyesight, 0);
+  skill(eye, SK.eyesight, 400);
+  expect(sightAt(s, eye, wim, 'close')).toBe('partial'); // as it was
+  expect(sightAt(s, eye, wim, CONFIG.FILCH_VISIBILITY)).toBeNull();
+  for (let seed = 1; seed < 10; seed++) {
+    const f = filchContest(s, s.player, wim, wim, 0, createRng(seed), []);
+    expect(f.perception[eye.id]?.cue).not.toBe('sight');
+  }
 });
