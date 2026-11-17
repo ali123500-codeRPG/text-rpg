@@ -1,4 +1,4 @@
-// 361 Body size (SZ1-SZ13, SZ18, SZ19): every body type has a length, width and height in metres, each race
+// 361 Body size (SZ1-SZ13, SZ16, SZ18, SZ19): every body type has a length, width and height in metres, each race
 // multiplies them; a body takes up a capsule on the floor, turned the way it faces; every distance between two people is
 // the gap between their bodies, so reach is measured edge to edge; nobody is placed inside anybody else.
 import { expect, it } from 'vitest';
@@ -12,6 +12,7 @@ import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from
 import { sightFactor } from '../../src/library/bodySize';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
+import { knownMap } from '../../src/ui/mapData';
 import { fitsThrough, openingOf, wayPath, zoneById } from '../../src/engine/relations';
 import { coverFor, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
 import { gripReachM } from '../../src/ruleset/body';
@@ -171,4 +172,13 @@ it('SZ7: a body goes through a doorway sideways and ducking; too big a body take
   for (const id of ['field_edge', 'field_mid']) zoneById(s, id)!.outdoor = true;
   expect(openingOf(s, zoneById(s, 'field_edge')!.links.find((l) => l.to === 'field_mid')!, 'field_edge')).toBeNull(); // open ground
   delete getLibrary().races![OGRE];
+});
+
+it('SZ16: the map carries the size and facing of someone seen clearly at their own point, for its footprint', () => {
+  const s = room();
+  const h = horse(s);
+  h.zone = 'tav_common'; h.placeId = s.player.placeId; h.pos = { x: 3, y: 1 }; h.facing = [1, 0]; s.player.pos = { x: 0, y: 0 };
+  const zones = knownMap(s).places.flatMap((p) => p.zones);
+  const who = zones.flatMap((z) => z.people).find((p) => p.id === h.id);
+  expect(who?.body).toEqual({ lengthM: actorBody(s, h).size.lengthM, widthM: actorBody(s, h).size.widthM, facing: [1, 0] });
 });

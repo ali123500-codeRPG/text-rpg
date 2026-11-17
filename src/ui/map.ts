@@ -12,7 +12,7 @@ import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength } from '../land/generate';
-import { worldTiles, compassOf, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
+import { worldTiles, compassOf, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPerson, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
@@ -33,6 +33,14 @@ const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
 /** the most people dots a tile shows; the rest are a "+n" */
 const MAX_DOTS = 6;
+/** SZ16: a body bigger than its token draws its footprint to scale beneath it: a capsule (its narrower side round), its
+ * length along the way it faces; none for a body the token already covers, or one not seen at its own point */
+export function footprintMark(cx: number, cy: number, r: number, who: MapPerson, pxPerM: number): SVGElement | null {
+  const b = who.body;
+  if (!b || Math.max(b.lengthM, b.widthM) * pxPerM <= 2 * r) return null;
+  const L = b.lengthM * pxPerM, W = b.widthM * pxPerM, deg = (Math.atan2(-b.facing[1], b.facing[0]) * 180) / Math.PI;
+  return s('rect', { class: 'map-foot', x: cx - L / 2, y: cy - W / 2, width: L, height: W, rx: Math.min(L, W) / 2, transform: `rotate(${deg} ${cx} ${cy})`, 'aria-hidden': 'true' }) as SVGElement;
+}
 /** the letter a person's dot shows: the first letter of what you know them by, a name or a description ("a lean man" → L) */
 export const whoInitial = (name: string) => (name.replace(/^(a|an|the)\s+/i, '').trim()[0] ?? '?').toUpperCase();
 /** TV7: how far along a road you are, e.g. "1.8 km from the west end of 4.5 km" */
@@ -646,7 +654,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     for (const t of sc.tokens) {
       if (t.you) { const g = pin(t.cx, t.cy, youAt?.title ?? 'You are here'); g.setAttribute('data-role', 'token'); g.setAttribute('data-id', 'you'); marks.append(g); continue; }
       const who = t.who!;
-      marks.append(s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-who': who.id },
+      const foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
+      marks.append(s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': t.zoneId, 'data-who': who.id }, ...(foot ? [foot] : []),
         s('g', { 'data-role': 'token', 'data-id': t.id }, s('circle', { cx: t.cx, cy: t.cy, r: t.r }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
         s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title)));
     }
