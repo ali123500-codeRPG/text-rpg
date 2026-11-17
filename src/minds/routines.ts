@@ -1,5 +1,6 @@
 // Code minds: routines (desired state) and the fallback combat list. They read only ActorView, never GameState.
 import type { ActorView, MapZone, Order, OrderTemplate, Routine, Rng } from '../types';
+import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
 import { AWARENESS, type TimeOfDay } from '../scales';
@@ -274,5 +275,11 @@ export function bindTemplate(tpl: OrderTemplate, view: ActorView, ctx: { trigger
     const b = view.self.slots[t.slice(6)];
     target = (Array.isArray(b) ? b[0] : b) ?? null;
   }
-  return { ...tpl, actorId: view.self.id, target, source: ctx.source, ...(ctx.triggerId ? { triggerId: ctx.triggerId } : {}) };
+  // BF96 a: a beat may carry the difficulty of a graded act and its fall; a word off the grade scale or a fall that is not
+  // a distance is dropped here, so the act rolls at Moderate and is flagged (grade_gap) as with no grade at all
+  const { grade, fall, ...rest } = tpl;
+  return {
+    ...rest, ...(grade && (GRADES as readonly string[]).includes(grade) ? { grade } : {}), ...(typeof fall === 'number' && fall > 0 ? { fall } : {}),
+    actorId: view.self.id, target, source: ctx.source, ...(ctx.triggerId ? { triggerId: ctx.triggerId } : {}),
+  };
 }

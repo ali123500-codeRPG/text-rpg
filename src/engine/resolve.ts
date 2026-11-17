@@ -58,7 +58,7 @@ import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName, r1 } from '../words';
 import { gutFeelings } from './hunches';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, speechSkill as speechSkillOf } from './speech';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, sizeUp, speechSkill as speechSkillOf } from './speech';
 import { bested, growthWaits, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
@@ -1404,6 +1404,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   // BG-65: checking a door or other way out of the zone says what holds it: open, shut but theirs to open, or locked/barred/blocked
   const link = o.type === 'interact' && o.target ? zoneById(state, a.zone)?.links.find((l) => l.to === o.target) : undefined;
+  const person = o.target ? actorById(state, o.target) : undefined;
   if (link && !atDoor(state, a, link.to)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   if (link) {
     const b = barrierOn(state, link), pass = b ? passage(b, a, a.zone) : 'open';
@@ -1423,12 +1424,19 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     if (tierAtLeast(r.tier, 'success')) lookAround(state);
     ev.effects.push(...foundEffects(a, searchFor(state, a, ev, rng, { look: fn }))); // SE14: also a weak search
     ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
+  } else if (o.skill === SK.insight && o.type === 'observe' && person && person !== a) {
+    // BF97 a: sizing someone up is Insight against their Lying, never a roll against a grade; out of clear sight, nothing
+    const r = sizeUp(state, a, person, rng);
+    if (!r) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: person.id, reason: 'out_of_sight' }), o));
+    ev.contest = r.contest;
+    if (r.read) ev.read = r.read;
   } else if (o.skill && CHECK_TYPES.has(o.type)) {
     // OD1 b/OD3: an act on a thing rolls against the thing's own grade only when in doubt; OD5: code holds what each tier does
     const thing = gradedThing(state, o, link);
     const grade = thing?.grade ?? o.grade ?? 'moderate';
-    // OD14 a: a grade the actor's agent (Parser, Planner, Responder) left out is flagged every time, and is Moderate
-    if (!thing?.grade && !o.grade) logCode(state, 'grade_gap', { actorId: a.id, type: o.type, skill: o.skill, ...(o.target ? { target: o.target } : {}), intent: o.intent.slice(0, 200) });
+    // OD14 a: a grade the actor's agent (Parser, Planner, Responder) left out is flagged every time, and is Moderate.
+    // BF97 a: an act on a person is never graded, so it is never flagged
+    if (!thing?.grade && !o.grade && !person) logCode(state, 'grade_gap', { actorId: a.id, type: o.type, skill: o.skill, ...(o.target ? { target: o.target } : {}), intent: o.intent.slice(0, 200) });
     if (thing && !thing.grade && o.grade) thing.grade = o.grade; // OD3: kept on the thing, so asking again can't regrade it
     if (thing && !(thing.graded ??= []).includes(a.id)) thing.graded.push(a.id); // OD12: trying it shows its grade
     const used = o.type === 'use_item' ? a.core.inventory.find((i) => i.id === o.item || i.itemId === o.item) : undefined;

@@ -40,6 +40,7 @@ export type BeliefView = {
   label: string; // public label or known name
   name?: string; // BG-95: the player's name, once self has heard it (label stays 'player')
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
+  read?: { turn: number; mood: string; feels: Stance; hiding: boolean }; // BF97 a: the last time self sized them up with Insight and won
 };
 
 export type EventView = {
@@ -278,6 +279,7 @@ export type NarrationEvent = {
   breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ..."); beyond: OD13, past the breaker (no roll)
   beyond?: true; // OD1 b: an act on a thing past the actor's reach: it comes to nothing, with no roll
   graded?: true; // OD5: an act on something with a grade, whose tier says what it did
+  read?: { mood: string; feels: Stance; hiding: boolean }; // BF97 a: the player sized someone up and won: what they made out
   mishap?: { kind: 'tool' | 'fall' | 'noise'; item?: string }; // OD5: a graded act's Critical Failure: the tool that broke (its name), a fall, or a loud noise
   mentallySteady?: true; // SY1: it left them Mentally steady
   extract?: { essence: string }; // DX3: an essence pulled out of the target: its name (the target is left Hollowed)
