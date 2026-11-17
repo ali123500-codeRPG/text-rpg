@@ -23,7 +23,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { M_EPS, distM, distOrNull, gateAhead, placeAll, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { M_EPS, closeInM, distM, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -1140,7 +1140,7 @@ function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string
     };
     if (o.type === 'attack' && t) {
       // BF71: it closes to its blow's reach (stepping round anyone in the way), not to a set distance
-      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, m.mode.reach - M_EPS) : CONFIG.HOSTILE_NEAR_M / 2, t.id); }
+      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, closeInM(m.mode.reach) - M_EPS) : CONFIG.HOSTILE_NEAR_M / 2, t.id); }
       if (!inReach(state, x, o)) continue;
       if (t === p) { reached.push(x.id); continue; }
       fighting = true;
@@ -2185,7 +2185,8 @@ function attackMode(state: GameState, a: Actor, o: Order, from: Located = a) {
   const dist = t ? sightDistM(state, from, t) : Infinity;
   return { m: namedMode(state, a, o) ?? defaultMode(state, a, dist), dist };
 }
-const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && withinM(dist, m.mode.reach); };
+/** IC12 a: a decision, so the exact reach (reachesM); the blow itself allows withinM's margin */
+const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && reachesM(dist, m.mode.reach); };
 /** FR4 (the NEEDS table): where this turn's action is done and whether the actor is near enough: a foe within the attack's
  * reach (melee), someone to hand to within both grip reaches, the doorway of a way worked, picked or tried within grip
  * reach; with none, the first item to pick up out of reach. null: nothing to close in on. */
@@ -2201,7 +2202,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   const need = needOf(state, a, o.type), t = o.target ? actorById(state, o.target) : undefined;
   if (need === 'weapon' && t && t !== a && healthLevel(t) !== 'dead' && !notInHand(state, a, o) && !rangedHere(state, a, o)) { // BG-162: someone down can be struck (doAttack), so is closed in on
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
-    if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
+    if (m) return { at: t, m: closeInM(m.mode.reach), toward: t.id, ok: () => inReach(state, a, o) };
   }
   if (o.type === 'search' && t && t !== a && openToGrip(state, a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
   if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
@@ -2301,7 +2302,7 @@ function settleOffers(ctx: Ctx): void {
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);
   const next = o.move ? shortestPath(state, a.zone, o.move)?.[0] : undefined;
-  const m = here.m && withinM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
+  const m = here.m && reachesM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
   return m?.mode.tree === 'ranged';
 };
 /** AE2: no running (the move role switched off by the shared-role rule, CS8) stops a dash, and so does Leg Bolt's slow (A6) */

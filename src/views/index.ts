@@ -26,7 +26,7 @@ import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
 import { madeOutBySight } from '../perception/madeOut';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
-import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, isAsleep, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { agreementsOf } from '../engine/memory';
 import { talkingWith } from '../engine/speech';
@@ -82,9 +82,8 @@ function yieldView(state: GameState): YieldView | undefined {
 }
 
 /** others' health shows from CONFIG.HEALTH_SHOWN_FROM down (Voyage C2); Read Wounds (A13) shows it one step earlier on
- * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
-const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
-const reads = (state: GameState, viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && hasPerk(viewer, PK.read_wounds) && foe(state, viewer, other);
+ * the health track, by position, for anyone else the owner sees (IC11 a: not foes only) */
+const reads = (viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && viewer !== other && hasPerk(viewer, PK.read_wounds);
 const healthShows = (level: HealthLevel, sharp: boolean) => HEALTH_LEVELS.pos(level) >= HEALTH_LEVELS.pos(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
 
 // ---------- shared helpers ----------
@@ -291,13 +290,13 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(stageOf(state, a) ? { age: stageOf(state, a)! } : {}), // AG16: the life stage, never the number
       ...place,
       ...(look ? { activityLook: look } : {}),
-      ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
+      ...(healthShows(h, reads(viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
       ...(!isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}),
       ...(!isDownLevel(h) && fatigueShows(fatigueLevel(a)) ? { fatigue: fatigueWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),
-      ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
+      ...(reads(viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, revealedTo(viewer, a.id), viewer.id),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
@@ -367,7 +366,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
   for (const f of effects) {
     const own = f.actorId === viewerId;
     const who = callName(state, viewerId, f.actorId);
-    const sharp = reads(state, actorById(state, viewerId), actorById(state, f.actorId));
+    const sharp = reads(actorById(state, viewerId), actorById(state, f.actorId));
     if (f.kind === 'threshold_crossed') {
       const to = f.data.to as HealthLevel;
       if (own || healthShows(to, sharp) || readsHealthOf(actorById(state, viewerId), actorById(state, f.actorId))) out.push(`${who} is ${HEALTH_LEVELS.name(to)}`);

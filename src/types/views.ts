@@ -89,7 +89,7 @@ export type SeenActor = {
   stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
   crippled?: string[]; destroyed?: string[];
   tended?: string; // BG-181: what its wounds were last treated with (a bandage), until its next wound
-  damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
+  damaged?: string[]; // A13 Read Wounds: their Damaged parts
   gear: SeenGearView[];
   wares?: WareView[]; // a seller the player sees, at the player's prices
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
