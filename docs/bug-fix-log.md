@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali's RE1 answer: minutes walked on roads now count up across trips. Every full hour of them, whichever trips it took, rolls once by the danger of the road you are on at that moment, and the count starts again. The trip stops right there if something meets you.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #978](https://github.com/ali123500-codeRPG/text-rpg/pull/978)
 
 ## BG-290
 
