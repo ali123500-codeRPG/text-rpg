@@ -356,5 +356,41 @@
     ],
     "triangles": 23081,
     "notes": "Anime-style girl (made in VRoid) for the human figure. Clear humanoid bones: Hips, Spine, Chest, Neck, Head, Left/Right shoulder-arm-elbow-wrist, Left/Right leg-knee-ankle-toe, plus finger, hair and skirt bones. T-pose, no animations. 23k triangles. (96 bones total; 5.9 MB.)"
+  },
+  {
+    "animal": "human-1",
+    "file": "human-1/human-1.glb",
+    "title": "Streer Fighter Juri Han T pose",
+    "author": "lawlietrecluze (@lawlietrecluze)",
+    "url": "https://sketchfab.com/3d-models/3b7fc93f59c04a668c108961168cf967",
+    "licence": "CC-BY 4.0",
+    "rigged": false,
+    "bones": [],
+    "triangles": 2000000,
+    "notes": "Original file: streer-fighter-juri-han-t-pose.zip > source/Hi3D_Stylized Muscular Juri Han 3D Fighting Game Character_allpa.glb. AI-generated (Hi3D) scan: one single mesh, NO skeleton (cannot be split by bone), 2,000,000 triangles and about 60 MB with 2 embedded textures; it will need rigging and decimating before use. Shipped unedited; the zip also had loose copies of the same textures, which are not included. The uploader labels it CC-BY, but it is fan art of a copyrighted character (Juri Han from Street Fighter, Capcom); the licence cannot cover the character design itself, so keep it for personal use only."
+  },
+  {
+    "animal": "human-2",
+    "file": "human-2/human-2.glb",
+    "title": "Pomni | T pose | Clown girl | string bikini",
+    "author": "lawlietrecluze (@lawlietrecluze)",
+    "url": "https://sketchfab.com/3d-models/89023484a2b74d30bcd4a2ad22a25acb",
+    "licence": "CC-BY 4.0",
+    "rigged": false,
+    "bones": [],
+    "triangles": 2000000,
+    "notes": "Original file: pomni-t-pose-clown-girl-string-bikini.zip > source/Hi3D_Stylized 3D Anime Jester Girl Pomni 3D Asset_allparts_20260.glb. AI-generated (Hi3D) scan: one single mesh, NO skeleton (cannot be split by bone), 2,000,000 triangles and about 60 MB with 2 embedded textures; it will need rigging and decimating before use. Shipped unedited; the zip also had loose copies of the same textures, which are not included. The uploader labels it CC-BY, but it is fan art of a copyrighted character (Pomni from The Amazing Digital Circus, Glitch Productions); the licence cannot cover the character design itself, so keep it for personal use only."
+  },
+  {
+    "animal": "human-3",
+    "file": "human-3/human-3.glb",
+    "title": "Android 18 | Anime girl | Hot Denum Bikini",
+    "author": "lawlietrecluze (@lawlietrecluze)",
+    "url": "https://sketchfab.com/3d-models/8e9550f388ea4567b73dd7d1b43db197",
+    "licence": "CC-BY 4.0",
+    "rigged": false,
+    "bones": [],
+    "triangles": 2000000,
+    "notes": "Original file: android-18-anime-girl-hot-denum-bikini.zip > source/Hi3D_Stylized 3D Android 18 Dragon Ball Character_allparts_20260.glb. AI-generated (Hi3D) scan: one single mesh, NO skeleton (cannot be split by bone), 2,000,000 triangles and about 60 MB with 2 embedded textures; it will need rigging and decimating before use. Shipped unedited; the zip also had loose copies of the same textures, which are not included. The uploader labels it CC-BY, but it is fan art of a copyrighted character (Android 18 from Dragon Ball); the licence cannot cover the character design itself, so keep it for personal use only."
   }
 ]
