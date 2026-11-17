@@ -6,6 +6,22 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-283
+
+**What was wrong:** In the action-deck playtest a slime crippled the hero's right arm, the arm holding the hand axe. The deck still offered to attack with the axe; the swing came to nothing and the next slam killed the hero. The deck listed every weapon in hand without asking whether a hand could still use it.
+
+**What was done:** A weapon held in a hand that can't use it (by the same rule the blow resolves with) is marked in the player's view, and the deck leaves it out of "With what?".
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
+## BG-282
+
+**What was wrong:** In the action-deck playtest the hero tried to Restrain a slime and slipped, but no roll line showed: the grab's contest was never put on its event. A held person's try to break free had the same gap.
+
+**What was done:** The grab and the try to break free carry their contest on their event, so their rolls show like any other contest.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-281
 
 **What was wrong:** In the action-deck playtest the hero said hello to a shape 25 m off and started walking up to it; the next turn the deck and the game's suggestion read "Keep walking to the fowlers' path", the zone the hero already stood in. A walk up to someone was always named by its zone.
