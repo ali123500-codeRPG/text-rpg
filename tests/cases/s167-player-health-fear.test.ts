@@ -45,7 +45,7 @@ it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed
   expect(partFearCost(fears[FR.own_part_crippled], ['neck', 'left_arm'], human)).toBe(45);
   expect(partFearCost(fears[FR.own_part_destroyed], ['head'], human)).toBe(45);
   const dragon = getLibrary().bodyTypes[BT.winged_quadruped].parts;
-  expect(partFearCost(fears[FR.own_part_crippled], ['tail'], dragon)).toBe(5 * 6 / dragon.length);
+  expect(partFearCost(fears[FR.own_part_crippled], ['tail'], dragon)).toBeCloseTo(5 * 6 / dragon.length, 9);
   const twelve = [...human, ...human.map((p) => ({ ...p, id: p.id + '_2' }))];
   expect(partFearCost(fears[FR.own_part_crippled], ['left_arm'], twelve)).toBe(7.5);
   let checked = 0, paid = 0;

@@ -6,7 +6,7 @@ import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
 import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
-import { partPct, poolState, usableGrips, working } from './body';
+import { attackParts, partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
 import type { PayoffCount } from '../library/perkThemes';
 import { achievementStandIn, bestReward } from './achRewards';
@@ -345,7 +345,8 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
   }
   const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {
-    if (!mode.partId || working(poolState(partPct(actor, mode.partId)))) out.push({ itemId: `natural:${mode.id}`, mode });
+    const ids = attackParts(mode);
+    if (!ids.length || ids.some((id) => working(poolState(partPct(actor, id))))) out.push({ itemId: `natural:${mode.id}`, mode });
   }
   if (!ct.naturalAttacks.length) out.push({ itemId: 'unarmed', mode: UNARMED_MODE });
   return out;
@@ -370,7 +371,7 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
   const ct = actorBody(state, actor);
   if (weaponId === 'unarmed' || weaponId.startsWith('natural:')) {
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
-    const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);
+    const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !attackParts(m).length) ?? UNARMED_MODE : undefined);
     if (!mode) throw new Error(`no natural attack ${weaponId}`);
     return { mode, name: modeName(mode) };
   }

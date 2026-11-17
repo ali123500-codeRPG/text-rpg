@@ -92,6 +92,7 @@ export type AttackMode = {
    * an improvised melee strike takes Arms stand-ins, an improvised throw takes Ranged ones) */
   standInFns?: SkillFunction[];
   partId?: string; // natural attacks: the Strike part used
+  partIds?: readonly string[]; // BV7 a: natural attacks from either part of a pair (claws from either foreleg); usable while one works
   name?: string; // public name for natural modes (packet); else the attackModes row's name
 };
 
