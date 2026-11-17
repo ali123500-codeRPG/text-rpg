@@ -21,7 +21,7 @@ import { fatigueLevel } from '../ruleset/fatigue';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
-import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
+import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, moralePenalty } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
 import { cap, r1, theName } from '../words';
@@ -365,7 +365,6 @@ export const NERVE_UNTIL = "You can't attack or go toward a foe until the fight 
 export const NERVE_COWERING = "You can't move or attack until the fight is behind you: you cower where you stand.";
 export const NERVE_PASSES = () => `That is once no one has fought you for ${engagementEndS()} s, your yield is taken, this scenario ends, or you rest.`;
 export const NERVE_STILL = 'You can still talk, beg, yield, give, hide, use an item such as a bandage, pick something up, or open a door or container within reach.';
-const moraleRoll = (k: string) => CONFIG.MORALE_TRACK.find(([x]) => x === k)?.[2] ?? 0;
 /** NB2: a level word that carries what it costs as a tip, shown on hover or keyboard focus (dotted underline as the cue);
  * screen readers get it as the word's description */
 function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
@@ -377,7 +376,7 @@ function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
 export function moraleHint(k: MoraleLevel): string | null {
   if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM)) return null;
   if (isBrokenLevel(k)) return `${NERVE_PASSES()} ${NERVE_STILL}`;
-  const roll = moraleRoll(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
+  const roll = moralePenalty(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
   return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack or go toward a foe.`;
 }
 
@@ -467,13 +466,6 @@ function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
     return h('span', { class: 'cs-gi', 'data-gear': i.id }, k ? ' · ' : '', cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId),
       n ? h('span', { class: `cs-gn ${n.cls}`, 'data-m': 'gear-note' }, n.text) : null);
   });
-}
-
-/** what the character holds and wears, by item name: "arming sword · round shield" */
-export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
-  const on = p.core.inventory.filter((i) => i.equippedIn?.length);
-  const name = (i: Actor['core']['inventory'][number]) => safe(() => itemDef(s, i.itemId).name) ?? i.itemId;
-  return { held: on.filter(isHeld).map(name), worn: on.filter((i) => !isHeld(i)).map(name) };
 }
 
 /** Layout A: the narrow status strip beside the story (health word and bar, damaged parts, what is held); a click opens the full sheet */

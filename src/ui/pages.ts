@@ -671,23 +671,6 @@ export function chainDetail(s: GameState, id: string, scars: boolean): PanelRow[
   return rows;
 }
 
-/** the side panel for an earned achievement: how it is earned, when you earned it, what it pays, and every level of its chain
- * with how each is earned and whether you have it */
-export function achievementDetail(s: GameState, id: string): PanelRow[] {
-  const a = (s.player.progression?.achievements ?? []).find((x) => x.id === id);
-  if (!a?.key) return [];
-  const info = achievementInfo(s, a);
-  const rows: PanelRow[] = [
-    { k: 'How it is earned', v: cap(info.earnedAt) },
-    { k: 'You earned it', v: info.why },
-    { k: 'Reward', v: [`Level ${info.levelName} · ${info.xp} XP`, ...info.rewards].join(' · ') },
-  ];
-  const levels = achievementLevels(s, a.key, a.of);
-  if (levels.length > 1) rows.push({ k: 'Every level', v: h('ol', { class: 'ach-chain' }, levels.map((l) =>
-    h('li', { class: l.got ? 'got' : '' }, h('b', {}, l.name), ` · ${l.earnedAt} · Level ${l.level}`, l.got ? ' · earned' : ''))) });
-  return rows;
-}
-
 /** every level of an achievement's chain for one kind (`of`): its name, how it is earned, its reward level, and whether you have it */
 export function achievementLevels(s: GameState, key: string, of?: string): { name: string; earnedAt: string; level: string; got: boolean }[] {
   const lib = getLibrary().achievements ?? {};

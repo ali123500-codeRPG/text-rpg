@@ -28,10 +28,12 @@ export function moraleLevel(a: Actor): MoraleLevel {
 export const isBrokenLevel = (l: MoraleLevel): boolean => MORALE_LEVELS.pos(l) >= MORALE_LEVELS.pos('broken');
 /** BF79: below Broken: the actor cowers and cannot even flee */
 export const isCoweringLevel = (l: MoraleLevel): boolean => l === 'cowering';
+/** a morale level's roll penalty (CONFIG.MORALE_TRACK), 0 for none */
+export const moralePenalty = (l: string): number => (CONFIG.MORALE_TRACK.find(([k]) => k === l)?.[2] as number | undefined) ?? 0;
 /** MB3/MB35: the level's roll penalty, type wounds, so it shrinks together with health wounds; it also hits the morale roll */
 export function moraleMods(a: Actor): Mod[] {
   const l = moraleLevel(a);
-  const v = CONFIG.MORALE_TRACK.find(([k]) => k === l)?.[2] ?? 0;
+  const v = moralePenalty(l);
   return v ? [{ source: `morale: ${MORALE_LEVELS.name(l)}`, type: 'wounds', value: v }] : [];
 }
 /** MB16: others' morale shows from CONFIG.MORALE_SHOWN_FROM down */
