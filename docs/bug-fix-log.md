@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-302
+
+**What was wrong:** On Play, a few button texts showed in Arial instead of the game font: the hint under every action-deck entry ("hold them back unhurt"), the quick-use healing slot's count and the pin button on the map card. Browsers give buttons their own font, and these three set none.
+
+**What was done:** One rule at the top of the play styles: buttons, inputs, selects and text boxes take the page font. A font scan of creation, Play and every rail page in the fake game now finds no text outside the game fonts, and a styles test keeps the rule.
+
+**Fixed by:** [PR #1016](https://github.com/ali123500-codeRPG/text-rpg/pull/1016)
+
 ## BG-301
 
 **What was wrong:** Battle Cry's rally passed over any ally who had already broken, although no decision ever said a broken ally can't be helped (the skip came in with PR #740). Once an NPC broke, it stayed broken, fleeing or yielding to those it fought, until the scenario ended, even if its morale came back.
@@ -13,6 +21,13 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** A rally now reaches broken allies too. When a broken ally's morale lost falls back under 100 % of its max, the break ends: it stops yielding to the foes it was fighting and fights on. A spoken surrender stays. Every rally also gives Rallied, +5 on every roll until the fight ends (no stacking), as Ali chose on the Tactics page (TC41, TC42).
 
 **Fixed by:** [PR #1015](https://github.com/ali123500-codeRPG/text-rpg/pull/1015)
+## BG-300
+
+**What was wrong:** On a phone (390 px wide), six tabs of the library viewer scrolled sideways: Body types (by 22 px), Skills, Stand-ins, Equations, Quests and Nerve (by up to 409 px). Their small tables kept every column, and a card's body sized its column to fit the widest table, so cards and the page grew wider than the screen.
+
+**What was done:** At 760 px and below, every small table in a view (such as a body type's parts, a skill group's skills or an equation's table) now shows one small card per row, with each value labelled by its column. The main table view and the perk ladder grid keep their own phone layout. A card's body can no longer grow wider than its card. All 58 tabs were checked at 390, 600 and 760 px: none scrolls sideways.
+
+**Fixed by:** [PR #1011](https://github.com/ali123500-codeRPG/text-rpg/pull/1011)
 
 ## BG-299
 

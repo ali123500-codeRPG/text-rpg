@@ -14,4 +14,7 @@ describe('play styles use tokens only', () => {
     const shadows = body.match(/(box-shadow|text-shadow|drop-shadow)[^;}]*/g) ?? [];
     expect(shadows.filter((s) => !/box-shadow:\s*var\(--shadow-toast\)/.test(s))).toEqual([]);
   });
+  it('buttons and form fields take the page font (BG-302)', () => {
+    expect(css).toMatch(/button, input, select, textarea \{ font-family: inherit; \}/);
+  });
 });

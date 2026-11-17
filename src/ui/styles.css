@@ -1,5 +1,6 @@
-/* HISAB design system, one theme only: Sky diary · Night. Values copied from HISAB tokens.json and
-   components/bundle.css; the Sky-look variants of bundle.css are applied directly (no data-theme switch). */
+/* One theme only: Graphite (look study LK4 b, hub page "Choose the game's own look"). Structure, sizes and fonts come from
+   the HISAB design system (tokens.json, components/bundle.css); the colours are the game's own: a neutral ground so the
+   game's colours (skill groups, perk series, essence, health) stand out, one light-blue accent, light main buttons. */
 @font-face { font-family: "HISAB Round"; font-weight: 400 600; font-display: block; src: url(./assets/HISABRound-Regular.woff2) format("woff2"); }
 @font-face { font-family: "HISAB Round"; font-weight: 700; font-display: block; src: url(./assets/HISABRound-Bold.woff2) format("woff2"); }
 @font-face { font-family: "HISAB Round"; font-weight: 800 900; font-display: block; src: url(./assets/HISABRound-ExtraBold.woff2) format("woff2"); }
@@ -17,14 +18,14 @@
   --control-h: 36px; --input-h: 40px; --touch: 44px; --rail-w: 84px; --panel-w: 420px; --sheet-w: 300px; --tile-min: 180px;
   --r-sm: 2px; --r-md: 4px; --r-lg: 6px; --r-rail: 14px; --r-pill: 999px;
   --shadow-toast: 0 6px 24px rgba(0,0,0,.18);
-  --bg: #0b1330; --surface: #16214a; --text: #eef4ff; --muted: #bccbec; --faint: #adbde2; --border: #2a3b70; --rule: #34477f;
-  --accent: #93c5ff; --accent-soft: #1b3160; --ok: #5cc97a; --warn: #f2b552; --warn-soft: #2e2a22; --danger: #ff6b6b; --danger-soft: #3a1c26;
-  --on-btn: #ffffff; --on-pill: #0b1020; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; --essence: var(--perk-40); /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
+  --bg: #121417; --surface: #1c2025; --field: #0d0f12; --text: #f3f4f1; --muted: #c9ced3; --faint: #b4bac1; --border: rgba(255,255,255,.10); --rule: rgba(255,255,255,.15);
+  --accent: #9ecbff; --accent-soft: #1f2c3d; --ok: #5cc97a; --warn: #f2b552; --warn-soft: #2e2a22; --danger: #ff6b6b; --danger-soft: #3a1c26;
+  --on-btn: #0c1118; --on-pill: #0c1118; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; --essence: var(--perk-40); /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #1c2025; --deco-2: #9ecbff; --deco-3: #9ecbff;
   --c1: #689ce2; --c2: #72ae75; --c3: #8d99a5; --c4: #e97aac; --c5: #af80dc; --c7: #e29568; --c10: #df7369; --c12: #6cadae; --c14: #b27567; --c15: #caad69;
   --c6: #c7a5e4; --c8: #f19e94; --c9: #72bed3; --c11: #6474b0; --c13: #a2ad67; --c16: #628c71; --c17: #bf6895; --c18: #9865b7; --c19: #7c7bde; --c20: #92adff; --c21: #c18a9a; --c22: #8e6f8a;
-  --btn-fill: linear-gradient(120deg in oklch, oklch(.50 .135 252) 8%, oklch(.53 .14 148) 92%);
-  --grad-deco: linear-gradient(90deg, var(--deco-1), var(--deco-2), var(--deco-3));
-  --tg-k: 36%; --veil0: 50%; --veil1: 86%;
+  --btn-fill: var(--accent);
+  --grad-deco: var(--accent);
+  --tg-k: 36%; --veil0: 62%; --veil1: 90%;
   --scenario: url(./assets/night-sky.webp);
   --vh: 100vh;
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
@@ -52,13 +53,19 @@ body { margin: 0; font: 14px/1.4 var(--font-round); font-variant-numeric: tabula
 .hs-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 svg.hs-i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -4px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+/* BG-302: browsers give buttons and fields their own font; they take the page font instead */
+button, input, select, textarea { font-family: inherit; }
+/* browser surfaces take the theme: placeholders readable, selection, caret and scrollbars in the game's colours */
+::placeholder { color: var(--faint); opacity: 1; }
+::selection { background: var(--accent-soft); color: var(--text); }
+html { caret-color: var(--accent); scrollbar-color: var(--rule) var(--bg); }
 
 /* Rail: 64px items, no gap, active = pill filling the whole item; scrolls on its own, nothing shrinks */
 /* The rail comes last in the page (tab order: input, tools, sheet, rail) but sits in the first column */
 .game-rail { grid-column: 1; grid-row: 1; }
 .hs-rail { width: var(--rail-w); border-right: 1px solid var(--border); position: sticky; top: 0; height: var(--vh); overflow-y: auto; overflow-x: hidden;
   display: flex; flex-direction: column; box-sizing: border-box; background: inherit; }
-.hs-rail::before { content: ""; position: sticky; top: 0; display: block; flex: none; height: 3px; background: var(--grad-deco); }
+.hs-rail::before { content: ""; position: sticky; top: 0; display: block; flex: none; height: 2px; background: var(--grad-deco); }
 .hs-brand { flex: none; display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; font-weight: 700; font-size: 12px; letter-spacing: .08em; }
 .hs-brand .ar { color: var(--muted); font-weight: 600; letter-spacing: 0; font-size: 13px; }
 .hs-rail a, .hs-rail button { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 64px; margin: 0; padding: 0;
@@ -129,7 +136,7 @@ h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spa
 .hs-icon-btn { background: none; border: 0; min-width: var(--control-h); min-height: var(--control-h); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); border-radius: var(--r-md); font: inherit; }
 .hs-icon-btn:hover { background: var(--accent-soft); color: var(--text); }
 .hs-icon-btn:disabled { opacity: .35; cursor: default; background: none; }
-.hs-input { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-md); padding: 8px 10px; min-height: var(--input-h); font: inherit; color: var(--text); box-sizing: border-box; }
+.hs-input { background: var(--field); border: 1px solid var(--rule); border-radius: var(--r-md); padding: 8px 10px; min-height: var(--input-h); font: inherit; color: var(--text); box-sizing: border-box; }
 
 /* Tables */
 .hs-tbl { width: 100%; border-collapse: collapse; }
@@ -309,14 +316,13 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-bfbtn:hover, .cs-bfbtn:focus-visible { border-color: var(--border); }
 .cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
-.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
-.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--r-lg);
-  background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color var(--m-feedback) var(--m-ease); }
-.cs-tile:hover, .cs-tile:focus-visible { border-color: var(--accent); }
+/* HS7: tiles sit on the sky with no box and no lines; space alone parts them, a hover tints the one under the pointer */
+.cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); }
+.cs-tile { display: grid; gap: 2px; justify-items: start; min-width: 0; text-align: left; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--r-lg);
+  background: none; color: var(--text); font: inherit; cursor: pointer; transition: background-color var(--m-feedback) var(--m-ease); }
+.cs-tile:hover, .cs-tile:focus-visible { background: var(--accent-soft); }
 .cs-tile b { font-size: 20px; font-weight: 800; line-height: 1.2; }
 .cs-tile-sub { max-width: 100%; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cs-tile.lit[data-tile="essences"] { border-color: color-mix(in oklch, var(--essence) 60%, var(--border)); }
-.cs-tile.lit[data-tile="perks"] { border-color: color-mix(in oklch, var(--perk-20) 60%, var(--border)); }
 .cs-tile.lit[data-tile="perks"] b { color: var(--perk-20); }
 @media (max-width: 900px) {
   main.cs-page { height: auto; } .cs-page .cs-split { grid-template-columns: minmax(0, 1fr); } .cs-page .cs-card, .cs-right { overflow: visible; }
@@ -413,7 +419,7 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .pk-full .pk { margin: 0; border: 0; border-radius: 0; padding: 20px var(--space-8) var(--space-6); }
 .pk-full .pk-h { padding-right: 56px; }
 .pk-full .pk-lad { --rh: clamp(200px, calc((var(--vh) - 360px) / 2), 320px); }
-.cs-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px; display: grid; gap: var(--space-4); }
+.cs-card { padding: 4px 0; display: grid; gap: var(--space-4); } /* HS7: flat on the sky, no box and no line; the gap to the skill trees parts them */
 .cs-who { display: flex; gap: 14px; align-items: center; }
 .cs-who b { font-size: 18px; display: block; }
 .cs-who span { color: var(--muted); font-size: 13px; }
@@ -759,9 +765,8 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .story { overflow-y: auto; min-height: 0; scrollbar-color: var(--rule) transparent;
   mask-image: linear-gradient(to bottom, transparent, black var(--space-4)); } /* lines leave softly under the who's-here row */
 .story .col { padding-top: var(--space-4); }
-/* a stronger veil behind the column (never solid) so the stars and cloud don't pass behind the letters */
-.play { font: var(--story-size)/1.6 var(--font-story); margin-left: calc(-1 * var(--space-8)); padding-left: var(--space-8);
-  background: color-mix(in srgb, var(--bg) var(--veil1), transparent); }
+/* HS7: no extra veil behind the column; it shows the same sky as the rest of the page */
+.play { font: var(--story-size)/1.6 var(--font-story); margin-left: calc(-1 * var(--space-8)); padding-left: var(--space-8); }
 .story .col, .sec.col { padding-right: var(--space-6); }
 .story .col { padding-bottom: var(--space-4); }
 .log { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -1209,6 +1214,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .iico.blank { --ic: var(--faint); opacity: .45; border-style: dashed; background: none; }
 /* IC3: small icons beside a name: a class or Start (no kind, so the accent), and a thing in the loot pop-up (kind-tinted) */
 .cico { display: inline-grid; width: 20px; height: 20px; flex: none; align-self: center; vertical-align: -4px; color: var(--accent); }
+.hs-btn-main .cico, [aria-pressed="true"] .cico { color: currentColor; } /* on a light accent fill the icon takes the button's dark text */
 .cico svg { width: 100%; height: 100%; display: block; }
 .iico.lico { width: 26px; height: 26px; padding: 3px; border-radius: var(--r-sm); }
 .ct-name { display: inline-flex; align-items: center; gap: var(--space-2); }
@@ -1517,15 +1523,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .say-for { align-self: center; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: var(--r-pill);
   padding: 0 var(--space-3); min-height: 30px; font: 700 13px var(--font-round); cursor: pointer; white-space: nowrap; }
 .say-for[hidden] { display: none; }
-.dk-sug { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-3); align-items: center; padding: var(--space-3) var(--space-4);
-  border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border); }
-.dk-sug[hidden] { display: none; }
-.dk-sug .dk-sl { grid-column: 1 / -1; color: var(--scenario-mark); margin: 0; }
-.dk-go { justify-self: start; max-width: 100%; min-height: var(--touch); padding: 0 var(--space-4); border: 0; border-radius: var(--r-md); background: var(--btn-fill); color: var(--on-btn);
-  font: 800 17px var(--font-round); text-align: left; cursor: pointer; transition: opacity var(--m-feedback) var(--m-ease); }
-.dk-go:hover { opacity: .9; } .dk-go:disabled { opacity: .5; cursor: default; }
-.dk-alt[hidden] { display: none; }
-.dk-why { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 13px; }
 .deck { display: grid; gap: var(--space-3); }
 .dk-mods { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: 13px; color: var(--muted); }
 .dk-mods .hs-label { margin: 0; }
