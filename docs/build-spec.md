@@ -1877,6 +1877,8 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 121 | Half-seen lying still (BG-278) | s349: a body half seen in the dark is lying still with no health shown; the deck offers no talk against it but offers Attack and Look at; the narrator sees the mark; a sleeper lies still, someone standing does not |
 | 122 | Look, beasts, walk label (BG-279/280/281) | s350: a good look keeps a moving slime seen that turn with no new roll; a slime seen clearly or last seen elsewhere gets no talk, trade, gift or search (Threaten stays) while a guard does; a walk up to someone is named by them |
 | 123 | Threats at beasts (BF88) | s351: a threat at a wolf rolls Intimidation against its own, a win shakes it and costs morale, never "does not understand"; a slime ignores a threat; a Battle Cry still shakes a slime |
+| 124 | Grab rolls show (BG-282) | s352: a Restrain puts its contest on its event and shows a roll line; a try to break free carries its contest |
+| 125 | No weapon in a useless hand (BG-283) | s353: an axe in a crippled right hand is marked cantSwing and left out of the attack deck's With what? |
 
 ### Deliverables and acceptance criteria
 
@@ -3685,6 +3687,8 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-279 | In the action-deck playtest a Success on a look at a slime 23 m off in the dark was undone the same turn: its later step rolled a fresh make-out and failed | 17/11/2026 | fixed (Ali OK'd the fix, BF85 a) | A good look records that turn's make-out for everyone it shows (lookAround). PR #964 |
 | BG-280 | In the action-deck playtest the deck offered talk, haggling, gifts and searches to slimes in sight and to slimes last seen far away | 17/11/2026 | fixed (Ali OK'd the fix, BF86 a) | Views mark one who cannot talk (mute, by race, full sight and lastSeen); the deck leaves them out of talk, trade, give and let-search; Threaten stays (BF86: a threat can be non-verbal). PR #964 |
 | BG-281 | In the action-deck playtest a walk up to someone read Keep walking to the zone the player already stood in | 17/11/2026 | fixed (Ali OK'd the fix, BF87 a) | A walk with spot near someone is named by them as seen (walkingOf). PR #964 |
+| BG-282 | In the action-deck playtest a Restrain (and a try to break free) showed no roll: the contest was never put on its event | 17/11/2026 | fixed (Ali OK'd the fix, BF89 a) | restrain() and breakFree() return their contest; the restrain and break_free events carry it. PR #966 |
+| BG-283 | In the action-deck playtest the deck offered to attack with an axe held in a crippled hand; the order was wasted (not in hand) | 17/11/2026 | fixed (Ali OK'd the fix, BF90 a) | Own gear in the view marks cantSwing (held, but no usableModes entry); the deck leaves it out of With what?. PR #966 |
 
 ## Check on release
 

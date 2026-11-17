@@ -116,7 +116,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   // ---- Fight (MB12/BF37: a broken nerve allows no attack; words, a yield, sneaking and a walk away (BF79) still work) ----
   if (!broken) {
     if (strikable.length) {
-      const weapons = inv.filter((i) => isHeld(i) && i.kind === 'weapon');
+      const weapons = inv.filter((i) => isHeld(i) && i.kind === 'weapon' && !i.cantSwing); // BG-283: never a weapon no hand can swing
       const withSteps: Step[] = weapons.length + (pv.player.bodyAttacks?.length ?? 0) > 1 ? [{ key: 'item', title: 'With what?', picks: () => [
         ...weapons.map((w) => ({ id: w.id, label: cap(w.name) })), ...(pv.player.bodyAttacks ?? []).filter((b) => !b.handsFull).map((b) => ({ id: `mode:${b.mode}`, label: cap(b.name) }))] }] : [];
       const partSteps: Step[] = ctx.aim && s ? [{ key: 'part', title: 'Aim at which part?', picks: (c) => {

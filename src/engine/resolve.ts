@@ -494,7 +494,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   // A8 Hold: a held actor's move is its try to break free; it stays in the zone either way
   const bf = a.heldBy ? breakFree(state, a, ctx.rng) : null;
   if (bf) {
-    const ev = mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect] });
+    const ev = mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect], contest: bf.contest }); // BG-282
     emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
@@ -1805,7 +1805,9 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       const t = o.target ? actorById(state, o.target) : undefined;
       const why = !t || t === a ? 'no_target' : !isActive(t) ? 'already_down' : !withinGrip(state, a, t) ? (roomAround(state, a, t, gripReachM(state, a)) ? 'out_of_reach' : 'no_room') : t.heldBy === a.id ? 'already_holding' : null;
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: why }), o));
-      return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [restrain(state, a, t!, ctx.rng).effect] }), o));
+      // BG-282: the grab's contest goes on the event, so its roll shows like any other
+      const grab = restrain(state, a, t!, ctx.rng);
+      return emit(ctx, bark(mk(ctx, a, 'restrain', { target: t!.id, effects: [grab.effect], contest: grab.contest }), o));
     }
     case 'wait':
     case 'sleep':
