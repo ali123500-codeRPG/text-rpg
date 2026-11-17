@@ -90,11 +90,57 @@ describe('183 scenario endings (SC1-SC13)', () => {
     expect(v.lastScenarios.map((r) => r.ending)).toEqual(['interrupted', 'resolved']);
   });
 
-  it('a Situation is not interrupted into an inner scenario: an encounter ends it', () => {
+  it('RE7: a road encounter never ends a Situation: with no bigger scenario it becomes the bigger one, and carries on after', () => {
     const s = makeVillage();
     frame(s, [holdCoin], 'situation');
+    const no = s.stage.scenario!.number;
     s.stage.breakCause = 'encounter';
     expect(closeScenario(s)).toBe('new');
+    expect(s.stage.outer?.number).toBe(no);
+    s.stage.scenarioNumber += 1;
+    frame(s, [holdCoin], 'moment');
+    endScenario(s, 'resolved', 'paid');
+    expect(closeScenario(s)).toBe('resume');
+    expect(s.stage.scenario?.number).toBe(no);
+    expect(s.stage.between).toBeUndefined(); // a Situation has no parts to start between
+  });
+
+  it('RE7: an encounter in a Situation inside an Episode sets the Situation aside; when it ends the Situation carries on', () => {
+    const s = makeVillage(), pr = s.player.progression!;
+    frame(s, [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }], 'episode');
+    const ep = s.stage.scenario!;
+    s.stage.outer = ep;
+    s.stage.scenarioNumber += 1;
+    frame(s, [holdCoin], 'situation');
+    const sit = s.stage.scenario!;
+    pr.marks = ['SK1'];
+    s.stage.breakCause = 'encounter';
+    expect(closeScenario(s)).toBe('new');
+    expect(s.stage.paused).toBe(sit);
+    expect(s.stage.outer).toBe(ep);
+    expect(pr.marks).toEqual([]); // the Situation pays nothing yet
+    // a second encounter inside the first: the Situation still waits
+    s.stage.scenarioNumber += 1;
+    frame(s, [holdCoin], 'moment');
+    s.stage.breakCause = 'encounter';
+    expect(closeScenario(s)).toBe('new');
+    expect(s.stage.paused).toBe(sit);
+    s.stage.scenarioNumber += 1;
+    frame(s, [holdCoin], 'moment');
+    endScenario(s, 'resolved', 'paid');
+    expect(closeScenario(s)).toBe('resume');
+    expect(s.stage.scenario).toBe(sit);
+    expect(s.stage.paused).toBeUndefined();
+    expect(s.stage.outer).toBe(ep);
+    expect(pr.marks).toEqual(['SK1']); // its waiting growth comes back
+    // knocked out during an encounter: all three end
+    s.stage.breakCause = 'encounter';
+    closeScenario(s);
+    s.stage.scenarioNumber += 1;
+    frame(s, [holdCoin], 'moment');
+    s.stage.breakCause = 'knocked_out';
+    expect(closeScenario(s)).toBe('new');
+    expect(s.stage.paused).toBeUndefined();
     expect(s.stage.outer).toBeUndefined();
   });
 });
