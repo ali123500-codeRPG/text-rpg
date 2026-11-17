@@ -1,4 +1,4 @@
-// 361 Body size (SZ1-SZ6, SZ8-SZ13, SZ18, SZ19): every body type has a length, width and height in metres, each race
+// 361 Body size (SZ1-SZ13, SZ18, SZ19): every body type has a length, width and height in metres, each race
 // multiplies them; a body takes up a capsule on the floor, turned the way it faces; every distance between two people is
 // the gap between their bodies, so reach is measured edge to edge; nobody is placed inside anybody else.
 import { expect, it } from 'vitest';
@@ -12,6 +12,7 @@ import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from
 import { sightFactor } from '../../src/library/bodySize';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
+import { fitsThrough, openingOf, wayPath, zoneById } from '../../src/engine/relations';
 import { coverFor, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
 import { gripReachM } from '../../src/ruleset/body';
 
@@ -153,4 +154,21 @@ it('SZ13: the range penalty reads the shot\'s metres ÷ the target\'s size facto
   const horseMod = range();
   expect(slime).toBe(-15); // a slime 20 m off looks as small as a person at 20 ÷ 0.41 = 48 m (over 75% of the reach)
   expect(horseMod).toBe(0); // a horse looks as near as a person at 20 ÷ 2.1 = 9.5 m (under 25%)
+});
+
+it('SZ7: a body goes through a doorway sideways and ducking; too big a body takes another way or none', () => {
+  const s = makeVillage({ without: ['slime_1', 'slime_2'] });
+  const street = zoneById(s, 'street_door')!, link = street.links.find((l) => l.to === 'tav_common')!;
+  const h = horse(s);
+  expect(openingOf(s, link, street.id)).toEqual({ w: CONFIG.DOORWAY_M[0], h: CONFIG.DOORWAY_M[1], vertical: false });
+  expect(fitsThrough(s, s.player, link, street.id)).toBe(true);
+  expect(fitsThrough(s, h, link, street.id)).toBe(true); // nose first: 0.65 m wide, 1.6 m ducks to 0.8
+  getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 6 / 1.75 } };
+  const giant = { ...s.player, zone: 'street_door', core: { ...s.player.core, raceId: OGRE } };
+  expect(fitsThrough(s, giant, link, street.id)).toBe(false); // 1 m wide, and 6 m ducks only to 3
+  expect(wayPath(s, 'street_door', 'tav_common', giant)).toBeNull();
+  expect(wayPath(s, 'street_door', 'tav_common', s.player)).toEqual(['tav_common']);
+  for (const id of ['field_edge', 'field_mid']) zoneById(s, id)!.outdoor = true;
+  expect(openingOf(s, zoneById(s, 'field_edge')!.links.find((l) => l.to === 'field_mid')!, 'field_edge')).toBeNull(); // open ground
+  delete getLibrary().races![OGRE];
 });
