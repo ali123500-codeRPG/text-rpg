@@ -37,9 +37,9 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-raw pre { margin: var(--space-2) 0 0; padding: var(--space-3); background: var(--bg); border-radius: var(--r-md); font: 12px/1.45 var(--font-mono); overflow: auto; max-height: 420px; }
 .lv-rules { display: grid; gap: var(--space-1); border-left: 2px solid var(--accent); padding-left: var(--space-3); }
 .lv-armor { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-.lv-fig svg { width: 110px; cursor: default; }
-.lv-fig path.lv-on { fill: var(--accent); }
-.lv-fig path.lv-off { fill: var(--rule); fill-opacity: .5; }
+.lv-fig { display: grid; justify-items: center; gap: 2px; }
+.lv-credit { margin: 0; max-width: 170px; font-size: 11px; line-height: 1.35; color: var(--faint); text-align: center; }
+.lv-credit a { color: inherit; }
 .lv-ess { fill: var(--danger); background: var(--danger); }
 .lv-norm { fill: var(--accent); background: var(--accent); }
 .lv-non { fill: var(--c3); background: var(--c3); }

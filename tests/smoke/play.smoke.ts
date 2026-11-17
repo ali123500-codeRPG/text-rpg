@@ -5,25 +5,37 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { build } from 'esbuild';
 import { chromium, type Browser, type Page } from 'playwright';
 // @ts-expect-error Node types are not installed; vitest runs in Node
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+// @ts-expect-error Node types are not installed; vitest runs in Node
+import { createServer, type Server } from 'node:http';
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { tmpdir } from 'node:os';
 
 const NARRATION = 'Smoke narration: the world goes on around you.';
-let browser: Browser, page: Page, url: string, errors: string[];
+let browser: Browser, page: Page, url: string, errors: string[], server: Server;
 
 beforeAll(async () => {
   const dir = mkdtempSync(`${tmpdir()}/smoke-`);
-  // sounds go inline as data URLs: the page runs from file://, where fetch can't read the assets/ copies
+  // sounds go inline as data URLs
   await build({
     entryPoints: ['tests/smoke/entry.ts'], bundle: true, minify: true, format: 'iife', target: 'es2022', outdir: dir, logLevel: 'warning',
     loader: { '.woff2': 'file', '.webp': 'file', '.mp3': 'dataurl' }, assetNames: 'assets/[name]', define: { __BUILD__: JSON.stringify({ sha: 'smoke', date: '2026-01-01' }) },
   });
   writeFileSync(`${dir}/index.html`, '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="entry.css"></head><body><script src="entry.js"></script></body></html>');
-  url = `file://${dir}/index.html`;
+  // served over http, as the published page is: the body figures (assets/figures, BV15) load by fetch, which file:// refuses
+  cpSync('assets/figures', `${dir}/assets/figures`, { recursive: true, filter: (f: string) => !f.includes('/models') });
+  const TYPES: Record<string, string> = { html: 'text/html', js: 'text/javascript', css: 'text/css', json: 'application/json', woff2: 'font/woff2', webp: 'image/webp' };
+  server = createServer((req: { url: string }, res: { writeHead: (n: number, h?: object) => void; end: (b?: unknown) => void }) => {
+    const path = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';
+    let body: unknown;
+    try { body = readFileSync(`${dir}/${path}`); } catch { res.writeHead(path.startsWith('sfx/') ? 204 : 404); res.end(); return; } // sfx/: optional sounds the page probes for
+    res.writeHead(200, { 'content-type': TYPES[path.split('.').pop()!] ?? 'application/octet-stream' }); res.end(body);
+  });
+  await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
+  url = `http://127.0.0.1:${(server.address() as { port: number }).port}/index.html`;
   browser = await chromium.launch();
 }, 60_000);
-afterAll(async () => { await browser?.close(); });
+afterAll(async () => { await browser?.close(); server?.close(); });
 
 beforeEach(async ({ task }) => {
   page = await browser.newPage({ viewport: { width: 1400, height: 900 } });

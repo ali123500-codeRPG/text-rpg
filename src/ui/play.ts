@@ -24,7 +24,8 @@ import { perkSeries } from './perks';
 import { stealthBadge, stealthyTip } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { charFocus, stateToken, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { figurePulse } from './figure3d';
 import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
@@ -993,14 +994,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         if (worse) slam(chip, d); else pulse(chip, d);
         // the figure keeps the part's old colour until this beat, then turns and dips once (M-30, M-74: the new
         // colour is already set; the old one is only the animation's first frame)
-        const path = q(`path[data-part="${k}"]`);
-        if (path) {
-          const cls = path.getAttribute('class') ?? '';
-          path.setAttribute('class', cls.replace(/\bbf-\w+/, `bf-${b.parts[k]}`));
-          const old = getComputedStyle(path).fill;
-          path.setAttribute('class', cls);
-          play(path, [{ fill: old, opacity: 1 }, { fill: old, opacity: 0.35, offset: 0.35 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
-        }
+        figurePulse(q('.f3d'), k, stateToken(a.parts[k]), stateToken(b.parts[k]), d, ms('--m-beat') * 2);
       }
     }
     // gear lines (M-35, M-32): a shield's state or a pool's points land; an item that is gone fades out of its line

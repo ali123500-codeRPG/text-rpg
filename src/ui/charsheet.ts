@@ -2,7 +2,10 @@
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
 import type { Actor, GameState, HealthLevel, LogLine, PartState } from '../types';
 import { CONFIG } from '../config';
-import { actorBody, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef, raceSize } from '../library';
+import { figureKey, figureUpright } from '../library/figureModels';
+import { BT, RC } from '../library/raceIds';
+import { figure3d } from './figure3d';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
 import { partName, poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { augmentsOf, defenseItem, isHeld, tradesOut } from '../ruleset/gear';
@@ -124,11 +127,13 @@ export function charCard(s: GameState, p: Actor, openClasses?: (opener: HTMLElem
 
 /** the card's body figure as one button: a click (on a part, or anywhere on it) opens every part's state in a pop-up */
 function bodyButton(s: GameState, p: Actor): HTMLElement | null {
-  const fig = bodyFigure(s, p);
+  let picked: string | undefined;
+  // a click on a part opens the pop-up at that part; a drag only turns the figure (figure3d stops that click)
+  const fig = bodyFigure(s, p, new Set(), 'card', (id) => { picked = id ?? undefined; });
   if (!fig) return null;
-  const svg = fig.querySelector('.bf-svg')!;
-  const btn: HTMLElement = h('button', { type: 'button', class: 'cs-bfbtn', 'aria-haspopup': 'dialog', title: 'Each body part and its state', 'aria-label': 'Body parts: open each part and its state' }, svg);
-  btn.addEventListener('click', (e) => openBodyPop(s, p, btn, (e.target as Element).closest('[data-part]')?.getAttribute('data-part') ?? undefined));
+  const shown = fig.querySelector('.bf-fig')!;
+  const btn: HTMLElement = h('button', { type: 'button', class: 'cs-bfbtn', 'aria-haspopup': 'dialog', title: 'Each body part and its state (drag to turn)', 'aria-label': 'Body parts: open each part and its state' }, shown);
+  btn.addEventListener('click', () => { const id = picked; picked = undefined; openBodyPop(s, p, btn, id); });
   return btn;
 }
 
@@ -142,7 +147,12 @@ export function openBodyPop(s: GameState, p: Actor, opener?: HTMLElement | null,
     return h('div', { class: 'bp-row' + (id === part ? ' on' : ''), 'data-part': id }, h('i', { class: `bf-${st}`, 'aria-hidden': 'true' }), h('b', {}, name),
       h('span', { class: 'bp-st' }, PART_STATES.name(st)), h('span', { class: 'bp-amt' }, amount));
   };
+  // BV1 b: the turnable figure; a click on a part marks its row
+  const fig = bodyFigure(s, p, new Set(), 'pop', (id) => {
+    document.querySelectorAll('.bp-pop .bp-row').forEach((r) => r.classList.toggle('on', r.getAttribute('data-part') === id));
+  });
   openPop({ title: 'Body', cls: 'bp-pop', opener, body: [
+    fig?.querySelector('.bf-fig') ?? null,
     h('div', { class: 'bp-list' },
       row('general', cap(ct.general.name), 100 - p.core.condition.hpLostPct, `${whole(hp)} of ${whole(total)} HP`),
       ...ct.parts.map((d) => {
@@ -276,11 +286,17 @@ function skillNum(value: number, raw: number): HTMLElement {
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
 const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-/** Body figure: the body type's silhouette, each part tinted by its state; the general area shows
- * total health. Clicking a part names it with its state and amount. Null for body types without a figure. */
-export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set()): HTMLElement | null {
+/** BV1 b: where the figure is drawn: still and small in the side sheet; turnable on the character card and in the pop-up */
+const FIG_SIZE = { side: { width: 104, height: 112, turnable: false, ground: false }, card: { width: 168, height: 176, turnable: true, ground: false },
+  pop: { width: 300, height: 260, turnable: true, ground: true } } as const;
+/** BV4 a: a state's colour (the part list beside the figure names it in words) */
+const STATE_TOKEN: Record<PartState, string> = { healthy: '--ok', damaged: '--warn', crippled: '--danger', destroyed: '--c3' };
+export const stateToken = (st: PartState) => STATE_TOKEN[st];
+
+/** the 3D body figure (BV1-BV6): every part tinted by its state, Destroyed see-through; a click names the part */
+export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set(), where: keyof typeof FIG_SIZE = 'side', onPick?: (part: string | null) => void): HTMLElement | null {
   const ct = safe(() => actorBody(s, p));
-  if (!ct?.figure) return null;
+  if (!ct) return null;
   const { hp, total } = hpLeft(s, p);
   const info = (id: string): { name: string; state: PartState; amount: string } => {
     if (id === 'general') return { name: cap(ct.general.name), state: poolState(100 - p.core.condition.hpLostPct), amount: `${whole(hp)} of ${whole(total)} HP` };
@@ -289,24 +305,23 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
     const pool = total === null || !d ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
     return { name: partName(id), state: poolState(pct), amount: pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}` };
   };
-  const shapes = Object.entries(ct.figure.parts).map(([id, d]) => {
-    const i = info(id);
-    const hl = healed.has(id) ? ' · healed this turn' : '';
-    return `<path data-part="${esc(id)}" class="bf-${i.state}${hl ? ' bf-healed' : ''}" d="${esc(d)}"><title>${esc(i.name)} · ${PART_STATES.name(i.state)}${hl}</title></path>`;
-  }).join('');
-  const svg = h('div', { class: 'bf-svg' });
-  svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--c3)"/><rect width="2.5" height="6" style="fill:var(--bg)" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
   const out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
-  svg.addEventListener('click', (e) => {
-    const el = (e.target as Element).closest('[data-part]');
-    svg.querySelectorAll('.on').forEach((x) => x.classList.remove('on'));
-    if (!el) { out.textContent = ''; return; }
-    el.classList.add('on');
-    const i = info(el.getAttribute('data-part')!);
-    out.textContent = [i.name, PART_STATES.name(i.state), i.amount, healed.has(el.getAttribute('data-part')!) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
+  const key = figureKey(p.core.raceId, p.core.bodyTypeId, p.pronouns), F = FIG_SIZE[where];
+  const states = ['general', ...ct.parts.map((d) => d.id)].map((id) => `${info(id).name} ${PART_STATES.name(info(id).state)}`).join(', ');
+  const fig = figure3d({
+    key, upright: figureUpright(key), size: ct.size, raceSize: raceSize(p.core.bodyTypeId, p.core.raceId), personSize: raceSize(BT.humanoid, RC.human),
+    tint: (id) => { const st = info(id).state; return { token: STATE_TOKEN[st], seeThrough: st === 'destroyed' }; },
+    label: `Body: ${states}`, ...F,
+    onPick: (id) => {
+      if (onPick) { onPick(id); return; }
+      if (!id) { out.textContent = ''; return; }
+      const i = info(id);
+      out.textContent = [i.name, PART_STATES.name(i.state), i.amount, healed.has(id) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
+    },
   });
-  const key = h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st))));
-  return h('div', { class: 'bf' }, svg, out, key);
+  fig.classList.add('bf-fig');
+  const keyRow = h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st))));
+  return h('div', { class: 'bf' }, fig, out, keyRow);
 }
 
 /** width of the side sheet bar's Unhurt section, in % of the bar */

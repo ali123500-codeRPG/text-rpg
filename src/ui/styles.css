@@ -305,7 +305,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-bodyrow .cs-figs { grid-template-columns: 1fr; border-top: 0; padding-top: 0; gap: 10px; }
 .cs-bfbtn { background: none; border: 1px solid transparent; border-radius: var(--r-md); padding: var(--space-1); cursor: pointer; color: inherit; }
 .cs-bfbtn:hover, .cs-bfbtn:focus-visible { border-color: var(--border); }
-.cs-bfbtn .bf-svg svg { width: clamp(92px, calc((var(--vh) - 560px) / 2.2), 200px); }
 .cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
 .cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
@@ -528,13 +527,15 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 
 /* body figure */
 .bf { display: grid; justify-items: center; gap: 4px; }
-.bf-svg svg { width: 140px; height: auto; display: block; cursor: pointer; }
-.bf-svg path { stroke: var(--bg); stroke-width: 2; fill-opacity: .8; }
-.bf-svg path:hover, .bf-svg path.on { fill-opacity: 1; stroke: var(--text); }
-.bf-healthy { fill: var(--ok); background: var(--ok); }
-.bf-damaged { fill: var(--warn); background: var(--warn); }
-.bf-crippled { fill: var(--danger); background: var(--danger); }
-.bf-destroyed { fill: url(#bf-hatch); background: repeating-linear-gradient(45deg, var(--c3) 0 2px, var(--bg) 2px 4px); }
+.f3d canvas { display: block; cursor: pointer; }
+.f3d-turn canvas { cursor: grab; touch-action: none; }
+.f3d-turn canvas:active { cursor: grabbing; }
+/* a figure whose file could not load keeps its space empty; the part list beside it still names every state */
+.f3d-none canvas { visibility: hidden; }
+.bf-healthy { background: var(--ok); }
+.bf-damaged { background: var(--warn); }
+.bf-crippled { background: var(--danger); }
+.bf-destroyed { background: repeating-linear-gradient(45deg, var(--c3) 0 2px, var(--bg) 2px 4px); }
 .bf-out { margin: 0; min-height: 18px; font-size: 13px; text-align: center; }
 .bf-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: 0; font-size: 12px; color: var(--muted); }
 .bf-key span { display: inline-flex; align-items: center; gap: 4px; }
@@ -545,7 +546,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-side { scrollbar-width: none; }
 .cs-side::-webkit-scrollbar { display: none; }
 .cs-side.dragging { cursor: grabbing; user-select: none; }
-.cs-side .bf-svg svg { width: 72px; }
 .cs-side .cs-row > span:first-child { white-space: nowrap; }
 .cs-side .cs-row > b { text-align: right; }
 /* the small figure with its key beside it; the tapped part's line runs underneath */
@@ -718,7 +718,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .tod .tod-i { width: 22px; height: 22px; }
 .tpass { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--tod); font-size: 14px; font-weight: 600; }
 .tpass::before, .tpass::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--tod) 55%, transparent), transparent); }
-.bf-svg path.bf-healed { stroke: var(--ok); stroke-width: 2.5; fill-opacity: 1; }
 .inbar button.itm { display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; padding-right: 12px; }
 .inbar button.itm[hidden] { display: none; }
 .hico svg { width: 20px; height: 20px; display: block; }
