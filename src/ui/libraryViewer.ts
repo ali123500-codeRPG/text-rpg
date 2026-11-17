@@ -583,8 +583,8 @@ function bodyTypes(): HTMLElement[] {
         row('Races', links('races', Object.values(lib.races ?? {}).filter((r) => r.bodyTypeId === c.id).map((r) => [r.id, r.name]))),
         row('NPC templates', usedBy((t) => lib.races?.[t.raceId as string]?.bodyTypeId === c.id)))),
       c.parts.length ? h('table', { class: 'hs-tbl lv-parts' }, h('thead', {}, h('tr', {}, ['Part', 'Size', 'Impact', 'Roles', 'Next to'].map((x) => h('th', {}, x)))),
-        h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', {}, p.size),
-          h('td', {}, label(p.impact)), h('td', {}, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
+        h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', { 'data-k': 'Size' }, p.size),
+          h('td', { 'data-k': 'Impact' }, label(p.impact)), h('td', { 'data-k': 'Roles' }, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', { 'data-k': 'Next to' }, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
   ];
 }
 
