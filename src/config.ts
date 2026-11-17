@@ -101,7 +101,7 @@ const DEFAULTS = {
   /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden + group bonus) − this (placeholder). D-374 TB7: 100, so
    * raw runs out at its cap (at raw = cap a natural 100 is margin 0, which gains nothing) */
   GROWTH_ROLL_NEEDED: 100,
-  /** D-378 (placeholder): raw gained = margin ÷ this, rounded up; margin 0 or below gains nothing, so raw stops exactly where
+  /** D-383 (placeholder): raw gained = margin ÷ this, rounded up; margin 0 or below gains nothing, so raw stops exactly where
    * the roll runs out */
   GROWTH_MARGIN_PER_POINT: 15,
   /** SG3 a: true = a skill's own cap (120 tagged, 75 flawed) is in the roll too, so the room left counts from it;

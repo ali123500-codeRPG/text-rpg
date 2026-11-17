@@ -143,7 +143,7 @@ export function markStamina(state: GameState, actor: Actor): void {
 export { skillCap } from './skillCap';
 
 /** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden + bonus) − GROWTH_ROLL_NEEDED; the gain is the margin ÷
- * GROWTH_MARGIN_PER_POINT, rounded up, and nothing at margin 0 or below (D-378). Every state rolls one d100: a
+ * GROWTH_MARGIN_PER_POINT, rounded up, and nothing at margin 0 or below (D-383). Every state rolls one d100: a
  * tag or a flaw only moves the cap. The room left below the cap is the bonus, so the roll gets harder smoothly near the
  * cap. No hard limit (D-374 TB7): past the cap the room is negative and the roll runs out on its own. A tagged skill carries no burden. `bonus` is what tagged group-mates add (groupRollBonus, D-374 TB5). SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
 export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, bonus = 0): { margin: number; gain: number } {

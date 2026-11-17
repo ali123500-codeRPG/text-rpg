@@ -1,5 +1,5 @@
 // 209 Improvement roll (SG1 C): margin = d100 + (cap − raw − Burden) − 100 (D-374 TB7); gain = margin ÷ 15, rounded up, nothing
-// at 0 or below (D-378), so raw stops exactly where the roll runs out (100, 120 tagged).
+// at 0 or below (D-383), so raw stops exactly where the roll runs out (100, 120 tagged).
 import { describe, expect, it } from 'vitest';
 import type { Rng } from '../../src/types';
 import { makeVillage } from '../harness';
