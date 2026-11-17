@@ -21,7 +21,7 @@ import { achievementAimEase, achievementRollMods, bestReward, deathsDoor, rallyM
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
-import { rollFeats, tally } from '../engine/xp';
+import { forScenarioAhead, rollFeats, tally } from '../engine/xp';
 import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
 import { powerStack } from './stacking';
@@ -229,8 +229,11 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   level = Math.max(-reach.down, Math.min(top + reach.up, level));
   const { tier, beyond } = tierAt(level);
   // the chains count how far past Critical you have reached: 1 = Critical, 2 = one + or −, and so on
-  if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits', { to: 1 + (beyond ?? 0) });
-  if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails', { to: 1 - (beyond ?? 0) });
+  // BG-272: every event roll opens a scenario, so what it earns waits for that scenario's end
+  forScenarioAhead(() => {
+    if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits', { to: 1 + (beyond ?? 0) });
+    if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails', { to: 1 - (beyond ?? 0) });
+  });
   return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
 }
 

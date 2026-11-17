@@ -6,6 +6,13 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-272
+
+**What was wrong:** In the action-deck playtest the story's opening event roll was a Critical Success, and its achievement (Fate Meant It as a Curse) landed at once, before the story had even started, instead of at the end of the scenario like every other gain. The game flagged it itself (achievement_outside_end). The roll is made just before the opening scenario begins, when nothing yet holds growth back; the same could happen at a scenario start right after a story beat ended the last one.
+
+**What was done:** Every event roll opens a scenario, so whatever it earns now waits for the end of the scenario it opens, at the opening and after a story beat too, and arrives in that ending's gains moment.
+
+**Fixed by:** [PR #951](https://github.com/ali123500-codeRPG/text-rpg/pull/951)
 ## BG-270
 
 **What was wrong:** On the Questions hub, Submit's wake line named answers Ali had not changed. On the Vanish page he changed only VS8, but the line said "I answered VS6, VS7, VS8". VS6 and VS7 held "a." (what clicking an option chip writes), saved by the page but never sent with Submit, and Claude had already acted on them and marked both questions decided. Submit names every saved answer that has not gone out with a Submit, so it named them again.
