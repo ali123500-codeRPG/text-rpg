@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-290
+
+**What was wrong:** In run 18, a story beat had the weir-house man come to his door and size up the hero with Insight. The game rolled it against a set difficulty, as if the hero were a stuck hatch, and filed a missing-difficulty bug. Beats had no way to give a difficulty, two agents were told to give one only for some of the acts that need it, and sizing up a person ignored the person entirely.
+
+**What was done:** Sizing someone up is now a contest: the looker's Insight against the other person's Lying, only when the looker can see them clearly. A win reads their mood, how they feel about the looker, and whether they are hiding something (never what); an NPC keeps that for its agent, and the player's goes into the story. A loss reads nothing. An act on a person never gets a difficulty. Beats can now carry a difficulty and a fall for acts on things, and every agent is given the same sentence naming every act that needs one. Reading someone's power is parked (D-365).
+
+**Fixed by:** [PR #972](https://github.com/ali123500-codeRPG/text-rpg/pull/972)
+
 ## BG-288
 
 **What was wrong:** The hero took the unexplored road north-west from the causeway, and the game built a second copy of the road the previous hero had arrived on. The World builder knew the road was built and tried to join its crossways to it, but plans could only join ground on the stage, so that was refused, and the repair declared the road again under a new name.

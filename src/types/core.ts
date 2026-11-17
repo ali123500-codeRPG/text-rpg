@@ -179,7 +179,12 @@ export type Belief = {
   /** AT73/AT80: game minutes its last fade step fell due (perception applyBeliefDecay) */
   fadedAt?: number;
   revealed: string[]; // e.g. 'has_crossbow', 'item:<instanceId>' for revealed concealed items
+  /** BF97 a: what this actor made out the last time it sized the other up with Insight and won (speech.ts sizeUp) */
+  read?: PersonRead;
 };
+
+/** BF97 a: a won Insight look at a person: their mood, how they feel about the one looking, and whether they hide something (never what) */
+export type PersonRead = { turn: number; mood: string; feels: Stance; hiding: boolean };
 
 export type Fact = { id: string; text: string };
 
@@ -234,6 +239,8 @@ export type GameEvent = {
   filch?: 'taken' | 'fumbled' | 'caught'; // FL4: how a filch went (src/engine/filch.ts)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;
+  /** BF97 a: an Insight look at a person (observe) the looker won: what they made out */
+  read?: PersonRead;
   /** OD1 b/OD3: an act on a graded thing (use, interact, other): the skill, the grade, and whether it was sure, out of reach or rolled */
   obstacle?: { skill: string; grade: Grade; gate: 'sure' | 'out' | 'roll' };
   /** OD5: a graded act's Critical Failure: a tool that broke (its instance), a fall (see fall), or a loud noise */

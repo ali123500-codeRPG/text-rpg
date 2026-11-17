@@ -589,6 +589,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(other.pronouns ? { pronouns: other.pronouns } : {}), // BG-60: so an NPC speaks of someone out of sight as they are
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
       ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
+      ...(b.read ? { read: { ...b.read } } : {}), // BF97 a
     });
   }
   const band = bandById(state, a.bandId);
@@ -815,6 +816,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points
       ...(full && e.extract ? { extract: { essence: getLibrary().essences?.[e.extract.essence]?.name ?? 'an essence' } } : {}), // DX3
       ...(full && e.obstacle?.gate === 'out' ? { beyond: true as const } : {}), // OD1 b: out of the actor's reach, no roll
+      ...(e.read && e.actorId === me ? { read: { mood: e.read.mood, feels: e.read.feels, hiding: e.read.hiding } } : {}), // BF97 a: only the player's own read of someone
       ...(full && e.obstacle && e.obstacle.gate !== 'out' ? { graded: true as const } : {}), // OD5: its tier says what the act did
       ...(full && e.mishap ? { mishap: { kind: e.mishap.kind, ...(e.mishap.item ? { item: itemName(state, e.mishap.item) ?? 'something' } : {}) } } : {}), // OD5
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
