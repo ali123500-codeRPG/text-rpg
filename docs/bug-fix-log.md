@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** The opening turn now records its end time like every other turn, for every new story and every new character in an old world.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #962](https://github.com/ali123500-codeRPG/text-rpg/pull/962)
 
 ## BG-273
 
