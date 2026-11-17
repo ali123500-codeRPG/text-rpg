@@ -309,9 +309,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     putOnStage(state, zone);
     newZones.push(zone);
   }
-  ensureBackLinks(state, newZones);
-  // an extension's entry: joined before placing (BG-225)
+  // an extension's entry: joined before placing (BG-225), and before the ways back are added (BG-285: a way back added
+  // first, then the frontier turned into a second way to the same zone)
   if (ctx.frontierKey && newZones[0]) joinFrontier(state, ctx.frontierKey, newZones[0]);
+  ensureBackLinks(state, newZones);
   const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);
   placeZones(state, newZones); // after heights: stairs stack zones straight above or below

@@ -1931,9 +1931,23 @@ function step(ctx: Ctx, id: string): void {
   if (!turned && !o.moveAfter) move(o.type === 'hold');
   if (!o.way) closer();
   if (later.length) {
-    const g2 = applyGearOps(state, a, later);
+    // BG-284: a take with nothing else to do (hold) runs on with the main time, as a dash does, so a body across the zone
+    // is reached in one turn when a run gets there. Only within the zone ("Take things here"): a thing in another zone
+    // is still walked to at walking pace (BG-85)
+    if (o.type === 'hold' && near && !near.ok() && near.at.zone === a.zone && slotsOf(ctx, a).main > T_EPS) {
+      closeInOn(ctx, a, o, near, behind, true);
+      ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, slotsOf(ctx, a).walkedS));
+    }
+    // still out of reach after the walk: the take waits for the next turn. That is play, not a bug (pick_up_short), and
+    // the story says how far short it fell (BG-163); a take the walk could not help (the thing is gone) is still invalid_gear
+    const short = later.filter((op) => !reachable(state, a, op) && !!pickUpAt(state, op, a));
+    const g2 = applyGearOps(state, a, later.filter((op) => !short.includes(op)));
     for (const p of g2.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
     if (g2.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g2.invalid, reason: 'out_of_reach' });
+    if (short.length) {
+      logCode(state, 'pick_up_short', { actorId: id, ops: short });
+      emit(ctx, mk(ctx, a, 'wasted', { ...(short[0].from ? { target: short[0].from } : {}), itemId: short[0].item, reason: 'out_of_reach' }));
+    }
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
   // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting); BG-253: nor

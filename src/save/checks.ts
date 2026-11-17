@@ -1,5 +1,5 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
-import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place } from '../types';
+import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, ZoneLink } from '../types';
 import { resolveAlias } from '../library';
 import type { Pages } from './pages';
 import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
@@ -306,6 +306,13 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       // an item the library no longer has would make every zone view throw: drop it, as for inventories
       for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
       for (const z of p.zones) for (const c of z.groundItems) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
+      // BG-285: a way back added before a frontier was joined left two ways to the same zone; the one added by code (named
+      // after the zone) goes, the way the story named stays
+      for (const z of p.zones) {
+        const nameOf = (to: string) => placePages.map((x) => (pages[x] as Place).zones.find((zz) => zz.id === to)).find(Boolean)?.name;
+        const twin = (l: ZoneLink) => !l.frontier && l.label === nameOf(l.to) && z.links.some((b) => b !== l && !b.frontier && b.to === l.to);
+        for (const l of [...z.links]) if (twin(l)) { z.links.splice(z.links.indexOf(l), 1); fix(k, `dropped a second way from ${z.id} to ${l.to}`); }
+      }
       // every link runs both ways (scenarios planned before the fix kept one-way links among their new zones)
       for (const z of p.zones) for (const l of z.links) {
         if (l.frontier) continue;
