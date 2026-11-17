@@ -128,8 +128,10 @@ export type ItemInstance = {
   work?: Record<string, number>; // BA2, as on a barrier
 };
 
+/** every gear op (the type, the schema and the agents' shapes read this list) */
+export const GEAR_OPS = ['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon', 'set_down'] as const;
 export type GearOp = {
-  op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon' | 'set_down'; // summon: TB6, the player's own Threadbound item, from wherever it is; set_down: OA4, put down where one stands (free)
+  op: (typeof GEAR_OPS)[number]; // summon: TB6, the player's own Threadbound item, from wherever it is; set_down: OA4, put down where one stands (free)
   qty?: number; // set_down: how many of a stack (all of it when left out)
   item: string; // item instance id
   from?: string; // actor id (pick up from a downed or yielded actor); absent = the ground or an open container (CT3)

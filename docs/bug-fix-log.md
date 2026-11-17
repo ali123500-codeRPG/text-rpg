@@ -237,6 +237,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #832](https://github.com/ali123500-codeRPG/text-rpg/pull/832)
 
+## BG-234
+
+**What was wrong:** Six Weaver plans on one turn had their road lengths refused (far_road, track, market_road and others).
+
+**What was done:** Same cause as BG-223: lengths given in words were taken only as code keys. Fixed with BG-223.
+
+**Fixed by:** [PR #806](https://github.com/ali123500-codeRPG/text-rpg/pull/806)
+
 ## BG-247
 
 **What was wrong:** From turn 104 to 112 Hob's punches were all lost as out of reach about 1 m short: a walk never ended within 1 m of anyone, the target included, and only went in a straight line, so with Osric beside his line in he stopped 1.7 m away; the drover ended on Hob's very spot because anyone near a walk's start was let off.
@@ -1068,6 +1076,14 @@ words it, or, where the log only names a PR, that PR's title.
 
 **Fixed by:** [PR #604](https://github.com/ali123500-codeRPG/text-rpg/pull/604)
 
+## BG-136
+
+**What was wrong:** An NPC who agreed to go with the player never came along: there was no follow-the-player order, and a road trip took only bandmates.
+
+**What was done:** Going with the player is follow, and followers travel along on the player's trips (BF9).
+
+**Fixed by:** [PR #604](https://github.com/ali123500-codeRPG/text-rpg/pull/604)
+
 ## BG-135
 
 **What was wrong:** Run 75h, turn 43: "turn toward the back door to see what moved there" aimed the look at the common room behind the shut door, not the half-seen someone by it in the yard, so the story told only of the shut door.
@@ -1195,6 +1211,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** BG-117, BG-118, BG-120, BG-122, BF1: words reach their listener; the cast knows who it can see at the start
 
 **Fixed by:** [PR #585](https://github.com/ali123500-codeRPG/text-rpg/pull/585)
+
+## BG-119
+
+**What was wrong:** In run 79 three NPCs changed zones between turns with no move event, so the player watched them vanish and could not name them.
+
+**What was done:** Catch-up legs walked on an action's turn are seen move events (BF2 a to d).
+
+**Fixed by:** [PR #604](https://github.com/ali123500-codeRPG/text-rpg/pull/604)
 
 ## BG-120 (part 2)
 
@@ -1899,6 +1923,14 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Moves to another zone drop a spot that doesn't fit instead of asking where (BG-31)
 
 **Fixed by:** [PR #458](https://github.com/ali123500-codeRPG/text-rpg/pull/458)
+
+## BG-30
+
+**What was wrong:** The autoplay agent tried to go through a cellar door it had made up from the story lines; the game answered that there was no cellar door there.
+
+**What was done:** The autoplay agent is told, every move, where it stands, the ways out it can see and the places it knows, and to use only those.
+
+**Fixed by:** [PR #514](https://github.com/ali123500-codeRPG/text-rpg/pull/514)
 
 ## BG-29
 
