@@ -96,6 +96,8 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const up = seen.filter((a) => !(a.health && isDownLevel(a.health)) && !a.lying);
   const full = up.filter((a) => a.level === 'full');
   const strikable = seen.filter((a) => up.includes(a) || a.lying);
+  // BG-280: one seen clearly as a slime or beast can't talk: no words, trade, gifts or searches with it (a threat still works)
+  const talkers = up.filter((a) => !a.mute), fullTalkers = full.filter((a) => !a.mute);
   const people = (list = up) => () => list.map(person);
   const who = (title = 'Who?', list = up): Step => ({ key: 'target', title, picks: people(list) });
   const them = (c: Choice) => nameOf(c.target!);
@@ -141,20 +143,20 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   for (const o of pv.player.standDownOffers ?? []) add('stand_down', 'talk', `Take ${o.name}'s offer to stop`, [], () => order(`I take ${o.name}'s offer to stop`, { standDown: o.id }), { note: 'ends your fight with them' });
 
   // ---- Talk: a plain talk opens a conversation at once; the rest need your words (typed in the Say box) ----
-  const listeners = [...up, ...(pv.lastSeen ?? []).filter((x) => !x.gone).map((x) => ({ id: x.id, label: x.name, zone: x.zone, level: 'partial' } as unknown as PlayerView['actors'][number]))];
+  const listeners = [...talkers, ...(pv.lastSeen ?? []).filter((x) => !x.gone && !x.mute).map((x) => ({ id: x.id, label: x.name, zone: x.zone, level: 'partial' } as unknown as PlayerView['actors'][number]))];
   if (listeners.length) {
-    add('talk', 'talk', 'Talk to', [{ key: 'target', title: 'Talk to whom?', picks: () => listeners.map((a) => up.includes(a) ? person(a) : { id: a.id, label: cap(nameOf(a.id)), note: `last seen in ${zoneName(a.zone)}` }) }],
+    add('talk', 'talk', 'Talk to', [{ key: 'target', title: 'Talk to whom?', picks: () => listeners.map((a) => talkers.includes(a) ? person(a) : { id: a.id, label: cap(nameOf(a.id)), note: `last seen in ${zoneName(a.zone)}` }) }],
       (c) => order(`Talk to ${them(c)}`, { action: act('talk', { target: c.target! }), addressees: [c.target!] }));
-    const speech = (kind: DeckKind, type: Act['type'], label: string, note: string, list = up, demand = false) => add(kind, 'talk', label, [who(`${label} whom?`, list), { key: 'words', title: 'What do you say?' }],
+    const speech = (kind: DeckKind, type: Act['type'], label: string, note: string, list = talkers, demand = false) => add(kind, 'talk', label, [who(`${label} whom?`, list), { key: 'words', title: 'What do you say?' }],
       (c) => order(c.words!, { action: act(type, { target: c.target!, ...(demand ? { demand: 'yield' as const } : {}) }), spoken: c.words!, addressees: [c.target!] }), { note });
     speech('persuade', 'persuade', 'Persuade', up.some((a) => a.talkDown) ? 'talk a foe down · easier once they are hurt or scared' : 'your words, Persuasion');
     speech('deceive', 'deceive', 'Lie to', up.some((a) => a.talkDown) ? 'a lie to end it · Lying against their Insight' : 'Lying against their Insight');
-    speech('intimidate', 'intimidate', 'Threaten', 'Intimidation');
+    speech('intimidate', 'intimidate', 'Threaten', 'Intimidation', up); // BF86: a threat needs no words, so beasts too
     speech('barter', 'barter', 'Haggle with', up.some((a) => a.talkDown) ? 'pay a foe to stop: name the coin' : 'Barter');
-    const demandable = up.filter((a) => a.demandYield);
+    const demandable = talkers.filter((a) => a.demandYield);
     if (demandable.length) speech('demand', 'persuade', 'Demand surrender', 'your action · Persuasion; a bigger win', demandable, true);
   }
-  if (full.length && inv.length) add('give', 'talk', 'Give', [who('Give to whom?', full), { key: 'item', title: 'Give what?', picks: () => inv.map(invPick) }],
+  if (fullTalkers.length && inv.length) add('give', 'talk', 'Give', [who('Give to whom?', fullTalkers), { key: 'item', title: 'Give what?', picks: () => inv.map(invPick) }],
     (c) => order(`Give ${theItem(item(c.item!)?.name ?? '')} to ${them(c)}`, { action: act('give', { target: c.target!, item: c.item! }) }));
   // BF34: something held out to you; FL: what a yielded or downed one carries is taken at once (others refuse)
   const takeFrom = full.filter((a) => a.holdsOut || a.gear.length);
@@ -171,7 +173,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   if (buyers.length) add('sell', 'talk', 'Sell', [who('Sell to whom?', buyers), { key: 'item', title: 'Sell what?', picks: (c) => (buyers.find((a) => a.id === c.target)?.offers ?? []).map((o) => ({ id: o.id, label: cap(o.name), note: o.price })) }],
     (c) => order(`Sell ${theItem(item(c.item!)?.name ?? buyers.find((a) => a.id === c.target)?.offers?.find((o) => o.id === c.item)?.name ?? '')} to ${them(c)}`, { action: act('sell', { target: c.target!, item: c.item! }) }));
   if (full.length) {
-    add('lets_search', 'talk', 'Let them search you', [who('Who may search you?', full)], (c) => order(`I let ${them(c)} search me`, { letsSearch: c.target! }));
+    if (fullTalkers.length) add('lets_search', 'talk', 'Let them search you', [who('Who may search you?', fullTalkers)], (c) => order(`I let ${them(c)} search me`, { letsSearch: c.target! }));
     add('show', 'talk', 'Turn out your pockets', [], () => order('I turn out my pockets', { action: act('show') }), { note: 'before everyone here' });
   }
 

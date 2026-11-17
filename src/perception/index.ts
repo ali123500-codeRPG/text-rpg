@@ -12,6 +12,8 @@ import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
+import { FN } from '../library/functionIds';
+import { recordMadeOut } from './madeOut';
 import { SK } from '../library/skillIds';
 import { effectiveSkill } from '../ruleset/gear';
 
@@ -219,7 +221,8 @@ export function lookAround(state: GameState): string[] {
   for (const a of allActors(state)) {
     if (a.id === p.id) continue;
     const d = seeingM(state, p, a);
-    if (d !== null && d <= lookReach()) { cs[a.id] = a.zone; (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos }; shown.push(a.id); }
+    // BG-279: a good look is this turn's make-out of everyone it shows, so their own move later this turn keeps them seen
+    if (d !== null && d <= lookReach()) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos }; shown.push(a.id); }
   }
   return shown;
 }

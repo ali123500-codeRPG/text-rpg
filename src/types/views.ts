@@ -93,6 +93,7 @@ export type SeenActor = {
   wares?: WareView[]; // a seller the player sees, at the player's prices
   offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
   doing?: DoingView; // AT11a: a long action it is at (full sight only)
+  mute?: true; // BG-280: seen clearly as one who cannot talk (a slime, a beast): no talk, trade or giving
   lying?: true; // BG-278: half seen and lying still (down, dead or asleep: the viewer cannot tell which)
   foe?: { strikes?: string }; // BG-265: in a fight, one fighting the viewer (beasts too), or one it saw strike first at someone not fighting it (strikes: whom)
   talkDown?: true; // TF13: in a fight, a foe the player can offer a stand-down (it speaks and fights the player)
@@ -143,7 +144,7 @@ export type PlayerView = {
   known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
-  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
+  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[]; gone?: true; mute?: true }[]; // wares: BG-155, a seller known to sell; gone: BG-164, their last-seen spot is in sight and empty
   /** NM2: names the player has heard but cannot yet put a face to */
   heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */

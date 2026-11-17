@@ -6,6 +6,30 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-281
+
+**What was wrong:** In the action-deck playtest the hero said hello to a shape 25 m off and started walking up to it; the next turn the deck and the game's suggestion read "Keep walking to the fowlers' path", the zone the hero already stood in. A walk up to someone was always named by its zone.
+
+**What was done:** A walk up to someone is named by that person as the player sees them ("Keep walking to someone", "Walking to the guard"); walks to a zone are unchanged.
+
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
+
+## BG-280
+
+**What was wrong:** In the action-deck playtest the deck offered Talk to, Persuade, Lie to, Threaten, Haggle, Give and Let them search you against slimes in sight, and Talk to slimes last seen far away. Slimes and beasts can't be talked to, so these did nothing.
+
+**What was done:** Anyone seen clearly who cannot talk (by race) is marked so, and the deck leaves them out of every talk, trade, gift and search choice, including those last seen elsewhere. Threaten (a threat needs no words), Attack, Restrain and Look at stay; a shape not made out still gets every choice.
+
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
+
+## BG-279
+
+**What was wrong:** In the action-deck playtest the hero looked hard at a shape 23 m off in the dark and rolled a Success, which shows everyone within 25 m clearly, yet it stayed "someone": the slime took a step later that turn, its step rolled a fresh make-out roll, and that failed.
+
+**What was done:** A good look now counts as that turn's make-out for everyone it shows, so their own step later that turn stays seen clearly with no new roll.
+
+**Fixed by:** [PR #964](https://github.com/ali123500-codeRPG/text-rpg/pull/964)
+
 ## BG-278
 
 **What was wrong:** In the action-deck playtest a dead hero's body lay 1.4 m from the new hero on a dark causeway and showed as a plain "Someone". The deck offered Attack, Talk to, Persuade, Lie to, Threaten and Haggle against it, the player talked to it twice and got silence, and the narrator made the shape stand and move. Someone only half seen carried no health or posture at all, so it slipped past every deck filter that leaves out the down and the dead.
