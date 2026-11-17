@@ -131,7 +131,7 @@ describe('117 stealth', () => {
   it('a shot after a step in the same turn still gets its own Combat Stealth contest (BG-263)', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    s.player.pos = { x: 52, y: -14 }; // 58 m from slime_1, past the shortbow's 50 m
+    s.player.pos = { x: 57, y: -14 }; // 53 m from slime_1, past the shortbow's 50 m (a sneaking step covers half the ground, VS8)
     for (const i of s.player.core.inventory) delete i.equippedIn;
     s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     s.player.posture = 'stealthy';

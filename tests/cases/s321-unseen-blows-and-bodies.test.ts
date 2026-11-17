@@ -63,6 +63,7 @@ describe('321 unseen blows and bodies', () => {
     const t = s.actors.find((a) => a.id === 'trader')!;
     s.actors.find((a) => a.id === 'patron_1')!.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'injured')?.[1] ?? 90;
     s.player.core.skills[SK.unarmed_strike] = { raw: 600, state: 'normal' };
+    s.player.posture = 'open'; // VS8: a blow from hiding takes twice as long, long enough for the trader to flee out of sight first
     for (let i = 0; i < 4 && s.actors.find((a) => a.id === 'patron_1')!.core.condition.hpLostPct < 100; i++) hit(s);
     const later = [...play(s), ...play(s)];
     expect(s.actors.find((a) => a.id === 'patron_1')!.core.condition.hpLostPct).toBeGreaterThanOrEqual(100);
