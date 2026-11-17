@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** New ground may now join ground that is already built but off the stage, and that ground comes back onto the stage. A plan may never add a second zone for a road that already has one; it is told to join it instead. When a newcomer's village goes on the stage, its ways to built ground elsewhere become ways back into that ground, so walking one loads it. This world keeps its two copies.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #968](https://github.com/ali123500-codeRPG/text-rpg/pull/968)
 
 ## BG-287
 
