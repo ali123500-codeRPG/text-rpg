@@ -92,18 +92,21 @@ function typedId(v: string): Node | null {
   }
   return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
 }
-/** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
+/** a plain number as shown: rounded to the third digit after the dot */
+const num = (x: number): string => String(+x.toFixed(3));
+/** any value as code holds it: primitives as text (numbers rounded), lists as chips, objects as nested rows */
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
+  if (typeof v === 'number') return num(v);
   if (v instanceof Node) return v;
   if (typeof v === 'string') { const t = typedId(v); if (t) return t; }
   if (Array.isArray(v)) {
     if (!v.length) return none('empty');
     if (v.every((x) => typeof x === 'string' && typedId(x))) return h('span', {}, ...v.flatMap((x, i) => [i ? ', ' : '', typedId(x as string)!]));
-    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(String(x))));
+    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(typeof x === 'number' ? num(x) : String(x))));
     return h('div', { class: 'lv-sub' }, v.map((x) => h('div', { class: 'lv-subitem' }, val(x, depth + 1))));
   }
-  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
+  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v, (_, x) => (typeof x === 'number' ? +x.toFixed(3) : x)) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
   return String(v);
 }
 /** skill IDs are codes: show a skill field, or a table keyed by skill, by the skill's name */
