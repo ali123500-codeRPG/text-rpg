@@ -55,6 +55,8 @@ export type RollRequest = {
   blend?: { skill: string; share: number }[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
+  /** an attack roll's kind (melee or ranged, by the attack mode), for perks whose numbers work with one kind (PerkDef.numbersForAttack) */
+  attackKind?: import('./library').AttackKind;
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
   against?: string;
   /** a roll made as one side of a contest: tier unlocks for roll 'contest' apply (D-292) */

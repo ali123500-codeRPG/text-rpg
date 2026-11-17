@@ -10,6 +10,7 @@ import type { Actor, ContestResult, GameState, Intent, RollRequest } from '../..
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { AM } from '../../src/library/tableIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const wield = (s: GameState, itemId: string) => {
@@ -17,7 +18,7 @@ const wield = (s: GameState, itemId: string) => {
   s.player.core.inventory.push({ id: 'w', itemId, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
   fit(s.player, itemId);
 };
-const hit = (itemId: string, target: string, perk?: string, part?: string, armor?: string, d100 = 95) => {
+const hit = (itemId: string, target: string, perk?: string, part?: string, armor?: string, d100 = 95, modeId?: string) => {
   const s = makeVillage();
   wield(s, itemId);
   place(s, target, s.player.zone);
@@ -26,9 +27,15 @@ const hit = (itemId: string, target: string, perk?: string, part?: string, armor
   const rolls: RollRequest[] = [];
   const real = ruleset.roll;
   const spy = vi.spyOn(ruleset, 'roll').mockImplementation((req, st, rng) => { rolls.push(req); return real(req, st, rng); });
-  const r = ruleset.attack({ attackerId: 'player', targetId: target, weaponId: 'w', targetPart: part ?? null, aimed: !!part }, s, forcedRng([d100, 5, 50, 50]));
+  const r = ruleset.attack({ attackerId: 'player', targetId: target, weaponId: 'w', ...(modeId ? { modeId } : {}), targetPart: part ?? null, aimed: !!part }, s, forcedRng([d100, 5, 50, 50]));
   spy.mockRestore();
   return { r, aim: rolls[0].modifiers.find((m) => m.source.startsWith('aim'))?.value, perkMods: r.attack.modifiers.filter((m) => m.type === 'roll_perk') };
+};
+const punch = (perk?: string) => {
+  const s = makeVillage();
+  place(s, 'patron_1', s.player.zone);
+  if (perk) give(s.player, perk);
+  return ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: `natural:${AM.punch}`, modeId: AM.punch, targetPart: null, aimed: false }, s, forcedRng([85, 5, 50, 50]));
 };
 afterEach(() => vi.restoreAllMocks());
 
@@ -57,13 +64,13 @@ describe('118 40/80/120 perks', () => {
     expect(trueSkill(p, SK.dodge)).toBe(before[SK.dodge]);
     expect(trueSkill(p, SK.eyesight)).toBe(before[SK.eyesight]);
   });
-  it('Keen Edge: +10 to hit with any melee weapon; Steady Draw: +5 to hit and ×1.1 damage with any ranged weapon', () => {
+  it('Keen Edge: +10 to hit with any melee attack; Steady Draw: +5 to hit and ×1.1 damage with any ranged attack', () => {
     expect(hit(IT.dagger, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
-    expect(hit(IT.greataxe, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]); // weapons in general
+    expect(hit(IT.greataxe, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]); // melee in general
     expect(hit(IT.longbow, 'patron_1', PK.keen_edge).perkMods).toEqual([]); // not ranged
     expect(hit(IT.dagger, 'patron_1').perkMods).toEqual([]);
     expect(hit(IT.longbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
-    expect(hit(IT.crossbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]); // ranged weapons in general
+    expect(hit(IT.crossbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]); // ranged in general
     expect(hit(IT.dagger, 'patron_1', PK.steady_draw).perkMods).toEqual([]);
     const plain = hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage; // both rolls in the same tier
     expect(plain).toBeGreaterThan(0);
@@ -77,13 +84,26 @@ describe('118 40/80/120 perks', () => {
     const d = ruleset.roll({ actorId: 'player', skill: SK.dodge, modifiers: [], tierShifts: [] }, s, forcedRng([50]));
     expect(d.modifiers.some((m) => m.type === 'roll_perk')).toBe(false);
   });
-  it('Heavy Hand: melee weapon damage ×1.2, any weight', () => {
+  it('Heavy Hand: melee damage ×1.2, weapons of any weight and unarmed blows alike', () => {
     const plain = hit(IT.greataxe, 'patron_1', undefined, undefined, undefined, 85).r, boosted = hit(IT.greataxe, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r;
     expect(plain.damage).toBeGreaterThan(0);
     expect(boosted.damage).toBeCloseTo(plain.damage * 1.2, 5);
     const light = hit(IT.dagger, 'patron_1', undefined, undefined, undefined, 85).r.damage;
-    expect(hit(IT.dagger, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBeCloseTo(light * 1.2, 5); // weapons in general
+    expect(hit(IT.dagger, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBeCloseTo(light * 1.2, 5); // melee in general
     expect(hit(IT.longbow, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r.damage).toBe(hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // not ranged
+    expect(punch()!.damage).toBeGreaterThan(0);
+    expect(punch(PK.heavy_hand)!.damage).toBeCloseTo(punch()!.damage * 1.2, 5); // melee in general: a punch too
+    const thrown = (perk?: string) => hit(IT.dagger, 'patron_1', perk, undefined, undefined, 85, AM.throw).r.damage;
+    expect(thrown()).toBeGreaterThan(0);
+    expect(thrown(PK.heavy_hand)).toBe(thrown()); // a thrown dagger is a ranged attack, though it rolls a melee weapon skill
+  });
+  it('melee or ranged in general goes by the attack, not the skill: a punch is melee, a thrown dagger is ranged', () => {
+    expect(punch(PK.keen_edge)!.attack.modifiers.filter((m) => m.type === 'roll_perk')).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
+    expect(hit(IT.dagger, 'patron_1', PK.keen_edge, undefined, undefined, 95, AM.throw).perkMods).toEqual([]);
+    expect(hit(IT.dagger, 'patron_1', PK.steady_draw, undefined, undefined, 95, AM.throw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
+    const plain = hit(IT.dagger, 'patron_1', undefined, 'left_leg', IT.plate_harness, 95, AM.throw).r, pierced = hit(IT.dagger, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness, 95, AM.throw).r;
+    expect(pierced.location).toBe('left_leg');
+    expect(pierced.damage).toBeGreaterThan(plain.damage); // a ranged hit in general: a throw too
   });
   it('Armor Piercer: each armor stops 2 less of any ranged hit', () => {
     const plain = hit(IT.crossbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r;

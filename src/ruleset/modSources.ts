@@ -72,9 +72,9 @@ export const MOD_SOURCES: ModSource[] = [
       .map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: `${sg(rewardOf(a, a.defenseRoll ? 'defenseRoll' : 'spotRoll'))} ${a.defenseRoll ? 'defense' : 'spotting'} rolls` })) },
   // roll_perk
   { type: 'roll_perk', roll: 'skill', source: `${MILESTONES.filter((_, i) => i % 2 === 1).join('/')} perk numbers`, at: 'src/ruleset/perks.ts',
-    when: 'Rolls of the perk\'s skill (or the skills it names): rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',
+    when: 'Rolls of the perk\'s skill (or the skills it names, or every melee or ranged attack): rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',
     feeds: (lib) => Object.values(lib.perks).filter((d) => d.ladder && (d.numbers?.rollAdd || d.numbers?.hitAdd)).map((d) => ({ table: 'perks', id: d.id, name: d.name,
-      value: ((on) => [d.numbers?.rollAdd ? `${sg(d.numbers.rollAdd)} every ${on} roll` : '', d.numbers?.hitAdd ? `${sg(d.numbers.hitAdd)} ${on} attack rolls` : ''].filter(Boolean).join(' · '))((d.numbersFor ?? [d.ladder!.skill]).map(skillName).join(' / ')) })) },
+      value: ((on) => [d.numbers?.rollAdd ? `${sg(d.numbers.rollAdd)} every ${on} roll` : '', d.numbers?.hitAdd ? `${sg(d.numbers.hitAdd)} ${on} attack rolls` : ''].filter(Boolean).join(' · '))(d.numbersForAttack ? `${d.numbersForAttack}` : (d.numbersFor ?? [d.ladder!.skill]).map(skillName).join(' / ')) })) },
   { type: 'roll_perk', roll: 'skill', source: 'Steady Guard', at: 'src/ruleset/index.ts', when: 'Parry rolls made with a medium melee weapon.',
     value: sg(W() * CONFIG.STEADY_GUARD), feeds: (lib) => perk(lib, PK.steady_guard) },
   { type: 'roll_perk', roll: 'skill', source: 'Bare-Handed Guard', at: 'src/ruleset/index.ts', when: 'Dodge rolls while the owner holds no weapon.',
