@@ -30,7 +30,7 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
   const foes = up.filter((a) => a.foe || me.spar?.opponents.includes(a.name ?? a.label));
   const nameOf = (a: PlayerView['actors'][number]) => a.name ?? a.label;
 
-  if (ctx.broken) put('yield', {}, W.broken, 'Your nerve is broken: no attack or walk can come, and yielding ends the fight if they take it.');
+  if (ctx.broken) put('yield', {}, W.broken, ctx.cowering ? 'You are cowering: no attack or walk can come, and yielding ends the fight if they take it.' : 'Your nerve is broken: no attack can come; get away from them, or yield, which ends the fight if they take it.');
   for (const o of me.standDownOffers ?? []) put('stand_down', {}, W.offer, `${o.name} offered to stop fighting.`);
   const held = up.find((a) => a.holdsOut);
   if (held) put('take', { target: held.id, item: held.holdsOut!.item }, W.heldOut, `${cap(nameOf(held))} is holding out ${held.holdsOut!.name} to you.`);

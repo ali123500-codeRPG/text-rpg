@@ -13,6 +13,7 @@ import { isHeld } from '../ruleset/slots';
 import { actorBody } from '../library';
 import { cantSteady } from '../engine/steady';
 import { cantExtract } from '../engine/extract';
+import { walksAway } from '../engine/nerve';
 import type { WayOp } from '../engine/barriers';
 import { distText } from '../views';
 import { lootSources } from './loot';
@@ -22,7 +23,7 @@ import { cap, r1, theOf } from '../words';
 
 export const DECK_GROUPS = ['getaway', 'fight', 'talk', 'move', 'stealth', 'use', 'perks'] as const;
 export type DeckGroup = (typeof DECK_GROUPS)[number];
-export const DECK_GROUP_NAME: Record<DeckGroup, string> = { getaway: 'Your nerve is broken · you cower', fight: 'Fight', talk: 'Talk', move: 'Move', stealth: 'Stealth', use: 'Use', perks: 'Perks' };
+export const DECK_GROUP_NAME: Record<DeckGroup, string> = { getaway: 'Your nerve is broken', fight: 'Fight', talk: 'Talk', move: 'Move', stealth: 'Stealth', use: 'Use', perks: 'Perks' };
 
 /** one choice in a step: an id the order uses, and how it reads */
 export type Pick = { id: string; label: string; note?: string; hot?: true };
@@ -35,7 +36,7 @@ export type DeckAction = {
   kind: DeckKind; group: DeckGroup; label: string; note?: string; hot?: true;
   steps: Step[]; play(c: Choice): Order;
 };
-export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'normal' | 'reckless'; aim?: boolean; broken?: boolean; self?: Personality };
+export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'normal' | 'reckless'; aim?: boolean; broken?: boolean; cowering?: boolean; self?: Personality }; // cowering: BF79, below Broken
 
 /** every kind of action the deck can offer; the completeness test checks these cover every Parser action, gear op and
  * way op the game knows (DECK_LEFT_OUT says why the rest are not listed) */
@@ -78,7 +79,7 @@ const theItem = (n: string) => (/^(the|a|an|some)\s/i.test(n) ? theOf(n) : `the 
 /** the deck for this moment: groups in order, each with its actions (the character's leanings order both; nothing is
  * added or taken away by them). Empty groups are left out. */
 export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: DeckAction[] }[] {
-  const { pv, s, broken = false } = ctx;
+  const { pv, s, broken = false, cowering = false } = ctx;
   const stance = ctx.stance ?? 'normal';
   const act = (type: Act['type'], over: Partial<Act> = {}): Act => ({ type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance, ...over });
   const order = (line: string, over: Partial<Intent>): Order => ({ line, intent: { ...structuredClone(BLANK), ...over } });
@@ -109,7 +110,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const add = (kind: DeckKind, group: DeckGroup, label: string, steps: Step[], play: (c: Choice) => Order, extra: { note?: string; hot?: true } = {}) =>
     A.push({ kind, group, label, steps, play, ...extra });
 
-  // ---- Fight (MB12/BF37: a broken nerve allows no attack and no walk; words, a yield and sneaking still work) ----
+  // ---- Fight (MB12/BF37: a broken nerve allows no attack; words, a yield, sneaking and a walk away (BF79) still work) ----
   if (!broken) {
     if (up.length) {
       const weapons = inv.filter((i) => isHeld(i) && i.kind === 'weapon');
@@ -173,24 +174,27 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     add('show', 'talk', 'Turn out your pockets', [], () => order('I turn out my pockets', { action: act('show') }), { note: 'before everyone here' });
   }
 
-  // ---- Move (walks; a move with no action runs on: a dash, AE2) ----
-  if (!broken) {
-    const ways = pv.zone.links.filter((l) => !l.drop);
+  // ---- Move (walks; a move with no action runs on: a dash, AE2). BF79: broken, only the ways away from your foes show
+  // (under Your nerve is broken), with Back away; at Cowering no walk at all ----
+  if (!cowering) {
+    const g = broken ? 'getaway' : 'move';
+    const away = (zone: string) => !broken || !s || walksAway(s, s.player, { zone });
+    const ways = pv.zone.links.filter((l) => !l.drop && away(l.to));
     const wayNote = (l: PlayerView['zone']['links'][number]) => [l.frontier ? 'new ground' : '', l.way && 'locked' in l.way && l.way.locked ? (l.way.key ? 'locked · you hold its key' : 'locked') : '',
       l.way && 'barred' in l.way && l.way.barred ? 'barred' : '', l.way?.blocked ? 'blocked' : ''].filter(Boolean).join(' · ') || undefined;
     const places = [...ways.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })),
-      ...(pv.known ?? []).filter((z) => z.id !== pv.zone.id && !ways.some((l) => l.to === z.id)).map((z) => ({ id: z.id, label: cap(z.name), note: pv.cameFrom?.[0]?.zone === z.id ? 'where you came from' : 'known' }))];
-    if (places.length) add('go', 'move', 'Go to', [{ key: 'target', title: 'Go where?', picks: () => places }], (c) => order(`Go to ${places.find((p) => p.id === c.target)?.label ?? zoneName(c.target!)}`, { move: { toZone: c.target! } }),
+      ...(pv.known ?? []).filter((z) => z.id !== pv.zone.id && !ways.some((l) => l.to === z.id) && away(z.id)).map((z) => ({ id: z.id, label: cap(z.name), note: pv.cameFrom?.[0]?.zone === z.id ? 'where you came from' : 'known' }))];
+    if (places.length) add('go', g, 'Go to', [{ key: 'target', title: 'Go where?', picks: () => places }], (c) => order(`Go to ${places.find((p) => p.id === c.target)?.label ?? zoneName(c.target!)}`, { move: { toZone: c.target! } }),
       { note: 'runs there (a dash) · or click the minimap' });
-    const drops = pv.zone.links.filter((l) => l.drop);
-    if (drops.length) add('jump', 'move', 'Jump down', [{ key: 'target', title: 'Jump where?', picks: () => drops.map((l) => ({ id: l.to, label: cap(l.label) })) }], (c) => order(`Jump down to ${zoneName(c.target!)}`, { move: { toZone: c.target!, jump: true } }));
+    const drops = pv.zone.links.filter((l) => l.drop && away(l.to));
+    if (drops.length) add('jump', g, 'Jump down', [{ key: 'target', title: 'Jump where?', picks: () => drops.map((l) => ({ id: l.to, label: cap(l.label) })) }], (c) => order(`Jump down to ${zoneName(c.target!)}`, { move: { toZone: c.target!, jump: true } }));
     const near = seen.filter((a) => a.level === 'full');
     if (near.length) {
-      add('walk_up', 'move', 'Walk up to', [who('Walk up to whom?', near)], (c) => order(`Walk up to ${them(c)}`, { move: { toZone: near.find((a) => a.id === c.target)!.zone, spot: { near: c.target! } } }));
-      add('back_away', 'move', 'Back away from', [who('Away from whom?', near)], (c) => order(`Back away from ${them(c)}`, { move: { toZone: pv.zone.id, spot: { awayFrom: c.target! } } }));
-      add('follow', 'move', 'Follow', [who('Follow whom?', near)], (c) => order(`Follow ${them(c)}`, { move: { toZone: near.find((a) => a.id === c.target)!.zone, spot: { near: c.target!, follow: true } } }));
+      if (!broken) add('walk_up', 'move', 'Walk up to', [who('Walk up to whom?', near)], (c) => order(`Walk up to ${them(c)}`, { move: { toZone: near.find((a) => a.id === c.target)!.zone, spot: { near: c.target! } } }));
+      add('back_away', g, 'Back away from', [who('Away from whom?', near)], (c) => order(`Back away from ${them(c)}`, { move: { toZone: pv.zone.id, spot: { awayFrom: c.target! } } }));
+      if (!broken) add('follow', 'move', 'Follow', [who('Follow whom?', near)], (c) => order(`Follow ${them(c)}`, { move: { toZone: near.find((a) => a.id === c.target)!.zone, spot: { near: c.target!, follow: true } } }));
     }
-    if (pv.player.walking) {
+    if (pv.player.walking && !broken) {
       add('keep_walking', 'move', pv.player.following ? `Keep following ${pv.player.following.name}` : `Keep walking to ${pv.player.walking.to}`, [], () => order(pv.player.following ? `Keep following ${pv.player.following.name}` : `Keep walking to ${pv.player.walking!.to}`, {}), { note: 'carries the walk on' });
       add('stop', 'move', 'Stop here', [], () => order('Stop here', { move: { toZone: pv.zone.id } }));
     }
@@ -202,7 +206,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       return [...(v.barred ? ['unbar'] : []), ...(!v.locked && !v.barred ? ['open', 'shut', 'bar'] : []), ...(v.key ? [v.locked ? 'unlock' : 'lock'] : [])] as WayOp[];
     };
     const doors = pv.zone.links.filter((l) => wayOps(l).length);
-    if (doors.length) add('way', 'move', 'Door, gate or bar', [{ key: 'target', title: 'Which way?', picks: () => doors.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })) },
+    if (doors.length) add('way', g, 'Door, gate or bar', [{ key: 'target', title: 'Which way?', picks: () => doors.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })) },
       { key: 'item', title: 'Do what?', picks: (c) => wayOps(doors.find((l) => l.to === c.target)!).map((op) => ({ id: op, label: cap(op) })) }],
       (c) => order(`${cap(c.item!)} ${doors.find((l) => l.to === c.target)?.label ?? 'the way'}`, { way: { toZone: c.target!, op: c.item as WayOp } }), { note: 'takes your move' });
   }

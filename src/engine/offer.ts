@@ -22,7 +22,7 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { INTELLIGENCE, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { healthLevel, partStates } from '../ruleset/body';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { hasPerk } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, isEngaged, stance } from './relations';
@@ -64,7 +64,7 @@ export function tiersToConvince(a: Actor, kind: OfferKind = 'stand_down', state?
   const uneasy = MORALE_LEVELS.pos(moraleLevel(a)) >= MORALE_LEVELS.pos(CONFIG.OFFER_EASIER_MORALE);
   const shaken = hurt || uneasy;
   if (kind === 'stand_down') return shaken ? CONFIG.OFFER_WIN_TIERS_SHAKEN : CONFIG.OFFER_WIN_TIERS;
-  const broken = a.mind?.moraleState === 'broken' || moraleLevel(a) === 'broken';
+  const broken = a.mind?.moraleState === 'broken' || isBrokenLevel(moraleLevel(a));
   const crippled = !!state && partStates(state, a).some((p) => PART_STATES.pos(p.state) >= PART_STATES.pos('crippled'));
   const base = shaken ? CONFIG.OFFER_YIELD_WIN_TIERS_SHAKEN : CONFIG.OFFER_YIELD_WIN_TIERS;
   return Math.max(1, base - CONFIG.OFFER_YIELD_EASIER * ((broken ? 1 : 0) + (crippled ? 1 : 0)));

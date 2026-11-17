@@ -8,7 +8,7 @@ import { hasPerk, healthLevel, moraleRoll, tierLevel } from '../ruleset';
 import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
 import { markResolve } from '../ruleset/improve';
-import { maxMorale, moraleLevel, moraleLost, setMoraleLost, tierCostMult } from '../ruleset/morale';
+import { isBrokenLevel, maxMorale, moraleLevel, moraleLost, setMoraleLost, tierCostMult } from '../ruleset/morale';
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { tally } from './xp';
@@ -25,16 +25,18 @@ function breakAs(a: Actor, giveUp: boolean): 'broken' | 'surrendered' {
 
 /** pays fear `id` (cost overrides the row's cost: a part fear's sum, partFearCost): gap = the contest's tier gap (perTier rows), mult and shift = a perk's extra (Make an Example, MB26),
  * overwhelm = the owner's Overwhelm took hold (MR4): all morale is lost and the actor surrenders (breaks, if it cannot: BG-268).
- * Returns 'broken' or 'surrendered' when this pushed the actor to Broken. */
+ * Returns 'broken' or 'surrendered' when this pushed the actor to Broken (or past it); a broken one paying more goes on
+ * toward Cowering (BF79) and returns nothing. */
 export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean; cost?: number } = {}): 'broken' | 'surrendered' | undefined {
   const f = getLibrary().fears?.[id];
-  if (!f || !isActive(a) || a.mind?.moraleState) return undefined;
+  // BF79: a broken one still pays, down to Cowering; one that surrendered pays no more
+  if (!f || !isActive(a) || a.mind?.moraleState === 'surrendered') return undefined;
   if (o.overwhelm) {
-    const from = moraleLevel(a), paid = setMoraleLost(a, maxMorale(a));
+    const from = moraleLevel(a), paid = setMoraleLost(a, Math.max(moraleLost(a), maxMorale(a)));
     if (paid) markResolve(state, a, (100 * paid) / maxMorale(a));
     creditLost(state, a, paid);
     logCode(state, 'morale', { actorId: a.id, fear: id, paid, overwhelm: true, from, to: moraleLevel(a) });
-    return from === 'broken' ? undefined : breakAs(a, true);
+    return isBrokenLevel(from) ? undefined : breakAs(a, true);
   }
   let cost = (o.cost ?? f.cost) * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
   // All-50 Last to Fall: at Wounded or worse, morale losses shrink
@@ -54,6 +56,6 @@ export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { g
   markResolve(state, a, (100 * paid) / maxMorale(a));
   creditLost(state, a, paid);
   logCode(state, 'morale', { actorId: a.id, fear: id, paid, ...(level === undefined ? {} : { tier: level }), from, to });
-  if (to !== 'broken' || from === 'broken') return undefined;
+  if (!isBrokenLevel(to) || isBrokenLevel(from)) return undefined;
   return breakAs(a, level !== undefined && level <= TIERS.pos('critical_failure'));
 }

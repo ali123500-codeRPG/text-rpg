@@ -8,7 +8,8 @@ import { heightOf } from '../scenario/heights';
 import { CP, DU, FR, HL, RL } from '../library/tableIds';
 import { passiveFatigue, payMove, payRow, payStrain, restRecover, sleepMinutes, tooSpent } from './fatigue';
 import { payFear } from './morale';
-import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
+import { nerveCowers, nerveLetsWalk } from './nerve';
+import { healthFear, isBrokenLevel, isCoweringLevel, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
 import { freeGrips, levelMaxPct } from '../ruleset/body';
@@ -31,7 +32,7 @@ import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView, seesClearlyNow } from '../views';
 import { UNREACHABLE } from '../minds/routines';
-import { alertOrders, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenHolds, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
@@ -463,8 +464,8 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && (hostile(state, a, x) || hostile(state, x, a)))) { yieldSpar(state, a); return; }
   if (a === state.player) { tally(state, 'morale_breaks'); return; } // MB12: you keep control but cannot attack (doAttack)
   loseNerve(state, a, r);
-  // BF37: broken, what it has yet to do loses any walk, attack or perk move (cowering if nothing is left); surrendered, it holds
-  if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) { const v = buildActorView(state, a.id); ctx.orders.set(a.id, v.self.broken && !v.self.surrendered ? nerveHolds(ctx.orders.get(a.id)!).order : brokenOrder(v)); }
+  // BF37/BF79: broken, what it has yet to do loses any attack or perk move (fleeing if nothing is left); surrendered, it holds
+  if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) { const v = buildActorView(state, a.id); ctx.orders.set(a.id, v.self.broken && !v.self.surrendered ? brokenHolds(v, ctx.orders.get(a.id)!) : brokenOrder(v)); }
   // MB23: bandmates who perceived it are frightened too
   for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
 }
@@ -587,13 +588,21 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
   };
 }
 
+/** BF79: the order's walk is one the walker's nerve turns back (toward a foe while broken, any walk at Cowering) */
+export function nerveTurnsBack(state: GameState, a: Actor, o: Order): boolean {
+  return !!o.move && !nerveLetsWalk(state, a, moveGoal(state, a, o).goal);
+}
+
 /** ZP2: walks toward `goal` on move slots: each slot walks slotMetres of it (a move slot walks; a main slot spent on it, a
  * dash, runs the rest of the turn), one leg at a time, until it gets there, the slots run out, or the move is spent or
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
  * (closing in to strike). Returns false when the move was dropped. */
 function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => Paid | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean } = {}): boolean {
   const start = ctx.events.length;
-  const ok = walkLegs(ctx, a, goal, o, slot, opts);
+  // BF79: a broken nerve walks only away from its foes (none at all at Cowering): any other walk is turned back
+  const nerve = nerveLetsWalk(ctx.state, a, goal);
+  if (!nerve) logCode(ctx.state, 'nerve_turned_back', { actorId: a.id, to: goal.zone, cowering: nerveCowers(a) });
+  const ok = nerve && walkLegs(ctx, a, goal, o, slot, opts);
   // BG-118: words said with a move are never lost: a move that left no event to carry them (a wait at a frontier, a
   // dropped walk, a doorway underfoot) still says them, standing where the walker is
   if (opts.bark && o.line && !ctx.events.slice(start).some((e) => e.actorId === a.id && e.line)) emit(ctx, bark(mk(ctx, a, 'hold'), o));
@@ -758,7 +767,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (!t || t === a) return wasted('no_target'); // BG-149: always a reason
   if (healthLevel(t) === 'dead') return wasted('already_dead');
   if (t === state.player && !isActive(t)) return wasted('already_down'); // a downed player's fate is the survival roll's (D-54)
-  if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
+  if (a === state.player && isBrokenLevel(moraleLevel(a))) { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
   if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
   if (truceBars(state, a, t)) { logCode(state, 'truce_no_attack', { actorId: a.id, target: t.id }); return wasted('truce'); } // TF16
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted('spar_held'); }
@@ -2360,10 +2369,11 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     playerOrder.item = improvise(state, state.player, imp);
     playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
   }
-  // BF37: with a broken nerve the player's walk, attack, grab, filch or perk move comes to nothing; words and the allowed
-  // actions still happen, and with nothing allowed left the player cowers where they stand
-  if (isActive(state.player) && moraleLevel(state.player) === 'broken') {
-    const { order, blocked } = nerveHolds(playerOrder);
+  // BF37/BF79: with a broken nerve the player's attack, grab, filch or perk move comes to nothing (at Cowering the walk too),
+  // and a walk toward a foe is turned back where it runs (walk); words and the allowed actions still happen, and with
+  // nothing allowed left the player cowers where they stand
+  if (isActive(state.player) && isBrokenLevel(moraleLevel(state.player))) {
+    const { order, blocked } = nerveHolds(playerOrder, isCoweringLevel(moraleLevel(state.player)));
     if (blocked) logCode(state, 'broken_cowers', { actorId: state.player.id, wanted: playerOrder.type });
     for (const k of Object.keys(playerOrder) as (keyof Order)[]) if (!(k in order)) delete playerOrder[k];
     Object.assign(playerOrder, order);

@@ -5,7 +5,7 @@
 // own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
 //   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
 import { mkdirSync, writeFileSync, appendFileSync, readFileSync, copyFileSync } from 'node:fs';
-import { readTurnRecord } from '../src/save';
+import { listWorlds, readTurnRecord } from '../src/save';
 import { join } from 'node:path';
 import type { ClaudeClient, ClaudeRequest, ClaudeResponse } from '../src/types';
 import { createGame, parseTolerant, realClock } from '../src/agents';
@@ -72,6 +72,8 @@ const OUT = arg('out', 'playtest-out');
 /** --resume DIR: carry on a stopped run from the end of its last finished turn (its store.json), on today's code; the new
  * run's files go to --out and its turns keep counting from where DIR stopped */
 const RESUME = arg('resume', '');
+/** --world DIR: a new character in the world of DIR's story, whose character fell (new playtests run on one world) */
+const WORLD = arg('world', '');
 /** --call-model ID / --call-effort low|medium|high: every game call (not the player agent) on this model and effort, to compare setups */
 const CALL_MODEL = arg('call-model', '');
 const CALL_EFFORT = arg('call-effort', '');
@@ -226,6 +228,15 @@ async function main() {
     firstTurn = saved.step + 1;
     writeFileSync(join(OUT, 'resumed-from.json'), JSON.stringify({ dir: RESUME, step: saved.step })); // the replay set starts a resumed run here
     console.log(`resumed ${RESUME} after turn ${saved.step}`);
+  } else if (WORLD) {
+    const saved = JSON.parse(readFileSync(join(WORLD, 'store.json'), 'utf8')) as { docs: Record<string, string> };
+    for (const [k, v] of Object.entries(saved.docs)) store.docs.set(k, v);
+    // the fallen character's story is archived as the game does on New character (reset), which frees its world
+    if (await game.resume()) await game.reset();
+    const w = (await listWorlds(store))[0];
+    if (!w) throw new Error(`no free world in ${WORLD}: its character must have fallen`);
+    await game.newStory({ ...recommendedBuild(START), name: 'Arden', ...(pers ? { personality: pers } : {}) }, { worldId: w.worldId });
+    console.log(`world ${w.worldId} (${w.name}, day ${w.day}) from ${WORLD}, after ${w.past.map((x) => x.name).join(', ')}`);
   } else await game.newStory({ ...recommendedBuild(START), name: 'Arden', ...(pers ? { personality: pers } : {}) });
   const storyId = game.state()?.storyId;
   // the Character page shows the personality; the agent reads it as a player would, but plays as its persona
