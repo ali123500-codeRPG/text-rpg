@@ -29,7 +29,7 @@ import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
 import { wornPack } from '../engine/containers';
 import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
-import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
+import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 
@@ -210,7 +210,7 @@ function endYields(state: GameState): void {
   for (const a of state.actors) if (a.mind?.moraleState) delete a.mind.moraleState;
   delete state.yielding; // MB42: the truce lasts the scenario
   delete state.offers; // TF16: so does a stand-down truce
-  for (const a of [state.player, ...state.actors]) if (moraleLevel(a) === 'broken') setMoraleLost(a, maxMorale(a) - 1);
+  for (const a of [state.player, ...state.actors]) if (isBrokenLevel(moraleLevel(a))) setMoraleLost(a, maxMorale(a) - 1);
   for (const a of state.actors) {
     const o = a.mind?.overrides;
     if (!o || !Object.values(o).includes('yielded')) continue;

@@ -174,7 +174,7 @@ export type ActorView = {
     morale: string; // the morale bar's level
     mentallySteady?: true; // SY1: the next morale loss is halved
     fatigue: string; // FT1: its fatigue level (Collapsed awake: Spent, nothing above Light)
-    active: boolean; broken: boolean; surrendered: boolean;
+    active: boolean; broken: boolean; surrendered: boolean; cowering?: true; // BF79: broken past Broken, at Cowering: it cannot even flee
     control: 'agent' | 'code';
     standingDefense: DefenseKind;
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try

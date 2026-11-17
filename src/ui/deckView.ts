@@ -4,7 +4,7 @@
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
 import type { GameApi, GameState, PlayerView } from '../types';
 import { personalityOf } from '../ruleset/personality';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { buildPlayerView } from '../views';
 import { h } from './kit';
 import { closePop, openPop } from './pop';
@@ -39,7 +39,7 @@ export function deckView(api: GameApi, o: {
 }) {
   let aim = false, stance: Stance = 'normal', sugAt = 0, sayMode: SayMode | null = null;
   let groups: ReturnType<typeof deck> = [], sugs: Suggestion[] = [], ctx: DeckCtx | null = null, disabled = false;
-  const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, stance, aim, broken: moraleLevel(s.player) === 'broken', self: personalityOf(s.player) });
+  const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, stance, aim, broken: isBrokenLevel(moraleLevel(s.player)), cowering: isCoweringLevel(moraleLevel(s.player)), self: personalityOf(s.player) });
 
   async function play(order: Order, aimed: boolean) {
     if (disabled || api.busy()) return;

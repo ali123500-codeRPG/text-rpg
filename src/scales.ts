@@ -216,7 +216,7 @@ export type RoadDangerKey = (typeof ROAD_DANGERS.keys)[number];
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
 export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
 /** morale levels, calmest first (MB2); bands and penalties per level are CONFIG.MORALE_TRACK */
-export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken']]);
+export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken'], ['cowering', 'Cowering']]);
 export type MoraleLevel = (typeof MORALE_LEVELS.keys)[number];
 /** FT3/FT22 fatigue levels, freshest first; where each starts, its roll penalty and its short-line band are CONFIG.FATIGUE_TRACK */
 export const FATIGUE_LEVELS = scale([['rested', 'Rested'], ['fine', 'Fine'], ['tired', 'Tired'], ['weary', 'Weary'], ['exhausted', 'Exhausted'], ['drained', 'Drained'], ['dead_on_feet', 'Dead on your feet'], ['collapsed', 'Collapsed']]);

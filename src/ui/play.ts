@@ -25,7 +25,7 @@ import { stealthBadge } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { charFocus, NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shortSheet, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
-import { moraleLevel } from '../ruleset/morale';
+import { isBrokenLevel, moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
@@ -951,7 +951,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function nerveBeats(from: MoraleLevel, to: MoraleLevel, d: number, red: boolean) {
     const pos = (k: MoraleLevel) => MORALE_LEVELS.pos(k), steadyAt = pos(CONFIG.MOTION_NERVE_STEADY);
     if (pos(to) > pos(from)) {
-      if (to === 'broken') { pulse(sheet.querySelector('[data-m="morale-track"]'), d + ms('--m-count'), 2); arrive(sheet.querySelector('[data-m="morale-until"]'), d + ms('--m-count')); }
+      if (isBrokenLevel(to)) { pulse(sheet.querySelector('[data-m="morale-track"]'), d + ms('--m-count'), 2); arrive(sheet.querySelector('[data-m="morale-until"]'), d + ms('--m-count')); }
       if (red || pos(to) < pos(CONFIG.MOTION_NERVE_FROM)) return;
       play(nerveEdge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: pos(to) >= steadyAt ? 0.45 : 0 }], { dur: ms('--m-scenario'), delay: d });
     } else if (pos(from) >= steadyAt && pos(to) < steadyAt) {

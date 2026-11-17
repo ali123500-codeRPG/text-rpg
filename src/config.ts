@@ -295,6 +295,9 @@ const DEFAULTS = {
     ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -7], ['afraid', 60, -10],
     ['terrified', 75, -13], ['panicking', 99.999, -20], ['broken', Infinity, 0],
   ] as [string, number, number][],
+  /** BF79: morale lost can pass max morale up to this × max; at the top the actor is Cowering (below Broken): it cowers and
+   * cannot even flee. Broken runs from 100 % lost to here. [balance lever] */
+  MORALE_COWER_AT: 1.2,
   /** MB6: a rolled fear's cost × this, by the morale roll's tier; each step below Critical Failure adds MORALE_BEYOND_CF */
   MORALE_TIER_MULT: { critical_failure: 2, failure: 1.5, near_miss: 1, success: 0.5, great_success: 0.25, critical_success: 0 } as Record<string, number>,
   MORALE_BEYOND_CF: 0.5,

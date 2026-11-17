@@ -114,25 +114,37 @@ describe('fallback list', () => {
     sl.mind!.knowledge.player = belief('woods', 'suspicious');
     expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1)).type).toBe('hold');
   });
-  it('broken cowers where it stands, no flight (BF37); surrendered holds; a broken slime cowers too', () => {
+  it('broken flees one link away from its foe, cowers when cornered or at Cowering (BF79); surrendered holds; a broken slime flees too', () => {
     const s = makeVillage();
     const p = place(s, 'patron_1', 'tav_counter');
     p.mind!.moraleState = 'broken';
-    expect(brokenOrder(fakeView(s, 'patron_1'))).toMatchObject({ type: 'idle', intent: 'cower', activity: 'cowering', source: 'broken' });
-    expect(fallbackOrder(fakeView(s, 'patron_1'), createRng(1))).toMatchObject({ type: 'idle', activity: 'cowering', source: 'fallback' });
+    p.mind!.overrides = { player: 'yielded' };
+    p.mind!.knowledge.player = belief('tav_common');
+    expect(brokenOrder(fakeView(s, 'patron_1'))).toMatchObject({ type: 'flee', target: 'tav_cellar', source: 'broken' });
+    expect(fallbackOrder(fakeView(s, 'patron_1'), createRng(1))).toMatchObject({ type: 'flee', target: 'tav_cellar', source: 'fallback' });
+    place(s, 'patron_1', 'tav_cellar');
+    p.mind!.knowledge.player = belief('tav_counter');
+    expect(brokenOrder(fakeView(s, 'patron_1'))).toMatchObject({ type: 'idle', intent: 'cower', activity: 'cowering' }); // cornered
+    place(s, 'patron_1', 'tav_counter');
+    p.mind!.knowledge.player = belief('tav_common');
+    expect(brokenOrder(fakeView(s, 'patron_1', { cowering: true }))).toMatchObject({ activity: 'cowering' }); // Cowering: no flight
     p.mind!.moraleState = 'surrendered';
     expect(brokenOrder(fakeView(s, 'patron_1')).type).toBe('hold');
     const sl = actor(s, 'slime_1');
     sl.mind!.moraleState = 'broken';
     sl.mind!.knowledge.player = belief('field_mid');
+    place(s, 'slime_1', 'field_edge');
     place(s, 'player', 'field_mid');
-    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1)).activity).toBe('cowering');
+    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1))).toMatchObject({ type: 'flee', target: 'gate_inner' });
   });
-  it('a broken nerve takes away the walk and the attack and keeps the rest (BF37)', () => {
+  it('a broken nerve takes away the attack and keeps the rest, its walk too (BF37, BF79); at Cowering the walk goes', () => {
     const o = (x: Partial<Order>): Order => ({ actorId: 'a', type: 'idle', target: null, skill: null, intent: '', source: 'agent', ...x });
-    expect(nerveHolds(o({ type: 'give', target: 'player', item: 'charm_1', move: 'tav_common' }))).toEqual({ order: o({ type: 'give', target: 'player', item: 'charm_1' }), blocked: true });
+    expect(nerveHolds(o({ type: 'give', target: 'player', item: 'charm_1', move: 'tav_common' }))).toEqual({ order: o({ type: 'give', target: 'player', item: 'charm_1', move: 'tav_common' }), blocked: false });
+    expect(nerveHolds(o({ type: 'give', target: 'player', item: 'charm_1', move: 'tav_common' }), true)).toEqual({ order: o({ type: 'give', target: 'player', item: 'charm_1' }), blocked: true });
     expect(nerveHolds(o({ type: 'attack', target: 'player', line: { text: 'Stay back!', volume: 'shout' } })).order).toMatchObject({ type: 'idle', activity: 'cowering', line: { text: 'Stay back!' } });
-    expect(nerveHolds(o({ type: 'flee', target: 'street_door' })).order.type).toBe('idle');
+    expect(nerveHolds(o({ type: 'attack', target: 'player', move: 'tav_common' })).order.move).toBeUndefined(); // an attack's walk goes with it
+    expect(nerveHolds(o({ type: 'flee', target: 'street_door' })).order.type).toBe('flee');
+    expect(nerveHolds(o({ type: 'flee', target: 'street_door' }), true).order.type).toBe('idle');
     expect(nerveHolds(o({ type: 'talk', perkMove: { perk: 'PK1', target: null } })).order).toEqual(o({ type: 'talk' }));
     expect(nerveHolds(o({ type: 'filch', target: 'player' })).blocked).toBe(true);
     // Battle Cry is the one perk move a broken nerve keeps

@@ -21,7 +21,7 @@ import { fatigueLevel } from '../ruleset/fatigue';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
-import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
+import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
 import { cap, r1, theName } from '../words';
@@ -361,7 +361,9 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
 
 /** MB12 in plain words, one source for the sheet, the story card and the input's chips: how a broken nerve passes
  * (the engagement ending gives morale back, rest too) and what still works while it lasts */
-export const NERVE_UNTIL = "You can't walk, run or attack until the fight is behind you: with nothing else to do you cower where you stand.";
+export const NERVE_UNTIL = "You can't attack or go toward a foe until the fight is behind you; you can still back away or run.";
+/** BF79: at Cowering, below Broken, not even flight is left */
+export const NERVE_COWERING = "You can't move or attack until the fight is behind you: you cower where you stand.";
 export const NERVE_PASSES = () => `That is once no one has fought you for ${engagementEndS()} s, your yield is taken, this scenario ends, or you rest.`;
 export const NERVE_STILL = 'You can still talk, beg, yield, give, hide, use an item such as a bandage, pick something up, or open a door or container within reach.';
 const moraleRoll = (k: string) => CONFIG.MORALE_TRACK.find(([x]) => x === k)?.[2] ?? 0;
@@ -375,9 +377,9 @@ function tipped(word: string, tip: string, m: string, tm: string): HTMLElement {
 /** the stakes under the morale level, from CONFIG.MORALE_HINT_FROM down (a tip above Broken, a line at Broken); null above it */
 export function moraleHint(k: MoraleLevel): string | null {
   if (MORALE_LEVELS.pos(k) < MORALE_LEVELS.pos(CONFIG.MORALE_HINT_FROM)) return null;
-  if (k === 'broken') return `${NERVE_PASSES()} ${NERVE_STILL}`;
+  if (isBrokenLevel(k)) return `${NERVE_PASSES()} ${NERVE_STILL}`;
   const roll = moraleRoll(k), last = MORALE_LEVELS.pos('broken') - MORALE_LEVELS.pos(k) === 1;
-  return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to walk away or attack.`;
+  return `${roll ? `−${Math.abs(roll)}% on every roll. ` : ''}${last ? 'One more fright and your nerve breaks' : 'If your nerve breaks'}: you won't be able to attack or go toward a foe.`;
 }
 
 /** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
@@ -393,13 +395,13 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
       // SY1: a Great Success or better at steadying yourself halves the next morale loss, then it is gone
       p.core.condition.mentallySteady ? h('span', { class: 'cs-steady', 'data-m': 'steady', title: 'Mentally steady: your next morale loss is halved' }, 'Mentally steady') : null),
       // NB2: above Broken the stakes are a tip on the level word (hover or focus), never a line of their own
-      h('b', {}, hint && key !== 'broken' ? tipped(level, hint, 'morale-level', 'morale-hint') : h('span', { 'data-m': 'morale-level' }, level),
+      h('b', {}, hint && !isBrokenLevel(key) ? tipped(level, hint, 'morale-level', 'morale-hint') : h('span', { 'data-m': 'morale-level' }, level),
       full ? [' · ', h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`] : null)),
     h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
     // NB3: at Broken the line stays under the bar: no attacks until the fight is behind you, how that comes, what still works
-    ...(hint && key === 'broken' ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
-      h('b', { 'data-m': 'morale-until' }, NERVE_UNTIL), ' ', hint)] : []),
+    ...(hint && isBrokenLevel(key) ? [h('span', { class: 'cs-mhint broken', 'data-m': 'morale-hint', role: 'status' },
+      h('b', { 'data-m': 'morale-until' }, isCoweringLevel(key) ? NERVE_COWERING : NERVE_UNTIL), ' ', hint)] : []),
   ];
 }
 
