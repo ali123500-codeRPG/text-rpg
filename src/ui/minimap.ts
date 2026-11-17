@@ -2,7 +2,8 @@
 // knows (knownMap, as the full Map), its marks laid out by the full Map's own code (planScene: MAP-23, MAP-25, MAP-31).
 // Point anywhere known to see the walk there through the doorways as the engine walks it (walkRoute) and how long it
 // takes; a click plans a move to that exact point (MoveSpot.at, AD16), a double-click, Enter or Just go walks at once, Esc
-// clears. In a fight a ring shows how far one move slot walks this turn, carried time included (AD9). Only colour and
+// clears. In a fight a ring shows how far one move slot walks this turn, carried time included (AD9), and a second, wider
+// ring how far a dash runs (BF91: the move time walked, then the main time run). Only colour and
 // opacity change, on hover (M-70); nothing changes while a turn runs (M-06).
 import type { GameApi, GameState } from '../types';
 import { h } from './kit';
@@ -27,6 +28,14 @@ export type MinimapPlan = (MinimapPoint & { pts: Pos[]; words: string; where: st
 export const carriedMoveS = (s: GameState): number => (s.player.carry ?? []).reduce((n, c) => n + c.move, 0);
 /** AD9: metres one move slot walks this turn, carried time included; null outside a fight (no ring) */
 export const ringMetres = (s: GameState): number | null => (s.mode === 'tactical' ? slotMetres(s, s.player, 'move', CONFIG.FIGHT_TURN_S + carriedMoveS(s)) : null);
+/** the main seconds carried into this turn (as carriedMoveS) */
+export const carriedMainS = (s: GameState): number => (s.player.carry ?? []).reduce((n, c) => n + c.main, 0);
+/** BF91: metres a dash covers this turn (a move slot walked, then the main slot run: slotMetres), carried time included;
+ *  null outside a fight */
+export const dashMetres = (s: GameState): number | null => {
+  const walk = ringMetres(s);
+  return walk === null ? null : walk + slotMetres(s, s.player, 'main', CONFIG.FIGHT_TURN_S + carriedMainS(s));
+};
 /** metres as the minimap says them: to a tenth under 10 m ("6.4 m"), whole above ("22 m") */
 export const metresText = (m: number): string => (m < 9.95 ? `${r1(m)} m` : distText(m));
 const secondsText = (t: number) => (t < 90 ? `${Math.round(t)} s` : `${Math.round(t / 60)} min`);
@@ -99,7 +108,7 @@ export function minimapPanel(api: GameApi, opts: {
   const steps = CONFIG.MINIMAP_ZOOM_M, widest = steps[steps.length - 1];
   let viewM = CONFIG.MINIMAP_VIEW_M, pan = { x: 0, y: 0 }; // pan: svg pixels the view is dragged off you
   // M-06: what the minimap shows is taken at update() and kept while a turn runs; the live state is read only between turns
-  type Snap = { km: KnownMap; floor: MapZone[]; every: MapZone[]; height: number; you: Pos; facing?: [number, number]; ring: number | null; carried: number };
+  type Snap = { km: KnownMap; floor: MapZone[]; every: MapZone[]; height: number; you: Pos; facing?: [number, number]; ring: number | null; dash: number | null; carried: number };
   let snap: Snap | null = null, lastAt = '', lastRing: number | null = null, face = '';
   let hover: MinimapPlan | null = null, plan: Extract<MinimapPlan, { pts: Pos[] }> | null = null;
 
@@ -178,7 +187,10 @@ export function minimapPanel(api: GameApi, opts: {
     }
     for (const c of scene.connectors) gZones.append(s('line', { x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, class: `map-link${c.sight ? '' : ' hidden-view'}` }, s('title', {}, c.title)));
     // AD9: how far one move slot walks this turn; past the widest zoom it is a note under the map instead
-    if (snap.ring !== null && 2 * snap.ring <= widest) { const y = px(snap.you, K); gRing.append(s('circle', { class: 'mm-ring', cx: y.x, cy: y.y, r: snap.ring * K })); }
+    // BF91: and how far a dash runs, a second, wider ring
+    const y = px(snap.you, K);
+    if (snap.dash !== null && 2 * snap.dash <= widest) gRing.append(s('circle', { class: 'mm-ring dash', cx: y.x, cy: y.y, r: snap.dash * K }, s('title', {}, `A dash this turn: ${metresText(snap.dash)}`)));
+    if (snap.ring !== null && 2 * snap.ring <= widest) gRing.append(s('circle', { class: 'mm-ring', cx: y.x, cy: y.y, r: snap.ring * K }, s('title', {}, `A walk this turn: ${metresText(snap.ring)}`)));
     // marks: the full Map's (doors, stairs, furniture, people), each only when it is whole in view (MAP-50)
     for (const d of scene.doors) {
       if (!within(d, inView)) continue;
@@ -237,7 +249,7 @@ export function minimapPanel(api: GameApi, opts: {
     };
     say.replaceChildren(...(!snap ? ['No map of where you are yet.'] : !shown ? [HINT] : 'why' in shown ? [shown.why] : [...(shown === plan && !hover ? ['Planned: '] : []), ...parts(shown)]));
     go.hidden = !plan;
-    const notes = [snap && snap.carried > 0 ? `+${r1(snap.carried)} s carried over` : '', snap?.ring && 2 * snap.ring > widest ? `this turn reaches ${metresText(snap.ring)}` : ''].filter(Boolean);
+    const notes = [snap && snap.carried > 0 ? `+${r1(snap.carried)} s carried over` : '', snap?.ring && 2 * snap.ring > widest ? `this turn reaches ${metresText(snap.ring)}` : '', snap?.dash && 2 * snap.dash > widest ? `a dash reaches ${metresText(snap.dash)}` : ''].filter(Boolean);
     carried.textContent = notes.join(' · ');
     floorEl.textContent = snap ? `· ${floorName(snap.height)}` : '';
   }
@@ -322,13 +334,13 @@ export function minimapPanel(api: GameApi, opts: {
     const here = every.find((z) => z.here);
     if (!st || !km || !here?.you) { snap = null; hover = null; if (plan) { plan = null; opts.onPlan(null); } render(); return; }
     const ring = ringMetres(st);
-    snap = { km, every, floor: every.filter((z) => z.height === here.height), height: here.height, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}), ring, carried: carriedMoveS(st) };
+    snap = { km, every, floor: every.filter((z) => z.height === here.height), height: here.height, you: { ...here.you }, ...(st.player.facing ? { facing: [...st.player.facing] as [number, number] } : {}), ring, dash: dashMetres(st), carried: carriedMoveS(st) };
     const at = `${here.id}:${here.you.x}:${here.you.y}`;
     if (at !== lastAt) { lastAt = at; pan = { x: 0, y: 0 }; hover = null; }
     // AD9: a ring wider than the view zooms out to fit it (across the view's short side), up to the widest zoom; past it
-    // the footer says how far
+    // the footer says how far. BF91: the dash ring, the wider, is the one fitted, so both show
     if (ring !== lastRing) {
-      const { w, h: hh } = size(), need = (2.1 * (ring ?? 0) * w) / Math.min(w, hh);
+      const { w, h: hh } = size(), need = (2.1 * (snap.dash ?? ring ?? 0) * w) / Math.min(w, hh);
       lastRing = ring;
       if (need > viewM) viewM = steps.find((x) => x >= need) ?? widest;
     }

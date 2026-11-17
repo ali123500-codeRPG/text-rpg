@@ -188,8 +188,9 @@ export function handInQuests(state: GameState, talkedTo: (id: string) => boolean
 
 // ---- goal checks, shared by quest goals and scenario endings (SC7: one rule for the same thing) ----
 /** is the player in zone or place `place` (a place counts with every place inside it) */
-export function playerIn(state: GameState, place: string): boolean {
-  const p = state.player;
+export const playerIn = (state: GameState, place: string): boolean => actorIn(state, state.player, place);
+/** is `p` in zone or place `place` (a place counts with every place inside it) */
+export function actorIn(state: GameState, p: Actor, place: string): boolean {
   if (p.zone === place) return true;
   const chain: string[] = [];
   for (let id: string | null = zoneById(state, p.zone)?.placeId ?? p.placeId; id && !chain.includes(id); id = state.places.find((x) => x.id === id)?.parentId ?? null) chain.push(id);

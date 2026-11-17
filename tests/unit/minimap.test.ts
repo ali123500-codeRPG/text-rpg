@@ -3,7 +3,7 @@
 // way the player knows is not plannable, saying why.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { carriedMoveS, metresText, planTo, ringMetres, splitAt, zoneAt, type MinimapPlan } from '../../src/ui/minimap';
+import { carriedMoveS, dashMetres, metresText, planTo, ringMetres, splitAt, zoneAt, type MinimapPlan } from '../../src/ui/minimap';
 import { knownMap } from '../../src/ui/mapData';
 import { pathM, walkRoute } from '../../src/engine/position';
 import { moveSpeed, slotMetres } from '../../src/engine/speed';
@@ -51,6 +51,16 @@ describe('minimap plans (AD16)', () => {
     const near = ok(planTo(s, knownMap(s), 'tav_common', { x: me.x + Math.sign(r.x - me.x || 1) * 1.5, y: me.y }));
     expect(near.turns).toBe(1);
     expect(near.words).toMatch(/ · \d+ s walking · this turn$/);
+  });
+
+  it('BF91: in a fight a second ring shows how far a dash runs (the walk ring, then the main time run); none outside a fight', () => {
+    const s = village(['tav_common']);
+    expect(dashMetres(s)).toBeNull();
+    s.mode = 'tactical';
+    s.player.carry = [{ main: 1, move: 1.5, turn: s.turn - 1 }];
+    const sp = moveSpeed(s, s.player);
+    expect(dashMetres(s)).toBeCloseTo(ringMetres(s)! + (sp.run - sp.walk) * (CONFIG.FIGHT_TURN_S + 1), 9);
+    expect(dashMetres(s)!).toBeGreaterThan(ringMetres(s)!);
   });
 
   it('a point past the walls is planned a step inside them (spotPoint), as the walk will stop', () => {

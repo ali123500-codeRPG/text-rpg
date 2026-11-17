@@ -256,7 +256,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const placeTaken = new Set(state.places.filter((p) => !bare(p.id)).map((p) => p.id));
   for (const p of plan.places) placeMap.set(p.key, freshId(p.key, placeTaken));
   const zoneMap = new Map<string, string>();
-  for (const z of plan.zones) zoneMap.set(z.key, freshId(z.key, allZoneIds));
+  // BG-286 (BF93 a): a zone keyed as a frontier on the stage builds that frontier: it keeps the frontier's id and is joined
+  // to it (joinFrontier) below, as when the player walks through it, so the way is never built twice
+  const builtFrontiers = plan.zones.filter((z) => z.key !== ctx.frontierKey && stageFrontiers(state).has(z.key)).map((z) => z.key);
+  for (const z of plan.zones) zoneMap.set(z.key, builtFrontiers.includes(z.key) ? z.key : freshId(z.key, allZoneIds));
   const frontierMap = new Map<string, string>();
   for (const f of plan.frontiers) {
     frontierMap.set(f.key, freshId(f.key, allZoneIds));
@@ -309,9 +312,11 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     putOnStage(state, zone);
     newZones.push(zone);
   }
-  ensureBackLinks(state, newZones);
-  // an extension's entry: joined before placing (BG-225)
+  // an extension's entry: joined before placing (BG-225), and before the ways back are added (BG-285: a way back added
+  // first, then the frontier turned into a second way to the same zone)
   if (ctx.frontierKey && newZones[0]) joinFrontier(state, ctx.frontierKey, newZones[0]);
+  for (const key of builtFrontiers) joinFrontier(state, key, newZones.find((z) => z.id === key)!);
+  ensureBackLinks(state, newZones);
   const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);
   placeZones(state, newZones); // after heights: stairs stack zones straight above or below
