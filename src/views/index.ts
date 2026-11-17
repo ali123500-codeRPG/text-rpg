@@ -403,7 +403,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
       const d = f.data as { metres: number; minutes: number; night: boolean; stop: string };
       const km = distText(d.metres);
-      const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
+      const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : d.stop === 'met' ? ', until someone on the way stops ' + (own ? 'you' : who) : '';
       out.push(`${who} travel${own ? '' : 's'} ${km} in ${durationText(d.minutes)}${d.night ? ' through the dark' : ''}${stop}`);
     }
     if (f.kind === 'part_state_changed') {
