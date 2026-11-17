@@ -53,6 +53,8 @@ export type Actor = {
   };
   /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered */
   walking?: NonNullable<import('./agents').Intent['move']>;
+  /** RE1 (BG-291): minutes travelled on roads since the last encounter roll, carried from trip to trip; a full TRAVEL_LEG_MIN rolls */
+  roadMin?: number;
   /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */
   followLost?: { who: string; why: 'down' | 'slipped_away' | 'out_of_sight'; zone: string };
   /** BF34: something it holds out to `to` (an item instance, from hand, pack or its own bag): it changes hands only when

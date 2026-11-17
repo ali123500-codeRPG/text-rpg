@@ -108,6 +108,28 @@ describe('172 travel', () => {
     expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(CONFIG.ENCOUNTER_M + 5);
   });
 
+  it('RE1 (BG-291): road minutes carry over from trip to trip; each full leg of them rolls once, then the count starts again', () => {
+    // a 3 km road is 40 min: one trip never fills a leg, the second one meets something 20 min in
+    const s = withRoad(3, 'dangerous');
+    CONFIG.ROAD_ENCOUNTER_PCT = { ...CONFIG.ROAD_ENCOUNTER_PCT, dangerous: 100 };
+    go(s, 'ashford_gate');
+    expect(trip(s)!.stop).toBe('arrived');
+    expect(s.player.roadMin).toBeCloseTo(40, 0);
+    s.log.length = 0;
+    go(s, 'gate_inner', 2);
+    expect(trip(s)!.stop).toBe('encounter');
+    expect(trip(s)!.minutes).toBe(20);
+    expect(s.player.zone).toBe('north_road');
+    expect(s.player.roadMin).toBe(0);
+    // the roll is the road's chance for a full leg: at 0% nothing meets you and the count still starts again
+    const q = withRoad(3, 'dangerous');
+    CONFIG.ROAD_ENCOUNTER_PCT = { ...CONFIG.ROAD_ENCOUNTER_PCT, dangerous: 0 };
+    q.player.roadMin = 50;
+    go(q, 'ashford_gate');
+    expect(trip(q)!.stop).toBe('arrived');
+    expect(q.player.roadMin).toBeCloseTo(30, 0);
+  });
+
   it('a safe road can still be walked without stopping; the mechanics line and the Narrator get one passage', () => {
     const s = withRoad(4.5);
     const ev = go(s, 'ashford_gate');
