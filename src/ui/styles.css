@@ -177,7 +177,7 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .grp-h .hs-section { flex: 1; }
 .grp-h .hs-chip { cursor: default; margin: 0; }
 .grp-h .tot { color: var(--muted); font-size: 13px; }
-.row { display: grid; grid-template-columns: minmax(120px, 1fr) 120px 76px; align-items: center; gap: 0 var(--space-3); padding: 8px 0 4px; border-bottom: 1px solid var(--border); min-height: 44px; }
+.row { display: grid; grid-template-columns: minmax(120px, 1fr) 120px 104px; align-items: center; gap: 0 var(--space-3); padding: 8px 0 4px; border-bottom: 1px solid var(--border); min-height: 44px; }
 .row .bar { grid-column: 1 / -1; grid-row: 2; }
 .row .nm b { font-weight: 700; } .row .nm small { display: block; color: var(--muted); font-size: 13px; }
 .bar { position: relative; height: 22px; }
@@ -195,6 +195,8 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .step .hs-icon-btn { font-size: 18px; font-weight: 700; }
 .tagc { text-align: right; }
 .tagc .hs-tg { cursor: pointer; border: 0; font: inherit; font-size: 11px; }
+.tagc { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.hs-tg.flaw { --tg: var(--danger); } /* FC5: a flawed skill */
 .key { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); font-size: 13px; color: var(--muted); align-items: center; }
 .key i { display: inline-block; vertical-align: middle; margin-right: 6px; }
 .key .sw { width: 18px; height: 6px; border-radius: var(--r-sm); }
@@ -292,6 +294,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Character sheet (charsheet.ts): card, skill bars by tree, Play side sheet */
 .tag { color: var(--scenario-mark); font-size: 12px; }
+.flaw { color: var(--danger); font-size: 12px; font-weight: 800; cursor: help; } /* FC5 */
 .cs-split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
 /* CP1: the Character page fits one screen: card and trees fill the height between the head and the tile strip; either
    scrolls inside itself only when it can't fit */

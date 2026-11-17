@@ -98,6 +98,9 @@ const DEFAULTS = {
   TAG_CAP_BONUS: 20,
   /** a flawed skill's cap is SKILL_CAP minus this */
   FLAW_CAP_PENALTY: 25,
+  /** D-377 FC4 a (placeholder): each flawed skill adds this % to the Total share of every skill sharing a group with it,
+   * itself included (the mirror of TAG_BURDEN_GROUP_PCT) */
+  FLAW_BURDEN_GROUP_PCT: 5,
   /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden + group bonus) − this (placeholder). D-374 TB7: 100, so
    * raw runs out at its cap (at raw = cap a natural 100 is margin 0, which gains nothing) */
   GROWTH_ROLL_NEEDED: 100,
@@ -498,6 +501,7 @@ const DEFAULTS = {
   START_LEVEL: 4, // EQ13: a Start's level when its row names none (every Start names 1 today)
   CREATION_MAX_UNTAGGED: 30, // the most points one untagged skill can take at creation
   CREATION_MAX_TAGGED: 40, // the most points one tagged skill can take at creation
+  CREATION_MAX_FLAWED: 20, // FC3: the most points one flawed skill can take at creation
   // Character age (AG1–AG22; placeholders)
   YEAR_DAYS: 365, // AG2: game days in a year; age = (today − birth day) ÷ YEAR_DAYS
   AGE_PLUS_NUMBER_FROM: 4, // AG7: from this many steps past the last life stage the name reads "Ancient +4" instead of "Ancient++++"
@@ -511,6 +515,7 @@ const DEFAULTS = {
   TALENT_BEYOND_MULT: 0.5,
   NPC_TALENT_DEFAULT: 'talent_2' as import('./scales').TalentKey, // AG24, AG25: Able, a real professional's pace, when neither the preset nor its theme names one
   CREATION_TAGS: 3,
+  CREATION_FLAWS: 3, // FC1: one flaw per tag, required
   STARTING_COIN: 20,
   // Trade (D-93, PY4–PY10; placeholders): price = base × MARKUP × haggle × Hard Bargain, rounded up, at least 1
   TRADE_MARKUP: 2,

@@ -180,8 +180,8 @@ const leanText = (l?: PersonalityLean) => {
 /** NG10: gear as item links with their level; picked items (not pinned on the template) say so */
 const itemLinks = (ids: string[], pins: readonly string[]) => h('span', {}, ...ids.flatMap((id, i) => [i ? ', ' : '',
   link('gear', id, lib.items[id] ? label(lib.items[id].name) : id), lib.items[id] ? ` (${equipName(itemLevel(lib.items[id]) ?? 'crude')}${pins.includes(id) ? '' : ', picked'})` : '']));
-/** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged */
-const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : ''}`])) : none('none')))(
+/** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged, low-band flawed (FC8 b) */
+const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : s.state === 'flawed' ? ' (flawed)' : ''}`])) : none('none')))(
   Object.entries(skills).sort(([, a], [, b]) => b.raw - a.raw));
 /** NG2, NG21: an NPC role or theme: its skill bands (share of the rank's anchor), a theme's rank titles, and the templates using it */
 function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: string): HTMLElement {
