@@ -1,6 +1,6 @@
 // 128 Starts and class-level perks: Swordsman floors are Medium Weapons 40 and Block 40, which
 // also unlock the class; the late bloomer starts as an Unwritten Legend with 50 points at level 1 and the class's level 1
-// perk Quick Study (two improvement rolls for a skill below 15). Classes can grant perks at any level.
+// perk Any Road Will Do (UL1); Quick Study (two improvement rolls for a skill below 15) is A Nobody's (UL2). Classes can grant perks at any level.
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { createPlayer, recommendedBuild, validateBuild } from '../../src/library/spawn';
@@ -14,7 +14,7 @@ import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 
 describe('128 Late bloomer and class-level perks', () => {
-  it('the late bloomer: 100 points, no floors, level 1, Quick Study, no Swordsman tree', () => {
+  it('the late bloomer: 100 points, no floors, level 1, Any Road Will Do, no Swordsman tree', () => {
     const b = recommendedBuild(ST.late_bloomer);
     expect(validateBuild(b)).toEqual([]);
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.dodge]: 15 } })).toEqual(['Spend exactly 100 points (105 spent)']);
@@ -22,7 +22,8 @@ describe('128 Late bloomer and class-level perks', () => {
     const p = createPlayer(b, 's1');
     expect(p.core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }, { classId: CL.commoner, state: 'unlocked', level: 0 }]); // Commoner is open from the start
     expect(getLibrary().classes[CL.late_bloomer].name).toBe('Unwritten Legend');
-    expect(p.core.perks).toContainEqual({ perkId: PK.quick_study, source: 'class', gainedTurn: 0 });
+    expect(p.core.perks).toContainEqual({ perkId: PK.any_road_will_do, source: 'class', gainedTurn: 0 });
+    expect(p.core.perks.some((x) => x.perkId === PK.quick_study)).toBe(false); // UL2: Quick Study is A Nobody's own
     expect(p.progression!.unspentPerkPoints).toBe(0);
     expect(p.label).toBe('a young stranger');
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.crude_clothes, ['armor']], [IT.hand_axe, ['grip:right_arm']], [IT.pack, ['pack']], [IT.coin, null], [IT.bandage, null]]); // Medium Weapons 40: the Common hand axe; no Light Armor: crude clothes; CT7: a worn pack
@@ -32,6 +33,7 @@ describe('128 Late bloomer and class-level perks', () => {
     const s = makeVillage();
     s.player = { ...createPlayer(recommendedBuild(ST.late_bloomer), 'test'), zone: s.player.zone, placeId: s.player.placeId };
     const p = s.player;
+    p.core.perks.push({ perkId: PK.quick_study, source: 'class', gainedTurn: 0 }); // as A Nobody gets it at level 1
     p.progression!.marks = [SK.dodge, SK.melee_medium]; // dodge 10 (below 15), medium weapons 40 (not below)
     const gains = improveMarked(s, forcedRng([90, 90, 90])); // each margin 75 or more: Critical Success, +4
     expect(gains.filter((g) => g.skill === SK.dodge)).toEqual([{ skill: SK.dodge, from: 10, to: 14 }, { skill: SK.dodge, from: 14, to: 18 }]);
