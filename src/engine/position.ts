@@ -16,6 +16,7 @@ import { theName, theOf } from '../words';
 import { barrierOn, gripPasses, passage, type Passage } from './barriers';
 import { gripReachM } from '../ruleset/body';
 import { actorBody } from '../library';
+import { sightFactor } from '../library/bodySize';
 import { followGap } from './follow';
 import type { Actor, Barrier, GameState, MoveSpot, Zone } from '../types';
 
@@ -166,10 +167,19 @@ export function sightDistM(state: GameState, a: Located, b: Located): number {
   return Math.hypot(shapeGap(A, B), ha <= hb ? Math.max(0, hb - ha - A.h) : Math.max(0, ha - hb - B.h));
 }
 
-/** step 2 PR 2: how far away something is for sight, in metres: sightDistM, never under NEAREST_M; null without sight */
+/** SZ11: how much farther `b` is seen from `a` than a person would be: its body's sightFactor at the look-down angle (a
+ * zone above looking down on it); 1 for a spot. Sight ranges and the range penalty read distances ÷ this. */
+export function seenSizeFactor(state: GameState, a: Located, b: Located): number {
+  if (!('core' in b)) return 1;
+  const drop = Math.max(0, heightOf(zoneById(state, a.zone)) - heightOf(zoneById(state, b.zone)));
+  return sightFactor(actorBody(state, b as Actor).size, drop > 0 ? Math.atan2(drop, Math.max(floorGap(state, a, b), EPS)) : 0);
+}
+
+/** step 2 PR 2: how far away something is for sight, in metres: sightDistM ÷ how big it looks (SZ11: a horse is seen as
+ * far again as a person at nearly twice the metres), never under NEAREST_M; null without sight */
 export function seeingM(state: GameState, a: Located, b: Located): number | null {
   const d = sightDistM(state, a, b);
-  return d === Infinity ? null : Math.max(d, CONFIG.NEAREST_M);
+  return d === Infinity ? null : Math.max(d / seenSizeFactor(state, a, b), CONFIG.NEAREST_M);
 }
 
 /** ZP4: metres between two people (or a person and a spot): a straight line with sight between their zones, else the

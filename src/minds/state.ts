@@ -10,7 +10,7 @@ import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, inLookReach, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
-import { rollFnSkills } from '../ruleset/gear';
+import { coverFor, rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
 import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere } from '../ruleset/perks';
@@ -223,7 +223,7 @@ const cueSense = (cue: Cue | undefined): Sense => (cue === 'sound' ? FN.hearing 
 function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean) {
   const zone = zoneById(state, s.zone);
   const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {};
-  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
+  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s, body: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */
 function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined) {
@@ -256,7 +256,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const zone = zoneById(state, s.zone);
   const fade = event.kind === 'vanish'; // Strike and Fade
   const moved = event.kind === 'move';
-  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(zone.cover, zoneLight(state, zone)));
+  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverFor(state, s, zone), zoneLight(state, zone)));
   const still = fade || melt;
   const from: Located = { zone: event.fromZone ?? s.zone, pos: event.fromPos ?? s.pos };
   const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, still);

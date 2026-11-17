@@ -1,15 +1,18 @@
-// 361 Body size (SZ1-SZ6, SZ8-SZ10, SZ18, SZ19): every body type has a length, width and height in metres, each race
+// 361 Body size (SZ1-SZ6, SZ8-SZ13, SZ18, SZ19): every body type has a length, width and height in metres, each race
 // multiplies them; a body takes up a capsule on the floor, turned the way it faces; every distance between two people is
 // the gap between their bodies, so reach is measured edge to edge; nobody is placed inside anybody else.
 import { expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
-import { makeVillage } from '../harness';
+import { forcedRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
 import { actorBody, actorVolumeM3, getLibrary } from '../../src/library';
 import { BT, RC } from '../../src/library/raceIds';
 import { AM } from '../../src/library/tableIds';
-import { entryPoint, floorGap, placeAll, withinM } from '../../src/engine/position';
-import { hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
+import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from '../../src/engine/position';
+import { sightFactor } from '../../src/library/bodySize';
+import { ruleset } from '../../src/ruleset';
+import { IT } from '../../src/library/itemIds';
+import { coverFor, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
 import { gripReachM } from '../../src/ruleset/body';
 
 const OGRE = 'test_ogre';
@@ -102,4 +105,52 @@ it('SZ19: a hostile is near within a step plus its own melee reach; a walk into 
   const street = s.zones.find((z) => z.id === 'street_door')!;
   const at = entryPoint(s, 'tav_common', street.id, h), door = entryPoint(s, 'tav_common', street.id)!;
   expect(at && Math.hypot(at.x - door.x, at.y - door.y)).toBeCloseTo(1.2, 6); // half the horse's 2.4 m further in than a point
+});
+
+it('SZ11: a body is seen as far as √(its seen area ÷ a person\'s); looking down shows its top', () => {
+  const s = room();
+  const p = s.actors.find((a) => a.id === 'patron_1')!;
+  p.zone = 'tav_common'; p.pos = { x: 10, y: 0 }; s.player.pos = { x: 0, y: 0 };
+  expect(seenSizeFactor(s, s.player, p)).toBeCloseTo(1, 9);
+  const gap = floorGap(s, s.player, p);
+  expect(seeingM(s, s.player, p)).toBeCloseTo(gap, 9);
+  horse(s); // 2.4 long, 1.6 high: √(2.4 × 1.6 ÷ (0.5 × 1.75))
+  expect(seenSizeFactor(s, s.player, p)).toBeCloseTo(Math.sqrt((2.4 * 1.6) / 0.875), 6);
+  expect(seeingM(s, s.player, p)).toBeCloseTo(floorGap(s, s.player, p) / Math.sqrt((2.4 * 1.6) / 0.875), 6);
+  const python = { lengthM: 1, widthM: 1, heightM: 0.3 };
+  expect(sightFactor(python)).toBeCloseTo(0.59, 2); // a hump in the grass from the ground
+  expect(sightFactor(python, Math.PI / 4)).toBeCloseTo(1.02, 2); // seen from a balcony
+  expect(sightFactor({ lengthM: 0.3, widthM: 0.5, heightM: 1.75 }, Math.PI / 4)).toBeCloseTo(0.91, 2);
+});
+
+it('SZ12: cover is set for a person: each halving of height gains a step where there is some, each doubling loses one', () => {
+  const s = room();
+  const z = s.zones.find((x) => x.id === 'tav_common')!;
+  const p = s.actors.find((a) => a.id === 'patron_1')!;
+  z.cover = 'some';
+  expect(coverFor(s, s.player, z)).toBe('some');
+  p.core.bodyTypeId = BT.amorphous; p.core.raceId = s.actors.find((a) => a.id === 'slime_1')?.core.raceId ?? RC.slime;
+  expect(coverFor(s, p, z)).toBe('heavy'); // a slime 0.3 m high
+  getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 6 / 1.75 } };
+  const giant = { ...s.player, core: { ...s.player.core, raceId: OGRE } };
+  expect(coverFor(s, giant, z)).toBe('none'); // 6 m tall: two doublings
+  z.cover = 'none';
+  expect(coverFor(s, p, z)).toBe('none'); // no cover to hide in
+  delete getLibrary().races![OGRE];
+});
+
+it('SZ13: the range penalty reads the shot\'s metres ÷ the target\'s size factor', () => {
+  const s = makeVillage({ without: ['guard_1', 'trader', 'patron_1'] });
+  place(s, 'player', 'field_mid'); place(s, 'slime_1', 'field_mid'); place(s, 'slime_2', 'field_far');
+  for (const i of s.player.core.inventory) delete i.equippedIn;
+  s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
+  const t = s.actors.find((a) => a.id === 'slime_1')!;
+  const r = s.zones.find((z) => z.id === 'field_mid')!.rect!;
+  s.player.pos = { x: r.x, y: r.y - r.d / 2 + 1 }; t.pos = { x: r.x, y: s.player.pos.y + 20 }; // a shortbow reaches 50 m
+  const range = () => ruleset.attack({ attackerId: 'player', targetId: t.id, weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50])).attack.modifiers.find((m) => m.source === 'range')?.value ?? 0;
+  const slime = range();
+  t.core.bodyTypeId = BT.quadruped; t.core.raceId = RC.horse;
+  const horseMod = range();
+  expect(slime).toBe(-15); // a slime 20 m off looks as small as a person at 20 ÷ 0.41 = 48 m (over 75% of the reach)
+  expect(horseMod).toBe(0); // a horse looks as near as a person at 20 ÷ 2.1 = 9.5 m (under 25%)
 });
