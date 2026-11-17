@@ -189,8 +189,8 @@ export function equations(lib: Library): EquationGroup[] {
           ['natural edges', CONFIG.GROWTH_NATURAL_EDGES ? 'move the tier one step, as on every roll (CONFIG.GROWTH_NATURAL_EDGES)' : 'do not move this roll: no skill grows from the die face alone (CONFIG.GROWTH_NATURAL_EDGES)'],
           ['rolls', `1 per roll owed${quick.length ? `; ${quick.map((p) => `${p.name}: ${p.improveRolls!.rolls} rolls while raw is below ${p.improveRolls!.below ?? `${p.improveRolls!.belowShare} × the highest raw skill`}`).join('; ')}` : ''}`]],
         table: { head: ['Raw', 'Gains (+1 or more)', 'Great (+2 or more)', 'Flawed: gains'], rows: [25, 50, 65, 75, 90, 99].map((r) => [String(r), pct(growthChance(r, 'normal', 1)), pct(growthChance(r, 'normal', 2)), pct(growthChance(r, 'flawed', 1))]) },
-        notes: ['Raw never passes its cap: a gain that would is cut to the cap. The room left below the cap is the bonus, so the roll gets harder smoothly with no wall; perks, achievements and gear still raise true skill past it.',
-          `A tagged skill at raw ${CONFIG.SKILL_CAP} rolls like an untagged ${CONFIG.SKILL_CAP - (CONFIG.GROWTH_CAP_IN_ROLL ? CONFIG.TAG_CAP_BONUS : 0)} and keeps going to ${CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS}.`,
+        notes: ['No hard limit: the room left below the cap is the bonus, so the roll gets harder smoothly and runs out on its own just past the cap (further with a group bonus); perks, achievements and gear still raise true skill past it.',
+          `A tagged skill at raw ${CONFIG.SKILL_CAP} rolls like an untagged ${CONFIG.SKILL_CAP - (CONFIG.GROWTH_CAP_IN_ROLL ? CONFIG.TAG_CAP_BONUS : 0)} and keeps going to about ${CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS}.`,
           `Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },
     ] },
     { key: 'levels', title: 'Levels', about: 'How XP turns into levels.', equations: [
