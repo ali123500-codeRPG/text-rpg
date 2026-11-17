@@ -33,7 +33,7 @@ describe('98 Minted reward cap', () => {
   it('run 2: a plan whose only faults are rewards applies at once, with no repair call', async () => {
     const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const weave = vi.fn(async () => withSword(3, 'keen edge'));
-    const r = await new ScenarioDirector({ weave, clock: new VirtualClock() }).startScenario(makeVillage(), createRng(1));
+    const r = await new ScenarioDirector({ weave, clock: new VirtualClock() }).startScenario(toStoryStart(makeVillage()), createRng(1));
     expect(weave).toHaveBeenCalledTimes(1);
     expect(r.outcome).toBe('applied');
     roll.mockRestore();

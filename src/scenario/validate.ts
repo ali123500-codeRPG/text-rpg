@@ -214,11 +214,19 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const isBand = (r: string) => bandKeys.has(r) || bandIds.has(r);
   const isActor = (r: string) => castKeys.has(r) || actorIds.has(r);
   const isPlace = (r: string) => placeKeys.has(r) || placeIds.has(r);
-  // BG-273: a newcomer's plan builds on the settlement it finds on the stage: it uses those places and areas by their ids and
-  // never declares them again (code would make copies under new ids)
-  const stagePlaces = new Map(ctx.arrive ? state.places.filter((p) => p.zones.some((z) => stageZones.has(z.id))).map((p) => [p.id, p.names.current]) : []);
-  for (const p of places) if (stagePlaces.has(p.key)) err('place_exists', `place ${p.key} already exists (${stagePlaces.get(p.key)}): use its id ${p.key} as a parent or a zone's place; never declare it again`);
-  for (const z of zones) if (ctx.arrive && stageZones.has(z.key)) err('zone_exists', `zone ${z.key} already exists on the stage: use its id ${z.key} in links and slots; never declare it again`);
+  // WI1 a (BG-273, BG-288): a place or area is built once in a world. A plan that declares one whose key is already built
+  // anywhere (on the stage or not, any plan) is refused, never built again under a new id; the bare start place (BG-32) is
+  // the one exception, filled in by the plan's place of the same key
+  const builtPlaces = new Map(state.places.filter((p) => !p.bare).map((p) => [p.id, p]));
+  const builtZones = new Map(state.places.flatMap((p) => p.zones.map((z) => [z.id, { z, p }] as const)));
+  for (const p of places) {
+    const b = builtPlaces.get(p.key);
+    if (b) err('place_exists', `place ${p.key} is already built (${b.names.current}): use its id ${p.key} as a parent or a zone's place, or pick a new key if it is a different place; never declare it again`);
+  }
+  for (const z of zones) {
+    const b = builtZones.get(z.key);
+    if (b) err('zone_exists', `zone ${z.key} is already built (${b.z.name} in ${b.p.names.current}): link to ${z.key}, or pick a new key if it is a different spot; never declare it again`);
+  }
   // BG-288 (BF95 a): a road of the land is built once: a zone on a road that already has its zone is refused (link to it)
   for (const z of zones) {
     const line = z.road ? state.regions?.flatMap((r) => r.roads).find((x) => x.id === z.road) : undefined;
