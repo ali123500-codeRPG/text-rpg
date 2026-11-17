@@ -18,7 +18,9 @@ import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
 import { zoneById } from '../engine/relations';
-import { landNode, landTarget, landZone } from './ways';
+import { landNode, landTarget, landZone, worldCheck } from './ways';
+import { applyStagePlan } from './apply';
+import { createRng } from '../rng';
 
 /** what the Weaver may say a cast member knows of the player or a band: AWARENESS up to aware (tracking and up are code's) */
 const BELIEFS: string[] = AWARENESS.keys.slice(0, AWARENESS.pos('aware') + 1);
@@ -603,6 +605,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   // ---- rewards: repaired, never blocking (loot L1) ----
   errs.push(...tidyContainers(state, plan).notes, ...tidyRewards(state, plan).notes);
 
+  // WI9 a / WI10 a: a plan that would leave the world breaking a land rule it kept before goes back for repair
+  if (errs.every((e) => e.repaired)) errs.push(...worldAfter(state, plan, ctx));
   return errs;
 }
 
@@ -712,4 +716,13 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
     rewards.push({ ...r, item, ...(qty !== undefined ? { qty } : {}) });
   });
   return { rewards, notes };
+}
+
+/** WI9 a: the plan is tried on a copy of the world; each land rule it would newly break is an error for the repair round
+ * (worldCheck). A plan the copy cannot take is left to the apply itself. */
+function worldAfter(state: GameState, plan: StagePlan, ctx: PlanContext): PlanError[] {
+  const before = new Set(worldCheck(state));
+  const s = structuredClone(state);
+  try { applyStagePlan(s, structuredClone(plan), ctx, { entry: 'open' }, createRng(s.rngState)); } catch { return []; }
+  return worldCheck(s).filter((m) => !before.has(m)).map((m) => ({ code: 'world_check', message: `after this plan, ${m}: keep the land's roads, junctions and settlements built once`, routineOnly: false }));
 }
