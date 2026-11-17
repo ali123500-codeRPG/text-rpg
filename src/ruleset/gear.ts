@@ -12,6 +12,7 @@ import type { PayoffCount } from '../library/perkThemes';
 import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
+import { withinM } from '../engine/position';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL, ROLLED_SKILL } from '../library/skillIds';
 import { createRng, textSeed } from '../rng';
 import { equipNeed, itemLevel, requirement, requiredSkill } from './requirements';
@@ -352,7 +353,7 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
 
 /** Part 5 §5 default mode: the first usable mode whose reach covers `distance` metres, else none. */
 export function defaultMode(state: GameState, actor: Actor, distance: number): { itemId: string; mode: AttackMode } | null {
-  return usableModes(state, actor).find((m) => m.mode.reach >= distance) ?? null;
+  return usableModes(state, actor).find((m) => withinM(distance, m.mode.reach)) ?? null; // BG-267: the one reach check
 }
 
 /** BG-258: the skill an attack uses when nothing names one (Fallback behavior, ambush): the held weapon's first, else the NPC
@@ -377,7 +378,7 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
   if (!inst) throw new Error(`${actor.id} has no item ${weaponId}`);
   const def = itemDef(state, inst.itemId);
   const modes = (def.weapon?.modes ?? []).map((m) => withRow(actor, def, m));
-  const mode = modeId ? modes.find((m) => m.id === modeId) : modes.find((m) => m.reach >= distance) ?? modes[0];
+  const mode = modeId ? modes.find((m) => m.id === modeId) : modes.find((m) => withinM(distance, m.reach)) ?? modes[0];
   if (!mode) throw new Error(`no attack mode ${modeId ?? ''} on ${weaponId}`);
   return { mode, name: def.name };
 }
