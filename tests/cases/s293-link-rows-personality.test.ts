@@ -133,16 +133,17 @@ describe('293 link rows and personality nudges', () => {
     expect(personalityOf(p).traits[PA.honesty] ?? 0).toBe(0);
   });
 
-  it('SH1-SH4/SH7: a 120 perk adds 5% of its skill (not +5), and +1 and 1% of it to its group; shares read flat skill and add in full (RN3)', () => {
+  it('SH1-SH4/SH7: a 120 perk adds 5% of its skill (not +5), and 1% of it to its group (no +1); shares read flat skill and add in full (RN3)', () => {
     const s = makeVillage();
     const p = s.player;
     p.core.skills[SK.stamina] = { raw: 200, state: 'normal' };
     const flat = trueSkill(p, SK.stamina);
     give(p, PK.bottomless);
-    // own: 5% and the group's 1% (Stamina is alone in its group), both in full; and the +1
-    const f = flat + 1;
-    expect(trueSkill(p, SK.stamina)).toBeCloseTo(f + CONFIG.HIGH_PERK_SHARE * f + CONFIG.HIGH_PERK_SPREAD * f);
+    // own: 5% and the group's 1% (Stamina is alone in its group), both in full; no flat +1, the group share covers it
+    expect(trueSkill(p, SK.stamina)).toBeCloseTo(flat + CONFIG.HIGH_PERK_SHARE * flat + CONFIG.HIGH_PERK_SPREAD * flat);
     expect(getLibrary().perks[PK.bottomless].trueSkill).toBeUndefined();
+    expect(getLibrary().perks[PK.bottomless].functionBoost).toBeUndefined();
+    expect(getLibrary().perks[PK.deep_lungs].functionBoost).toBe(1); // the 80 keeps its +1
     expect(getLibrary().perks[PK.deep_lungs].trueSkill).toBe(5); // the 80 stays flat (SH3)
   });
 });

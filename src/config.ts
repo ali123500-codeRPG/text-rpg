@@ -98,16 +98,15 @@ const DEFAULTS = {
   TAG_CAP_BONUS: 20,
   /** a flawed skill's cap is SKILL_CAP minus this */
   FLAW_CAP_PENALTY: 25,
-  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden + group bonus) − this, read on the tier table (placeholder).
-   * D-374 TB7: 100, so with no hard limit raw runs out at about its cap (only a natural 100 succeeds at raw = cap) */
+  /** D-377 FC4 a (placeholder): each flawed skill adds this % to the Total share of every skill sharing a group with it,
+   * itself included (the mirror of TAG_BURDEN_GROUP_PCT) */
+  FLAW_BURDEN_GROUP_PCT: 5,
+  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden + group bonus) − this (placeholder). D-374 TB7: 100, so
+   * raw runs out at its cap (at raw = cap a natural 100 is margin 0, which gains nothing) */
   GROWTH_ROLL_NEEDED: 100,
-  /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
-  GROWTH_GAIN: { success: 2, great_success: 3, critical_success: 4 } as Partial<Record<Tier, number>>,
-  /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
-  GROWTH_GAIN_PAST_CRIT: 1,
-  /** SG2 a: natural edges (01–05, 96–100) do not move the improvement roll's tier: no skill grows from the die face
-   * alone (LF4) */
-  GROWTH_NATURAL_EDGES: false,
+  /** D-383 (placeholder): raw gained = margin ÷ this, rounded up; margin 0 or below gains nothing, so raw stops exactly where
+   * the roll runs out */
+  GROWTH_MARGIN_PER_POINT: 15,
   /** SG3 a: true = a skill's own cap (120 tagged, 75 flawed) is in the roll too, so the room left counts from it;
    * false = every skill rolls against SKILL_CAP and only its stop moves */
   GROWTH_CAP_IN_ROLL: true,
@@ -371,7 +370,7 @@ const DEFAULTS = {
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
   /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
-   * to every skill sharing a group (beside the +1). Placeholders */
+   * to every skill sharing a group (in place of the 40 and 80 perks' +1). Placeholders */
   HIGH_PERK_SHARE: 0.05,
   HIGH_PERK_SPREAD: 0.01,
   /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
@@ -502,6 +501,7 @@ const DEFAULTS = {
   START_LEVEL: 4, // EQ13: a Start's level when its row names none (every Start names 1 today)
   CREATION_MAX_UNTAGGED: 30, // the most points one untagged skill can take at creation
   CREATION_MAX_TAGGED: 40, // the most points one tagged skill can take at creation
+  CREATION_MAX_FLAWED: 20, // FC3: the most points one flawed skill can take at creation
   // Character age (AG1–AG22; placeholders)
   YEAR_DAYS: 365, // AG2: game days in a year; age = (today − birth day) ÷ YEAR_DAYS
   AGE_PLUS_NUMBER_FROM: 4, // AG7: from this many steps past the last life stage the name reads "Ancient +4" instead of "Ancient++++"
@@ -515,6 +515,7 @@ const DEFAULTS = {
   TALENT_BEYOND_MULT: 0.5,
   NPC_TALENT_DEFAULT: 'talent_2' as import('./scales').TalentKey, // AG24, AG25: Able, a real professional's pace, when neither the preset nor its theme names one
   CREATION_TAGS: 3,
+  CREATION_FLAWS: 3, // FC1: one flaw per tag, required
   STARTING_COIN: 20,
   // Trade (D-93, PY4–PY10; placeholders): price = base × MARKUP × haggle × Hard Bargain, rounded up, at least 1
   TRADE_MARKUP: 2,

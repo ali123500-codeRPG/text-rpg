@@ -1,4 +1,4 @@
-// 365 Any Road Will Do (UL1, UL2): Unwritten Legend's own level 1 perk. Every function's stand-in share rises by
+// 366 Any Road Will Do (UL1, UL2): Unwritten Legend's own level 1 perk. Every function's stand-in share rises by
 // UL_STAND_IN_ADD (0.3 becomes 0.5), kept within 0 to 1; Quick Study stays A Nobody's level 1 perk only.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -9,7 +9,7 @@ import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
 import { PK } from '../../src/library/perkIds';
 
-describe('365 Any Road Will Do', () => {
+describe('366 Any Road Will Do', () => {
   it('is the Legend\'s level 1 perk; Quick Study is A Nobody\'s alone', () => {
     const lib = getLibrary();
     expect(lib.classes[CL.late_bloomer].levelPerks).toEqual({ 1: [PK.any_road_will_do] });

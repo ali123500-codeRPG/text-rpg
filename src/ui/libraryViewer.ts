@@ -1,7 +1,10 @@
 // Library viewer: every library table drawn from the same modules the game runs, so it shows the
 // library exactly as code sees it. Bundled into dist/library/ by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
-import { BT } from '../library/raceIds';
+import { BT, RC } from '../library/raceIds';
+import { sizeOf as bodySize } from '../library';
+import { FIGURE_CREDITS, figureKey, figureUpright } from '../library/figureModels';
+import { figure3d } from './figure3d';
 import './styles.css';
 import './libraryViewer.css';
 import type { NpcTemplate, NpcRoleDef, ThemeDef, PersonalityLean, RoutineSet, EssenceDef, Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
@@ -92,18 +95,21 @@ function typedId(v: string): Node | null {
   }
   return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
 }
-/** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
+/** a plain number as shown: rounded to the third digit after the dot */
+const num = (x: number): string => String(+x.toFixed(3));
+/** any value as code holds it: primitives as text (numbers rounded), lists as chips, objects as nested rows */
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
+  if (typeof v === 'number') return num(v);
   if (v instanceof Node) return v;
   if (typeof v === 'string') { const t = typedId(v); if (t) return t; }
   if (Array.isArray(v)) {
     if (!v.length) return none('empty');
     if (v.every((x) => typeof x === 'string' && typedId(x))) return h('span', {}, ...v.flatMap((x, i) => [i ? ', ' : '', typedId(x as string)!]));
-    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(String(x))));
+    if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(typeof x === 'number' ? num(x) : String(x))));
     return h('div', { class: 'lv-sub' }, v.map((x) => h('div', { class: 'lv-subitem' }, val(x, depth + 1))));
   }
-  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
+  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v, (_, x) => (typeof x === 'number' ? +x.toFixed(3) : x)) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
   return String(v);
 }
 /** skill IDs are codes: show a skill field, or a table keyed by skill, by the skill's name */
@@ -177,8 +183,8 @@ const leanText = (l?: PersonalityLean) => {
 /** NG10: gear as item links with their level; picked items (not pinned on the template) say so */
 const itemLinks = (ids: string[], pins: readonly string[]) => h('span', {}, ...ids.flatMap((id, i) => [i ? ', ' : '',
   link('gear', id, lib.items[id] ? label(lib.items[id].name) : id), lib.items[id] ? ` (${equipName(itemLevel(lib.items[id]) ?? 'crude')}${pins.includes(id) ? '' : ', picked'})` : '']));
-/** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged */
-const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : ''}`])) : none('none')))(
+/** NG2, NG8: a template's skills before each copy's spread (templateSkills with no actor), high-band skills tagged, low-band flawed (FC8 b) */
+const skillList = (skills: Record<string, { raw: number; state?: string }>) => ((l) => (l.length ? h('span', {}, ...l.flatMap(([id, s], i) => [i ? ', ' : '', link('skills', id, skillName(id)), ` ${s.raw}${s.state === 'tagged' ? ' (tagged)' : s.state === 'flawed' ? ' (flawed)' : ''}`])) : none('none')))(
   Object.entries(skills).sort(([, a], [, b]) => b.raw - a.raw));
 /** NG2, NG21: an NPC role or theme: its skill bands (share of the rank's anchor), a theme's rank titles, and the templates using it */
 function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: string): HTMLElement {
@@ -203,14 +209,34 @@ function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: stri
 const fitText = (fit?: number) => (fit === undefined ? 'set by hand' : `fit ${Math.round(fit * 100)}%`);
 const essenceList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.flatMap((x, i) => [i ? ', ' : '', link('essences', x.row.id, x.row.name), ` (${fitText(x.fit)})`])) : none('none')))(templateEssences(t));
 
+/** every small table of a view (not the table view, which scrolls in its own box, nor the perk ladder grid) is marked
+ * lv-ctbl and names each cell by its column (data-k), so on a phone a row shows as a small card of labelled values
+ * instead of scrolling sideways (CSS, max-width 760px) */
+function labelCells(root: HTMLElement): void {
+  for (const t of Array.from(root.querySelectorAll<HTMLTableElement>('table.hs-tbl'))) {
+    if (t.closest('.lv-ladder')) continue;
+    t.classList.add('lv-ctbl');
+    const heads = Array.from(t.querySelectorAll<HTMLTableCellElement>(':scope > thead > tr:first-child > th')).map((c) => c.textContent?.trim() ?? '');
+    for (const r of Array.from(t.querySelectorAll<HTMLTableRowElement>(':scope > tbody > tr')))
+      Array.from(r.querySelectorAll<HTMLElement>(':scope > td, :scope > th')).forEach((c, i) => { if (heads[i] && !c.dataset.k) c.dataset.k = heads[i]; });
+  }
+}
+
 // ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
-function figure(ct: BodyType | undefined, cls: (part: string) => string): HTMLElement | null {
-  if (!ct?.figure) return null;
-  const f = h('div', { class: 'bf-svg lv-fig' });
-  f.innerHTML = `<svg viewBox="${ct.figure.viewBox}" role="img" aria-label="${ct.name} body">${Object.entries(ct.figure.parts)
-    .map(([id, d]) => `<path class="${cls(id)}" d="${d}"><title>${id === 'general' ? ct.general.name : label(id)}</title></path>`).join('')}</svg>`;
-  return f;
+/** each tone's colour on the 3D figure (the same tokens the key chips use) */
+const TONE_TOKEN: Record<string, string> = { 'lv-ess': '--danger', 'lv-norm': '--accent', 'lv-non': '--c3', 'lv-on': '--accent', 'lv-off': '--rule' };
+/** BV1 b: the 3D figure of a body type (its built shape) or a race (its model), turnable; a click names the part */
+function figure(ct: BodyType | undefined, cls: (part: string) => string, raceId?: string): HTMLElement | null {
+  if (!ct) return null;
+  const key = figureKey(raceId, ct.id), out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
+  const size = bodySize(ct, raceId ? lib.races?.[raceId] : undefined), name = (id: string) => (id === 'general' ? ct.general.name : label(id));
+  const f = figure3d({ key, upright: figureUpright(key), size, raceSize: size, personSize: bodySize(lib.bodyTypes[BT.humanoid], lib.races?.[RC.human]),
+    tint: (part) => ({ token: TONE_TOKEN[cls(part)] ?? '--accent' }), label: `${ct.name} body`, width: 150, height: 150, turnable: true, ground: false,
+    onPick: (part) => { out.textContent = part ? name(part) : ''; } });
+  const credit = FIGURE_CREDITS[key];
+  // BV12 b: a model's credit wherever it is shown (CC-BY asks for it)
+  return h('div', { class: 'lv-fig' }, f, out, credit ? h('p', { class: 'lv-credit' }, 'Model: ', h('a', { href: credit.url, target: '_blank', rel: 'noopener' }, credit.title), ` by ${credit.author} (${credit.licence})`) : null);
 }
 const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essential' : ct.parts.find((p) => p.id === part)?.impact ?? 'normal');
 
@@ -546,7 +572,7 @@ function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
     return card('races', r.id, r, r.name, [chip(INTELLIGENCE.name(r.intelligence), toneFor('Intelligence', INTELLIGENCE.name(r.intelligence)))],
-      h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)]), h('div', {},
+      h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)], r.id), h('div', {},
         row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
@@ -1054,10 +1080,11 @@ function threadboundView(): HTMLElement[] {
 function essencesView(): HTMLElement[] {
   const C = CONFIG;
   const grades = ESSENCE_GRADES.keys.map((g) => `${ESSENCE_GRADES.name(g)} ×${C.ESSENCE_GRADE_MULT[g] ?? 1}`).join(', ');
+  // the rule itself is the same for every essence of a kind: it lives once, under Equations → Essences
   const fromText = (e: EssenceDef): Node | string => e.from.deed
-    ? 'A deed: a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences. It is built on the skill you used most in that scenario.'
+    ? 'A deed (the rule: Equations → Essences)'
     : h('span', {}, 'Beating a notable ', e.from.race ? link('races', e.from.race, lib.races?.[e.from.race]?.name ?? e.from.race) : e.from.bodyType ? link('bodyTypes', e.from.bodyType, lib.bodyTypes[e.from.bodyType]?.name ?? e.from.bodyType) : '?',
-      ` foe: one whose power is at least ${Math.round(C.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC. Each such foe rolls once, ever. A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.`);
+      ' foe (the rule: Equations → Essences)');
   const split = (e: EssenceDef) => { const w = e.skills.reduce((n, x) => n + x.weight, 0) || 1;
     return e.skills.length ? e.skills.map((x) => `${skillName(x.skill)} ${Math.round((x.weight / w) * 100)}%`).join(', ') : 'the skill you used most in the scenario, all of it'; };
   const all = Object.values(lib.essences ?? {});
@@ -1678,6 +1705,7 @@ function route(): void {
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
     body.replaceChildren(...(notice ? [h('p', { class: 'lv-notice', role: 'status' }, notice)] : []), ...viewOf(sec));
+    labelCells(body);
     notice = '';
     const tabs = body.querySelector('.lv-tabs');
     subRail.replaceChildren(...(tabs ? [tabs] : []));

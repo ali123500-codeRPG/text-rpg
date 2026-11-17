@@ -8,7 +8,7 @@ import { FN, GR } from './functionIds';
 export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
   [FN.arms]: GR.melee, [FN.unarmed]: GR.melee, [FN.ranged]: GR.ranged, [FN.defense]: GR.defense, [FN.armor]: GR.defense, [FN.health]: GR.health,
   [FN.sight]: GR.notice, [FN.hearing]: GR.notice, [FN.stealth]: GR.stealth, [FN.influence]: GR.influence,
-  [FN.initiative]: GR.speed, [FN.morale]: GR.will, [FN.engagement_aura]: GR.aura, [FN.offensive_aura]: GR.aura,
+  [FN.initiative]: GR.speed, [FN.morale]: GR.will, [FN.engagement_aura]: GR.aura, [FN.projected_aura]: GR.aura,
   [FN.lockpicking]: GR.sleight, [FN.filching]: GR.sleight, // FL1: the Sleight group, clever fingers on locks and purses
   [FN.stamina]: GR.stamina, // FT15: its own group, at quarter XP
   [FN.smell]: GR.notice,
@@ -17,7 +17,7 @@ export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
 export const FUNCTION_NAMES: Record<SkillFunction, string> = {
   [FN.arms]: 'Arms', [FN.unarmed]: 'Unarmed', [FN.ranged]: 'Ranged', [FN.defense]: 'Defense', [FN.armor]: 'Armor', [FN.health]: 'Health',
   [FN.sight]: 'Sight', [FN.hearing]: 'Hearing', [FN.stealth]: 'Stealth', [FN.influence]: 'Influence', [FN.initiative]: 'Initiative', [FN.morale]: 'Morale',
-  [FN.engagement_aura]: 'Engagement aura', [FN.offensive_aura]: 'Offensive aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina', [FN.smell]: 'Smell', [FN.healing]: 'Healing',
+  [FN.engagement_aura]: 'Engagement aura', [FN.projected_aura]: 'Projected aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina', [FN.smell]: 'Smell', [FN.healing]: 'Healing',
 };
 export const GROUP_NAMES: Record<SkillGroup, string> = {
   [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.speed]: 'Speed', [GR.will]: 'Will', [GR.aura]: 'Aura', [GR.sleight]: 'Sleight', [GR.stamina]: 'Stamina', [GR.medicine]: 'Medicine',

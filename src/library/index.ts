@@ -50,7 +50,7 @@ export type ActorBody = BodyType & { hpMultiplier: number; speed: RaceDef['speed
 export const actorVolumeM3 = (state: GameState, a: Actor): number => volumeM3(actorBody(state, a).size);
 /** SZ1, SZ15: an actor's size in metres, the one place it is worked out: its body type's size (a story body type without one
  * is the Humanoid's) × its race's factors per measure */
-function sizeOf(b: BodyType, r: RaceDef | undefined): BodySize {
+export function sizeOf(b: BodyType, r: RaceDef | undefined): BodySize {
   const s = b.size ?? current.bodyTypes[BT.humanoid].size!, m = r?.sizeMult;
   return m ? { lengthM: s.lengthM * m.length, widthM: s.widthM * m.width, heightM: s.heightM * m.height } : s;
 }
@@ -78,6 +78,12 @@ export function actorBody(state: GameState | null | undefined, actor: Actor): Ac
     size: sizeOf(b, r), reachScale: reachScaleOf(b, r),
     ...(r?.naturalArmor ? { naturalArmor: r.naturalArmor } : {}),
   };
+}
+/** BV3 a: the size a race's own figure is drawn at (its body type's size × the race's factors), before anything that
+ * changes one being's size; the figure stretches each measure by the being's size over this */
+export function raceSize(bodyTypeId: string, raceId: string | undefined): BodySize {
+  const r = raceId ? current.races?.[resolveAlias(raceId)] : undefined;
+  return sizeOf(bodyType(null, bodyTypeId), r);
 }
 export function npcTemplate(state: GameState | null | undefined, id: string): NpcTemplate {
   const d = blueprint<NpcTemplate>(state, 'npcTemplate', id) ?? current.templates[resolveAlias(id)];

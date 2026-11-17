@@ -415,20 +415,20 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Bottomless (Stamina) · SS6
 
-*Story:* +5% Stamina, +1 and +1% Stamina. Effort that would empty anyone else barely touches you: every strain you pay is halved.
+*Story:* +5% Stamina, +1% Stamina. Effort that would empty anyone else barely touches you: every strain you pay is halved.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5% of the owner's true Stamina (HIGH_PERK_SHARE, placeholder) as true skill in Stamina. +1 true skill, and +1% of the owner's true Stamina (HIGH_PERK_SPREAD, placeholder), in every skill of group Stamina. Shares read true skill without shares; several on one skill add in full. Every strain cost the owner pays is ×0.5 (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.
+- **Effect:** +5% of the owner's true Stamina (HIGH_PERK_SHARE, placeholder) as true skill in Stamina. +1% of the owner's true Stamina (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Stamina. Shares read true skill without shares; several on one skill add in full. Every strain cost the owner pays is ×0.5 (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.
 - **Lasts:** Always.
 
 ### Chorus (Intimidation) · CN8
 
-*Story:* +5% Intimidation, +1 and +1% Influence. Every way you have learned to strike fear joins the one voice: your auras reach further for every shout perk you own.
+*Story:* +5% Intimidation, +1% Influence. Every way you have learned to strike fear joins the one voice: your auras reach further for every shout perk you own.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5% of the owner's true Intimidation (HIGH_PERK_SHARE, placeholder) as true skill in Intimidation. +1 true skill, and +1% of the owner's true Intimidation (HIGH_PERK_SPREAD, placeholder), in every skill of group Influence. Shares read true skill without shares; several on one skill add in full. The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds 1 m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M, 8 m) grows by the payoff share of those pieces, 5% × pieces^0.8 (placeholders). Chorus alone: 9.4 m; with three shout pieces: 12 m.
+- **Effect:** +5% of the owner's true Intimidation (HIGH_PERK_SHARE, placeholder) as true skill in Intimidation. +1% of the owner's true Intimidation (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Influence. Shares read true skill without shares; several on one skill add in full. The owner's engagement auras (Dread Presence and any later one) reach further: each shout piece (perks tagged shout in src/library/perkThemes.ts, Chorus included) adds 1 m in full (CONFIG.CHORUS_REACH_M), and the base reach (AURA_REACH_M, 8 m) grows by the payoff share of those pieces, 5% × pieces^0.8 (placeholders). Chorus alone: 9.4 m; with three shout pieces: 12 m.
 - **Lasts:** Always.
 
 ## Higher milestone
@@ -707,7 +707,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 *Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, makes a morale roll against you, and you and every ally that hears it take heart and shake off fear.
 
-- **Kind:** Move (offensive aura)
+- **Kind:** Move (projected aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
 - **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken, and so does the owner.
 - **Lasts:** Instant.

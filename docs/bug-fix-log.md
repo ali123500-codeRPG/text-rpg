@@ -6,6 +6,30 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-300
+
+**What was wrong:** On a phone (390 px wide), six tabs of the library viewer scrolled sideways: Body types (by 22 px), Skills, Stand-ins, Equations, Quests and Nerve (by up to 409 px). Their small tables kept every column, and a card's body sized its column to fit the widest table, so cards and the page grew wider than the screen.
+
+**What was done:** At 760 px and below, every small table in a view (such as a body type's parts, a skill group's skills or an equation's table) now shows one small card per row, with each value labelled by its column. The main table view and the perk ladder grid keep their own phone layout. A card's body can no longer grow wider than its card. All 58 tabs were checked at 390, 600 and 760 px: none scrolls sideways.
+
+**Fixed by:** [PR #1011](https://github.com/ali123500-codeRPG/text-rpg/pull/1011)
+
+## BG-299
+
+**What was wrong:** On the Questions hub, Ali emptied his new answer to TC31 ("Tactics skill tree"), a question that had been asked again, and his earlier answer disappeared too. The hub keeps the earlier answer inside the same saved record as the new one, and emptying a box deleted that whole record. The BG-298 fix shortly before had been tested on typing only, not on erasing.
+
+**What was done:** Emptying the box of a question that was asked again (hub version 25) now writes the earlier answer back exactly as it was, dated just before the question was asked again. The box is empty, the question shows "Asked again" and nothing is deleted. Questions that were never asked again still clear as before. TC31's earlier answer was put back. The hub README records the rule.
+
+**Fixed by:** [PR #1013](https://github.com/ali123500-codeRPG/text-rpg/pull/1013)
+
+## BG-298
+
+**What was wrong:** On the Questions hub, Ali typed a new answer to TC31 ("Tactics skill tree"), which had been asked again. Each time the answer saved, the box above it ("Your earlier answer") changed to what he had just typed, and the question kept saying "Asked again". His real earlier answer was overwritten. The page had set the time TC31 was asked again to 21:40, ten minutes after the page was actually written, so at 21:35 every save counted as older than the re-ask and was treated as the earlier answer.
+
+**What was done:** The hub (version 24) never lets an "asked again" time be later than the page write that asked it, and anything typed during a visit always counts as the new answer, even on a device whose clock runs slow. TC31's original earlier answer was put back from the copy quoted on the page. The Tactics page builder now uses the page's own write time, and the hub README says an "asked again" time must be that write time, never a rounded-up guess. Five other pages had the same kind of future time, but all their answers came after it, so none was stuck.
+
+**Fixed by:** [PR #1012](https://github.com/ali123500-codeRPG/text-rpg/pull/1012)
+
 ## BG-292
 
 **What was wrong:** On the Questions hub, question TC6 ("Tactics skill tree") kept showing "Asked again" and an empty answer box after Ali had answered it. The page marked the question as asked again with the word `true` instead of a time. The hub counts an answer only if it is newer than the time the question was asked again, and `true` is not a time, so no answer could ever count. Questions D-20 and D-21 on "Open parked items" had the same fault.

@@ -17,7 +17,7 @@ import { HUMANOID_SIZE, armReachM } from './bodySize';
 const ARMOR_TIME = { locksMove: true, focus: 'careful', output: 'steps', onBreak: [{ upTo: 1, then: 'kept' }] } as const;
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-import type { AccessCond, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, HookKindDef, GroupDef, MeetRow, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, PartDef, RoleId, ActivityDef, AttackMode, BodyType, ItemDef, ItemEffect, Library, NpcRoleDef, NpcTemplate, ThemeDef, HookKindDef, GroupDef, MeetRow, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -545,6 +545,9 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.coin, kind: 'misc', fragility: 'unbreakable', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, typed(i)]));
 
+/** BV7 a: a four-legged body has one part per leg, each small, so the four together keep a pair's old odds (2 × normal) */
+export const FORELEGS = ['left_foreleg', 'right_foreleg'] as const, HIND_LEGS = ['left_hind_leg', 'right_hind_leg'] as const;
+const fourLegs = (roles: RoleId[]): PartDef[] => [...FORELEGS, ...HIND_LEGS].map((id) => ({ id, size: 'small' as const, impact: 'normal' as const, roles }));
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
@@ -594,11 +597,12 @@ export const BODY_TYPES: Record<string, BodyType> = {
     parts: [
       // FR4: a quadruped takes and carries things in its jaws, as a dog or a horse does. SZ9: reach is metres past the body's
       // edge (its nose): the long neck stretches about 0.8 m further (estimate)
-      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], reachM: 0.8 },
+      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech, RL.grip], adjacent: ['general', 'neck'], reachM: 0.8 },
+      // BV8 a: the long neck is a small part (the quadruped's is extra small), essential like every neck
+      { id: 'neck', size: 'small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
       { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
       { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
-      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move] },
-      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move] },
+      ...fourLegs([RL.move]),
       { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
     fallback: { attackSkill: SK.bite },
@@ -613,8 +617,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
       // about 0.2 m (estimate); SZ10: × the race's length
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.strike, RL.grip], adjacent: ['general', 'neck'], reachM: 0.2 },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
-      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
-      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move, RL.strike] },
+      ...fourLegs([RL.move, RL.strike]),
       { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
     fallback: { attackSkill: SK.bite },
@@ -651,8 +654,8 @@ const HIDE = (hide: number) => ({ hide, multiplier: CONFIG.ARMOR_MULTIPLIER.ligh
 /** AB16 a: the skill each kind of natural attack rolls; a tail lash names its own (SK.tail) */
 const NAT_SKILL: Record<string, string> = { [AM.bite]: SK.bite, [AM.claw]: SK.claws, [AM.kick]: SK.hooves_horns, [AM.gore]: SK.hooves_horns, [AM.slam]: SK.slam };
 /** a race's natural attack: unarmed tree, its kind's skill unless given, reach in metres from the race's comment */
-const nat = (id: string, cls: AttackMode['class'], reachM: number, partId: string, name: string, skill: string = NAT_SKILL[id]): AttackMode =>
-  ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, partId, name });
+const nat = (id: string, cls: AttackMode['class'], reachM: number, part: string | readonly string[], name: string, skill: string = NAT_SKILL[id]): AttackMode =>
+  ({ id, tree: 'unarmed', class: cls, skill, reachM, reach: reachM, grips: 0, ...(typeof part === 'string' ? { partId: part } : { partIds: part }), name });
 /** SZ1: a race's size factors, written from its cited metres [length, width, height] against its body type's size */
 const sized = (bt: string, [l, w, h]: [number, number, number]) => {
   const s = BODY_TYPES[bt].size!;
@@ -1225,12 +1228,12 @@ export function prototypeLibrary(): Library {
       [RC.tiger]: { id: RC.tiger, name: 'Tiger', bodyTypeId: BT.quadruped, hpMultiplier: 2.1, intelligence: 'semi', ageStages: AGES.tiger,
         speed: { walk: 1.4, run: 15.6 }, // short bursts of about 56 km/h
         ...sized(BT.quadruped, [1.9, 0.45, 1]),
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, 'forelegs', 'claws')],
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, FORELEGS, 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] }, // a cat sees in about a sixth of the light a person needs
       [RC.bear]: { id: RC.bear, name: 'Bear', bodyTypeId: BT.quadruped, hpMultiplier: 2.6, intelligence: 'semi', ageStages: AGES.bear,
         speed: { walk: 1.4, run: 15.6 }, // a brown bear charges at up to about 56 km/h
         ...sized(BT.quadruped, [2, 0.6, 1.1]),
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'heavy', 0.6, 'forelegs', 'claws')],
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'heavy', 0.6, FORELEGS, 'claws')],
         innatePerks: [], innateQuirks: [], tags: [] },
       [RC.boar]: { id: RC.boar, name: 'Wild boar', bodyTypeId: BT.quadruped, hpMultiplier: 1.2, intelligence: 'semi', ageStages: AGES.boar,
         speed: { walk: 1.4, run: 11.1 }, // about 40 km/h
@@ -1242,7 +1245,7 @@ export function prototypeLibrary(): Library {
         speed: { walk: 1.8, run: 12 }, // walk about 1.8 m/s, gallop about 12 m/s (as the winged quadruped)
         // the head and neck reach about 1.5 m forward (FR4); a kick lands up to about 1.8 m (6 ft) behind
         ...sized(BT.quadruped, [2.4, 0.65, 1.6]), // nose to buttock about 2.4 m, 1.6 m (about 16 hands) at the withers
-        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, 'hind_legs', 'kick'), nat(AM.bite, 'light', 0.5, 'head', 'bite')],
+        naturalAttacks: [nat(AM.kick, 'heavy', 1.8, HIND_LEGS, 'kick'), nat(AM.bite, 'light', 0.5, 'head', 'bite')],
         innatePerks: [], innateQuirks: [], tags: [] },
       // a monitor lizard sized as the largest, the Komodo dragon: about 3 m long, half of it tail; bursts to about 20 km/h; a weak
       // bite (about 39 N, Fry et al., PNAS 2009) that tears with serrated teeth
@@ -1250,7 +1253,7 @@ export function prototypeLibrary(): Library {
         speed: { walk: 1, run: 5.6 },
         ...sized(BT.quadruped, [1.3, 0.35, 0.35]), // a Komodo dragon: about 2.6 m, half of it tail
         naturalAttacks: [nat(AM.bite, 'light', 0.2, 'head', 'bite'), nat(AM.slam, 'slam', 1.3, 'tail', 'tail lash', SK.tail)],
-        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(0.8) }, // AB13 a: small bony scales (osteoderms) in the skin, a lighter hide than the boar's shield (estimate)
+        naturalArmor: { covers: ['general', ...FORELEGS, ...HIND_LEGS, 'tail'], ...HIDE(0.8) }, // AB13 a: small bony scales (osteoderms) in the skin, a lighter hide than the boar's shield (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
       // a large constrictor (reticulated or Burmese python, 5–6 m): strikes about a third of its length, then coils and squeezes;
       // slow on land. Venomous snakes wait on a venom rule.
@@ -1268,12 +1271,12 @@ export function prototypeLibrary(): Library {
       [RC.lion]: { id: RC.lion, name: 'Lion', bodyTypeId: BT.quadruped, hpMultiplier: 1.9, intelligence: 'semi', ageStages: AGES.lion,
         speed: { walk: 1.4, run: 15.6 }, // short bursts of about 50–60 km/h; 190 kg
         ...sized(BT.quadruped, [1.9, 0.45, 1.2]),
-        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, 'forelegs', 'claws')],
+        naturalAttacks: [nat(AM.bite, 'heavy', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, FORELEGS, 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
       [RC.leopard]: { id: RC.leopard, name: 'Leopard', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.leopard,
         speed: { walk: 1.4, run: 16.1 }, // about 58 km/h; 60 kg; a smaller bite than the big cats'
         ...sized(BT.quadruped, [1.3, 0.3, 0.65]),
-        naturalAttacks: [nat(AM.bite, 'medium', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, 'forelegs', 'claws')],
+        naturalAttacks: [nat(AM.bite, 'medium', 0.3, 'head', 'bite'), nat(AM.claw, 'medium', 0.6, FORELEGS, 'claws')],
         innatePerks: [PK.night_eyes], innateQuirks: [], tags: [] },
       [RC.hyena]: { id: RC.hyena, name: 'Hyena', bodyTypeId: BT.quadruped, hpMultiplier: 0.9, intelligence: 'semi', ageStages: AGES.hyena,
         speed: { walk: 1.4, run: 16.7 }, // a spotted hyena: up to about 60 km/h; 60 kg; bites about 1,100 psi, as a bear
@@ -1286,7 +1289,7 @@ export function prototypeLibrary(): Library {
         speed: { walk: 0.5, run: 3.9 },
         ...sized(BT.quadruped, [2.2, 0.6, 0.5]), // about 4 m, nearly half of it tail
         naturalAttacks: [nat(AM.bite, 'heavy', 0.4, 'head', 'bite'), nat(AM.slam, 'slam', 1.8, 'tail', 'tail lash', SK.tail)],
-        naturalArmor: { covers: ['general', 'forelegs', 'hind_legs', 'tail'], ...HIDE(1.5) }, // AB13 a: large bony plates (scutes) along the back, the heaviest hide here (estimate)
+        naturalArmor: { covers: ['general', ...FORELEGS, ...HIND_LEGS, 'tail'], ...HIDE(1.5) }, // AB13 a: large bony plates (scutes) along the back, the heaviest hide here (estimate)
         innatePerks: [], innateQuirks: [], tags: [] },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).

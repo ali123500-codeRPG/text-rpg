@@ -143,7 +143,6 @@ h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spa
 .hs-tbl .grp td { font-weight: 700; cursor: pointer; }
 .hs-tbl .fld { cursor: text; }
 .hs-tbl .fld:hover { text-decoration: underline; text-decoration-color: var(--accent); }
-.hs-tbl .sn { color: var(--faint); margin-right: 8px; }
 .hs-chev { display: inline-block; width: 14px; color: var(--muted); }
 .hs-chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
   background: color-mix(in srgb, var(--accent) 10%, transparent); font-size: 12px; font-weight: 700; color: var(--text); font-family: inherit; cursor: pointer; margin-left: 8px; }
@@ -166,7 +165,7 @@ h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spa
 .hs-panel-head { display: flex; align-items: center; justify-content: space-between; min-height: 56px; border-bottom: 1px solid var(--border); font-weight: 700; }
 .hs-panel-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: start; }
 .hs-panel-row .k { color: var(--muted); }
-.hs-panel-row.edit { background: var(--accent-soft); border-radius: var(--r-md); padding-inline: 8px; margin-inline: -8px; }
+.hs-panel-row.picked { background: var(--accent-soft); border-radius: var(--r-md); padding-inline: 8px; margin-inline: -8px; }
 .hs-panel-row .hs-input { width: 100%; }
 .hs-toast { position: fixed; right: var(--space-8); bottom: var(--space-8); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 10px 14px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-toast); max-width: 560px; }
 pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); white-space: pre-wrap; word-break: break-word; }
@@ -177,7 +176,7 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .grp-h .hs-section { flex: 1; }
 .grp-h .hs-chip { cursor: default; margin: 0; }
 .grp-h .tot { color: var(--muted); font-size: 13px; }
-.row { display: grid; grid-template-columns: minmax(120px, 1fr) 120px 76px; align-items: center; gap: 0 var(--space-3); padding: 8px 0 4px; border-bottom: 1px solid var(--border); min-height: 44px; }
+.row { display: grid; grid-template-columns: minmax(120px, 1fr) 120px 104px; align-items: center; gap: 0 var(--space-3); padding: 8px 0 4px; border-bottom: 1px solid var(--border); min-height: 44px; }
 .row .bar { grid-column: 1 / -1; grid-row: 2; }
 .row .nm b { font-weight: 700; } .row .nm small { display: block; color: var(--muted); font-size: 13px; }
 .bar { position: relative; height: 22px; }
@@ -195,6 +194,8 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .step .hs-icon-btn { font-size: 18px; font-weight: 700; }
 .tagc { text-align: right; }
 .tagc .hs-tg { cursor: pointer; border: 0; font: inherit; font-size: 11px; }
+.tagc { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.hs-tg.flaw { --tg: var(--danger); } /* FC5: a flawed skill */
 .key { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); font-size: 13px; color: var(--muted); align-items: center; }
 .key i { display: inline-block; vertical-align: middle; margin-right: 6px; }
 .key .sw { width: 18px; height: 6px; border-radius: var(--r-sm); }
@@ -292,6 +293,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Character sheet (charsheet.ts): card, skill bars by tree, Play side sheet */
 .tag { color: var(--scenario-mark); font-size: 12px; }
+.flaw { color: var(--danger); font-size: 12px; font-weight: 800; cursor: help; } /* FC5 */
 .cs-split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
 /* CP1: the Character page fits one screen: card and trees fill the height between the head and the tile strip; either
    scrolls inside itself only when it can't fit */
@@ -305,7 +307,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-bodyrow .cs-figs { grid-template-columns: 1fr; border-top: 0; padding-top: 0; gap: 10px; }
 .cs-bfbtn { background: none; border: 1px solid transparent; border-radius: var(--r-md); padding: var(--space-1); cursor: pointer; color: inherit; }
 .cs-bfbtn:hover, .cs-bfbtn:focus-visible { border-color: var(--border); }
-.cs-bfbtn .bf-svg svg { width: clamp(92px, calc((var(--vh) - 560px) / 2.2), 200px); }
 .cs-sk[role="button"] { cursor: pointer; border-radius: var(--r-md); padding: var(--space-1) var(--space-2); margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2)); transition: background-color var(--m-feedback) var(--m-ease); }
 .cs-sk[role="button"]:hover, .cs-sk[role="button"]:focus-visible { background: color-mix(in oklch, var(--accent-soft) 70%, transparent); }
 .cs-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
@@ -528,13 +529,15 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 
 /* body figure */
 .bf { display: grid; justify-items: center; gap: 4px; }
-.bf-svg svg { width: 140px; height: auto; display: block; cursor: pointer; }
-.bf-svg path { stroke: var(--bg); stroke-width: 2; fill-opacity: .8; }
-.bf-svg path:hover, .bf-svg path.on { fill-opacity: 1; stroke: var(--text); }
-.bf-healthy { fill: var(--ok); background: var(--ok); }
-.bf-damaged { fill: var(--warn); background: var(--warn); }
-.bf-crippled { fill: var(--danger); background: var(--danger); }
-.bf-destroyed { fill: url(#bf-hatch); background: repeating-linear-gradient(45deg, var(--c3) 0 2px, var(--bg) 2px 4px); }
+.f3d canvas { display: block; cursor: pointer; }
+.f3d-turn canvas { cursor: grab; touch-action: none; }
+.f3d-turn canvas:active { cursor: grabbing; }
+/* a figure whose file could not load keeps its space empty; the part list beside it still names every state */
+.f3d-none canvas { visibility: hidden; }
+.bf-healthy { background: var(--ok); }
+.bf-damaged { background: var(--warn); }
+.bf-crippled { background: var(--danger); }
+.bf-destroyed { background: repeating-linear-gradient(45deg, var(--c3) 0 2px, var(--bg) 2px 4px); }
 .bf-out { margin: 0; min-height: 18px; font-size: 13px; text-align: center; }
 .bf-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: 0; font-size: 12px; color: var(--muted); }
 .bf-key span { display: inline-flex; align-items: center; gap: 4px; }
@@ -545,7 +548,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-side { scrollbar-width: none; }
 .cs-side::-webkit-scrollbar { display: none; }
 .cs-side.dragging { cursor: grabbing; user-select: none; }
-.cs-side .bf-svg svg { width: 72px; }
 .cs-side .cs-row > span:first-child { white-space: nowrap; }
 .cs-side .cs-row > b { text-align: right; }
 /* the small figure with its key beside it; the tapped part's line runs underneath */
@@ -718,7 +720,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .tod .tod-i { width: 22px; height: 22px; }
 .tpass { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--tod); font-size: 14px; font-weight: 600; }
 .tpass::before, .tpass::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--tod) 55%, transparent), transparent); }
-.bf-svg path.bf-healed { stroke: var(--ok); stroke-width: 2.5; fill-opacity: 1; }
 .inbar button.itm { display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; padding-right: 12px; }
 .inbar button.itm[hidden] { display: none; }
 .hico svg { width: 20px; height: 20px; display: block; }

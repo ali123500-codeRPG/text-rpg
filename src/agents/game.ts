@@ -34,7 +34,7 @@ import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
-import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
+import { defaultStandingDefense, healthLevel, isDownLevel, partStates, FLAW_MARK, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { echoPast, fameEntry } from './fame';
 import { echoSheet } from '../library/echo';
@@ -579,9 +579,9 @@ export function createGame(deps: GameDeps): Game {
         const p = s.player;
         // ✦ marks a tagged skill, as on the Character page (the play screen shows "Tagged" on hover); − a flawed one
         const sheet = Object.entries(p.core.skills);
-        const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? '−' : ''}`);
+        const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? FLAW_MARK : ''}`);
         const off = usedOffSheet(p).map((k) => `${skillName(k)} 0`); // rolled but not on the sheet yet, e.g. fists use Strike
-        const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? '− flawed' : ''].filter(Boolean).join(', ');
+        const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? `${FLAW_MARK} flawed` : ''].filter(Boolean).join(', ');
         return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${healthWord(p)}. Skills: ${skills.join(', ')}.`
           + (off.length ? ` Also used, not on your sheet yet: ${off.join(', ')}.` : '') + (key ? ` (${key})` : ''));
       }
