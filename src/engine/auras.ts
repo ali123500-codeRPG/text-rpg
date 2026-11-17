@@ -43,6 +43,12 @@ export function auraReachM(owner: Actor): number {
   return CONFIG.AURA_REACH_M * (1 + payoffShare(n)) + CONFIG.CHORUS_REACH_M * n;
 }
 
+/** TC37/TC38: a projected aura reaches whoever perceives it at any level, or anyone within PROJECTED_AURA_MULT × the
+ * owner's aura reach (heard or not) */
+export function projectedReachM(owner: Actor): number {
+  return CONFIG.PROJECTED_AURA_MULT * auraReachM(owner);
+}
+
 export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };
 export type AuraFear = (a: Actor, id: string, gap?: number, overwhelm?: boolean) => void;
 
@@ -116,7 +122,8 @@ export function cryAlly(state: GameState, t: Actor, owner: Actor): boolean {
 const rally = (state: GameState, a: Actor): void => { if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.rallied); };
 
 /** I9/MB27 Battle Cry (Intimidation 140), a projected aura triggered by its move: the owner's roar (`ev`, a Loud event)
- * reaches everyone who perceives it at any level, however far. Each foe (opposed or hostile to the owner) rolls its
+ * reaches everyone who perceives it at any level, however far, and anyone within the projected reach (projectedReachM),
+ * heard or not. Each foe (opposed or hostile to the owner) rolls its
  * morale skill (Resolve) against the owner's Intimidation and pays FR.battle_cry per tier of gap when it loses. Each
  * ally, and the owner, gets the composure row CP.rallied (10 morale back, TM28) and loses any Shaken. */
 export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rng, fear: AuraFear): CryResult[] {
@@ -126,7 +133,8 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
   for (const p of Object.values(owner.pressure ?? {})) delete p.shaken;
   out.push({ target: owner, rallied: true });
   for (const t of allActors(state)) {
-    if (t === owner || !isActive(t) || !(ev.perception[t.id] ?? perceptionOf(ev, state, t))) continue;
+    if (t === owner || !isActive(t)) continue;
+    if (!(ev.perception[t.id] ?? perceptionOf(ev, state, t)) && !withinM(distM(state, owner, t), projectedReachM(owner))) continue;
     if (wary(state, t, owner)) {
       const { contest, took, ow } = auraContest(state, owner, t, SK.intimidation, rng);
       if (took) fear(t, FR.battle_cry, contest.gap, ow);

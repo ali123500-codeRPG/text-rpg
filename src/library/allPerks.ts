@@ -180,9 +180,9 @@ export const ALL_PARTS: PerkWriteup[] = [
       effect: 'Tier shift +1 on that roll, so it counts as a Success. Only Failure or worse is heard.', lasts: 'That roll.',
       open: 'Renamed from the doc\'s "Light Feet", which is already a 40 perk.' } }),
   part(TR.stealth, { id: PK.misdirection, ref: 'T6e', name: 'Misdirection', effect: 'stealth',
-    story: '"Look over there!" and you are gone. A quarter of your Lying adds to every Vanishing roll, and both skills learn from it.',
+    story: '"Look over there!" and you are gone. A quarter of your Falsehood adds to every Vanishing roll, and both skills learn from it.',
     rules: { kind: 'Always on', trigger: 'The owner makes a Vanishing roll.', conditions: ['The Trickery tree is open to the owner.'],
-      effect: `Lying augments Vanishing: the roll adds the owner's true Lying × ${CONFIG.MISDIRECTION_SHARE} (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Lying can learn from the roll the same way.`, lasts: 'Always.' },
+      effect: `Falsehood augments Vanishing: the roll adds the owner's true Falsehood × ${CONFIG.MISDIRECTION_SHARE} (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Falsehood can learn from the roll the same way.`, lasts: 'Always.' },
     augments: [{ from: SK.lying, skill: SK.vanishing, share: CONFIG.MISDIRECTION_SHARE }] }),
   // Fade Back is parked (D-232): no skill carries it in SKILL_PARTS and it is not built, so it is never granted
   part(TR.stealth, { id: PK.fade_back, ref: 'T6f', name: 'Fade Back', effect: 'stealth',

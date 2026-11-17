@@ -194,6 +194,8 @@ const DEFAULTS = {
   PERK_MARK_ROUNDS: 2,
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
+  /** TC37 a: a projected aura (Battle Cry, later Rally) also reaches anyone within this × the owner's aura reach, heard or not */
+  PROJECTED_AURA_MULT: 2,
   AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first

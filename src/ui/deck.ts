@@ -5,6 +5,7 @@
 // the Parser. Typed text still does.
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
+import { skillName } from '../library/skillNames';
 import { CONFIG } from '../config';
 import type { GameState, Intent, Personality, PlayerView } from '../types';
 import { HEALTH_LEVELS } from '../scales';
@@ -152,7 +153,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     const speech = (kind: DeckKind, type: Act['type'], label: string, note: string, list = talkers, demand = false) => add(kind, 'talk', label, [who(`${label} whom?`, list), { key: 'words', title: 'What do you say?' }],
       (c) => order(c.words!, { action: act(type, { target: c.target!, ...(demand ? { demand: 'yield' as const } : {}) }), spoken: c.words!, addressees: [c.target!] }), { note });
     speech('persuade', 'persuade', 'Persuade', up.some((a) => a.talkDown) ? 'talk a foe down · easier once they are hurt or scared' : 'your words, Persuasion');
-    speech('deceive', 'deceive', 'Lie to', up.some((a) => a.talkDown) ? 'a lie to end it · Lying against their Insight' : 'Lying against their Insight');
+    speech('deceive', 'deceive', 'Lie to', up.some((a) => a.talkDown) ? `a lie to end it · ${skillName(SK.lying)} against their Insight` : `${skillName(SK.lying)} against their Insight`);
     speech('intimidate', 'intimidate', 'Threaten', 'Intimidation', up); // BF86: a threat needs no words, so beasts too
     speech('barter', 'barter', 'Haggle with', up.some((a) => a.talkDown) ? 'pay a foe to stop: name the coin' : 'Barter');
     const demandable = talkers.filter((a) => a.demandYield);

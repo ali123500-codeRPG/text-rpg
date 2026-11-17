@@ -16,7 +16,7 @@ export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
 };
 export const FUNCTION_NAMES: Record<SkillFunction, string> = {
   [FN.arms]: 'Arms', [FN.unarmed]: 'Unarmed', [FN.ranged]: 'Ranged', [FN.defense]: 'Defense', [FN.armor]: 'Armor', [FN.health]: 'Health',
-  [FN.sight]: 'Sight', [FN.hearing]: 'Hearing', [FN.stealth]: 'Stealth', [FN.influence]: 'Influence', [FN.initiative]: 'Initiative', [FN.morale]: 'Morale',
+  [FN.sight]: 'Sight', [FN.hearing]: 'Hearing', [FN.stealth]: 'Stealth', [FN.influence]: 'Influence', [FN.initiative]: 'Reaction', [FN.morale]: 'Morale',
   [FN.engagement_aura]: 'Engagement aura', [FN.projected_aura]: 'Projected aura', [FN.lockpicking]: 'Lockpicking', [FN.filching]: 'Filching', [FN.stamina]: 'Stamina', [FN.smell]: 'Smell', [FN.healing]: 'Healing',
 };
 export const GROUP_NAMES: Record<SkillGroup, string> = {
