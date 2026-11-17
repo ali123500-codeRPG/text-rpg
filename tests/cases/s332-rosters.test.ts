@@ -11,7 +11,7 @@ import { groupMembers, landmarkRoster, roadRoster, siteRoster, wildTable } from 
 import { buildWeaverView, buildWorldView } from '../../src/views';
 import { cellAt } from '../../src/land/sight';
 import { getLibrary } from '../../src/library';
-import { RK, LM, LC } from '../../src/library/tableIds';
+import { RK, LM, LC, ZK } from '../../src/library/tableIds';
 import { GP, HK, RO, TH as THEME } from '../../src/library/npcLayerIds';
 import { RC } from '../../src/library/raceIds';
 import { RANKS } from '../../src/scales';
@@ -152,6 +152,37 @@ describe('332 rosters and groups', () => {
     expect(e.wild).toEqual(wildTable(r, false).find((x) => x.cover === cover)?.meet);
     s.hidden.rosterFilled = [roadRoster(road)[0].key]; // a filled entry is gone
     expect(buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter!.travellers?.length ?? 0).toBe(roadRoster(road).length - 1);
+  });
+
+  it('RE8: a road encounter can open a side way: a junction on the road where it stands, and a path toward a landmark', () => {
+    const s = withLand();
+    expect(validateStagePlan(s, villageStagePlan(), ctx)).toEqual([]);
+    applyStagePlan(s, villageStagePlan(), ctx, { entry: 'open' }, createRng(1));
+    const r = s.regions![0], road = r.roads.find((x) => x.pts.length >= 2)!;
+    const z = s.zones.find((x) => x.id.startsWith('field_mid'))!;
+    z.road = road.id; road.zone = z.id;
+    const at = road.pts[Math.floor(road.pts.length / 2)];
+    s.stage.encounter = { eventRoll: {} as never, zone: z.id, at };
+    const quarry = r.features.find((f) => f.name === 'the old quarry')!;
+    const L = (to: string, label: string) => ({ to, label, sight: true });
+    const plan = { ...villageStagePlan(), places: [], frontiers: [], cast: [],
+      zones: [{ key: 'camp', place: z.placeId, kind: ZK.woods, name: 'a camp in the trees', look: 'a cold fire ring under the alders', links: [L(z.id, 'back to the road')], sideWay: { toward: 'The old quarry', name: 'the quarry track' } }] } as StagePlan;
+    expect(validateStagePlan(s, plan, ctx)).toEqual([]);
+    applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
+    const camp = s.zones.find((x) => x.name === 'a camp in the trees')!;
+    const jn = r.nodes.find((n) => n.zone === camp.id)!;
+    expect(jn.kind).toBe('junction');
+    expect(Math.hypot(jn.at.x - at.x, jn.at.y - at.y)).toBeLessThan(1); // on the road where the encounter stands
+    const path = r.roads.find((x) => x.ends.includes(jn.id))!;
+    expect(path).toMatchObject({ kind: 'path', name: 'the quarry track', danger: road.danger });
+    const end = r.nodes.find((n) => n.id === path.ends[1])!;
+    expect(end).toMatchObject({ kind: 'junction', feature: quarry.id, at: quarry.at });
+    expect(road.ends).not.toContain(jn.id); // the road stays one zone
+    expect(z.links.some((l) => l.to === camp.id) && camp.links.some((l) => l.to === z.id)).toBe(true);
+    expect(camp.links.find((l) => l.frontier && l.to === path.id)?.label).toMatch(/the quarry track .*toward the old quarry/);
+    // with nowhere named it is a short trail of its own; outside an encounter the field is refused
+    delete s.stage.encounter;
+    expect(validateStagePlan(s, { ...plan, zones: [{ ...plan.zones[0], key: 'camp2' }] }, ctx).map((e) => e.code)).toContain('bad_zone');
   });
 
   it('NR27: a group entry spawns its leader and followers, counts once against the cast cap, and keeps the band', () => {

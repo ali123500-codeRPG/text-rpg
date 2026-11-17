@@ -109,6 +109,8 @@ function nodeWords(s: GameState, r: Region, n: RoadNode): string {
     return s.places.find((p) => p.id === site?.placeId)?.names.current ?? (site?.name || `a ${site?.size ?? 'settlement'}`);
   }
   if (n.kind === 'edge') return acrossEdge(s, r, n)?.r.name || r.beyond[n.side!]?.name || `the ${SIDE_WORD[n.side!]} edge of ${r.name || 'the region'}`;
+  const f = n.feature ? r.features.find((x) => x.id === n.feature) : undefined;
+  if (f) return f.name;
   const ways = roadsAt(r, n.id).length;
   return ways >= 4 ? 'a crossroads' : ways === 3 ? 'a fork in the road' : 'where the road ends';
 }
@@ -162,6 +164,49 @@ export function makeLandWays(s: GameState, zones: Zone[], sited: Place[]): void 
       }
     }
   }
+}
+
+/** the point of a line nearest to `p`, and the segment it is on */
+function nearestOn(pts: Pt[], p: Pt): { q: Pt; i: number } {
+  let best = { q: pts[0], i: 0 }, d = Infinity;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const a = pts[i], b = pts[i + 1], dx = b.x - a.x, dy = b.y - a.y, len = dx * dx + dy * dy;
+    const t = len ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len)) : 0;
+    const q = { x: a.x + t * dx, y: a.y + t * dy }, e = Math.hypot(q.x - p.x, q.y - p.y);
+    if (e < d) { d = e; best = { q, i }; }
+  }
+  return best;
+}
+/** RE8 a: a road encounter opens a side way. A junction is added on the land's road where the encounter stands (the road
+ * stays one zone: the junction is not one of its ends), and a path from it to `toward` (a settlement site's id or a
+ * landmark's id or name in the region), or to an end of its own SIDE_WAY_M off the road. Built like every land way: the
+ * zone made at the junction gets a way to new ground along the path (makeLandWays). Returns the junction's id. */
+export function openSideWay(s: GameState, roadId: string, at: Pt, toward?: string, name?: string): string | undefined {
+  const rd = landRoad(s, roadId);
+  if (!rd || rd.line.pts.length < 2) return undefined;
+  const { r, line } = rd;
+  const ids = new Set([...r.nodes.map((n) => n.id), ...r.roads.map((x) => x.id)]);
+  const fresh = (base: string) => { let i = 1; while (ids.has(`${base}${i}`)) i++; ids.add(`${base}${i}`); return `${base}${i}`; };
+  const { q: p, i } = nearestOn(line.pts, at);
+  const site = r.sites.find((x) => x.id === toward);
+  const feat = toward ? r.features.find((f) => f.id === toward || f.name.toLowerCase() === toward.toLowerCase()) : undefined;
+  let end = site ? r.nodes.find((n) => n.kind === 'site' && n.site === site.id) : undefined;
+  if (site && !end) r.nodes.push((end = { id: fresh(`${r.id}_n`), kind: 'site', at: site.at, site: site.id }));
+  if (!end) {
+    let q = feat?.at;
+    if (!q) { // a short path of its own, off to one side of the road, kept inside the region
+      const a = line.pts[i], b = line.pts[i + 1];
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+      const lo = { x: r.gx * r.size, y: r.gy * r.size }, inside = (o: Pt) => o.x >= lo.x && o.x <= lo.x + r.size && o.y >= lo.y && o.y <= lo.y + r.size;
+      const m = CONFIG.SIDE_WAY_M, one = { x: p.x + nx * m, y: p.y + ny * m }, two = { x: p.x - nx * m, y: p.y - ny * m };
+      q = inside(one) ? one : two;
+    }
+    r.nodes.push((end = { id: fresh(`${line.id}_end`), kind: 'junction', at: q, ...(feat ? { feature: feat.id } : {}) }));
+  }
+  const jn: RoadNode = { id: fresh(`${line.id}_side`), kind: 'junction', at: p };
+  r.nodes.push(jn);
+  r.roads.push({ id: fresh(`${line.id}_way`), kind: 'path', ...(name ? { name } : {}), danger: line.danger, ends: [jn.id, end.id], pts: [p, end.at], length: Math.round(Math.hypot(end.at.x - p.x, end.at.y - p.y)), crossings: [] });
+  return jn.id;
 }
 
 /** a string anywhere in `v` (not a key) equal to `from` becomes `to` */

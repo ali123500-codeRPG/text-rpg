@@ -119,8 +119,9 @@ export type Region = {
 /** a river or stream: its line downstream, in metres */
 export type Water = { id: string; kind: 'river' | 'stream'; name: string; width: number; pts: Pt[] };
 /** zone (WI2 a): a junction's zone once built, kept like RoadLine.zone; a junction found on a road later (a road encounter
- * opening a side way) is a new node of the same kind, added to the region's nodes */
-export type RoadNode = { id: string; kind: 'site' | 'junction' | 'edge'; at: Pt; site?: string; side?: Side; zone?: string };
+ * opening a side way) is a new node of the same kind, added to the region's nodes; feature (RE8): a side way's far end
+ * at a landmark (LandFeature id), named after it */
+export type RoadNode = { id: string; kind: 'site' | 'junction' | 'edge'; at: Pt; site?: string; side?: Side; zone?: string; feature?: string };
 /** WZ8 a stretch of road or path between two nodes; roads branch at junctions */
 export type RoadLine = {
   id: string; kind: 'road' | 'path'; name?: string; danger: import('../scales').RoadDangerKey;
