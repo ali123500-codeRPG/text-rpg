@@ -13,6 +13,13 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Every event roll opens a scenario, so whatever it earns now waits for the end of the scenario it opens, at the opening and after a story beat too, and arrives in that ending's gains moment.
 
 **Fixed by:** [PR #951](https://github.com/ali123500-codeRPG/text-rpg/pull/951)
+## BG-270
+
+**What was wrong:** On the Questions hub, Submit's wake line named answers Ali had not changed. On the Vanish page he changed only VS8, but the line said "I answered VS6, VS7, VS8". VS6 and VS7 held "a." (what clicking an option chip writes), saved by the page but never sent with Submit, and Claude had already acted on them and marked both questions decided. Submit names every saved answer that has not gone out with a Submit, so it named them again.
+
+**What was done:** Ali approved the plan. Submit now skips an answer that was saved before Claude decided its question, because Claude already acted on it. If Ali changes that answer again, it counts as new and Submit names it. The hub page (questions/hub/hub.html) was republished as version 18; this entry and the bug log row came in the PR below. BG-271 was the same bug, numbered twice by mistake.
+
+**Fixed by:** [PR #950](https://github.com/ali123500-codeRPG/text-rpg/pull/950)
 
 ## BG-269
 
