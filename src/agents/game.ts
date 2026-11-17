@@ -111,6 +111,10 @@ function nerveBlocksAll(s: GameState, i: Intent): boolean {
 }
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
+/** IQ7 a: said when Finish the fight is asked for with no fight far below the player */
+export const FINISH_REFUSED = 'There is no fight here so far below you that it can be played out in one go.';
+/** IQ4 a: a finished fight's blow each round: an attack on that foe with what is in hand */
+const finishAttack = (target: string): Intent => ({ move: null, action: { type: 'attack', skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null });
 /** the bands of the people the player can see (the Parser's legality reads them) */
 const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
 /** NW18: a turn played while the player sleeps */
@@ -375,6 +379,12 @@ export function createGame(deps: GameDeps): Game {
     }
     const intent = engine.fillSpeech(s, parsed.intent, text);
     if (yieldNext) intent.yields = true;
+    // IQ7 a: Finish the fight only while the fight is far below the player (IQ6 a); else nothing happens and no time passes
+    if (intent.finish && !engine.farBelow(s)) {
+      lines.push({ turn: s.turn, kind: 'clarify', text: FINISH_REFUSED });
+      lastLog = [...turnLog];
+      return;
+    }
     // OQ-27 (c): ask who is meant, from code: no Claude call, no turn spent
     const unclear = engine.unclearAddressee(s, intent, pv.actors.map((a) => a.id));
     if (unclear) {
@@ -439,7 +449,9 @@ export function createGame(deps: GameDeps): Game {
     agentOutputs.push(...collectPlanners([...spokespeople, ...beat]));
     agentOutputs.sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0));
     const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(beat.length ? { beatSpeakers: beat } : {}), ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
-    const events = engine.resolveTurn(s, input, rng);
+    // IQ4 a: a finished fight plays its rounds on code in this one turn, the player striking each round (finishAttack)
+    const events = intent.finish ? engine.finishFight(s, input, rng, (t) => acceptIntent(finishAttack(t), views.buildPlayerView(s), bandsOf(s, views.buildPlayerView(s)), []).intent).events
+      : engine.resolveTurn(s, input, rng);
     s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
     // SD1: the play page can start the ending moment now, while the next scenario's Weaver and the Narrator run
     const ended = pendingEnding(s);

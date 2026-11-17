@@ -273,7 +273,7 @@ const DEFAULTS = {
   IDEA_AGAINST_NATURE: 50,
   /** AD9 the suggested action: base score of each kind of suggestion (higher wins); leanShare: points per point of the
    * character's pull toward it; healInFight: taken off treating wounds while a fight runs. [placeholder] */
-  SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
+  SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, finish: 65, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
   /** AD9: the morale level from which steadying is suggested in a fight, and the health level from which treating wounds is */
   SUGGEST_STEADY_FROM: 'rattled' as import('./scales').MoraleLevel,
   SUGGEST_HEAL_FROM: 'hurt' as import('./scales').HealthLevelKey,
@@ -771,6 +771,9 @@ const DEFAULTS = {
   TRAVEL_STRAIN_PER_HOUR: 1,
   LONG_TURN_LINES: 5, // BF2e4: a long turn's summary names at most this many people; the rest are "others came and went"
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
+  OUTCLASS_EACH: 0.25, // IQ6 a: a fight is far below the player when each foe's power (defeat XP rating + gear) is at most this share of the player's (placeholder)
+  OUTCLASS_ALL: 1, // IQ6 a: ...and all the foes' power together is at most this share of the player's (placeholder)
+  FINISH_MAX_ROUNDS: 60, // IQ4: a finished fight (Finish the fight) plays at most this many rounds on code in one turn
   SIDE_WAY_M: 800, // RE8: a side way an encounter opens with no landmark or settlement to lead to ends this far off the road (placeholder)
   TRAVEL_LEG_MIN: 60,
   TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn
