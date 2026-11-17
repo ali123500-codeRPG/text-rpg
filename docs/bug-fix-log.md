@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-269
+
+**What was wrong:** In the action-deck playtest three slimes were in reach, and the Attack list showed "A slime", "The other slime" and "The other slime": two different slimes under the same name, so "Attack the other slime" could mean either. The list turned every repeat of a name into "the other ...", which only works for two.
+
+**What was done:** Two of a name still read "a slime" and "the other slime". Three or more are all numbered: "the 1st slime", "the 2nd slime", "the 3rd slime", in the pickers, the menus on people and the order line.
+
+**Fixed by:** [PR #947](https://github.com/ali123500-codeRPG/text-rpg/pull/947)
+
 ## BG-268
 
 **What was wrong:** In the action-deck playtest a slime "surrendered" (the XP line read "A slime defeated (surrendered)"). When a creature's nerve breaks on a morale roll of Critical Failure or worse, or under an Overwhelm, the game made it give itself up, whatever its mind, so mindless slimes could surrender.
