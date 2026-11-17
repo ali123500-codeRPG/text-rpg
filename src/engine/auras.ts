@@ -115,7 +115,7 @@ export function cryAlly(state: GameState, t: Actor, owner: Actor): boolean {
 /** TM28: a battle cry's rally restores morale through the composure table (CP.rallied), unless the actor already broke */
 const rally = (state: GameState, a: Actor): void => { if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.rallied); };
 
-/** I9/MB27 Battle Cry (Intimidation 140), an offensive aura triggered by its move: the owner's roar (`ev`, a Loud event)
+/** I9/MB27 Battle Cry (Intimidation 140), a projected aura triggered by its move: the owner's roar (`ev`, a Loud event)
  * reaches everyone who perceives it at any level, however far. Each foe (opposed or hostile to the owner) rolls its
  * morale skill (Resolve) against the owner's Intimidation and pays FR.battle_cry per tier of gap when it loses. Each
  * ally, and the owner, gets the composure row CP.rallied (10 morale back, TM28) and loses any Shaken. */

@@ -1054,10 +1054,11 @@ function threadboundView(): HTMLElement[] {
 function essencesView(): HTMLElement[] {
   const C = CONFIG;
   const grades = ESSENCE_GRADES.keys.map((g) => `${ESSENCE_GRADES.name(g)} ×${C.ESSENCE_GRADE_MULT[g] ?? 1}`).join(', ');
+  // the rule itself is the same for every essence of a kind: it lives once, under Equations → Essences
   const fromText = (e: EssenceDef): Node | string => e.from.deed
-    ? 'A deed: a scenario you resolve at Great Success or better, in which you beat no foe whose race or body type has essences. It is built on the skill you used most in that scenario.'
+    ? 'A deed (the rule: Equations → Essences)'
     : h('span', {}, 'Beating a notable ', e.from.race ? link('races', e.from.race, lib.races?.[e.from.race]?.name ?? e.from.race) : e.from.bodyType ? link('bodyTypes', e.from.bodyType, lib.bodyTypes[e.from.bodyType]?.name ?? e.from.bodyType) : '?',
-      ` foe: one whose power is at least ${Math.round(C.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC. Each such foe rolls once, ever. A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.`);
+      ' foe (the rule: Equations → Essences)');
   const split = (e: EssenceDef) => { const w = e.skills.reduce((n, x) => n + x.weight, 0) || 1;
     return e.skills.length ? e.skills.map((x) => `${skillName(x.skill)} ${Math.round((x.weight / w) * 100)}%`).join(', ') : 'the skill you used most in the scenario, all of it'; };
   const all = Object.values(lib.essences ?? {});
