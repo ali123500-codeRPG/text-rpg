@@ -101,11 +101,12 @@ describe('172 travel', () => {
     const rolled = s.stage.encounter!.eventRoll;
     expect(replayScenarioStart(s, [null], createRng(5)).eventRoll).toBe(rolled);
     expect(s.stage.tier).toBe(rolled.tier);
-    // the encounter's people stand on the road ahead of the player, not at the road's middle
+    // RE6: the encounter's people stand on the road ahead of the player where a still figure is first glimpsed (60 m)
     n.actors[0].zone = 'north_road'; delete n.actors[0].pos;
     placeAll(n);
     const p = n.player.pos!, q = n.actors[0].pos!;
-    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(CONFIG.ENCOUNTER_M + 5);
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeGreaterThan(CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]![1] - 5);
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]![1] + 5);
   });
 
   it('RE1 (BG-291): road minutes carry over from trip to trip; each full leg of them rolls once, then the count starts again', () => {

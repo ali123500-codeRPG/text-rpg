@@ -2148,7 +2148,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
   if (a.id === state.player.id) noteIdle(state, trip.minutes); // BG-240: a trip is not acting time
   emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
   if (trip.encounter) {
-    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, noticed: trip.encounter.noticed, zone: a.zone, at: trip.encounter.at };
+    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, zone: a.zone, at: trip.encounter.at };
     state.stage.breakCause = 'encounter';
   } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0);
 }

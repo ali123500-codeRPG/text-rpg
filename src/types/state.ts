@@ -59,9 +59,9 @@ export type StageInfo = {
   checkinDue?: import('./hidden').CheckinReason;
   /** SC8: the turn a beat (a quiet_turns trigger) last fired */
   beatTurn?: number;
-  /** TV4: an encounter on the road: its event roll (the next scenario's tier), whether the player saw it coming (TV8), and
-   * where on the road it stands; cleared at the start of the next turn */
-  encounter?: { eventRoll: import('./ruleset').EventRollResult; noticed: boolean; zone: string; at: { x: number; y: number } };
+  /** TV4: an encounter on the road: its event roll (the next scenario's tier) and where on the road it stands (RE6: first
+   * glimpsed); cleared at the start of the next turn */
+  encounter?: { eventRoll: import('./ruleset').EventRollResult; zone: string; at: { x: number; y: number } };
   /** OQ-27 (c): the NPC the player last spoke with this scenario (sticky dialogue partner) */
   partner?: string;
 };
