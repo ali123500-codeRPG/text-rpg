@@ -150,6 +150,23 @@ describe('172 travel', () => {
     expect(s.player.zone).not.toBe('ashford_gate');
   });
 
+  it('RE5: a trip runs on the world clock: someone new seen on the road ahead stops it there, as a rest or a walk stops', () => {
+    const s = withRoad(9);
+    const x = s.actors.find((a) => a.id === 'patron_1')!;
+    const road = s.zones.find((z) => z.id === 'north_road')!;
+    x.zone = 'north_road'; x.placeId = 'gate'; x.pos = { x: road.rect!.x, y: road.rect!.y };
+    const t0 = now(s);
+    const ev = go(s, 'ashford_gate');
+    const d = trip(s)!;
+    expect(d.stop).toBe('met');
+    expect(s.player.zone).toBe('north_road');
+    expect(s.log.find((l) => l.code === 'stretch_stopped')?.detail).toMatchObject({ kind: 'trip', why: 'appeared', by: ['patron_1'] });
+    expect(ev.find((e) => e.kind === 'travel')!.effects).toContainEqual(expect.objectContaining({ kind: 'stopped', actorId: 'player' }));
+    const p = s.player.pos!, q = x.pos!;
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(500); // stopped where they came into sight, not past them
+    expect(now(s) - t0).toBeLessThan(9000 / travelSpeed(s, s.player) / 60); // the clock ran only that far
+  });
+
   it('TV3: a frontier off the road is at the road\'s far end: the trip walks there, then crosses', () => {
     const s = withRoad(4.5, 'safe', true);
     go(s, 'north_road');
