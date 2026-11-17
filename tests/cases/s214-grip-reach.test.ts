@@ -32,11 +32,11 @@ const door = (s: GameState): Barrier => {
   return b;
 };
 
-it('FR2: grip reach comes from the body: an arm 0.7 m; a dragon takes things in its jaws (1.5 m); a slime has no grip', () => {
+it('FR2: grip reach comes from the body: an arm 0.7 m; a dragon takes things in its jaws (0.8 m past its nose, SZ9); a slime has no grip', () => {
   const s = laidOut();
   expect(gripReachM(s, s.player)).toBe(0.7);
   s.player.core.bodyTypeId = BT.winged_quadruped;
-  expect(gripReachM(s, s.player)).toBe(1.5);
+  expect(gripReachM(s, s.player)).toBe(0.8);
   s.player.core.bodyTypeId = BT.amorphous;
   expect(gripReachM(s, s.player)).toBe(0);
 });

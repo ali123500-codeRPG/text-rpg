@@ -161,7 +161,12 @@ export type BodyType = {
   sleepNeed?: number;
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
   figure?: { viewBox: string; parts: Record<string, string> };
+  /** SZ1–SZ3: the shape's usual size in metres (a race multiplies it, RaceDef.sizeMult): length nose to rump (head and body,
+   * no tail), width at the widest point, height standing (stature upright, shoulder height for beasts). Left out (a story's own body type) = the Humanoid's */
+  size?: BodySize;
 };
+/** SZ2: a body's length, width and height in metres */
+export type BodySize = { lengthM: number; widthM: number; heightM: number };
 
 /** PL6: one personality axis; `low` and `high` are the words for its two ends, each with a short behaviour hint */
 export type PersonalityAxisDef = { id: string; name: string; low: string; high: string; lowHint: string; highHint: string };
@@ -460,6 +465,8 @@ export type RaceDef = {
   /** RD7, AB1 c: base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both
    * (engine/speed). On the race, not the body type: one Quadruped shape serves a dog and a tiger */
   speed: { walk: number; run: number };
+  /** SZ1: × the body type's size, per measure (left out = 1); written from the race's cited metres (data.ts sized) */
+  sizeMult?: { length: number; width: number; height: number };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
   playable?: true; // CC7 a: the player can pick this race on the creation screen

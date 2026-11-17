@@ -4,7 +4,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS, GRADE_LEVELS, HIT_OUTCOMES, NOISE, type GradeLevel, type NoiseKey } from '../scales';
 import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
-import { distOrNull, seeingM, withinM, type Located } from '../engine/position';
+import { M_EPS, distOrNull, seeingM, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { now, turnTime, zoneLight } from '../time';
@@ -98,6 +98,13 @@ export function smells(state: GameState, observer: Actor, at: Located): boolean 
   return d !== null && d <= reach;
 }
 
+/** SZ5: where an event was made, as a body when its maker still stands there (so sight and sound reach from its edge), else
+ * the point */
+function madeAt(state: GameState, event: GameEvent): Located {
+  const a = actorById(state, event.actorId), p = event.pos;
+  return a && p && a.zone === event.zone && a.pos && Math.hypot(a.pos.x - p.x, a.pos.y - p.y) <= M_EPS ? a : { zone: event.zone, pos: p };
+}
+
 /** BG-89: event kinds that touch their target */
 const CONTACT = new Set(['attack', 'give', 'break_free', 'restrain']);
 
@@ -115,7 +122,7 @@ const leansIn = (event: GameEvent, observer: Actor): boolean =>
 export function faintness(state: GameState, event: GameEvent, observer: Actor, cue: 'sight' | 'sound'): GradeLevel | null {
   const pick = (rows: [number, GradeLevel][], ok: (n: number) => boolean) => rows.find(([n]) => ok(n))?.[1] ?? rows.at(-1)![1];
   if (cue === 'sound') {
-    const db = soundDb(state, event.noise, { zone: event.zone, pos: event.pos }, observer, perkSum(observer, 'hearingDb'), leansIn(event, observer));
+    const db = soundDb(state, event.noise, madeAt(state, event), observer, perkSum(observer, 'hearingDb'), leansIn(event, observer));
     const above = db === null ? null : db - CONFIG.HEARING_FLOOR_DB;
     return above === null || above < 0 ? null : pick(CONFIG.MAKE_OUT_SOUND_GRADES, (n) => above >= n);
   }
@@ -128,7 +135,7 @@ export function faintness(state: GameState, event: GameEvent, observer: Actor, c
     const g = GRADE_LEVELS.pos(pick(CONFIG.MAKE_OUT_SIGHT_GRADES, (n) => share <= n)) + (dark ? CONFIG.MAKE_OUT_DARK_STEPS : 0);
     return Math.min(g, GRADE_LEVELS.keys.length - 1);
   };
-  const ps = [at({ zone: event.zone, pos: event.pos }), event.fromZone ? at({ zone: event.fromZone, pos: event.fromPos }) : null].filter((g): g is number => g !== null);
+  const ps = [at(madeAt(state, event)), event.fromZone ? at({ zone: event.fromZone, pos: event.fromPos }) : null].filter((g): g is number => g !== null);
   return ps.length ? GRADE_LEVELS.at(Math.min(...ps)) : null;
 }
 
@@ -138,7 +145,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
   // NW12/NW20: a sleeper perceives nothing; a blow on it is felt (and wakes it, src/engine/sleep.ts)
   if (isAsleep(observer)) return event.target === observer.id && CONTACT.has(event.kind) ? { level: 'partial', cue: 'touch' } : null;
-  const at = { zone: event.zone, pos: event.pos };
+  const at = madeAt(state, event);
   /** what is seen of it at one point: step 2, metres from where it happened, half seen in the dark */
   const seenAt = (p: { zone: string; pos?: { x: number; y: number } }): Seen | null => {
     const level = sightAt(state, observer, p, event.visibility);
