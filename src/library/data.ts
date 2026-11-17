@@ -205,9 +205,9 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
   mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, grips, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
   mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, grips, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
-/** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
+/** QE4/QE5, D-368: armor stops ARMOR_FACTOR × need × ARMOR_WEIGHT_SOAK[weight]; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
  * a Crude piece (need 0) stops nothing: its multiplier is 1 */
-const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.EQUIP_NEED[level] ? CONFIG.ARMOR_MULTIPLIER[w] : 1, weight: w });
+const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level] * CONFIG.ARMOR_WEIGHT_SOAK[w], multiplier: CONFIG.EQUIP_NEED[level] ? CONFIG.ARMOR_MULTIPLIER[w] : 1, weight: w });
 const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any', armorWeight: true });
 /** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */

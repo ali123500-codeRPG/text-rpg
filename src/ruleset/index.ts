@@ -401,7 +401,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
-    for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
+    for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) d = d * a.multiplier - Math.max(0, a.reduction - pierce); // D-368: the share first, then the flat soak
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
