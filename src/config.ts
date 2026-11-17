@@ -560,6 +560,8 @@ const DEFAULTS = {
   SUSPECT_ASK_TURNS: 3,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
   ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
+  /** MD1 (D-366): the flat soak grows with weight: reduction = ARMOR_FACTOR × need × this (placeholders) */
+  ARMOR_WEIGHT_SOAK: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs (placeholders); IR3: past Masterwork (100) the task grade steps, Divine 400 */
   EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100, ...PAST_100 } as Record<string, number>,
   /** IR3: each step past Divine (Divine+, Divine++ …) needs this much more true skill (placeholder) */

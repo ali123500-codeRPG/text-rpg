@@ -19,7 +19,7 @@ function mundaneProblems(d: ItemDef): string[] {
   const need = equipNeed(d.level!);
   if (d.value !== undefined || d.boon !== undefined) bad.push('hand-set value or boon');
   if (d.armor) {
-    if (d.armor.reduction !== CONFIG.ARMOR_FACTOR * need) bad.push(`reduction ${d.armor.reduction}`);
+    if (d.armor.reduction !== CONFIG.ARMOR_FACTOR * need * CONFIG.ARMOR_WEIGHT_SOAK[d.armor.weight]) bad.push(`reduction ${d.armor.reduction}`);
     if (d.armor.multiplier !== (need ? CONFIG.ARMOR_MULTIPLIER[d.armor.weight] : 1)) bad.push(`multiplier ${d.armor.multiplier}`);
     if (d.armor.pools) bad.push('hand-set pools');
     if (d.armor.speed) bad.push('hand-set speed');
