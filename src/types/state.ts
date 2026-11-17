@@ -26,6 +26,8 @@ export type StageInfo = {
   scenario?: import('./hidden').ScenarioFrame;
   /** SC4: the bigger scenario (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
   outer?: import('./hidden').ScenarioFrame;
+  /** RE7: the scenario a road encounter set aside inside `outer`; it carries on when the encounter ends */
+  paused?: import('./hidden').ScenarioFrame;
   /** SC7/SC13: an ending that was met, waiting for a clear turn (no fight, chase or talk) before it ends the scenario */
   ending?: { as: import('./hidden').ScenarioEnding; text: string; outer?: true; turn: number; roam?: true };
   /** SC10: how the scenario that just ended ended, set with breakCause and recorded when the next one begins */
