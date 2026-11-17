@@ -31,12 +31,12 @@ export function creditHealing(state: GameState, a: Actor, sourceId: string, pct:
 }
 
 /** Restores morale from a composure-table row (the morale twin of applyHealing): the row's pct of max morale (or its flat
- * `points`), or `pct` for hourly rows. Every morale restore goes through here, so achievements count it by source (morale-writes.test.ts enforces).
+ * `points`, × `times` when given, e.g. per tier of a rally roll), or `pct` for hourly rows. Every morale restore goes through here, so achievements count it by source (morale-writes.test.ts enforces).
  * Returns the morale points restored. */
-export function calm(state: GameState, a: Actor, sourceId: string, opts: { pct?: number } = {}): number {
+export function calm(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; times?: number } = {}): number {
   const src = getLibrary().composure?.[sourceId];
   if (!src || src.countOnly) return 0;
-  const got = src.points !== undefined && opts.pct === undefined ? -setMoraleLost(a, moraleLost(a) - src.points) : -restoreMorale(a, opts.pct ?? src.pct);
+  const got = src.points !== undefined && opts.pct === undefined ? -setMoraleLost(a, moraleLost(a) - src.points * (opts.times ?? 1)) : -restoreMorale(a, opts.pct ?? src.pct);
   creditCalm(state, a, sourceId, got);
   return got;
 }

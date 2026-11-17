@@ -57,7 +57,7 @@ describe('157 All-50 round 3', () => {
     skill(s.player, SK.vanishing, 20);
     const before = effectiveSkill(s, s.player, SK.vanishing).value;
     give(s.player, PK.misdirection);
-    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Lying (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
+    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Falsehood (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
     expect(effectiveSkill(s, s.player, SK.vanishing).value).toBeCloseTo(before + 40 * CONFIG.MISDIRECTION_SHARE, 9);
     expect(augmentsOf(s.player, SK.lying)).toEqual([]); // one way only
   });

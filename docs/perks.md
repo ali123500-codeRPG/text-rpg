@@ -238,13 +238,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The strike-back limit (1 per round, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.
 - **Lasts:** Always. Merges with Ceaseless Guard into Endless Answer.
 
-### Bluff (Lying) · LI1c
+### Bluff (Falsehood) · LI1c
 
 *Story:* Half a second of doubt is all a knife needs. "Behind you!" Once per foe in a fight, and without giving up your action, you throw a lie at a foe near enough to hear it clearly. If it believes you, it hesitates and acts last next turn.
 
 - **Kind:** Free move
 - **Trigger:** The owner uses the move on a foe who hears the owner's normal voice clearly. It does not use the owner's action.
-- **Effect:** A Lying roll against the foe's answer to a lie (Insight). Unless the foe wins, it believes the lie and acts last next turn, as if caught unaware.
+- **Effect:** A Falsehood roll against the foe's answer to a lie (Insight). Unless the foe wins, it believes the lie and acts last next turn, as if caught unaware.
 - **Lasts:** The foe's next turn.
 - **Cooldown:** Once per foe per engagement.
 
@@ -255,7 +255,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** Someone lies (a deceive) to someone else, and the owner hears it: the words, or the sound of the voice.
 - **Conditions:** The owner is not the one lied to and did not already answer the lie.
-- **Effect:** The speaker's Lying against the owner's answer to a lie (Insight, or the better of Insight and Lying with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
+- **Effect:** The speaker's Falsehood against the owner's answer to a lie (Insight, or the better of Insight and Falsehood with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
 - **Lasts:** Each lie overheard.
 
 ### Catnap (Stamina) · SS1
@@ -633,13 +633,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
 
-### Takes One to Know One (Lying) · LI1a
+### Takes One to Know One (Falsehood) · LI1a
 
-*Story:* You know every trick in the book, because you wrote half of them. When someone lies to you, you answer with the better of your Insight and your Lying.
+*Story:* You know every trick in the book, because you wrote half of them. When someone lies to you, you answer with the better of your Insight and your Falsehood.
 
 - **Kind:** Always on
 - **Trigger:** Someone lies to the owner (a lie, or a Bluff).
-- **Effect:** The owner's answering roll uses the better of Insight and Lying, each at full value.
+- **Effect:** The owner's answering roll uses the better of Insight and Falsehood, each at full value.
 - **Lasts:** Each answer to a lie.
 
 ### Plain as Day (Insight) · LI2a
@@ -705,11 +705,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, makes a morale roll against you, and you and every ally that hears it take heart and shake off fear.
+*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, or stands close enough to feel it, makes a morale roll against you, and you and every such ally take heart and shake off fear: the steadier the heart, the more it gains.
 
 - **Kind:** Move (projected aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
-- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken, and so does the owner.
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, or that is within the projected reach (2 × the aura reach, 16 m without Chorus) heard or not, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner reached the same way (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) loses any Shaken and makes a rally roll: its morale check (Resolve) plus 50% of the owner's Intimidation (augment equation). Each tier above Near Miss gives 10 morale back, and any gain makes it Rallied (+5 on every roll until the fight ends; a second rally adds nothing). The owner rallies itself the same way. A broken ally is helped too: once its morale lost is back under 100 % of max, it stops fleeing and fights on (a spoken surrender stays).
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement. It is the owner's main action.
 
@@ -1236,12 +1236,12 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Misdirection (Stealth – Conventional, Vanishing) · T6e
 
-*Story:* "Look over there!" and you are gone. A quarter of your Lying adds to every Vanishing roll, and both skills learn from it.
+*Story:* "Look over there!" and you are gone. A quarter of your Falsehood adds to every Vanishing roll, and both skills learn from it.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a Vanishing roll.
 - **Conditions:** The Trickery tree is open to the owner.
-- **Effect:** Lying augments Vanishing: the roll adds the owner's true Lying × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Lying can learn from the roll the same way.
+- **Effect:** Falsehood augments Vanishing: the roll adds the owner's true Falsehood × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Falsehood can learn from the roll the same way.
 - **Lasts:** Always.
 - **Built:** yes
 
