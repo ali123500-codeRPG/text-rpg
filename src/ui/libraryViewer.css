@@ -323,15 +323,15 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
   .lv-row { grid-template-columns: 88px minmax(0, 1fr); gap: var(--space-2); }
   .lv-armor { grid-template-columns: minmax(0, 1fr); }
   .lv-card { scroll-margin-top: calc(var(--bar-h) + 64px); }
-  /* a body type's parts table becomes one small card per part (the cell's data-k names it) */
-  .lv-parts, .lv-parts tbody { display: block; }
-  .lv-parts thead { display: none; }
-  .lv-parts tr { display: grid; gap: 2px; padding: var(--space-2); border: 1px solid var(--rule); border-radius: var(--r-md); }
-  .lv-parts tr + tr { margin-top: var(--space-2); }
-  .lv-parts td { display: block; padding: 0; border: 0; overflow-wrap: anywhere; }
-  .lv-parts td:first-child { font-weight: 600; }
-  .lv-parts td[data-k] { display: grid; grid-template-columns: 5.5em minmax(0, 1fr); gap: var(--space-2); }
-  .lv-parts td[data-k]::before { content: attr(data-k); color: var(--faint); font-weight: 500; }
+  /* a view's small table becomes one small card per row, each value named by its column (labelCells: lv-ctbl, data-k) */
+  .lv-ctbl, .lv-ctbl > tbody { display: block; width: auto; }
+  .lv-ctbl > thead { display: none; }
+  .lv-ctbl > tbody > tr { display: grid; gap: 2px; padding: var(--space-2); border: 1px solid var(--rule); border-radius: var(--r-md); }
+  .lv-ctbl > tbody > tr + tr { margin-top: var(--space-2); }
+  .lv-ctbl > tbody > tr > :is(td, th) { display: block; padding: 0; border: 0; text-align: left; white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+  .lv-ctbl > tbody > tr > :first-child { font-weight: 600; }
+  .lv-ctbl > tbody > tr > [data-k] { display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr); gap: var(--space-2); }
+  .lv-ctbl > tbody > tr > [data-k]::before { content: attr(data-k); color: var(--faint); font-weight: 500; }
   /* a table picked on a phone scrolls inside its own box */
   .lv-table { display: block; overflow-x: auto; }
   .lv-table th, .lv-table td { overflow-wrap: normal; min-width: 168px; }

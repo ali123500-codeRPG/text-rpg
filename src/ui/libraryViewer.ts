@@ -209,6 +209,19 @@ function layerCard(sec: 'npcRoles' | 'themes', id: string, e: Entry, title: stri
 const fitText = (fit?: number) => (fit === undefined ? 'set by hand' : `fit ${Math.round(fit * 100)}%`);
 const essenceList = (t: NpcTemplate) => ((l) => (l.length ? h('span', {}, ...l.flatMap((x, i) => [i ? ', ' : '', link('essences', x.row.id, x.row.name), ` (${fitText(x.fit)})`])) : none('none')))(templateEssences(t));
 
+/** every small table of a view (not the table view, which scrolls in its own box, nor the perk ladder grid) is marked
+ * lv-ctbl and names each cell by its column (data-k), so on a phone a row shows as a small card of labelled values
+ * instead of scrolling sideways (CSS, max-width 760px) */
+function labelCells(root: HTMLElement): void {
+  for (const t of Array.from(root.querySelectorAll<HTMLTableElement>('table.hs-tbl'))) {
+    if (t.closest('.lv-ladder')) continue;
+    t.classList.add('lv-ctbl');
+    const heads = Array.from(t.querySelectorAll<HTMLTableCellElement>(':scope > thead > tr:first-child > th')).map((c) => c.textContent?.trim() ?? '');
+    for (const r of Array.from(t.querySelectorAll<HTMLTableRowElement>(':scope > tbody > tr')))
+      Array.from(r.querySelectorAll<HTMLElement>(':scope > td, :scope > th')).forEach((c, i) => { if (heads[i] && !c.dataset.k) c.dataset.k = heads[i]; });
+  }
+}
+
 // ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
 /** each tone's colour on the 3D figure (the same tokens the key chips use) */
@@ -583,8 +596,8 @@ function bodyTypes(): HTMLElement[] {
         row('Races', links('races', Object.values(lib.races ?? {}).filter((r) => r.bodyTypeId === c.id).map((r) => [r.id, r.name]))),
         row('NPC templates', usedBy((t) => lib.races?.[t.raceId as string]?.bodyTypeId === c.id)))),
       c.parts.length ? h('table', { class: 'hs-tbl lv-parts' }, h('thead', {}, h('tr', {}, ['Part', 'Size', 'Impact', 'Roles', 'Next to'].map((x) => h('th', {}, x)))),
-        h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', { 'data-k': 'Size' }, p.size),
-          h('td', { 'data-k': 'Impact' }, label(p.impact)), h('td', { 'data-k': 'Roles' }, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', { 'data-k': 'Next to' }, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
+        h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', {}, p.size),
+          h('td', {}, label(p.impact)), h('td', {}, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
   ];
 }
 
@@ -1692,6 +1705,7 @@ function route(): void {
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
     body.replaceChildren(...(notice ? [h('p', { class: 'lv-notice', role: 'status' }, notice)] : []), ...viewOf(sec));
+    labelCells(body);
     notice = '';
     const tabs = body.querySelector('.lv-tabs');
     subRail.replaceChildren(...(tabs ? [tabs] : []));

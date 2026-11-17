@@ -8,9 +8,9 @@ words it, or, where the log only names a PR, that PR's title.
 
 ## BG-300
 
-**What was wrong:** On a phone (390 px wide), the library viewer's Body types tab scrolled about 22 px sideways. Each body type's parts table kept its five columns (Part, Size, Impact, Roles, Next to), and the card's body sized its column to fit that table, so the card grew wider than the screen.
+**What was wrong:** On a phone (390 px wide), six tabs of the library viewer scrolled sideways: Body types (by 22 px), Skills, Stand-ins, Equations, Quests and Nerve (by up to 409 px). Their small tables kept every column, and a card's body sized its column to fit the widest table, so cards and the page grew wider than the screen.
 
-**What was done:** At 760 px and below, the parts table now shows one small card per part, with each value labelled (Size, Impact, Roles, Next to). A card's body can no longer grow wider than its card. Checked at 390 px: Body types and Races no longer scroll sideways.
+**What was done:** At 760 px and below, every small table in a view (such as a body type's parts, a skill group's skills or an equation's table) now shows one small card per row, with each value labelled by its column. The main table view and the perk ladder grid keep their own phone layout. A card's body can no longer grow wider than its card. All 58 tabs were checked at 390, 600 and 760 px: none scrolls sideways.
 
 **Fixed by:** [PR #1011](https://github.com/ali123500-codeRPG/text-rpg/pull/1011)
 
