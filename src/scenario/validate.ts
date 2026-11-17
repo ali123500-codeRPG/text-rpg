@@ -18,7 +18,9 @@ import { uniqueInWorld } from '../library/echo';
 import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
 import { zoneById } from '../engine/relations';
-import { landNode, landTarget, landZone } from './ways';
+import { landNode, landTarget, landZone, worldCheck } from './ways';
+import { applyStagePlan } from './apply';
+import { createRng } from '../rng';
 
 /** what the Weaver may say a cast member knows of the player or a band: AWARENESS up to aware (tracking and up are code's) */
 const BELIEFS: string[] = AWARENESS.keys.slice(0, AWARENESS.pos('aware') + 1);
@@ -349,6 +351,16 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       else if (z.road !== undefined || !getLibrary().zoneKinds?.[z.kind]?.outdoor) err('bad_zone', `zone ${z.key}: a junction's zone is outdoors and runs along no road (the roads meeting there are their own zones)`);
       else if (zones.some((o) => o !== z && o.node === z.node)) err('bad_zone', `zone ${z.key}: junction ${z.node} is one zone`);
     }
+    if (z.sideWay !== undefined) { // RE8 a
+      const r = state.stage.encounter ? state.regions?.find((x) => x.roads.some((l) => l.id === zoneById(state, state.stage.encounter!.zone)?.road)) : undefined;
+      const to = z.sideWay?.toward;
+      if (!r) err('bad_zone', `zone ${z.key}: sideWay is only for a road encounter on a road of the land (target.encounter)`);
+      else if (z.road !== undefined || z.node !== undefined || !getLibrary().zoneKinds?.[z.kind]?.outdoor) err('bad_zone', `zone ${z.key}: a side way's zone is outdoors, beside the road, with no road or node of its own`);
+      else if (zones.filter((o) => o.sideWay).length > 1) err('bad_zone', `zone ${z.key}: an encounter opens one side way at most`);
+      else if (to !== undefined && !r.sites.some((x) => x.id === to) && !r.features.some((f) => f.id === to || f.name.toLowerCase() === String(to).toLowerCase()))
+        err('bad_zone', `zone ${z.key}: sideWay.toward is a site id from land.sites or a landmark name from land.landmarks, or left out`);
+      else if (z.sideWay?.name !== undefined) text(`zone ${z.key} sideWay name`, z.sideWay.name, true);
+    }
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
     const edgeKinds = getLibrary().edgeKinds ?? {};
     for (const [side, ek] of Object.entries(z.edges ?? {})) {
@@ -356,7 +368,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     }
     if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     // NW4: an onward kind (a street, square, gate, field, woods or road) links somewhere besides the way in
-    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && !z.road && !z.node && neighbours(z.key).size < 2) // WI2 a: code makes a land zone's ways
+    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && !z.road && !z.node && !z.sideWay && neighbours(z.key).size < 2) // WI2 a: code makes a land zone's ways
       err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind]?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
@@ -593,6 +605,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   // ---- rewards: repaired, never blocking (loot L1) ----
   errs.push(...tidyContainers(state, plan).notes, ...tidyRewards(state, plan).notes);
 
+  // WI9 a / WI10 a: a plan that would leave the world breaking a land rule it kept before goes back for repair
+  if (errs.every((e) => e.repaired)) errs.push(...worldAfter(state, plan, ctx));
   return errs;
 }
 
@@ -702,4 +716,13 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
     rewards.push({ ...r, item, ...(qty !== undefined ? { qty } : {}) });
   });
   return { rewards, notes };
+}
+
+/** WI9 a: the plan is tried on a copy of the world; each land rule it would newly break is an error for the repair round
+ * (worldCheck). A plan the copy cannot take is left to the apply itself. */
+function worldAfter(state: GameState, plan: StagePlan, ctx: PlanContext): PlanError[] {
+  const before = new Set(worldCheck(state));
+  const s = structuredClone(state);
+  try { applyStagePlan(s, structuredClone(plan), ctx, { entry: 'open' }, createRng(s.rngState)); } catch { return []; }
+  return worldCheck(s).filter((m) => !before.has(m)).map((m) => ({ code: 'world_check', message: `after this plan, ${m}: keep the land's roads, junctions and settlements built once`, routineOnly: false }));
 }

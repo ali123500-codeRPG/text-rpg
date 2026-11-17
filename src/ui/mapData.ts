@@ -13,14 +13,16 @@ import { ZK } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
 import { plural } from './kit';
+import { actorBody } from '../library';
 
 /** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
 export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; open?: true; key?: true };
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay };
 /** at: where they stand (Actor.pos, metres in the map's frame), only for someone in full sight on a zone with a rectangle;
- * someone only heard or glimpsed, or last seen, has no point: the player can't tell where in the zone they are */
-export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number } };
+ * someone only heard or glimpsed, or last seen, has no point: the player can't tell where in the zone they are; body (SZ16):
+ * its floor size in metres and the way it faces, for someone seen clearly at their own point */
+export type MapPerson = { id: string; name: string; now: boolean; at?: { x: number; y: number }; body?: { lengthM: number; widthM: number; facing: [number, number] } };
 export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
   /** metres above the ground outside: the map shows one height (a floor) at a time */
@@ -95,8 +97,9 @@ export function knownMap(s: GameState): KnownMap {
   const add = (zone: string, x: MapPerson) => { if (!people.has(zone)) people.set(zone, []); people.get(zone)!.push(x); };
   for (const a of pv?.actors ?? []) {
     if (a.id === p.id) continue;
-    const pos = a.level === 'full' ? s.actors.find((x) => x.id === a.id)?.pos : undefined;
-    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.rect ? { at: { x: pos.x, y: pos.y } } : {}) });
+    const who = a.level === 'full' ? s.actors.find((x) => x.id === a.id) : undefined, pos = who?.pos;
+    const size = who ? actorBody(s, who).size : undefined; // SZ16: seen clearly, so its size and facing are seen too
+    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.rect ? { at: { x: pos.x, y: pos.y }, body: { lengthM: size!.lengthM, widthM: size!.widthM, facing: who!.facing ?? [0, 1] } } : {}) });
   }
   for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false });
 

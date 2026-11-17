@@ -1143,7 +1143,7 @@ function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string
     };
     if (o.type === 'attack' && t) {
       // BF71: it closes to its blow's reach (stepping round anyone in the way), not to a set distance
-      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, closeInM(m.mode.reach) - M_EPS) : CONFIG.HOSTILE_NEAR_M / 2, t.id); }
+      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, closeInM(m.mode.reach) - M_EPS) : CONFIG.HOSTILE_NEAR_STEP_M, t.id); }
       if (!inReach(state, x, o)) continue;
       if (t === p) { reached.push(x.id); continue; }
       fighting = true;
@@ -2425,7 +2425,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
 export type FrontierWait = { actorId: string; frontier: string };
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
-  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; } // NW3/NW11: this turn's only
+  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; delete state.scratch.caughtUp; delete state.scratch.nightStopped; delete state.scratch.fightFinished; } // NW3/NW11: this turn's only
   (state.scratch ??= {}).agentRun = usableAgentOutputs(input).map((o) => o.actorId); // NW11: their agent moved them this turn
   const clockStart = now(state);
   const startPos = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])); // AT67: where everyone stood

@@ -109,6 +109,8 @@ function nodeWords(s: GameState, r: Region, n: RoadNode): string {
     return s.places.find((p) => p.id === site?.placeId)?.names.current ?? (site?.name || `a ${site?.size ?? 'settlement'}`);
   }
   if (n.kind === 'edge') return acrossEdge(s, r, n)?.r.name || r.beyond[n.side!]?.name || `the ${SIDE_WORD[n.side!]} edge of ${r.name || 'the region'}`;
+  const f = n.feature ? r.features.find((x) => x.id === n.feature) : undefined;
+  if (f) return f.name;
   const ways = roadsAt(r, n.id).length;
   return ways >= 4 ? 'a crossroads' : ways === 3 ? 'a fork in the road' : 'where the road ends';
 }
@@ -162,4 +164,160 @@ export function makeLandWays(s: GameState, zones: Zone[], sited: Place[]): void 
       }
     }
   }
+}
+
+/** the point of a line nearest to `p`, and the segment it is on */
+function nearestOn(pts: Pt[], p: Pt): { q: Pt; i: number } {
+  let best = { q: pts[0], i: 0 }, d = Infinity;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const a = pts[i], b = pts[i + 1], dx = b.x - a.x, dy = b.y - a.y, len = dx * dx + dy * dy;
+    const t = len ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len)) : 0;
+    const q = { x: a.x + t * dx, y: a.y + t * dy }, e = Math.hypot(q.x - p.x, q.y - p.y);
+    if (e < d) { d = e; best = { q, i }; }
+  }
+  return best;
+}
+/** RE8 a: a road encounter opens a side way. A junction is added on the land's road where the encounter stands (the road
+ * stays one zone: the junction is not one of its ends), and a path from it to `toward` (a settlement site's id or a
+ * landmark's id or name in the region), or to an end of its own SIDE_WAY_M off the road. Built like every land way: the
+ * zone made at the junction gets a way to new ground along the path (makeLandWays). Returns the junction's id. */
+export function openSideWay(s: GameState, roadId: string, at: Pt, toward?: string, name?: string): string | undefined {
+  const rd = landRoad(s, roadId);
+  if (!rd || rd.line.pts.length < 2) return undefined;
+  const { r, line } = rd;
+  const ids = new Set([...r.nodes.map((n) => n.id), ...r.roads.map((x) => x.id)]);
+  const fresh = (base: string) => { let i = 1; while (ids.has(`${base}${i}`)) i++; ids.add(`${base}${i}`); return `${base}${i}`; };
+  const { q: p, i } = nearestOn(line.pts, at);
+  const site = r.sites.find((x) => x.id === toward);
+  const feat = toward ? r.features.find((f) => f.id === toward || f.name.toLowerCase() === toward.toLowerCase()) : undefined;
+  let end = site ? r.nodes.find((n) => n.kind === 'site' && n.site === site.id) : undefined;
+  if (site && !end) r.nodes.push((end = { id: fresh(`${r.id}_n`), kind: 'site', at: site.at, site: site.id }));
+  if (!end) {
+    let q = feat?.at;
+    if (!q) { // a short path of its own, off to one side of the road, kept inside the region
+      const a = line.pts[i], b = line.pts[i + 1];
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+      const lo = { x: r.gx * r.size, y: r.gy * r.size }, inside = (o: Pt) => o.x >= lo.x && o.x <= lo.x + r.size && o.y >= lo.y && o.y <= lo.y + r.size;
+      const m = CONFIG.SIDE_WAY_M, one = { x: p.x + nx * m, y: p.y + ny * m }, two = { x: p.x - nx * m, y: p.y - ny * m };
+      q = inside(one) ? one : two;
+    }
+    r.nodes.push((end = { id: fresh(`${line.id}_end`), kind: 'junction', at: q, ...(feat ? { feature: feat.id } : {}) }));
+  }
+  const jn: RoadNode = { id: fresh(`${line.id}_side`), kind: 'junction', at: p };
+  r.nodes.push(jn);
+  r.roads.push({ id: fresh(`${line.id}_way`), kind: 'path', ...(name ? { name } : {}), danger: line.danger, ends: [jn.id, end.id], pts: [p, end.at], length: Math.round(Math.hypot(end.at.x - p.x, end.at.y - p.y)), crossings: [] });
+  return jn.id;
+}
+
+/** a string anywhere in `v` (not a key) equal to `from` becomes `to` */
+function renameIn(v: unknown, from: string, to: string): void {
+  if (Array.isArray(v)) v.forEach((x, i) => (x === from ? (v[i] = to) : renameIn(x, from, to)));
+  else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) x === from ? ((v as Record<string, unknown>)[k] = to) : renameIn(x, from, to);
+}
+
+/** WI7 a: a world built before WI2 is mended once, at load (each step does nothing on a world that needs none):
+ * 1. a junction with no zone takes the built zone that the zones of two or more of its roads lead into;
+ * 2. a road zone whose one way to new ground leads toward the one end it is not joined to: built, that way becomes a
+ *    plain way to it; unbuilt, the way is keyed by that end's land id;
+ * 3. a second zone on a road folds into the first: its ways, the people and things in it and every mention of it move
+ *    over, and the road points at the first. Returns what it mended. */
+export function mendLandWays(s: GameState): string[] {
+  const out: string[] = [];
+  const named = new Set<ZoneLink>(); // ways back this mend added, named after their zone: a folded copy's own words replace them
+  for (const r of regions(s)) for (const n of r.nodes) {
+    if (n.kind !== 'junction' || (n.zone && zoneById(s, n.zone))) continue;
+    const roadZones = roadsAt(r, n.id).flatMap((l) => s.zones.filter((z) => z.road === l.id));
+    const hub = s.zones.find((z) => !z.road && new Set(roadZones.filter((rz) => z.links.some((l) => l.to === rz.id)).map((rz) => rz.road)).size >= 2);
+    if (hub) { n.zone = hub.id; out.push(`junction ${n.id} is ${hub.id}`); }
+  }
+  for (const z of s.zones) {
+    const rd = z.road ? landRoad(s, z.road) : undefined;
+    if (!rd) continue;
+    const mine = group(s, z);
+    const open = rd.line.ends.filter((e) => { const t = landZone(s, e, rd.line.id); return !t || !mine.some((m) => m.links.some((l) => group(s, t).some((g) => g.id === l.to))); });
+    const own = z.links.filter((l) => l.frontier && !landTarget(s, l.to));
+    if (open.length !== 1 || own.length !== 1) continue;
+    const t = landZone(s, open[0], rd.line.id);
+    if (t) { const had = t.links.find((l) => l.to === z.id); wayBuilt(s, z, own[0].to, t); const back = t.links.find((l) => l.to === z.id); if (back && back !== had) named.add(back); out.push(`the way from ${z.id} toward ${open[0]} leads to ${t.id}`); }
+    else { out.push(`the way from ${z.id} toward ${open[0]} is keyed by it (was ${own[0].to})`); own[0].to = open[0]; }
+  }
+  for (const r of regions(s)) for (const line of r.roads) {
+    const on = s.zones.filter((z) => z.road === line.id);
+    const keep = on[0];
+    for (const copy of on.filter((z) => z !== keep)) {
+      for (const l of copy.links) {
+        const other = zoneById(s, l.to);
+        if (other) {
+          const back = other.links.find((b) => b.to === copy.id);
+          other.links = other.links.filter((b) => b.to !== copy.id);
+          if (other !== keep) joinWay(s, keep, other, { label: l.label, back: back?.label, sight: l.sight });
+          const had = other.links.find((x) => x.to === keep.id);
+          if (had && back && named.has(had)) had.label = back.label;
+        } else if (l.frontier && !keep.links.some((b) => b.to === l.to)) keep.links.push({ ...l });
+      }
+      for (const o of s.zones) if (o.links.some((b) => b.to === copy.id)) {
+        const b = o.links.find((x) => x.to === copy.id)!, had = o.links.find((x) => x.to === keep.id);
+        o.links = o.links.filter((x) => x.to !== copy.id);
+        if (had && named.has(had)) had.label = b.label;
+        else if (o !== keep) joinWay(s, o, keep, { label: b.label, sight: b.sight });
+      }
+      keep.groundItems.push(...copy.groundItems);
+      for (const a of [s.player, ...s.actors]) if (a.zone === copy.id) { a.zone = keep.id; a.placeId = keep.placeId; delete a.pos; }
+      for (const v of [s.actors, s.player, s.hidden, s.stage, s.quests, s.scratch]) renameIn(v, copy.id, keep.id);
+      const p = s.places.find((x) => x.id === copy.placeId);
+      if (p) p.zones = p.zones.filter((x) => x !== copy);
+      s.zones = s.zones.filter((x) => x !== copy);
+      out.push(`${copy.id} folded into ${keep.id}, road ${line.id}`);
+    }
+    if (keep && line.zone !== keep.id) line.zone = keep.id;
+  }
+  return out;
+}
+
+/** WI9 a / WI10 a: the world check. Each broken rule is one line in plain words, naming what broke:
+ * - a road of the land has at most one area, the one it records;
+ * - a junction's area exists and is outdoors and no road's own area; a site's settlement exists and is a top place, and
+ *   no second top place stands on that site (areas around a junction and places inside a settlement are free);
+ * - every built road that ends at a junction or site leads, at that end, into it, or to new ground keyed by it while it
+ *   is unbuilt;
+ * - no new ground leads to land already built, and every plain way leads to an area.
+ * Two ways between the same two areas are allowed (WI6: a place can have two doors). */
+export function worldCheck(s: GameState): string[] {
+  const out: string[] = [];
+  for (const r of regions(s)) {
+    for (const line of r.roads) {
+      const on = s.zones.filter((z) => z.road === line.id);
+      if (line.zone && !zoneById(s, line.zone)) out.push(`road ${line.id} records area ${line.zone}, which does not exist`);
+      if (on.length > 1) out.push(`road ${line.id} has ${on.length} areas (${on.map((z) => z.id).join(', ')}); a road is one area`);
+      else if (on.length === 1 && line.zone !== on[0].id) out.push(`area ${on[0].id} runs along road ${line.id}, but the road records ${line.zone ?? 'no area'}`);
+    }
+    for (const n of r.nodes) {
+      if (n.kind === 'edge') continue;
+      if (n.kind === 'junction' && n.zone) {
+        const z = zoneById(s, n.zone);
+        if (!z) out.push(`junction ${n.id} records area ${n.zone}, which does not exist`);
+        else if (!z.outdoor || z.road) out.push(`junction ${n.id}'s area ${z.id} is ${z.road ? `road ${z.road}'s own area` : 'indoors'}`);
+      }
+      if (n.kind === 'site') {
+        const site = r.sites.find((x) => x.id === n.site), p = site?.placeId ? s.places.find((x) => x.id === site.placeId) : undefined;
+        if (site?.placeId && !p) out.push(`site ${site.id} records settlement ${site.placeId}, which does not exist`);
+        else if (p?.parentId) out.push(`site ${site!.id}'s settlement ${p.id} is not a top place`);
+        const tops = s.places.filter((x) => !x.parentId && x.site === n.site);
+        if (tops.length > 1) out.push(`site ${n.site} has ${tops.length} settlements (${tops.map((x) => x.id).join(', ')}); a site holds one`);
+      }
+      for (const line of roadsAt(r, n.id)) {
+        const rz = line.zone ? zoneById(s, line.zone) : undefined;
+        if (!rz) continue;
+        const t = landZone(s, n.id, line.id);
+        if (t) { if (!group(s, rz).some((z) => z.links.some((l) => group(s, t).some((g) => g.id === l.to)))) out.push(`road ${line.id}'s area ${rz.id} does not lead into ${t.id}, built at its end ${n.id}`); }
+        else if (!rz.links.some((l) => l.frontier && l.to === n.id)) out.push(`road ${line.id}'s area ${rz.id} has no way on toward its unbuilt end ${n.id}`);
+      }
+    }
+  }
+  for (const z of s.zones) for (const l of z.links) {
+    const built = l.frontier && landTarget(s, l.to) ? landZone(s, l.to, z.road) : undefined;
+    if (built) out.push(`${z.id}'s way "${l.label}" is new ground, but ${l.to} is already built as ${built.id}`);
+    else if (!l.frontier && !zoneById(s, l.to)) out.push(`${z.id}'s way "${l.label}" leads to ${l.to}, which is no area`);
+  }
+  return out;
 }

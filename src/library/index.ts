@@ -2,6 +2,7 @@
 import type { ActivityDef, Actor, BodySize, BodyType, GameState, ItemDef, Library, NaturalArmor, NpcTemplate, RaceDef, Routine, RoutineSet } from '../types';
 import { prototypeLibrary } from './data';
 import { BT, RC } from './raceIds';
+import { volumeM3 } from './bodySize';
 
 let current: Library = prototypeLibrary();
 export function getLibrary(): Library {
@@ -45,6 +46,8 @@ export function bodyType(state: GameState | null | undefined, id: string): BodyT
 /** BR3/BR5: an actor's shape merged with its race: the shape's attacks plus the race's, the race's speed (AB1), natural armor
  * and fallback skill (else the shape's), and the race's HP multiplier (BR2; 1 with no race). */
 export type ActorBody = BodyType & { hpMultiplier: number; speed: RaceDef['speed']; naturalArmor?: NaturalArmor; size: BodySize; reachScale: number };
+/** SZ18: an actor's volume in m³ (its size's box: length × width × height), for perks and achievements to read */
+export const actorVolumeM3 = (state: GameState, a: Actor): number => volumeM3(actorBody(state, a).size);
 /** SZ1, SZ15: an actor's size in metres, the one place it is worked out: its body type's size (a story body type without one
  * is the Humanoid's) × its race's factors per measure */
 function sizeOf(b: BodyType, r: RaceDef | undefined): BodySize {

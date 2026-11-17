@@ -30,6 +30,8 @@ function walkTo(s: GameState, i: Intent): void {
   }
 }
 
+/** SZ19: a person's middle stands a step (ENTER_M) from a wall to its body's edge: half its widest side (0.5 m) more */
+const WALL_M = CONFIG.ENTER_M + 0.25;
 describe('173 move spots (BG-12)', () => {
   it('"the far end, away from the door" walks to the wall across from that doorway, a step inside it', () => {
     const s = mapped('tav_common');
@@ -44,7 +46,7 @@ describe('173 move spots (BG-12)', () => {
     expect(distM(s, s.player, { zone: 'tav_common', pos: goal.pos })).toBeLessThan(0.01);
     expect(distM(s, s.player, { zone: 'tav_common', pos: door })).toBeGreaterThan(start + 2);
     const r = room.rect!, p = s.player.pos!;
-    expect(Math.min(r.w / 2 - Math.abs(p.x - r.x), r.d / 2 - Math.abs(p.y - r.y))).toBeCloseTo(CONFIG.ENTER_M, 1);
+    expect(Math.min(r.w / 2 - Math.abs(p.x - r.x), r.d / 2 - Math.abs(p.y - r.y))).toBeCloseTo(WALL_M, 1);
   });
 
   it('away from stairs in the middle of the cellar: to a wall, and it stays there (run 36\'s cellar)', () => {
@@ -59,7 +61,7 @@ describe('173 move spots (BG-12)', () => {
     play(s, { intent: i });
     expect(distM(s, s.player, { zone: 'tav_cellar', pos: there })).toBeLessThan(0.01);
     const r = zoneOf(s, 'tav_cellar').rect!;
-    expect(Math.min(r.w / 2 - Math.abs(there.x - r.x), r.d / 2 - Math.abs(there.y - r.y))).toBeCloseTo(CONFIG.ENTER_M, 1);
+    expect(Math.min(r.w / 2 - Math.abs(there.x - r.x), r.d / 2 - Math.abs(there.y - r.y))).toBeCloseTo(WALL_M, 1);
   });
 
   it('a compass side, and beside someone in the zone', () => {
@@ -69,7 +71,7 @@ describe('173 move spots (BG-12)', () => {
     const wim = s.actors.find((a) => a.id === 'patron_1')!;
     wim.pos = { x: room.x, y: room.y - room.d / 2 + 0.5 };
     walkTo(s, intent({ move: { toZone: 'tav_common', spot: { side: 'north' } } }));
-    expect(s.player.pos!.y).toBeCloseTo(room.y + room.d / 2 - CONFIG.ENTER_M, 1);
+    expect(s.player.pos!.y).toBeCloseTo(room.y + room.d / 2 - WALL_M, 1);
     expect(s.player.pos!.x).toBeCloseTo(room.x, 1);
     const ev: string[] = [];
     for (let n = 0; n < 3; n++) ev.push(...play(s, { intent: intent({ move: { toZone: 'tav_common', spot: { near: 'patron_1' } } }) }).filter((e) => e.kind === 'move').map((e) => e.target ?? ''));

@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
 import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Measure } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { EDGE_CLASS, doorGlyph, floorName, wayGlyph, wayWords, whoInitial } from './map';
+import { EDGE_CLASS, doorGlyph, floorName, footprintMark, wayGlyph, wayWords, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { moveSpeed, slotMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
@@ -211,7 +211,8 @@ export function minimapPanel(api: GameApi, opts: {
           s('g', { 'data-role': 'token', 'data-id': 'you' }, s('circle', { cx: t.cx, cy: t.cy, r: t.r })), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, 'You'), s('title', {}, 'You are here')));
         continue;
       }
-      const who = t.who!, g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` },
+      const who = t.who!, foot = footprintMark(t.cx, t.cy, t.r, who, PX_PER_M * k);
+      const g = s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, tabindex: 0, role: 'button', 'aria-label': `${t.title}: what to do` }, ...(foot ? [foot] : []),
         s('g', { 'data-role': 'token', 'data-id': t.id }, s('circle', { cx: t.cx, cy: t.cy, r: t.r }), s('text', { x: t.cx, y: t.cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name))),
         s('text', { x: t.cx + t.r + 4, y: t.cy + 4, class: 'map-who-label' }, who.name), s('title', {}, t.title));
       const open = (e: Event) => { e.stopPropagation(); if (!api.busy()) opts.onPerson(who.id, (g as Element).getBoundingClientRect()); };

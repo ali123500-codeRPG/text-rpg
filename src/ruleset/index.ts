@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import { COVER, HIT_OUTCOMES, TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
-import { sightDistM, withinM } from '../engine/position';
+import { seenSizeFactor, sightDistM, withinM } from '../engine/position';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods, woundsOnRoll } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk, trueSkill } from './perks';
@@ -27,7 +27,7 @@ import { shortShifts } from './requirements';
 import { powerStack } from './stacking';
 import { lineMax, lineUsed } from './fatigue';
 import { payStrain } from '../engine/fatigue';
-import { augmentK, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
+import { augmentK, coverFor, hostileNearM, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -268,10 +268,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const hit = cls.hit + (mode.hitAdj ?? 0);
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
-    const far = rangeMod(dist, mode.reach);
+    const far = rangeMod(dist / seenSizeFactor(state, A, D), mode.reach); // SZ13: a bigger target is as easy as a person nearer
     if (far) am.push({ source: 'range', type: 'situational', value: far });
-    // RD5: a hostile within HOSTILE_NEAR_M, close enough to strike or grab; either way: the player holds no stances of its own
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && withinM(sightDistM(state, A, o), CONFIG.HOSTILE_NEAR_M));
+    // RD5, SZ19: a hostile near enough to strike or grab (a step plus its own melee reach, hostileNearM); either way: the player holds no stances of its own
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && withinM(sightDistM(state, A, o), hostileNearM(state, o)));
     if (crowded && CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
@@ -327,7 +327,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // PA11: Parry too; All-50 Against the Grain (Parry's part) takes it off the owner's parries
   if (mode.class === 'heavy' && type !== 'dodge' && !(type === 'parry' && hasPerk(D, PK.against_the_grain))) gapShifts.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP }); // PA11: Parry too
   // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
-  const coverKey = zoneD && ranged && hasPerk(A, PK.past_the_cover) ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
+  const bodyCover = zoneD ? coverFor(state, D, zoneD) : undefined; // SZ12: the target's cover by its size
+  const coverKey = zoneD && ranged && hasPerk(A, PK.past_the_cover) ? COVER.at(Math.max(0, COVER.pos(bodyCover!) - 1)) : bodyCover; // All-50: Past the Cover
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze

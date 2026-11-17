@@ -48,7 +48,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Conditions:** Any ranged attack, thrown included. A hostile actor is within 2 m of the owner (HOSTILE_NEAR_M).
+- **Conditions:** Any ranged attack, thrown included. A hostile actor is near enough to strike the owner: within a step (HOSTILE_NEAR_STEP_M, 0.75 m) plus its own melee reach.
 - **Effect:** The −10 ranged modifier for a hostile close to the shooter is not applied.
 - **Lasts:** That attack.
 

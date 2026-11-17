@@ -65,6 +65,7 @@ export type Intent = {
   clarify: string | null;
   answers?: string[]; // BG-228: with a clarify, two or three replies the player might pick (shown as buttons that fill the box)
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
+  finish?: boolean; // IQ7 a: the player finishes a fight far below them (player.finishable) on code, in one turn
   standDown?: string | null; // TF11: the player takes the offer to stand down that this one made (player.standDownOffers)
   letsSearch?: string | null; // BF16: the one the player lets search them
   look?: 'stats' | 'inv'; // OA4: the player only looks at their own sheet or what they carry: no turn passes
@@ -196,6 +197,7 @@ export type StagePlan = {
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     road?: string; // WZ1 a road zone: the region road it runs along (its length and danger come from the land)
     node?: string; // WI2 a junction's zone: the land junction id (land.junctions) it is built at
+    sideWay?: { toward?: string; name?: string }; // RE8 a: on a road encounter, this zone opens a side way off the road: a path toward a site id or landmark name, or a short path of its own
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
     links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];

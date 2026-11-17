@@ -6,7 +6,8 @@ import { healthLevel, isDownLevel } from '../ruleset/body';
 import { barrierOn, linkPassage } from './barriers';
 import { withinGrip } from './position';
 import { reachesOver } from '../scenario/geometry';
-import { getLibrary } from '../library';
+import { actorBody, getLibrary } from '../library';
+import { CONFIG } from '../config';
 
 /** the actor's active perks and quirks that work on sight (PerkDef.onSight) */
 export const onSightPerks = (a: Actor) => a.core.perks.filter((p) => !p.dormant).map((p) => getLibrary().perks?.[p.perkId]).filter((d): d is NonNullable<typeof d> => !!d?.onSight);
@@ -150,9 +151,28 @@ export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
 }
 
 /** SD3–SD5: the walking path for `walker`: round any barrier shut to it; with none, the plain path (whose first shut way
- * the walker then tries) */
+ * the walker then tries). SZ7: never through a way too small for its body */
 export const wayPath = (state: GameState, from: string, to: string, walker: Actor): string[] | null =>
-  shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to);
+  shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to, false, undefined, walker);
+
+/** SZ7: the opening of link `l` out of zone `from`, [width, height] in metres and whether it is gone through upright (a
+ * hatch): its barrier kind's, else a doorway (CONFIG.DOORWAY_M) where either side is indoors; null where nothing narrows it */
+export function openingOf(state: GameState, l: ZoneLink, from: string): { w: number; h: number; vertical: boolean } | null {
+  const k = (() => { const b = barrierOn(state, l); return b ? getLibrary().barrierKinds?.[b.kind] : undefined; })();
+  if (k?.openingM) return { w: k.openingM[0], h: k.openingM[1], vertical: !!k.vertical };
+  const indoors = [from, l.to].some((id) => { const z = zoneById(state, id); return !!z && !z.outdoor; });
+  return indoors ? { w: CONFIG.DOORWAY_M[0], h: CONFIG.DOORWAY_M[1], vertical: false } : null;
+}
+
+/** SZ7: `a`'s body goes through the way: the narrower of its length and width fits the opening's width (it turns sideways)
+ * and its height, ducked to DUCK_SHARE, fits the height (ducking costs no time; crawling is parked, D-369). Through a
+ * hatch it goes upright: its narrower side fits the width and its longer side the length. */
+export function fitsThrough(state: GameState, a: Actor, l: ZoneLink, from: string): boolean {
+  const o = openingOf(state, l, from);
+  if (!o) return true;
+  const s = actorBody(state, a).size, narrow = Math.min(s.lengthM, s.widthM), long = Math.max(s.lengthM, s.widthM);
+  return narrow <= o.w + 1e-9 && (o.vertical ? long : s.heightM * CONFIG.DUCK_SHARE) <= o.h + 1e-9;
+}
 
 /** BG-69, FR5: a walk is planned around a shut way only by someone who knows it is shut: they tried it, or it is rubble in
  * plain view; an NPC also knows the ways of a place it lives or works in (one its routine is bound to: mind.slots). A
@@ -165,8 +185,9 @@ export function knowsShut(state: GameState, b: Barrier, a: Actor, from: string):
 
 /** shortest path over built zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
  * barrier is shut to it (no key, the far side of the bar, rubble) is left out (SD3–SD5); with none, barriers are ignored
- * (how far away, for sound and sight). */
-export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor): string[] | null {
+ * (how far away, for sound and sight). SZ7: with a `body` (the walker's, unless given alone), a way too small for it is
+ * left out too. */
+export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor, body: Actor | undefined = walker): string[] | null {
   if (from === to) return [];
   const stage = new Set(state.zones.map((z) => z.id));
   const prev = new Map<string, string>();
@@ -179,6 +200,7 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
       // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
       if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !seesAcross(state, l)) || (l.drop && !sightOnly)) continue;
       if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(state, barrierOn(state, l)!, walker, cur)) continue;
+      if (body && !sightOnly && !fitsThrough(state, body, l, cur)) continue; // SZ7: too big for the way
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {

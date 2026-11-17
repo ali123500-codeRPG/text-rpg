@@ -82,7 +82,7 @@ it('FR2: handing something over is by grip reach in metres: over the counter fro
   s.player.zone = 'tav_common';
   const trader = s.actors.find((a) => a.id === 'trader')!; // behind the counter (tav_counter)
   trader.pos = { x: 0, y: 4.5 };
-  expect(gripReachM(s, s.player)).toBe(0.7); // an arm, from the body type
+  expect(gripReachM(s, s.player)).toBe(0.625); // an arm, from the body type
   expect(approachMove(s, s.player, { type: 'give', target: 'trader' }, null)).toBeNull(); // closed in on when the give comes
   s.player.core.inventory.push({ id: 'coin_x', itemId: s.player.core.inventory[0]?.itemId ?? 'IT1' } as never);
   s.player.pos = { x: 0, y: -3 }; // 7.5 m away across the room

@@ -28,6 +28,6 @@ it('BG-225/226: a road built at a frontier touches the zone it leads from, and t
   expect(s.player.zone).toBe(road.id);
   const pos = s.player.pos!;
   const edgeDist = Math.min(Math.abs(pos.x - (r.x - r.w / 2)), Math.abs(pos.x - (r.x + r.w / 2)), Math.abs(pos.y - (r.y - r.d / 2)), Math.abs(pos.y - (r.y + r.d / 2)));
-  expect(edgeDist).toBeLessThanOrEqual(CONFIG.ENTER_M + 0.01);
+  expect(edgeDist).toBeLessThanOrEqual(CONFIG.ENTER_M + 0.15 + 0.01); // SZ19: a step to the body's near edge (half its 0.3 m depth)
   expect(Math.hypot(pos.x - r.x, pos.y - r.y)).toBeGreaterThan(100);
 });

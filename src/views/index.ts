@@ -49,6 +49,7 @@ import { coinWords, countWords, isSeller, offerList, wareList } from '../engine/
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
 import { canDemand, canOffer, OFFER_WORDS, offersTo, speaks } from '../engine/offer';
+import { farBelow, FINISH_STOP_WORDS, type FinishStop } from '../engine/finish';
 import { fightingWith } from '../engine/engagement';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
@@ -540,6 +541,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
       ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
       ...(offersTo(state, p).length ? { standDownOffers: offersTo(state, p).map((o) => ({ id: o.from, name: callName(state, p.id, o.from), landed: OFFER_WORDS[o.landed] })) } : {}), // TF11
+      ...(farBelow(state) ? { finishable: true as const } : {}), // IQ7 a
     },
     zone: zoneView(state, zoneById(state, p.zone)!, p),
     zones: perceivedZones(state, p.zone, p),
@@ -850,6 +852,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
     // essences that appeared this turn and failed their quality roll: they show, then fade
     ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings) } : {}),
+    ...((f) => f ? { fightFinished: { rounds: f.rounds, stop: FINISH_STOP_WORDS[f.stop] } } : {})(state.scratch?.fightFinished as { rounds: number; stop: FinishStop } | undefined), // IQ4 a
     ...((gone) => gone.length ? { notThere: gone } : {})(notThere(state, intent, seenIds)),
     ...((w) => w ? { stayedPut: w } : {})(stayedPut(state, events, intent)),
     ...((faded) => faded.length ? { essencesFaded: faded } : {})(state.log.filter((l) => l.turn === state.turn && l.code === 'essence_faded')
