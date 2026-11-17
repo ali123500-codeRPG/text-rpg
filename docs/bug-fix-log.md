@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Ali OK'd the fix (IC7 a on the "Code consistency check, 10% at a time" page) and asked for a full 0.1 m margin. Both functions now use withinM, and withinM allows CONFIG.REACH_MARGIN_M (0.1 m) past every reach instead of 0.01 m. The walk-to-spot check, which already allowed 0.1 m by hand, uses withinM too. A test (tests/cases/s341-reach-margin.test.ts) puts a sword fighter 0.05 m past the sword's reach and checks the sword is picked.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #952](https://github.com/ali123500-codeRPG/text-rpg/pull/952)
 
 ## BG-270
 
