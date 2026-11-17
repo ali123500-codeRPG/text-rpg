@@ -192,10 +192,15 @@ const DEFAULTS = {
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
   RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
-  HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile within HOSTILE_NEAR_M of the shooter (Point Blank removes it)
+  HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile near the shooter (HOSTILE_NEAR_STEP_M + its reach) (Point Blank removes it)
   /** BG-267, IC7 a: every reach check (withinM) allows this many metres past the reach for a step's rounding */
   REACH_MARGIN_M: 0.1,
-  HOSTILE_NEAR_M: 2, // RD5: close enough to strike or grab the shooter (a step and a blow)
+  /** SZ8: arm span (fingertip to fingertip) as a share of height; about 1 for people (placeholder). An arm reaches
+   * (height × this − width) ÷ 2 past the body's edge (library/bodySize armReachM), and a held weapon reaches that plus its length */
+  ARM_SPAN_SHARE: 1,
+  /** RD5, SZ19: a hostile is near the shooter (close enough to strike or grab) within this step plus its own melee reach,
+   * between bodies: a knife 1.7 m, a longsword 2.3 m, a horse's kick 2.6 m. The step is the far end of Hall's personal distance */
+  HOSTILE_NEAR_STEP_M: 0.75,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
@@ -774,13 +779,13 @@ const DEFAULTS = {
   /** RE6: an encounter starts where its people are first glimpsed standing still: this visibility's glimpse range in the
    * sight table (CONFIG.SIGHT_M low: 60 m), the one sight rule; dark makes them only half seen, hiders use their stealth */
   ENCOUNTER_VISIBILITY: 'low' as import('./scales').VisibilityKey,
-  /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
-   * personal distance (Hall's proxemics, 0.45–1.2 m) */
-  PLACE_SPACING_M: 1, // BF71: arm's length: the grid code places people on, how far a walk up to someone stops, and a step in from a door
-  PLACE_GAP_M: 0.2, // BF71: the room a walk's end keeps from everyone but the one it closes in on
+  /** ZP1, SZ19: how far apart code places people in a zone when nothing says where they stand, between their bodies: arm's
+   * length, the far end of Hall's close personal distance (0.45–0.75 m) */
+  PLACE_SPACING_M: 0.75, // BF71: the grid code places people on, how far a walk up to someone stops
+  PLACE_GAP_M: 0.15, // BF71, SZ19: the room a walk's end keeps from everyone but the one it closes in on (Hall: intimate distance starts at 0.15 m)
   RING_STEPS: 24, // BF71: the spots round someone a walk closing in on them tries when the straight-line spot is taken
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
-   * wall or a way out stops this far inside it */
+   * wall or a way out stops this far inside it. SZ19: measured to the body's near edge, so a whole horse stands inside */
   ENTER_M: 1,
   /** BF35 following someone: the distance kept when none is said, sneaking or not (real metres: a tail stays back, a
    * companion keeps close), and at range how much of the weapon's reach is used (a little margin inside it) */

@@ -50,8 +50,9 @@ describe('325 a move to an exact point (AD16)', () => {
     const s = quiet(), r = rect(s, 'tav_common');
     const far = { x: r.x + r.w * 3, y: r.y + r.d * 3 };
     const sp = spotPoint(s, 'tav_common', { at: far }, s.player)!;
-    expect(sp.pos.x).toBeCloseTo(r.x + r.w / 2 - CONFIG.ENTER_M, 6);
-    expect(sp.pos.y).toBeCloseTo(r.y + r.d / 2 - CONFIG.ENTER_M, 6);
+    const wall = CONFIG.ENTER_M + 0.25; // SZ19: a step from the walls to the body's edge (half its widest side, 0.5 m)
+    expect(sp.pos.x).toBeCloseTo(r.x + r.w / 2 - wall, 6);
+    expect(sp.pos.y).toBeCloseTo(r.y + r.d / 2 - wall, 6);
     walkTo(s, to('tav_common', far.x, far.y));
     expect(s.player.zone).toBe('tav_common');
     expect(distM(s, s.player, { zone: 'tav_common', pos: sp.pos })).toBeLessThan(0.01);

@@ -40,7 +40,7 @@ describe('145 The throw action', () => {
     getLibrary().perks.far_arm = { id: 'far_arm', name: 'Far Arm', throwReach: 8 }; // metres
     s.player.core.perks.push({ perkId: 'far_arm', source: 'class', gainedTurn: 0 });
     expect(throwOf(s).reach).toBe(CONFIG.THROW_M.knife + 8);
-    expect(usableModes(s, s.player).find((m) => m.itemId === 'dg' && m.mode.id === AM.slash)!.mode.reach).toBe(1); // the slash (1 m) is untouched
+    expect(usableModes(s, s.player).find((m) => m.itemId === 'dg' && m.mode.id === AM.slash)!.mode.reach).toBe(0.925); // the slash (a 0.625 m arm + a 0.3 m blade, SZ8) is untouched
   });
 
   it('the roll is combined: own skill × 0.75 + same-class ranged × 0.25, each part with its own stand-ins and gear', () => {

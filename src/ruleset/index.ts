@@ -27,7 +27,7 @@ import { shortShifts } from './requirements';
 import { powerStack } from './stacking';
 import { lineMax, lineUsed } from './fatigue';
 import { payStrain } from '../engine/fatigue';
-import { augmentK, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
+import { augmentK, hostileNearM, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -270,8 +270,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (ranged) {
     const far = rangeMod(dist, mode.reach);
     if (far) am.push({ source: 'range', type: 'situational', value: far });
-    // RD5: a hostile within HOSTILE_NEAR_M, close enough to strike or grab; either way: the player holds no stances of its own
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && withinM(sightDistM(state, A, o), CONFIG.HOSTILE_NEAR_M));
+    // RD5, SZ19: a hostile near enough to strike or grab (a step plus its own melee reach, hostileNearM); either way: the player holds no stances of its own
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && withinM(sightDistM(state, A, o), hostileNearM(state, o)));
     if (crowded && CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)

@@ -116,7 +116,7 @@ function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) =>
 function enterFrontier(state: GameState, entry: Zone): void {
   const from = state.player.zone;
   moveTo(state, state.player, entry.id);
-  const at = entryPoint(state, entry.id, from);
+  const at = entryPoint(state, entry.id, from, state.player);
   if (at) state.player.pos = at;
 }
 

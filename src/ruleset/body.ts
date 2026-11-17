@@ -3,6 +3,7 @@ import { RL } from '../library/tableIds';
 import { D100_MEAN } from '../rng';
 import type { Actor, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
 import { CONFIG } from '../config';
+import { armReachM } from '../library/bodySize';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { hasPerk } from './perks';
 import { skillOpen } from './access';
@@ -66,11 +67,12 @@ export function roleOff(state: GameState, actor: Actor, role: RoleId): boolean {
 }
 
 /** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres past the body's
- * edge, from its body type, SZ5); 0 with none, as an amorphous body */
-export function gripReachM(state: GameState, actor: Actor): number {
-  const parts = new Set(usableGrips(state, actor));
-  const body = actorBody(state, actor); // SZ10: a part reaches farther on a bigger race of the shape
-  return Math.max(0, ...body.parts.filter((p) => parts.has(p.id)).map((p) => (p.reachM ?? 0) * body.reachScale));
+ * edge, SZ5); 0 with none, as an amorphous body. An arm reaches by the body's size (SZ8); any other part by its body
+ * type's metres × the race's factor (SZ10). `anyPart`: every grip part counts, working or not (how far a blow reaches) */
+export function gripReachM(state: GameState, actor: Actor, anyPart = false): number {
+  const body = actorBody(state, actor);
+  const parts = new Set(anyPart ? body.parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id) : usableGrips(state, actor));
+  return Math.max(0, ...body.parts.filter((p) => parts.has(p.id)).map((p) => (p.arm ? armReachM(body.size) : (p.reachM ?? 0) * body.reachScale)));
 }
 
 /** the actor can speak: its race talks (tag 'speaks') and a part with the speech role is not Destroyed */

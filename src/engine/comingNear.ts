@@ -4,7 +4,7 @@ import type { Actor, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
 import { NOISE, type BodyPoseKey } from '../scales';
 import { itemDef } from '../library';
-import { isHeld } from '../ruleset/gear';
+import { hostileNearM, isHeld } from '../ruleset/gear';
 import { allActors, atLeast, isActive, isAsleep } from './relations';
 import { perceivesNow } from './yield';
 import { distOrNull, type Located } from './position';
@@ -33,8 +33,9 @@ const comingFor = (x: Actor, w: Actor): boolean => atLeast(x.mind?.knowledge?.[w
 const seen = (state: GameState, x: Actor, closing = false): Seen => ({ sneaking: x.posture === 'stealthy', closing, armed: armed(state, x) });
 /** metres between two spots; Infinity where an old map's zone has no rectangle */
 const safeDistM = (state: GameState, a: Located, b: Located): number => distOrNull(state, a, b) ?? Infinity;
-/** metres from where the watcher stands at which someone closing at `speed` m/s fires the check */
-const triggerM = (w: NearWatch, speed: number): number => CONFIG.HOSTILE_NEAR_M + speed * warnS(w);
+/** metres from where the watcher stands at which someone closing at `speed` m/s fires the check: near enough to strike
+ * (SZ19: a step plus its own melee reach, hostileNearM) plus the ground it covers in the watcher's warning time */
+const triggerM = (state: GameState, w: NearWatch, x: Actor, speed: number): number => hostileNearM(state, x) + speed * warnS(w);
 
 /** BG-231: everyone outside the watcher's band it perceives now (a wait until someone appears stops when this gains anyone) */
 export const inSenses = (state: GameState, w: Actor): Set<string> => new Set(outsiders(state, w).filter((x) => perceived(state, w, x)).map((x) => x.id));
@@ -62,7 +63,7 @@ export function stepS(state: GameState, watch: NearWatch): number {
   for (const x of outsiders(state, w)) {
     if (watch.accepted.has(x.id) || !perceived(state, w, x)) continue;
     const run = moveSpeed(state, x).run;
-    if (run > 0) least = Math.min(least, (safeDistM(state, w, x) - triggerM(watch, run)) / run);
+    if (run > 0) least = Math.min(least, (safeDistM(state, w, x) - triggerM(state, watch, x, run)) / run);
   }
   return Math.min(CONFIG.STEP_MAX_S, Math.max(CONFIG.STEP_MIN_S, least / 2));
 }
@@ -101,11 +102,11 @@ export function checkNear(state: GameState, watch: NearWatch, before: Map<string
     if (was) {
       const now = seen(state, x, coming);
       if ((now.sneaking && !was.sneaking) || (now.closing && !was.closing) || now.armed > was.armed) changed.push(x.id);
-      else if (d > CONFIG.REARM_FACTOR * triggerM(watch, Math.max(walk, speed))) watch.accepted.delete(x.id);
+      else if (d > CONFIG.REARM_FACTOR * triggerM(state, watch, x, Math.max(walk, speed))) watch.accepted.delete(x.id);
       else watch.accepted.set(x.id, now);
       continue;
     }
-    if (coming && d <= triggerM(watch, speed)) closing.push(x.id);
+    if (coming && d <= triggerM(state, watch, x, speed)) closing.push(x.id);
     else watch.accepted.set(x.id, seen(state, x, coming));
   }
   if (changed.length) return { why: 'change', by: changed };

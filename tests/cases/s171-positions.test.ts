@@ -92,7 +92,7 @@ describe('171 positions', () => {
     t.player.pos = { ...c };
     play(t, { intent: intent({ move: { toZone: 'field_mid' } }) }); // no action: the main slot runs on (a dash)
     expect(t.player.zone).toBe('field_mid');
-    expect(r(Math.hypot(t.player.pos!.x - door.x, t.player.pos!.y - door.y))).toBe(r(CONFIG.ENTER_M));
+    expect(r(Math.hypot(t.player.pos!.x - door.x, t.player.pos!.y - door.y))).toBe(r(CONFIG.ENTER_M + 0.15)); // SZ19: a step to its body's near edge (half its 0.3 m depth)
   });
 
   it('ZP3: an attack out of reach closes in on the move slot, then strikes', () => {

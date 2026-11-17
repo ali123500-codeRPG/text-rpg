@@ -66,7 +66,7 @@ describe('minimap plans (AD16)', () => {
   it('a point past the walls is planned a step inside them (spotPoint), as the walk will stop', () => {
     const s = village(['tav_common']), r = zoneById(s, 'tav_common')!.rect!;
     const p = ok(planTo(s, knownMap(s), 'tav_common', { x: r.x + r.w, y: r.y }));
-    expect(p.x).toBeCloseTo(r.x + r.w / 2 - CONFIG.ENTER_M, 9);
+    expect(p.x).toBeCloseTo(r.x + r.w / 2 - CONFIG.ENTER_M - 0.25, 9); // SZ19: to the body's edge (half its widest side)
   });
 
   it('no plan without a way the player knows, and it says why', () => {

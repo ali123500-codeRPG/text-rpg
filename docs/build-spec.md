@@ -534,7 +534,19 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // re-measured from the edge (SZ9: a horse bites 0.5 m past its nose and kicks 1.8 m behind its rump); a body type part's
 // reach × the race's factor on the shape's longest measure (SZ10). Placing and a walk's end keep PLACE_SPACING_M and
 // PLACE_GAP_M between bodies, and a walk closing in stops where the bodies are its reach apart (SZ6). Tails: D-366.
-// Open on that page: SZ7 (doorways), SZ8 (the arm's reach), SZ11 (how big a body looks), SZ18 (volume), SZ19 (the gaps).
+// Round 2 (SZ8, SZ18, SZ19): an arm reaches (height × CONFIG.ARM_SPAN_SHARE − width) ÷ 2 past the body's edge (half the
+// arm span less half the shoulders: 0.625 m for a person, 1.25 m for a 3.5 m ogre a metre wide; library/bodySize
+// armReachM); it replaces SZ10's factor for arms. A mode wielded in a grip (a held weapon, fists, a grapple) has a length
+// past the hand (AttackMode.lengthM; a melee gear type's lengthM: knife 0.3, short 0.6, sword 0.9, great 1.6, pole 2.1,
+// fist 0; a grapple −0.1, an improvised strike 0.5) and reaches the wielder's grip reach plus that (ruleset/gear inGrip);
+// its library reachM is what a standard person reaches, for item value and the viewer. A body's volume is its size's box,
+// length × width × height (actorVolumeM3), for perks and achievements. The gaps between bodies (Hall's proxemics):
+// PLACE_GAP_M 0.15, PLACE_SPACING_M 0.75; a move into a zone stands ENTER_M past the doorway to its body's near edge (half
+// its length more), and a spot by a wall ENTER_M from it to the body's edge (half its widest side more); a hostile is near
+// the shooter within HOSTILE_NEAR_STEP_M (0.75) plus its own melee reach (hostileNearM), which also sets when someone
+// coming closer interrupts a long action. Still to build from that page: SZ7 (doorways: the narrower of length and width
+// passes, ducking to half height at no extra time; crawling parked, D-369), SZ11 (how big a body looks: the side the viewer
+// sees), SZ12, SZ13, SZ16.
 // Roads (TV3, TV4): a road between places is ONE zone of the road kind (ZK11), however long. The Weaver gives it a length
 // (a ROAD_LENGTHS word: a short walk 0.5 km, half an hour 2, an hour's walk 4.5, half a day 15, a day's walk 30, two days
 // 60, CONFIG.ROAD_LENGTH_KM; or km) and a danger (ROAD_DANGERS: safe, quiet, wild, dangerous; the chance per hour that
@@ -2239,7 +2251,7 @@ The outcome and location thresholds live in CONFIG.HIT\_GAPS beside GAP\_LADDER 
 
 An attack reaches targets within its attack mode's reach (Part 5 §5), with sight on every link of the shortest path.
 
-- **Situational roll modifiers (ranged):** a hostile actor within 2 m of the shooter, close enough to strike or grab, −10 (RD5: HOSTILE\_NEAR\_M, HOSTILE\_NEAR\_MOD; Point Blank removes it). Range (`rangeMod`, CONFIG.RANGE\_SHARE\_MODS): the distance as a share of the mode's reach, both from real metres: up to 25% 0, 50% −5, 75% −10, 100% −15. A longbow (90 m, 11 links) at 48 m is −5 where a shortbow (50 m, 6 links) is −15 \[Proposed\].
+- **Situational roll modifiers (ranged):** a hostile actor close enough to strike or grab the shooter (SZ19: within a 0.75 m step plus its own melee reach, between bodies), −10 (RD5: HOSTILE\_NEAR\_STEP\_M, HOSTILE\_NEAR\_MOD; Point Blank removes it). Range (`rangeMod`, CONFIG.RANGE\_SHARE\_MODS): the distance as a share of the mode's reach, both from real metres: up to 25% 0, 50% −5, 75% −10, 100% −15. A longbow (90 m, 11 links) at 48 m is −5 where a shortbow (50 m, 6 links) is −15 \[Proposed\].
 - **Light** (any roll that needs sight): dim −5; dark −10. The attacker uses the target's zone; a defender uses the attacker's zone.
 - **Cover** (ranged attacks only): the target's zone cover 1 → gap +1, cover 2 → gap +2.
 
@@ -3422,6 +3434,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-366 | What tails do | 3 | Parked | Ali answered SZ2 on the Questions hub page "Body size and edge-to-edge reach" (17/11/2026): "a, park what to do with tails". A body's length leaves its tail out (head and body only), so a tail takes up no floor. Options: (a) as now: the tail is a part with its own reach (the tail lash) and no floor; (b) the tail adds to the footprint behind the body (a crocodile is about 4 m long, nearly half of it tail); (c) the tail is a separate thin capsule that can be struck or stepped on. |
 | D-367 | Loudness by body size or race | 2 | Parked | Ali answered SZ14 on the Questions hub page "Body size and edge-to-edge reach" (17/11/2026): "a" (sound is measured on the gap between bodies; louder bodies wait). Options: (a) a race row gives a loudness offset in dB for its sounds (a lion's roar about 114 dB at 1 m against a shout's 88; a horse's hooves louder than a person's feet); (b) every sound a being makes is louder by its size (a formula on volume); (c) only some event kinds (footsteps, voice) scale. |
 | D-368 | Armor's flat soak by weight, after the share | 1, 2 | Built | Ali answered MD1 on the Questions hub page "Melee damage per second vs armor" (17/11/2026): "a, flat soak should occur after the armor factor", and picked ×1 / ×1.5 / ×2 on a card. Before: every weapon class did about the same damage per second against every armor, and fists matched a greatsword against plate, because armor stopped a flat ARMOR\_FACTOR × need (4 at Fine, any weight) and then took a share that hurt every weapon alike. Now armor's reduction is ARMOR\_FACTOR × need × ARMOR\_WEIGHT\_SOAK (light 1, medium 1.5, heavy 2; placeholders) and it comes off after the multiplier: dmg × multiplier − reduction. Natural armor uses the same order. Simulated (skill 50, Fine body + helmet, foe parries): against plate fists 0.8, light 1.7, medium 1.8, heavy 2.5 damage a second (before: 3.4, 3.5, 3.1, 3.6); light armor unchanged in order. Masterwork plate (soak 16) is nearly immune: a greatsword does 0.5 to 1.1 a second. Not chosen: soak before the share (MD1 a as first written), ×1 after the share, ×1 / ×2 / ×3 after the share (Fine plate nearly immune), raising class damage (MD1 c). MD2 withdrawn (IR8 coverage), MD3 no change, MD4 b (no change). |
+| D-369 | Crawling | 3 | Parked | Ali answered SZ7 on the Questions hub page "Body size and edge-to-edge reach" (17/11/2026): "b, park crawling as a wish list item". A wish-list item. Doorways pass the narrower of a body's length and width, and a body ducks to half its height at no extra time; going lower is crawling. Proposed then: a person crawls on hands and knees at CRAWL_SHARE 0.4 of their height (back about 0.7 m off the floor) at CRAWL_SPEED 0.5 m/s; races marked as not able to (horse, dragon) never crawl. |
 
 ## Bug log
 

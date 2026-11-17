@@ -109,7 +109,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: Object.entries(CONFIG.LIGHT_MODS).map(([k, v]) => `${LIGHT.name(k as (typeof LIGHT.keys)[number])} ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by the distance to the target as a share of the weapon\'s reach (both from real metres).',
     value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
-  { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile within ${CONFIG.HOSTILE_NEAR_M} m of the shooter, close enough to strike or grab (Point Blank removes it).`,
+  { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile near enough to strike or grab the shooter: within ${CONFIG.HOSTILE_NEAR_STEP_M} m (a step) plus its own melee reach, between bodies (Point Blank removes it).`,
     value: sg(CONFIG.HOSTILE_NEAR_MOD) },
   { type: 'situational', roll: 'skill', source: 'Outnumbered', at: 'src/ruleset/index.ts', when: `Defense rolls after the first this turn (Blade Wall removes it for Parry, Shield Wall for Block, Slip the Crowd for Dodge).`,
     value: sg(CONFIG.OUTNUMBERED_MOD) },

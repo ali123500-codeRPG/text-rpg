@@ -36,7 +36,7 @@ function mundaneProblems(d: ItemDef): string[] {
     if (m.damageAdj !== undefined) bad.push(`${m.id} damageAdj`);
     if (m.hitAdj !== undefined && !(improvised && m.hitAdj === CONFIG.IMPROVISED_HIT_ADJ)) bad.push(`${m.id} hitAdj ${m.hitAdj}`);
     if (m.thrown) { if (!Object.values(CONFIG.THROW_M).includes(m.reachM)) bad.push(`${m.id} thrown reach ${m.reachM}`); }
-    else if (!improvised && m.reachM !== lib.gearTypes?.[d.gearType ?? '']?.reachM) bad.push(`${m.id} reach not from its type`);
+    else if (!improvised && (m.lengthM ?? m.reachM) !== (lib.gearTypes?.[d.gearType ?? '']?.lengthM ?? lib.gearTypes?.[d.gearType ?? '']?.reachM)) bad.push(`${m.id} reach not from its type`); // SZ8: a melee type's length
   }
   return bad;
 }

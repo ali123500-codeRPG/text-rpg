@@ -1143,7 +1143,7 @@ function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string
     };
     if (o.type === 'attack' && t) {
       // BF71: it closes to its blow's reach (stepping round anyone in the way), not to a set distance
-      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, closeInM(m.mode.reach) - M_EPS) : CONFIG.HOSTILE_NEAR_M / 2, t.id); }
+      if (!inReach(state, x, o)) { const m = attackMode(state, x, o).m ?? defaultMode(state, x, 0); walk(t, m ? Math.max(0, closeInM(m.mode.reach) - M_EPS) : CONFIG.HOSTILE_NEAR_STEP_M, t.id); }
       if (!inReach(state, x, o)) continue;
       if (t === p) { reached.push(x.id); continue; }
       fighting = true;
