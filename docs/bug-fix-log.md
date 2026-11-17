@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Emptying the box of a question that was asked again (hub version 25) now writes the earlier answer back exactly as it was, dated just before the question was asked again. The box is empty, the question shows "Asked again" and nothing is deleted. Questions that were never asked again still clear as before. TC31's earlier answer was put back. The hub README records the rule.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1013](https://github.com/ali123500-codeRPG/text-rpg/pull/1013)
 
 ## BG-298
 
