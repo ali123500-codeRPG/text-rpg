@@ -3,7 +3,6 @@
 // danger, counted across trips (RE1, BG-291), and an encounter's event roll sets what it is (the next scenario's tier). The trip stops on arrival, at an encounter, or at dusk
 // (unless the trip set off in the dark: then it presses on, more slowly, with a worse event roll and more encounters).
 import { CONFIG } from '../config';
-import { FN } from '../library/functionIds';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
 import { moveSpeed } from './speed';
 import { walkLeg, spotOf, distM, frontierPoint, spotPoint, withinM, M_EPS, type Located, type Pos } from './position';
@@ -15,15 +14,20 @@ import { logCode } from './effects';
 import { passiveHealing } from './heal';
 import { passiveFatigue, payTravel } from './fatigue';
 import { getLibrary } from '../library';
-import { TIERS } from '../scales';
-import { fnRoller, ruleset, situational } from '../ruleset';
-import type { Actor, EventRollResult, GameState, Mod, Order, Rng, Zone } from '../types';
+import { ruleset } from '../ruleset';
+import type { Actor, EventRollResult, GameState, Order, Rng, Zone } from '../types';
 
 const T_EPS = 1e-6; // minutes
 
-export type TripStop = 'arrived' | 'nightfall' | 'encounter';
+export type TripStop = 'arrived' | 'nightfall' | 'encounter' | 'met';
 export type Trip = { metres: number; minutes: number; legs: number; night: boolean; stop: TripStop; companions: string[]; fromZone: string;
-  encounter?: { eventRoll: EventRollResult; noticed: boolean; at: Pos } };
+  encounter?: { eventRoll: EventRollResult; at: Pos }; met?: TripMet };
+/** RE5: why a trip stopped on the way, and who stopped it (as a rest's stop: contact, someone closing, a change, someone new
+ * in the senses, a fight in them) */
+export type TripMet = { why: string; by: string[] };
+/** RE5: the world clock a trip runs on: how long the next step may be (seconds), a mark taken before each step, and after it
+ * (minutes walked) everyone else moving on and the check that would stop a rest */
+export type TripWorld<M = unknown> = { stepS(): number; mark(): M; after(minutes: number, mark: M): TripMet | null };
 
 export const isRoad = (z: Zone | undefined) => !!z?.kind && !!getLibrary().zoneKinds?.[z.kind]?.road;
 /** dusk and night are dark enough to stop a trip (TV5) */
@@ -59,18 +63,8 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
 export const companions = (state: GameState, a: Actor): Actor[] => state.actors.filter((x) => isActive(x) && x !== a && (together(state, a, x)
   || (getLibrary().routines?.[x.mind?.routine?.id ?? '']?.kind === 'follow' && eachPerceives(state, a, x))));
 
-/** TV8: one noticing roll: the sight function in the light where the player is */
-function notices(state: GameState, a: Actor, rng: Rng): boolean {
-  const skill = fnRoller(state, a, FN.sight);
-  const modifiers: Mod[] = situational(state, skill, { light: zoneById(state, a.zone), actor: a }).modifiers;
-  const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], fn: FN.sight }, state, rng);
-  const passed = TIERS.pos(r.tier) >= TIERS.pos('success');
-  ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY.moderate, passed, modifiers }, state);
-  return passed;
-}
-
-/** walks the trip leg by leg; the clock moves and natural recovery runs for each leg */
-export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng: Rng): Trip {
+/** walks the trip leg by leg, each leg in the world clock's steps (RE5, `world`); the clock moves and natural recovery runs for each */
+export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng: Rng, world?: TripWorld<any>): Trip {
   const group = [a, ...companions(state, a)];
   const fromZone = a.zone;
   const pressOn = darkOut(now(state)); // TV5: setting off in the dark presses on; a trip that reaches dusk stops to ask
@@ -88,34 +82,48 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     const due = CONFIG.TRAVEL_LEG_MIN - (a.roadMin ?? 0);
     let minutes = due > T_EPS ? Math.min(CONFIG.TRAVEL_LEG_MIN, due) : CONFIG.TRAVEL_LEG_MIN;
     if (!dark) minutes = Math.min(minutes, minutesUntil(t, 'dusk'));
-    let left = speed * minutes, walked = 0, onRoad = 0;
-    for (let n = 0; n < 100 && left > M_EPS && !there(); n++) {
-      const before = spotOf(state, a).pos;
-      const zone = a.zone;
-      const w = walkLeg(state, a, goal, left, 0);
-      if (w === null || (!w && a.zone === zone)) break; // BG-170: a 0 m doorway crossing goes on
-      if (before) last = before;
-      if (w && (isRoad(zoneById(state, zone)) || isRoad(zoneById(state, a.zone)))) onRoad += w;
-      left -= w; walked += w;
+    // RE5: the leg is walked in the world clock's steps (as a rest or a walk runs): each step the clock moves on, everyone
+    // else moves toward their routines, and what would stop a rest stops the trip
+    let legLeft = minutes, walked = 0, onRoad = 0;
+    while (legLeft > T_EPS && !there() && !trip.met) {
+      const sm = world ? Math.min(legLeft, world.stepS() / 60) : legLeft;
+      const mark = world?.mark();
+      let left = speed * sm, w0 = walked;
+      for (let n = 0; n < 100 && left > M_EPS && !there(); n++) {
+        const before = spotOf(state, a).pos;
+        const zone = a.zone;
+        const w = walkLeg(state, a, goal, left, 0);
+        if (w === null || (!w && a.zone === zone)) break; // BG-170: a 0 m doorway crossing goes on
+        if (before) last = before;
+        if (w && (isRoad(zoneById(state, zone)) || isRoad(zoneById(state, a.zone)))) onRoad += w;
+        left -= w; walked += w;
+      }
+      const m = (walked - w0) / speed;
+      if (m <= 0) break;
+      legLeft -= m;
+      advanceAging(state, m, (c, d) => logCode(state, c, d)); // AG16
+      passiveHealing(state, m);
+      passiveFatigue(state, m); // FT4/FT28
+      for (const x of group) payTravel(state, x, m); // SR5
+      for (const c of group.slice(1)) { c.zone = a.zone; c.placeId = a.placeId; if (a.pos) c.pos = { ...a.pos }; } // they walk beside the player
+      const met = world && mark ? world.after(m, mark) : null;
+      if (met) { trip.met = met; trip.stop = 'met'; }
     }
     if (walked <= 0) break;
     minutes = walked / speed;
     trip.metres += walked; trip.minutes += minutes; trip.legs += 1;
-    advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
-    passiveHealing(state, minutes);
-    passiveFatigue(state, minutes); // FT4/FT28
-    for (const x of group) payTravel(state, x, minutes); // SR5
     // TV4 + RE1 (BG-291): minutes on a road count up across trips; each full leg of them rolls once, by the danger of the
     // road the player is on then (more in the dark), and the count starts again. A leg filled off the road waits for one.
     a.roadMin = Math.min(CONFIG.TRAVEL_LEG_MIN, (a.roadMin ?? 0) + onRoad / speed);
     const road = zoneById(state, a.zone);
+    if (trip.met) break; // RE5: met on the way: the trip stops there, the road minutes kept for the next
     if (a.roadMin >= CONFIG.TRAVEL_LEG_MIN - T_EPS && isRoad(road)) {
       a.roadMin = 0;
       const pct = CONFIG.ROAD_ENCOUNTER_PCT[road!.danger ?? 'quiet'] * (CONFIG.TRAVEL_LEG_MIN / 60) * (dark ? CONFIG.NIGHT_ENCOUNTER_MULT : 1);
       if (rng.d100() <= pct) {
         const extra: EventRollResult['modifiers'] = dark ? [{ source: 'night travel', type: 'situational', value: CONFIG.NIGHT_TRAVEL_EVENT_MOD }] : [];
         const eventRoll = ruleset.eventRoll(a, state, rng, extra);
-        trip.encounter = { eventRoll, noticed: notices(state, a, rng), at: ahead(road!, spotOf(state, a).pos!, last) };
+        trip.encounter = { eventRoll, at: ahead(road!, spotOf(state, a).pos!, last) };
         trip.stop = 'encounter';
         break;
       }
@@ -125,11 +133,13 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
   return trip;
 }
 
-/** where an encounter stands: ENCOUNTER_M on along the road from `p`, the way the player was walking, kept on the road */
+/** RE6: where an encounter stands: where it is first glimpsed (ENCOUNTER_VISIBILITY's glimpse range) on along the road from
+ * `p`, the way the player was walking, kept on the road */
 function ahead(z: Zone, p: Pos, from?: Pos): Pos {
   const r = z.rect!;
   const dx = from ? p.x - from.x : 0, dy = from ? p.y - from.y : 0, len = Math.hypot(dx, dy) || 1;
-  const q = { x: p.x + (dx / len) * CONFIG.ENCOUNTER_M, y: p.y + (dy / len) * CONFIG.ENCOUNTER_M };
+  const m = CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]?.[1] ?? 0;
+  const q = { x: p.x + (dx / len) * m, y: p.y + (dy / len) * m };
   return { x: Math.max(r.x - r.w / 2, Math.min(r.x + r.w / 2, q.x)), y: Math.max(r.y - r.d / 2, Math.min(r.y + r.d / 2, q.y)) };
 }
 

@@ -22,7 +22,7 @@ import { busyNow } from './busy';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
-import { travel, travelSpeed, tripGoal } from './travel';
+import { companions, travel, travelSpeed, tripGoal, type TripWorld } from './travel';
 import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
@@ -2135,20 +2135,60 @@ function noteCarry(ctx: Ctx): void {
   }
 }
 
+/** BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
+ * turn (a trade, a rest, a wait, a trip) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none */
+function legsOf(ctx: Ctx, long: boolean): OnLeg | undefined {
+  return !long || !isAsleep(ctx.state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
+    const leg = { metres: r1(metres), ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
+    emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
+  } : undefined;
+}
+
+/** RE5: a trip runs on the world clock as a walk does (AT65): each step everyone else moves toward their routines (catchUp),
+ * and it stops at contact, the coming-near check, someone new in the senses (seen ahead on the road), or a fight in them.
+ * Those walking with the player are part of the trip, not anyone met. */
+function tripWorld(ctx: Ctx, group: string[]): TripWorld<{ before: Map<string, Located>; from: number }> {
+  const { state } = ctx;
+  const p = state.player;
+  const watch = startWatch(state, p, 'standing');
+  let sensed = inSenses(state, p), first = true;
+  const along = (by: string[]) => by.filter((id) => !group.includes(id));
+  return {
+    stepS: () => stepS(state, watch),
+    mark: () => ({ before: new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }])), from: ctx.events.length }),
+    after: (minutes, { before, from }) => {
+      catchUp(state, minutes, first, legsOf(ctx, true)); // the turn's own walks count once
+      if (first) { state.scratch!.agentRun = [...group]; first = false; } // AT63: then everyone else runs on code; the group travels
+      headArrivals(state); runSteps(state); // UG16
+      const touched = contact(p, ctx.events.slice(from)), near = checkNear(state, watch, before, minutes * 60);
+      const now = inSenses(state, p), came = along([...now].filter((id) => !sensed.has(id)));
+      sensed = now;
+      for (const c of [touched, near]) if (c && along(c.by).length) return { why: c.why, by: along(c.by) };
+      if (fightInSenses(state)) return { why: 'fight', by: [] };
+      return came.length ? { why: 'appeared', by: came } : null;
+    },
+  };
+}
+
 /** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scenario (the next one starts there, with the
  * encounter's event roll); reaching a frontier at the road's end crosses it */
 function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): void {
   const { state } = ctx;
-  const trip = travel(state, a, t.goal, o, ctx.rng);
+  const group = [a.id, ...companions(state, a).map((x) => x.id)];
+  const t0 = now(state);
+  const trip = travel(state, a, t.goal, o, ctx.rng, a === state.player ? tripWorld(ctx, group) : undefined);
+  if (a === state.player) { (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0); noteMeanwhile(state, trip.minutes * 60); }
   for (const id of [a.id, ...trip.companions]) noteWalked(state, { id } as Actor, Infinity); // NW11: they spent the turn on the road
   if (a.zone !== trip.fromZone) noteLeft(state, trip.fromZone);
   const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), night: trip.night, stop: trip.stop, companions: trip.companions };
   logCode(state, 'travelled', { actorId: a.id, ...detail });
   if (trip.minutes > 0) logCode(state, 'time_passed', { actorId: a.id, minutes: trip.minutes, travel: true });
   if (a.id === state.player.id) noteIdle(state, trip.minutes); // BG-240: a trip is not acting time
-  emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
+  const stopped = trip.met ? [{ kind: 'stopped', actorId: a.id, data: { why: trip.met.why, by: trip.met.by, seconds: Math.round(trip.minutes * 60) } }] : [];
+  if (trip.met) logCode(state, 'stretch_stopped', { actorId: a.id, kind: 'trip', why: trip.met.why, by: trip.met.by, seconds: Math.round(trip.minutes * 60) });
+  emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }, ...stopped] }));
   if (trip.encounter) {
-    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, noticed: trip.encounter.noticed, zone: a.zone, at: trip.encounter.at };
+    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, zone: a.zone, at: trip.encounter.at };
     state.stage.breakCause = 'encounter';
   } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0);
 }
@@ -2556,12 +2596,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
-  // BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
-  // turn (a trade, a rest, a wait) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none
-  const legs = (long: boolean) => !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
-    const leg = { metres: r1(metres), ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
-    emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
-  } : undefined;
+  const legs = (long: boolean) => legsOf(ctx, long);
   // AT45/AT46/AT49: the player's walk. Outside a fight it is one turn whatever its length: what the turn's move time left,
   // the world clock walks; in a fight a walk not yet at its goal carries on next turn by itself. At its goal, at a way found
   // shut (BG-69), after a road trip, or with another long thing to do, it ends (BG-184: at its goal it always ends)

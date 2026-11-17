@@ -101,11 +101,12 @@ describe('172 travel', () => {
     const rolled = s.stage.encounter!.eventRoll;
     expect(replayScenarioStart(s, [null], createRng(5)).eventRoll).toBe(rolled);
     expect(s.stage.tier).toBe(rolled.tier);
-    // the encounter's people stand on the road ahead of the player, not at the road's middle
+    // RE6: the encounter's people stand on the road ahead of the player where a still figure is first glimpsed (60 m)
     n.actors[0].zone = 'north_road'; delete n.actors[0].pos;
     placeAll(n);
     const p = n.player.pos!, q = n.actors[0].pos!;
-    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(CONFIG.ENCOUNTER_M + 5);
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeGreaterThan(CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]![1] - 5);
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]![1] + 5);
   });
 
   it('RE1 (BG-291): road minutes carry over from trip to trip; each full leg of them rolls once, then the count starts again', () => {
@@ -147,6 +148,23 @@ describe('172 travel', () => {
     go(s, 'ashford_gate');
     expect(trip(s)).toBeUndefined();
     expect(s.player.zone).not.toBe('ashford_gate');
+  });
+
+  it('RE5: a trip runs on the world clock: someone new seen on the road ahead stops it there, as a rest or a walk stops', () => {
+    const s = withRoad(9);
+    const x = s.actors.find((a) => a.id === 'patron_1')!;
+    const road = s.zones.find((z) => z.id === 'north_road')!;
+    x.zone = 'north_road'; x.placeId = 'gate'; x.pos = { x: road.rect!.x, y: road.rect!.y };
+    const t0 = now(s);
+    const ev = go(s, 'ashford_gate');
+    const d = trip(s)!;
+    expect(d.stop).toBe('met');
+    expect(s.player.zone).toBe('north_road');
+    expect(s.log.find((l) => l.code === 'stretch_stopped')?.detail).toMatchObject({ kind: 'trip', why: 'appeared', by: ['patron_1'] });
+    expect(ev.find((e) => e.kind === 'travel')!.effects).toContainEqual(expect.objectContaining({ kind: 'stopped', actorId: 'player' }));
+    const p = s.player.pos!, q = x.pos!;
+    expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeLessThan(500); // stopped where they came into sight, not past them
+    expect(now(s) - t0).toBeLessThan(9000 / travelSpeed(s, s.player) / 60); // the clock ran only that far
   });
 
   it('TV3: a frontier off the road is at the road\'s far end: the trip walks there, then crosses', () => {
