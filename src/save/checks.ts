@@ -1,5 +1,5 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
-import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, ZoneLink } from '../types';
+import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, GroundPage } from '../types';
 import { resolveAlias } from '../library';
 import { CONFIG } from '../config';
 import type { Pages } from './pages';
@@ -182,7 +182,6 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
   const placeIds = new Set(keys.filter((k) => k.startsWith('place.')).map((k) => (pages[k] as Place).id));
   const actorIds = new Set(actorKeys(pages).map((k) => (pages[k] as Actor).id));
   const factIds = new Set(keys.filter((k) => k.startsWith('facts.')).flatMap((k) => (pages[k] as FactsPage).facts.map((f) => f.id)));
-  const placePages = keys.filter((k) => k.startsWith('place.'));
   const bands = (pages.engine as EnginePage | undefined)?.bands.map((b) => b.id) ?? [];
   const fix = (key: string, msg: string) => { r.repairs.push(`reference: ${key} ${msg}`); r.changed.add(key); };
   const keep = <T>(key: string, list: T[], ok: (x: T) => boolean, what: string): T[] => {
@@ -196,24 +195,11 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       const p = page as Place;
       if (p.parentId !== null && !placeIds.has(p.parentId)) { fix(k, `dropped parent ${p.parentId}`); p.parentId = null; }
       p.headlines = keep(k, p.headlines, (f) => factIds.has(f), 'headlines');
-      // an item the library no longer has would make every zone view throw: drop it, as for inventories
-      for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
-      for (const z of p.zones) for (const c of z.groundItems) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
-      // WI8 a: a frontier mark on a way into a built zone (a re-entry way of the old stage) goes: it is a plain way
-      for (const z of p.zones) for (const l of z.links) if (l.frontier && placePages.some((x) => (pages[x] as Place).zones.some((zz) => zz.id === l.to))) { delete l.frontier; fix(k, `the way from ${z.id} to ${l.to} is a plain way`); }
-      // BG-285: a way back added before a frontier was joined left two ways to the same zone; the one added by code (named
-      // after the zone) goes, the way the story named stays
-      for (const z of p.zones) {
-        const nameOf = (to: string) => placePages.map((x) => (pages[x] as Place).zones.find((zz) => zz.id === to)).find(Boolean)?.name;
-        const twin = (l: ZoneLink) => !l.frontier && l.label === nameOf(l.to) && z.links.some((b) => b !== l && !b.frontier && b.to === l.to);
-        for (const l of [...z.links]) if (twin(l)) { z.links.splice(z.links.indexOf(l), 1); fix(k, `dropped a second way from ${z.id} to ${l.to}`); }
-      }
-      // every link runs both ways (scenarios planned before the fix kept one-way links among their new zones)
-      for (const z of p.zones) for (const l of z.links) {
-        if (l.frontier) continue;
-        const ok = placePages.map((x) => [x, (pages[x] as Place).zones.find((zz) => zz.id === l.to)] as const).find(([, zz]) => zz);
-        if (ok && !ok[1]!.links.some((b) => b.to === z.id)) { ok[1]!.links.push({ to: z.id, label: z.name, sight: l.sight }); fix(ok[0], `added the way back from ${l.to} to ${z.id}`); }
-      }
+    } else if (k === 'ground') {
+      // an item the library no longer has would make every title's view throw: drop it, as for inventories
+      const g = page as GroundPage;
+      g.items = keep(k, g.items ?? [], (it) => L.hasItem(it.itemId), 'unknown ground items');
+      for (const c of g.items) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
     } else if (k.startsWith('facts.')) {
       for (const f of (page as FactsPage).facts) f.promotedTo = keep(k, f.promotedTo, (p) => placeIds.has(p), `promotions of ${f.id}`);
     } else if (k.startsWith('actor.')) {

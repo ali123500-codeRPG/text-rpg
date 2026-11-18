@@ -1,5 +1,6 @@
 // WI8 a: the stage keeps no list of zones. Every built zone in the world is live for every system; only what a planner or
 // an NPC agent is shown is bounded, by nearbyZones.
+import { waysOut } from '../plan/where';
 import type { GameState, Zone } from '../types';
 import { zoneById } from '../engine/relations';
 import { distOrNull } from '../engine/position';
@@ -9,7 +10,7 @@ import { CONFIG } from '../config';
 export function frontiersNearPlayer(state: GameState): string[] {
   const z = zoneById(state, state.player.zone);
   const out: string[] = [];
-  for (const l of z?.links ?? []) if (l.frontier && !out.includes(l.to)) out.push(l.to);
+  for (const l of z ? waysOut(state, z.id) : []) if (l.frontier && !out.includes(l.to)) out.push(l.to);
   return out;
 }
 

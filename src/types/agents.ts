@@ -189,12 +189,11 @@ export type StagePlan = {
     site?: string;
   }[];
   zones: {
-    key: string; place: string; kind: string; name: string; look: string;
-    cover?: Cover; light?: Light; // Z3: default from the kind
-    height?: number; // metres above the ground; inferred from up/down exit words when left out
+    key: string; place: string; kind?: string; name: string; look: string; // PZ9: a road has no kind
+    light?: Light; // PZ5: the light it is drawn lit to (a source at its middle); default from the kind
     size?: string; // CO16 a ZONE_SIZES word; the kind's default when left out
     area?: number; // CO16 m², instead of a size word
-    edges?: Partial<Record<import('./core').Side, string>>; // CO15 edge kind ids by side; the kind's default when left out
+    walls?: Partial<Record<import('./core').Side, string>>; // PZ2 a wall kind id (WK) by side, where it differs from the kind's
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     road?: string; // WZ1 a road zone: the region road it runs along (its length and danger come from the land)
@@ -202,7 +201,10 @@ export type StagePlan = {
     sideWay?: { toward?: string; name?: string }; // RE8 a: on a road encounter, this zone opens a side way off the road: a path toward a site id or landmark name, or a short path of its own
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
-    links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];
+    /** PZ10, PZ14: the ways out: to a title key, a frontier key or a land id; kind open (a gap, seen through), door, window
+     * (only jumped down), up or down (stairs, a ladder: the title is a storey above or below); open outdoors, door indoors
+     * when left out */
+    ways: { to: string; label: string; kind?: import('./core').WayKind; barrier?: PlanBarrier }[];
   }[];
   /** brief (WB3): one short line for the World builder on what lies beyond */
   frontiers: { key: string; label: string; brief?: string }[];

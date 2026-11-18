@@ -448,7 +448,7 @@ Settled by Ali 13/11/2026 on the Action Time pages (part one https://claude.ai/a
 
 ### Game state model
 
-The save is the set of pages defined in Part 4. On load, the engine builds one in-memory GameState from those pages; it is never saved as one document. Everyone is in a zone and stands at a point in metres in it (step 2, below). Each zone belongs to one place, and the stage may hold zones from several places. Knowledge lives on the observer: the guard's belief about the player is `guard.mind.knowledge.player`, and it can be wrong.
+The save is the set of pages defined in Part 4. On load, the engine builds one in-memory GameState from those pages; it is never saved as one document. Everyone stands at a point in metres, and the title of that point is their zone (titles, below). Each title belongs to one place, and the stage may hold zones from several places. Knowledge lives on the observer: the guard's belief about the player is `guard.mind.knowledge.player`, and it can be wrong.
 
 ```ts
 type Perception = 'full' | 'partial';
@@ -459,7 +459,10 @@ type GameState = {
   storyId: StoryId;
   turn: number;
   mode: 'explore' | 'dialogue' | 'tactical';
-  zones: Zone[];                // WI8 a: every built zone in the world (the same objects as places[].zones)
+  zones: Zone[];                // WI8 a: every built title in the world (the same objects as places[].zones)
+  walls: Wall[]; openings: Opening[]; roofs: Roof[]; lights: LightSource[];   // PZ2, PZ5: the floor plan
+  ground: ItemInstance[];       // PZ11: items lying on the ground, each at a point and floor (at)
+  furniture: Furniture[];       // FR1, PZ1: furniture at points (pos, floor), each in the title it was drawn in (zone)
   player: Actor;                // Actor is defined in Part 4 §9
   actors: Actor[];              // NPCs and enemies
   bands: Band[];
@@ -478,58 +481,108 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   relations: Record<string, 'hostile' | 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
 };
 
-// What a zone is (Z1–Z5, Ali, 08/11/2026; rewritten for CS3, 12/11/2026): one open space, however big: a room, a yard, a
-// hall, a square, a field (a road is one zone too, see Travel). Each open space is ONE zone with a size (Metres, below),
-// never split to show distance. A barrier between two parts (wall, door, gate, counter, fence, steps) starts a new zone,
-// so a link is a way between two spaces, not a measure of distance. People stand at real positions in metres inside a
-// zone (src/engine/position.ts, Spots in a zone), and distance is measured between positions. Every Weaver zone names a
-// zone kind from the library (zoneKinds: room, corridor, stairs, cellar, street, square, gate, yard, field, woods); the kind
-// fixes indoor or outdoor and gives the default cover and light, which the plan may change. An unknown kind is a bad_zone.
-// Height: a zone's height is metres above the ground outside (0 when unset). Stairs change height, never distance north,
-// south, east or west. The Weaver may give it; when it doesn't, code infers it from the exits (src/scenario/heights.ts): a
-// link whose words go up (up, upstairs, loft, roof...) climbs CONFIG.STOREY_HEIGHT (3 m, placeholder), one that goes down
-// (downstairs, cellar, below...) drops it, any other keeps it; a bare "up" or "down" counts only beside a way to climb
-// (stairs, steps, ladder, hatch...), so "down the street" stays level (BG-6); a story's first zones stand at 0. The Map page shows
-// one height (floor) at a time, with a height slider and stair badges, and zones on other floors straight above or below.
-// Drops (SD7): a link marked drop (a window or ledge over a lower zone) is seen through but never walked: paths and
-// pursuit go round (shortestPath skips it unless it asks for sight only), and the Weaver never links back up it. The player
-// takes it only by saying they jump (Parser move.jump, Order.jump): they land in the zone below and take a fall. The fall is
-// flat damage by the drop in metres (the two zones' heights), from CONFIG.FALL_BANDS (over 2 m 15, over 5 m 40, over 9 m 80, and past the human range over 15 m 120, over 30 m 160, over 50 m 200, about terminal speed, after which it stays;
-// placeholders, real-life injury heights: under about 2 m rarely hurts, a storey or two breaks bones, past about 9 m is often
-// fatal for a person). Being flat, tough or supernatural bodies can power through it. It lands on a random leg through the
-// normal damage step. A Dodge roll on landing moves it a band (CONFIG.FALL_LANDING_STEP: failures one band worse, Great or
-// Critical Success one band better; each tier past Critical Success, CONFIG.FALL_LANDING_PAST_STEP, one more band better, so a supernatural dodger lands a tower jump unhurt; past Critical Failure reads Critical Failure's row). The move event carries fall {metres, damage, landing} and the Narrator tells the jump
-// and landing from it. NPCs do not jump yet.
-// Metres (CO1–CO19, Ali, 11/11/2026; step 1, no rule reads these yet): the range unit is the pace, CONFIG.PACE_M (1 m,
-// about one stride; 1.5 m until 11/11/2026). Nothing is measured in zone links (ZR8: LINK_PACES and its conversion are gone). A zone's area is m²: the Weaver
-// gives a size word (ZONE_SIZES cramped 9, small 25, room 60, hall 225, yard 400, open 1,600, vast 10,000; CONFIG.ZONE_SIZE_M2,
-// placeholders) or area in m², else the kind's default size. Each library zoneSizes row names a real or fantasy reference.
-// Each side (n, e, s, w by map compass) has an edge kind from the library's edgeKinds table (EK1 wall, EK2 open, EK3 low:
-// counter or fence, EK4 window; a new kind is a new row with walk/see/reach/climb flags); indoor kinds default to wall,
-// outdoor kinds to open, and the Weaver gives edges only for a side that differs. An unknown size or edge kind is a bad_zone.
-// Placement (CO1 B, src/scenario/geometry.ts placeZones): code, never Claude, gives each new zone a rectangle (Zone.rect, metres:
-// centre east/north, w east-west, d north-south) of its area at its kind's aspect (corridor and street 4:1, stairs and gate
-// 2:1, else square), touching the zone it links to on the side its exit's compass word names (else the first free side),
-// lined up with that zone's centre or either end, sliding outward only when all are taken. Zones up or down stairs sit
-// straight above or below. doorway() is the middle of a shared wall (CO3). The Map's "Draw to scale" button draws the
-// rectangles at 12 px a metre, each side by its edge kind, with a 10 m bar in metres and paces.
-// Layouts (CO7, CO17; src/library/layouts.ts, typed ids LY): a common building's zones, sizes, sides and exits, prebuilt.
-// A plan place may name one ("layout": LY id from catalogs.layouts, optional "names"/"looks" by the layout's zone keys);
-// code adds its zones as placeKey.zoneKey (not counted against the zone cap) and places them like any others. The Weaver
-// links its own zones to placeKey.<entry>. An unknown layout is a bad_place. LY1 village tavern (common room with a counter
-// on its north side, behind the counter, kitchen, back yard, upstairs landing, cellar), LY2 cottage, LY3 shop, LY4 smithy
-// (open to the street on its south side), LY5 gatehouse. A building type may have several; a new layout is a new row.
-// Positions (step 2, ZP1–ZP6, src/engine/position.ts): everyone stands at a point (Actor.pos, metres in the rectangles'
-// frame). Code places them (placeAll, at scenario setup and each turn's start): anyone whose point is missing or outside its
-// zone gets the zone's centre, else the nearest free point on a half-CONFIG.PLACE_SPACING_M grid around it whose body
-// keeps PLACE_SPACING_M (1 m) from every other body there (SZ6).
-// Distance (distM): a straight line when there is sight between the zones (the same zone, or a path of sight links;
-// sightDistM, which attacks use: a blow or shot never goes round a wall), else the walking path through the doorways,
-// adding any climb. A move walks one leg at a time (walkLeg): to the next zone's doorway, then on; a move to a zone ends
-// CONFIG.ENTER_M (1 m) past its doorway. Every zone has a rectangle, the test village's too (ZR8); measuring in a zone
-// without one throws, as it is a world-building bug. The narration and views carry metres (a move's `metres`, a seen
-// actor's distanceM). PR 2 moves sight and sound to metres; PR 3 the hostile-within-2 m shot rule and the aura. Step 3
-// is travel along a road that is one long zone (CO18, its own deep dive).
+// Titles and the floor plan (PZ1-PZ17, Ali, 18/11/2026, Questions hub page "Phase out zones"; built in one rewrite, PZ16 b).
+// A zone is only a title: the name of a space. Walls, openings, light, clutter and walking paths live on the floor plan or
+// at the point where someone stands, never on the zone. The code keeps the word zone for the title's id (Zone, Actor.zone,
+// move.toZone), so the agents' shapes barely change (PZ10 a).
+// Titles (PZ1 a, as a 3D space): a title has a name, a look and a kind, and the space it names: a footprint of any shape
+// (Zone.outline, a polygon in metres, x east and y north, corners counter-clockwise) between a bottom and a top height
+// (Zone.floor and Zone.top, metres above the ground outside), so each floor of a building can be named on its own. A
+// point's title is the smallest space that holds it (src/plan/where.ts zoneAt): a booth drawn inside a hall reads as the
+// booth. Actor.zone is that title, kept by code whenever a point moves; code that sets a title instead (a scenario's start
+// zone, a test) gets a point in it from placeAll. A title's floor is the floor of everyone standing in it.
+// The floor plan (PZ2 a, src/plan): GameState.walls are segments, each with two ends (a, b), a floor and a top height, a
+// wall kind (library wallKinds, WK), a material and a thickness: WK1 wall (no walking, seeing or reaching across; loses
+// SOUND_LOSS_DB.wall), WK2 low (a counter or rail, LOW_WALL_M 1.1 m: seen and reached over, climbed), WK3 fence (FENCE_M
+// 1.2 m: seen through, climbed), WK4 glazed (a window side: seen through, never walked), WK5 arcade (arches on piers: seen
+// through, never walked). An open side is no wall at all. A new kind is a new row with walk, see, reach, climb, sound and
+// heightM (none: a storey) columns. GameState.openings are the ways: a doorway, gap, window, stairs, ladder or hatch at a
+// spot (at, on a floor) along a wall or in a floor, with a width and height (a window its sill), the two titles it joins
+// (joins) and how the way reads from each side (labels, "the north door", "behind the counter"), its barrier (the door,
+// gate, grate, shutters or rubble record of SD3-SD5, GameState.barriers) and seeThrough (with no barrier standing open: a
+// gap or arch shows the far side, a plain doorway does not). Stairs, ladders and hatches join two floors and carry their
+// far end (to: a point on the other floor). A window over lower ground is a drop (SD7). A frontier is an opening to ground
+// not yet built (frontier; its second join is the frontier key) and is built like any frontier. A title's ways out
+// (waysOut) are the openings that join it, read from its side. GameState.roofs are outlines at a height: a point is
+// indoors when a roof is overhead (underRoof), and a roof is the floor of the storey above, so sight and sound cross it
+// only through stairs and hatches.
+// Drawing (PZ14 a, src/plan/draw.ts): the Weaver names titles with a kind and a size and the ways between them; code, never
+// Claude, draws them. Title kinds (library zoneKinds ZK1-ZK10: room, corridor, stairs, cellar, street, square, gate, yard,
+// field, woods) are drawing templates: a default size and aspect, whether a roof goes over it (roof), its default wall
+// kind (indoors WK1 wall, outdoors none), its default light (a source, below) and its default furniture. They have no
+// cover, light or outdoor columns. Code first places each new title's footprint (placeZones, CO1 B, unchanged in method:
+// a rectangle of its area at its kind's aspect touching the title it joins on the side its way's compass word names, else
+// the first free side, in whole metres, never inside another building's footprint, MAP-10 to MAP-12), then draws the plan
+// (drawPlan): one wall along each side by its wall kind (a side two titles share gets one wall, the more closed of their
+// two kinds), one opening per way at the middle of the shared wall (CO3, a doorway), a roof over each roofed title, its
+// lights and its furniture at points. Titles up or down stairs sit straight above or below, a STOREY_HEIGHT (3 m) apart:
+// the way's kind says it (up, down), never its words; a story's first titles stand at 0. Layouts (CO7, CO17; LY1-LY5)
+// are small floor plans of titles, their sides' wall kinds, ways and furniture, drawn the same way. A Weaver title may
+// name a wall kind for a side its template does not (walls: the smithy open to the street on its south side). An unknown
+// kind, size, wall kind or opening kind is a bad_zone.
+// Points and floors (PZ7 a): everyone stands at a point in metres (Actor.pos) on their title's floor; a ground item lies
+// at a point with its floor (ItemInstance.at); a belief keeps the point and floor where the other was last made out
+// (Belief.lastKnownAt) with its title for words (lastKnownZone). Placement (placeAll, at scenario setup and each turn's
+// start): anyone with no point, or one outside their title, gets the nearest free point to the title's middle on a
+// half-PLACE_SPACING_M grid whose body keeps PLACE_SPACING_M (0.75 m) from every other body (SZ6).
+// Sight (PZ3 a): a clear line from the viewer's eye (EYE_SHARE 0.94 of its height) to the target that no wall stops: a
+// wall stops it where the line crosses below the wall's top, except through an opening that is seen through (an open
+// gap, a window, a barrier standing open or seen through, PC4) within its span; a roof stops it except through a stairs or
+// hatch hole (src/plan/line.ts lineClear). Through a doorway you see a slice of the next room. Every sight range (the sight
+// table, SZ11) reads the line's metres. perceivedZoneIds and sight links are gone; a view's zones list is the viewer's
+// title and the titles it sees into through an opening.
+// Distance (distM): the straight line between the bodies when the line is clear (sightDistM, which attacks use: a blow or
+// shot never goes round a wall), else the walking path.
+// Walking (PZ8 a, src/plan/path.ts): a walk goes straight where nothing is in the way, else round walls through their
+// corners and openings: the shortest path over a visibility graph of the floor's wall corners (CORNER_CLEAR_M 0.4 m off
+// each corner) and openings, with stairs, ladders and hatches joining floors (their climb added). It never goes through a
+// wall, a low wall or fence (those are climbed, not walked), a window, a way shut to the walker that it knows is shut
+// (BG-69, FR5), or an opening too small for its body (SZ7). A move walks along it as far as its metres go (walkLeg), and
+// the walker's title is the title of the point it ends at. A move to a title ends CONFIG.ENTER_M (1 m) past the way in.
+// gateAhead is the first opening on the path whose barrier is not open to the walker.
+// Sound (PZ4 a, perception/noise.ts): a sound's level at the ear is the louder of the straight line (source −
+// 20·log10(metres) − SOUND_LOSS_DB of each wall and shut opening it crosses, a roof or floor counting as a wall, a low
+// wall or fence nothing) and the walking path through the openings (− 20·log10(its metres) − the loss of each shut
+// opening on it).
+// Light (PZ5 a, D-391 unparked, src/plan/light.ts): light sources are objects (GameState.lights: a kind from the library's
+// lightKinds, a point and height, a brightness in candela, lit or not). The light at a point is the brightest of the sky
+// (CONFIG.SKY_LIGHT by time of day, where no roof is overhead) and each lit source with a clear line to it, at brightness
+// ÷ metres² (the inverse-square law), read as the brightest LIGHT_LUX level it reaches (lightAt). Source kinds
+// (placeholders): candle 1 cd, oil lamp 10 cd, lantern 15 cd, torch 100 cd, hearth 300 cd. A title's light word (the
+// Weaver's, else its kind's) is drawn as a room-lights source at its middle, under its ceiling, bright enough that the word
+// holds out to its far corner; a black title has none, and an outdoor title gets one only for a word brighter than
+// moonlit. So a hall lit by one fire is bright by the fire and dim at the far end.
+// Clutter (PZ6 a): outdoors, the cover at a point is its land cell's (REGION_CELL_M 100 m cells, landCovers cover and
+// standsM, how high it stands); inside a settlement cell, the drawn plan's objects (carts, barrels, hedges as furniture with
+// sizes, PC2) give it instead, as indoors (coverAt). Zone.cover and the kind's coverM are gone.
+// Memory and search (PZ11 a): a search covers the searcher's search area (SEARCH_AREA_M2 × skill ÷ 50) round the spot it
+// searches, within its sight line; scenario ground and chase ranges stay as the titles a scenario built, with near in
+// metres. Fog (PZ12 a): the player's journal keeps the ground it has seen: under a roof in 1 m squares per floor
+// (journal.seenSquares), outdoors by land cells (journal.seenCells); the Map draws the walls, openings, furniture and land
+// it has seen, with titles as labels on their outlines. zonesSeen and zonesVisited are gone; the titles the player has
+// entered (journal.titlesEntered) count for the titles chain (PZ13 a, ACH zones_1 to zones_300) and the land cells it has
+// stood in (journal.cellsStood) for the new-ground chain (PZ17 a, below).
+// Roads (PZ9 a): a road is its line on the land (RoadLine: points, length, danger, crossings). Its title runs along the
+// line, ROAD_WIDTH_M (4 m) wide (Zone.road names the line), and a traveller stands at a point on it; travel walks the line.
+// A road with no land line under it (a story with no region) gets a straight line of its length (ROAD_LENGTHS words:
+// a short walk 0.5 km, half an hour 2, an hour's walk 4.5, half a day 15, a day's walk 30, two days 60, CONFIG.
+// ROAD_LENGTH_KM; or km) and a danger (ROAD_DANGERS: safe, quiet, wild, dangerous; CONFIG.ROAD_ENCOUNTER_PCT 5/10/20/35 %
+// per hour, RE3, placeholders); left out: an hour's walk, quiet. The road kind (ZK11) is gone.
+// Saves (PZ16 b): the rewrite is schema 10; older saves are refused (no old saves are kept, prototype rule).
+// Drops (SD7): a window or ledge over lower ground is seen through but never walked: paths and pursuit go round, and the
+// Weaver never joins back up it. The player takes it only by saying they jump (Parser move.jump, Order.jump): they land on
+// the lower ground below it and take a fall. The fall is flat damage by the drop in metres (the two floors), from
+// CONFIG.FALL_BANDS (over 2 m 15, over 5 m 40, over 9 m 80, and past the human range over 15 m 120, over 30 m 160, over 50 m
+// 200, about terminal speed, after which it stays; placeholders, real-life injury heights: under about 2 m rarely hurts, a
+// storey or two breaks bones, past about 9 m is often fatal for a person). Being flat, tough or supernatural bodies can
+// power through it. It lands on a random leg through the normal damage step. A Dodge roll on landing moves it a band
+// (CONFIG.FALL_LANDING_STEP: failures one band worse, Great or Critical Success one band better; each tier past Critical
+// Success, CONFIG.FALL_LANDING_PAST_STEP, one more band better, so a supernatural dodger lands a tower jump unhurt; past
+// Critical Failure reads Critical Failure's row). The move event carries fall and landing from it. NPCs do not jump yet.
+// Metres (CO1-CO19, Ali, 11/11/2026): the range unit is the pace, CONFIG.PACE_M (1 m, about one stride). A title's area is
+// m²: the Weaver gives a size word (ZONE_SIZES cramped 9, small 25, room 60, hall 225, yard 400, open 1,600, vast 10,000;
+// CONFIG.ZONE_SIZE_M2, placeholders) or area in m², else the kind's default size. Each library zoneSizes row names a real
+// or fantasy reference. The narration and views carry metres (a move's `metres`, a seen actor's distanceM).
 // Body size (SZ1-SZ6, SZ9, SZ10, SZ15, Ali 17/11/2026, Questions hub page "Body size and edge-to-edge reach"): every body
 // type has a size in metres (BodyType.size: length nose to rump without the tail, width at the widest point, height
 // standing: stature upright, shoulder height for beasts; cited, estimates marked) and a race multiplies each measure
@@ -551,44 +604,42 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // fist 0; a grapple −0.1, an improvised strike 0.5) and reaches the wielder's grip reach plus that (ruleset/gear inGrip);
 // its library reachM is what a standard person reaches, for item value and the viewer. A body's volume is its size's box,
 // length × width × height (actorVolumeM3), for perks and achievements. The gaps between bodies (Hall's proxemics):
-// PLACE_GAP_M 0.15, PLACE_SPACING_M 0.75; a move into a zone stands ENTER_M past the doorway to its body's near edge (half
+// PLACE_GAP_M 0.15, PLACE_SPACING_M 0.75; a move into a title stands ENTER_M past the way in to its body's near edge (half
 // its length more), and a spot by a wall ENTER_M from it to the body's edge (half its widest side more); a hostile is near
 // the shooter within HOSTILE_NEAR_STEP_M (0.75) plus its own melee reach (hostileNearM), which also sets when someone
 // coming closer interrupts a long action. Round 3 (SZ11-SZ13): a body is seen as far again as a person by
 // sightFactor = √(seen area ÷ a person's from level ground), seen area = its longer floor side × (height × cos θ + shorter
-// side × sin θ), θ the look-down angle from a higher zone (0 on level ground; library/bodySize). Every sight range reads the
+// side × sin θ), θ the look-down angle from higher up (0 on level ground; library/bodySize). Every sight range reads the
 // metres ÷ that factor (seeingM, seenSizeFactor): a horse is seen about twice as far as a person, a slime at 0.41 of it.
 // Cover is set for a person and scales smoothly with height (CV3, CV4): what shows = (1 − hidden) × height ÷ 1.75 for a
-// smaller body, × height ÷ the zone kind's coverM for a taller one (coverShown; Reach, range, cover and light), for hiding
-// and for shots at it. The range penalty reads the shot's metres ÷ the target's factor; a shot still needs the weapon's reach.
-// Doorways (SZ7): a way into or out of an indoor zone is a doorway, CONFIG.DOORWAY_M 0.9 × 2 m, unless its barrier
-// kind has its own opening (a gate 3 × 2.5 m, a grate a door's, a hatch 0.7 × 0.7 m gone through upright); ways between
-// outdoor zones have none. A body goes through when the narrower of its length and width fits the width (it turns
-// sideways) and its height ducked to DUCK_SHARE (0.5) fits the height; ducking costs no time; crawling is parked (D-369).
-// A walk never plans through a way too small for the walker (wayPath, fitsThrough). On the map and minimap (SZ16),
-// someone seen clearly at their own point whose body is bigger than its token draws its footprint to scale beneath it:
-// a capsule, its length along the way it faces (ui/map footprintMark; MapPerson.body).
-// Roads (TV3, TV4): a road between places is ONE zone of the road kind (ZK11), however long. The Weaver gives it a length
-// (a ROAD_LENGTHS word: a short walk 0.5 km, half an hour 2, an hour's walk 4.5, half a day 15, a day's walk 30, two days
-// 60, CONFIG.ROAD_LENGTH_KM; or km) and a danger (ROAD_DANGERS: safe, quiet, wild, dangerous; the chance per hour that
-// something meets you is CONFIG.ROAD_ENCOUNTER_PCT 5/10/20/35 % per hour, RE3, placeholders). Code makes its rectangle that long and
-// ROAD_WIDTH_M (4 m) wide. Left out: an hour's walk, quiet.
-type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
-              links: ZoneLink[]; cover: Cover; light: Light;                        // zone ids unique within a story
-              height?: number;                                           // metres above the ground outside
-              rect?: Rect;                                               // set by code (placeZones): metres on the map
-              area?: number; edges?: Partial<Record<'n' | 'e' | 's' | 'w', string>>; // CO16 m², CO15 edge kind ids by side
-              danger?: 'safe' | 'quiet' | 'wild' | 'dangerous';          // TV4 roads only (ROAD_DANGERS)
-              groundItems: ItemInstance[] };                             // Part 5 §4
-type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true; drop?: true };
-                                                   // label: how the linked zone reads from here, e.g. 'left of the gate'
-                                                   // sight: true = actors here can see into `to` [Proposed]
-                                                   // frontier: `to` names an area not yet built
-                                                   // drop: a way down only by jumping (a window, a ledge); see Drops
+// smaller body, × height ÷ the clutter's height (standsM) for a taller one (coverShown; Reach, range, cover and light), for
+// hiding and for shots at it. The range penalty reads the shot's metres ÷ the target's factor; a shot still needs the
+// weapon's reach.
+// Ways and bodies (SZ7): a doorway is CONFIG.DOORWAY_M 0.9 × 2 m unless its barrier kind has its own opening (a gate 3 ×
+// 2.5 m, a grate a door's, a hatch 0.7 × 0.7 m gone through upright); a way between two outdoor titles is as wide as the
+// ground they share. A body goes through when the narrower of its length and width fits the width (it turns sideways) and
+// its height ducked to DUCK_SHARE (0.5) fits the height; ducking costs no time; crawling is parked (D-369). A walk never
+// plans through a way too small for the walker (fitsThrough). On the map and minimap (SZ16), someone seen clearly at their
+// own point whose body is bigger than its token draws its footprint to scale beneath it: a capsule, its length along the
+// way it faces (ui/map footprintMark; MapPerson.body).
+type Pt = { x: number; y: number };                                       // metres, x east, y north
+type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // a title (PZ1); look: public text
+              kind?: string;                                             // the title kind (ZK) it was drawn from
+              outline: Pt[]; floor: number; top: number;                 // its space: footprint between two heights
+              area?: number;                                             // CO16 m² it was drawn at
+              road?: string };                                           // PZ9: the RoadLine it runs along
+type Wall = { id: string; a: Pt; b: Pt; floor: number; top: number; kind: string; material?: string; thicknessM: number };
+type Opening = { id: string; kind: string; at: Pt; floor: number; wall?: string; widthM: number; heightM: number;
+                 sillM?: number; to?: { at: Pt; floor: number };          // stairs, ladders, hatches, drops: the far end
+                 joins: [string, string]; labels: [string, string];      // the titles either side, read from each
+                 barrier?: string; seeThrough: boolean; frontier?: true; drop?: true };
+type Roof = { id: string; outline: Pt[]; h: number };                    // indoors under it (PZ5)
+type LightSource = { id: string; kind: string; at: Pt; h: number; candela: number; lit?: false };
 
 type Belief = {
   status: 'unaware' | 'suspicious' | 'aware' | 'tracking' | 'hunting' | 'engaged';   // AWARENESS keys (src/scales.ts)
-  lastKnownZone?: string;
+  lastKnownZone?: string;       // the title of lastKnownAt, for words (PZ11)
+  lastKnownAt?: { x: number; y: number; floor: number };   // PZ11: where it was last made out
   lastSeenTurn?: number;
   source: 'seen' | 'heard' | 'told';
   closedTurn?: number;          // YD6: last turn either side attacked or closed in, which keeps hunting and engaged alive

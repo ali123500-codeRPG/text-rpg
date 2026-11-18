@@ -2,8 +2,9 @@
 import type { CreationBuild, Bookmark, EnginePage, GameState, Head, Library, LogLine, PageRef, StoryMeta, StoryOwner, TurnRecord, FameEntry } from '../types';
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
-import { relayBroken } from '../scenario/geometry';
-import { mendLandWays, worldCheck } from '../scenario/ways';
+import { brokenLayouts } from '../scenario/geometry';
+import { roofed } from '../plan/where';
+import { worldCheck } from '../scenario/ways';
 import { checkInvariants, checkShape, migrate, newReport, reconcile, repairReferences, type CheckReport } from './checks';
 export { memoryStore, artifactDbStore, type MemoryStore, type DB } from './store';
 export { universeDay, reachDay } from './universe';
@@ -206,13 +207,12 @@ export async function loadStory(store: Store, storyId: string, library: Library)
     }
     const state = fromPages(meta, next, pages);
     // MR2: a layout stored before the map rules (MAP-10/11/12) is placed again once; the next save keeps the new one
-    for (const m of mendLandWays(state)) r.repairs.push(`world: ${m}`); // WI7 a: a world built before WI2, mended once
     // WI9 a: a land rule the save still breaks is filed as a bug (once per rule broken), and the game loads anyway
     for (const m of worldCheck(state)) {
       r.warnings.push(`world check: ${m}`);
       if (!state.log.some((l) => l.code === 'world_check' && l.detail?.broken === m)) state.log.push({ turn: state.turn, code: 'world_check', detail: { broken: m } });
     }
-    for (const b of relayBroken(state)) r.repairs.push(`map: placed ${b.placeId} again (${b.why})`);
+    for (const b of brokenLayouts(state, (z) => roofed(state, z))) r.warnings.push(`map: ${b.placeId} ${b.why}`);
     return { state, report: [...r.repairs, ...r.warnings.map((w) => `warning: ${w}`)] };
   });
 }

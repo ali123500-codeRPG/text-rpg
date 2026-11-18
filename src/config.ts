@@ -606,10 +606,10 @@ const DEFAULTS = {
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 9, // v9: land (regions, WZ12)
+  SCHEMA_VERSION: 10, // v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
   /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
-  OLDEST_SAVE_SCHEMA: 9,
-  OLDEST_SAVE_REASON: 'before the land (the new zone system)',
+  OLDEST_SAVE_SCHEMA: 10,
+  OLDEST_SAVE_REASON: 'before zones became titles on a floor plan (walls, doors and light at points)',
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 5,
   /** AX1/AX2: an accessory's bonus = this × EQUIP_NEED of its level: Common 5, Fine 10, Superior 15, Masterwork 20 */
@@ -923,7 +923,30 @@ const DEFAULTS = {
   /** FL5: stance steps colder when caught: the owner, and every other watcher who caught it */
   FILCH_CAUGHT_OWNER_STEPS: 2,
   FILCH_CAUGHT_WITNESS_STEPS: 1,
-  STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
+  STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs: a title up or down a way of kind up or down sits this far above or below (PZ7)
+  // ---- PZ1-PZ17 titles and the floor plan (src/plan); placeholders unless a source is given ----
+  /** PZ1 a: how high a title under the open sky reaches above its floor (its space's top), so the smallest space wins */
+  OPEN_AIR_TOP_M: 30,
+  /** PZ2: a low wall or counter, and a fence or rail, stand this high above their floor (a bar counter is about 1.1 m) */
+  LOW_WALL_M: 1.1,
+  FENCE_M: 1.2,
+  /** PZ2: a wall's thickness in metres when drawn by a template (a timber-framed wall of wattle and daub, about 0.15 to
+   * 0.3 m; an estimate); its material is left out until the walls thread breaks walls (BW1) */
+  WALL_THICKNESS_M: 0.25,
+  /** PZ2: an open way (an arch, a counter's gap) cut across a wall is this wide, or the wall's length if shorter */
+  ARCH_M: 2,
+  /** PZ8: a walk round a wall's end keeps this far from the corner (a little more than half a person's width) */
+  CORNER_CLEAR_M: 0.4,
+  /** PZ5: a title's lights hang this far below its top indoors; outdoors a lamp stands this high (a lamp post) */
+  LIGHT_BELOW_TOP_M: 0.5,
+  LIGHT_POST_M: 2.5,
+  /** PZ12 a: the Map's fog in the open where no land lies under it is kept in squares this many metres across (1 m under a
+   * roof); fog chunks are FOG_CHUNK squares a side; each turn the player's eye marks the squares it sees within FOG_ROOF_M
+   * under a roof and FOG_OPEN_M in the open */
+  FOG_OPEN_SQUARE_M: 10,
+  FOG_CHUNK: 32,
+  FOG_ROOF_M: 30,
+  FOG_OPEN_M: 200,
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");
    * a knife 7 (the longest standard distance in

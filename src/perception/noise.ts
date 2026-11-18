@@ -1,81 +1,38 @@
-// BG-57, HB1–HB5: hearing by real metres. A sound's decibels at 1 m (CONFIG.NOISE_DB) weaken 20·log10(metres) with
-// distance (the inverse-square law) and lose SOUND_LOSS_DB at each crossing between zones (an open gap nothing, a shut door
-// or window 30, a wall 35), by whichever route keeps it loudest. The listener hears it while it is at least HEARING_FLOOR_DB
+// BG-57, HB1–HB5, PZ4: hearing by real metres. A sound's decibels at 1 m (CONFIG.NOISE_DB) weaken 20·log10(metres) with
+// distance (the inverse-square law) and lose SOUND_LOSS_DB at each wall, shut way, floor or roof in the way (an open gap
+// nothing, a shut door or window 30, a wall 35), by the straight line or the walking path, whichever keeps it louder. The listener hears it while it is at least HEARING_FLOOR_DB
 // and clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it (per-zone background noise is parked: D-231).
 import { CONFIG } from '../config';
-import { getLibrary } from '../library';
-import type { NoiseKey, SoundLossKey } from '../scales';
-import type { GameState, Perception, Zone, ZoneLink } from '../types';
-import { pathM, sightDistM, spotOf, withinM, type Located } from '../engine/position';
-import { zoneById } from '../engine/relations';
-import { doorway, edgeFacing, sameFloor } from '../scenario/geometry';
+import type { NoiseKey } from '../scales';
+import type { Actor, GameState, Perception } from '../types';
+import { floorGap, pointAt, walkThrough, withinM, type Located } from '../engine/position';
+import { actorBody } from '../library';
+import { lineLoss, openingLoss } from '../plan/line';
 
 /** NV5: the noise of a spoken line by its volume (one table for the player's and NPCs' lines) */
 export const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const satisfies Record<import('../types').Volume, NoiseKey>;
 
-const lossDb = (k: SoundLossKey | undefined): number => CONFIG.SOUND_LOSS_DB[k ?? 'open'];
+/** the height a sound is made and heard at: a person's mouth and ears (a spot: as high as a person's) */
+const earOf = (state: GameState, x: Located, floor: number): number => floor + ('core' in x ? actorBody(state, x as Actor).size.heightM * CONFIG.EYE_SHARE : 1.5);
 
-/** HB4: what a sound loses crossing link `l`: a barrier by its kind while it is shut (a door, a gate, a hatch; a grate's
- * bars cost nothing); a window (a drop link); a doorway that can't be seen through is a shut door; else an open gap */
-function linkLoss(state: GameState, l: ZoneLink): number {
-  const b = l.barrier ? state.barriers?.[l.barrier] : undefined;
-  if (b) return b.open || b.state === 'destroyed' ? lossDb('open') : lossDb(getLibrary().barrierKinds?.[b.kind]?.sound);
-  return lossDb(l.drop ? 'window' : l.sight ? 'open' : 'door');
-}
-
-/** every way a sound leaves zone `z` for another stage zone: its links, and (zones with rectangles) the side it shares with
- * a zone on the same floor it has no link to, through that side's edge (a wall, a counter, a window) */
-function crossings(state: GameState, z: Zone): { to: string; loss: number }[] {
-  const stage = new Set(state.zones.map((z) => z.id));
-  const out = z.links.filter((l) => !l.frontier && stage.has(l.to)).map((l) => ({ to: l.to, loss: linkLoss(state, l) }));
-  if (!z.rect) return out;
-  const kinds = getLibrary().edgeKinds ?? {};
-  for (const id of stage) {
-    const o = zoneById(state, id);
-    if (!o?.rect || o.id === z.id || z.links.some((l) => l.to === id) || !sameFloor(z, o) || !doorway(z, o)) continue;
-    const edge = edgeFacing(z, o);
-    out.push({ to: id, loss: lossDb(edge ? kinds[edge]?.sound ?? 'wall' : 'wall') });
-  }
-  return out;
-}
-
-/** the least-loss route from one zone to another (the zone ids after `from`) and its loss; null with none */
-function quietestRoute(state: GameState, from: string, to: string): { path: string[]; loss: number } | null {
-  if (from === to) return { path: [], loss: 0 };
-  const best = new Map<string, { cost: number; prev?: string; loss: number }>([[from, { cost: 0, loss: 0 }]]);
-  const open = new Set([from]);
-  while (open.size) {
-    let cur = '', cc = Infinity;
-    for (const id of open) { const c = best.get(id)!.cost; if (c < cc || (c === cc && id < cur)) { cur = id; cc = c; } }
-    open.delete(cur);
-    if (cur === to) break;
-    const z = zoneById(state, cur);
-    if (!z) continue;
-    for (const c of crossings(state, z)) {
-      const cost = cc + c.loss + 0.001; // fewer crossings break a tie
-      if (cost < (best.get(c.to)?.cost ?? Infinity)) { best.set(c.to, { cost, prev: cur, loss: best.get(cur)!.loss + c.loss }); open.add(c.to); }
-    }
-  }
-  const end = best.get(to);
-  if (!end) return null;
-  const path: string[] = [];
-  for (let id: string | undefined = to; id && id !== from; id = best.get(id)!.prev) path.unshift(id);
-  return { path, loss: end.loss };
-}
-
-/** the decibels of a sound of this noise, made at `from`, where `to` stands (Keen Ear's `keenDb` adds); null for silence
- * or no route. The route that loses least on the way; across open gaps with sight between them, the straight line. */
+/** PZ4 a: the decibels of a sound of this noise, made at `from`, where `to` stands (Keen Ear's `keenDb` adds); null for
+ * silence or no way at all. The louder of two: the straight line (through every wall, shut way, floor and roof on it,
+ * each losing SOUND_LOSS_DB by its kind) and the walking path (each way on it losing what stands in it). */
 export function soundDb(state: GameState, noise: NoiseKey | undefined, from: Located, to: Located, keenDb = 0, leanIn = false): number | null {
   const base = CONFIG.NOISE_DB[noise ?? 'normal'];
   if (base === null || base === undefined) return null;
-  const A = spotOf(state, from), B = spotOf(state, to);
-  const r = quietestRoute(state, A.zone, B.zone);
-  if (!r) return null;
-  let m = pathM(state, from, to, r.path); // SZ5: from body to body (a spot is a point)
-  if (r.loss === 0 && A.zone !== B.zone) m = Math.min(m, sightDistM(state, from, to));
-  // HB8: whispering to someone within reach, the speaker leans in to their ear
-  const near = leanIn && r.loss === 0 && withinM(m, CONFIG.WHISPER_REACH_M);
-  return base + keenDb - 20 * Math.log10(near ? CONFIG.WHISPER_LEAN_M : Math.max(m, CONFIG.NEAREST_M)) - r.loss;
+  const A = pointAt(state, from), B = pointAt(state, to);
+  const lineM = Math.hypot(floorGap(state, from, to), B.floor - A.floor);
+  const lineDb = lineLoss(state, { x: A.x, y: A.y, z: earOf(state, from, A.floor) }, { x: B.x, y: B.y, z: earOf(state, to, B.floor) });
+  // HB8: whispering to someone within reach with nothing between, the speaker leans in to their ear
+  const near = leanIn && lineDb === 0 && withinM(lineM, CONFIG.WHISPER_REACH_M);
+  const db = (m: number, loss: number) => base + keenDb - 20 * Math.log10(Math.max(m, CONFIG.NEAREST_M)) - loss;
+  let best = near ? base + keenDb - 20 * Math.log10(CONFIG.WHISPER_LEAN_M) : db(lineM, lineDb);
+  if (lineDb > 0) {
+    const w = walkThrough(state, from, to);
+    if (w) best = Math.max(best, db(w.metres, w.through.reduce((n, o) => n + openingLoss(state, o), 0)));
+  }
+  return best;
 }
 
 /** HB1: how well the listener hears it: 'full' (who and what) from CLEAR_ABOVE_FLOOR_DB over HEARING_FLOOR_DB, 'partial'

@@ -2,6 +2,7 @@
 // routine, wait). It thinks (one Planner call, src/agents/game.ts goalThinkers) when its queue runs out or a step fails,
 // when it perceives something a goal names, or whenever it would get a Planner call anyway (engaged, talked to, a deal).
 // No call runs inside a long turn: queued steps run on through it by code (runSteps in the night and stretch loops).
+import { groundIn } from './ground';
 import type { Actor, Drive, GameState, GoalOps, GoalStep } from '../types';
 import { CONFIG } from '../config';
 import { DAY_MINUTES, minutesUntil, now } from '../time';
@@ -114,7 +115,7 @@ export function noticeGoals(state: GameState): void {
     if (!named.size || !a || a.kind === 'player' || !isActive(a) || a.asleep) continue;
     const z = zoneById(state, a.zone);
     const here = new Set<string>([
-      a.zone, ...(z ? [z.placeId, ...z.groundItems.flatMap((i) => [i.id, i.itemId])] : []),
+      a.zone, ...(z ? [z.placeId, ...groundIn(state, z.id).flatMap((i) => [i.id, i.itemId])] : []),
       ...a.core.inventory.flatMap((i) => [i.id, i.itemId]),
       ...buildActorView(state, id).seen.map((s) => s.id),
     ]);

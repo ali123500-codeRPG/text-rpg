@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items and the routine bank (the library viewer shows every row). All numbers are placeholders.
-import { AM, BK, CP, DU, RV, EK, FR, FU, GC, GT, IF, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+import { AM, BK, CP, DU, RV, WK, OP, LS, FR, FU, GC, GT, IF, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
 import { TP } from './templateIds';
 import { GP, HK, PF, RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
@@ -902,8 +902,8 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
 
 const set = (id: string, brief: string, place: string[], role: string[], time: RoutineSet['tags']['time'], slots: RoutineSet['slots'], routines: string[]): RoutineSet =>
   ({ id, brief, tags: { place, role, time, event: ['ordinary'] }, slots, routines });
-/** NW4: the kinds that lead onward (a street, square, gate, field, woods or road never ends in a wall); yards and rooms may */
-const ONWARD_KINDS = new Set<string>([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods, ZK.road]);
+/** NW4: the kinds that lead onward (a street, square, gate, field or woods never ends in a wall); yards and rooms may */
+const ONWARD_KINDS = new Set<string>([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods]);
 const z = (hint: string) => ({ kind: 'zone' as const, hint });
 /** RT: an optional slot; left unbound, the actor stays where it is at the times that read it */
 const oz = (hint: string) => ({ kind: 'zone' as const, hint, optional: true as const });
@@ -1327,20 +1327,20 @@ export function prototypeLibrary(): Library {
     // Throw carries the throw action's combined roll for every weapon that lists it; a throw mode's reachM is its own throw range (CONFIG.THROW_M)
     attackModes: Object.fromEntries(Object.entries(AM).map(([w, id]) => [id, { id, name: w[0].toUpperCase() + w.slice(1),
       ...(id === AM.throw ? { blend: CONFIG.THROW_BLEND } : {}) }])),
-    // CO16 default size and CO15 default edge per kind: indoors walled, outdoors open
+    // PZ14 a: title kinds are drawing templates: a roof or not, the light word drawn as a source (PZ5), default size and
+    // aspect, and every side's wall kind unless named (roofed: a wall; open sky: none). No cover or light columns: clutter is
+    // the land and objects (PZ6), light is sources (PZ5)
     zoneKinds: Object.fromEntries(([
-      // CV2: Street light cover (carts, doorways, barrels); CV4: coverM, how high the cover stands (placeholders): a bar counter
-      // 1.1 m, barrels 1 m, carts and yard walls 2 m, a mature oak 20 m (the Woods land cover's note)
-      [ZK.room, 'Room', false, 'none', 'lamplit', 'room', 1, 1.1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4, 0], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2, 0],
-      [ZK.cellar, 'Cellar or cave', false, 'none', 'dark', 'room', 1, 1], [ZK.street, 'Street', true, 'light', 'dark', 'yard', 4, 2], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1, 0],
-      [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2, 0], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1, 2], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1, 0],
-      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1, 20], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1, 0],
-    ] as const).map(([id, name, outdoor, cover, light, size, aspect, coverM]) => [id, { id, name, outdoor, cover, light, size, aspect, ...(coverM ? { coverM } : {}), edge: outdoor ? EK.open : EK.wall,
-      ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
+      [ZK.room, 'Room', true, 'lamplit', 'room', 1], [ZK.corridor, 'Corridor', true, 'dim', 'small', 4], [ZK.stairs, 'Stairs', true, 'dim', 'cramped', 2],
+      [ZK.cellar, 'Cellar or cave', true, 'dark', 'room', 1], [ZK.street, 'Street', false, 'dark', 'yard', 4], [ZK.square, 'Square', false, 'dark', 'open', 1],
+      [ZK.gate, 'Gate', false, 'dark', 'small', 2], [ZK.yard, 'Yard', false, 'dark', 'yard', 1], [ZK.field, 'Field', false, 'dark', 'open', 1],
+      [ZK.woods, 'Woods', false, 'dark', 'open', 1],
+    ] as const).map(([id, name, roof, light, size, aspect]) => [id, { id, name, roof, light, size, aspect, wall: roof ? WK.wall : WK.open,
+      ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
       ...(KIND_FURNITURE[id] ? { furniture: KIND_FURNITURE[id] } : {}) }])),
     // FR1: what furniture can be (a piece's kind sets its map icon; its name is the story's)
     furnitureKinds: Object.fromEntries(Object.entries(FU).map(([k, id]) => [id, { id, name: k.replace(/_/g, ' '), ...(FURNITURE_SIZE_M[id] ? { sizeM: FURNITURE_SIZE_M[id] } : {}) }])),
-    // TV3/TV4: a road is one long zone; its length and danger words
+    // TV3/TV4, PZ9: a road's length and danger words (a road with no land line under it)
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
     // WZ11 region kinds (placeholders): relief in metres, wild shares by land cover, settlements per region (WZ3: one
@@ -1375,12 +1375,37 @@ export function prototypeLibrary(): Library {
       [LM.quarry, 'Quarry', 'hill'], [LM.mill, 'Mill', 'river'], [LM.ruin, 'Ruin', 'remote'], [LM.shrine, 'Shrine', 'hill'],
       [LM.tower, 'Tower', 'hill'], [LM.mine, 'Mine', 'hill'], [LM.standing_stones, 'Standing stones', 'hill'], [LM.camp, 'Camp', 'woods'],
     ] as const).map(([id, name, seek]) => [id, { id, name, seek }])),
-    edgeKinds: Object.fromEntries(([
-      [EK.wall, 'Wall', false, false, false, false, 'wall', 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
-      [EK.open, 'Open', true, true, true, false, 'open', 'Nothing in the way: walk and see across anywhere along it.'],
-      [EK.low, 'Low', false, true, true, true, 'open', 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
-      [EK.window, 'Window', false, true, false, false, 'window', 'See through it; no walking or reaching across.'],
-    ] as const).map(([id, name, walk, see, reach, climb, sound, text]) => [id, { id, name, walk, see, reach, climb, sound, text }])),
+    // PZ2 a: wall kinds on the floor plan (placeholders): a low wall is a bar counter's height, about 1.1 m; a fence or rail
+    // about 1.2 m; the rest stand a storey. Open draws no wall.
+    wallKinds: Object.fromEntries(([
+      [WK.wall, 'Wall', false, false, false, false, 'wall', undefined, 'Solid: no seeing, reaching or walking across; its doorways and windows are the ways through.'],
+      [WK.open, 'Open', true, true, true, false, 'open', undefined, 'Nothing in the way: no wall is drawn.'],
+      [WK.low, 'Low wall', false, false, true, true, 'open', CONFIG.LOW_WALL_M, 'A counter or low wall: seen and reached over above its top, crossed by climbing.'],
+      [WK.glazed, 'Glazed', false, true, false, false, 'window', undefined, 'A wall of windows: seen through, never walked or reached across.'],
+      [WK.fence, 'Fence', false, true, true, true, 'open', CONFIG.FENCE_M, 'A fence or rail: seen through and reached over, crossed by climbing.'],
+      [WK.arcade, 'Arcade', false, true, false, false, 'open', undefined, 'Arches on piers with a rail between: seen and heard through, not walked across.'],
+    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, number | undefined, string][]).map(([id, name, walk, see, reach, climb, sound, heightM, text]) =>
+      [id, { id, name, walk, see, reach, climb, sound, ...(heightM !== undefined ? { heightM } : {}), ...(id === WK.open ? { none: true as const } : {}), text }])),
+    // PZ2 a: kinds of way. A doorway is CONFIG.DOORWAY_M unless its barrier gives its own size (SZ7); a gap is as wide as the
+    // ground the two titles share; a window (a drop, SD7) is a casement's size and sill unless its barrier gives one (PC3);
+    // stairs about a metre wide (an estimate)
+    openingKinds: Object.fromEntries(([
+      [OP.doorway, 'Doorway', false, true, undefined, CONFIG.DOORWAY_M, undefined, 'A doorway in a wall: walked through; the far side shows only while its door stands open.'],
+      [OP.gap, 'Gap', true, true, undefined, undefined, undefined, 'An open way: an arch, a gap in a wall, or open ground between two titles.'],
+      [OP.window, 'Window', true, false, undefined, [0.6, 1], 0.9, 'A window or ledge over lower ground: seen through, and only ever jumped down.'],
+      [OP.stairs, 'Stairs', false, true, true, [1, 2], undefined, 'Stairs, a ladder or a hatch to the floor above or below.'],
+    ] as [string, string, boolean, boolean, true | undefined, [number, number] | undefined, number | undefined, string][]).map(([id, name, seeThrough, walk, floors, sizeM, sillM, text]) =>
+      [id, { id, name, seeThrough, walk, ...(floors ? { floors } : {}), ...(sizeM ? { sizeM } : {}), ...(sillM !== undefined ? { sillM } : {}), text }])),
+    // PZ5 a, D-391: light sources and their brightness in candela (placeholders: a candle is about 1 cd by the unit's own
+    // history; the rest are estimates); a title's lights are set per source, bright enough for its light word
+    lightKinds: Object.fromEntries(([
+      [LS.candle, 'Candle', 1, false, 'A tallow or wax candle (about 1 candela)'],
+      [LS.oil_lamp, 'Oil lamp', 10, false, 'A clay or brass oil lamp (an estimate, about 10 candela)'],
+      [LS.lantern, 'Lantern', 15, false, 'A horn or glass lantern round a candle or wick (an estimate)'],
+      [LS.torch, 'Torch', 100, false, 'A burning torch or brand (an estimate, about 100 candela)'],
+      [LS.hearth, 'Hearth fire', 300, false, 'A wood fire in a hearth or brazier (an estimate)'],
+      [LS.lights, 'Lights', 0, true, 'The lamps, candles or fire a title is lit by: as bright as its light word needs out to its far corner'],
+    ] as const).map(([id, name, candela, scaled, like]) => [id, { id, name, candela, ...(scaled ? { scaled: true as const } : {}), like }])),
     // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread).
     // SZ7: the opening each leaves, width × height in metres: a house door about 0.9 × 2 m (CONFIG.DOORWAY_M); a farm or
     // yard gate wide enough for a cart, about 3 m (an estimate); a grate across a passage about a door's (an estimate); a
@@ -1727,6 +1752,12 @@ export function prototypeLibrary(): Library {
       [ACH.zones_50]: { id: ACH.zones_50, name: 'Wanderer', level: 'i', rule: 'zones', tags: ['exploration'], count: 50, after: ACH.zones_25, personality: ap({ [PA.curiosity]: 1 }) },
       [ACH.zones_150]: { id: ACH.zones_150, name: 'Pathfinder', level: 'ii', rule: 'zones', tags: ['exploration'], count: 150, after: ACH.zones_50, personality: ap({ [PA.curiosity]: 1 }) },
       [ACH.zones_300]: { id: ACH.zones_300, name: 'Walker of Every Road', level: 'iii', rule: 'zones', tags: ['exploration'], count: 300, after: ACH.zones_150, personality: ap({ [PA.curiosity]: 1 }) },
+      // PZ17: new ground: distinct REGION_CELL_M land cells stood in, 1 / 25 / 100 / 500 / 2,500; XP only, curiosity from zero
+      [ACH.ground_1]: { id: ACH.ground_1, name: 'New Ground', level: 'minus_1', rule: 'ground', tags: ['exploration'], count: 1, branchOf: ACH_HEADS.areas },
+      [ACH.ground_25]: { id: ACH.ground_25, name: 'Footloose', level: 'zero', rule: 'ground', tags: ['exploration'], count: 25, after: ACH.ground_1, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.ground_100]: { id: ACH.ground_100, name: 'Far Afield', level: 'i', rule: 'ground', tags: ['exploration'], count: 100, after: ACH.ground_25, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.ground_500]: { id: ACH.ground_500, name: 'Long Roads Behind', level: 'ii', rule: 'ground', tags: ['exploration'], count: 500, after: ACH.ground_100, personality: ap({ [PA.curiosity]: 1 }) },
+      [ACH.ground_2500]: { id: ACH.ground_2500, name: 'Map in the Bones', level: 'iii', rule: 'ground', tags: ['exploration'], count: 2500, after: ACH.ground_500, personality: ap({ [PA.curiosity]: 1 }) },
       [ACH.places_1]: { id: ACH.places_1, name: 'Set Foot in a {place_kind}', level: 'zero', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 1, branchOf: ACH_HEADS.areas },
       [ACH.places_5]: { id: ACH.places_5, name: 'Roamer ({place_kind})', level: 'i', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 5, after: ACH.places_1 },
       [ACH.places_10]: { id: ACH.places_10, name: 'Traveller ({place_kind})', level: 'ii', rule: 'places', by: 'place_kind', tags: ['exploration'], count: 10, after: ACH.places_5, personality: ap({ [PA.curiosity]: 1 }) },

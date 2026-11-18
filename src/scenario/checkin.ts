@@ -1,7 +1,8 @@
 // SC12: what a check-in's "continue" may do besides beats: change the running scenario (question, scale, endings), send
 // people in through ways that already exist (arrivals), and add new frontiers. It never builds zones into a place: the
 // world grows through the frontiers it adds, which the normal stage extension builds when the player crosses one.
-import type { CheckinAnswer, GameState, Rng, StagePlan, ZoneLink } from '../types';
+import { addFrontier } from '../plan/draw';
+import type { CheckinAnswer, GameState, Rng, StagePlan } from '../types';
 import { stageFrontiers, validateStagePlan } from './validate';
 import { applyStagePlan } from './apply';
 import { freshId } from '../ids';
@@ -48,10 +49,10 @@ export function applyCheckinPlan(state: GameState, a: CheckinAnswer, rng: Rng): 
   if (plan) applyStagePlan(state, plan, { kind: 'checkin', tier: state.stage.tier, placeId: state.player.placeId }, { entry: 'open' }, rng);
   const taken = new Set([...state.zones.map((z) => z.id), ...stageFrontiers(state)]);
   for (const fr of a.frontiers ?? []) {
-    const link: ZoneLink = { to: freshId(fr.key, taken), label: fr.label, sight: false, frontier: true };
-    taken.add(link.to);
-    if (fr.brief?.trim()) (state.hidden.frontierBriefs ??= {})[link.to] = fr.brief.trim(); // WB3: for the World builder
-    zoneById(state, fr.zone)!.links.push(link);
+    const key = freshId(fr.key, taken);
+    taken.add(key);
+    if (fr.brief?.trim()) (state.hidden.frontierBriefs ??= {})[key] = fr.brief.trim(); // WB3: for the World builder
+    addFrontier(state, zoneById(state, fr.zone)!, key, fr.label, { sight: false });
   }
   return { changed: !!a.change, arrivals: plan?.cast.length ?? 0, frontiers: a.frontiers?.length ?? 0 };
 }

@@ -427,7 +427,8 @@ export type WeaverView = {
     skills: { id: string; name: string }[];
     personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2
-    edgeKinds: import('./library').EdgeKind[]; // CO15
+    wallKinds: import('./library').WallKind[]; // PZ2: what each kind of wall lets by
+    openingKinds: import('./library').OpeningKind[]; // PZ2
     furnitureKinds: import('./library').FurnitureKind[]; // FR1
     barrierKinds: import('./library').BarrierKind[]; // SD3–SD5
     layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string; furniture?: string[] }[] }[]; // CO17; furniture: FR2, the names it comes with

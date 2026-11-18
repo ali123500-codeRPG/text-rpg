@@ -1652,6 +1652,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .mm-zone.outdoor .mm-ground { fill: color-mix(in srgb, var(--c12) 20%, var(--bg)); }
 .mm-zone.current .mm-ground { fill: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
 .mm-zone.seen .mm-ground { fill-opacity: .55; }
+.mm-zone .mm-ground.mm-box { fill: none; } /* PZ1: a title of another shape: its box only tags it, its outline is drawn */
 .mm-zone .map-edge { stroke: color-mix(in srgb, var(--text) 75%, transparent); }
 .mm-zone .map-edge.wall { stroke-width: 2; }
 .mm-zone.seen .map-edge { stroke-dasharray: 2 4; } /* MAP-34: seen, not been in, reads without colour */

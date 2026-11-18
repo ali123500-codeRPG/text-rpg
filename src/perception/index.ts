@@ -48,7 +48,7 @@ const stillSeen = (): number => CONFIG.SIGHT_M.low![0];
  * spot there is seen to be empty */
 export function spotInSight(state: GameState, at: Located): boolean {
   const p = state.player, d = isActive(p) && !isAsleep(p) ? seeingM(state, p, at) : null;
-  return d !== null && d <= stillSeen() && !isDark(zoneLight(state, zoneById(state, at.zone)));
+  return d !== null && d <= stillSeen() && !isDark(zoneLight(state, zoneById(state, at.zone), at.pos));
 }
 /** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres);
  * BG-274: the one look-range check, for the look that shows people and the look that searches (withinM, the reach check) */
@@ -86,7 +86,7 @@ export function soundCarries(state: GameState, observer: Actor, at: Located, noi
 /** what `observer` makes out by sight of something of this visibility at a point: by metres and walls (seeingM, the sight
  * table), and at most partial in a dark zone. One rule for events, filching and anything else seen. */
 export function sightAt(state: GameState, observer: Actor, at: Located, visibility: GameEvent['visibility']): 'full' | 'partial' | null {
-  const light = zoneLight(state, zoneById(state, at.zone));
+  const light = zoneLight(state, zoneById(state, at.zone), at.pos);
   const sl = pitchBlack(light) ? null : sightLevel(visibility, seeingM(state, observer, at)); // LT1: nothing is seen in pitch black
   return sl && (isDark(light) ? 'partial' : sl);
 }
@@ -131,7 +131,7 @@ export function faintness(state: GameState, event: GameEvent, observer: Actor, c
   const band = CONFIG.SIGHT_M[event.visibility];
   const at = (p: Located): number | null => {
     const m = seeingM(state, observer, p);
-    const light = zoneLight(state, zoneById(state, p.zone));
+    const light = zoneLight(state, zoneById(state, p.zone), p.pos);
     if (!band || m === null || m > band[1] || pitchBlack(light)) return null; // LT1: nothing is seen in pitch black
     const share = Math.max(0, (m - band[0]) / (band[1] - band[0]));
     const dark = isDark(light) && !hasPerk(observer, PK.night_eyes);
@@ -190,7 +190,7 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   const per = event.perception[p.id];
   const cs = (p.journal.clearSight ??= {});
   if (per) (p.journal.lastKnown ??= {})[event.actorId] = event.zone; // BG-28: seen or heard, the last place known
-  if (per) { const ls = (p.journal.lastSpot ??= {}); if (event.pos) ls[event.actorId] = { ...event.pos }; else delete ls[event.actorId]; } // BG-125
+  if (per) { const ls = (p.journal.lastSpot ??= {}); if (event.pos) ls[event.actorId] = { ...event.pos, floor: zoneById(state, event.zone)?.floor ?? 0 }; else delete ls[event.actorId]; } // BG-125
   if (per?.level === 'full' && per.cue === 'sight') cs[event.actorId] = event.zone;
   else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
   if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
@@ -210,7 +210,7 @@ export function stealthStart(state: GameState, a: Actor): void {
   const p = state.player;
   if (!p.journal || a.id === p.id) return;
   const d = isActive(p) ? seeingM(state, p, a) : null;
-  const status: BeliefStatus = d === null || d > stillSeen() ? 'unaware' : isDark(zoneLight(state, zoneById(state, a.zone))) ? 'suspicious' : 'aware';
+  const status: BeliefStatus = d === null || d > stillSeen() ? 'unaware' : isDark(zoneLight(state, zoneById(state, a.zone), a.pos)) ? 'suspicious' : 'aware';
   (p.journal.stealthSeen ??= {})[a.id] = status;
 }
 /** NS2: an actor turning open is simply seen again */
@@ -233,7 +233,7 @@ export function lookAround(state: GameState): string[] {
     if (a.id === p.id) continue;
     const d = seeingM(state, p, a);
     // BG-279: a good look is this turn's make-out of everyone it shows, so their own move later this turn keeps them seen
-    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos }; shown.push(a.id); }
+    if (inLookReach(d)) { cs[a.id] = a.zone; recordMadeOut(state, p.id, a.id, FN.sight, true); (p.journal.lastKnown ??= {})[a.id] = a.zone; if (a.pos) (p.journal.lastSpot ??= {})[a.id] = { ...a.pos, floor: zoneById(state, a.zone)?.floor ?? 0 }; shown.push(a.id); }
   }
   return shown;
 }
@@ -254,6 +254,10 @@ export function computePerception(event: GameEvent, state: GameState, _rng: Rng)
   return out;
 }
 
+/** PZ11 a: where something was made out: its point and its title's floor (nothing when no point is known) */
+const atOf = (state: GameState, zone: string, pos: { x: number; y: number } | undefined): Pick<Belief, 'lastKnownAt'> =>
+  (pos ? { lastKnownAt: { x: pos.x, y: pos.y, floor: zoneById(state, zone)?.floor ?? 0 } } : {});
+
 const raise = (cur: BeliefStatus | undefined, to: BeliefStatus): BeliefStatus =>
   AWARENESS.pos(to) > AWARENESS.pos(cur ?? 'unaware') ? to : (cur ?? 'unaware');
 
@@ -261,6 +265,9 @@ function write(observer: Actor, aboutId: string, b: Partial<Belief>): Belief | u
   if (!observer.mind || aboutId === observer.id) return undefined;
   const cur = observer.mind.knowledge[aboutId];
   const next: Belief = { ...(cur ?? { status: 'unaware', source: 'seen' }), ...b, revealed: [...(cur?.revealed ?? []), ...(b.revealed ?? [])].filter((x, i, arr) => arr.indexOf(x) === i) };
+  // PZ11 a: a new title with no point named forgets the old point (it lay in the old title)
+  if (b.lastKnownZone !== undefined && !b.lastKnownAt && b.lastKnownZone !== cur?.lastKnownZone) delete next.lastKnownAt;
+  if (b.lastKnownAt === undefined && 'lastKnownAt' in b) delete next.lastKnownAt;
   observer.mind.knowledge[aboutId] = next;
   return next;
 }
@@ -269,7 +276,9 @@ function write(observer: Actor, aboutId: string, b: Partial<Belief>): Belief | u
 export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
   if (update.kind === 'opening') {
     const o = actorById(state, update.observerId);
-    if (o) write(o, update.aboutId, { status: update.status, source: update.source ?? 'seen', lastKnownZone: update.zone, lastSeenTurn: state.turn });
+    const about = actorById(state, update.aboutId);
+    if (o) write(o, update.aboutId, { status: update.status, source: update.source ?? 'seen', lastKnownZone: update.zone, lastSeenTurn: state.turn,
+      ...(about && update.zone === about.zone ? atOf(state, about.zone, about.pos) : {}) });
     return;
   }
   if (update.kind === 'reveal') {
@@ -302,7 +311,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     const cue = perceptionOf(update.event, state, o)?.cue;
     write(o, update.aboutId, {
       status: raise(o.mind?.knowledge[update.aboutId]?.status, update.status),
-      lastKnownZone: update.event.zone, lastSeenTurn: update.event.turn, source: cue === 'sound' ? 'heard' : 'seen',
+      lastKnownZone: update.event.zone, lastSeenTurn: update.event.turn, source: cue === 'sound' ? 'heard' : 'seen', ...atOf(state, update.event.zone, update.event.pos),
     });
     return;
   }
@@ -317,7 +326,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     const cur = o.mind.knowledge[e.actorId]?.status;
     write(o, e.actorId, {
       status: raise(cur, p.level === 'full' ? (atLeast(cur, 'aware') ? 'tracking' : 'aware') : 'suspicious'), // hunting and engaged stay (YD6)
-      lastKnownZone: e.zone, lastSeenTurn: e.turn, source: p.cue === 'sound' ? 'heard' : 'seen',
+      lastKnownZone: e.zone, lastSeenTurn: e.turn, source: p.cue === 'sound' ? 'heard' : 'seen', ...atOf(state, e.zone, e.pos),
     });
     if (e.kind === 'attack' && e.target) {
       const target = actorById(state, e.target);
@@ -336,7 +345,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
         if (atLeast(mine?.status, 'aware') || sb.status === 'unaware') { if (fresh.length) write(o, about, { revealed: fresh }); continue; } // own sight beats hearsay
         write(o, about, {
           status: raise(mine?.status, 'suspicious'), // told is capped at suspicious
-          source: 'told', lastKnownZone: sb.lastKnownZone, lastSeenTurn: sb.lastSeenTurn, revealed: sb.revealed,
+          source: 'told', lastKnownZone: sb.lastKnownZone, lastKnownAt: sb.lastKnownAt, lastSeenTurn: sb.lastSeenTurn, revealed: sb.revealed,
         });
       }
     }

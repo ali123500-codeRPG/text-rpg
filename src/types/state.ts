@@ -117,7 +117,17 @@ export type GameState = {
   storyId: StoryId;
   turn: number;
   mode: Mode;
-  zones: Zone[]; // WI8 a: every built zone in the world, the same objects as in places[].zones
+  zones: Zone[]; // WI8 a: every built title in the world, the same objects as in places[].zones
+  /** PZ2, PZ5 (src/plan): the floor plan of every built place: walls, openings (the ways), roofs and light sources; each
+   * record names its place (placeId), and is saved on that place's plan page */
+  walls: import('./core').Wall[];
+  openings: import('./core').Opening[];
+  roofs: import('./core').Roof[];
+  lights: import('./core').LightSource[];
+  /** FR1, PZ1: furniture at points */
+  furniture: import('./core').Furniture[];
+  /** PZ11: items lying on the ground, each at a point and floor (at) */
+  ground: import('./items').ItemInstance[];
   player: Actor;
   actors: Actor[]; // NPCs and enemies (never the player)
   bands: Band[];
@@ -262,6 +272,10 @@ export type StoryFact = {
   promotedTo: PlaceId[];
 };
 export type FactsPage = { storyId: StoryId; placeId: PlaceId; facts: StoryFact[] };
+/** PZ16: one place's floor plan (plan.<placeId>): its walls, openings, roofs, lights and furniture */
+export type PlanPage = { storyId: StoryId; placeId: PlaceId; walls: import('./core').Wall[]; openings: import('./core').Opening[]; roofs: import('./core').Roof[]; lights: import('./core').LightSource[]; furniture: import('./core').Furniture[] };
+/** PZ11: what lies on the ground anywhere (ground) */
+export type GroundPage = { storyId: StoryId; items: import('./items').ItemInstance[] };
 
 export type TurnRecord = {
   storyId: StoryId;

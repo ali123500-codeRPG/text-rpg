@@ -1,6 +1,7 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
+import { waysOut } from '../plan/where';
 import { gripWord, gripsOf } from '../ruleset/gear';
 import { coinWords, coins, countWords } from '../engine/trade';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
@@ -972,7 +973,7 @@ function zoneDistances(s: GameState, from: string): Map<string, number> {
   const queue = [from];
   while (queue.length) {
     const z = queue.shift()!;
-    for (const l of s.zones.find((x) => x.id === z)?.links ?? []) {
+    for (const l of waysOut(s, z)) {
       if (l.frontier || dist.has(l.to)) continue;
       dist.set(l.to, dist.get(z)! + 1);
       queue.push(l.to);
@@ -1039,7 +1040,7 @@ export function worldIds(s: GameState): Set<string> {
   return new Set([
     ...all.map((a) => a.id),
     ...s.zones.map((z) => z.id),
-    ...s.zones.flatMap((z) => [...z.links.map((l) => l.to), ...z.groundItems.map((i) => i.id)]),
+    ...s.openings.flatMap((o) => o.joins), ...s.ground.map((i) => i.id),
     ...all.flatMap((a) => a.core.inventory.map((i) => i.id)),
     ...s.places.map((p) => p.id),
   ]);
@@ -1520,6 +1521,7 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
     places: [], facts: [], stage: { tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
     scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, quests: [], settings,
     libraryVersion: getLibrary().version, blueprints: [],
+    walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [],
     meta: { storyId, title: CONFIG.STORY_PREMISE, schemaVersion: CONFIG.SCHEMA_VERSION, createdAt, settings },
   };
 }

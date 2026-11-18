@@ -9,7 +9,9 @@ import { trueSkill } from '../ruleset/perks';
 import { allActors, countsInFight, hostile, isActive, zoneById } from '../engine/relations';
 import { fightingWith } from '../engine/engagement';
 import { distM, entryPoint, seeingM, walkRoute } from '../engine/position';
-import { hostileNearM } from '../ruleset/gear';
+import { clutterCover, hostileNearM } from '../ruleset/gear';
+import { middle } from '../plan/where';
+import { inOutline, nearestEdge } from '../plan/geom';
 import { itemDef } from '../library';
 import { sightLevel } from '../perception/sight';
 import { isDark, zoneLight } from '../time';
@@ -61,11 +63,11 @@ type Near = TacticsWalk & { pos: Pos; m: number };
 export function oneMoveZones(state: GameState, a: Actor): Near[] {
   const oneMove = slotMetres(state, a, 'move'), from: Located = { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) };
   const out: Near[] = [];
-  // BG-304: every zone whose rectangle lies within one move in a straight line (the walk is never shorter), then by the walk
-  const p = a.pos ?? zoneById(state, a.zone)?.rect;
-  const near = (r: NonNullable<Zone['rect']>) => !p || Math.hypot(Math.max(0, Math.abs(p.x - r.x) - r.w / 2), Math.max(0, Math.abs(p.y - r.y) - r.d / 2)) <= oneMove;
+  // BG-304: every title whose outline lies within one move in a straight line (the walk is never shorter), then by the walk
+  const here = zoneById(state, a.zone), p = a.pos ?? (here?.outline?.length ? middle(here) : undefined);
+  const near = (z: Zone) => !p || inOutline(p, z.outline) || nearestEdge(p, z.outline).d <= oneMove;
   for (const z of [...state.zones].sort((x, y) => x.id.localeCompare(y.id))) {
-    if (z.id === a.zone || !z.rect || !near(z.rect)) continue;
+    if (z.id === a.zone || !z.outline?.length || !near(z)) continue;
     try {
       const r = walkRoute(state, from, { zone: z.id }, a);
       if (!r || !r.path.length) continue;
@@ -73,7 +75,7 @@ export function oneMoveZones(state: GameState, a: Actor): Near[] {
       if (!pos) continue;
       const m = walkRoute(state, from, { zone: z.id, pos }, a)?.metres;
       if (m !== undefined && m <= oneMove) out.push({ zone: z.id, via, pos, m });
-    } catch { continue; } // a zone with no rectangle (an old map) is no place to walk to
+    } catch { continue; } // a title with no way in is no place to walk to
   }
   return out.sort((x, y) => x.m - y.m || x.zone.localeCompare(y.zone));
 }
@@ -103,14 +105,16 @@ function fieldWalks(state: GameState, a: Actor, view: ActorView, rows: string[],
   const walk = (n: Near | undefined): TacticsWalk | undefined => (n ? { zone: n.zone, via: n.via } : undefined);
   const shooter = rows.includes(FX.out_of_sight) ? shooterOf(state, a, foes) : undefined;
   if (shooter) out.outOfSight = walk(near.find((n) => seeingM(state, shooter, { zone: n.zone, pos: n.pos }) === null));
-  const coverHere = COVER.pos(zoneById(state, a.zone)?.cover ?? 'none');
+  // PC5: cover is the clutter where one stands (plan/clutter), not a word on the title
+  const coverAt = (zone: string, pos?: Pos) => { const z = zoneById(state, zone); return COVER.pos(z ? clutterCover(state, z, pos) : 'none'); };
+  const coverHere = coverAt(a.zone, a.pos);
   if (rows.includes(FX.into_cover) && foes.some((f) => showsRanged(state, view, f)))
-    out.intoCover = walk(near.find((n) => COVER.pos(zoneById(state, n.zone)?.cover ?? 'none') > coverHere));
-  const lightHere = LIGHT.pos(zoneLight(state, zoneById(state, a.zone)));
+    out.intoCover = walk(near.find((n) => coverAt(n.zone, n.pos) > coverHere));
+  const lightHere = LIGHT.pos(zoneLight(state, zoneById(state, a.zone), a.pos));
   // TC25 a: it judges by its own eyes only: from there it still sees every foe it fights clearly
   if (rows.includes(FX.into_dark))
-    out.intoDark = walk(near.find((n) => LIGHT.pos(zoneLight(state, zoneById(state, n.zone))) > lightHere
-      && foes.every((f) => !isDark(zoneLight(state, zoneById(state, f.zone))) && sightLevel('normal', seeingM(state, { zone: n.zone, pos: n.pos }, f)) === 'full')));
+    out.intoDark = walk(near.find((n) => LIGHT.pos(zoneLight(state, zoneById(state, n.zone), n.pos)) > lightHere
+      && foes.every((f) => !isDark(zoneLight(state, zoneById(state, f.zone), f.pos)) && sightLevel('normal', seeingM(state, { zone: n.zone, pos: n.pos }, f)) === 'full')));
   for (const k of ['outOfSight', 'intoCover', 'intoDark'] as const) if (!out[k]) delete out[k];
 }
 

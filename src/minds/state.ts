@@ -1,4 +1,6 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
+import { areaOf } from '../plan/geom';
+import { groundIn } from '../engine/ground';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
 import { TIERS } from '../scales';
@@ -70,7 +72,7 @@ export function switchRoutine(state: GameState, actor: Actor, routineId: string,
  * A second headTo on the way changes only where it is going. Returns false (logged) for a place not on the stage. */
 export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent' | 'weaver' | 'yield' = 'agent', lead?: string): boolean {
   const mind = actor.mind;
-  const onStage = !!zoneById(state, dest) || state.zones.some((z) => z.links.some((l) => l.frontier && l.to === dest));
+  const onStage = !!zoneById(state, dest) || state.openings.some((o) => o.frontier && o.joins[1] === dest);
   if (!mind || !onStage) {
     log(state, 'invalid_head_to', { actorId: actor.id, dest, by });
     return false;
@@ -263,7 +265,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const zone = zoneById(state, s.zone);
   const fade = event.kind === 'vanish'; // Strike and Fade
   const moved = event.kind === 'move';
-  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverShown(state, s, zone), zoneLight(state, zone)));
+  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverShown(state, s, zone), zoneLight(state, zone, s.pos)));
   const still = fade || melt;
   const from: Located = { zone: event.fromZone ?? s.zone, pos: event.fromPos ?? s.pos };
   const mine = (sk: string, sense: Sense, a?: Actor) => hiderRoll(state, s, sk, sense, still, a);
@@ -328,7 +330,7 @@ function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean
   if (h.zone !== a.zone) return false;
   if (state.mode === 'tactical') return withinM(distM(state, a, h), area / CONFIG.SEARCH_M2_PER_FIGHT_M);
   const z = zoneById(state, a.zone);
-  return (z?.area ?? (z?.rect ? z.rect.w * z.rect.d : Infinity)) <= area || withinM(distM(state, a, h), Math.sqrt(area / Math.PI));
+  return (z?.outline?.length ? areaOf(z.outline) : Infinity) <= area || withinM(distM(state, a, h), Math.sqrt(area / Math.PI));
 }
 
 /** SE2 b, SE3, SE5, SE14, SE16: a search, by anyone, is a contest of the searcher's better sense after light against the
@@ -384,7 +386,7 @@ const hiddenLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hid
 export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollResult; found: ItemInstance[]; hint: boolean } {
   const z = zoneById(state, a.zone);
   const area = searchAreaM2(a, senseSkill(state, a, FN.sight));
-  const hidden = (z?.groundItems ?? []).filter((i) => hiddenFrom(i, a) && inSearch(state, a, { zone: a.zone, ...(i.at ? { pos: i.at } : {}) }, area));
+  const hidden = groundIn(state, a.zone).filter((i) => hiddenFrom(i, a) && inSearch(state, a, { zone: a.zone, ...(i.at ? { pos: i.at } : {}) }, area));
   if (!hidden.length) return { found: [], hint: false };
   const r = sightRoll(state, a, z, rng);
   const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));

@@ -5,7 +5,6 @@
 import type { GameApi, WalkingView } from '../types';
 import { h } from './kit';
 import { verticalOf } from '../scenario/heights';
-import { EK } from '../library/tableIds';
 import { furnIcon, furnKey } from './furnitureIcons';
 import { CONFIG } from '../config';
 import { buildPlayerView, distText } from '../views';
@@ -16,9 +15,17 @@ import { worldTiles, compassOf, knownMap, pointAlong, rootPlace, type KnownMap, 
 import { cap, theName } from '../words';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
+import { areaOf } from '../plan/geom';
 
-/** CSS class of each edge kind's line on the To scale view */
-export const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
+/** PZ1, PZ2: a title's floor and the walls along its outline, in screen pixels: a metre point (x, y) goes to
+ *  (dx + x·sc, dy − y·sc). floor is null for a plain rectangle, which keeps its box drawn a hair inside its walls (MAP-11) */
+export function floorMarks(z: MapZone, sc: number, dx: number, dy: number): { floor: string | null; walls: SVGElement[] } {
+  const at = (q: { x: number; y: number }) => [dx + q.x * sc, dy - q.y * sc];
+  const o = z.outline ?? [], r = z.rect;
+  const boxy = !r || o.length === 4 && o.every((q) => (Math.abs(q.x - (r.x - r.w / 2)) < 0.01 || Math.abs(q.x - (r.x + r.w / 2)) < 0.01) && (Math.abs(q.y - (r.y - r.d / 2)) < 0.01 || Math.abs(q.y - (r.y + r.d / 2)) < 0.01));
+  const walls = (z.walls ?? []).map((w) => { const [x1, y1] = at(w.a), [x2, y2] = at(w.b); return s('line', { x1, y1, x2, y2, class: `map-edge ${w.cls}` }) as SVGElement; });
+  return { floor: boxy ? null : o.map((q) => at(q).join(',')).join(' '), walls };
+}
 
 const SVG = 'http://www.w3.org/2000/svg';
 const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {
@@ -670,18 +677,15 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
    *  hatched (MAP-33, MAP-34: the state reads without colour) */
   function planZone(z: MapZone, b: { x0: number; y0: number; x1: number; y1: number }, state: string) {
     const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', state, z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
-    const m2 = Math.round(z.rect!.w * z.rect!.d);
+    const m2 = Math.round(z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
     const said = state === 'current' ? 'you are here' : state === 'explored' ? 'you have been here' : 'seen, not been in';
     const w = b.x1 - b.x0, hh = b.y1 - b.y0;
     // the drawn floor sits a hair inside its walls, so zones that share a wall never measure as overlapping (MAP-11)
+    const fm = floorMarks(z, z.rect!.w ? w / z.rect!.w : PX_PER_M, 0, 0), tag = { 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId };
     const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${m2} m², ${said}${z.id === walk?.toZone ? ', you are heading here' : ''}` },
-      s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: 'map-tile-box', 'data-role': 'zone', 'data-id': z.id, 'data-parent': z.placeId }));
-    if (state === 'seen') g.append(s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: 'map-tile-hatch' }));
-    const sides: Record<string, [number, number, number, number]> = { n: [b.x0, b.y0, b.x1, b.y0], s: [b.x0, b.y1, b.x1, b.y1], w: [b.x0, b.y0, b.x0, b.y1], e: [b.x1, b.y0, b.x1, b.y1] };
-    for (const [side, [x1, y1, x2, y2]] of Object.entries(sides)) {
-      const kind = (z.edges as Record<string, string> | undefined)?.[side] ?? (z.outdoor ? EK.open : EK.wall);
-      g.append(s('line', { x1, y1, x2, y2, class: `map-edge ${EDGE_CLASS[kind] ?? 'wall'}` }));
-    }
+      fm.floor ? s('polygon', { points: fm.floor, class: 'map-tile-box', ...tag }) : s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: 'map-tile-box', ...tag }));
+    if (state === 'seen') g.append(fm.floor ? s('polygon', { points: fm.floor, class: 'map-tile-hatch' }) : s('rect', { x: b.x0 + 0.5, y: b.y0 + 0.5, width: Math.max(0, w - 1), height: Math.max(0, hh - 1), class: 'map-tile-hatch' }));
+    g.append(...fm.walls);
     g.append(s('title', {}, `${z.name}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²), ${said}`));
     return g;
   }
@@ -706,7 +710,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       ...item('state:explored', sw('explored'), 'Been there'), ...item('state:seen', sw('seen'), 'Seen, not been in'),
       ...item('remembered', sw('faded'), 'Out of sight now'),
       ...item('outdoor', sw('outdoor'), 'Outdoors'), ...item('indoor', sw('indoor'), 'Indoors'),
-      ...edge(EK.wall, 'wall', 'Wall'), ...edge(EK.low, 'low', 'Counter or fence'), ...edge(EK.window, 'window', 'Window'), ...edge(EK.open, 'open', 'Open side'),
+      ...edge('wall', 'wall', 'Wall'), ...edge('low', 'low', 'Counter, low wall or fence'), ...edge('window', 'window', 'Wall of windows'), ...edge('open', 'open', 'Open side'),
       ...item('place', h('i', { class: 'k-area' }), 'A building or place inside this one'),
       ...item('door', svgKey(s('line', { x1: -10, y1: 0, x2: 10, y2: 0, class: 'map-edge wall' }), s('g', { class: 'map-door door' }, ...doorGlyph(0, 0, 'door'))), 'Door in a wall'),
       ...item('opening', svgKey(s('g', { class: 'map-door opening' }, ...doorGlyph(0, 0, 'opening'))), 'Way through, no door'),
@@ -741,14 +745,10 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   function planTile(z: MapZone, p: Pt) {
     const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
     const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
-    const m2 = Math.round(z.rect!.w * z.rect!.d);
+    const m2 = Math.round(z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
+    const fm = floorMarks(z, PX_PER_M, p.x - z.rect!.x * PX_PER_M, p.y + z.rect!.y * PX_PER_M);
     const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${m2} m²${z.here ? ', you are here' : z.id === walk?.toZone ? ', you are heading here' : ''}` },
-      s('rect', { x, y, width: w, height: hh, class: 'map-tile-box' }));
-    const sides: Record<string, [number, number, number, number]> = { n: [x, y, x + w, y], s: [x, y + hh, x + w, y + hh], w: [x, y, x, y + hh], e: [x + w, y, x + w, y + hh] };
-    for (const [side, [x1, y1, x2, y2]] of Object.entries(sides)) {
-      const kind = (z.edges as Record<string, string> | undefined)?.[side] ?? (z.outdoor ? EK.open : EK.wall);
-      g.append(s('line', { x1, y1, x2, y2, class: `map-edge ${EDGE_CLASS[kind] ?? 'wall'}` }));
-    }
+      fm.floor ? s('polygon', { points: fm.floor, class: 'map-tile-box' }) : s('rect', { x, y, width: w, height: hh, class: 'map-tile-box' }), ...fm.walls);
     // FR5: the furniture at its own points, under the zone's name and people; hover names it
     for (const f of z.furniture ?? []) {
       const pad = 11, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));

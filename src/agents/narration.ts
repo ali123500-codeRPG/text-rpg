@@ -46,7 +46,7 @@ export function buildLeakContext(state: GameState): LeakContext {
   // BG-168: only a name that tells which thing it is (a story-made item, a Threadbound one) is a leak; a catalog item's name
   // is an everyday noun (a sack, a chest) the Narrator may use for anything
   const telling = (itemId: string) => state.blueprints?.some((b) => b.kind === 'item' && b.id === itemId) || !!getLibrary().items[itemId]?.threadbound;
-  for (const i of [...state.actors.flatMap((a) => a.core.inventory), ...state.zones.flatMap((z) => z.groundItems)]) {
+  for (const i of [...state.actors.flatMap((a) => a.core.inventory), ...state.ground]) {
     const n = telling(i.itemId) ? itemName(i.itemId) : null;
     if (n && !ownNames.has(n)) names.push(n);
   }

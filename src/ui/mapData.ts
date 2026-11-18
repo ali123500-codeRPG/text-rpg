@@ -9,7 +9,9 @@ import { seesAcross, zoneById } from '../engine/relations';
 import { knownZoneIds, visitedZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
-import { ZK } from '../library/tableIds';
+import { WK } from '../library/tableIds';
+import { roofed, waysOut } from '../plan/where';
+import { NEAR_M, boxOf, dist, lerp, sidesOf, toSegment } from '../plan/geom';
 import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
 import { plural } from './kit';
@@ -27,8 +29,12 @@ export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
   /** metres above the ground outside: the map shows one height (a floor) at a time */
   height: number;
-  /** the zone's rectangle in metres and its sides' edge kinds, when code has placed it (drawn by the To scale view) */
-  rect?: import('../types').Rect; edges?: import('../types').Zone['edges'];
+  /** the box round the title's outline in metres (the layout places marks in it) */
+  rect?: import('../types').Rect;
+  /** PZ1: the title's outline in metres (counter-clockwise), drawn as its floor */
+  outline?: Pt[];
+  /** PZ2: the stretches of its outline and what stands on each, as a map class (wall, low, window, open: WALL_CLASS) */
+  walls?: { a: Pt; b: Pt; cls: WallClass }[];
   light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
   /** FR5: the furniture standing there, each at its point in the frame of rect; kind is a furniture kind id (FU), for its icon */
   furniture?: { id: string; name: string; kind: string; x: number; y: number }[];
@@ -53,6 +59,35 @@ function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
   return out.length ? { furniture: out } : {};
 }
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
+
+/** how the map draws a wall kind (WK): a solid wall, a low one (counter, fence, rail), glass, or nothing standing */
+export type WallClass = 'wall' | 'low' | 'window' | 'open';
+export const WALL_CLASS: Record<string, WallClass> = { [WK.wall]: 'wall', [WK.open]: 'open', [WK.low]: 'low', [WK.glazed]: 'window', [WK.fence]: 'low', [WK.arcade]: 'low' };
+/** PZ2: each side of a title's outline split into the stretches the plan's walls stand on (on its floor), the rest open */
+export function wallsOn(s: GameState, z: import('../types').Zone): NonNullable<MapZone['walls']> {
+  const out: NonNullable<MapZone['walls']> = [];
+  const mine = s.walls.filter((w) => w.placeId === z.placeId && w.floor <= z.floor + 0.01 && w.top > z.floor + 0.01);
+  for (const [a, b] of sidesOf(z.outline)) {
+    const len = dist(a, b);
+    if (len < NEAR_M) continue;
+    const on = mine.flatMap((w) => {
+      const p = toSegment(w.a, a, b), q = toSegment(w.b, a, b);
+      if (p.d > WALL_ON_M || q.d > WALL_ON_M) return [];
+      const t0 = Math.max(0, Math.min(p.t, q.t)), t1 = Math.min(1, Math.max(p.t, q.t));
+      return t1 - t0 > NEAR_M / len ? [{ t0, t1, cls: WALL_CLASS[w.kind] ?? 'wall' }] : [];
+    }).sort((x, y) => x.t0 - y.t0);
+    let t = 0;
+    for (const w of on) {
+      if (w.t0 > t + NEAR_M / len) out.push({ a: lerp(a, b, t), b: lerp(a, b, w.t0), cls: 'open' });
+      if (w.t1 > t) out.push({ a: lerp(a, b, Math.max(t, w.t0)), b: lerp(a, b, w.t1), cls: w.cls });
+      t = Math.max(t, w.t1);
+    }
+    if (t < 1 - NEAR_M / len) out.push({ a: lerp(a, b, t), b: { ...b }, cls: 'open' });
+  }
+  return out;
+}
+/** how far off a title's side a wall may lie and still stand on it, in metres (the drawn plan's rounding) */
+const WALL_ON_M = 0.05;
 
 /** WZ1: a point on a road line: metres along it from its first point to the point of the line nearest `at` */
 export function alongLine(pts: Pt[], at: Pt): NonNullable<MapZone['along']> {
@@ -99,14 +134,14 @@ export function knownMap(s: GameState): KnownMap {
     if (a.id === p.id) continue;
     const who = a.level === 'full' ? s.actors.find((x) => x.id === a.id) : undefined, pos = who?.pos;
     const size = who ? actorBody(s, who).size : undefined; // SZ16: seen clearly, so its size and facing are seen too
-    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.rect ? { at: { x: pos.x, y: pos.y }, body: { lengthM: size!.lengthM, widthM: size!.widthM, facing: who!.facing ?? [0, 1] } } : {}) });
+    add(a.zone, { id: a.id, name: a.name ?? a.label, now: true, ...(pos && zoneById(s, a.zone)?.outline?.length ? { at: { x: pos.x, y: pos.y }, body: { lengthM: size!.lengthM, widthM: size!.widthM, facing: who!.facing ?? [0, 1] } } : {}) });
   }
   for (const a of pv?.lastSeen ?? []) add(a.zone, { id: a.id, name: a.name, now: false });
 
   const byPlace = new Map<string, MapZone[]>();
   for (const id of known) {
     const z = zoneById(s, id)!, v = inView.get(id);
-    const links: MapLink[] = z.links.map((l) => {
+    const links: MapLink[] = waysOut(s, z.id).map((l) => {
       const to = zoneById(s, l.to);
       const otherPlace = to && to.placeId !== z.placeId ? s.places.find((x) => x.id === to.placeId)?.names.current : undefined;
       const b = barrierOn(s, l), w = b ? barrierView(b, p, z.id) : undefined;
@@ -114,11 +149,13 @@ export function knownMap(s: GameState): KnownMap {
         ...(w.open ? { open: true as const } : {}), ...(w.key ? { key: true as const } : {}) };
       return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}) };
     });
-    const you = id === p.zone && p.pos && z.rect ? { x: p.pos.x, y: p.pos.y } : undefined;
-    const line = z.road ? s.regions?.flatMap((r) => r.roads).find((r) => r.id === z.road)?.pts : undefined;
-    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges, ...furnitureOn(s, id) } : {}), links,
+    const placed = !!z.outline?.length, box = placed ? boxOf(z.outline) : undefined;
+    const you = id === p.zone && p.pos && placed ? { x: p.pos.x, y: p.pos.y } : undefined;
+    const line = z.line; // WZ1, PZ14: a road runs along its line
+    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !roofed(s, z), here: id === p.zone, inView: !!v, height: heightOf(z),
+      ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id) } : {}), links,
       ...(you ? { you } : {}), ...(line ? { line } : {}),
-      ...(you && line ? { along: alongLine(line, you) } : you && z.kind === ZK.road ? { along: alongRoad(z.rect!, you) } : {}),
+      ...(you && line ? { along: alongLine(line, you) } : {}),
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);
     byPlace.get(z.placeId)!.push(mz);
