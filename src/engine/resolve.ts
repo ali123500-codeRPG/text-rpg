@@ -32,6 +32,7 @@ import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView, seesClearlyNow } from '../views';
 import { withTactics } from '../views/tactics';
+import { markReaction } from './tacticsMarks';
 import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenHolds, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -300,7 +301,7 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
     if (!fight) init = ruleset.initiative(a, state, rng);
     else {
       const fresh = !a.react || a.react.turn !== state.turn - 1;
-      if (fresh) { const total = ruleset.initiative(a, state, rng); a.react = { s: reactSeconds(total), init: total, turn: state.turn }; }
+      if (fresh) { const total = ruleset.initiative(a, state, rng); a.react = { s: reactSeconds(total), init: total, turn: state.turn }; markReaction(state, a); } // TC6 a
       else a.react!.turn = state.turn;
       init = a.react!.init;
       if (fresh) wait += a.react!.s;

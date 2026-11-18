@@ -13,6 +13,7 @@ import { dayOf, now } from '../time';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
 import { power, tally } from './xp';
+import { markFightSurvived } from './tacticsMarks';
 import { HEALTH_LEVELS, TIERS } from '../scales';
 import { tierLevel } from '../ruleset';
 import { seeingM } from './position';
@@ -204,6 +205,7 @@ export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = 
   const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !countsInFight(x); });
   const lost = !!(f.down || f.broke || yieldTaken(state) || !isActive(state.player));
   strongerFoe(state, f, won && !lost);
+  markFightSurvived(state, f); // TC6 b, TC15 a: the Tactics skills learn from a fight survived
   // your nerve broke and the fight was won all the same; it still counts as a lost fight below (MB12), as going Down does
   if (won && f.broke && f.foes.length && isActive(state.player) && !yieldTaken(state)) tally(state, 'won_broken');
   if (lost) return tally(state, 'defeated');
