@@ -68,8 +68,14 @@ it('a foe is notable by power only at ESSENCE_NOTABLE_SHARE (2) times the player
   expect(notable(s, guard)).toBe(true);
   // the player grows until the guard is under twice its power (but still well over the old 0.75 share)
   const ids = Object.keys(s.player.core.skills);
-  // every skill 3 points a step (each step a new sheet, so a new combat level), until the guard is under twice its power
-  for (let i = 0; power(s, guard) / power(s, s.player) >= 2 && i < 200; i++) for (const id of ids) s.player.core.skills[id].raw += 3;
+  // the fewest steps of 3 points on every skill that bring the guard under twice its power, found by halving (each step
+  // count is a new sheet, so a new combat level, and working one out takes a while)
+  const base = Object.fromEntries(ids.map((id) => [id, s.player.core.skills[id].raw]));
+  const grow = (k: number) => { for (const id of ids) s.player.core.skills[id].raw = base[id] + 3 * k; return power(s, guard) / power(s, s.player); };
+  let lo = 0, hi = 200;
+  expect(grow(hi)).toBeLessThan(2);
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (grow(mid) >= 2) lo = mid; else hi = mid; }
+  grow(hi);
   expect(power(s, guard) / power(s, s.player)).toBeGreaterThan(1.5);
   expect(notable(s, guard)).toBe(false);
-});
+}, 20000); // about ten new sheets, each with a combat level worked out afresh (about 0.15 s each, slower on CI)

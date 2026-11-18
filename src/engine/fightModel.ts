@@ -22,6 +22,7 @@ import { healthFear } from '../ruleset/morale';
 import { fearCost, isBrokenLevel, maxMorale, moraleLevel, tierCostMult } from '../ruleset/morale';
 import { blockItem, usableModes } from '../ruleset/gear';
 import { hasPerk } from '../ruleset/perks';
+import { chainRewards } from '../ruleset/achRewards';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { expectBlow, expectOver, rollOdds, type ModeRef } from '../ruleset/expect';
 import { moveSpeed } from './speed';
@@ -212,8 +213,14 @@ function wholeSkills(a: Actor): Actor {
   if (Object.values(sk).every((x) => Number.isInteger(x.raw))) return a;
   return { ...a, core: { ...a.core, skills: Object.fromEntries(Object.entries(sk).map(([k, x]) => [k, { ...x, raw: Math.round(x.raw) }])) } };
 }
-/** the sheet that sets a combat level: everything but the moment (condition, marks, holds) */
-const sheetKey = (a: Actor): string => JSON.stringify([a.core.raceId, a.core.bodyTypeId, a.core.prefix, a.core.skills, a.core.perks, a.core.classes, a.core.inventory.map((i) => [i.itemId, i.equippedIn, i.boundTo]), a.core.standingDefense, a.core.bornDay, a.core.hollowed, (a.progression?.achievements ?? []).filter((x) => !x.replacedBy).map((x) => x.key).sort()]);
+/** the sheet that sets a combat level: everything but the moment (condition, marks, holds) and XP-only achievements */
+const sheetKey = (a: Actor): string => JSON.stringify([a.core.raceId, a.core.bodyTypeId, a.core.prefix, a.core.skills, a.core.perks, a.core.classes, a.core.inventory.map((i) => [i.itemId, i.equippedIn, i.boundTo]), a.core.standingDefense, a.core.bornDay, a.core.hollowed, (a.progression?.achievements ?? []).filter((x) => !x.replacedBy && countsInFight(x.key)).map((x) => x.key).sort()]);
+/** an achievement that can change a fight: one with a reward beyond XP, or a defeats row (Bane and total-defeats roll
+ * bonuses). XP-only rows leave the sheet's combat level as it was, so earning one does not work it out afresh. */
+function countsInFight(key: string | undefined): boolean {
+  const d = key ? getLibrary().achievements?.[key] : undefined;
+  return !!d && (d.rule === 'defeats' || chainRewards(d).length > 0);
+}
 
 /** PLACEHOLDER: the combat level: the level of the reference fighter this actor fights evenly (V = 1). V falls as the
  * reference's level rises, so the search brackets V = 1 (doubling from MODEL_LEVEL_FIRST up to MODEL_LEVEL_TOP) and closes
