@@ -29,18 +29,24 @@ export const playDeadOpen = (state: GameState, a: Actor): boolean => a.playDeadO
 export const fooledBy = (x: Actor, a: Actor | undefined): boolean => !!a?.playingDead?.believers.includes(x.id);
 
 /** the foes who could be fooled: active, awake foes on either side, that see the owner clearly now */
-const watchers = (state: GameState, a: Actor): Actor[] => allActors(state)
+export const watchers = (state: GameState, a: Actor): Actor[] => allActors(state)
   .filter((x) => x !== a && isActive(x) && !x.asleep && (foe(state, x, a) || foe(state, a, x)) && seesClearlyNow(state, x, a.id))
   .sort((x, y) => x.id.localeCompare(y.id));
 
-/** one foe's roll against the act: Guile against its answer to a lie; it must win outright to see through it */
-function judge(state: GameState, a: Actor, x: Actor, rng: Rng): Effect {
-  const pd = a.playingDead!;
+/** a lie told with the body (Play Dead, S3 feigned flight): the owner's Guile against the foe's answer to a lie; the foe
+ * must win outright to see through it. True: the foe is fooled */
+export function bodyLie(state: GameState, a: Actor, x: Actor, rng: Rng): boolean {
   const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.guile, modifiers: [], tierShifts: [], against: x.id, contest: true }, state, rng), answerRoll(state, x, answerSkill('deceive'), a.id, rng));
   markUse(state, a, c.a.skill, c);
   contestFeat(state, c);
   markUse(state, x, c.b.skill, c);
-  const fooled = c.winner !== 'b';
+  return c.winner !== 'b';
+}
+
+/** one foe's roll against the act */
+function judge(state: GameState, a: Actor, x: Actor, rng: Rng): Effect {
+  const pd = a.playingDead!;
+  const fooled = bodyLie(state, a, x, rng);
   if (!pd.judged.includes(x.id)) pd.judged = [...pd.judged, x.id].sort();
   pd.believers = fooled ? [...new Set([...pd.believers, x.id])].sort() : pd.believers.filter((id) => id !== x.id);
   return { kind: fooled ? 'play_dead_fooled' : 'play_dead_seen_through', actorId: x.id, data: { by: a.id, perk: PK.play_dead } };

@@ -18,6 +18,8 @@ import { hearsClearly } from '../perception';
 import { VOLUME_NOISE } from '../perception/noise';
 import { COVER, HEALTH_LEVELS, LIGHT, TACTICS } from '../scales';
 import { CONFIG } from '../config';
+import { feinting } from '../engine/feint';
+import { healthLevel } from '../ruleset/body';
 
 /** TC4 a: the Planner's tactics word: the last TACTICS word whose CONFIG.TACTICS_FROM value its own Battle Sense reaches */
 export const tacticsWord = (a: Actor): Tactics => {
@@ -110,6 +112,18 @@ function fieldWalks(state: GameState, a: Actor, view: ActorView, rows: string[],
   for (const k of ['outOfSight', 'intoCover', 'intoDark'] as const) if (!out[k]) delete out[k];
 }
 
+/** S3 (TC50 a): while a feint is on, the believer that came within one move with no other foe within one move of it is
+ * turned on, else it keeps running; with none on, it may start one once a fight when outnumbered and not Wounded */
+function feintFacts(state: GameState, a: Actor, foes: Actor[], out: TacticsView): void {
+  const oneMove = slotMetres(state, a, 'move');
+  if (feinting(state, a)) {
+    const lone = foes.filter((f) => a.feint!.believers.includes(f.id) && distM(state, f, a) <= oneMove && !foes.some((g) => g !== f && distM(state, g, f) <= oneMove))
+      .sort((x, y) => distM(state, x, a) - distM(state, y, a) || x.id.localeCompare(y.id))[0];
+    if (lone) out.turnOn = lone.id;
+    else out.feint = 'run';
+  } else if (!a.feint && out.outnumbered && !rowUsedThisFight(a, FX.feigned_flight) && HEALTH_LEVELS.pos(healthLevel(a)) < HEALTH_LEVELS.pos('wounded')) out.feint = 'start';
+}
+
 /** D-17: the TacticsView for `a`, from its own view's seen list; undefined when it may use no row */
 export function tacticsView(state: GameState, a: Actor, view: ActorView): TacticsView | undefined {
   const rows = rowsOf(state, a);
@@ -123,6 +137,7 @@ export function tacticsView(state: GameState, a: Actor, view: ActorView): Tactic
   const out: TacticsView = { rows };
   if (foes.length > allies.length + 1) out.outnumbered = true;
   if (rowUsedThisFight(a, FX.call_help)) out.calledHelp = true;
+  if (rows.includes(FX.feigned_flight)) feintFacts(state, a, foes, out);
   const at = (x: Actor) => distM(state, { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) }, { zone: x.zone, ...(x.pos ? { pos: x.pos } : {}) });
   if (rows.includes(FX.gang_up)) {
     const oneMove = slotMetres(state, a, 'move');

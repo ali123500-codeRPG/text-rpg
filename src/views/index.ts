@@ -41,6 +41,7 @@ import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
 import { fooledBy, playDeadOpen } from '../engine/playDead';
+import { fooledByFeint } from '../engine/feint';
 import { tacticsWord } from './tactics';
 import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
@@ -303,7 +304,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
-      ...(!isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}),
+      ...(fooledByFeint(state, viewer, a) ? { morale: MORALE_LEVELS.name('broken') } : !isDownLevel(h) && (moraleShows(moraleLevel(a)) || a.mind?.moraleState) ? { morale: seenMoraleWord(a) } : {}), // TC52 a: a believer sees a feint as a break
       ...(!isDownLevel(h) && fatigueShows(fatigueLevel(a)) ? { fatigue: fatigueWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),
@@ -413,6 +414,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     // TC32 a Play Dead: one fooled is never told it was fooled; the owner and onlookers are
     if (f.kind === 'play_dead_fooled' && !own) out.push(`${who} takes ${by} for down`);
     if (f.kind === 'play_dead_seen_through') out.push(own ? `${who} see ${by} is only playing dead` : `${who} sees ${by} is only playing dead`);
+    if (f.kind === 'feint_fooled' && !own) out.push(`${who} takes ${by}'s flight for a real one`); // TC52 a: the fooled are never told
+    if (f.kind === 'feint_seen_through') out.push(`${who} ${own ? 'see' : 'sees'} that ${by}'s flight is a trick`);
     if (f.kind === 'play_dead_ends') out.push(`${who} ${own ? 'are' : 'is'} up again, the act over`);
     if (f.kind === 'aura_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by} and gives up` : `${who} falters before ${by}`); // NT14 auras: Dread Presence; MR4 Overwhelm
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
@@ -828,7 +831,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds)
       ?? (e.actorId === me && actorById(state, e.target) ? 'someone' : undefined) : undefined;
     out.push({
-      id: e.id, kind: e.kind === 'play_dead' && fooledBy(p, actorById(state, e.actorId)) ? 'collapse' : e.kind, level: per.level, cue: per.cue, // TC32 a: the fooled see a fall
+      id: e.id, kind: e.kind === 'play_dead' && fooledBy(p, actorById(state, e.actorId)) ? 'collapse' : e.kind === 'feint' && fooledByFeint(state, p, actorById(state, e.actorId)) ? 'breaks_and_runs' : e.kind, level: per.level, cue: per.cue, // TC32 a: the fooled see a fall
       ...(full ? { actor: callName(state, me, e.actorId) } : {}),
       ...(full && e.actorId !== me && actorById(state, e.actorId)?.pronouns ? { pronouns: actorById(state, e.actorId)!.pronouns } : {}),
       ...(target ? { target } : {}),
