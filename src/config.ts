@@ -196,6 +196,7 @@ const DEFAULTS = {
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
   /** TC37 a: a projected aura (Battle Cry, later Rally) also reaches anyone within this × the owner's aura reach, heard or not */
   PROJECTED_AURA_MULT: 2,
+  FIELD_WAYS_OUT: 3, // TC18 a: how many ways out a Fieldcraft row looks for a zone within one move (a move never crosses more)
   /** TC41 a: Rallied, from any rally: this bonus on every roll for the rest of the fight; a second rally adds nothing */
   RALLIED_MOD: 5,
   /** TC43 a: a rally roll is the rallied one's morale check plus this share of the rallier's rallying skill (augment equation) [placeholder] */

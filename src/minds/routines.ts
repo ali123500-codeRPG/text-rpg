@@ -236,6 +236,18 @@ export function brokenOrder(view: ActorView): Order {
   return view.self.surrendered ? order(view, 'hold', 'broken', 'hold') : fleeOrder(view, 'broken');
 }
 
+/** TC23 a S2: no foe in sight now, so it believes none sees it: it sneaks one way toward the foe it would close in on
+ * (the same pick and chase limit as close in), so its first blow can come from hiding */
+function stalkOrder(view: ActorView, rule: string): Order | null {
+  const s = view.self, seen = new Set((view.seen ?? []).map((x) => x.id));
+  const hunted = hostileBeliefs(view).filter((b) => b.hostile && b.lastKnownZone); // a spar is never stalked
+  if (hunted.some((b) => seen.has(b.about))) return null;
+  const recent = hunted.filter((b) => !b.lost).sort((a, b) => (b.lastSeenTurn ?? -1) - (a.lastSeenTurn ?? -1) || a.about.localeCompare(b.about))[0];
+  if (!recent || recent.lastKnownZone === s.zone) return null;
+  const path = mapPath(view.map, s.zone, recent.lastKnownZone!);
+  return path && (!s.chaseZones || s.chaseZones.includes(path[0])) ? order(view, 'sneak', 'fallback', `steal up on ${recent.about}`, { target: path[0], rule }) : null;
+}
+
 /** D-17 (TC17, TC23): the first FIGHT_RULES row the NPC may use whose situation holds, as an order; null when none fires.
  * B4 counts Wounded or worse as hurt. */
 export function tacticsOrder(view: ActorView): Order | null {
@@ -249,6 +261,10 @@ export function tacticsOrder(view: ActorView): Order | null {
     if (r.id === FX.gang_up && t.allyFoe) return strike(t.allyFoe, r.id);
     if (r.id === FX.back_off && t.outnumbered && t.freeAlly && HEALTH_LEVELS.pos(s.health) >= HEALTH_LEVELS.pos('wounded'))
       return order(view, 'idle', 'fallback', `back off toward ${t.freeAlly.id}`, { move: t.freeAlly.zone, moveSpot: { near: t.freeAlly.id }, rule: r.id });
+    if (r.id === FX.draw_into_pack && t.drawTo) return order(view, 'idle', 'fallback', `fall back toward ${t.drawTo.id}`, { move: t.drawTo.zone, moveSpot: { near: t.drawTo.id }, rule: r.id });
+    if (r.id === FX.strike_from_hiding) { const o = stalkOrder(view, r.id); if (o) return o; }
+    const walk = r.id === FX.out_of_sight ? t.outOfSight : r.id === FX.into_cover ? t.intoCover : r.id === FX.into_dark ? t.intoDark : undefined;
+    if (walk) return order(view, 'idle', 'fallback', r.name.toLowerCase(), { move: walk.zone, moveSpot: { near: walk.via }, rule: r.id });
     if (r.id === FX.finish_hurt && t.hurtFoe) return strike(t.hurtFoe, r.id);
   }
   return null;
