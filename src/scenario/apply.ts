@@ -33,6 +33,7 @@ import { requirement } from '../ruleset/requirements';
 import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
+import { armorStop, shieldPool } from '../library/gearScale';
 
 /** NG15: a composition's template, kept as a story blueprint (one per composition), so its copies rebuild on load and the GM
  * view lists it under "Made this story" with Send to library */
@@ -134,8 +135,8 @@ export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['
       } else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * need * q);
     }
   }
-  if (def.armor) def.armor.reduction = CONFIG.ARMOR_FACTOR * need * (CONFIG.ARMOR_WEIGHT_SOAK[def.armor.weight] ?? 1) + Math.round(CONFIG.ARMOR_QUALITY_FACTOR * need * q); // QE4, QE6, D-368
-  if (def.shield) def.shield.pool = CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * need + Math.round(CONFIG.POOL_QUALITY_FACTOR * need * q); // QE5, QE6
+  if (def.armor) def.armor.reduction = armorStop(def.armor.weight, need) + Math.round(CONFIG.ARMOR_QUALITY_FACTOR * need * q); // QE4, QE6, D-368
+  if (def.shield) def.shield.pool = shieldPool(need) + Math.round(CONFIG.POOL_QUALITY_FACTOR * need * q); // QE5, QE6
   if (def.kind === 'tool') for (const e of def.effects ?? []) if (e.kind === 'skill') e.value += T.tool[m.quality];
   state.blueprints.push({ storyId: state.storyId, id: def.id, kind: 'item', data: def as unknown as Record<string, unknown> });
   state.scenarioCaps.minted += 1;

@@ -12,9 +12,6 @@ export type NameHistory = { current: string; past: { name: string; untilTurn: Tu
 
 export type Actor = {
   id: ActorId;
-  /** PLACEHOLDER: the combat rating's reference fighter (engine/fightModel.ts), never a real actor: it meets every
-   * requirement of its kit, so the yardstick runs smoothly at every level */
-  yardstick?: true;
   storyId: StoryId;
   kind: 'player' | 'npc';
   names: NameHistory;
@@ -100,7 +97,9 @@ export type Engagement = { start: number; last: number; kinds: EngagementKind[];
   /** TC41 a: rallied this fight (Battle Cry's rally; Rally later): CONFIG.RALLIED_MOD on every roll until the engagement ends */
   rallied?: true;
   /** TC35 b Never Flat-Footed: everyone its owner has seen this engagement (kept only for owners of the perk) */
-  seen?: string[] };
+  seen?: string[];
+  /** GR44: its power when it joined the fight (engine/xp.ts notePower); defeat XP and the stronger-foe achievements read it */
+  power?: number };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
 export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true;

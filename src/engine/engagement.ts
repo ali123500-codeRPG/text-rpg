@@ -12,6 +12,7 @@ import { CP } from '../library/tableIds';
 import { yieldAllTaken } from './yield';
 import { secondsSince } from '../time';
 import { engagementEndS } from '../ruleset/actionTime';
+import { notePower } from './xp';
 
 /** YD6: either of the two holds the other at the top awareness state, engaged (they traded blows, or one struck the other's side) */
 export function engagedPair(a: Actor, b: Actor): boolean {
@@ -131,6 +132,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
         e.last = state.turn;
         for (const k of kinds) if (!e.kinds.includes(k)) e.kinds.push(k);
       }
+      notePower(state, a); // GR44: power is taken when it joins a fight
     } else if (e && (brk || (yielded && a === state.player) || secondsSince(state, e.last) >= engagementEndS())) {
       delete a.engagement;
       delete a.haggle; // PY6: haggled prices last until the engagement ends

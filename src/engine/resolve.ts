@@ -13,7 +13,7 @@ import { nerveCowers, nerveLetsWalk } from './nerve';
 import { healthFear, isBrokenLevel, isCoweringLevel, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
-import { freeGrips, levelMaxPct } from '../ruleset/body';
+import { freeGrips, healShare, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
@@ -67,7 +67,7 @@ import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName, r1 } from '../words';
 import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, sizeUp, speechSkill as speechSkillOf } from './speech';
-import { bested, growthWaits, payDefeats, tally, unlockClasses } from './xp';
+import { bested, growthWaits, notePower, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { cantExtract, extractEssence } from './extract';
@@ -949,6 +949,7 @@ const nullOrder = (actorId: string): Order => ({ actorId, type: 'hold', target: 
 /** an engagement-limited All-50 part can be used (a use outside an engagement starts one, as perk moves do) */
 function readyThisEngagement(state: GameState, a: Actor, id: string): boolean {
   if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
+  notePower(state, a); // GR44
   return usableThisEngagement(a, id);
 }
 function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
@@ -1388,12 +1389,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
 
 /** NR34 (placeholders): Heal, open at true Healing CONFIG.HEAL_UNLOCK, on someone within grip reach or oneself. A Healing
  * roll at moderate difficulty gives back CONFIG.HEAL_TIER_SHARE (by tier, plus HEAL_PAST_STEP per step past Critical
- * Success) of what is missing, of health and of each part up to Damaged (the heal row's reach). Below Near Miss, nothing. */
-export const healShare = (level: number): number => {
-  const top = TIERS.pos('critical_success');
-  if (level > top) return Math.min(1, CONFIG.HEAL_TIER_SHARE.critical_success + (level - top) * CONFIG.HEAL_PAST_STEP);
-  return CONFIG.HEAL_TIER_SHARE[TIERS.at(level)] ?? 0;
-};
+ * Success, healShare in ruleset/body.ts) of what is missing, of health and of each part up to Damaged (the heal row's reach). Below Near Miss, nothing. */
 function doHeal(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const t = (o.target && actorById(state, o.target)) || a;

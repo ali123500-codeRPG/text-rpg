@@ -7,6 +7,9 @@ import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, TIERS, type HealthLevelKey, type MoraleLevel, type PartStateKey } from '../scales';
 import { skillOpen } from './access';
+import { hasPerk } from './perks';
+import { healthLevel } from './body';
+import { PK } from '../library/perkIds';
 import { achievementMaxMorale, chainRewards, currentAchievements } from './achRewards';
 
 /** MB29: max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (raw, like Endurance for HP), plus the flat points the
@@ -90,4 +93,11 @@ export const restoreMorale = (a: Actor, pct: number): number => setMoraleLost(a,
 export function tierCostMult(level: number): number {
   if (level < 0) return CONFIG.MORALE_TIER_MULT.critical_failure + CONFIG.MORALE_BEYOND_CF * -level;
   return CONFIG.MORALE_TIER_MULT[TIERS.at(level)] ?? 0;
+}
+
+/** a fear's cost before its morale roll's tier: its cost (or the given one) × the gap's tiers when it counts per tier × any
+ * multiplier, shrunk by All-50 Last to Fall at Wounded or worse. payFear and the combat rating's fight model both read it. */
+export function fearCost(a: Actor, f: FearDef, o: { gap?: number; mult?: number; cost?: number } = {}): number {
+  const cost = (o.cost ?? f.cost) * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
+  return cost > 0 && hasPerk(a, PK.last_to_fall) && HEALTH_LEVELS.pos(healthLevel(a)) >= HEALTH_LEVELS.pos('wounded') ? cost * CONFIG.LAST_TO_FALL_MULT : cost; // All-50 Last to Fall
 }

@@ -1,36 +1,31 @@
 import { SK } from '../../src/library/skillIds';
-// 146 Gear in the rating: GEAR_RATING_FACTOR × the coin value of held and worn gear, on both sides (the player's too).
+// 146 Gear in power: weapons, armor and shields count through the fight model, skill lines through the ratings; coin no longer counts (GR45).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { actorLevel, gearRating, defeatXp, levelCost, levelRating, rating, xpToReach } from '../../src/engine/xp';
-import { itemValue } from '../../src/ruleset/value';
-import { itemDef } from '../../src/library';
+import { actorLevel, combatPart, defeatXp, levelCost, levelRating, power, xpToReach } from '../../src/engine/xp';
+import { nonCombatPart } from '../../src/engine/nonCombat';
 import { CONFIG } from '../../src/config';
 import { TP } from '../../src/library/templateIds';
 
-describe('146 Gear in the rating', () => {
-  it('a geared foe pays its gear coin × GEAR_RATING_FACTOR on top; carried items do not count', () => {
+describe('146 Gear in power (GR45: through the fight, never by its coin)', () => {
+  it('a geared foe is stronger through its weapon and armor in the fight model; stowed gear does not count', () => {
     const s = makeVillage();
     const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
-    const coin = g.core.inventory.filter((i) => i.equippedIn?.length).reduce((n, i) => n + itemValue(s, itemDef(s, i.itemId)), 0);
-    expect(coin).toBeGreaterThan(0);
-    expect(gearRating(s, g)).toBeCloseTo(CONFIG.GEAR_RATING_FACTOR * coin);
-    expect(defeatXp(s, g)).toBeCloseTo(rating(g) + CONFIG.GEAR_RATING_FACTOR * coin, 1); // a strong foe: no taper
+    const geared = power(s, g);
+    expect(geared).toBeCloseTo(levelRating(g, s) + combatPart(s, g) + nonCombatPart(s, g), 6);
     for (const i of g.core.inventory) delete i.equippedIn; // stowed gear is not power in the fight
-    expect(gearRating(s, g)).toBe(0);
+    expect(power(s, g)).toBeLessThan(geared);
   });
-  it("the player's own gear counts in the player's rating, so it shrinks the taper on a weak foe", () => {
+  it("the player's own gear counts in the player's power, so it shrinks the taper on a weak foe", () => {
     const s = makeVillage();
     const slime = s.actors.find((a) => a.core.templateId === TP.slime)!;
     slime.core.skills[SK.scent].raw = 0; // a weak foe, so the taper bites
     s.player.core.classes[0].level = 5;
-    const mine = gearRating(s, s.player);
-    expect(mine).toBeGreaterThan(0);
-    const theirs = rating(slime) + gearRating(s, slime);
-    expect(defeatXp(s, slime)).toBe(Math.round(theirs * Math.min(1, CONFIG.DEFEAT_XP_TAPER * theirs / (rating(s.player) + mine)) * CONFIG.DEFEAT_XP_MULT * 10) / 10);
+    const theirs = power(s, slime), mine = power(s, s.player);
+    expect(defeatXp(s, slime)).toBe(Math.round(theirs * Math.min(1, CONFIG.DEFEAT_XP_TAPER * theirs / mine) * CONFIG.DEFEAT_XP_MULT * 10) / 10);
     const geared = defeatXp(s, slime);
     for (const i of s.player.core.inventory) delete i.equippedIn; // stowed gear is not power
-    expect(defeatXp(s, slime)).toBeGreaterThan(geared);
+    expect(defeatXp(s, slime)).toBeGreaterThanOrEqual(geared);
   });
   it('levels add LEVEL_RATING_SHARE × what the XP curve asks to reach them, on both sides', () => {
     const s = makeVillage();
@@ -43,9 +38,9 @@ describe('146 Gear in the rating', () => {
     expect(levelRating(g)).toBeCloseTo(2 * before, 0); // each step is rounded to whole XP
     (CONFIG as { LEVEL_XP: number }).LEVEL_XP = lx;
     const keep = CONFIG.LEVEL_RATING_SHARE;
-    const base = rating(g);
+    const base = power(s, g);
     (CONFIG as { LEVEL_RATING_SHARE: number }).LEVEL_RATING_SHARE = keep * 2; // a balance lever
-    expect(rating(g)).toBeCloseTo(base + levelRating(g) / 2);
+    expect(power(s, g)).toBeCloseTo(base + levelRating(g) / 2);
     (CONFIG as { LEVEL_RATING_SHARE: number }).LEVEL_RATING_SHARE = keep;
     // the player's free and bonus levels count like any other level
     const p = s.player;

@@ -1,12 +1,16 @@
 // Skill groups as ratings (GR1-GR36), the expected blow (ruleset/expect.ts) and the combat rating's fight model
 // (engine/fightModel.ts, a placeholder): a lone skill rates itself, more skills add less, the expectation matches dice,
-// and a fighter in the reference kit fights the reference at its own level evenly.
+// a fighter in the reference's relics fights it evenly at its own level, and non-combat shares face an equal foe.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { compoundRating, groupRating, holdStrength, poolOf, ratingOf, strengthFor } from '../../src/ruleset/ratings';
 import { expectBlow } from '../../src/ruleset/expect';
-import { combatLevel, duel, refFighter } from '../../src/engine/fightModel';
+import { clearCombatLevels, combatLevel, duel, refFighter } from '../../src/engine/fightModel';
+import { nonCombatGroups } from '../../src/engine/nonCombat';
+import { itemDef } from '../../src/library';
+import { requirement, shortBy } from '../../src/ruleset/requirements';
+import { armorStop } from '../../src/library/gearScale';
 import { usableModes } from '../../src/ruleset/gear';
 import { equipLoadout } from '../../src/library/spawn';
 import { GR, RT } from '../../src/library/functionIds';
@@ -16,8 +20,7 @@ import { CONFIG } from '../../src/config';
 import type { Actor, GameState } from '../../src/types';
 
 const sheet = (S: GameState, id: string, skills: Record<string, number>, kit: string[] = []): Actor => {
-  const a = refFighter(S, 0, id);
-  delete a.yardstick;
+  const a = refFighter(S, 0, id).ref;
   a.core.skills = Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, { raw: v, state: 'normal' as const }]));
   a.core.inventory = equipLoadout(S, kit, id);
   return a;
@@ -65,15 +68,44 @@ describe('the expected blow matches the dice', () => {
 });
 
 describe('fight model (placeholder)', () => {
-  it('the reference against itself is even, and a fighter in the reference kit rates its own skill', () => {
+  it('the reference fighter carries relics whose requirement is its level, their stats following (GR40)', () => {
     const S = makeVillage({ seed: 1 });
-    expect(duel(S, refFighter(S, 80, 'p'), refFighter(S, 80, 'q')).v).toBeCloseTo(1, 6);
-    const f = sheet(S, 'f', Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 100])), CONFIG.MODEL_REF_KIT);
+    const { S: S2, ref } = refFighter(S, 30, 'r');
+    const mail = itemDef(S2, ref.core.inventory.find((i) => itemDef(S2, i.itemId).armor)!.itemId);
+    expect(requirement(mail)?.need).toBe(30);
+    expect(mail.armor!.reduction).toBeCloseTo(armorStop(mail.armor!.weight, 30), 9);
+    expect(shortBy(ref, mail)).toBe(0);
+  });
+  it('the reference against itself is even; a fighter in its relics rates its level; standard kit rates at its own level', () => {
+    const S = makeVillage({ seed: 1 });
+    const p = refFighter(S, 80, 'p'), q = refFighter(p.S, 80, 'q');
+    expect(duel(q.S, p.ref, q.ref).v).toBeCloseTo(1, 6);
+    clearCombatLevels();
+    const twin = refFighter(S, 100, 'twin');
+    expect(combatLevel(twin.S, twin.ref)).toBeCloseTo(100, 0);
+    const f = sheet(S, 'f', Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), CONFIG.MODEL_REF_KIT); // sword and mail ask for 50
     f.core.standingDefense = 'parry';
-    expect(combatLevel(S, f)).toBeGreaterThan(97);
-    expect(combatLevel(S, f)).toBeLessThan(103);
-    const plate = sheet(S, 'g', { ...Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 100])), [SK.heavy_armor]: 100 }, [IT.arming_sword, IT.plate_harness]);
+    expect(combatLevel(S, f)).toBeGreaterThan(48);
+    expect(combatLevel(S, f)).toBeLessThan(52);
+    const plate = sheet(S, 'g', { ...Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), [SK.heavy_armor]: 50 }, [IT.arming_sword, IT.plate_harness]);
     plate.core.standingDefense = 'parry';
     expect(combatLevel(S, plate)).toBeGreaterThan(combatLevel(S, f) * 1.5);
+  });
+});
+
+describe('non-combat part (GR34, GR41)', () => {
+  it('a share faces an equal foe, so it stays about the same at every level; the pool carries the skill', () => {
+    const S = makeVillage({ seed: 1 });
+    const at = (v: number) => nonCombatGroups(S, sheet(S, 's' + v, { [SK.sneaking]: v }));
+    const [lo, hi] = [at(50)[0], at(200)[0]];
+    expect(lo.group).toBe(GR.stealth);
+    expect(Math.abs(hi.share - lo.share)).toBeLessThan(0.1);
+    expect(hi.adds / lo.adds).toBeCloseTo((hi.pool / lo.pool) * (hi.share / lo.share), 6);
+    expect(hi.pool / lo.pool).toBeCloseTo(16, 6); // worth grows as skill²
+  });
+  it('Heal gives nothing below its unlock, so Medicine adds nothing there', () => {
+    const S = makeVillage({ seed: 1 });
+    expect(nonCombatGroups(S, sheet(S, 'm', { [SK.healing]: CONFIG.HEAL_UNLOCK - 1 })).find((g) => g.group === GR.medicine)?.adds ?? 0).toBe(0);
+    expect(nonCombatGroups(S, sheet(S, 'n', { [SK.healing]: 80 })).find((g) => g.group === GR.medicine)!.adds).toBeGreaterThan(0);
   });
 });

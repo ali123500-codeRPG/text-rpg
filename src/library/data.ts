@@ -33,6 +33,7 @@ import { ST } from './startIds';
 import { ES } from './essenceIds';
 import { PK } from './perkIds';
 import { IT } from './itemIds';
+import { armorMultiplier, armorStop, shieldPool } from './gearScale';
 
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 /** AG3–AG6: life stage start ages per race (placeholders but the human row) */
@@ -221,8 +222,8 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
 ];
 /** QE4/QE5, D-368: armor stops ARMOR_FACTOR × need × ARMOR_WEIGHT_SOAK[weight]; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need);
  * a Crude piece (need 0) stops nothing: its multiplier is 1 */
-const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level] * CONFIG.ARMOR_WEIGHT_SOAK[w], multiplier: CONFIG.EQUIP_NEED[level] ? CONFIG.ARMOR_MULTIPLIER[w] : 1, weight: w });
-const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
+const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: armorStop(w, CONFIG.EQUIP_NEED[level]), multiplier: armorMultiplier(w, CONFIG.EQUIP_NEED[level]), weight: w });
+const POOL = (level: string) => ({ pool: shieldPool(CONFIG.EQUIP_NEED[level]) });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any', armorWeight: true });
 /** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
 const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });

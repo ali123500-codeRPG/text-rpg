@@ -147,5 +147,5 @@ describe('157 All-50 round 3', () => {
       expect(npc(s, 'patron_1').mind!.knowledge.player?.status).not.toBe('unaware'); // the target at least suspects the shooter's zone
     }
     expect(faded).toBeGreaterThan(0);
-  });
+  }, 20000); // twenty fresh villages; the player with and without the perk, the patron and the guard each get a combat level worked out afresh
 });

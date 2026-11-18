@@ -2,40 +2,50 @@
 // read from the same function (powerParts in src/engine/xp.ts), so the sheet never carries a second formula.
 import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
-import { itemDef } from '../library';
-import { GROUP_NAMES } from '../library/functionNames';
+import { groupName, ratingName } from '../library/functionNames';
+import { GR } from '../library/functionIds';
+import { compoundRating, groupRating, type Rating } from '../ruleset/ratings';
+import type { ShareRule } from '../engine/nonCombat';
 import { powerParts } from '../engine/xp';
-import { cap, r1 } from '../words';
+import { r1 } from '../words';
 import { h } from './kit';
 import { skillName } from './creation';
 import { openPop } from './pop';
 
-/** one line of the breakdown: what it is, how it is worked out, what it adds, and the lines under it */
-export type PowerLine = { label: string; how: string; adds: number; sub?: PowerLine[] };
+/** one line of the breakdown: what it is, how it is worked out, what it adds (or, for a rating, its value), and the lines under it */
+export type PowerLine = { label: string; how: string; adds?: number; value?: string; sub?: PowerLine[] };
 
-const share = (x: number) => (x === 1 ? 'in full' : `at 1/${Math.round(1 / x)}`);
-const factorText = (f: number) => (f === 1 ? 'counts in full' : f === 0 ? 'counts nothing' : `counts ×${f}`);
+const pct = (x: number) => `${r1(100 * x)}%`;
+/** GR34: what each non-combat share is, in words */
+const SHARE_WORDS: Record<ShareRule, string> = {
+  slip: 'gets past an equal watcher', catch: 'catches an equal sneaker', talk_down: 'talks an equal foe out of a fight', heal: 'of missing health one Heal gives back',
+};
 
-/** power() as lines: level, then each skill group that adds something (largest first), then gear; they add up to the total */
+/** power() as lines: level, combat (the combat level), then each non-combat group; they add up to the total */
 export function powerLines(s: GameState, p: Actor): { total: number; lines: PowerLine[] } {
   const parts = powerParts(s, p);
-  const groups = parts.groups.filter((g) => g.skills.length && g.group).sort((a, b) => b.adds - a.adds);
   const lines: PowerLine[] = [
     { label: `Level ${parts.level}`, how: `${CONFIG.LEVEL_RATING_SHARE * 100}% of the XP it takes to reach it`, adds: parts.levelAdds },
-    ...groups.map((g) => ({
-      label: `${GROUP_NAMES[g.group as keyof typeof GROUP_NAMES] ?? g.group} skills`, how: `the group ${factorText(g.factor)}`, adds: g.adds,
-      sub: g.skills.map((k) => ({ label: skillName(k.skill), how: `skill ${r1(k.value)}, worth ${r1(k.worth)}, counted ${share(k.share)}`, adds: k.adds })),
+    { label: `Combat level ${r1(parts.combatLevel)}`, how: 'fights a reference fighter of this level evenly (placeholder)', adds: parts.combatAdds },
+    ...parts.nonCombat.sort((a, b) => b.adds - a.adds).map((g) => ({
+      label: `${groupName(g.group)} skills`, how: `rating ${r1(g.rating)}; ${pct(g.share)} ${SHARE_WORDS[g.rule]}`, adds: g.adds,
     })),
-    { label: 'Gear held and worn', how: `${CONFIG.GEAR_RATING_FACTOR * 100}% of its coin value`, adds: parts.gear.reduce((n, g) => n + g.adds, 0),
-      sub: parts.gear.map((g) => ({ label: cap(itemDef(s, g.itemId).name), how: `${r1(g.coin)} coin`, adds: g.adds })) },
   ];
   return { total: parts.total, lines };
+}
+
+/** GR7: the ratings (skill points): every skill group and compound row with anything in it, with its gear portion (GR8) */
+export function ratingLines(s: GameState, p: Actor): PowerLine[] {
+  const row = (label: string, r: Rating): PowerLine => ({ label, how: r.gear > 0 ? `${r1(r.own)} own + ${r1(r.gear)} from gear` : r.parts.map((x) => skillName(x.skill)).join(', '), value: String(r1(r.rating)) });
+  const groups = (Object.values(GR) as string[]).map((g) => [groupName(g), groupRating(s, p, g)] as const);
+  const rows = Object.keys(CONFIG.RATINGS).map((id) => [ratingName(id), compoundRating(s, p, id)] as const);
+  return [...rows, ...groups].filter(([, r]) => r.rating > 0).map(([label, r]) => row(label, r));
 }
 
 const plus = (n: number) => `+${r1(n)}`;
 
 function line(l: PowerLine, depth: number): HTMLElement {
-  const row = h('div', { class: `pw-line${depth ? ' pw-sub' : ''}` }, h('span', { class: 'pw-what' }, h('b', {}, l.label), h('span', {}, l.how)), h('span', { class: 'pw-adds' }, plus(l.adds)));
+  const row = h('div', { class: `pw-line${depth ? ' pw-sub' : ''}` }, h('span', { class: 'pw-what' }, h('b', {}, l.label), h('span', {}, l.how)), h('span', { class: 'pw-adds' }, l.value ?? plus(l.adds ?? 0)));
   if (!l.sub?.length) return row;
   return h('details', { class: 'pw-group' }, h('summary', {}, row), ...l.sub.map((x) => line(x, depth + 1)));
 }
@@ -51,8 +61,10 @@ export function powerFigure(s: GameState, p: Actor): HTMLElement {
 export function openPowerPop(s: GameState, p: Actor, opener?: HTMLElement | null): void {
   const { total, lines } = powerLines(s, p);
   openPop({ title: 'Power', cls: 'pw-pop', opener, body: [
-    h('p', { class: 'hs-note' }, 'How strong you are, the same measure foes are judged by: it sets the XP a defeat pays and which foes count as stronger. In each skill group your best skill counts in full, the next at 1/2, then 1/4 and so on. Open a line to see its parts.'),
+    h('p', { class: 'hs-note' }, 'How strong you are, the same measure foes are judged by: it sets the XP a defeat pays and which foes count as stronger. Your level, how you fight (the level of a reference fighter you beat as often as it beats you), and what your sneaking, spotting, filching, healing and talking settle without a fight.'),
     h('div', { class: 'pw-list' }, ...lines.map((l) => line(l, 0))),
     h('div', { class: 'pw-line pw-total' }, h('span', { class: 'pw-what' }, h('b', {}, 'Power')), h('span', { class: 'pw-adds' }, String(r1(total)))),
+    h('details', { class: 'pw-group pw-ratings' }, h('summary', {}, h('div', { class: 'pw-line' }, h('span', { class: 'pw-what' }, h('b', {}, 'Ratings'), h('span', {}, 'each skill group and stat as one number in skill points; open to see them')))),
+      ...ratingLines(s, p).map((l) => line(l, 1))),
   ] });
 }

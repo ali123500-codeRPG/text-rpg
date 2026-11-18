@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { TIERS } from '../scales';
 import { itemDef } from '../library';
 import { DEFENSE_SKILL } from '../library/skillIds';
-import { blowDamage, defenseOwnMods, gapShiftsOf, hitOutcome, ladder, restricted, rollLevel, rollSetup, turnsAside, weaponHitMods, type RollSetup } from '.';
+import { blowDamage, defenseOwnMods, rollMargin, sumShifts, gapShiftsOf, hitOutcome, ladder, restricted, rollLevel, rollSetup, turnsAside, weaponHitMods, type RollSetup } from '.';
 import { defenseItem, modeSkill, openHandArm, usableDefense } from './gear';
 import { hitTable } from './body';
 import { actionRow, actionSeconds, attackRowIds } from './actionTime';
@@ -16,13 +16,22 @@ import { PK } from '../library/perkIds';
 
 const ENDLESS = { up: CONFIG.MODEL_TIER_REACH, down: CONFIG.MODEL_TIER_REACH };
 
+/** a set-up roll's odds hang on its margin before the die (skill and modifiers), its shifts, the skill (after-roll shifts)
+ * and the roller's perks; the model asks the same ones many times, so they are kept (cleared when the store fills) */
+const oddsMemo = new Map<string, Map<number, number>>();
+const atkMemo = new WeakMap<Actor, Map<string, Map<number, number>>>();
 /** the chance of each tier level on a set-up roll, over d100 = 1..100 (after-roll shifts included, tiers endless) */
 export function tierOdds(su: RollSetup): Map<number, number> {
+  const key = `${rollMargin(0, su.eff.value, su.modifiers)}|${sumShifts(su.shifts)}|${su.eff.skill}|${su.actor.core.perks.map((p) => (p.dormant ? '' : p.perkId)).join(',')}`;
+  const hit = oddsMemo.get(key);
+  if (hit) return hit;
   const out = new Map<number, number>();
   for (let d = 1; d <= 100; d++) {
     const { level } = rollLevel(su, d, true, undefined, ENDLESS);
     out.set(level, (out.get(level) ?? 0) + 0.01);
   }
+  if (oddsMemo.size > 20000) oddsMemo.clear();
+  oddsMemo.set(key, out);
   return out;
 }
 /** the chance of each tier level on a roll as the request asks it (the actor's own modifiers added, as roll() does) */
@@ -46,7 +55,12 @@ export function attackSecs(state: GameState, A: Actor, m: ModeRef): number {
 export function expectBlow(state: GameState, A: Actor, D: Actor, m: ModeRef, extra: { attack?: Mod[]; defense?: Mod[] } = {}): BlowAvg {
   const { mode } = m, ranged = mode.tree === 'ranged';
   const name = m.itemId.startsWith('natural:') || m.itemId === 'unarmed' ? mode.id : itemDef(state, A.core.inventory.find((i) => i.id === m.itemId)?.itemId ?? '')?.name ?? mode.id;
-  const atk = tierOdds(rollSetup({ actorId: A.id, skill: modeSkill(mode), modifiers: [...weaponHitMods(mode, name), ...(extra.attack ?? [])], tierShifts: [], itemId: m.itemId, rollKind: 'hit', against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend, attackKind: ranged ? 'ranged' : 'melee' }, state, A));
+  // the model's attacker strikes many times unchanged: its roll is set up once per actor object and condition
+  const aKey = `${m.itemId}|${m.mode.id}|${D.id}|${A.core.condition.hpLostPct}|${A.core.condition.moraleLost}|${JSON.stringify(extra.attack ?? [])}`;
+  const aMemo = atkMemo.get(A) ?? new Map<string, Map<number, number>>();
+  atkMemo.set(A, aMemo);
+  const atk = aMemo.get(aKey) ?? tierOdds(rollSetup({ actorId: A.id, skill: modeSkill(mode), modifiers: [...weaponHitMods(mode, name), ...(extra.attack ?? [])], tierShifts: [], itemId: m.itemId, rollKind: 'hit', against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend, attackKind: ranged ? 'ranged' : 'melee' }, state, A));
+  aMemo.set(aKey, atk);
   const type = usableDefense(state, D, ranged);
   const blocker = defenseItem(state, D, type);
   const openArm = type === 'parry' && !blocker ? openHandArm(state, D) : null;
@@ -54,6 +68,14 @@ export function expectBlow(state: GameState, A: Actor, D: Actor, m: ModeRef, ext
   const table = hitTable(state, D), H = CONFIG.HIT_GAPS, nearMiss = TIERS.pos('near_miss');
   const shieldMult = type === 'block' && mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, PK.shield_breaker) ? CONFIG.SHIELD_BREAKER_MULT : 1;
   const rim = hasPerk(D, PK.iron_rim) ? CONFIG.IRON_RIM_MULT : 1;
+  // one damage step per (place, multiplier): the same blow lands at many tier pairs
+  const memo = new Map<string, number>();
+  const dmg = (at: string, mult: number, arm: string | null): number => {
+    const k = `${at}|${mult}|${arm}`;
+    let v = memo.get(k);
+    if (v === undefined) memo.set(k, (v = blowDamage(state, A, D, mode, at, mult, arm).damage));
+    return v;
+  };
   let body = 0, shield = 0;
   for (const [al, pa] of atk) {
     if (al < nearMiss) continue;
@@ -62,12 +84,12 @@ export function expectBlow(state: GameState, A: Actor, D: Actor, m: ModeRef, ext
       const g = Math.min(CONFIG.GAP_MAX, gap), mult = ladder(type, g);
       if (!mult) continue;
       const p = pa * pd;
-      if (type === 'block' && g >= H.shieldFrom) { shield += p * blowDamage(state, A, D, mode, 'shield', mult, null).damage * shieldMult * rim; continue; }
+      if (type === 'block' && g >= H.shieldFrom) { shield += p * dmg('shield', mult, null) * shieldMult * rim; continue; }
       const outcome = hitOutcome(type, g);
       for (const row of table) {
         const w = (row.to - row.from + 1) / 100;
         const at = openArm ?? (restricted(state, D, type, g, row.part) ? 'general' : row.part);
-        body += p * w * blowDamage(state, A, D, mode, at, turnsAside(state, D, at, outcome) ? 1 : mult, openArm).damage;
+        body += p * w * dmg(at, turnsAside(state, D, at, outcome) ? 1 : mult, openArm);
       }
     }
   }

@@ -27,7 +27,7 @@ export function requiredSkill(def: ItemDef): string | undefined {
 
 export function requirement(def: ItemDef): { skill: string; level: EquipLevelKey; need: number } | null {
   const level = itemLevel(def), skill = requiredSkill(def);
-  return level && skill ? { skill, level, need: equipNeed(level) } : null;
+  return level && skill ? { skill, level, need: def.relicNeed ?? equipNeed(level) } : null;
 }
 
 /** true skill toward a requirement: the skill itself, or the best stand-in at its share */
@@ -39,7 +39,6 @@ export function skillToward(actor: Actor, skill: string): number {
 /** points short of an item's requirement (0 when met or when it has none) */
 export function shortBy(actor: Actor, def: ItemDef): number {
   const r = requirement(def);
-  if (actor.yardstick) return 0; // the combat rating's reference fighter meets its kit at every level (CONFIG.MODEL_REF_KIT_RULE)
   return r ? Math.max(0, r.need - achievementReqLower(actor, r.skill) - skillToward(actor, r.skill)) : 0; // reqLower: only the check, never the item's numbers
 }
 

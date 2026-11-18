@@ -12,7 +12,7 @@ import { actorBody, getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
-import { power, tally } from './xp';
+import { fightPower, tally } from './xp';
 import { markFightSurvived } from './tacticsMarks';
 import { HEALTH_LEVELS, TIERS } from '../scales';
 import { tierLevel } from '../ruleset';
@@ -179,9 +179,9 @@ function logFight(state: GameState, events: GameEvent[]): void {
   if (HEALTH_LEVELS.pos(healthLevel(p)) >= HEALTH_LEVELS.pos('critical')) f.brink = true;
   if (isBrokenLevel(moraleLevel(p))) f.broke = true;
   // D-177: the strongest hostile foe, against the player's own power (the same power defeat XP uses)
-  const mine = power(state, p);
+  const mine = fightPower(state, p); // GR44: the powers taken when each joined the fight
   for (const x of foes.filter((y) => hostile(state, y, p))) {
-    const gap = power(state, x) - mine;
+    const gap = fightPower(state, x) - mine;
     f.above = Math.max(f.above ?? gap, gap);
     if (mine > 0) f.abovePct = Math.max(f.abovePct ?? -100, (gap / mine) * 100);
   }

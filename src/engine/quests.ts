@@ -14,7 +14,7 @@ import { buildLeakContext, leakScan } from '../agents/narration';
 import { actorById, allActors, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
 import { logCode, stepStance } from './effects';
-import { awardXp, power, tally, weakFoeTaper, xpToNext } from './xp';
+import { awardXp, fightPower, power, tally, weakFoeTaper, xpToNext } from './xp';
 import { coinWords } from './trade';
 import { freshId } from '../ids';
 
@@ -221,7 +221,7 @@ export function updateQuests(state: GameState, events: GameEvent[], defeated: Ac
     const g = q.goal;
     if (g.kind === 'defeat') for (const t of defeated.filter((x) => (g.by === 'actor' ? x.id : g.by === 'race' ? x.core.raceId : x.core.bodyTypeId) === g.of)) {
       q.progress++;
-      q.foePower = (q.foePower ?? 0) + power(state, t); // QX4: each foe's power when it falls
+      q.foePower = (q.foePower ?? 0) + fightPower(state, t); // QX4, GR44: each foe's power as it joined the fight
     }
     if (g.kind === 'deliver') q.progress += givenTo(state, events, g.item, g.to, g.inst);
     if (g.kind === 'reach' && playerIn(state, g.place)) q.progress = 1;
