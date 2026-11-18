@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-310
+
+**What was wrong:** On the play page the right column hid anything that did not fit, and its minimap was always 360 px tall. On a window shorter than about 1000 px, the Level / XP bar, Coin and the "Skills and full sheet" link at the bottom of the column were cut off.
+
+**What was done:** The minimap now shrinks on short windows, down to about 180 px of map, so the bottom of the column stays in view. On a window too short even for that, the column scrolls instead of cutting anything off.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-309
 
 **What was wrong:** Stepping up to be heard (approachMove) only happened when the listener was in the same zone or one sight link away, so someone two open ways off and out of earshot was never walked toward.
