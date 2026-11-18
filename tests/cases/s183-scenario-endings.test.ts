@@ -176,17 +176,17 @@ describe('183 scenario plans (SC2, SC3, SC7)', () => {
 });
 
 describe('183 BG-36: the Weaver schema keeps every field it may give', () => {
-  it('layouts, names, heights, sizes, edges, road lengths and dangers, and the scenario, reach the validator', () => {
+  it('layouts, names, sizes, walls, road lengths and dangers, and the scenario, reach the validator', () => {
     const v = checkStagePlan({
       event: { summary: 's', challenge: 'none', gain: 'none' },
       places: [{ key: 'p', name: 'n', kind: 'tavern', parent: null, layout: 'L', names: { a: 'b' }, looks: { a: 'c' } }],
-      zones: [{ key: 'z', place: 'p', kind: 'k', name: 'n', look: 'l', height: 3, size: 'small', area: 20, edges: { n: 'wall' }, length: 4, danger: 'wild', links: [] }],
+      zones: [{ key: 'z', place: 'p', kind: 'k', name: 'n', look: 'l', size: 'small', area: 20, walls: { n: 'WK1' }, length: 4, danger: 'wild', ways: [] }],
       frontiers: [], bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '',
       scenario: { question: 'q', scale: 'moment', endings: [] },
     });
     expect(v.errors).toEqual([]);
     expect(v.value.places[0]).toMatchObject({ layout: 'L', names: { a: 'b' }, looks: { a: 'c' } });
-    expect(v.value.zones[0]).toMatchObject({ height: 3, size: 'small', area: 20, edges: { n: 'wall' }, length: 4, danger: 'wild' });
+    expect(v.value.zones[0]).toMatchObject({ size: 'small', area: 20, walls: { n: 'WK1' }, length: 4, danger: 'wild' });
     expect(v.value.scenario).toMatchObject({ question: 'q' });
   });
 });

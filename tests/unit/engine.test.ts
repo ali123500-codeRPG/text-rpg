@@ -431,6 +431,7 @@ describe('gear and combat', () => {
   });
   it('a Destroyed sword arm drops the sword; pick up is free and returns it', () => {
     place(s, 'guard_1', 'tav_common');
+    beside(s, 'guard_1', 'player', 0); // close enough that the sword falls within the player's grip reach (FR2)
     F.destroyPart = 'right_arm';
     const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     const drop = ev.find((e) => e.kind === 'item_dropped')!;

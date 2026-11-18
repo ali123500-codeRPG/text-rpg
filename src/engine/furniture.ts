@@ -4,7 +4,8 @@
 // but it hides what is behind it (PC1, PC2: its kind's sizeM; ruleset/objectCover). FR2: a title gets its kind's defaults
 // unless a layout or the Weaver lists its own. FR4: a piece on an edge (a counter, a rail) stands on that edge and shows
 // in the title on its far side too.
-import type { Furniture, GameState } from '../types';
+import type { Furniture, GameState, Side } from '../types';
+import { OPP_SIDE } from '../types';
 import { zoneById } from './relations';
 import { inTitle } from '../plan/where';
 export { makeFurniture } from '../plan/draw';
@@ -27,11 +28,12 @@ export const furnitureById = (state: GameState, zoneId: string, id: string): Fur
 /** the stored record of a piece by id: where its grade is kept (OD3) */
 export const furnitureRecord = (state: GameState, id: string): Furniture | undefined => state.furniture.find((f) => f.id === id);
 
-const OPPOSITE: Record<string, string> = { n: 's', s: 'n', e: 'w', w: 'e', ne: 'sw', sw: 'ne', nw: 'se', se: 'nw' };
+/** the side across from a side or corner (OPP_SIDE, each letter of a corner turned) */
+const opposite = (side: string): string => side.split('').map((c) => OPP_SIDE[c as Side] ?? c).join('');
 /** a piece's place in words: "north side", "south-west corner", "middle"; FR4: an edge piece seen from the title on its far
  * side (`from`) stands on that title's opposite side */
 export function furnitureWhere(f: Furniture, from?: string): string {
-  const side = f.side && f.edge && from && from !== f.zone ? OPPOSITE[f.side] ?? f.side : f.side;
+  const side = f.side && f.edge && from && from !== f.zone ? opposite(f.side) : f.side;
   const w = side ? WORDS[side] ?? side : '';
   return !w ? 'middle' : w.includes(' ') ? `${w.replace(' ', '-')} corner` : `${w} side`;
 }

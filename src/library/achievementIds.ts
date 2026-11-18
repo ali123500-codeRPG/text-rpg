@@ -124,7 +124,7 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   defeats: 'defeat', unaware_defeats: 'foe defeated while unaware of you', yielded: 'foe who surrendered or broke while fighting you',
   event_crits: 'event roll at Critical Success', event_crit_fails: 'event roll at Critical Failure',
   crits: 'roll at Critical Success or better with a skill of the group', beyond_crit: 'step past Critical Success on a roll',
-  crippled_defeats: 'foe defeated while one of your parts is Crippled', struck_surrendered: 'foe you attacked after it surrendered', killed_surrendered: 'foe you killed after it surrendered', struck_fleeing: 'broken foe you attacked as it fled', zones: 'zone entered', places: 'place of the kind entered', health_reached: 'time your health reached the level', deals: 'deal struck with you',
+  crippled_defeats: 'foe defeated while one of your parts is Crippled', struck_surrendered: 'foe you attacked after it surrendered', killed_surrendered: 'foe you killed after it surrendered', struck_fleeing: 'broken foe you attacked as it fled', zones: 'zone entered', ground: `${CONFIG.REGION_CELL_M} m square of land stood in`, places: 'place of the kind entered', health_reached: 'time your health reached the level', deals: 'deal struck with you',
   days: 'game day survived', flawless: 'fight won without losing HP, after at least one defense roll',
   outnumbered: `fight won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fight survived after reaching Critical health (once per fight)', held_line: 'fight won beside at least one ally, while the foes outnumbered your side',

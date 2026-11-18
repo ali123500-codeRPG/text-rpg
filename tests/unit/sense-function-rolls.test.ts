@@ -11,6 +11,7 @@ import { SK } from '../../src/library/skillIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { PK } from '../../src/library/perkIds';
 import { setTitleLight } from '../../src/plan/draw';
+import { lightAll } from '../harness';
 
 const sense = (actorId: string, f: 'sight' | 'hearing') => ({ actorId, skill: f === 'sight' ? SK.eyesight : SK.earshot, fn: FN[f], modifiers: [], tierShifts: [], auto: false as const });
 const value = (r: { d100: number; margin: number }) => (r.margin - r.d100 + CONFIG.ROLL_NEEDED) / CONFIG.SKILL_WEIGHT;
@@ -39,8 +40,7 @@ describe('sense rolls use the function', () => {
     slime.core.skills[SK.tremor] = { raw: 50, state: 'normal' };
     p.core.skills[SK.eyesight] = { raw: 40, state: 'normal' };
     const zone = zoneById(s, p.zone)!;
-    setTitleLight(s, zone, 'dark');
-    delete (zone as { outdoor?: true }).outdoor;
+    lightAll(s, 'dark'); s.clocks.time = 23 * 60; // dark at night, so no lamp or daylight next door lights the room
     expect(situational(s, fnRoller(s, slime, FN.hearing), { light: zone, actor: slime }).modifiers).toEqual([]);
     expect(fnRoller(s, p, FN.sight)).toBe(SK.eyesight);
     expect(situational(s, fnRoller(s, p, FN.sight), { light: zone, actor: p }).modifiers[0].value).toBeLessThan(0);

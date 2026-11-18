@@ -62,13 +62,27 @@ export function nearestEdge(p: Pt, pts: Pt[]): { at: Pt; d: number; side: number
   sidesOf(pts).forEach(([a, b], i) => { const s = toSegment(p, a, b); if (s.d < best.d) best = { at: s.at, d: s.d, side: i }; });
   return best;
 }
-/** p kept inside the outline: itself when in, else the nearest edge point moved `inset` metres toward the middle */
+/** p kept inside the outline, `inset` metres in from every wall: itself when it is, else stepped in from the nearest wall
+ * (and then from the next, so a point past a corner ends `inset` from both walls); where the outline is too narrow for
+ * that, the nearest edge point moved `inset` metres toward the middle */
 export function keepInside(p: Pt, pts: Pt[], inset = 0): Pt {
   if (inOutline(p, pts, 0) && (inset <= 0 || nearestEdge(p, pts).d >= inset - GEO_EPS)) return p;
+  let q = inOutline(p, pts, 0) ? p : nearestEdge(p, pts).at;
+  if (inset <= 0) return q;
+  const sides = sidesOf(pts);
+  for (let k = 0; k < 8; k++) {
+    const n = nearestEdge(q, pts);
+    if (n.d >= inset - GEO_EPS && inOutline(q, pts, 0)) return q;
+    const [a, b] = sides[n.side];
+    let [nx, ny] = outward(a, b);
+    if (inOutline({ x: n.at.x + nx * 1e-3, y: n.at.y + ny * 1e-3 }, pts, 0)) { nx = -nx; ny = -ny; } // the way out of the title
+    q = { x: n.at.x - nx * inset, y: n.at.y - ny * inset };
+  }
+  if (inOutline(q, pts, 0) && nearestEdge(q, pts).d >= inset - GEO_EPS) return q;
   const e = nearestEdge(p, pts).at, m = middleOf(pts), d = dist(e, m);
   if (d <= GEO_EPS) return m;
-  const k = Math.min(inset, d) / d;
-  return { x: e.x + (m.x - e.x) * k, y: e.y + (m.y - e.y) * k };
+  const f = Math.min(inset, d) / d;
+  return { x: e.x + (m.x - e.x) * f, y: e.y + (m.y - e.y) * f };
 }
 
 /** where segment p–q crosses segment a–b: the shares along each (t on p–q, u on a–b), or null when they do not cross

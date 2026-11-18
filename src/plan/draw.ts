@@ -14,6 +14,7 @@ import { areaOf, bandOutline, boxOf, dist, lerp, middleOf, nearestEdge, NEAR_M, 
 import { roofed, topFor, inTitle } from './where';
 import { paintWall, wallAt } from './walls';
 import { planChanged } from './stamp';
+import { freshId } from '../ids';
 
 /** what drawing keeps of a title until it is drawn: its spec, and the ways read from it */
 type Draft = { titles: Zone[]; specs: Map<string, TitleSpec> };
@@ -26,13 +27,8 @@ const kindDef = (k?: string) => (k ? getLibrary().zoneKinds?.[k] : undefined);
 /** the title's spec field, else its kind's */
 const roofOf = (sp: TitleSpec | undefined, z: Zone) => sp?.roof ?? kindDef(z.kind)?.roof ?? false;
 
-let seq = 0;
-function freshId(state: GameState, base: string, taken: (id: string) => boolean): string {
-  let id = '';
-  do id = `${base}${++seq}`; while (taken(id));
-  return id;
-}
-const openingId = (state: GameState, placeId: string) => freshId(state, `${placeId}.o`, (id) => state.openings.some((o) => o.id === id));
+/** an opening's id: `<place>.o`, else `<place>.o_2` … the first one free (ids.freshId) */
+const openingId = (state: GameState, placeId: string) => freshId(`${placeId}.o`, new Set(state.openings.map((o) => o.id)));
 
 /** PZ2: the opening kind of a way kind */
 const OPENING_OF: Record<WayKind, string> = { open: OP.gap, door: OP.doorway, window: OP.window, up: OP.stairs, down: OP.stairs };

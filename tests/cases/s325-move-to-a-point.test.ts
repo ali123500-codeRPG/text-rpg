@@ -60,17 +60,17 @@ describe('325 a move to an exact point (AD16)', () => {
   });
 
   it('in a fight a far point takes several turns: the walk carries on and gets there', () => {
-    const s = quiet(), r = rect(s, 'street_square');
+    const s = quiet(), r = rect(s, 'field_edge');
     const at = { x: r.x, y: r.y };
-    const route = walkRoute(s, s.player, { zone: 'street_square', pos: at }, s.player)!;
+    const route = walkRoute(s, s.player, { zone: 'field_edge', pos: at }, s.player)!;
     s.mode = 'tactical';
-    play(s, { intent: to('street_square', at.x, at.y) });
+    play(s, { intent: to('field_edge', at.x, at.y) });
     expect(s.player.walking?.spot?.at).toEqual(at);
     const turns = 1 + walkTo(s, intent(), true);
     expect(route.metres).toBeGreaterThan(CONFIG.FIGHT_TURN_S * 2);
     expect(turns).toBeGreaterThan(1);
-    expect(s.player.zone).toBe('street_square');
-    expect(distM(s, s.player, { zone: 'street_square', pos: at })).toBeLessThanOrEqual(CONFIG.ENTER_M);
+    expect(s.player.zone).toBe('field_edge');
+    expect(distM(s, s.player, { zone: 'field_edge', pos: at })).toBeLessThanOrEqual(CONFIG.ENTER_M);
     expect(s.player.walking).toBeUndefined();
   });
 

@@ -2,7 +2,8 @@
 // service with no roll; haggling and Hard Bargain change the price; clinic care is bought, then used by resting.
 import { HL } from '../../src/library/tableIds';
 import { expect, it } from 'vitest';
-import { makeVillage } from '../harness';
+import { makeVillage, place, putBarrier } from '../harness';
+import { BK } from '../../src/library/tableIds';
 import { intent, play } from './w4-kit';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
@@ -115,15 +116,16 @@ it('133h trade reach: as far as a called order is heard clearly (hearsOrder)', (
   const s = shop();
   const mags = actorById(s, 'trader')!;
   const wim = actorById(s, 'patron_1')!;
-  mags.zone = 'tav_counter';
-  s.player.zone = 'tav_common'; // 8 m across the open bar: 42 dB, clear over the quiet room's 20
+  place(s, 'trader', 'tav_counter');
+  place(s, 'player', 'tav_common'); // 8 m across the open bar: 42 dB, clear over the quiet room's 20
   expect(hearsOrder(s, s.player, mags)).toBe(true);
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
-  wim.zone = 'tav_common'; // beside the buyer
+  place(s, 'patron_1', 'tav_common'); // beside the buyer
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim).ok).toBe(true);
-  wim.zone = 'tav_cellar'; // behind the shut cellar door from the seller, farther from the buyer
+  putBarrier(s, 'tav_counter', 'tav_cellar', { id: 'hatch', kind: BK.hatch, grade: 'minor' });
+  place(s, 'patron_1', 'tav_cellar'); // under the shut cellar hatch from the seller, farther from the buyer
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim)).toEqual({ ok: false, reason: 'out_of_earshot' });
-  s.player.zone = 'street_door'; // 16 m and the shut front door from the counter: not heard clearly
+  place(s, 'player', 'street_door'); // 16 m and the shut front door from the counter: not heard clearly
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1)).toEqual({ ok: false, reason: 'out_of_earshot' });
   CONFIG.ORDER_NOISE = 'blaring'; // a bellowed order carries through
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);

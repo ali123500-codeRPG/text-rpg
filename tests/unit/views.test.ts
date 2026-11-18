@@ -10,6 +10,7 @@ import {
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { setTitleLight } from '../../src/plan/draw';
+import { lightAll } from '../harness';
 
 // W2's healthLevel/partStates are stubs until integration: thin fakes from the health track.
 vi.mock('../../src/ruleset', async (orig) => {
@@ -225,8 +226,7 @@ describe('place facts and headlines', () => {
 describe('P3 seen clearly stays seen', () => {
   it('someone in a dark zone is half seen until the player fully perceives them this scenario', () => {
     const s = makeVillage();
-    const zone = s.zones.find((z) => z.id === 'tav_common')!;
-    setTitleLight(s, zone, 'dark');
+    lightAll(s, 'dark'); s.clocks.time = 23 * 60; // the whole village dark at night, so no lamp or daylight next door lights the room
     const pat = actor(s, 'patron_1');
     pat.zone = 'tav_common';
     expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')!.level).toBe('partial');

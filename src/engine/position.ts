@@ -265,7 +265,8 @@ export function walkRoute(state: GameState, a: Located, b: Located, walker?: Act
   const w = walkFor(state, pointAt(state, a), B, walker);
   if (!w) return null;
   const pieces = piecesOf(state, w.pts, a.zone);
-  return { path: titlesOf(pieces, a.zone), pts: w.pts.map((p) => ({ x: p.x, y: p.y })), metres: walkGap(state, a, { ...b, pos: B }, w) };
+  // the walker's own walk, centre to point (no body's edge taken off: what the walk walks)
+  return { path: titlesOf(pieces, a.zone), pts: w.pts.map((p) => ({ x: p.x, y: p.y })), metres: walkGap(state, { zone: a.zone, pos: w.pts[0] }, { zone: b.zone, pos: B }, w) };
 }
 const centreOf = (state: GameState, zoneId: string): Pos => { const z = zoneById(state, zoneId); if (!z?.outline?.length) throw noOutline({ id: zoneId }); return centre(z); };
 

@@ -16,7 +16,7 @@ import { boxOf } from '../../src/plan/geom';
 import { placeAll } from '../../src/engine/position';
 import { SK } from '../../src/library/skillIds';
 import { WK } from '../../src/library/tableIds';
-import { fitBarrier, makeFurniture } from '../../src/plan/draw';
+import { fitBarrier, makeFurniture, setTitleLight } from '../../src/plan/draw';
 import { CL } from '../../src/library/classIds';
 import { IT } from '../../src/library/itemIds';
 
@@ -230,6 +230,10 @@ export function lay(state: GameState, zone: string, item: ItemInstance, at?: { x
 }
 /** lays items on the ground in a title (each at its own `at`, else the title's middle) */
 export const layAll = (state: GameState, zone: string, ...items: ItemInstance[]): void => { for (const i of items) lay(state, zone, i); };
+/** PZ5: draws every title's lights to one word (so no lamp next door lights the title a test darkens; fixture setup only) */
+export function lightAll(state: GameState, word: Light): void {
+  for (const z of state.zones) setTitleLight(state, z, word);
+}
 /** FR2: replaces a title's furniture with a list (fixture setup only) */
 export function furnish(state: GameState, zone: string, list: PlanFurniture[]): Furniture[] {
   const z = state.zones.find((q) => q.id === zone)!;

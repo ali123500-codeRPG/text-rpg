@@ -93,7 +93,9 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     const { now, startClock } = await import('../../src/time');
     const { IT } = await import('../../src/library/itemIds');
     const { BK } = await import('../../src/library/tableIds');
-    const s = makeVillage({ playerZone: opts.playerZone ?? 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
+    const { WK } = await import('../../src/library/tableIds');
+    // the gate's palisade on the square side, so the door in it is the only way through
+    const s = makeVillage({ playerZone: opts.playerZone ?? 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'], shape: { gate_inner: { walls: { w: WK.wall } } } });
     startClock(s, 'morning');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     g.zone = 'gate_inner';
