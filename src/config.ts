@@ -234,7 +234,14 @@ const DEFAULTS = {
   LIGHT_FLOOR_LUX: 0.0001,
   /** the rules that once read "dark" (sight at most partial, a still figure only half seen) hold from this level down */
   DARK_FROM: 'moonlit' as string,
-  COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
+  /** CV1 (placeholders): the share of a standing person each COVER level hides from a shooter (D&D 5e SRD half and
+   * three-quarters cover; light and dense added at either end) */
+  COVER_HIDDEN: { none: 0, light: 0.25, some: 0.5, heavy: 0.75, dense: 0.875 } as Record<string, number>,
+  /** CV6, CV7 (placeholder): a shot loses, and a hide gains, this much for each halving of what shows of the body: the step
+   * AIM_PENALTY takes between big, normal and small parts, each half the hit weight of the last */
+  COVER_HALVING_MOD: 10,
+  /** CV8 b: Past the Cover counts the target as showing 2^this times as much (two halvings back) */
+  PAST_THE_COVER_HALVINGS: 2,
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
   /** BG-251: how loud a missile's impact is where it lands: on armour, a shield or a hard surface like an axe biting wood
@@ -289,8 +296,8 @@ const DEFAULTS = {
   HIDDEN_TIER_SUCCESS_SKILL: 50,
   HIDDEN_TIER_SKILL_STEP: 25,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
-   * light adds sign × lightMod(the light where the action is) to the roll; cover is sign × COVER_GAP[the zone's cover]
-   * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
+   * light adds sign × lightMod(the light where the action is) to the roll; cover is sign × coverMod (CV6, CV7: what shows of
+   * the body there) on the roll. A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
   SITUATION_TAGS: { light: { sight: 1, stealth: -1 }, cover: { hide: 1, ranged: -1 } } as Record<'light' | 'cover', Partial<Record<import('./types').SituationTag, number>>>,
   // ---- morale bar (MB1–MB43; placeholders) ----
   /** max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (MB29), like HP from Endurance */

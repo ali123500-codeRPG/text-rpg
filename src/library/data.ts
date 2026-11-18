@@ -1319,11 +1319,13 @@ export function prototypeLibrary(): Library {
       ...(id === AM.throw ? { blend: CONFIG.THROW_BLEND } : {}) }])),
     // CO16 default size and CO15 default edge per kind: indoors walled, outdoors open
     zoneKinds: Object.fromEntries(([
-      [ZK.room, 'Room', false, 'some', 'lamplit', 'room', 1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2],
-      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1], [ZK.street, 'Street', true, 'none', 'dark', 'yard', 4], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1],
-      [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
-      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
-    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall,
+      // CV2: Street light cover (carts, doorways, barrels); CV4: coverM, how high the cover stands (placeholders): a bar counter
+      // 1.1 m, barrels 1 m, carts and yard walls 2 m, a mature oak 20 m (the Woods land cover's note)
+      [ZK.room, 'Room', false, 'some', 'lamplit', 'room', 1, 1.1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4, 0], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2, 0],
+      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1, 1], [ZK.street, 'Street', true, 'light', 'dark', 'yard', 4, 2], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1, 0],
+      [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2, 0], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1, 2], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1, 0],
+      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1, 20], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1, 0],
+    ] as const).map(([id, name, outdoor, cover, light, size, aspect, coverM]) => [id, { id, name, outdoor, cover, light, size, aspect, ...(coverM ? { coverM } : {}), edge: outdoor ? EK.open : EK.wall,
       ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
       ...(KIND_FURNITURE[id] ? { furniture: KIND_FURNITURE[id] } : {}) }])),
     // FR1: what furniture can be (a piece's kind sets its map icon; its name is the story's)
@@ -1352,7 +1354,7 @@ export function prototypeLibrary(): Library {
       [LC.farmland, 'Farmland', 'none', 0, 'Open fields of crops round a village'],
       [LC.pasture, 'Pasture', 'none', 0, 'Grass and meadow grazed by sheep and cattle'],
       [LC.woods, 'Woods', 'heavy', 20, 'Trees: a mature English oak stands about 20 to 25 m'],
-      [LC.heath, 'Heath', 'some', 1, 'Heather, gorse and bracken, about knee to waist high'],
+      [LC.heath, 'Heath', 'light', 1, 'Heather, gorse and bracken, about knee to waist high'],
       [LC.moor, 'Moor', 'none', 0.5, 'Open upland of heather and rough grass'],
       [LC.marsh, 'Marsh', 'some', 2, 'Wet ground and reed beds; common reed grows to about 2 to 3 m'],
       [LC.rock, 'Crag and scree', 'some', 0, 'Bare rock, cliffs and loose stone'],

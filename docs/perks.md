@@ -187,7 +187,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner sneaks and stays put this turn.
-- **Conditions:** The owner's zone has some or heavy cover, or its light is dim or dark.
+- **Conditions:** The zone's cover hides at least half of the owner (some cover or heavier for a person; a smaller body needs less), or its light is dim or darker.
 - **Effect:** Observers who see the owner still roll against its Vanishing, as when it moves (VS2). One who loses drops to suspicious at that zone. It uses no action.
 - **Lasts:** That turn.
 
@@ -1073,11 +1073,11 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Past the Cover (Combat – Ranged, Heavy ranged) · T2c
 
-*Story:* Cover only hides most of a body. Cover counts one step lighter against your ranged attacks.
+*Story:* Cover only hides most of a body. Against your ranged attacks a target in cover shows four times as much of itself.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Effect:** The target zone's cover is read one step lighter (heavy as some, some as none).
+- **Effect:** What shows of the target in its zone's cover counts four times as much, never more than all of it: two halvings of the cover penalty back, +20 (CV8).
 - **Lasts:** That attack.
 - **Built:** yes
 

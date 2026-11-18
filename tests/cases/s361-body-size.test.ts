@@ -7,14 +7,14 @@ import { forcedRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
 import { actorBody, actorVolumeM3, getLibrary } from '../../src/library';
 import { BT, RC } from '../../src/library/raceIds';
-import { AM } from '../../src/library/tableIds';
+import { AM, ZK } from '../../src/library/tableIds';
 import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from '../../src/engine/position';
 import { sightFactor } from '../../src/library/bodySize';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
 import { knownMap } from '../../src/ui/mapData';
 import { fitsThrough, openingOf, wayPath, zoneById } from '../../src/engine/relations';
-import { coverFor, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
+import { coverMod, coverShown, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
 import { gripReachM } from '../../src/ruleset/body';
 
 const OGRE = 'test_ogre';
@@ -125,19 +125,26 @@ it('SZ11: a body is seen as far as √(its seen area ÷ a person\'s); looking do
   expect(sightFactor({ lengthM: 0.3, widthM: 0.5, heightM: 1.75 }, Math.PI / 4)).toBeCloseTo(0.91, 2);
 });
 
-it('SZ12: cover is set for a person: each halving of height gains a step where there is some, each doubling loses one', () => {
+it('SZ12, CV3, CV4: cover is set for a person; a smaller body shows less by its height, with no top; a taller one more, except under tall cover', () => {
   const s = room();
   const z = s.zones.find((x) => x.id === 'tav_common')!;
   const p = s.actors.find((a) => a.id === 'patron_1')!;
   z.cover = 'some';
-  expect(coverFor(s, s.player, z)).toBe('some');
+  expect(coverShown(s, s.player, z)).toBe(0.5);
+  expect(coverMod(coverShown(s, s.player, z))).toBe(10); // CV6: one halving
   p.core.bodyTypeId = BT.amorphous; p.core.raceId = s.actors.find((a) => a.id === 'slime_1')?.core.raceId ?? RC.slime;
-  expect(coverFor(s, p, z)).toBe('heavy'); // a slime 0.3 m high
-  getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 6 / 1.75 } };
+  expect(coverShown(s, p, z)).toBeCloseTo(0.5 * 0.3 / 1.75); // a slime 0.3 m high
+  expect(coverMod(coverShown(s, p, z))).toBe(35);
+  z.cover = 'dense';
+  expect(coverMod(coverShown(s, p, z))).toBe(55); // past the top level it keeps going
+  z.cover = 'some';
+  getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 7 / 1.75 } };
   const giant = { ...s.player, core: { ...s.player.core, raceId: OGRE } };
-  expect(coverFor(s, giant, z)).toBe('none'); // 6 m tall: two doublings
+  expect(coverShown(s, giant, z)).toBe(1); // 7 m tall behind a 1.1 m counter: nothing hidden
+  z.cover = 'heavy'; z.kind = ZK.woods;
+  expect(coverShown(s, giant, z)).toBe(0.25); // among 20 m trees: hidden like a person
   z.cover = 'none';
-  expect(coverFor(s, p, z)).toBe('none'); // no cover to hide in
+  expect(coverShown(s, p, z)).toBe(1); // no cover to hide in
   delete getLibrary().races![OGRE];
 });
 

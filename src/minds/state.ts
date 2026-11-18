@@ -10,7 +10,7 @@ import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, inLookReach, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
-import { coverFor, rollFnSkills } from '../ruleset/gear';
+import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
 import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere } from '../ruleset/perks';
@@ -260,7 +260,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const zone = zoneById(state, s.zone);
   const fade = event.kind === 'vanish'; // Strike and Fade
   const moved = event.kind === 'move';
-  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverFor(state, s, zone), zoneLight(state, zone)));
+  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverShown(state, s, zone), zoneLight(state, zone)));
   const still = fade || melt;
   const from: Located = { zone: event.fromZone ?? s.zone, pos: event.fromPos ?? s.pos };
   const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, still);

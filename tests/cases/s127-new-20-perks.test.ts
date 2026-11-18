@@ -68,9 +68,10 @@ describe('127 20 perks for the new skills', () => {
   });
 
   it('Melt Away: a sneak that stays put where there is cover or shade still rolls Vanishing against those who see you (VS2)', () => {
-    expect(meltAwayHere('none', 'bright')).toBe(false);
-    expect(meltAwayHere('some', 'bright')).toBe(true);
-    expect(meltAwayHere('none', 'dim')).toBe(true);
+    expect(meltAwayHere(1, 'bright')).toBe(false); // in the open
+    expect(meltAwayHere(0.5, 'bright')).toBe(true); // half shows: a person in some cover
+    expect(meltAwayHere(0.75, 'bright')).toBe(false); // a person in light cover
+    expect(meltAwayHere(1, 'dim')).toBe(true);
     const run = (perk: boolean, cover: 'none' | 'some') => {
       const s = makeVillage({ playerZone: 'tav_counter' });
       zoneById(s, 'tav_counter')!.cover = cover;

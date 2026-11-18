@@ -134,17 +134,17 @@ describe('125 All-50 parts', () => {
     expect(dmg(false)).toBeGreaterThan(0);
     expect(dmg(true)).toBeCloseTo(dmg(false) * 0.9);
   });
-  it('Past the Cover: cover counts one step lighter for the owner\'s ranged attacks', () => {
+  it('Past the Cover (CV8 b): the target counts as showing four times as much to the owner\'s ranged attacks', () => {
     const gap = (perk: boolean) => {
       const s = makeVillage();
       place(s, 'player', 'field_edge');
       zoneById(s, 'field_mid')!.cover = 'heavy';
       arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.past_the_cover);
-      return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).gapShifts;
+      return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).attack.modifiers.find((m) => m.source === 'cover')?.value;
     };
-    expect(gap(false)).toEqual([{ source: 'cover', value: 2 }]);
-    expect(gap(true)).toEqual([{ source: 'cover', value: 1 }]);
+    expect(gap(false)).toBe(-45);
+    expect(gap(true)).toBe(-25); // two halvings back
   });
   it('Child of Night: light counts ten times darker for the owner\'s stealth rolls only', () => {
     const s = makeVillage();

@@ -8,7 +8,7 @@ import type {
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
-import { COVER, HIT_OUTCOMES, TIERS } from '../scales';
+import { HIT_OUTCOMES, TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { seenSizeFactor, sightDistM, withinM } from '../engine/position';
@@ -27,7 +27,7 @@ import { shortShifts } from './requirements';
 import { powerStack } from './stacking';
 import { lineMax, lineUsed } from './fatigue';
 import { payStrain } from '../engine/fatigue';
-import { augmentK, coverFor, hostileNearM, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
+import { augmentK, coverMod, coverShown, hostileNearM, blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, gripsOf, modeSkill, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -276,12 +276,16 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     if (crowded && CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
+  // CV6: the target's cover, by what shows of its body: a roll modifier (COVER_HALVING_MOD a halving); CV8 b Past the Cover
+  // counts it as showing four times as much
+  const shown = zoneD ? coverShown(state, D, zoneD) : 1;
+  const coverHit = ranged ? tagSign('cover', rollTags(skill)) * coverMod(Math.min(1, shown * (hasPerk(A, PK.past_the_cover) ? 2 ** CONFIG.PAST_THE_COVER_HALVINGS : 1))) : 0;
+  if (coverHit) am.push({ source: 'cover', type: 'situational', value: coverHit });
   am.push(...(req.context?.attackerMods ?? []));
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15, TC28
-  const bodyCover = zoneD ? coverFor(state, D, zoneD) : undefined; // SZ12: the target's cover by its size
   // TC30 a Hug the Cover: the first ranged attack on the owner each turn, while it has cover, lands one outcome worse
-  const hug = ranged && bodyCover && COVER.pos(bodyCover) > 0 && hugReady(state, D) ? [{ source: MARK_SOURCE[PK.hug_the_cover], value: -1 }] : [];
+  const hug = ranged && shown < 1 && hugReady(state, D) ? [{ source: MARK_SOURCE[PK.hug_the_cover], value: -1 }] : [];
   const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
     ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...hug, ...(req.context?.attackerShifts ?? [])];
@@ -330,10 +334,6 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const gapShifts: TierShift[] = [];
   // PA11: Parry too; All-50 Against the Grain (Parry's part) takes it off the owner's parries
   if (mode.class === 'heavy' && type !== 'dodge' && !(type === 'parry' && hasPerk(D, PK.against_the_grain))) gapShifts.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP }); // PA11: Parry too
-  // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
-  const coverKey = zoneD && ranged && hasPerk(A, PK.past_the_cover) ? COVER.at(Math.max(0, COVER.pos(bodyCover!) - 1)) : bodyCover; // All-50: Past the Cover
-  const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
-  if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze
   const pieces = wornPieces(state, D); // Slip the Blow: wearing armor, all of it light
   if (type === 'dodge' && pieces.length > 0 && pieces.every((p) => p.armor.weight === 'light') && hasPerk(D, PK.slip_the_blow) && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
