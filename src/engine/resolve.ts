@@ -86,7 +86,9 @@ import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearSt
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
-import { addWear, breakJob, jobAt, regrow, secondsLeft, toolCheck } from './breakThrough';
+import { addWear, breakJob, jobAt, regrow, secondsLeft, toolCheck, walkBreaks } from './breakThrough';
+import { barrierStuff, wallStuff } from '../ruleset/breaking';
+import { cutHole, holeSpot } from '../plan/holes';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
@@ -660,6 +662,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
       fresh = true;
     }
     const zone = a.zone;
+    walkThrough(ctx, a, goal, left); // BW21 a: walls and barriers too weak to stop the walker break as they go
     const r = doMove(ctx, a, goal, o, !!opts.bark && legs === 0, left, opts.stopShort ?? 0, opts.toward, opts.spot);
     if (r === null) return false;
     if (r === 'spent') return true;
@@ -670,6 +673,23 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
     fresh = false;
   }
   return true;
+  }
+}
+
+/** BW21 a: a walker strong enough goes straight through what lies on its way within this leg's metres (walkBreaks): each
+ * wall gets a hole at the spot, each shut barrier is Destroyed, with the breakthrough's noise (one step past the
+ * material's) */
+function walkThrough(ctx: Ctx, a: Actor, goal: Located, metres: number): void {
+  const { state } = ctx;
+  for (const x of walkBreaks(state, a, goal, metres) ?? []) {
+    const stuff = 'wall' in x ? wallStuff(x.wall) : barrierStuff(x.barrier);
+    let to: string | undefined;
+    if ('wall' in x) { cutHole(state, x.wall, holeSpot(state, x.wall, x.at) ?? x.at, x.from, false); to = x.to?.id; }
+    else { x.barrier.state = 'destroyed'; delete x.barrier.wear; delete x.barrier.wornTurn; to = x.opening.joins.find((j) => j !== a.zone); }
+    emit(ctx, mk(ctx, a, 'break_through', {
+      ...(to ? { target: to } : {}), noise: NOISE.at(NOISE.pos(stuff?.material.noise ?? 'loud') + 1),
+      breakThrough: { ...('wall' in x ? { wall: x.wall.id } : { barrier: x.barrier.id }), ...(to ? { to } : {}), share: 1, state: 'destroyed', walked: true },
+    }));
   }
 }
 

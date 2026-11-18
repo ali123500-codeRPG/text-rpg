@@ -269,6 +269,8 @@ export function walkRoute(state: GameState, a: Located, b: Located, walker?: Act
   return { path: titlesOf(pieces, a.zone), pts: w.pts.map((p) => ({ x: p.x, y: p.y })), metres: walkGap(state, { zone: a.zone, pos: w.pts[0] }, { zone: b.zone, pos: B }, w) };
 }
 const centreOf = (state: GameState, zoneId: string): Pos => { const z = zoneById(state, zoneId); if (!z?.outline?.length) throw noOutline({ id: zoneId }); return centre(z); };
+/** the point a walk to `goal` heads for: its spot, else its title's centre */
+export const goalPoint = (state: GameState, goal: Located): Pt3 => (goal.pos ? pointAt(state, goal) : { ...centreOf(state, goal.zone), floor: floorOf(state, goal) });
 
 /** a step of a walk to `to`: the walker now faces the way it walked (BG-18: "the slime on the left") */
 function step(a: { pos?: Pos; facing?: [number, number] }, to: Pos): void {

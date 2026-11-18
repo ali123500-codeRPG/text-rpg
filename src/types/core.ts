@@ -315,7 +315,7 @@ export type GameEvent = {
   /** BW8-BW26: a turn of breaking through a wall or a barrier on a way (kind break_through): what (wall or barrier), the
    * title it leads to (none: unbuilt ground), the share of the work done (0-1, everyone's), its state once Crippled or
    * Destroyed this turn, and the seconds the breaker still needs at their own rate */
-  breakThrough?: { wall?: string; barrier?: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; left?: number; tool?: string; toolBroke?: true };
+  breakThrough?: { wall?: string; barrier?: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; left?: number; tool?: string; toolBroke?: true; walked?: true }; // walked: BW21 a, gone straight through on a walk
   extract?: { essence: string; grade: string }; // DX3: an essence pulled out of the target (an essence row id and its grade)
   /** TF19: a surrender talked out of a foe (kind surrender; actorId gave up to target): bandmates that gave up with it */
   surrender?: { with: string[] };

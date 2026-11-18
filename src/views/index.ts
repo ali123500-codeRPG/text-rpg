@@ -124,7 +124,7 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
 function breakThroughView(state: GameState, b: NonNullable<GameEvent['breakThrough']>): NonNullable<NarrationEvent['breakThrough']> {
   const w = b.wall ? state.walls.find((x) => x.id === b.wall) : undefined, bar = b.barrier ? state.barriers?.[b.barrier] : undefined;
   const what = w ? `${wallStuff(w)?.material.name.toLowerCase() ?? 'a'} wall` : bar ? barrierName(bar) : 'wall';
-  return { what, ...(b.to ? { to: zoneById(state, b.to)?.name ?? b.to } : {}), share: b.share, ...(b.state ? { state: b.state } : {}), ...(b.toolBroke ? { toolBroke: true as const } : {}) };
+  return { what, ...(b.to ? { to: zoneById(state, b.to)?.name ?? b.to } : {}), share: b.share, ...(b.state ? { state: b.state } : {}), ...(b.toolBroke ? { toolBroke: true as const } : {}), ...(b.walked ? { walked: true as const } : {}) };
 }
 /** BW12 a: the walls round the viewer's own title that can be broken: by id, what they are made of, the title behind when
  * a way from here leads there too (to, its name in behind; else unknown: nothing is given away), and the share broken at

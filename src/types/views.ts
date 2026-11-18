@@ -301,7 +301,7 @@ export type NarrationEvent = {
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
   surrender?: { with: string[] }; // TF19: someone talked into surrendering: who gave up with them (names)
   breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ..."); beyond: OD13, past the breaker (no roll)
-  breakThrough?: { what: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; toolBroke?: true }; // BW8-BW26: a wall or barrier broken into (what: its name), the share through, its state reached this turn
+  breakThrough?: { what: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; toolBroke?: true; walked?: true }; // BW8-BW26: a wall or barrier broken into (what: its name), the share through, its state reached this turn
   beyond?: true; // OD1 b: an act on a thing past the actor's reach: it comes to nothing, with no roll
   graded?: true; // OD5: an act on something with a grade, whose tier says what it did
   read?: { mood: string; feels: Stance; hiding: boolean }; // BF97 a: the player sized someone up and won: what they made out

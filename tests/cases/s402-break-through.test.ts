@@ -180,3 +180,37 @@ describe('402 breaking through walls and barriers (BW8-BW26)', () => {
   });
 });
 
+
+describe('402 walking through (BW21 a)', () => {
+  const walkTo = (s: GameState, zone: string, at: { x: number; y: number }) => turn(s, intent({ move: { toZone: zone, spot: { at } } }));
+  it('a wall that would take WALK_THROUGH_S or less does not stop the walker: a straight walk breaks a hole on the way, one step louder', () => {
+    const s = quiet();
+    const w = wallTo(s, 'tav_common', 'street_door');
+    w.material = BM.glass; w.thicknessM = 0.005; // a pane: under 2 s for this walker
+    expect(breakSeconds(s, s.player, wallStuff(w)!)).toBeLessThanOrEqual(CONFIG.WALK_THROUGH_S);
+    s.player.pos = { x: -3, y: -3 };
+    const ev = walkTo(s, 'street_door', { x: -3, y: -5 });
+    const b = ev.find((e) => e.kind === 'break_through')!;
+    expect(b.breakThrough).toMatchObject({ wall: w.id, to: 'street_door', state: 'destroyed', walked: true });
+    expect(b.noise).toBe(NOISE.at(NOISE.pos(wallStuff(w)!.material.noise) + 1));
+    expect(s.player.zone).toBe('street_door');
+    expect(s.openings.some((o) => o.wall === w.id && o.kind && !o.barrier && o.labels[0].startsWith('a hole broken'))).toBe(true);
+  });
+  it('a wall that would take longer stops them: the walk goes round by the door, nothing broken', () => {
+    const s = quiet();
+    s.player.pos = { x: -3, y: -3 };
+    const ev = walkTo(s, 'street_door', { x: -3, y: -5 });
+    expect(ev.some((e) => e.kind === 'break_through')).toBe(false);
+    expect(s.player.zone).toBe('street_door');
+  });
+  it('a shut door weak enough is broken down on the way through; the walk round being no longer, a wall is left standing', () => {
+    const s = quiet();
+    const b = putBarrier(s, 'tav_common', 'street_door', { id: 'front_door', kind: BK.door, grade: 'minor', lock: { locked: true }, material: BM.glass, thicknessCm: 0.5 });
+    s.player.pos = { x: 0, y: -2 };
+    const ev = walkTo(s, 'street_door', { x: 0, y: -6 });
+    expect(ev.find((e) => e.kind === 'break_through')?.breakThrough).toMatchObject({ barrier: 'front_door', state: 'destroyed', walked: true });
+    expect(b.state).toBe('destroyed');
+    expect(s.player.zone).toBe('street_door');
+    expect(s.openings.some((o) => o.labels[0].startsWith('a hole broken'))).toBe(false);
+  });
+});
