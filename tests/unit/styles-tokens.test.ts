@@ -17,4 +17,12 @@ describe('play styles use tokens only', () => {
   it('buttons and form fields take the page font (BG-302)', () => {
     expect(css).toMatch(/button, input, select, textarea \{ font-family: inherit; \}/);
   });
+  it('no UI text is smaller than 13px, except the step numbers inside the perk ladder marks (LK6)', () => {
+    const small: string[] = [];
+    for (const [, sel, decl] of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+      const px = decl.match(/font-size:\s*([0-9.]+)px/) ?? decl.match(/(?<![-\w])font:[^;]*?\b([0-9.]+)px/);
+      if (px && Number(px[1]) < 13) small.push(sel.trim());
+    }
+    expect(small).toEqual(['.pk-n span', '.pk-n.sealed span']);
+  });
 });
