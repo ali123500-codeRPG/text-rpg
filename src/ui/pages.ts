@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
+import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -283,10 +283,10 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   }, w.label);
   // hover or keyboard focus shows the stats; the item's name opens the side panel like the table does
   const hover = (el: HTMLElement, it: InvItem) => {
-    el.addEventListener('pointerenter', () => showTip(s, it, el));
-    el.addEventListener('pointerleave', hideTip);
-    el.addEventListener('focusin', () => showTip(s, it, el));
-    el.addEventListener('focusout', hideTip);
+    el.addEventListener('pointerenter', () => tipOn(() => showTip(s, it, el)));
+    el.addEventListener('pointerleave', () => tipOff(hideTip));
+    el.addEventListener('focusin', () => tipOn(() => showTip(s, it, el), true));
+    el.addEventListener('focusout', () => tipOff(hideTip));
     return el;
   };
   const icon = (it: InvItem) => itemIcon(iconName(s, it.itemId), kindOf(it));

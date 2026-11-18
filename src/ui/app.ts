@@ -1,6 +1,6 @@
 // App shell: side rail (64px items, active pill fills the item, rail scrolls on its own), page area and the push-aside panel.
 import type { GameApi } from '../types';
-import { boxOf, h, lineIcon, plural, setPanelHost, closePanel, playDraft } from './kit';
+import { boxOf, h, lineIcon, plural, setPanelHost, closePanel, playDraft, tipOff, tipOn } from './kit';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
@@ -54,8 +54,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     tip.style.top = `${r.top + r.height / 2}px`; tip.style.left = `${r.right + 8}px`;
     tip.hidden = false;
   };
-  const hideTip = () => { tip.hidden = true; };
-  rail.addEventListener('mouseover', showTip); rail.addEventListener('focusin', showTip);
+  const hideTip = () => tipOff(() => { tip.hidden = true; });
+  rail.addEventListener('mouseover', (e) => tipOn(() => showTip(e))); rail.addEventListener('focusin', (e) => tipOn(() => showTip(e), true)); // A7
   rail.addEventListener('mouseleave', hideTip); rail.addEventListener('focusout', hideTip); rail.addEventListener('scroll', hideTip);
   rail.addEventListener('click', hideTip);
 

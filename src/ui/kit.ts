@@ -111,8 +111,14 @@ export function groupedTable(opts: {
   cols: Col[]; groups: TGroup[]; open: Set<string>; sort: { key: string; dir: 0 | 1 | -1 };
   onField: (row: TRow, key: string) => void; redraw: () => void; emptyText: string;
 }): HTMLElement {
-  const { cols, groups, open, sort } = opts;
+  const { groups, open, sort } = opts;
   if (!groups.length) return h('p', { class: 'empty' }, opts.emptyText);
+  // P4: a column whose every filled cell is a number is right-aligned, like one marked `right`
+  const isNum = (v: string) => /^[−-]?\d[\d.,]*%?$/.test(v.trim());
+  const cols = opts.cols.map((c) => {
+    const vals = groups.flatMap((g) => g.rows.map((r) => r.cells[c.key] ?? '')).filter((v) => v.trim());
+    return c.right || !vals.length || !vals.every(isNum) ? c : { ...c, right: true };
+  });
   const cmp = (a: TRow, b: TRow) => {
     if (!sort.dir) return (a.sortKey ?? 0) - (b.sortKey ?? 0);
     const x = a.cells[sort.key] ?? '', y = b.cells[sort.key] ?? '';
@@ -148,6 +154,23 @@ function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void
 }
 
 // ---------- Side panel ----------
+/** A7: a hover tip waits --m-tip-delay (150 ms); keyboard focus (`now`) shows it at once, and so does hovering while
+ *  another tip is open or has just closed, so moving along a row of items doesn't wait each time. Leaving hides at once */
+let tipUp = false, tipDown = -1e9, tipWait = 0;
+const tipDelay = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--m-tip-delay')) || 150;
+export function tipOn(show: () => void, now = false): void {
+  clearTimeout(tipWait);
+  const go = () => { tipUp = true; show(); };
+  if (now || tipUp || performance.now() - tipDown < 2 * tipDelay()) go();
+  else tipWait = window.setTimeout(go, tipDelay());
+}
+export function tipOff(hide: () => void): void {
+  clearTimeout(tipWait);
+  if (tipUp) tipDown = performance.now();
+  tipUp = false;
+  hide();
+}
+
 /** A6: a choice that can't be undone asks once, in place: `host`'s contents give way to a row saying what is lost, with
  *  the choice and a way back that restores them. Never a browser dialog, never hold-to-confirm; focus goes to the way back */
 export function askInPlace(host: HTMLElement, lost: string, yes: string, onYes: () => void, no = 'Cancel'): void {

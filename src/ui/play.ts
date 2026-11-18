@@ -53,6 +53,14 @@ const NOTICE_KIND: Record<Notice['kind'], string> = {
 const VOLUME_WORD: Record<string, string> = { whisper: 'whispering', normal: '', shout: 'shouting' };
 const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'], condition: ['Condition', 'c7'], health: ['Health', 'c2'] };
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
+/** A5: the keys the play screen answers (the keydown handlers below), listed under the commands */
+const KEYS: [string, string][] = [
+  ['Esc', 'Skips what is moving, then closes what is open: a panel, the Say box, a planned move'],
+  ['Enter', 'Sends what is in the box; in an empty box, walks to the move planned on the map'],
+  ['Tab', 'Takes the suggestion into an empty box'],
+  ['PageUp', 'Scrolls the story up while the box has focus'],
+  ['PageDown', 'Scrolls the story down while the box has focus'],
+];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
   ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/essence', 'essences on offer and held: take, pass, give, sell or remove one'], ['/yield', 'give up the fight you are in'], ['/stuck', 'the scenario can go nowhere: the story finds a way forward'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
@@ -308,6 +316,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   story.addEventListener('click', () => { if (moving()) finishAll(); });
 
   // Escape closes whatever is open; PageUp/PageDown scroll the story while the box has focus; Tab takes the suggestion
+  // (the Commands panel's Keys list says the same, A5: keep the two together)
   document.addEventListener('keydown', (e) => {
     if (!el.isConnected || el.hidden) return;
     if (e.key === 'Escape' && moving()) { finishAll(); return; } // M-12: while something moves, Esc only skips
@@ -686,7 +695,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (open === 'commands') helpPanel.replaceChildren(h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, 'Commands · no time passes'),
       h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { open = null; update(); } }, 'Close ×')),
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
-      h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
+      h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'),
+      // A5: the keys the play screen answers, beside the commands
+      h('p', { class: 'hs-section' }, 'Keys'), h('dl', { class: 'keys' }, KEYS.flatMap(([k, what]) => [h('dt', {}, h('kbd', {}, k)), h('dd', {}, what)])));
     if (stick || busy) story.scrollTop = story.scrollHeight;
     // 2.5: a new essence offer opens its pop-up once, when no turn is running (Take it / Let it go / Decide later)
     if (!busy && !auto.playing()) maybeOfferPop(api, s, update);
