@@ -6,7 +6,9 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, levelCost, xpToReach, skillRating, gearRating, defeatXp, payDefeats, rating, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, levelCost, xpToReach, skillRating, defeatXp, payDefeats, power, ratingGroups, refSkillPart, levelRating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { combatLevel } from '../../src/engine/fightModel';
+import { nonCombatPart } from '../../src/engine/nonCombat';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
@@ -20,23 +22,20 @@ const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'playe
   attack: { attackerId: 'player', targetId: target, damage: 5 } as never });
 
 describe('106 XP and levels', () => {
-  it('rating: categories ranked 1, ½, ¼, weighted; weak foes taper (X18–X23)', () => {
+  it('the skill part ranks each group 1, ½, ¼, weighted; power reads it for the combat level; weak foes taper (X18–X23, GR45)', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
-    // one offensive skill, plus Scent 50 at the notice weight (AB19: slimes smell), Dodge (the beast role's
-    // Low band: rank_0 anchor 15 × 0.6 = 9) at the defense weight, plus steady Resolve 50 (Will), plus level 1 (rank_0's row). No Hearing:
-    // a slime's body can't
-    expect(slime.core.skills[SK.dodge].raw).toBe(9);
-    expect(slime.core.skills[SK.earshot]).toBeUndefined();
-    expect(rating(slime)).toBeCloseTo(levelRating(slime) + skillRating(30) + xpGroupFactor(GR.notice) * skillRating(50) + xpGroupFactor(GR.defense) * skillRating(9) + xpGroupFactor(GR.will) * skillRating(50), 5);
+    // the skill part (now read off the reference fighter at a combat level): one skill per group in full, the next at ½
+    const sum = (a: typeof slime) => ratingGroups(a).reduce((n, g) => n + g.adds, 0);
+    expect(sum(slime)).toBeCloseTo(skillRating(30) + xpGroupFactor(GR.notice) * skillRating(50) + xpGroupFactor(GR.defense) * skillRating(9) + xpGroupFactor(GR.will) * skillRating(50), 5);
+    expect(power(s, slime)).toBeCloseTo(levelRating(slime, s) + refSkillPart(s, combatLevel(s, slime)) + nonCombatPart(s, slime), 5);
     const g = actor(s, 'guard_1');
-    expect(rating(g)).toBeGreaterThan(rating(slime));
-    const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too
-    expect(defeatXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.DEFEAT_XP_MULT, 1);
-    s.player.core.skills[SK.barter] = { raw: 90, state: 'normal' }; // influence counts at 0.25×
-    const before = rating(s.player);
-    s.player.core.skills[SK.lockpicking] = { raw: 90, state: 'normal' }; // FL1: Lockpicking sits in Sleight, which counts like Stealth
-    expect(rating(s.player)).toBeGreaterThan(before);
+    expect(power(s, g)).toBeGreaterThan(power(s, slime));
+    const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * power(s, slime) / power(s, s.player));
+    expect(defeatXp(s, slime)).toBeCloseTo(power(s, slime) * t * CONFIG.DEFEAT_XP_MULT, 1);
+    const before = power(s, s.player);
+    s.player.core.skills[SK.lockpicking] = { raw: 90, state: 'normal' }; // FL1: Lockpicking sits in Sleight, a non-combat group (GR42)
+    expect(power(s, s.player)).toBeGreaterThan(before);
   });
   it('ten defeats earn defeats_10 and defeats_10:<body type> once each, named for what was defeated', () => {
     const s = makeVillage();

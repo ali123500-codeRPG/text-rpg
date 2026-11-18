@@ -11,7 +11,7 @@ import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { moraleMods } from './morale';
 import { fatigueMods } from './fatigue';
-import { HEALTH_LEVELS, PART_STATES } from '../scales';
+import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { gripsOf } from './slots';
 import { cap } from '../words';
 
@@ -208,3 +208,11 @@ export function adjacent(state: GameState, actor: Actor, a: string, b: string): 
   const parts = actorBody(state, actor).parts;
   return !!(parts.find((p) => p.id === a)?.adjacent?.includes(b) || parts.find((p) => p.id === b)?.adjacent?.includes(a));
 }
+
+/** NR34 (placeholders): the share of what is missing one Heal gives back at a Healing roll's tier level: CONFIG.HEAL_TIER_SHARE,
+ * plus HEAL_PAST_STEP per step past Critical Success (at most all of it); below Near Miss, nothing */
+export const healShare = (level: number): number => {
+  const top = TIERS.pos('critical_success');
+  if (level > top) return Math.min(1, CONFIG.HEAL_TIER_SHARE.critical_success + (level - top) * CONFIG.HEAL_PAST_STEP);
+  return CONFIG.HEAL_TIER_SHARE[TIERS.at(level)] ?? 0;
+};

@@ -23,6 +23,7 @@ import { hearsClearly } from '../perception';
 import { sightDistM, withinM } from './position';
 import { CONFIG } from '../config';
 import { VOLUME_NOISE } from '../perception/noise';
+import { notePower } from './xp';
 
 /** the actor has a working Grip part with nothing held in it */
 export const hasFreeGrip = (state: GameState, a: Actor) => freeGrips(state, a).length > 0;
@@ -41,6 +42,7 @@ const useKey = (perk: string, targetId: string | null) => PERK_MOVES[perk]?.perF
 /** counts a use of the move; one used outside an engagement starts one, so its once-per-engagement use is counted */
 export function countPerkMove(state: GameState, a: Actor, perk: string, targetId: string | null): void {
   if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
+  notePower(state, a); // GR44
   useThisEngagement(a, useKey(perk, targetId));
 }
 

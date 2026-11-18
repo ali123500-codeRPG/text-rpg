@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameState, Intent } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
-import { healShare } from '../../src/engine/resolve';
+import { healShare } from '../../src/ruleset/body';
 import { unlockClasses } from '../../src/engine/xp';
 import { classMaxLevel } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';

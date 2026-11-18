@@ -37,6 +37,8 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
+  /** GR40: a relic's requirement in true skill, whatever its level; every stat that scales with need follows it (the combat rating's reference kit) */
+  relicNeed?: number;
   /** IF id (IR30): its family. Mundane pieces scale only by their level (IR31); a special family (Threadbound, Relic) stands on a
    * Mundane base and adds its own extras (IR33). Set for every equipment piece when the library loads */
   family?: string;

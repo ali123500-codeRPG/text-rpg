@@ -68,7 +68,8 @@ it('a foe is notable by power only at ESSENCE_NOTABLE_SHARE (2) times the player
   expect(notable(s, guard)).toBe(true);
   // the player grows until the guard is under twice its power (but still well over the old 0.75 share)
   const ids = Object.keys(s.player.core.skills);
-  for (let i = 0; power(s, guard) / power(s, s.player) >= 2; i++) s.player.core.skills[ids[i % ids.length]].raw += 1;
+  // every skill 3 points a step (each step a new sheet, so a new combat level), until the guard is under twice its power
+  for (let i = 0; power(s, guard) / power(s, s.player) >= 2 && i < 200; i++) for (const id of ids) s.player.core.skills[id].raw += 3;
   expect(power(s, guard) / power(s, s.player)).toBeGreaterThan(1.5);
   expect(notable(s, guard)).toBe(false);
 });

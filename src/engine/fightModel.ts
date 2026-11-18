@@ -6,25 +6,24 @@
 // with the longer reach gets its free attacks while the other runs in. Defeat is Down or Broken. Each side may also
 // break the other by threats alone. Left out for now: part damage and part fears, parry strike-backs, fatigue, the
 // attacker's own wounds while it strikes, and situational modifiers (light, cover, numbers).
-import type { Actor, DefenseKind, GameState, Mod } from '../types';
+import type { Actor, DefenseKind, GameState, ItemDef, Mod } from '../types';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { equipLoadout } from '../library/spawn';
-import { requirement } from '../ruleset/requirements';
+import { armorMultiplier, armorStop, shieldPool } from '../library/gearScale';
 import { RC, BT } from '../library/raceIds';
 import { SK } from '../library/skillIds';
-import { FR, DU } from '../library/tableIds';
+import { FR, DU, IF } from '../library/tableIds';
 import { PK } from '../library/perkIds';
 import { hostileCloseMods, initiativeBonus, rangeMod, rangeMods } from '../ruleset';
 import { healthLevel, isDownLevel, levelMaxPct, totalHp } from '../ruleset/body';
 import { healthFear } from '../ruleset/morale';
-import { isBrokenLevel, maxMorale, moraleLevel, tierCostMult } from '../ruleset/morale';
+import { fearCost, isBrokenLevel, maxMorale, moraleLevel, tierCostMult } from '../ruleset/morale';
 import { blockItem, usableModes } from '../ruleset/gear';
 import { hasPerk } from '../ruleset/perks';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { expectBlow, expectOver, rollOdds, type ModeRef } from '../ruleset/expect';
-import { fearCost } from './morale';
 import { moveSpeed } from './speed';
 
 const MODEL_A = '__model_a', MODEL_B = '__model_b';
@@ -40,19 +39,29 @@ export function freshCopy(a: Actor, id: string): Actor {
   return c;
 }
 
-/** the reference fighter at level L (CONFIG.MODEL_REF_*): a human with the reference skills at L and the reference kit */
-export function refFighter(state: GameState, L: number, id: string, mixKit?: string[]): Actor {
-  const rule = CONFIG.MODEL_REF_KIT_RULE;
-  const meets = Math.max(0, ...CONFIG.MODEL_REF_KIT.map((k) => requirement(itemDef(state, k))?.need ?? 0)); // where the reference kit stops falling short
-  const kit = mixKit ?? (rule === 'by_level' && L < meets ? CONFIG.MODEL_REF_KIT_BY_LEVEL.filter(([from]) => L >= from).at(-1)?.[1] ?? CONFIG.MODEL_REF_KIT : CONFIG.MODEL_REF_KIT);
-  return {
-    id, ...(rule === 'met' ? { yardstick: true as const } : {}), storyId: state.storyId, kind: 'npc', names: { current: 'reference fighter', past: [] }, label: 'reference fighter', placeId: '', zone: '', bandId: '',
+/** GR40: a relic of a library piece: its requirement is `need` true skill whatever its level, and every stat that scales
+ * with need follows it (the kit bonus through its requirement, armor and shield pool through gearScale) */
+export function relicOf(base: ItemDef, need: number): ItemDef {
+  const d: ItemDef = { ...structuredClone(base), id: `${base.id}_relic_${need}`, relicNeed: need, family: IF.relic };
+  if (d.armor) { d.armor.reduction = armorStop(d.armor.weight, need); d.armor.multiplier = armorMultiplier(d.armor.weight, need); }
+  if (d.shield) d.shield.pool = shieldPool(need);
+  return d;
+}
+
+/** the reference fighter at level L (CONFIG.MODEL_REF_*): a human with the reference skills at L, carrying relics of the
+ * reference kit whose requirement is L (GR40), and a state that knows those relics */
+export function refFighter(state: GameState, L: number, id: string): { S: GameState; ref: Actor } {
+  const relics = CONFIG.MODEL_REF_KIT.map((k) => relicOf(itemDef(state, k), L));
+  const S: GameState = { ...state, blueprints: [...relics.map((d) => ({ storyId: state.storyId, id: d.id, kind: 'item' as const, data: d as unknown as Record<string, unknown> })), ...(state.blueprints ?? [])] };
+  const ref: Actor = {
+    id, storyId: state.storyId, kind: 'npc', names: { current: 'reference fighter', past: [] }, label: 'reference fighter', placeId: '', zone: '', bandId: '',
     core: {
-      raceId: RC.human, bodyTypeId: BT.humanoid, skills: Object.fromEntries((mixKit ? CONFIG.MODEL_REF_MIX_SKILLS : CONFIG.MODEL_REF_SKILLS).map((k) => [k, { raw: L, state: 'normal' as const }])),
+      raceId: RC.human, bodyTypeId: BT.humanoid, skills: Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, { raw: L, state: 'normal' as const }])),
       classes: [], perks: [], condition: { hpLostPct: 0, parts: {}, status: [], moraleLost: 0 },
-      inventory: equipLoadout(state, kit, id), standingDefense: CONFIG.MODEL_REF_DEFENSE as DefenseKind,
+      inventory: equipLoadout(S, relics.map((d) => d.id), id), standingDefense: CONFIG.MODEL_REF_DEFENSE as DefenseKind,
     },
   };
+  return { S, ref };
 }
 
 /** a state the two model fighters can be looked up in (rolls name each other), the real actors left untouched */
@@ -175,8 +184,11 @@ export function duel(state: GameState, a0: Actor, b0: Actor): { v: number; aTime
   const aFree = aFar ? freeAttacks(S, A, B, aFar, ar, bContact.m?.mode.reach ?? 0, moveSpeed(S, B).run) : { list: [], closeS: 0 };
   const bFree = bFar ? freeAttacks(S, B, A, bFar, br, aContact.m?.mode.reach ?? 0, moveSpeed(S, A).run) : { list: [], closeS: 0 };
   const close = Math.max(aFree.closeS, bFree.closeS);
-  const aTime = Math.min(blowPath(S, freshCopy(A, A.id), freshCopy(B, B.id), aFree.list, aContact.m, close), threatPath(S, freshCopy(A, A.id), freshCopy(B, B.id)));
-  const bTime = Math.min(blowPath(S, freshCopy(B, B.id), freshCopy(A, A.id), bFree.list, bContact.m, close), threatPath(S, freshCopy(B, B.id), freshCopy(A, A.id)));
+  // with no free attacks and nobody running in, the fight is the contact fight already worked out
+  const path = (X: Actor, Y: Actor, free: { m: ModeRef; extra: Mod[]; at: number }[], c: { m?: ModeRef; t: number }) =>
+    !free.length && !close ? c.t : blowPath(S, freshCopy(X, X.id), freshCopy(Y, Y.id), free, c.m, close);
+  const aTime = Math.min(path(A, B, aFree.list, aContact), threatPath(S, freshCopy(A, A.id), freshCopy(B, B.id)));
+  const bTime = Math.min(path(B, A, bFree.list, bContact), threatPath(S, freshCopy(B, B.id), freshCopy(A, A.id)));
   const aReact = avgReact(S, A), bReact = avgReact(S, B), v = (bReact + bTime) / (aReact + aTime);
   return { v: Number.isNaN(v) ? 1 : v, aTime, bTime, aReact, bReact };
 }
@@ -186,36 +198,45 @@ function best(ms: ModeRef[], f: (m: ModeRef) => number): { m?: ModeRef; t: numbe
   return r;
 }
 
-/** V against the reference at level L: one reference fighter, or (MODEL_REF_MIX) the mean rate of winning over every
- * reference kit ÷ the mean rate of losing (a rate is 1 ÷ (reaction + time), 0 for a fight never won) */
+/** V against the reference fighter at level L */
 export function vAt(state: GameState, a: Actor, L: number): number {
-  if (!CONFIG.MODEL_REF_MIX) return duel(state, a, refFighter(state, L, '__ref')).v;
-  let win = 0, lose = 0;
-  for (const kit of CONFIG.MODEL_REF_MIX_KITS) {
-    const d = duel(state, a, refFighter(state, L, '__ref', kit));
-    win += 1 / (d.aReact + d.aTime); lose += 1 / (d.bReact + d.bTime);
-  }
-  return lose > 0 ? win / lose : Infinity;
+  const { S, ref } = refFighter(state, L, '__ref');
+  return duel(S, a, ref).v;
 }
 
 const cache = new Map<string, number>();
 /** the sheet that sets a combat level: everything but the moment (condition, marks, holds) */
 const sheetKey = (a: Actor): string => JSON.stringify([a.core.raceId, a.core.bodyTypeId, a.core.prefix, a.core.skills, a.core.perks, a.core.classes, a.core.inventory.map((i) => [i.itemId, i.equippedIn, i.boundTo]), a.core.standingDefense, a.core.bornDay, a.core.hollowed, a.progression?.achievements]);
 
-/** PLACEHOLDER: the combat level: the level of the reference fighter this actor fights evenly (V = 1), searched between 0
- * and MODEL_LEVEL_TOP. Cached by sheet. */
+/** PLACEHOLDER: the combat level: the level of the reference fighter this actor fights evenly (V = 1). V falls as the
+ * reference's level rises, so the search brackets V = 1 (doubling from MODEL_LEVEL_FIRST up to MODEL_LEVEL_TOP) and closes
+ * in by false position on ln V (Illinois) until the bracket is under MODEL_LEVEL_TOL. Cached by sheet. */
 export function combatLevel(state: GameState, a: Actor): number {
   const key = sheetKey(a);
   const hit = cache.get(key);
   if (hit !== undefined) return hit;
-  let lo = 0, hi = CONFIG.MODEL_LEVEL_TOP;
-  const even = (L: number) => vAt(state, a, L) >= 1;
-  if (!even(lo)) { cache.set(key, 0); return 0; }
-  if (even(hi)) { cache.set(key, hi); return hi; }
-  for (let i = 0; i < CONFIG.MODEL_LEVEL_STEPS; i++) { const mid = (lo + hi) / 2; if (even(mid)) lo = mid; else hi = mid; }
-  const L = (lo + hi) / 2;
+  const L = searchLevel((L) => Math.log(vAt(state, a, L)));
   cache.set(key, L);
   return L;
+}
+/** the root of a falling f between 0 and MODEL_LEVEL_TOP (0 when f(0) < 0, the top when f never drops below 0) */
+function searchLevel(f: (L: number) => number): number {
+  let lo = 0, flo = f(0);
+  if (!(flo >= 0)) return 0;
+  let hi = Math.min(CONFIG.MODEL_LEVEL_FIRST, CONFIG.MODEL_LEVEL_TOP), fhi = f(hi);
+  while (fhi >= 0) {
+    if (hi >= CONFIG.MODEL_LEVEL_TOP) return CONFIG.MODEL_LEVEL_TOP;
+    lo = hi; flo = fhi; hi = Math.min(2 * hi, CONFIG.MODEL_LEVEL_TOP); fhi = f(hi);
+  }
+  let side = 0;
+  for (let i = 0; i < 60 && hi - lo > CONFIG.MODEL_LEVEL_TOL; i++) {
+    // false position, falling back to halving when a side is endless (a fight one side never wins)
+    const mid = Number.isFinite(flo) && Number.isFinite(fhi) ? Math.min(hi - 1e-9, Math.max(lo + 1e-9, lo + (flo * (hi - lo)) / (flo - fhi))) : (lo + hi) / 2;
+    const fm = f(mid);
+    if (fm === 0) return mid;
+    if (fm > 0) { lo = mid; flo = fm; if (side === 1) fhi /= 2; side = 1; } else { hi = mid; fhi = fm; if (side === -1) flo /= 2; side = -1; }
+  }
+  return Number.isFinite(flo) && Number.isFinite(fhi) && flo !== fhi ? lo + (flo * (hi - lo)) / (flo - fhi) : (lo + hi) / 2;
 }
 /** forget every cached combat level (a model setting changed) */
 export const clearCombatLevels = (): void => cache.clear();

@@ -466,6 +466,8 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .pw-group > summary .pw-what b::before { content: '▸ '; color: var(--muted); }
 .pw-group[open] > summary .pw-what b::before { content: '▾ '; }
 .pw-total { border-top: 1px solid var(--border); padding-top: var(--space-2); }
+.pw-ratings { margin-top: var(--space-2); }
+.pw-ratings .pw-sub .pw-adds { font-weight: 600; color: var(--muted); }
 .cs-gear { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .cs-gear .cs-item { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
 .cs-gear .cs-item:hover { color: var(--accent); }

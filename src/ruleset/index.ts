@@ -94,7 +94,7 @@ export function extraBands(margin: number, reach: Reach): number {
 export function naturalEdge(d: number): -1 | 0 | 1 {
   return d <= CONFIG.NATURAL_EDGE ? -1 : d > 100 - CONFIG.NATURAL_EDGE ? 1 : 0;
 }
-const sumShifts = (s: TierShift[]) => s.reduce((t, x) => t + x.value, 0);
+export const sumShifts = (s: TierShift[]) => s.reduce((t, x) => t + x.value, 0);
 /** SE23: a solo roll against a task grade moves by (moderate − grade) at the roll's skill weight, so a task graded at
  * the roller's own skill plays the same at every level (62% Success or better at 50 and at 300) */
 export function gradeMod(target: number): number {

@@ -35,7 +35,7 @@ describe('finishing a fight far below the player', () => {
     const s = fight();
     expect(s.mode).toBe('tactical');
     expect(farBelow(s)).toBeNull(); // the start player is not far above a guard
-    stronger(s, 6);
+    stronger(s, 10);
     const guard = s.actors.find((a) => a.id === 'guard_1')!;
     expect(power(s, guard)).toBeLessThanOrEqual(CONFIG.OUTCLASS_EACH * power(s, s.player));
     expect(farBelow(s)?.map((a) => a.id)).toEqual(['guard_1']);
@@ -51,7 +51,7 @@ describe('finishing a fight far below the player', () => {
     const kinds = () => deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).map((a) => a.kind);
     expect(kinds()).not.toContain('finish');
     expect(buildPlayerView(s).player.finishable).toBeUndefined();
-    stronger(s, 6);
+    stronger(s, 10);
     expect(buildPlayerView(s).player.finishable).toBe(true);
     const fin = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).find((a) => a.kind === 'finish')!;
     expect(fin.play({}).intent.finish).toBe(true);
@@ -60,7 +60,7 @@ describe('finishing a fight far below the player', () => {
 
   it('IQ4 a: Finish the fight plays the rounds on code to the end in one turn, and the Narrator is told so', () => {
     const s = fight();
-    stronger(s, 6);
+    stronger(s, 10);
     const turn = s.turn, t0 = now(s), before = snapTurn(s);
     const out = finishFight(s, input, createRng(3), strike);
     expect(out.stop).toBe('over');
@@ -77,7 +77,7 @@ describe('finishing a fight far below the player', () => {
     const stops = new Set<string>();
     for (let seed = 1; seed <= 12; seed++) {
       const s = fight();
-      stronger(s, 6);
+      stronger(s, 10);
       const guard = s.actors.find((a) => a.id === 'guard_1')!, lost = s.player.core.condition.hpLostPct;
       const out = finishFight(s, input, createRng(seed), strike);
       stops.add(out.stop);
@@ -90,8 +90,8 @@ describe('finishing a fight far below the player', () => {
     expect(stops).toContain('wounded');
     // no longer far below: nothing is played
     const s = fight();
-    stronger(s, 6);
-    stronger(s, 1 / 6);
+    stronger(s, 10);
+    stronger(s, 1 / 10);
     expect(finishFight(s, input, createRng(1), strike)).toMatchObject({ stop: 'no_longer', rounds: 0, events: [] });
   });
 });

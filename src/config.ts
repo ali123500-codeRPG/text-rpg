@@ -977,8 +977,6 @@ const DEFAULTS = {
   STRENGTH_KINDS: { break: { [RT.melee_strength]: 1, [RT.ranged_strength]: 0.5 } } as Record<string, Record<string, number>>,
   /** GR26: breaking free of a hold, both sides add this × their Melee strength (Grapple left out of its pool) to the Grapple roll (placeholder) */
   STRENGTH_HOLD_SHARE: 0.5,
-  /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
-  GEAR_RATING_FACTOR: 0.25,
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (xpToReach) */
   LEVEL_RATING_SHARE: 0.02,
   DEFEAT_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
@@ -988,22 +986,19 @@ const DEFAULTS = {
   MODEL_TIER_REACH: 40,
   /** the reference fighter: a human with these skills all at the level, holding and wearing this kit, standing in this defense */
   MODEL_REF_SKILLS: [SK.melee_medium, SK.parry, SK.endurance, SK.medium_armor, SK.resolve, SK.battle_sense] as string[],
+  /** GR40: its kit are relics of these pieces whose requirement is the level itself (every stat that scales with need follows) */
   MODEL_REF_KIT: [IT.arming_sword, IT.mail_hauberk] as string[],
-  /** with MODEL_REF_MIX on, the reference is every kit here at once (GR22: fists, arming sword, greatsword × bare, mail,
-   * half plate, plate), with every skill those kits use at the level; V = the mean rate of winning ÷ the mean rate of losing */
-  MODEL_REF_MIX: false as boolean,
-  MODEL_REF_MIX_KITS: [[], [IT.arming_sword], [IT.greatsword]].flatMap((w) => [[], [IT.mail_hauberk], [IT.half_plate], [IT.plate_harness]].map((a) => [...w, ...a])) as string[][],
-  MODEL_REF_MIX_SKILLS: [SK.unarmed_strike, SK.melee_medium, SK.melee_heavy, SK.parry, SK.endurance, SK.medium_armor, SK.heavy_armor, SK.resolve, SK.battle_sense] as string[],
   MODEL_REF_DEFENSE: 'parry' as DefenseKind,
-  /** below its kit's level the reference fighter: 'met' meets the kit anyway; 'by_level' carries the best kit it meets
-   * (MODEL_REF_KIT_BY_LEVEL, the reference kit from the first row its level reaches); 'short' falls short as anyone would */
-  MODEL_REF_KIT_RULE: 'met' as 'met' | 'by_level' | 'short',
-  MODEL_REF_KIT_BY_LEVEL: [[0, [IT.cudgel]], [25, [IT.hand_axe, IT.brigandine]]] as [number, string[]][],
+  /** GR34, GR42: the XP rating's non-combat groups and how each one's share of an equal fight is worked out
+   * (engine/nonCombat.ts): slip past or filch unseen, catch a sneaker, talk a fight down, heal */
+  NONCOMBAT_SHARES: { [GR.stealth]: 'slip', [GR.notice]: 'catch', [GR.sleight]: 'slip', [GR.medicine]: 'heal', [GR.influence]: 'talk_down' } as Record<string, import('./engine/nonCombat').ShareRule>,
   /** words in one threat (talk row seconds × this) */
   MODEL_THREAT_WORDS: 8,
-  /** the levels the matched-level search runs between, and its steps (each halves the range) */
+  /** the matched-level search: its first upper guess (doubled until the actor no longer fights evenly), its ceiling, and
+   * how narrow (levels) its bracket gets before it stops */
+  MODEL_LEVEL_FIRST: 64,
   MODEL_LEVEL_TOP: 1000,
-  MODEL_LEVEL_STEPS: 16,
+  MODEL_LEVEL_TOL: 0.05,
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on, its own step growing with its place (BG-256: I = +5, II = +15, III = +30), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,
