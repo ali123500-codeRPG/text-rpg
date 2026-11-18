@@ -511,14 +511,15 @@ export function questsPage(api: GameApi) {
       const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
         text: q.text, giver: cap(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
         reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${questLevelXp(q.level)} XP`, pay: payText(s, q),
-        due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: QUEST_STATE_NAME[q.state] },
-        ...(q.unpaid || !isOpen(q) ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(!isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
+        due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: `${q.state === 'ready' ? '✓ ' : ''}${QUEST_STATE_NAME[q.state]}` }, // C7: a gold check when ready
+        ...(q.unpaid || !isOpen(q) || q.state === 'ready' ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(q.state === 'ready' ? { state: 'gold' as const } : !isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
       return [...chains.values()].map((qs) => {
         const rows = qs.map(row).sort((a, b) => (a.sortKey ?? 0) - (b.sortKey ?? 0) || natural(a.cells.text, b.cells.text));
         const last = rows[rows.length - 1];
         const givers = [...new Set(rows.map((r) => r.cells.giver))];
         return { id: `chain-${rows[0].id}`, title: rows[0].cells.text, rows, value: String(rows.length), unit: unitOf(rows.length, 'quest'), sub: '', how: '',
-          combined: { giver: givers.length === 1 ? givers[0] : 'Mixed', goal: last.cells.goal, pay: last.cells.pay, due: last.cells.due, state: last.cells.state } };
+          combined: { giver: givers.length === 1 ? givers[0] : 'Mixed', goal: last.cells.goal, pay: last.cells.pay, due: last.cells.due, state: last.cells.state },
+          ...(last.tones?.state ? { combinedTones: { state: last.tones.state } } : {}) };
       }).sort((a, b) => (a.rows[0].sortKey ?? 0) - (b.rows[0].sortKey ?? 0));
     },
     tiles: (s) => QUEST_STATES.filter((st) => s.quests.some((q) => q.state === st)).map((st) => {

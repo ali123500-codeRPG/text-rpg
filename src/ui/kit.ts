@@ -100,9 +100,9 @@ export type Col = { key: string; title: string; right?: boolean };
 /** an order another page drafts for the Play box (Take out on the Inventory): Play puts it in the box once and clears it; nothing is sent */
 export const playDraft: { text: string | null } = { text: null };
 
-/** tones: a per-cell colour (bad = red, muted = grey), e.g. the inventory's Needs column (EQ7) */
-export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted'>; drag?: boolean /* the row can be dragged (the Inventory's put in / take out) */ };
-export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: Record<string, 'bad' | 'muted'> };
+/** tones: a per-cell colour (bad = red, muted = grey, gold = ready, as a quest to hand in), e.g. the inventory's Needs column (EQ7) */
+export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted' | 'gold'>; drag?: boolean /* the row can be dragged (the Inventory's put in / take out) */ };
+export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: TRow['tones'] };
 
 /** natural-number title order: "Slime 2" before "Slime 10" */
 export const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });

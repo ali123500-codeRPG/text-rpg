@@ -123,7 +123,7 @@ export type PlayerView = {
     /** how far each weapon in hand reaches at its longest, in metres (Who's here hover: in reach or not) */
     reaches?: { name: string; metres: number }[];
     bodyAttacks?: BodyAttackView[]; // BG-193: the body's own attacks (fists, a grapple), named by mode even with a weapon in hand
-    perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
+    perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[]; used?: true }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at; used: spent for this engagement (A3)
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)

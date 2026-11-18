@@ -201,7 +201,7 @@ function questLine(s: GameState, open: (id: string) => void): HTMLElement | null
   const sep = () => h('span', { 'aria-hidden': 'true' }, '·');
   const bits: (HTMLElement | null)[] = [
     goal ? h('span', {}, goal) : null,
-    ready ? h('span', { class: 'ok' }, `✓ ${QUEST_STATE_NAME.ready}`) : null,
+    ready ? h('span', { class: 'q-ready' }, `✓ ${QUEST_STATE_NAME.ready}`) : null,
     due ? h('span', { class: dueDay(q) === dayOf(now(s)) ? 'warn' : '' }, due) : null,
     pay ? h('span', {}, pay) : null,
     more > 0 ? h('span', { class: 'more' }, `+${more} more`) : null,
@@ -639,9 +639,11 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const foe = (a: PlayerView['actors'][number]) => !!(a.foe || pv?.player.spar?.opponents.includes(a.name ?? a.label)); // BG-265: beasts too
     const rank = (a: PlayerView['actors'][number]) => (pins.has(a.id) ? 0 : foe(a) ? 1 : a.health && isDownLevel(a.health) ? 3 : 2);
     const seen = (pv?.actors.filter((a) => a.level === 'full') ?? []).map((a, i) => ({ a, i })).sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i).map((x) => x.a);
+    // C7: a giver with a quest ready to hand in carries a gold check (the words only in its tip)
+    const handIn = new Set(s?.quests.filter((q) => q.state === 'ready').map((q) => q.giver) ?? []);
     const whoKids = seen.length ? seen.map((a) => h('div', { class: 'pp' + (foe(a) ? ' foe' : '') + (pins.has(a.id) ? ' pinned' : ''), role: 'listitem button', 'data-who': cap(a.name ?? a.label), 'data-id': a.id, tabindex: '0', title: 'What you can do to or with them' },
       h('span', { class: 'dot', 'aria-hidden': 'true' }),
-      h('b', {}, cap(a.name ?? a.label)), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
+      h('b', {}, cap(a.name ?? a.label), handIn.has(a.id) ? h('span', { class: 'q-ready', title: 'A quest for them is ready to hand in', 'aria-label': ', a quest for them is ready to hand in' }, ' ✓') : null), // the name (BG-30's edit had put it inside the comment, so the row lost every name)
       h('span', { class: 'ds' }, [whoDistance(a, pv!), a.age ? `looks ${a.age.toLowerCase()}` : ''].filter(Boolean).join(' · ')), // how far, if your weapon reaches; AG16: the life stage they look
       h('button', { type: 'button', class: 'pin', 'aria-pressed': String(pins.has(a.id)), title: pins.has(a.id) ? 'Unpin' : 'Pin to the top', 'aria-label': `${pins.has(a.id) ? 'Unpin' : 'Pin'} ${cap(a.name ?? a.label)}` }, pins.has(a.id) ? '★' : '☆'),
       h('span', { class: 'sts' },

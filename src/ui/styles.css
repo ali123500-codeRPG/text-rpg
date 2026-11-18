@@ -81,6 +81,8 @@ html { caret-color: var(--accent); scrollbar-color: var(--rule) var(--bg); }
 .icon-rail .hs-rail a, .icon-rail .hs-rail button { height: 52px; }
 .icon-rail .hs-rail svg.hs-i { width: 22px; height: 22px; }
 .icon-rail .hs-rail .hs-badge { top: 2px; right: 2px; }
+/* C7: a quest ready to hand in: a gold dot on the rail's Quests item */
+.hs-rail .rail-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--scenario-mark); outline: 2px solid var(--bg); }
 .rail-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .rail-tip { position: fixed; z-index: 60; transform: translateY(-50%); padding: 4px 10px; border-radius: var(--r-md); background: var(--text); color: var(--bg);
   font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
@@ -875,7 +877,9 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .quest-line svg { width: 16px; height: 16px; display: block; color: var(--scenario-mark); }
 .quest-line .qt { flex: 0 1 auto; min-width: 0; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 600; }
 .quest-line:hover .qt { text-decoration: underline; }
-.quest-line .ok { color: var(--ok); font-weight: 600; }
+.quest-line .q-ready { color: var(--scenario-mark); font-weight: 600; }
+/* C7: the gold check for a quest ready to hand in (Who's here, the Quests row) */
+.who .pp .q-ready, .tone-gold { color: var(--scenario-mark); }
 .quest-line .warn { color: var(--warn); }
 .quest-line .more { color: var(--faint); }
 /* Watch an agent play: a floating pop-up (dpop) over the play screen, opened by the header switch */
@@ -1570,6 +1574,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .dk-act .t { font: 600 14px var(--font-round); }
 .dk-act .n { font-size: 13px; color: var(--faint); }
 .dk-act.hot .t::after { content: " •"; color: var(--warn); }
+/* A3: a move with a limit stays in its group, dimmed; its mark says why (the words are its tip): a ring filled by the share
+   of the wait gone, or a hollow circle with a slash once used this fight. One pulse the turn it is ready again. */
+.dk-act.dk-lim { opacity: .55; cursor: default; }
+.dk-act.dk-lim:hover { background: none; }
+.dk-mark { display: inline-block; width: 13px; height: 13px; margin-right: 6px; vertical-align: -1px; border-radius: 50%; position: relative; }
+.dk-mark.wait { background: conic-gradient(currentColor calc(var(--share, 0) * 1turn), color-mix(in srgb, currentColor 25%, transparent) 0);
+  -webkit-mask: radial-gradient(circle, transparent 3.5px, currentColor 4px); mask: radial-gradient(circle, transparent 3.5px, currentColor 4px); }
+.dk-mark.used { border: 1.5px solid currentColor; }
+.dk-mark.used::after { content: ""; position: absolute; left: calc(50% - .75px); top: -2px; bottom: -2px; width: 1.5px; background: currentColor; transform: rotate(45deg); }
+.dk-act.dk-ready { animation: dk-ready calc(var(--m-beat) * 2) var(--m-ease) 1; }
+@keyframes dk-ready { 0% { background-color: color-mix(in srgb, var(--accent) 30%, transparent); transform: scale(1.03); } 100% { background-color: transparent; transform: none; } }
 /* the pick pop-up: whom, with what, which part */
 .deck-pick .dk-picks { display: grid; gap: 2px; min-width: 240px; max-height: calc(var(--vh) * .5); overflow-y: auto; }
 .dk-pick { display: grid; text-align: left; background: none; border: 0; border-radius: var(--r-md); padding: 6px var(--space-2); color: var(--text); cursor: pointer;
