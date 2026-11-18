@@ -18,7 +18,7 @@ import { walksAway } from '../engine/nerve';
 import type { WayOp } from '../engine/barriers';
 import { distText } from '../views';
 import { lootSources } from './loot';
-import { AGAINST_NATURE, pullOf, type IdeaGroup, type IdeaKind } from './ideaLeans';
+import { pullOf, type IdeaGroup, type IdeaKind } from './ideaLeans';
 import { healItems, partName } from './healing';
 import { cap, r1, theItem } from '../words';
 import { now, secondsSince } from '../time';
@@ -38,7 +38,7 @@ export type Order = { intent: Intent; line: string };
  * It stays in its group, shown by a mark, not words; the words are its tip */
 export type DeckLimit = { used: true; tip: string } | { share: number; tip: string };
 export type DeckAction = {
-  kind: DeckKind; group: DeckGroup; label: string; note?: string; hot?: true; limit?: DeckLimit;
+  kind: DeckKind; group: DeckGroup; label: string; note?: string; hot?: true; limit?: DeckLimit; against?: true; // against: the character is pulled away from it
   steps: Step[]; play(c: Choice): Order;
 };
 export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'normal' | 'reckless'; aim?: boolean; broken?: boolean; cowering?: boolean; self?: Personality }; // cowering: BF79, below Broken
@@ -198,8 +198,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       l.way && 'barred' in l.way && l.way.barred ? 'barred' : '', l.way?.blocked ? 'blocked' : ''].filter(Boolean).join(' · ') || undefined;
     const places = [...ways.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })),
       ...(pv.known ?? []).filter((z) => z.id !== pv.zone.id && !ways.some((l) => l.to === z.id) && away(z.id)).map((z) => ({ id: z.id, label: cap(z.name), note: pv.cameFrom?.[0]?.zone === z.id ? 'where you came from' : 'known' }))];
-    if (places.length) add('go', g, 'Go to', [{ key: 'target', title: 'Go where?', picks: () => places }], (c) => order(`Go to ${places.find((p) => p.id === c.target)?.label ?? zoneName(c.target!)}`, { move: { toZone: c.target! } }),
-      { note: 'runs there (a dash) · or click the minimap' });
+    if (places.length) add('go', g, 'Go to', [{ key: 'target', title: 'Go where?', picks: () => places }], (c) => order(`Go to ${places.find((p) => p.id === c.target)?.label ?? zoneName(c.target!)}`, { move: { toZone: c.target! } }));
     const drops = pv.zone.links.filter((l) => l.drop && away(l.to));
     if (drops.length) add('jump', g, 'Jump down', [{ key: 'target', title: 'Jump where?', picks: () => drops.map((l) => ({ id: l.to, label: cap(l.label) })) }], (c) => order(`Jump down to ${zoneName(c.target!)}`, { move: { toZone: c.target!, jump: true } }));
     const near = seen.filter((a) => a.level === 'full');
@@ -308,13 +307,13 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     else if (m.inRange.length) add('perk', 'perks', label, [who(`${label}: whom?`, up.filter((a) => m.inRange!.includes(a.id)))], (c) => order(`${label}: ${them(c)}`, { perkMove: { perk: m.id, target: c.target! } }), { note });
   }
 
-  // the character's leanings order groups and actions (ties keep their place); an action pulled away from says so
+  // the character's leanings order groups and actions (ties keep their place); an action pulled away from gets the against-your-nature mark
   const p = ctx.self;
   const pull = (k: IdeaKind | IdeaGroup | undefined) => (p && k ? pullOf(k, p) : 0);
   const by = <T>(xs: T[], v: (x: T) => number) => xs.map((x, i) => ({ x, i, v: v(x) })).sort((a, b) => b.v - a.v || a.i - b.i).map((e) => e.x);
   const groups = DECK_GROUPS.map((g) => ({ group: g, name: DECK_GROUP_NAME[g], actions: by(A.filter((a) => a.group === g), (a) => pull(LEAN[a.kind])) }))
     .filter((g) => g.actions.length && g.actions.some((a) => !a.steps.length || a.steps[0].key === 'words' || (a.steps[0] as { picks: (c: Choice) => Pick[] }).picks({}).length));
-  for (const g of groups) for (const a of g.actions) if (p && LEAN[a.kind] && pull(LEAN[a.kind]) <= -CONFIG.IDEA_AGAINST_NATURE) a.note = a.note ? `${a.note} · ${AGAINST_NATURE}` : AGAINST_NATURE;
+  for (const g of groups) for (const a of g.actions) if (p && LEAN[a.kind] && pull(LEAN[a.kind]) <= -CONFIG.IDEA_AGAINST_NATURE) a.against = true;
   return by(groups, (g) => (g.group === 'getaway' ? Infinity : pull(g.group === 'use' || g.group === 'perks' ? undefined : g.group)));
 }
 

@@ -1575,6 +1575,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .dk-act:disabled { opacity: .5; cursor: default; background: none; }
 .dk-act .t { font: 600 14px var(--font-round); }
 .dk-act .n { font-size: 13px; color: var(--faint); }
+.dk-nature { display: inline-block; width: 14px; height: 14px; margin-left: 6px; vertical-align: -2px; color: var(--faint); }
+.dk-nature svg { width: 100%; height: 100%; display: block; }
 .dk-act.hot .t::after { content: " •"; color: var(--warn); }
 /* A3: a move with a limit stays in its group, dimmed; its mark says why (the words are its tip): a ring filled by the share
    of the wait gone, or a hollow circle with a slash once used this fight. One pulse the turn it is ready again. */
