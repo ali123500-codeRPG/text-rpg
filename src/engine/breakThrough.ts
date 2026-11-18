@@ -4,9 +4,16 @@
 // count at their own speed (src/ruleset/breaking.ts), so helpers add their rates (BW13 a). Halfway it is Crippled, done
 // it is Destroyed (BW11 a): a barrier takes the state, a wall gets a crack, then a hole (src/plan/holes.ts). A material
 // that regrows loses the work after CONFIG.REGROW_S with nobody at it (BW9 b). No roll and no skill learned (BW23 a).
-import type { Actor, Barrier, GameState, Opening, TierRoll, Wall, WallDent, Zone } from '../types';
-import type { Located } from './position';
+import type { Actor, Barrier, GameState, Opening, Pt, TierRoll, Wall, WallDent, Zone } from '../types';
+import { goalPoint, pointAt, type Located } from './position';
+import { passage } from './barriers';
+import { walksThrough } from '../ruleset/breaking';
+import { crossings } from '../plan/line';
+import { walkPath } from '../plan/path';
+import { wallKind } from '../plan/walls';
+import { zoneAt } from '../plan/where';
 import { CONFIG } from '../config';
+import { getLibrary } from '../library';
 import { TIERS } from '../scales';
 import { barrierStuff, breakSeconds, breakStrength, breakTool, wallStuff, type Stuff } from '../ruleset/breaking';
 import { tierOf } from '../ruleset';
@@ -14,7 +21,7 @@ import { barrierOn } from './barriers';
 import { breakInside } from './breakage';
 import { zoneById } from './relations';
 import { secondsSince } from '../time';
-import { dist, toSegment } from '../plan/geom';
+import { dist, lerp, toSegment } from '../plan/geom';
 import { middle, openingById, wayTo } from '../plan/where';
 import { cutHole, holeSpot, wallsAround } from '../plan/holes';
 import { planChanged } from '../plan/stamp';
@@ -114,3 +121,43 @@ export function toolCheck(state: GameState, a: Actor, rng: Rng): { tool?: string
   return { tool: inst.id, ...(breakInside(state, a, [inst], roll).length ? { broke: true as const } : {}) };
 }
 
+
+/** what a walker strong enough walks through on its way (BW21 a): a wall, at the point the line meets it, between titles
+ * from and to; or a shut barrier */
+export type WalkBreak = { wall: Wall; at: Pt; from: Zone; to?: Zone; t: number } | { barrier: Barrier; opening: Opening; t: number };
+const KNEE_M = 0.3;
+/** BW21 a: a walker for whom breaking a wall or barrier takes WALK_THROUGH_S or less is not stopped by it: when the
+ * straight line from them to the goal (on one floor) meets only things they walk through or pass anyway, and (when it
+ * meets a wall) it is shorter than the walk round (or there is none), the walk goes straight through. Returns what it breaks within the first
+ * `metres` (the rest wait for the next leg), or null when the walk goes round as usual. */
+export function walkBreaks(state: GameState, a: Actor, goal: Located, metres: number): WalkBreak[] | null {
+  let A, B;
+  try { A = pointAt(state, a); B = goalPoint(state, goal); } catch { return null; }
+  if (Math.abs(A.floor - B.floor) > 0.01) return null;
+  const L = dist(A, B);
+  if (L <= 1e-6) return null;
+  const out: WalkBreak[] = [];
+  for (const c of crossings(state, { x: A.x, y: A.y, z: A.floor + KNEE_M }, { x: B.x, y: B.y, z: B.floor + KNEE_M })) {
+    if (c.kind === 'roof') return null;
+    const side = (dt: number) => zoneAt(state, lerp(A, B, Math.min(1, Math.max(0, c.t + dt))), A.floor);
+    if (c.opening) {
+      const b = barrierOn(state, c.opening);
+      if (!b) { if (c.opening.crack || c.opening.frontier || !getLibrary().openingKinds?.[c.opening.kind]?.walk) return null; continue; }
+      const from = side(-0.01 / L)?.id ?? a.zone;
+      if (passage(b, a, from) !== 'shut') continue;
+      const stuff = barrierStuff(b);
+      if (!stuff || !walksThrough(state, a, stuff)) return null;
+      out.push({ barrier: b, opening: c.opening, t: c.t });
+      continue;
+    }
+    if (wallKind(c.wall.kind)?.walk) continue;
+    const stuff = wallStuff(c.wall), from = side(-0.05 / L);
+    if (!stuff || !from || !walksThrough(state, a, stuff)) return null;
+    out.push({ wall: c.wall, at: c.at, from, ...(side(0.05 / L) ? { to: side(0.05 / L) } : {}), t: c.t });
+  }
+  if (!out.length) return null;
+  // a wall is broken only to save walking round it (a door on the line is the way anyway)
+  const round = out.some((x) => 'wall' in x) ? walkPath(state, A, B, { walker: a, body: a }) : null;
+  if (round && round.metres <= L + 1e-6) return null;
+  return out.filter((x) => x.t * L <= metres + 1e-6);
+}
