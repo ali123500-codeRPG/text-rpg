@@ -1060,7 +1060,7 @@ const DEFAULTS = {
   AUGMENT_TRADE_SHARE: 0.5, // D-276 trade augment: share of the giving skill's true skill moved to the receiving skill (placeholder)
   AUGMENT_PERCENT_RATE: 0.2, // D-276 percentage augment: receiving true skill × this × giving true skill ÷ 100 (placeholder)
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
-  MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Lying that augments Vanishing (placeholder)
+  MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Guile that augments Vanishing (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), one equation for achievements and quests with no top:
    * XP = base × ((p + shift) ÷ div)^power, p = the level's place (0 = level 0, I = 1, −1 = −1); read through rewardXp */

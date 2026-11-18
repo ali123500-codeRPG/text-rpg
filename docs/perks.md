@@ -1307,12 +1307,12 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Misdirection (Stealth – Conventional, Vanishing) · T6e
 
-*Story:* "Look over there!" and you are gone. A quarter of your Falsehood adds to every Vanishing roll, and both skills learn from it.
+*Story:* A glance over their shoulder, a pointed finger, and you are gone. A quarter of your Guile adds to every Vanishing roll, and both skills learn from it.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a Vanishing roll.
 - **Conditions:** The Trickery tree is open to the owner.
-- **Effect:** Falsehood augments Vanishing: the roll adds the owner's true Falsehood × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Falsehood can learn from the roll the same way.
+- **Effect:** Guile augments Vanishing: the roll adds the owner's true Guile × 0.25 (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Guile can learn from the roll the same way.
 - **Lasts:** Always.
 - **Built:** yes
 
