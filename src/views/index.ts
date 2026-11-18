@@ -152,6 +152,8 @@ export function callName(state: GameState, viewerId: string, id: string): string
 }
 /** whoever `viewer` sees clearly right now (BG-95: a name heard is put to this face) */
 export const seesClearlyNow = (state: GameState, viewer: Actor, id: string): boolean => seenActors(state, viewer).some((x) => x.id === id && x.level === 'full');
+/** everyone the viewer sees now, clearly or half (Never Flat-Footed notes them: src/engine/flatFooted.ts) */
+export const seenIds = (state: GameState, viewer: Actor): string[] => seenActors(state, viewer).map((x) => x.id);
 
 /** BF70 (EQ12 c): gear the holder falls short on says so, with the outcome steps it costs every roll made with it, so an NPC
  * can pick its fists or another weapon (worn armor costs Dodge and stealth rolls) */

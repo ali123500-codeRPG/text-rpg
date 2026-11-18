@@ -813,6 +813,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Combat Stealth augments the attack roll (and learns from it): its true skill × the payoff share × its tier. The payoff share is 5% × ambush pieces^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): Patient Knife alone gives 5%, with two more 12%, with no ceiling.
 - **Lasts:** Always.
 
+### Never Flat-Footed (Battle Sense) · TC35
+
+*Story:* Once you've laid eyes on someone in a fight, you never lose track of them. A foe you have seen this fight can never catch you unaware.
+
+- **Kind:** Always on
+- **Trigger:** An attack on the owner by a foe the owner has seen during this engagement (clearly or half seen).
+- **Conditions:** The owner is awake and up.
+- **Effect:** The attack is never an ambush: the owner takes no unaware penalty to its defense and does not act last for being unaware. Hidden Strike and Ghost Blade don't apply.
+- **Lasts:** Until the engagement ends.
+
 ## Banked, no milestone yet
 
 ### Go to Ground (Sneaking) · D9

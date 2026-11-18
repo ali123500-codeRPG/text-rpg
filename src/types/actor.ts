@@ -88,7 +88,9 @@ export type PerkMark = { perk: string; target?: string; made?: number; /** the t
 export type EngagementKind = 'talk' | 'fight' | 'spar';
 export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog;
   /** TC41 a: rallied this fight (Battle Cry's rally; Rally later): CONFIG.RALLIED_MOD on every roll until the engagement ends */
-  rallied?: true };
+  rallied?: true;
+  /** TC35 b Never Flat-Footed: everyone its owner has seen this engagement (kept only for owners of the perk) */
+  seen?: string[] };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
 export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true;
