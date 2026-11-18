@@ -1,5 +1,6 @@
 // 127 20 perks for the skills added after the first 20 round: Soft Tread (Sneaking), Melt Away (Vanishing),
 // Slip the Blow (Light Armor), Quiet Mail (Medium Armor), Turn Aside (Heavy Armor).
+import { CONFIG } from '../../src/config';
 import { describe, expect, it } from 'vitest';
 import { createRng, fit, forcedRng, makeVillage, place, beside } from '../harness';
 import { meltAwayHere, ruleset } from '../../src/ruleset';
@@ -116,26 +117,27 @@ describe('127 20 perks for the new skills', () => {
     expect(hit(setup(IT.gambeson, false), IT.gambeson).gapShifts).toEqual([]);
   });
 
-  it('Turn Aside: a heavy or crushing hit on a part heavy armor covers lands as a full hit', () => {
-    const setup = (perk: boolean) => {
+  it('Turn Aside: a heavy or crushing hit counts TURN_ASIDE_GAP better, never past 0, whatever the owner wears', () => {
+    const setup = (perk: boolean, armor: string) => {
       const s = makeVillage();
       beside(s, 'patron_1');
       arm(s, 'patron_1');
       s.player.core.standingDefense = 'dodge';
-      wear(s.player, IT.plate_harness);
+      wear(s.player, armor);
       s.player.core.skills[SK.dodge] = { raw: 0, state: 'normal' };
       if (perk) give(s.player, PK.turn_aside);
       return s;
     };
     // a critical attack against a failed dodge: gap −4 or worse
     const hit = (s: GameState) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([100, 1, 50, 50, 50]));
-    const plain = hit(setup(false));
-    expect(['heavy_hit', 'crushing_hit']).toContain(plain.outcome);
-    const covered = hit(setup(true));
-    expect(covered.location).toBe(plain.location);
-    expect(covered.outcome).toBe('full_hit');
-    expect(covered.multiplier).toBe(1);
-    expect(covered.damage).toBeLessThan(plain.damage);
+    for (const armor of [IT.plate_harness, IT.gambeson]) {
+      const plain = hit(setup(false, armor));
+      expect(['heavy_hit', 'crushing_hit']).toContain(plain.outcome);
+      const turned = hit(setup(true, armor));
+      expect(turned.gapShifts).toEqual([{ source: 'Turn Aside', value: CONFIG.TURN_ASIDE_GAP }]);
+      expect(turned.gap).toBe(Math.min(0, plain.gap! + CONFIG.TURN_ASIDE_GAP));
+      expect(turned.multiplier).toBeLessThan(plain.multiplier);
+    }
   });
   it('In and Out: a melee attack from hiding keeps the owner Stealthy; only the target becomes aware', () => {
     const run = (perk: boolean) => {
