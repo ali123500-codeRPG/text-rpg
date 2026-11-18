@@ -193,7 +193,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Slip the Blow (Light Armor) · A20
 
-*Story:* Light armor taught you to roll with a blow. When your dodge only ties, the hit becomes a graze, whatever you wear.
+*Story:* Light armor taught you to roll with a blow, in any armor or none. When your dodge only ties, the hit becomes a graze.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges an attack.

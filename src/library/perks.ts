@@ -168,7 +168,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       lasts: "That turn." } },
   { id: PK.slip_the_blow, ref: "A20", name: "Slip the Blow", skill: SK.light_armor, place: "20",
     ladder: { skill: SK.light_armor, milestone: 20 }, effect: "defense",
-    story: "Light armor taught you to roll with a blow. When your dodge only ties, the hit becomes a graze, whatever you wear.",
+    story: "Light armor taught you to roll with a blow, in any armor or none. When your dodge only ties, the hit becomes a graze.",
     rules: { kind: "Always on",
       trigger: "The owner dodges an attack.",
       conditions: ["The gap is 0."],
