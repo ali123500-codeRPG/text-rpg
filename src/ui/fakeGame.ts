@@ -308,7 +308,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         { turn: 3, agent: 'voice', actorId: 'guard_1', input: { view: 'DialogueView…', heard: 'block and cut back' }, output: { dialogue: { line: 'That’s one! Watch your left!' } }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
       places: FAKE_PLACES(), facts: [], stage: { tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
-      scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
+      scenarioCaps: { promotions: 0, minted: 0 }, clocks: {},
       quests: [
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
         { id: 'q1', state: 'active', text: 'Clear the slimes from the field', giver: 'guard_1', dealId: 'ag_1', goal: { kind: 'defeat', by: 'race', of: slime.core.raceId!, count: 3, noun: 'slimes' }, progress: 1, level: 'i', startTurn: 2, after: 'q0', pay: { coin: 10 }, paid: { coin: 0, qty: 0 }, due: 3 * 1440 + 1080, dueBy: 'dusk' },

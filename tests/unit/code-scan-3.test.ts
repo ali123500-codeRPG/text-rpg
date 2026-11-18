@@ -18,13 +18,13 @@ describe('BG-123 GM backups', () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage(); // resets the config, so the lever is set after it
     CONFIG.BACKUP_EVERY = 2;
-    for (let t = 1; t <= 4; t++) { s.turn = t; s.flags.last = t; await saveTurn(store, s, rec(s)); }
+    for (let t = 1; t <= 4; t++) { s.turn = t; s.clocks.last = t; await saveTurn(store, s, rec(s)); }
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     expect(await g.resume()).toBe(true);
     await tick();
     expect(g.gm().backups.map((b) => b.turn)).toEqual([4, 2]);
     await g.restoreBackup(2);
-    expect(g.state()?.flags.last).toBe(2);
+    expect(g.state()?.clocks.last).toBe(2);
     expect(g.lines().at(-1)?.text).toBe('Restored the backup from turn 2.');
     expect(g.notices().some((n) => n.kind === 'load_refused')).toBe(false);
   });
@@ -33,7 +33,7 @@ describe('BG-123 GM backups', () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage();
     CONFIG.BACKUP_EVERY = 2;
-    for (let t = 1; t <= 4; t++) { s.turn = t; s.flags.last = t; await saveTurn(store, s, rec(s)); }
+    for (let t = 1; t <= 4; t++) { s.turn = t; s.clocks.last = t; await saveTurn(store, s, rec(s)); }
     await saveHistory(store, s.storyId, [1, 2, 3, 4].map((turn) => ({ turn, kind: 'narration' as const, text: `turn ${turn}` })), 0);
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     await g.resume();
@@ -47,12 +47,12 @@ describe('BG-123 GM backups', () => {
   it('a backup that is not there is refused with a notice, and the story stays as it was', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage();
-    s.turn = 1; s.flags.last = 1;
+    s.turn = 1; s.clocks.last = 1;
     await saveTurn(store, s, rec(s));
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     await g.resume();
     await g.restoreBackup(7);
-    expect(g.state()?.flags.last).toBe(1);
+    expect(g.state()?.clocks.last).toBe(1);
     expect(g.notices().some((n) => n.kind === 'load_refused')).toBe(true);
   });
 });

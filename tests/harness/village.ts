@@ -125,7 +125,7 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     pending: { turn: 1, mode: 'explore', engaged: [], fired: [] },
     places, facts: [],
     stage: { tier: 'success', scenarioNumber: 1, scenarioStartTurn: 0 },
-    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [],
+    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, quests: [],
     settings: { showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],
