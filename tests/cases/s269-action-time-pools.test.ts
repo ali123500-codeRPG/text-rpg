@@ -13,7 +13,7 @@ import { actionRow, actionSeconds, reactSeconds } from '../../src/ruleset/action
 
 const intent = (action: Partial<NonNullable<Intent['action']>>): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type: 'attack', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action },
+  action: { type: 'attack', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...action },
 });
 const turn = (s: GameState, i: Intent, seed = 1) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(seed)); };
 /** already in the fight: no reaction time this turn (AT58) */

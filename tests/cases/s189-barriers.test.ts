@@ -39,7 +39,7 @@ function put(s: GameState, a: string, b: string, extra: Partial<Barrier> = {}): 
 }
 const intent = (p: Partial<Intent>): Intent => ({ move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null, ...p });
 const go = (to: string): Intent => intent({ move: { toZone: to } });
-const pick = (to: string): Intent => intent({ action: { type: 'pick', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+const pick = (to: string): Intent => intent({ action: { type: 'pick', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '' } });
 const turn = (s: GameState, i: Intent, rng = createRng(1)) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, rng); };
 /** the pick roll's d100, after the initiative roll */
 const d = (n: number) => forcedRng([50, n]);
@@ -285,7 +285,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
 });
 
 describe('BG-65: checking a way says what holds it', () => {
-  const check = (to: string): Intent => intent({ action: { type: 'interact', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+  const check = (to: string): Intent => intent({ action: { type: 'interact', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '' } });
   it('a locked door is found locked; with the key it is theirs to open; a way with nothing on it opens freely', () => {
     const s = quiet();
     const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });

@@ -14,7 +14,7 @@ import { BK } from '../../src/library/tableIds';
 import { setBarrier } from '../harness';
 
 const intent = (p: Partial<Intent>): Intent => ({ move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null, ...p });
-const pick = intent({ action: { type: 'pick', skill: '', target: 'street_door', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+const pick = intent({ action: { type: 'pick', skill: '', target: 'street_door', targetPart: null, item: null, mode: null, approach: '' } });
 const turn = (s: GameState, rng = createRng(1)) => { s.turn += 1; return resolveTurn(s, { intent: pick, aimed: false, agentOutputs: [], spokespeople: [] }, rng); };
 function setup(grade: Barrier['grade']): { s: GameState; b: Barrier } {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });

@@ -208,7 +208,7 @@ describe('190 chases and free roam', () => {
     play(s);
     expect(s.stage.breakCause).toBeUndefined();
     expect(s.log.some((l) => l.code === 'scenario_stalled')).toBe(false);
-    play(s, { intent: { move: null, gear: null, spoken: 'evening', addressees: ['trader'], deferred: [], clarify: null, action: { type: 'talk', skill: '', target: 'trader', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }, spokespeople: ['trader'] });
+    play(s, { intent: { move: null, gear: null, spoken: 'evening', addressees: ['trader'], deferred: [], clarify: null, action: { type: 'talk', skill: '', target: 'trader', targetPart: null, item: null, mode: null, approach: '' } }, spokespeople: ['trader'] });
     expect(s.stage.breakCause).toBeUndefined();
     expect(s.stage.window).toBeUndefined();
   });

@@ -24,7 +24,7 @@ import { HL } from '../../src/library/tableIds';
 
 const act = (type: ParserActionType, target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target, targetPart: null, item: null, mode: null, approach: '' },
 });
 const turn = (s: GameState, intent: Intent) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const quiet = (zone = 'tav_cellar') => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'patron_1'] });

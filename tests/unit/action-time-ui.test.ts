@@ -42,7 +42,7 @@ describe('AT11a long actions on the play screen', () => {
     s.player.core.condition.hpLostPct = 30;
     s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
     s.player.react = { s: 0, init: 100, turn: s.pending.turn - 1 };
-    const bandage = () => intent({ action: { type: 'use_item', skill: '', target: 'player', targetPart: null, item: 'b1', mode: null, approach: '', stance: 'normal' } });
+    const bandage = () => intent({ action: { type: 'use_item', skill: '', target: 'player', targetPart: null, item: 'b1', mode: null, approach: '' } });
     const need = actionSeconds(actionRow(DU.bandage)!);
     await g.turn(bandage(), 'I bandage my leg');
     const first = g.game.lines().at(-1)!.actions?.find((a) => a.who === 'You');

@@ -8,7 +8,7 @@ import { intent, setupGame, narrateAll } from './_w7';
 import { SK } from '../../src/library/skillIds';
 
 const attack = (over: Record<string, unknown> = {}) =>
-  intent({ action: { type: 'attack', skill: SK.melee_medium, target: 'guard_1', targetPart: 'head', item: null, mode: null, approach: 'a cut at the head', stance: 'normal', ...over } });
+  intent({ action: { type: 'attack', skill: SK.melee_medium, target: 'guard_1', targetPart: 'head', item: null, mode: null, approach: 'a cut at the head', ...over } });
 
 describe('80 Aim is code-set', () => {
   it('a top-level "aimed" from the Parser is stripped by the schema; the action keeps its own (BG-200)', () => {

@@ -8,7 +8,7 @@ import { UNREACHABLE } from '../../src/minds';
 
 const act = (type: ParserActionType): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' },
 });
 const turn = (s: GameState) => { s.turn += 1; return resolveTurn(s, { intent: act('observe'), aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const stuck = (s: GameState) => s.log.filter((l) => l.code === UNREACHABLE && (l.detail as { actorId: string }).actorId === 'guard_1');

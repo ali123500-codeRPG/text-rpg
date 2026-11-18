@@ -28,7 +28,7 @@ describe('320 checkable jobs and real takes', () => {
 
   it('BF62: an action that waits for arrival waits as nothing when it has no line the player would type', () => {
     const view = { actors: [{ id: 'hob', name: 'Hob' }], lastSeen: [], talkingWith: [], player: { inventory: [] } } as unknown as PlayerView;
-    const a = (type: string, target: string | null) => ({ type, target, skill: '', item: null, targetPart: null, mode: null, approach: '', stance: 'normal' }) as never;
+    const a = (type: string, target: string | null) => ({ type, target, skill: '', item: null, targetPart: null, mode: null, approach: '' }) as never;
     expect(actionWords(a('interact', 'trough'), view)).toBe('');
     expect(actionWords(a('talk', 'nobody_known'), view)).toBe('');
     expect(actionWords(a('talk', 'hob'), view)).toBe('talk to Hob');

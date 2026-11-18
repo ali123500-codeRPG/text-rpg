@@ -26,7 +26,7 @@ import { intent as wholeIntent, wholeTurn } from '../harness/turn';
 
 const quiet = (zone = 'tav_common') => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
 const intent = (p: Partial<Intent>): Intent => ({ move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null, ...p });
-const brk = (target: string): Intent => intent({ action: { type: 'break', skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+const brk = (target: string): Intent => intent({ action: { type: 'break', skill: '', target, targetPart: null, item: null, mode: null, approach: '' } });
 const turn = (s: GameState, i: Intent, seed = 1) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(seed)); };
 const wallTo = (s: GameState, from: string, to: string | undefined): Wall => wallsAround(s, zoneById(s, from)!).find((x) => x.behind?.id === to)!.wall;
 /** stands the player half a metre in from the wall's breaking spot */
@@ -172,7 +172,7 @@ describe('402 breaking through walls and barriers (BW8-BW26)', () => {
     const s = t.game.state()!;
     const w = wallTo(s, 'tav_common', 'tav_counter');
     atWall(s, w);
-    const { events } = await t.turn(wholeIntent({ action: { type: 'break', skill: '', target: w.id, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }));
+    const { events } = await t.turn(wholeIntent({ action: { type: 'break', skill: '', target: w.id, targetPart: null, item: null, mode: null, approach: '' } }));
     expect(events.find((e) => e.kind === 'break_through')?.breakThrough).toMatchObject({ wall: w.id, state: 'destroyed' });
     const st = t.game.state()!;
     expect(st.openings.some((o) => o.wall === w.id && o.joins.includes('tav_counter') && o.labels[0].startsWith('a hole broken'))).toBe(true);

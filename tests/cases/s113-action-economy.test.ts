@@ -14,7 +14,7 @@ import { afterEach } from 'vitest';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null): Intent => ({
   move, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: action ? { type: 'attack', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal', ...action } : null,
+  action: action ? { type: 'attack', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', ...action } : null,
 });
 const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 /** metres the player walked in these events */

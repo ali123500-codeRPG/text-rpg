@@ -1,14 +1,13 @@
-// The action deck on Play (AD1–AD16): the Aim and Stance rows, and every action the code allows in
+// The action deck on Play (AD1–AD16): the Aim toggle, and every action the code allows in
 // its groups. Clicking an action asks what it still needs (whom, with what, which part) in a small pop-up, then plays
 // the turn at once with no Parser call (AD6, AD7); a move planned on the minimap rides along (AD12). Actions that need
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
-import { ATTACK_STANCES, type AttackStance, type GameApi, type GameState, type PlayerView } from '../types';
+import { type GameApi, type GameState, type PlayerView } from '../types';
 import { personalityOf } from '../ruleset/personality';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { buildPlayerView, findInstance } from '../views';
 import { hideTip, showTip } from './pages';
 import { h } from './kit';
-import { cap } from '../words';
 import { closePop, openPop } from './pop';
 import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
@@ -16,8 +15,6 @@ import { instanceIcon } from './itemIcons';
 import type { MinimapPoint } from './minimap';
 
 export type SayMode = { action: DeckAction; choice: Choice; to: string };
-type Stance = AttackStance;
-const STANCE_BUTTONS: [Stance, string][] = ATTACK_STANCES.map((k) => [k, cap(k)]);
 
 /** the order with the move planned on the minimap first (a way op takes the move itself, so it plays alone) */
 export function withPlanned(o: Order, p: MinimapPoint | null): Order {
@@ -38,9 +35,9 @@ export function deckView(api: GameApi, o: {
   /** an action waits for words: the Say box takes them (null: it no longer waits) */
   sayMode(m: SayMode | null): void;
 }) {
-  let aim = false, stance: Stance = 'normal', sayMode: SayMode | null = null;
+  let aim = false, sayMode: SayMode | null = null;
   let groups: ReturnType<typeof deck> = [], ctx: DeckCtx | null = null, disabled = false;
-  const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, stance, aim, broken: isBrokenLevel(moraleLevel(s.player)), cowering: isCoweringLevel(moraleLevel(s.player)), self: personalityOf(s.player) });
+  const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, aim, broken: isBrokenLevel(moraleLevel(s.player)), cowering: isCoweringLevel(moraleLevel(s.player)), self: personalityOf(s.player) });
 
   async function play(order: Order, aimed: boolean) {
     if (disabled || api.busy()) return;
@@ -86,8 +83,7 @@ export function deckView(api: GameApi, o: {
 
   // ---- the parts on screen ----
   const aimBtn = h('button', { type: 'button', class: 'dk-tog', 'aria-pressed': 'false', title: 'When on, an attack asks which body part to aim at', onclick: () => { aim = !aim; repaint(); } }, 'Aim');
-  const stanceBtns = STANCE_BUTTONS.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, 'aria-pressed': String(k === stance), onclick: () => { stance = k; repaint(); } }, name));
-  const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label' }, 'Stance'), h('span', { class: 'dk-seg', role: 'group', 'aria-label': 'Stance' }, ...stanceBtns));
+  const mods = h('div', { class: 'dk-mods' }, aimBtn);
   const cols = h('div', { class: 'dk-groups' });
   const el = h('div', { class: 'deck' }, mods, cols);
   let html = '', wasLimited = new Set<string>();
@@ -96,7 +92,6 @@ export function deckView(api: GameApi, o: {
   function repaint() {
     aimBtn.setAttribute('aria-pressed', String(aim));
     aimBtn.textContent = aim ? '✓ Aim' : 'Aim';
-    for (const b of stanceBtns) b.setAttribute('aria-pressed', String(b.dataset.stance === stance));
     update(true);
   }
 

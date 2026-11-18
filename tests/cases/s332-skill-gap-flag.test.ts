@@ -8,7 +8,7 @@ import { checkIntent } from '../../src/agents/schema';
 import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
 import { SK } from '../../src/library/skillIds';
 
-const deed = (noSkillFits?: boolean) => intent({ action: { type: 'other', skill: SK.endurance, target: null, targetPart: null, item: null, mode: null, approach: 'pry the board off the hatch', stance: 'normal', ...(noSkillFits ? { noSkillFits } : {}) } });
+const deed = (noSkillFits?: boolean) => intent({ action: { type: 'other', skill: SK.endurance, target: null, targetPart: null, item: null, mode: null, approach: 'pry the board off the hatch', ...(noSkillFits ? { noSkillFits } : {}) } });
 
 describe('332 a deed no skill fits is flagged (skill_gap)', () => {
   it('the Parser may say noSkillFits, and is told when to', () => {

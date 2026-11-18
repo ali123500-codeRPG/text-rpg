@@ -177,10 +177,10 @@ describe('121 NPC stealth', () => {
     installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
     s.actors.push(c);
     rig();
-    turn(s, {}, { ...hold, action: { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+    turn(s, {}, { ...hold, action: { type: 'sneak', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } });
     expect(s.player.posture).toBe('stealthy');
     expect(c.posture).toBe('stealthy');
-    turn(s, {}, { ...hold, spoken: 'Now!' , action: { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+    turn(s, {}, { ...hold, spoken: 'Now!' , action: { type: 'other', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } });
     expect(s.player.posture).toBe('open');
     expect(c.posture).toBe('open');
   });

@@ -115,7 +115,7 @@ export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to
 /** IQ7 a: said when Finish the fight is asked for with no fight far below the player */
 export const FINISH_REFUSED = 'There is no fight here so far below you that it can be played out in one go.';
 /** IQ4 a: a finished fight's blow each round: an attack on that foe with what is in hand */
-const finishAttack = (target: string): Intent => ({ move: null, action: { type: 'attack', skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null });
+const finishAttack = (target: string): Intent => ({ move: null, action: { type: 'attack', skill: '', target, targetPart: null, item: null, mode: null, approach: '' }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null });
 /** the bands of the people the player can see (the Parser's legality reads them) */
 const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
 /** NW18: a turn played while the player sleeps */
