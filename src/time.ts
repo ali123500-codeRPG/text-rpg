@@ -83,6 +83,17 @@ export function startClock(state: GameState, k: TimeOfDay): void {
 /** what views show: the day number and time of day, never minutes (T4/T5) */
 export const timeView = (state: GameState): { day: number; timeOfDay: string } => ({ day: dayOf(now(state)), timeOfDay: TIME_OF_DAY.name(timeOfDay(now(state))) });
 
+/** LT2: a sight roll's light modifier: −LIGHT_DECADE_MOD for each tenfold drop below FULL_SIGHT_LUX; `brighter` reads the
+ * light that many tenfold steps brighter (Night Eyes +1, Child of Night −1) */
+export function lightMod(light: Light, brighter = 0): number {
+  const lux = Math.max(CONFIG.LIGHT_LUX[light] ?? 0, CONFIG.LIGHT_FLOOR_LUX) * 10 ** brighter;
+  return 0 - Math.round(CONFIG.LIGHT_DECADE_MOD * Math.max(0, Math.log10(CONFIG.FULL_SIGHT_LUX / lux))); // 0 -: never −0
+}
+/** the rules that read "dark" (sight at most partial) hold from CONFIG.DARK_FROM down */
+export const isDark = (light: Light): boolean => LIGHT.pos(light) >= LIGHT.pos(CONFIG.DARK_FROM as Light);
+/** LT1: in pitch black nothing is seen */
+export const pitchBlack = (light: Light): boolean => (CONFIG.LIGHT_LUX[light] ?? 0) <= 0;
+
 /** T3a: an outdoor zone is lit by the sky or its own lamps, whichever is brighter; indoors only its own light counts */
 export function zoneLight(state: GameState, z: Pick<Zone, 'light' | 'outdoor'> | undefined): Light {
   const own = z?.light ?? 'bright';
