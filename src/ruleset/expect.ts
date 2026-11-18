@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { TIERS } from '../scales';
 import { itemDef } from '../library';
 import { DEFENSE_SKILL } from '../library/skillIds';
-import { blowDamage, defenseOwnMods, rollMargin, sumShifts, gapShiftsOf, hitOutcome, ladder, restricted, rollLevel, rollSetup, turnsAside, weaponHitMods, type RollSetup } from '.';
+import { blowDamage, defenseOwnMods, rollMargin, sumShifts, gapShiftsOf, ladder, restricted, rollLevel, rollSetup, weaponHitMods, type RollSetup } from '.';
 import { defenseItem, modeSkill, openHandArm, usableDefense } from './gear';
 import { hitTable } from './body';
 import { actionRow, actionSeconds, attackRowIds } from './actionTime';
@@ -85,11 +85,10 @@ export function expectBlow(state: GameState, A: Actor, D: Actor, m: ModeRef, ext
       if (!mult) continue;
       const p = pa * pd;
       if (type === 'block' && g >= H.shieldFrom) { shield += p * dmg('shield', mult, null) * shieldMult * rim; continue; }
-      const outcome = hitOutcome(type, g);
       for (const row of table) {
         const w = (row.to - row.from + 1) / 100;
         const at = openArm ?? (restricted(state, D, type, g, row.part) ? 'general' : row.part);
-        body += p * w * dmg(at, turnsAside(state, D, at, outcome) ? 1 : mult, openArm);
+        body += p * w * dmg(at, mult, openArm);
       }
     }
   }
