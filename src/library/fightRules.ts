@@ -10,6 +10,9 @@ export type FightRule = { id: string; name: string; skill: string; min: number }
 export const FIGHT_RULES: readonly FightRule[] = [
   { id: FX.call_help, name: 'Call for help', skill: SK.battle_sense, min: 20 }, // B1: its fight has more foes than allies; once a fight
   { id: FX.gang_up, name: 'Gang up', skill: SK.battle_sense, min: 35 }, // B2: an ally fights a foe within one move: it attacks that foe
+  // B3: beside whatever the list chose, never instead of it (minds/routines.ts fallbackOrder): shot at, with no shield in
+  // hand, it draws a shield it carries stowed into a free hand, so it can block the missiles
+  { id: FX.ready_shield, name: 'Ready the shield', skill: SK.battle_sense, min: 50 },
   { id: FX.back_off, name: 'Back off when hurt', skill: SK.battle_sense, min: 65 }, // B4: Wounded or worse and outnumbered: walks to a bandmate not fighting
   { id: FX.draw_into_pack, name: 'Draw into the pack', skill: SK.stratagem, min: 40 }, // S1: fights one foe alone: falls back toward a bandmate in sight who isn't fighting
   // TC18 a, TC25 a: Fieldcraft rows walk to a zone within one move; none fires while a foe is near enough to strike it

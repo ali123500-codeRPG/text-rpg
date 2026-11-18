@@ -31,9 +31,9 @@ const outnumbered = () => {
 const orderOf = (s: GameState, a: Actor) => fallbackOrder(withTactics(s, a, buildActorView(s, a.id)), createRng(1));
 
 describe('369 Battle Sense fight rows', () => {
-  it('rows sit in table order B1, B2, B4, B5 at 20, 35, 65, 75 (the Fieldcraft rows sit between B4 and B5: s375); W1 last at 10 (s381)', () => {
+  it('rows sit in table order B1, B2, B3, B4, B5 at 20, 35, 50, 65, 75 (B3: s383; the Fieldcraft rows sit between B4 and B5: s375); W1 last at 10 (s381)', () => {
     expect(FIGHT_RULES.filter((r) => r.skill === SK.battle_sense).map((r) => [r.id, r.skill, r.min])).toEqual([
-      [FX.call_help, SK.battle_sense, 20], [FX.gang_up, SK.battle_sense, 35], [FX.back_off, SK.battle_sense, 65], [FX.finish_hurt, SK.battle_sense, 75], [FX.warn, SK.battle_sense, 10]]);
+      [FX.call_help, SK.battle_sense, 20], [FX.gang_up, SK.battle_sense, 35], [FX.ready_shield, SK.battle_sense, 50], [FX.back_off, SK.battle_sense, 65], [FX.finish_hurt, SK.battle_sense, 75], [FX.warn, SK.battle_sense, 10]]);
   });
 
   it('B1: outnumbered with Battle Sense 20 it calls for help, once a fight; without it, it attacks as before', () => {

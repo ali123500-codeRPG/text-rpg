@@ -19,7 +19,8 @@ import { VOLUME_NOISE } from '../perception/noise';
 import { COVER, HEALTH_LEVELS, LIGHT, TACTICS } from '../scales';
 import { CONFIG } from '../config';
 import { feinting } from '../engine/feint';
-import { healthLevel } from '../ruleset/body';
+import { freeGrips, healthLevel, poolState, working } from '../ruleset/body';
+import { canBlock, isHeld } from '../ruleset/gear';
 
 /** TC4 a: the Planner's tactics word: the last TACTICS word whose CONFIG.TACTICS_FROM value its own Battle Sense reaches */
 export const tacticsWord = (a: Actor): Tactics => {
@@ -85,10 +86,13 @@ const showsRanged = (state: GameState, view: ActorView, f: Actor): boolean => {
   return !!seen?.gear.some((g) => g.where === 'held' && f.core.inventory.some((i) => i.id === g.id && itemDef(state, i.itemId).weapon?.modes.some((m) => m.tree === 'ranged')));
 };
 
+/** the last missile a foe it fights loosed at `a` this turn or the last, that `a` perceived */
+const shotAt = (state: GameState, a: Actor, foes: Actor[]) => [...(state.recentEvents ?? []), ...state.events].reverse()
+  .find((e) => e.kind === 'attack' && e.ranged && e.target === a.id && e.turn >= state.turn - 1 && e.perception[a.id] && foes.some((f) => f.id === e.actorId));
+
 /** F1: the foe that shot at `a` from beyond its striking reach this turn or the last, if it can still see `a` */
 function shooterOf(state: GameState, a: Actor, foes: Actor[]): Actor | undefined {
-  const shot = [...(state.recentEvents ?? []), ...state.events].reverse()
-    .find((e) => e.kind === 'attack' && e.ranged && e.target === a.id && e.turn >= state.turn - 1 && e.perception[a.id] && foes.some((f) => f.id === e.actorId));
+  const shot = shotAt(state, a, foes);
   const s = shot && foes.find((f) => f.id === shot.actorId);
   return s && distM(state, s, a) > hostileNearM(state, s) && seeingM(state, s, a) !== null ? s : undefined;
 }
@@ -110,6 +114,16 @@ function fieldWalks(state: GameState, a: Actor, view: ActorView, rows: string[],
     out.intoDark = walk(near.find((n) => LIGHT.pos(zoneLight(state, zoneById(state, n.zone))) > lightHere
       && foes.every((f) => !isDark(zoneLight(state, zoneById(state, f.zone))) && sightLevel('normal', seeingM(state, { zone: n.zone, pos: n.pos }, f)) === 'full')));
   for (const k of ['outOfSight', 'intoCover', 'intoDark'] as const) if (!out[k]) delete out[k];
+}
+
+/** B3: shot at, with no shield in hand and enough free hands, the working shield it carries stowed on it */
+function shieldToReady(state: GameState, a: Actor, foes: Actor[]): string | undefined {
+  if (canBlock(state, a) || !shotAt(state, a, foes)) return undefined;
+  const free = freeGrips(state, a).length;
+  return a.core.inventory.find((i) => {
+    const d = itemDef(state, i.itemId);
+    return !!d.shield && !isHeld(i) && !i.equippedIn?.length && working(poolState(i.pools?.shield ?? 100)) && free >= (d.grips ?? 1);
+  })?.id;
 }
 
 /** S3 (TC50 a): while a feint is on, the believer that came within one move with no other foe within one move of it is
@@ -138,6 +152,7 @@ export function tacticsView(state: GameState, a: Actor, view: ActorView): Tactic
   if (foes.length > allies.length + 1) out.outnumbered = true;
   if (rowUsedThisFight(a, FX.call_help)) out.calledHelp = true;
   if (rows.includes(FX.feigned_flight)) feintFacts(state, a, foes, out);
+  if (rows.includes(FX.ready_shield)) { const sh = shieldToReady(state, a, foes); if (sh) out.readyShield = sh; }
   const at = (x: Actor) => distM(state, { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) }, { zone: x.zone, ...(x.pos ? { pos: x.pos } : {}) });
   if (rows.includes(FX.gang_up)) {
     const oneMove = slotMetres(state, a, 'move');
