@@ -19,7 +19,9 @@ const strike = (target: string) => intent({ action: { type: 'attack', target, sk
 /** the player at the gate with a hostile guard, after a first blow, so a fight is on */
 function fight(): GameState {
   const s = makeVillage({ playerZone: 'gate_inner', without: ['slime_1', 'slime_2'] });
-  s.actors.find((a) => a.id === 'guard_1')!.mind!.overrides = { player: 'hostile' };
+  const g = s.actors.find((a) => a.id === 'guard_1')!;
+  g.mind!.overrides = { player: 'hostile' };
+  delete g.core.skills[SK.battle_sense]; // the seeded rounds below were set before guards had Battle Sense (its Reaction moves the blows)
   play(s, { intent: strike('guard_1') });
   s.mode = s.pending.mode;
   return s;

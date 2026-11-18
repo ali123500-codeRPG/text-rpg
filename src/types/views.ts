@@ -226,13 +226,14 @@ export type ActorView = {
   agreements?: AgreementView[]; // PM3: the deals it is in
   secrets: Secret[]; // its own
   firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
-  band: { id: string; name: string; goals: string; temperament: string; tactics: Tactics; relations: Record<string, Stance> };
+  band: { id: string; name: string; goals: string; temperament: string; relations: Record<string, Stance> };
   personality: string; // PL1, PL9: Nerve with the mood, archetype and its "but" traits, drives and tensions (CHARACTER only; never the Voice)
   title?: string; // a rolled NPC's title, given with its name in CHARACTER only
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
   jobs?: JobView[]; // QT5: the player's jobs from it or sending the player to it
+  tacticsWord: Tactics; // TC4 a: how it reads a fight, from its own Battle Sense (CONFIG.TACTICS_FROM); the Planner's CHARACTER.tactics, never the Voice's
   tactics?: TacticsView; // D-17: set only for the code-run fight list (views/tactics.ts withTactics), never for an agent
 };
 
@@ -241,7 +242,7 @@ export type OppositionView = ActorView; // formatted for the prompt by the agent
 
 // ---------- DialogueView: Agent Voice ----------
 export type DialogueInput = { spoken: string; impression: string | null }[]; // one entry per speech action this turn
-export type DialogueView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
+export type DialogueView = Omit<ActorView, 'tacticsWord' | 'tactics' | 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
   knows: Fact[];
   dialogue: DialogueInput;
 };

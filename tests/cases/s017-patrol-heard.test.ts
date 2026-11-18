@@ -5,7 +5,7 @@ import { resolveTurn } from '../../src/engine';
 import { buildNarrationView } from '../../src/views';
 import { zoneById } from '../../src/engine/relations';
 import { BK } from '../../src/library/tableIds';
-import { SENSE_SKILL } from '../../src/library/skillIds';
+import { SENSE_SKILL, SK } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
 
 // BG-57: footsteps outside a shut door a dozen metres off are lost under the hearing floor; once the door is broken
@@ -19,6 +19,7 @@ const patrol = (broken: boolean) => {
     zoneById(s, 'street_door')!.links.find((l) => l.to === 'tav_common')!.barrier = 'front';
   }
   const g = byDoor(s, 'guard_1', 'street_square', 'street_door', 2); // 2 m from the street outside the tavern
+  delete g.core.skills[SK.battle_sense]; // its Reaction (Battle Sense) would start the walk sooner, and so nearer the door
   // the beat's first stop is outside the tavern, linked to the player's zone without sight
   installRoutines(g, 'patrol_guard', { route: ['street_door', 'street_square'] }, 'route', s.turn, createRng(1));
   const events = resolveTurn(s, { intent: null, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(s.rngState));

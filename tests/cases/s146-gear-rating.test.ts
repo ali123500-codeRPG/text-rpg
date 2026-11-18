@@ -35,7 +35,7 @@ describe('146 Gear in the rating', () => {
   it('levels add LEVEL_RATING_SHARE × what the XP curve asks to reach them, on both sides', () => {
     const s = makeVillage();
     const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
-    expect(actorLevel(g)).toBe(CONFIG.RANK_ROWS.rank_2.level); // an NPC's level is its template's (a Trained guard)
+    expect(actorLevel(g)).toBe(CONFIG.RANK_ROWS.rank_2.level + 1); // an NPC's level comes from its skills: a Trained guard's, plus one for its Battle Sense (TC9 a, Soldier High)
     expect(xpToReach(4)).toBe(levelCost(0) + levelCost(1) + levelCost(2) + levelCost(3)); // asks the XP curve
     expect(levelRating(g)).toBeCloseTo(CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(g)));
     const before = levelRating(g), lx = CONFIG.LEVEL_XP; // the two are linked: a steeper curve raises the rating too

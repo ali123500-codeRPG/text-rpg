@@ -472,7 +472,6 @@ type GameState = {
 
 type Band = {                   // a small group: a guard post, a gang, a household, the player's party
   id: string; name: string; goals: string; temperament: string;
-  tactics: 'simple' | 'competent' | 'cunning';   // TACTICS keys
   lethal: boolean;   // set when the band is made, default true; an existing band keeps it (Part 2, Agent Weaver)
   relations: Record<string, 'hostile' | 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
 };
@@ -774,6 +773,10 @@ Like every code mind, it reads only its ActorView. The rng pick uses the turn's 
 **Per-type data.** Each body type, or the NPC template when it sets one, names fallback.attackSkill, used when the actor holds no weapon (one rule, ruleset fallbackAttackSkill, also used for the ambush roll and shown to its Planner). Slime: unarmed\_natural; slimes have only the general area, so targetPart is always null.
 
 Rules 1 to 5 stay fixed in code; the skilled rows between them are data (FIGHT\_RULES, D-17).
+
+**The Planner's tactics word (TC4 a).** Bands carry no tactics word any more; the Weaver no longer writes one. Each NPC's word (simple, competent or cunning; CHARACTER.tactics, Planner rule 5) is the last TACTICS word whose CONFIG.TACTICS\_FROM value its own Battle Sense reaches (0, 35, 65; placeholders, past 100 is D-370). The Voice never gets it.
+
+**Tactics skills on NPCs (TC9 a).** Role bands: Soldier High Battle Sense, Leader High Command, Hunter High Fieldcraft, Sneak High Stratagem, Skirmisher Moderate Battle Sense, Beast Moderate Battle Sense and Stratagem (only where its race can learn the tree, so never a slime). A banded skill raises the NPC's level from its skills like any other (a Trained guard is level 9, not 8).
 
 ### Agent Parser
 
@@ -1399,7 +1402,7 @@ Output shape (notation, not literal JSON):
                    links: [ { to: zoneKey | zoneId | frontierKey, label, sight } ] } ],
   frontiers:   [ { key, label } ],
   bands:       [ { key, name: public text, goals: hidden text, temperament: hidden text,
-                   tactics: 'simple' | 'competent' | 'cunning', lethal: true | false,   // keys of TACTICS (src/scales.ts)
+                   lethal: true | false,   // no tactics word: each NPC's comes from its own Battle Sense (TC4 a)
                    relations: { [bandKey | bandId]: hostile | opposed | neutral | friendly } } ],
                                     // new bands only; may also set relations toward existing bands
   cast:        [ { template: templateId | actor: actorId | compose: { race, role, theme, rank, class? },   // NG15: catalog IDs; code builds the sheet

@@ -10,7 +10,7 @@ import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scenario/validate';
 import { tierName } from '../ruleset';
 import { ATTACK_STANCES, GEAR_OPS, GRADED_ACTS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, OFFERED_GOAL_KINDS, ORDER_TYPES, PARSER_ACTIONS, PLAN_ENDINGS, PRONOUNS } from '../types';
-import { CHASE_RANGES, COVER, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, TALENTS, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
+import { CHASE_RANGES, COVER, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, TALENTS, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 import { WORLD_LORE } from './worldLore';
 import { listWords } from '../words';
 import { WAY_OPS } from '../engine/barriers';
@@ -176,7 +176,7 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
  "timeOfDay"?:${words(TIME_OF_DAY)},"arriveAt"?:area id from WEAVER_VIEW.places or a new zone key (only when target.arrive is set),
  "zones":[{"key","place","kind":zone kind id from catalogs.zoneKinds,"name","look","cover"?:${words(COVER)},"light"?:${words(LIGHT)},"height"?:metres,"size"?:${words(ZONE_SIZES)},"area"?:m²,"edges"?:{"n"|"e"|"s"|"w":edge kind id from catalogs.edgeKinds},"length"?:${words(ROAD_LENGTHS)}|km,"danger"?:${words(ROAD_DANGERS)},"road"?:road id from WEAVER_VIEW.land.roads,"node"?:junction id from WEAVER_VIEW.land.junctions,"sideWay"?:{"toward"?:site id from WEAVER_VIEW.land.sites or a landmark name from land.landmarks,"name"?},"furniture"?:[{"kind":furniture kind id from catalogs.furnitureKinds,"name","at"?:"n"|"ne"|"e"|"se"|"s"|"sw"|"w"|"nw","edge"?:true,"grade"?:grade}],"links":[{"to","label","sight":boolean,"drop"?:true,"barrier"?:{"kind":barrier kind id from catalogs.barrierKinds,"grade"?:grade,"locked"?:true,"barredFrom"?:zoneKey,"guarded"?:true,"keys"?:[castKey|actorId]}}]}],
  "frontiers":[{"key","label","brief"?:string}],
- "bands":[{"key","name","goals","temperament","tactics":${words(TACTICS)},"lethal":boolean,"relations":{bandKey:${words(STANCES)}},"chase"?:${words(CHASE_RANGES)}}],
+ "bands":[{"key","name","goals","temperament","lethal":boolean,"relations":{bandKey:${words(STANCES)}},"chase"?:${words(CHASE_RANGES)}}],
  "cast":[{"template"?:templateId,"actor"?:actorId,"label","name","appearance","pronouns":${PRONOUNS.map((t) => `"${t}"`).join('|')},"knownOnSight"?:true,"knows"?:[{"id","text"}],"key","band","routineSetId",
    "slots":{slot:zone|[zone]} (a route slot lists 1 to ${CONFIG.MAX_ROUTE_ZONES} zones; one zone means stay there),"startAt"?:slot,"routineGap"?:string,
    "awarenessOfPlayer":awareness,"awarenessOfBands"?:[{"band":bandKey|bandId,"awareness":awareness}],"overrides"?:[{"actor","stance"}],"motive":string,"goals"?:[{"text","about"?:[actor, place, zone or item id or key]}] (a unique from catalogs.uniques only),

@@ -29,7 +29,7 @@ export function playerView(): PlayerView {
 
 export function actorView(id = 'guard_1'): ActorView {
   return {
-    turn: 3,
+    turn: 3, tacticsWord: 'competent',
     time: { day: 1, timeOfDay: 'Morning' },
     personality: 'Nerve: Steady (Calm right now). Disciplined. Values: duty.',
     self: {
@@ -41,7 +41,7 @@ export function actorView(id = 'guard_1'): ActorView {
     },
     beliefs: [{ about: 'player', status: 'suspicious', lastKnownZone: 'street_square', source: 'heard', revealed: [], stance: 'hostile', hostile: true, active: true, label: 'a swordsman' }],
     perceived: [], told: [], said: [], secrets: [], firedTriggers: [],
-    band: { id: 'village_watch', name: 'the village watch', goals: 'keep the gate', temperament: 'dutiful', tactics: 'competent', relations: {} },
+    band: { id: 'village_watch', name: 'the village watch', goals: 'keep the gate', temperament: 'dutiful', relations: {} },
     map: [{ id: 'gate_inner', links: [{ to: 'street_square', sight: true }, { to: 'field_edge', sight: true }] }],
     zones: [zone('gate_inner', ['street_square', 'field_edge'])],
     seen: [],
@@ -49,7 +49,7 @@ export function actorView(id = 'guard_1'): ActorView {
 }
 
 export function dialogueView(id = 'trader'): DialogueView {
-  const { plan: _p, memory: _m, secrets: _s, firedTriggers: _f, ...rest } = actorView(id);
+  const { plan: _p, memory: _m, secrets: _s, firedTriggers: _f, tacticsWord: _t, ...rest } = actorView(id);
   return {
     ...rest,
     self: { ...rest.self, name: 'Mags', label: 'the barkeep', routines: [{ id: 'barkeep', brief: 'tend the bar' }, { id: 'leave', brief: 'go home' }] },

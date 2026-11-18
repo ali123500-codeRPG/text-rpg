@@ -320,7 +320,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // ---- bands (existing bands keep theirs) ----
   for (const b of plan.bands) {
     state.bands.push({
-      id: bandMap.get(b.key)!, name: b.name, goals: b.goals, temperament: b.temperament, tactics: b.tactics,
+      id: bandMap.get(b.key)!, name: b.name, goals: b.goals, temperament: b.temperament,
       lethal: b.lethal ?? true,
       ...(b.chase ? { chase: b.chase } : {}), // CH5
       relations: Object.fromEntries(Object.entries(b.relations ?? {}).map(([k, v]) => [bandRef(k), v])),

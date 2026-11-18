@@ -1,6 +1,6 @@
 // D-17: the facts a code-run NPC's fight rows read (TacticsView), built only from what it perceives. The rows themselves
 // (what each one does) live in minds/routines.ts tacticsOrder; their skills and minimums in library/fightRules.ts.
-import type { Actor, ActorView, GameState, TacticsView } from '../types';
+import type { Actor, ActorView, GameState, Tactics, TacticsView } from '../types';
 import { FIGHT_RULES } from '../library/fightRules';
 import { SK } from '../library/skillIds';
 import { FX } from '../library/tableIds';
@@ -11,7 +11,14 @@ import { distM } from '../engine/position';
 import { slotMetres } from '../engine/speed';
 import { hearsClearly } from '../perception';
 import { VOLUME_NOISE } from '../perception/noise';
-import { HEALTH_LEVELS } from '../scales';
+import { HEALTH_LEVELS, TACTICS } from '../scales';
+import { CONFIG } from '../config';
+
+/** TC4 a: the Planner's tactics word: the last TACTICS word whose CONFIG.TACTICS_FROM value its own Battle Sense reaches */
+export const tacticsWord = (a: Actor): Tactics => {
+  const bs = trueSkill(a, SK.battle_sense);
+  return [...TACTICS.keys].reverse().find((k) => bs >= CONFIG.TACTICS_FROM[k]) ?? TACTICS.keys[0];
+};
 
 /** TC7 a: the best Command among `a`'s bandmates whose shouted orders it hears clearly (a broken commander counts until
  * it is down or gone) */
@@ -44,7 +51,7 @@ export const rowUsedThisFight = (a: Actor, rule: string): boolean => {
 export function tacticsView(state: GameState, a: Actor, view: ActorView): TacticsView | undefined {
   const rows = rowsOf(state, a);
   if (!rows.length) return undefined;
-  const seenIds = new Set(view.seen.map((s) => s.id));
+  const seenIds = new Set((view.seen ?? []).map((s) => s.id)); // a hand-made view in a test may leave seen out
   const seen = allActors(state).filter((x) => x !== a && seenIds.has(x.id) && countsInFight(x));
   const fights = (x: Actor, y: Actor) => fightingWith(state, x, y) || fightingWith(state, y, x);
   const foes = seen.filter((x) => fights(a, x));
@@ -66,7 +73,7 @@ export function tacticsView(state: GameState, a: Actor, view: ActorView): Tactic
   }
   if (rows.includes(FX.finish_hurt) && foes.length >= 2) {
     // only a hurt it can see: others' health shows from CONFIG.HEALTH_SHOWN_FROM down (SeenActor.health)
-    const hurt = view.seen.filter((s) => s.health && foes.some((f) => f.id === s.id))
+    const hurt = (view.seen ?? []).filter((s) => s.health && foes.some((f) => f.id === s.id))
       .sort((x, y) => HEALTH_LEVELS.pos(y.health!) - HEALTH_LEVELS.pos(x.health!) || x.id.localeCompare(y.id))[0];
     if (hurt) out.hurtFoe = hurt.id;
   }

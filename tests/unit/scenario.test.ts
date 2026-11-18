@@ -299,7 +299,7 @@ describe('applyStagePlan', () => {
   it('keys that collide with existing ids get fresh ids; existing bands keep lethal', () => {
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
-      bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tactics: 'simple', lethal: undefined as never, relations: { player_band: 'hostile' } }],
+      bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', lethal: undefined as never, relations: { player_band: 'hostile' } }],
       zones: [{ key: 'field_mid', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }],
       cast: [{ template: TP.slime, key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));

@@ -28,7 +28,7 @@ describe('330 NPC roles, second round', () => {
   it('NR8, NR13: a civilian Leader and a combat Knight in heavy armour', () => {
     const r = getLibrary().npcRoles!;
     expect(r[RO.leader].kind).toBe('civilian');
-    expect(r[RO.leader].bands.high).toEqual([SK.persuasion, SK.intimidation]);
+    expect(r[RO.leader].bands.high).toEqual([SK.persuasion, SK.intimidation, SK.command]);
     expect(r[RO.knight].kind).toBe('combat');
     expect(r[RO.knight].bands.high).toEqual([SK.melee_medium, SK.heavy_armor]);
   });

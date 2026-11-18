@@ -59,12 +59,12 @@ describe('schemas', () => {
     const r = checkStagePlan({ event: { summary: 's', challenge: 'huge', gain: 'none' }, places: [], zones: [], frontiers: [], bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '' });
     expect(r.errors).toEqual(['$.event.challenge: expected one of none, minor, moderate, major, extreme']);
   });
-  it('weaver: band tactics are written as words and kept as keys', () => {
+  it('weaver: bands carry no tactics word (TC4 a: each NPC reads its own Battle Sense); a word in an old plan is dropped', () => {
     const band = (t: unknown) => ({ key: 'b', name: 'b', goals: '', temperament: '', tactics: t, relations: {} });
     const plan = (t: unknown) => ({ event: { summary: 's', challenge: 'minor', gain: 'minor' }, places: [], zones: [], frontiers: [], bands: [band(t)], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '' });
-    expect(checkStagePlan(plan('Cunning')).value.bands[0].tactics).toBe('cunning');
-    expect(checkStagePlan(plan('simple')).value.bands[0].tactics).toBe('simple');
-    expect(checkStagePlan(plan('clever')).errors).toEqual(['$.bands[0].tactics: expected one of simple, competent, cunning']);
+    const r = checkStagePlan(plan('clever'));
+    expect(r.errors).toEqual([]);
+    expect('tactics' in r.value.bands[0]).toBe(false);
   });
 });
 
