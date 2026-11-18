@@ -1,5 +1,7 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import { middle, waysOut, wayTo, type Way } from '../plan/where';
+import { wallsAround } from '../plan/holes';
+import { wallStuff } from '../ruleset/breaking';
 import { groundIn } from '../engine/ground';
 import { landTarget } from '../scenario/ways';
 import { landView } from '../land/brief';
@@ -112,10 +114,31 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
   };
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(clutterCover(state, z, viewer?.zone === z.id ? viewer.pos : undefined)), light: LIGHT.name(zoneLight(state, z, viewer?.zone === z.id ? viewer.pos : undefined)), // PC1: indoors, furniture gives the cover
-    links: waysOut(state, z.id).map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })), // PZ10: the ways out, read from this side
+    links: waysOut(state, z.id).map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(l.opening.crack ? { crack: true } : {}), ...way(l) })), // PZ10: the ways out, read from this side
+    ...(viewer?.zone === z.id ? wallsView(state, z) : {}), // BW12 a: what the viewer could break through
     groundItems: groundIn(state, z.id).filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
     ...furnitureView(state, z.id, viewer),
   };
+}
+/** BW8-BW26: a turn of breaking through, in words: what is being broken (the wall's material, or the barrier's kind) */
+function breakThroughView(state: GameState, b: NonNullable<GameEvent['breakThrough']>): NonNullable<NarrationEvent['breakThrough']> {
+  const w = b.wall ? state.walls.find((x) => x.id === b.wall) : undefined, bar = b.barrier ? state.barriers?.[b.barrier] : undefined;
+  const what = w ? `${wallStuff(w)?.material.name.toLowerCase() ?? 'a'} wall` : bar ? barrierName(bar) : 'wall';
+  return { what, ...(b.to ? { to: zoneById(state, b.to)?.name ?? b.to } : {}), share: b.share, ...(b.state ? { state: b.state } : {}), ...(b.toolBroke ? { toolBroke: true as const } : {}) };
+}
+/** BW12 a: the walls round the viewer's own title that can be broken: by id, what they are made of, the title behind when
+ * a way from here leads there too (to, its name in behind; else unknown: nothing is given away), and the share broken at
+ * their deepest dent */
+function wallsView(state: GameState, z: Zone): { walls?: ZoneView['walls'] } {
+  const ways = new Set(waysOut(state, z.id).map((l) => l.to));
+  const ws = wallsAround(state, z).flatMap(({ wall, behind: b }) => {
+    const behind = b && ways.has(b.id) ? b : undefined;
+    const m = wallStuff(wall)?.material;
+    if (!m) return [];
+    const broken = Math.max(0, ...(wall.dents ?? []).map((d) => Object.values(d.wear).reduce((n, x) => n + x, 0)));
+    return [{ id: wall.id, of: m.name.toLowerCase(), ...(behind ? { to: behind.id } : {}), behind: behind?.name ?? 'unknown', ...(broken > 0 ? { broken: Math.round(broken * 100) / 100 } : {}) }];
+  });
+  return ws.length ? { walls: ws } : {};
 }
 /** FR1/FR5: what furniture stands in a zone and where; OD12: its grade once the viewer has tried it (always for the Weaver) */
 function furnitureView(state: GameState, zoneId: string, viewer?: Actor): { furniture?: ZoneView['furniture'] } {
@@ -868,6 +891,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
       ...(full && e.offers ? { offers: e.offers.map((o) => ({ to: callName(state, me, o.to), landed: o.landed, ...(o.demand ? { demand: o.demand } : {}) })) } : {}), // TF12, TF19
       ...(full && e.surrender ? { surrender: { with: e.surrender.with.map((id) => callName(state, me, id)) } } : {}), // TF19
+      ...(full && e.breakThrough ? { breakThrough: breakThroughView(state, e.breakThrough) } : {}), // BW8-BW26
       ...(full && e.breakOpen ? { breakOpen: { ...e.breakOpen, ...(e.breakOpen.broke ? { broke: e.breakOpen.opened ? e.breakOpen.broke.map((id) => itemName(state, id) ?? 'something') : ['something inside'] } : {}) } } : {}), // BF31; BK2: what broke, unnamed while it stays shut
       ...(full && e.standDown ? { standDown: { with: e.standDown.with.map((id) => callName(state, me, id)), ...(e.standDown.coin ? { coin: coinWords(e.standDown.coin) } : {}) } } : {}), // TF16
       ...(full && e.steady ? { steady: e.steady.points > 0 ? 'calmer' : e.steady.points < 0 ? 'worse' : 'no change', ...(e.steady.buff ? { mentallySteady: true as const } : {}) } : {}), // SY1: in words, never points

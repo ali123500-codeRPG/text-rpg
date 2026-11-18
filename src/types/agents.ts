@@ -75,7 +75,7 @@ export type Intent = {
 // ---- Agent Planner / Responder / Voice ----
 /** every action an NPC order can give (schema and completeness tests read this list) */
 export const NPC_ACTIONS = ['attack', 'move', 'search', 'sneak', 'hold', 'call_help', 'flee',
-  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'take', 'pick', 'open', 'filch', 'steady', 'show', 'other'] as const; // show: BF16; // open: BG-173, a container (CT3); filch: FL7
+  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'take', 'pick', 'open', 'break', 'filch', 'steady', 'show', 'other'] as const; // break: BW12 a, through a way's barrier or a wall; show: BF16; // open: BG-173, a container (CT3); filch: FL7
 export type NpcActionType = (typeof NPC_ACTIONS)[number];
 /** OD1 b/OD3: the acts that roll against the grade of what they act on (a piece of furniture can be their target) */
 export const GRADED_ACTS = ['observe', 'interact', 'use_item', 'other'] as const;

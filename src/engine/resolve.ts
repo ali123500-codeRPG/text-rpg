@@ -86,6 +86,7 @@ import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearSt
 import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
+import { addWear, breakJob, jobAt, regrow, secondsLeft, toolCheck } from './breakThrough';
 
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
@@ -94,6 +95,7 @@ const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
   way: ['quiet', 'normal'], pick: ['hushed', 'slight'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper, made out only up close (Slight)
   stash: ['hushed', 'low'], // SE9: tucking something away
+  break_through: ['loud', 'high'], // BW10 a: each turn's blows sound as the material's noise (set on the event)
   filch: ['hushed', 'slight'], // a filch's own contest sets both (src/engine/filch.ts)
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
@@ -202,7 +204,11 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'heal': return of(DU.bandage); // NR34: hands-on, as long as binding a wound
-    case 'break': return of(DU.break_open); // BF31
+    case 'break': { // BF31: a container; BW13 a: a wall or a barrier, for as long as the breaker still needs (a spell at most out of a fight)
+      const job = findContainer(state, o.target) ? undefined : breakJob(state, a, o.target);
+      const row = job && job !== 'open' ? actionRow(DU.break_through) : undefined;
+      return row && job && job !== 'open' ? { row, seconds: Math.min(secondsLeft(state, a, job) * f, CONFIG.BREAK_SPELL_S) } : of(DU.break_open);
+    }
     case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
     case 'give': case 'take': return of(DU.hand_over); // BF34: taking is a hand-over too
@@ -256,6 +262,8 @@ type Ctx = {
   own?: { over: number; fill: number };
   /** BG-185: the player's walk taken before their words in the exchange (its move is then spent from the order) */
   saidOnWay?: Order;
+  /** BW13 a: the seconds the break through resolving now puts in this fight turn */
+  breakS?: number;
 };
 /** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
  * soon the player is ready, AT67), and the event its outcome goes on */
@@ -1232,6 +1240,7 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
     const b = p.busy;
     if (b) { const was = b.done; b.done = Math.min(b.need, b.done + ran); payRow(state, p, actionRow(b.row), b.done - was); }
     if (b && b.done >= b.need - T_EPS) { delete p.busy; doMain(ctx, p, st.order!); } // AT45: its time is done: it takes effect
+    else if (b && b.row === DU.break_through) { delete p.busy; if (b.done > T_EPS) doBreakThrough(ctx, p, st.order!, b.done); } // BW13 a: the work done stays on the wall
     else if (b && stop && actionRow(b.row)?.focus === 'deep') breakOff(state, p, st.ev); // AT65: deep breaks on any stop; else it waits for the same order again
   } else if (st.kind === 'rest') {
     const share = st.seconds > 0 ? Math.min(1, ran / st.seconds) : 1;
@@ -1665,6 +1674,7 @@ function doOpen(ctx: Ctx, a: Actor, o: Order): void {
 function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const c = findContainer(state, o.target);
+  if (!c && o.target && breakJob(state, a, o.target)) return doBreakThrough(ctx, a, o);
   const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : c.inst.open ? 'already_open' : !c.inst.lock?.locked ? 'not_locked' : null;
   if (why || !c) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), reason: why ?? 'no_container' }), o));
   const owner = theft(state, a, c) ? ownerOf(state, c) : undefined;
@@ -1693,6 +1703,35 @@ function doBreak(ctx: Ctx, a: Actor, o: Order): void {
   if (opened) open();
   if (opened && a === state.player) tally(state, 'broke_open');
   done(ev(opened, { roll: r, tier: r.tier, breakOpen: { opened, ...(broke.length ? { broke: broke.map((i) => i.id) } : {}) } }));
+}
+
+/** BW8-BW26: a turn (or, out of a fight, a spell) of breaking through a wall or the barrier on a way, within grip reach of
+ * it: the work goes onto it at the breaker's speed (src/engine/breakThrough.ts), Crippled at half and Destroyed when done
+ * (BW11 a). It sounds as the material's noise, one step louder the turn it breaks through (BW10 a). `spent`: seconds already
+ * run (a stretch stopped early); else the fight turn's (ctx.breakS) or, out of a fight, all it needs up to a spell. */
+function doBreakThrough(ctx: Ctx, a: Actor, o: Order, spent?: number): void {
+  const { state } = ctx;
+  const job = breakJob(state, a, o.target);
+  const wasted = (reason: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason }), o));
+  if (!job) return wasted('nothing_to_break');
+  if (job === 'open') return wasted('already_done');
+  if (!withinGrip(state, a, jobAt(state, a, job))) return wasted('out_of_reach');
+  regrow(state, job);
+  const f = timeFactor(a), need = secondsLeft(state, a, job) * f;
+  const s = Math.min(need, spent ?? (state.mode === 'tactical' ? ctx.breakS ?? ctx.turnS : CONFIG.BREAK_SPELL_S));
+  delete ctx.breakS;
+  if (s <= T_EPS) return wasted('no_time_left');
+  const r = addWear(state, a, job, s / f);
+  const check = s >= CONFIG.BREAK_SPELL_S - T_EPS ? toolCheck(state, a, ctx.rng) : {}; // BW23 a: a full spell is one breakage check
+  const noise = r.reached === 'destroyed' ? NOISE.at(NOISE.pos(job.stuff.material.noise) + 1) : job.stuff.material.noise;
+  const left = Math.max(0, secondsLeft(state, a, job));
+  emit(ctx, bark(mk(ctx, a, 'break_through', {
+    target: o.target ?? undefined, noise,
+    breakThrough: {
+      ...(job.kind === 'wall' ? { wall: job.w.id } : { barrier: job.b.id }), ...(job.to ? { to: job.to } : {}), share: Math.round(r.share * 100) / 100,
+      ...(r.reached ? { state: r.reached } : {}), ...(r.share < 1 ? { left: Math.round(left) } : {}), ...(check.tool ? { tool: check.tool } : {}), ...(check.broke ? { toolBroke: true as const } : {}),
+    },
+  }), o));
 }
 
 /** BK6: a container its owner guards forced open is theft seen, with no Filching contest: everyone outside the breaker's
@@ -1999,6 +2038,8 @@ function step(ctx: Ctx, id: string): void {
   }
   // AT2/AT17: an action longer than the turn goes on over turns; one that ends this turn spends only what is left of it
   if (a.busy && (!cost || ctx.spoke.has(id))) setAside(state, a);
+  // BW13 a: in a fight a break through puts the turn's time into the wall or barrier, its work kept there (not a long action)
+  if (cost?.row.id === DU.break_through && state.mode === 'tactical') cost = { ...cost, seconds: ctx.breakS = Math.min(cost.seconds, mainLeft(ctx, a)) };
   if (cost && !ctx.spoke.has(id)) {
     const long = longAction(ctx, a, o, cost);
     if (long === 'busy') { if (o.moveAfter && !turned) move(false); return; }
@@ -2330,7 +2371,8 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   }
   if (o.type === 'search' && t && t !== a && openToGrip(state, a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
   if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
-  const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
+  const wallJob = o.type === 'break' && !t ? breakJob(state, a, o.target) : undefined; // BW12 a: a spot on a wall
+  const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? (typeof wallJob === 'object' && wallJob.kind === 'wall' ? jobAt(state, a, wallJob) : null) ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
   for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
   return null;

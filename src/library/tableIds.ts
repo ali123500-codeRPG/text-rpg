@@ -33,6 +33,7 @@ export const DU = {
   speech: 'DU42', // TK1 c: persuade, lie or threaten, however long
   rally: 'DU43', // TC39 a Rally (DU42 is held by another thread)
   play_dead: 'DU44', // TC44 a Play Dead
+  break_through: 'DU45', // BW13 a: breaking through a wall or a barrier
 } as const;
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;

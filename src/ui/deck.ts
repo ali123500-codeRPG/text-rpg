@@ -279,6 +279,13 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     (c) => order(`Pick the lock of ${locked.find((g) => g.id === c.target)?.name ?? pv.zone.links.find((l) => l.to === c.target)?.label ?? ''}`, { action: act('pick', { target: c.target! }) }), { note: 'your action' });
   if (locked.length) add('break', 'use', 'Force open', [{ key: 'target', title: 'Force what?', picks: () => locked.map((g) => ({ id: g.id, label: cap(g.name) })) }],
     (c) => order(`Force ${theItem(locked.find((g) => g.id === c.target)?.name ?? '')} open`, { action: act('break', { target: c.target! }) }), { note: 'loud' });
+  // BW12 a: a door, gate, grate, shutters or rubble on a way (not already broken through), or a wall of the player's title
+  const breakWays = pv.zone.links.filter((l) => l.way && !('broken' in l.way && l.way.broken === 'destroyed'));
+  const breakWalls = pv.zone.walls ?? [];
+  if (breakWays.length || breakWalls.length) add('break', 'use', 'Break through', [{ key: 'target', title: 'Break through what?', picks: () => [
+    ...breakWays.map((l) => ({ id: l.to, label: cap(`${l.way!.kind}: ${l.label}`) })),
+    ...breakWalls.map((w) => ({ id: w.id, label: cap(`${w.of} wall, to ${w.behind}`), ...(w.broken ? { note: `${Math.round(w.broken * 100)}% through` } : {}) }))] }],
+  (c) => order(`Break through ${pv.zone.links.find((l) => l.to === c.target)?.label ?? `the ${breakWalls.find((w) => w.id === c.target)?.of ?? ''} wall`}`, { action: act('break', { target: c.target! }) }), { note: 'loud · long' });
   if (!fight) {
     add('wait', 'use', 'Wait', [{ key: 'time', title: 'Wait until?', picks: () => [{ id: '', label: 'A moment', note: 'see what happens' }, { id: 'someone', label: 'Someone comes' }, ...['dawn', 'morning', 'afternoon', 'dusk', 'evening', 'night'].map((t) => ({ id: t, label: cap(t) }))] }],
       (c) => c.time ? order(c.time === 'someone' ? 'Wait for someone to come' : `Wait until ${c.time}`, { action: act('wait', { target: c.time }) }) : order('Wait and see', {}));
