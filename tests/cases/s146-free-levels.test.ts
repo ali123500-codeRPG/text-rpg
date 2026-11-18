@@ -1,5 +1,6 @@
 // 146 free levels: level-ups that cost no XP, given by achievements and perks; and bonus levels, character levels no class gets. The tiers chain (Across Two Heights up to
-// Every Height Climbed) gives +1, +2, +3, +4, +5 by its place, each level including the lower ones (+3 in all at the second).
+// Every Height Climbed) gives +1, +1.5, +2, +2.5, +3 by its place, each level including the lower ones (+2.5 in all at the second);
+// halves add up over every source, and only whole levels are given.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { bonusLevelsOwed, charLevel, freeLevelsOwed, grantAchievement, levelCost, spendXp, xpToNext } from '../../src/engine/xp';
@@ -14,9 +15,9 @@ const chain = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.clas
 describe('146 free levels', () => {
   it('the tiers chain gives free levels by its place, carried up the chain', () => {
     const a = getLibrary().achievements!;
-    expect(chain.map((id) => a[id].freeLevels)).toEqual([1, 2, 3, 4, 5]);
+    expect(chain.map((id) => a[id].freeLevels)).toEqual([1, 1.5, 2, 2.5, 3]);
     expect(chain.map((id) => a[id].name)).toEqual(['Across Two Heights', 'Across Three Heights', 'Across Four Heights', 'Across Five Heights', 'Every Height Climbed']);
-    expect(rewardLines(a[ACH.class_tiers_3])).toEqual(['+3 free levels (levels that cost no XP) in all (+1 from Across Two Heights, +2 here)']);
+    expect(rewardLines(a[ACH.class_tiers_3])).toEqual(['+2.5 free levels (levels that cost no XP) in all (+1 from Across Two Heights, +1.5 here)']);
   });
 
   it('a free level is taken at once like any level, without spending XP', () => {
@@ -28,9 +29,12 @@ describe('146 free levels', () => {
     expect(ups.filter((x) => x.source === 'free level').length).toBe(1);
     expect(charLevel(p)).toBe(before + ups.length); // XP levels (from the achievement's own XP) plus the free one
     grantAchievement(s, ACH.class_tiers_3);
-    expect(freeLevelsEarned(p)).toBe(3); // the second level includes the first: +1 +2
-    expect(pr.freeLevelsTaken).toBe(3);
-    expect(pr.xpLog!.filter((x) => x.source === 'free level').length).toBe(3);
+    expect(freeLevelsEarned(p)).toBe(2.5); // the second level includes the first: +1 +1.5
+    expect(pr.freeLevelsTaken).toBe(2); // only whole levels: the half waits for another half
+    expect(pr.xpLog!.filter((x) => x.source === 'free level').length).toBe(2);
+    grantAchievement(s, ACH.class_tiers_4);
+    expect(freeLevelsEarned(p)).toBe(4.5); // +1 +1.5 +2
+    expect(pr.freeLevelsTaken).toBe(4);
   });
 
   it('free levels do not raise the XP cost of the next level', () => {

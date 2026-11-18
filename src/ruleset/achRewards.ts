@@ -163,8 +163,8 @@ export function rewardSum(a: Actor, f: 'freeLevels' | 'bonusLevels' | 'searchAre
     + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + ((perks[p.perkId] as Partial<Record<typeof f, number>> | undefined)?.[f] ?? 0), 0);
 }
 export const freeLevelsEarned = (a: Actor) => rewardSum(a, 'freeLevels');
-/** free levels earned and not yet taken */
-export const freeLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'freeLevels') - (a.progression?.freeLevelsTaken ?? 0));
+/** free levels earned and not yet taken: halves add up over every source first, and only whole levels are given */
+export const freeLevelsOwed = (a: Actor) => Math.max(0, Math.floor(rewardSum(a, 'freeLevels')) - (a.progression?.freeLevelsTaken ?? 0));
 /** bonus levels earned and not yet taken */
 export const bonusLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'bonusLevels') - (a.progression?.bonusLevelsTaken ?? 0));
 
