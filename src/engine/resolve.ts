@@ -16,7 +16,7 @@ import { freeGrips, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
-import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
+import { barrierOn, broken, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, attackRowIds, reactSeconds, timeFactor } from '../ruleset/actionTime';
 import { busyNow } from './busy';
 import { CONFIG } from '../config';
@@ -48,7 +48,7 @@ import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, hasFreeGrip, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { TRICK, sawThrough, warnedShift } from './ruses';
 import { giveWarning, warnEvent, warnedChecks } from './warnings';
-import { actorById, allActors, atLeast, countsInFight, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, countsInFight, fitsThrough, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -525,6 +525,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   }
   // SD7: a jump down a window or ledge: straight into the zone below, with a landing roll and flat fall damage
   if (o.jump && link?.drop && a.kind === 'player') {
+    const shutters = barrierOn(state, link); // PC3: a window's shutters must be open, and the body must fit the opening
+    if ((shutters && !shutters.open && !broken(shutters)) || !fitsThrough(state, a, link, a.zone)) return null;
     const up = zoneById(state, a.zone)!, down = zoneById(state, goal.zone)!;
     const drop = Math.max(0, heightOf(up) - heightOf(down)), was = a.pos && { ...a.pos };
     a.zone = down.id;

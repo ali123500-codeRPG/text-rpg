@@ -14,7 +14,7 @@ import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { withinM } from '../engine/position';
-import { objectHidden } from './objectCover';
+import { objectHidden, openingShown } from './objectCover';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL, ROLLED_SKILL } from '../library/skillIds';
 import { createRng, textSeed } from '../rng';
 import { equipNeed, itemLevel, requirement, requiredSkill } from './requirements';
@@ -149,11 +149,12 @@ export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number 
 export const clutterCover = (zone: Zone): Zone['cover'] => (zone.outdoor ? zone.cover : 'none');
 
 /** CV3, CV4, PC1: the share of a body that shows (1 = all of it): the less of what shows through the zone's clutter and
- * what shows past its furniture, seen from `from` (the shooter or watcher; objectHidden). The clutter level is set for a
+ * what shows past its furniture or through the opening it is seen through, seen from `from` (the shooter or watcher;
+ * objectHidden, openingShown). The clutter level is set for a
  * standing person (COVER_HIDDEN); a smaller body shows less in proportion to its height, with no top; a taller one shows
  * more, but only for its height above what the clutter stands (the zone kind's coverM: trees still hide a giant). */
 export function coverShown(state: GameState, body: Actor | undefined, zone: Zone, from?: Actor): number {
-  const objects = body ? 1 - objectHidden(state, body, zone, from) : 1;
+  const objects = body ? Math.min(1 - objectHidden(state, body, zone, from), openingShown(state, body, zone, from)) : 1;
   const hidden = CONFIG.COVER_HIDDEN[clutterCover(zone)] ?? 0;
   if (hidden <= 0) return objects;
   const h = body ? actorBody(state, body).size.heightM : HUMANOID_SIZE.heightM;

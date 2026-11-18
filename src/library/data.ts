@@ -1391,8 +1391,10 @@ export function prototypeLibrary(): Library {
       [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.', CONFIG.DOORWAY_M],
       [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.', [0.7, 0.7], true],
       [BK.rubble, 'Rubble', false, false, true, false, 'wall', 'A cave-in or fallen stone: no way through until it is cleared.'],
-    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical]) =>
-      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}) }])),
+      // PC3: a common casement window about 0.6 × 1 m with its sill 0.9 m up (placeholders); shutters shut, nothing passes
+      [BK.window, 'Window', true, true, false, false, 'window', 'Wooden shutters over a window: you see, shoot and jump through it only while they are open; they may be locked, or barred from inside.', [0.6, 1], undefined, 0.9],
+    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?, number?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical, sillM]) =>
+      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}), ...(sillM !== undefined ? { window: true as const, sillM } : {}) }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',
