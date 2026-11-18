@@ -2,7 +2,8 @@
 // openings: the shortest path over a visibility graph of each floor's convex wall corners (CORNER_CLEAR_M off them) and
 // openings, with stairs, ladders, hatches and passages joining their two ends. It never goes through a wall a walker cannot
 // walk across (a wall, a low wall or fence, glazing), a window (only jumped down, SD7), a frontier, a way shut to the
-// walker that it knows is shut (BG-69, FR5), or an opening too small for its body (SZ7).
+// walker that it knows is shut (BG-69, FR5), an opening too small for its body (SZ7), or a crack broken halfway through a
+// wall unless the body is amorphous (BW11 a).
 import type { Actor, GameState, Opening, Pt, Pt3, Wall } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary } from '../library';
@@ -13,6 +14,7 @@ import { planStamp } from './stamp';
 import { zoneAt } from './where';
 import { barrierOn, linkPassage } from '../engine/barriers';
 import { knowsShut } from '../engine/relations';
+import { BT } from '../library/raceIds';
 
 /** who walks: the walker (whose known-shut ways are left out) and the body that must fit the openings */
 export type Walker = { walker?: Actor; body?: Actor };
@@ -45,6 +47,7 @@ function fromSide(state: GameState, o: Opening, p: Pt, floor: number): string {
  * not one it knows is shut to it */
 function passes(state: GameState, o: Opening, w: Walker, p: Pt, floor: number): boolean {
   if (o.frontier || !getLibrary().openingKinds?.[o.kind]?.walk) return false;
+  if (o.crack && (w.body ?? w.walker)?.core.bodyTypeId !== BT.amorphous) return false; // BW11 a: a crack lets only an amorphous body by
   if (w.body && !fitsOpening(state, w.body, o)) return false;
   const b = barrierOn(state, o);
   if (w.walker && b) {

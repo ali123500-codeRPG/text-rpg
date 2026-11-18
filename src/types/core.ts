@@ -68,6 +68,9 @@ export type Barrier = {
   graded?: string[];
   /** BA2: seconds of picking done toward opening it in a fight, by picker */
   work?: Record<string, number>;
+  /** BW13 a: seconds of breaking done on it, by breaker (their shares add); wornTurn: the turn of the latest (BW9 b regrowth) */
+  wear?: Record<string, number>;
+  wornTurn?: number;
 };
 /** a zone's four sides, by map compass */
 export type Side = 'n' | 'e' | 's' | 'w';
@@ -164,7 +167,10 @@ export type Zone = {
   danger?: import('../scales').RoadDangerKey;
 };
 /** PZ2: a wall on the floor plan: a segment from a to b standing from floor to top, of a wall kind (library wallKinds, WK) */
-export type Wall = { id: string; placeId: PlaceId; a: Pt; b: Pt; floor: number; top: number; kind: string; material?: string; thicknessM: number };
+export type Wall = { id: string; placeId: PlaceId; a: Pt; b: Pt; floor: number; top: number; kind: string; material?: string; thicknessM: number; dents?: WallDent[] };
+/** BW11 a, BW13 a: a spot on a wall someone is breaking through: the seconds of work by breaker (their shares add), the turn
+ * of the latest (BW9 b regrowth), and the hole cut there once it is Crippled (an opening, crack) */
+export type WallDent = { at: Pt; wear: Record<string, number>; turn: number; hole?: string };
 /** PZ2: a way: a doorway, gap, window, stairs, ladder or hatch (library openingKinds, OK) at a spot (at, on floor) along a
  * wall (wall) or in a floor. joins: the titles either side (a frontier's second is its frontier key); labels: how the way
  * reads from joins[0] and from joins[1]. to: stairs, ladders, hatches and drops reach a point on another floor. barrier: its
@@ -179,6 +185,8 @@ export type Opening = {
   joins: [string, string]; labels: [string, string];
   barrier?: string; seeThrough: boolean;
   frontier?: true; drop?: true;
+  /** BW11 a: a hole broken halfway through a wall (Crippled): seen and heard through, but only an amorphous body passes */
+  crack?: true;
 };
 /** PZ10 a: how the Weaver, a layout or a test names a way between two titles: open (a gap or arch, seen through), door (a
  * doorway, not seen through while shut), window (seen through, only jumped down: a drop, SD7), up or down (stairs, a
@@ -304,6 +312,10 @@ export type GameEvent = {
   offers?: { to: string; landed: 'convinced' | 'tempted' | 'unmoved'; demand?: 'yield' }[]; // demand: TF19, it asked them to surrender
   /** BF31: a container broken open (kind break_open): whether it opened; cut: a blade cut a soft one open, no roll */
   breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // broke: BK2, instance ids of what broke inside; beyond: OD13, out of the breaker's reach (no roll)
+  /** BW8-BW26: a turn of breaking through a wall or a barrier on a way (kind break_through): what (wall or barrier), the
+   * title it leads to (none: unbuilt ground), the share of the work done (0-1, everyone's), its state once Crippled or
+   * Destroyed this turn, and the seconds the breaker still needs at their own rate */
+  breakThrough?: { wall?: string; barrier?: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; left?: number; tool?: string; toolBroke?: true };
   extract?: { essence: string; grade: string }; // DX3: an essence pulled out of the target (an essence row id and its grade)
   /** TF19: a surrender talked out of a foe (kind surrender; actorId gave up to target): bandmates that gave up with it */
   surrender?: { with: string[] };

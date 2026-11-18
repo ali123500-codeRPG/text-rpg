@@ -21,7 +21,7 @@ export type SeenGearView = { id: string; name: string; look: string; where: 'hel
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; grade?: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string; grade?: string }[] }; // furniture: FR1/FR5, what stands there; grade: OD12, once tried
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; crack?: boolean; way?: WayView | WayFull }[]; walls?: { id: string; of: string; to?: string; behind: string; broken?: number }[]; groundItems: { id: string; name: string; container?: ContainerView }[]; furniture?: { id: string; name: string; where: string; grade?: string }[] }; // furniture: FR1/FR5, what stands there; grade: OD12, once tried; crack: BW11 a, a hole broken halfway (only an amorphous body passes); walls: BW12 a, the viewer's own title's walls that can be broken, what of, the title behind (to; none: unbuilt ground) and the share already broken at the nearest dent
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
 
 export type BeliefView = {
@@ -301,6 +301,7 @@ export type NarrationEvent = {
   standDown?: { with: string[]; coin?: string }; // TF16: a stand-down: who went with it (names), coin paid in coin words
   surrender?: { with: string[] }; // TF19: someone talked into surrendering: who gave up with them (names)
   breakOpen?: { opened: boolean; cut?: true; broke?: string[]; beyond?: true }; // BF31: a container broken open (or not); cut: a blade cut a soft one open; broke: BK2, the names of what broke inside (now "broken ..."); beyond: OD13, past the breaker (no roll)
+  breakThrough?: { what: string; to?: string; share: number; state?: 'crippled' | 'destroyed'; toolBroke?: true }; // BW8-BW26: a wall or barrier broken into (what: its name), the share through, its state reached this turn
   beyond?: true; // OD1 b: an act on a thing past the actor's reach: it comes to nothing, with no roll
   graded?: true; // OD5: an act on something with a grade, whose tier says what it did
   read?: { mood: string; feels: Stance; hiding: boolean }; // BF97 a: the player sized someone up and won: what they made out

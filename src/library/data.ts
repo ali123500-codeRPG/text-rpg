@@ -1213,6 +1213,8 @@ export function prototypeLibrary(): Library {
       // taking something out of a container you carry (a sack): instant, like all gear
       [DU.from_pack]: { id: DU.from_pack, name: 'Get something out of a container', effort: 'base', seconds: 0 },
       [DU.break_open]: { id: DU.break_open, name: 'Break something open', effort: 'hard', seconds: 6, locksMove: true, focus: 'steady' }, // BF31
+      // BW13 a: its seconds come from strength and the material (src/ruleset/breaking.ts); work done stays on the wall or barrier
+      [DU.break_through]: { id: DU.break_through, name: 'Break through a wall or barrier', effort: 'hard', seconds: 0, locksMove: true, focus: 'steady', onBreak: [{ upTo: 1, then: 'kept' }] },
       [DU.pick_lock]: { id: DU.pick_lock, name: 'Pick a lock', effort: 'moderate', seconds: 30, locksMove: true, focus: 'careful', onBreak: [{ upTo: 1, then: 'kept' }],
         speed: { fn: FN.lockpicking, halving: CONFIG.PICK_HALVING_PER, fastCap: CONFIG.PICK_FAST_CAP } },
       // care (AT11m-n): a bandage broken off is not used up

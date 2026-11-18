@@ -31,6 +31,7 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
 /** Targets, items or skills not in PlayerView make the turn stop (illegal); a bad gear op or mode is dropped (invalid_gear). */
 export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: string[] = []): ParserLegality {
   const zones = new Set([view.zone.id, ...view.zone.links.map((l) => l.to), ...view.zones.map((z) => z.id)]);
+  const walls = new Set((view.zone.walls ?? []).flatMap((w) => [w.id, ...(w.to ? [w.to] : [])])); // BW12 a: a wall of the player's title, or the title behind it
   const actors = new Set(view.actors.map((a) => a.id));
   // BG-61: someone the player was just talking with can be spoken to though out of sight (a voice through a barred door);
   // BG-147: so can anyone the player knows is about (seen or heard earlier), with or without a move to them (OA3: walking
@@ -92,12 +93,14 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
         if (k) a.target = k;
         else illegal.push(`action.time ${a.target}`);
       }
-    } else if (a.target !== null && a.target !== 'player' && !(isSpeechType(a.type) || a.type === 'buy' || a.type === 'barter' ? talking : actors).has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target) && !((GRADED_ACTS as readonly string[]).includes(a.type) && furniture.has(a.target)))
+    } else if (a.target !== null && a.target !== 'player' && !(isSpeechType(a.type) || a.type === 'buy' || a.type === 'barter' ? talking : actors).has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target) && !((GRADED_ACTS as readonly string[]).includes(a.type) && furniture.has(a.target)) && !(a.type === 'break' && walls.has(a.target)))
       illegal.push(`action.target ${a.target}`);
     // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
     else if (WAY_ORDERS.includes(a.type) && a.target !== null && !zones.has(a.target) && !boxes.has(a.target)) illegal.push(`action.target ${a.target}`); // BG-128: a lock is on a way or a container (CT3)
-    else if ((a.type === 'open' || a.type === 'break') && (a.target === null || !boxes.has(a.target))) illegal.push(`action.target ${a.target}`);
+    else if (a.type === 'open' && (a.target === null || !boxes.has(a.target))) illegal.push(`action.target ${a.target}`);
+    // BF31: a container; BW12 a: a way's barrier (the zone it leads to) or a wall (its id, or the zone behind it)
+    else if (a.type === 'break' && (a.target === null || !(boxes.has(a.target) || walls.has(a.target) || view.zone.links.some((l) => l.to === a.target && l.way)))) illegal.push(`action.target ${a.target}`);
     else if (a.type === 'filch' && (a.target === null ? a.item === null : !(actors.has(a.target) && !dead.has(a.target)) && !boxes.has(a.target))) illegal.push(`action.target ${a.target}`); // FL2: someone in view or a container
     else if (a.type === 'heal' && a.target !== null && (!actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // NR34: someone alive in view, or no one (oneself)
     else if ((a.type === 'restrain' || a.type === 'extract') && (a.target === null || !actors.has(a.target) || dead.has(a.target))) illegal.push(`action.target ${a.target}`); // BF5, DX3: someone alive in view
@@ -167,7 +170,8 @@ export function knownIds(view: NpcViewBase) {
   const ground = new Set(view.zones.flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...(g.container?.contents?.map((x) => x.id) ?? [])]))); // BF13: what an open container shows lies there too
   for (const g of view.self.gear) for (const x of g.container?.contents ?? []) ground.add(x.id); // PI1: what is in one's own sack is taken out with pick_up
   const seenGear = new Set(view.seen.flatMap((s) => s.gear.map((g) => g.id)));
-  return { actors, zones, own, ground, seenGear };
+  const walls = new Set(view.zones.flatMap((z) => (z.walls ?? []).map((w) => w.id))); // BW12 a: walls of its own title it could break
+  return { actors, zones, own, ground, seenGear, walls };
 }
 
 type NpcOut = {
@@ -193,7 +197,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   const a = out.action;
   if (a.mode) a.mode = modeIdOf(a.mode);
   let orderError: NpcLegality['orderError'] = null;
-  const knows = (id: string) => k.actors.has(id) || k.zones.has(id) || k.own.has(id) || k.ground.has(id) || k.seenGear.has(id);
+  const knows = (id: string) => k.actors.has(id) || k.zones.has(id) || k.own.has(id) || k.ground.has(id) || k.seenGear.has(id) || (a.type === 'break' && k.walls.has(id));
   if (a.target !== null && !knows(a.target)) orderError = world.has(a.target) ? 'view_leak' : 'invalid_target';
   else if (WAY_ORDERS.includes(a.type) && a.target !== null && !k.zones.has(a.target)) orderError = 'invalid_target'; // BG-128
 

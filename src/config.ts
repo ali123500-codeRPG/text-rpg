@@ -911,6 +911,13 @@ const DEFAULTS = {
   BREAK_REF_STRENGTH: 50,
   /** BW21 a: a wall or barrier that would take this long or less does not stop a walker: they go through it as part of a move */
   WALK_THROUGH_S: 2,
+  /** BW11 a: a hole broken through a wall, Destroyed: a doorway's size, width × height (m), no higher than the wall */
+  BREAK_HOLE_M: [0.9, 2] as [number, number],
+  /** BW9 b: work on a material that regrows (living wood, slime membrane) is lost after this many seconds with nobody at it */
+  REGROW_S: 60,
+  /** BW13 a, BW23 a: out of a fight one order breaks for at most this long (then the order is given again); each full spell
+   * of work with a tool or weapon is one breakage check on it (placeholder: an hour) */
+  BREAK_SPELL_S: 3600,
   // ---- steadying yourself (SY1; src/engine/steady.ts; placeholders) ----
   /** % of max morale a steady roll wins back (+) or loses (−) by tier; past Critical Success each step adds STEADY_PAST_PCT, past
    * Critical Failure each step takes it away */

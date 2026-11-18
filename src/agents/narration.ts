@@ -94,6 +94,7 @@ export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {
   const onPlayer = isPlayer(e.target) || isPlayer(e.packet?.target);
   if (byPlayer && POSITION.has(e.kind)) return true;
   if ((byPlayer || onPlayer) && (e.kind === 'stand_down' || e.kind === 'surrender')) return true; // TF16, TF19
+  if (e.kind === 'break_through' && (byPlayer || !!e.breakThrough?.state)) return true; // BW8-BW26: the player's own blows, and any wall or door giving way
   if ((byPlayer || onPlayer) && INVENTORY.has(e.kind)) return true;
   if (onPlayer && ((e.changes?.length ?? 0) > 0 || (e.packet?.changes.length ?? 0) > 0)) return true;
   return false;
