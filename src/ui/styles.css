@@ -438,9 +438,13 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-figs b { font-size: 22px; font-weight: 800; }
 .cs-figs span { font-size: 13px; color: var(--muted); }
 /* D-273: the power rating, a button across both columns; its pop-up lists each part */
-.cs-figs .cs-power { grid-column: 1 / -1; display: grid; justify-items: start; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
-.cs-figs .cs-power span { text-decoration: underline dotted; text-underline-offset: 3px; }
-.cs-figs .cs-power:hover b, .cs-figs .cs-power:focus-visible b { color: var(--accent); }
+.cs-figs .cs-power { grid-column: 1 / -1; }
+.cs-figs :is(.cs-power, .cs-fig) { display: grid; justify-items: start; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.cs-figs :is(.cs-power, .cs-fig) span { text-decoration: underline dotted; text-underline-offset: 3px; }
+.cs-figs :is(.cs-power, .cs-fig):is(:hover, :focus-visible) b { color: var(--accent); }
+/* P2: a number in a line that opens its parts (HP on the card, morale on the sheet) */
+.cs-figlink { background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.cs-figlink:is(:hover, :focus-visible) { color: var(--accent); }
 .pw-pop { width: min(460px, calc(100vw - 32px)); }
 .pw-pop .dpop-body { justify-items: stretch; }
 .pw-list { display: grid; gap: var(--space-1); }

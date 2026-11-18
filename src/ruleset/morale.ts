@@ -1,6 +1,7 @@
 // The morale bar (MB1–MB43): a second, mental health bar. Max morale comes from Resolve as HP comes from Endurance;
 // fears cost flat points (the library fears table); the level is the share of max morale lost (CONFIG.MORALE_TRACK).
 import type { Actor, FearDef, Mod, PartDef } from '../types';
+import type { FigPart } from './body';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
@@ -9,10 +10,12 @@ import { skillOpen } from './access';
 import { achievementMaxMorale, chainRewards, currentAchievements } from './achRewards';
 
 /** MB29: max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (raw, like Endurance for HP), plus the flat points the
- * actor's current achievements add (AchievementDef.maxMorale) */
-export function maxMorale(a: Actor): number {
+ * actor's current achievements add (AchievementDef.maxMorale); `parts`, when given, gets each line (P2) */
+export function maxMorale(a: Actor, parts?: FigPart[]): number {
   const r = a.core.skills[SK.resolve];
-  return CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * (r && !r.dormant && skillOpen(a, SK.resolve) ? r.raw : 0) + achievementMaxMorale(a);
+  const raw = r && !r.dormant && skillOpen(a, SK.resolve) ? r.raw : 0, ach = achievementMaxMorale(a);
+  parts?.push({ label: 'Base', adds: CONFIG.MORALE_BASE }, { label: `Resolve ${raw} × ${CONFIG.MORALE_PER_RESOLVE}`, adds: CONFIG.MORALE_PER_RESOLVE * raw }, ...(ach ? [{ label: 'Achievements', adds: ach }] : []));
+  return CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * raw + ach;
 }
 export const moraleLost = (a: Actor): number => a.core.condition.moraleLost ?? 0;
 /** share of max morale lost, in % */

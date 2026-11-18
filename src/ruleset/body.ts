@@ -20,11 +20,19 @@ export function attackParts(mode: AttackMode | undefined): readonly string[] {
   return mode?.partIds ?? (mode?.partId ? [mode.partId] : []);
 }
 
-export function totalHp(state: GameState, actor: Actor): number {
+/** P2: one line of a figure's make-up, for the Character card's pop-ups: a part that adds, or a multiplier */
+export type FigPart = { label: string; adds?: number; times?: number };
+
+/** total HP; `parts`, when given, gets each line that makes it (base, Endurance, body, prefix) */
+export function totalHp(state: GameState, actor: Actor, parts?: FigPart[]): number {
   const end = actor.core.skills[SK.endurance];
   const raw = end && !end.dormant && skillOpen(actor, SK.endurance) ? end.raw : 0;
-  const prefix = actor.core.prefix ? getLibrary().prefixes?.[actor.core.prefix]?.hpMult ?? 1 : 1; // NR37: Dire x1.5
-  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * actorBody(state, actor).hpMultiplier * prefix;
+  const pre = actor.core.prefix ? getLibrary().prefixes?.[actor.core.prefix] : undefined;
+  const prefix = pre?.hpMult ?? 1; // NR37: Dire x1.5
+  const body = actorBody(state, actor);
+  parts?.push({ label: 'Base', adds: CONFIG.HP_BASE }, { label: `Endurance ${raw} × ${CONFIG.HP_PER_END}`, adds: CONFIG.HP_PER_END * raw },
+    ...(body.hpMultiplier !== 1 ? [{ label: `Body: ${body.name}`, times: body.hpMultiplier }] : []), ...(prefix !== 1 ? [{ label: pre?.name ?? 'Prefix', times: prefix }] : []));
+  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * body.hpMultiplier * prefix;
 }
 
 export function healthLevel(actor: Actor): HealthLevel {

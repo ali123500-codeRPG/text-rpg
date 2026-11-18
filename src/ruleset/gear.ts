@@ -200,7 +200,8 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
   const table = standInTable(skill, actor, ctx.standInFns);
   const share = (id: string) => standInShare(skill, id, table, ctx.fullValue);
   const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
-  let best: { skill: string; value: number; gear: { source: string; value: number }[] } | null = null;
+  // base: the skill's own true skill at its share and tier (P2: base plus each gear line is the value)
+  let best: { skill: string; value: number; base: number; share: number; gear: { source: string; value: number }[] } | null = null;
   for (const id of cands) {
     const k = share(id);
     const entry = actor.core.skills[id];
@@ -209,9 +210,10 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const tier = tierMult(id) * ageMult(state, actor, id);
     // D-276: what this skill gives away by trade augments, at its share here and its age (its tier is in the amount)
     const given = tradesOut(actor, id).map((g) => ({ ...g, value: g.value * k * ageMult(state, actor, id) }));
-    const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier + given.reduce((s, g) => s + g.value, 0);
+    const own = (entry && !entry.dormant ? trueSkill(actor, id) : 0) * k;
+    const value = (own + gear.reduce((s, g) => s + g.value, 0)) * tier + given.reduce((s, g) => s + g.value, 0);
     for (const g of gear) g.value *= tier;
-    if (!best || value > best.value) best = { skill: id, value, gear: [...gear, ...given] };
+    if (!best || value > best.value) best = { skill: id, value, base: own * tier, share: k, gear: [...gear, ...given] };
   }
   const old = ageMult(state, actor, skill); // AG20: augments to a declining skill decline with it
   for (const a of augmentsOf(actor, skill, ctx.rollKind, ctx.when)) { const g = { ...a, value: a.value * old }; best!.value += g.value; best!.gear.push(g); } // skills that augment this one
