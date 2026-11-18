@@ -9,6 +9,7 @@ export const SKILL_NAMES: Record<string, string> = {
   [SK.persuasion]: 'Persuasion', [SK.intimidation]: 'Intimidation', [SK.barter]: 'Barter', [SK.riposte]: 'Riposte', [SK.parry]: 'Parry', [SK.blade_dance]: 'Blade Dance', [SK.shrewd_dealing]: 'Shrewd Dealing',
   [SK.light_armor]: 'Light Armor', [SK.medium_armor]: 'Medium Armor', [SK.heavy_armor]: 'Heavy Armor',
   [SK.tremor]: 'Tremor', [SK.lockpicking]: 'Lockpicking', [SK.filching]: 'Filching', [SK.lying]: 'Falsehood', [SK.insight]: 'Insight', [SK.resolve]: 'Resolve', [SK.stamina]: 'Stamina', [SK.healing]: 'Healing',
+  [SK.battle_sense]: 'Battle Sense', [SK.command]: 'Command', [SK.fieldcraft]: 'Fieldcraft', [SK.stratagem]: 'Stratagem', [SK.guile]: 'Guile',
   [SK.bite]: 'Bite', [SK.claws]: 'Claws', [SK.hooves_horns]: 'Hooves and Horns', [SK.tail]: 'Tail', [SK.scent]: 'Scent', [SK.hide]: 'Hide',
 };
 export const skillName = (id: string) => SKILL_NAMES[id] ?? id;

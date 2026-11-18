@@ -141,6 +141,13 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),
   sk(SK.filching, TR.trickery, [FN.filching], [RL.grip]), // in Trickery beside Lying; still Lockpicking's stand-in
+  sk(SK.guile, TR.trickery, [FN.influence], []), // TC24, TC26: a lie told with the body, rolled against the onlooker's Insight
+  // Tactics (TR19; TC11 d, TC10, TC13, TC14): the Tactics function on three skills that stand in for each other; Battle
+  // Sense also rolls Reaction (FN11, the initiative roll: TC5, TC13); Command joins the group only
+  sk(SK.battle_sense, TR.tactics, [FN.tactics, FN.initiative], []),
+  { ...sk(SK.command, TR.tactics, [], [RL.speech]), groups: [GR.tactics] }, // orders are spoken: head wounds count
+  sk(SK.fieldcraft, TR.tactics, [FN.tactics], []),
+  sk(SK.stratagem, TR.tactics, [FN.tactics], []),
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -933,7 +940,9 @@ export function prototypeLibrary(): Library {
       [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight, SK.scent] },
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying, SK.filching], access: { blockedBy: [AMORPHOUS] } },
+      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying, SK.filching, SK.guile], access: { blockedBy: [AMORPHOUS] } },
+      // TC2, TC11 d: a normal tree; TC9: closed to unintelligent races (end of this function), Command only for intelligent ones
+      [TR.tactics]: { id: TR.tactics, name: 'Tactics', skills: [SK.battle_sense, SK.command, SK.fieldcraft, SK.stratagem] },
       [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'perk', id: PK.blade_against_blade }] } }, // opened by Swordsman's level 1 perk
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'perk', id: PK.first_steps_of_the_dance }] } }, // mirrors Swordsman: opened by its level 1 perk
@@ -1752,5 +1761,9 @@ export function prototypeLibrary(): Library {
   // Perception: eyes and ears are not for the amorphous (TA6); animals and slimes smell, anyone else only through an essence (AB18 a)
   for (const id of [SK.eyesight, SK.earshot, SK.insight]) lib.skills[id].access = { blockedBy: [AMORPHOUS] };
   lib.skills[SK.scent].access = { either: [RC.slime, ...ANIMALS].map((id) => ({ kind: 'race' as const, id })) };
+  // TC9 a: the Tactics tree is closed to unintelligent races; Command needs an intelligent one
+  const racesAt = (lvl: string) => Object.values(lib.races ?? {}).filter((r) => r.intelligence === lvl).map((r) => ({ kind: 'race' as const, id: r.id }));
+  lib.trees[TR.tactics].access = { blockedBy: [AMORPHOUS, ...racesAt('unintelligent')] };
+  lib.skills[SK.command].access = { either: racesAt('intelligent') };
   return lib;
 }

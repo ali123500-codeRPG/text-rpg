@@ -923,7 +923,7 @@ const DEFAULTS = {
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
-  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter', [GR.medicine]: 'half' } as Record<string, string>,
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter', [GR.medicine]: 'half', [GR.tactics]: 'half' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
   /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
   SKILL_RATING_AT_50: 23.1,
