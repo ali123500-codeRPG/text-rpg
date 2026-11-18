@@ -186,6 +186,7 @@ export type Order = {
   activity?: string; // routine idle/move activity
   addressees?: string[];
   triggerId?: string;
+  rule?: string; // D-17: the FIGHT_RULES row (FX id) a code-run NPC's order comes from; counted once used this engagement
 };
 
 export type { GameEvent };
