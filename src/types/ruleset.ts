@@ -16,7 +16,8 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status';
+/** rating: a rating riding on a roll (GR26: Strength on a Grapple roll to break free or hold on) */
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status' | 'rating';
 /** pct: a wound's % of the average roll that `value` came from (PW5 a) */
 export type Mod = { source: string; type: ModType; value: number; pct?: number };
 export type TierShift = { source: string; value: number };

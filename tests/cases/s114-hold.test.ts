@@ -73,6 +73,7 @@ describe('114 Hold', () => {
   it('a held player who walks away tries to break free instead, and stays in the zone', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
+    wim.core.skills[SK.unarmed_grapple] = { raw: 200, state: 'normal' }; // a grip the player can't slip, so the try fails (GR26: Strength now rides on both rolls)
     beside(s, wim.id);
     s.player.heldBy = wim.id;
     const from = s.player.zone;

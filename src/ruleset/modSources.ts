@@ -23,7 +23,7 @@ export type StackedType = ModType | SituationModType;
 /** display names of the modifier types, in the order the viewer lists them */
 export const MOD_TYPE_NAMES: Record<StackedType, string> = {
   achievement: 'Achievement', roll_perk: 'Perk', foe_perk: "Foe's perk", gear: 'Gear', wounds: 'Wounds', situational: 'Situation', aim: 'Aim',
-  perk: 'Perk', status: 'Status',
+  perk: 'Perk', status: 'Status', rating: 'Rating',
 };
 
 /** one library entry that feeds a source, with the roll modifier it gives */
@@ -79,6 +79,8 @@ export const MOD_SOURCES: ModSource[] = [
     when: 'Rolls of the perk\'s skill (or the skills it names, or every melee or ranged attack): rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',
     feeds: (lib) => Object.values(lib.perks).filter((d) => d.ladder && (d.numbers?.rollAdd || d.numbers?.hitAdd)).map((d) => ({ table: 'perks', id: d.id, name: d.name,
       value: ((on) => [d.numbers?.rollAdd ? `${sg(d.numbers.rollAdd)} every ${on} roll` : '', d.numbers?.hitAdd ? `${sg(d.numbers.hitAdd)} ${on} attack rolls` : ''].filter(Boolean).join(' · '))(d.numbersForAttack ? `${d.numbersForAttack}` : (d.numbersFor ?? [d.ladder!.skill]).map(skillName).join(' / ')) })) },
+  { type: 'rating', roll: 'skill', source: 'Strength', at: 'src/engine/held.ts', when: 'Grapple rolls to break free of a hold and to hold on: STRENGTH_HOLD_SHARE × the roller\'s Melee strength rating (Grapple left out of its pool), in skill points (GR26).',
+    value: `${W()} × ${CONFIG.STRENGTH_HOLD_SHARE} × Melee strength` },
   { type: 'roll_perk', roll: 'skill', source: 'Steady Guard', at: 'src/ruleset/index.ts', when: 'Parry rolls made with a medium melee weapon.',
     value: sg(W() * CONFIG.STEADY_GUARD), feeds: (lib) => perk(lib, PK.steady_guard) },
   { type: 'roll_perk', roll: 'skill', source: 'Bare-Handed Guard', at: 'src/ruleset/index.ts', when: 'Dodge rolls while the owner holds no weapon.',

@@ -11,6 +11,7 @@ const ALLOWED: Record<string, string> = {
   'src/ruleset/index.ts': 'damage from a hit',
   'src/engine/resolve.ts': 'the survival roll wakes the player at Critical (a story event, not healing)',
   'src/ui/fakeGame.ts': 'a fake save for the UI',
+  'src/engine/fightModel.ts': 'the combat rating\'s fight model walks a fresh copy down its health levels (never a real actor)',
   'src/save/world.ts': 'a carried-on world: the character who fell there is dead (HF27), never healed',
 };
 const files = (dir: string): string[] => readdirSync(dir).flatMap((f: string) => {
