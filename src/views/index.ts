@@ -493,7 +493,7 @@ function walkingOf(state: GameState, p: Actor, seen: SeenActor[]): { walking?: W
   return { walking: { toZone: w.toZone, to: near ? near.name ?? near.label : zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
 }
 /** each weapon in the player's hands at its longest reach, longest first (natural attacks and fists left out) */
-function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
+export function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
   const best = new Map<string, number>(); // by name, so two daggers read once
   for (const m of usableModes(state, p)) {
     const inst = p.core.inventory.find((i) => i.id === m.itemId);
@@ -754,22 +754,24 @@ function eventTarget(state: GameState, me: string, target: string, seenIds: Set<
 
 /** GD3: a container's name by instance id (anywhere), else "container" */
 const boxName = (state: GameState, id: string): string => itemName(state, id) ?? 'container';
-/** the library item of an item instance anyone carries or that lies on the ground anywhere, or one inside a container there (BK2) */
-export function instanceItem(state: GameState, instanceId: string): string | undefined {
+/** an item instance anywhere in the world: carried (or inside what is carried), or on any zone's ground */
+export function findInstance(state: GameState, instanceId: string): ItemInstance | undefined {
   const find = (list: ItemInstance[]): ItemInstance | undefined => {
     for (const x of list) { if (x.id === instanceId) return x; const inner = x.contents && find(x.contents); if (inner) return inner; }
     return undefined;
   };
   for (const a of allActors(state)) {
     const i = find(a.core.inventory);
-    if (i) return i.itemId;
+    if (i) return i;
   }
   for (const z of state.places.flatMap((pl) => pl.zones)) { // every place's zones, not only the stage's
     const i = find(z.groundItems);
-    if (i) return i.itemId;
+    if (i) return i;
   }
   return undefined;
 }
+/** the library item of an item instance anyone carries or that lies on the ground anywhere, or one inside a container there (BK2) */
+export const instanceItem = (state: GameState, instanceId: string): string | undefined => findInstance(state, instanceId)?.itemId;
 /** an event's item by name: an instance id, or (BG-168: a use_item, a stack used up) the item's own id */
 function itemName(state: GameState, instanceId: string): string | undefined {
   const id = instanceItem(state, instanceId) ?? instanceId;

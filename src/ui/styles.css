@@ -744,6 +744,10 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
   color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: 0; z-index: 5; pointer-events: none; }
 .tod:focus-visible { outline: none; }
 .tone-bad { color: var(--danger); }
+.tone-good { color: var(--ok); }
+.cmp { font-variant-numeric: tabular-nums; } /* P1 gear compare: old → new ▲ +n */
+:is(.itip, .gp-rows) .tone-good { color: var(--ok); } :is(.itip, .gp-rows) .tone-bad { color: var(--danger); } :is(.itip, .gp-rows) .tone-muted { color: var(--muted); }
+:is(.itip, .gp-rows) .split { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border); }
 .tone-muted { color: var(--muted); }
 
 /* Play screen: fixed rows (header, story and deck), one reading column filling the space on the left with each turn's

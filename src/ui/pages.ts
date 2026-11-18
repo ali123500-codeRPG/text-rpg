@@ -33,6 +33,7 @@ import { gripParts } from '../engine/gear';
 import { coins, coinWords, countWords, itemValue } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
 import { cap, r1 } from '../words';
+import { compareRows } from './compare';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -150,7 +151,7 @@ function openGearPop(s: GameState, opener?: HTMLElement | null): void {
 /** one piece of gear: its exact stats (the Inventory's rows), a way back to the list, and a link to it in the Inventory */
 function openItemPop(s: GameState, i: ItemInstance, opener?: HTMLElement | null): void {
   openPop({ title: cap(safe(() => pieceName(s, i)) ?? i.itemId), cls: 'gear-pop', opener, body: [
-    h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
+    h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, r.k), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])),
     h('div', { class: 'actions' },
       h('button', { type: 'button', class: 'hs-btn-text', onclick: () => openGearPop(s, opener) }, '‹ All gear'),
       h('a', { href: '#inv', class: 'hs-btn-text', onclick: () => { invFocus.id = i.id; closePop(); } }, 'Open in Inventory')),
@@ -209,6 +210,7 @@ export function itemRows(s: GameState, it: { id?: string; itemId: string; boundT
   const worth = safe(() => itemValue(s, it.itemId)) ?? 0, n = it.qty ?? 1;
   rows.push({ k: 'Value', v: !worth ? 'Worthless' : n > 1 ? `${coinWords(worth)} each, ${coinWords(worth * n)} for ${n}` : coinWords(worth) });
   if (d.threadbound) rows.push(...threadboundRows(s, it, d));
+  rows.push(...compareRows(s, it)); // P1: only for an item the player could equip and has not
   return rows;
 }
 
@@ -251,20 +253,21 @@ export function gearWords(s: GameState, it: InvItem): { label: string; text: str
 }
 
 let tipEl: HTMLElement | null = null;
-function showTip(s: GameState, it: InvItem, at: HTMLElement) {
+/** the item card beside `at`: its exact stats, and (P1) what equipping it would change; Loot uses it too */
+export function showTip(s: GameState, it: ItemInstance, at: HTMLElement) {
   const d = safe(() => itemDef(s, it.itemId));
   if (!d) return;
   tipEl ??= document.body.appendChild(h('div', { class: 'itip', role: 'tooltip', hidden: true }));
   tipEl.dataset.kind = d.kind;
   tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, safe(() => pieceName(s, it)) ?? d.name, it.qty))),
-    h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])));
+    h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, r.k), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])));
   tipEl.hidden = false;
   const r = boxOf(at), v = viewSize(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
   const left = r.right + 12 + w < v.w ? r.right + 12 : Math.max(12, r.left - 12 - w);
   tipEl.style.left = `${left}px`;
   tipEl.style.top = `${Math.max(12, Math.min(v.h - ht - 12, r.top))}px`;
 }
-const hideTip = () => { if (tipEl) tipEl.hidden = true; };
+export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 function equipment(api: GameApi, s: GameState): HTMLElement {
   hideTip(); // the panel is rebuilt on every change, so a card left open would point at nothing

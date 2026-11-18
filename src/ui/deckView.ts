@@ -5,7 +5,8 @@
 import { ATTACK_STANCES, type AttackStance, type GameApi, type GameState, type PlayerView } from '../types';
 import { personalityOf } from '../ruleset/personality';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
-import { buildPlayerView } from '../views';
+import { buildPlayerView, findInstance } from '../views';
+import { hideTip, showTip } from './pages';
 import { h } from './kit';
 import { cap } from '../words';
 import { closePop, openPop } from './pop';
@@ -59,7 +60,8 @@ export function deckView(api: GameApi, o: {
   /** asks the action's next missing step; with nothing missing, plays it */
   function run(a: DeckAction, c: Choice = {}, opener: HTMLElement | null = null) {
     if (disabled) return;
-    if (a.kind === 'loot') { const s = api.state(), pv = ctx?.pv; if (s && pv) openLoot(pv, opener, (line, gear) => void play({ line, intent: { ...NO_ORDER, gear } }, false), (id) => instanceIcon(s, id, 'iico lico')); return; }
+    if (a.kind === 'loot') { const s = api.state(), pv = ctx?.pv; if (s && pv) openLoot(pv, opener, (line, gear) => void play({ line, intent: { ...NO_ORDER, gear } }, false), (id) => instanceIcon(s, id, 'iico lico'),
+      (id, at) => { const it = at && findInstance(s, id); if (it) showTip(s, it, at!); else hideTip(); }); return; }
     const next = a.steps.find((st) => !(st.key in c));
     if (!next) { closePop(); void play(a.play(c), !!c.part); return; }
     if (next.key === 'words') { closePop(); setSay({ action: a, choice: c, to: (pickLabel(a, c) ?? '').replace(/^(A|An|The) /, (x) => x.toLowerCase()) }); return; }

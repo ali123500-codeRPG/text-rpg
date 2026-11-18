@@ -41,14 +41,14 @@ export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: numb
   return { total, hp: total === null ? null : total * (1 - p.core.condition.hpLostPct / 100) };
 }
 
-function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
+export function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
   const kind = p.core.standingDefense;
   const value = safe(() => effectiveSkill(s, p, DEFENSE_SKILL[kind], { itemId: defenseItem(s, p, kind)?.id }).value);
   return { kind, value };
 }
 
 /** Standing attack: the first usable weapon mode at reach 0 and its effective skill (same as the creation preview). */
-function attackOf(s: GameState, p: Actor): { name: string; value: number | null } | null {
+export function attackOf(s: GameState, p: Actor): { name: string; value: number | null } | null {
   const m = safe(() => defaultMode(s, p, 0));
   if (!m) return null;
   const inst = p.core.inventory.find((i) => i.id === m.itemId);

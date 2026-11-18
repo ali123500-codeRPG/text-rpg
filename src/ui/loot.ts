@@ -52,8 +52,9 @@ export function lootGear(src: LootSource[], picked: ReadonlySet<string>): GearOp
   return src.flatMap((s) => s.items.filter((i) => picked.has(i.id)).map((i) => ({ op: 'pick_up' as const, item: i.id, ...(s.kind === 'body' ? { from: s.key } : {}) })));
 }
 
-/** opens the loot pop-up; `onOrder` gets the order's words and its gear orders, and plays it; `iconOf` gives each thing its icon. Back closes it */
-export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string, gear: GearOp[]) => void, iconOf?: (id: string) => HTMLElement | null): HTMLElement | null {
+/** opens the loot pop-up; `onOrder` gets the order's words and its gear orders, and plays it; `iconOf` gives each thing its icon;
+ *  `tipOf` shows a thing's card while hovered or focused (P1: with what equipping it would change), `at` null hides it. Back closes it */
+export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (order: string, gear: GearOp[]) => void, iconOf?: (id: string) => HTMLElement | null, tipOf?: (id: string, at: HTMLElement | null) => void): HTMLElement | null {
   const src = lootSources(pv);
   if (!src.length) return null;
   const picked = new Set<string>();
@@ -74,6 +75,10 @@ export function openLoot(pv: PlayerView, opener: HTMLElement | null, onOrder: (o
     const b = h('button', { type: 'button', class: 'loot-item', 'data-item': i.id, 'aria-pressed': 'false', onclick: () => { if (picked.has(i.id)) picked.delete(i.id); else picked.add(i.id); sync(); } },
       h('span', { class: 'loot-box', 'aria-hidden': 'true' }), iconOf?.(i.id) ?? '', h('span', {}, i.name), i.qty && i.qty > 1 ? h('span', { class: 'loot-qty' }, `×${i.qty}`) : '');
     chips.push(b as HTMLButtonElement);
+    if (tipOf) {
+      for (const ev of ['pointerenter', 'focusin']) b.addEventListener(ev, () => tipOf(i.id, b));
+      for (const ev of ['pointerleave', 'focusout']) b.addEventListener(ev, () => tipOf(i.id, null));
+    }
     return b;
   };
   allBtn.onclick = () => { if (picked.size === all.length) picked.clear(); else for (const id of all) picked.add(id); sync(); };
