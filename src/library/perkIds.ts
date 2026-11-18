@@ -44,6 +44,9 @@ export const PK = {
   press_the_opening: 'PK159', fall_back_on_me: 'PK160', hug_the_cover: 'PK161', draw_them_in: 'PK162', // Tactics tree 20 perks (TC28 a, TC36 c, TC30 a, TC31 a)
   never_flat_footed: 'PK163', rally: 'PK164', // Battle Sense 100 (TC35 b), Command 100 (TC39 a)
   play_dead: 'PK165', // Guile 20 (TC32 a, TC44-TC49)
+  deflect: 'PK166', grit_your_teeth: 'PK167', hear_me_out: 'PK168', // 20 perks: Parry (LG1 a), Resolve (LG7 c), Persuasion (LG9 b)
+  guarded_answer: 'PK169', dancers_feet: 'PK170', deep_reserves: 'PK171', silver_tongue: 'PK172', unseen_strike: 'PK173', // 40 perks (LG4, LG6, LG8, LG10, LG11)
+  fear_bites_deeper: 'PK174', shadow_work: 'PK175', thick_of_it: 'PK176', free_movement: 'PK177', deeper_soak: 'PK178', honest_face: 'PK179', // 40 perks (LG12, LG14-LG16, LG18, LG19)
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

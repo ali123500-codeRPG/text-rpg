@@ -79,6 +79,25 @@ describe('153 Parry', () => {
     expect(ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50])).defenseType).toBe('dodge');
   });
 
+  it('Deflect (Parry 20, LG1): with a melee weapon in hand a shot can be parried, never answered with a strike back', () => {
+    const s = setup();
+    s.player.core.standingDefense = 'parry';
+    const p = npc(s, 'patron_1');
+    hold(p, [IT.shortbow]);
+    s.player.zone = s.zones.find((z) => waysOut(s, z.id).length && z.id !== p.zone && waysOut(s, p.zone).some((l) => l.to === z.id))?.id ?? s.player.zone;
+    hold(s.player, [IT.arming_sword]);
+    const shoot = (d: number) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([60, d, 50, 50]));
+    expect(shoot(100).defenseType).toBe('dodge'); // without the perk: no parry against a missile
+    give(s.player, PK.deflect);
+    for (const d of DICE) {
+      const r = shoot(d);
+      expect(r.defenseType).toBe('parry');
+      expect(r.strikeBack).toBeFalsy();
+    }
+    hold(s.player, []); // no weapon in hand: nothing to deflect with
+    expect(shoot(100).defenseType).toBe('dodge');
+  });
+
   it('a heavy weapon is −1 gap against a parry', () => {
     const s = setup();
     const p = npc(s, 'patron_1');

@@ -471,9 +471,10 @@ export function usableDefense(state: GameState, actor: Actor, ranged: boolean): 
 
 /** the defenses in tie order: block, parry, dodge */
 const DEFENSE_ORDER: DefenseKind[] = ['block', 'parry', 'dodge'];
-/** dodge always works; block needs a held shield; parry a held melee weapon or an open hand, never against a missile */
+/** dodge always works; block needs a held shield; parry a held melee weapon or an open hand, never against a missile,
+ * unless the defender has Deflect (Parry 20, LG1) and a melee weapon in hand: any ranged attack, whatever made it */
 const canDefend = (state: GameState, actor: Actor, t: DefenseKind, ranged = false): boolean =>
-  t === 'dodge' || (t === 'block' ? canBlock(state, actor) : !ranged && canParry(state, actor));
+  t === 'dodge' || (t === 'block' ? canBlock(state, actor) : ranged ? hasPerk(actor, PK.deflect) && !!parryItem(state, actor) : canParry(state, actor));
 
 const bestDefense = (state: GameState, actor: Actor, kinds: DefenseKind[]): DefenseKind => {
   const value = (t: DefenseKind) => effectiveSkill(state, actor, DEFENSE_SKILL[t], { itemId: defenseItem(state, actor, t)?.id }).value;

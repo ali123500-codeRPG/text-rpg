@@ -322,6 +322,14 @@ export function turnsAside(state: GameState, D: Actor, location: string, outcome
 /** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
  * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
  * blow (its pool takes it in applyEffects). Dice and the ratings' fight model both call it. */
+/** LG11: the defense modifier for a defender unaware or only suspicious of the attacker (CONFIG.AWARENESS_DEFENSE by step;
+ * Unseen Strike, the attacker's Combat Stealth 40, moves it one step on) */
+export function awarenessMod(A: Actor, awareness: 'unaware' | 'suspicious' | undefined): Mod | undefined {
+  if (!awareness) return undefined;
+  const t = CONFIG.AWARENESS_DEFENSE, step = CONFIG.AWARENESS_STEP[awareness] + (hasPerk(A, PK.unseen_strike) ? 1 : 0);
+  const value = t[Math.min(step, t.length - 1)];
+  return value ? { source: awareness, type: 'situational', value } : undefined;
+}
 export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMode, location: string, multiplier: number, openArm: string | null): { damage: number; generalShare: number } {
   const ct = actorBody(state, D), skill = modeSkill(mode), ranged = mode.tree === 'ranged';
   const kind: AttackKind = ranged ? 'ranged' : 'melee';
@@ -329,7 +337,9 @@ export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMod
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
-    for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) d = d * a.multiplier - Math.max(0, a.reduction - pierce); // D-368: the share first, then the flat soak
+    const worn = pieceOn(state, D, at)?.armor;
+    const soak = (a: unknown) => (a === worn && worn?.weight === 'heavy' && hasPerk(D, PK.deeper_soak) ? CONFIG.DEEPER_SOAK_MULT : 1); // LG18 Deeper Soak
+    for (const a of [worn, nat]) if (a?.covers.includes(at)) d = d * a.multiplier - Math.max(0, a.reduction * soak(a) - pierce); // D-368: the share first, then the flat soak
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
@@ -403,7 +413,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // never outnumbered: B19 Blade Wall (Parry 60), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
   const noCrowd = (type === 'parry' && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
   if ((req.context?.defensesThisTurn ?? 0) >= 1 && !noCrowd) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
-  if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
+  const aware = awarenessMod(A, req.context?.defenderUnaware ? 'unaware' : req.context?.defenderSuspicious ? 'suspicious' : undefined);
+  if (aware) dm.push(aware);
   dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)
   dm.push(...defenseOwnMods(state, D, type, ranged));
   dm.push(...(req.context?.defenderMods ?? []));

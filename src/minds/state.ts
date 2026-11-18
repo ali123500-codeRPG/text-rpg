@@ -271,7 +271,8 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const mine = (sk: string, sense: Sense, a?: Actor) => hiderRoll(state, s, sk, sense, still, a);
   const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone, s);
   // VS5: slipping away from a foe that is fighting you within VANISH_NEAR_M is harder (by distance, not weapon reach)
-  const near = (a: Actor) => fightingWith(state, a, s) && withinM(distM(state, from, a), CONFIG.VANISH_NEAR_M);
+  // LG15 In the Thick of It (Vanishing 40): not for its owner
+  const near = (a: Actor) => !hasPerk(s, PK.thick_of_it) && fightingWith(state, a, s) && withinM(distM(state, from, a), CONFIG.VANISH_NEAR_M);
   // one contest per observer per turn (ST4): later events of the turn are not tested again. BG-263: a shot (any attack while
   // stealthy) keeps its own contest, so a step earlier in the turn never stands in for its Combat Stealth roll; the shot's
   // contest still counts for the turn's later events. VS3: Strike and Fade's roll is its own too.

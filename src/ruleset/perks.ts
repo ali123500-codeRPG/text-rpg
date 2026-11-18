@@ -32,6 +32,8 @@ const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
 export const perkSum = (a: Actor, key: 'hearingDb' | 'throwReach') => owned(a).reduce((n, p) => n + (getLibrary().perks[p.perkId]?.[key] ?? 0), 0);
 /** the actor owns this perk and it is not dormant: every coded perk checks this */
 export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks.some((p) => p.perkId === perkId && !p.dormant);
+/** LG8 Deep Reserves (Resolve 40): how many times Endurance, Stamina and Resolve count toward health, stamina and morale */
+export const reservesMult = (a: Actor): number => (hasPerk(a, PK.deep_reserves) ? CONFIG.DEEP_RESERVES_MULT : 1);
 
 /** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it.
  * `does` tells the Parser what the move looks like in the player's words, so it is found without its name */
@@ -46,6 +48,8 @@ export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number;
   [PK.draw_them_in]: { free: true, perEngagement: 1, untargeted: true, does: 'show a false opening to lure foes in (drop your guard, step into the open, turn as if to look away)' },
   // TC44 a: the turn's main action, open the turn a blow leaves you Wounded or worse (not Down) and the next
   [PK.play_dead]: { free: false, untargeted: true, does: 'drop as if knocked out or dead after a bad blow, and lie still' },
+  // LG7 Grit Your Teeth (Resolve 20): steadying yourself as a free move (its cooldown and risk stay)
+  [PK.grit_your_teeth]: { free: true, untargeted: true, does: 'steady yourself without stopping (a slow breath, a clenched jaw, a word to yourself)' },
   [PK.bluff]: { free: true, perEngagement: 1, perFoe: true, does: 'a quick lie or false warning at a foe, to make it look away or hesitate ("Behind you!", "Your boot\'s untied", pointing at nothing)' },
 };
 /** the perk moves an actor owns (shown to the Parser and in Commands) */

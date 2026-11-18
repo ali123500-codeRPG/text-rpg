@@ -179,7 +179,10 @@ const DEFAULTS = {
     noEssentialFrom: Record<DefenseKind, number>; nonEssentialOnlyFrom: Record<'block' | 'parry', number> },
   DODGE_VS_MISSILE: 10,
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
-  UNAWARE_MOD: -10, // Q2 (D-76)
+  /** LG11: a defense roll's modifier by the defender's awareness of the attacker, read by step: aware 0, suspicious
+   * AWARENESS_STEP.suspicious, unaware AWARENESS_STEP.unaware (Q2, D-76: −10 when unaware); Unseen Strike moves both one step on */
+  AWARENESS_DEFENSE: [0, -10, -20],
+  AWARENESS_STEP: { suspicious: 0, unaware: 1 } as Record<'suspicious' | 'unaware', number>,
   INIT_UNAWARE: 0, // Q2: unaware actors act last
   /** AT11: the skill at which an Action times row (or a reaction) takes its listed seconds; faster above, slower below */
   ACTION_SPEED_PIVOT: 50,
@@ -321,6 +324,7 @@ const DEFAULTS = {
   SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, finish: 65, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
   /** AD9: the morale level from which steadying is suggested in a fight, and the health level from which treating wounds is */
   SUGGEST_STEADY_FROM: 'rattled' as import('./scales').MoraleLevel,
+  GRIT_AUTO_FROM: 'rattled' as import('./scales').MoraleLevel, // LG7 Grit Your Teeth: the owner steadies itself at once, once a fight, at this morale level or worse
   SUGGEST_HEAL_FROM: 'hurt' as import('./scales').HealthLevelKey,
   /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
   TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
@@ -413,6 +417,9 @@ const DEFAULTS = {
   HIGH_PERK_SPREAD: 0.01,
   /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
   CATNAP_SLEEP_HOURS: 1, // SS1 Catnap: a full rest clears the sleep debt this many hours of sleep would
+  DEEP_RESERVES_MULT: 1.2, // LG8 Deep Reserves (Resolve 40): Endurance, Stamina and Resolve count this many times toward health, stamina and morale
+  FEAR_BITES_MULT: 1.2, // LG12 Fear Bites Deeper (Intimidation 40): morale the owner makes others lose
+  DEEPER_SOAK_MULT: 1.5, // LG18 Deeper Soak (Heavy Armor 40): worn heavy armor's flat soak
   DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
   SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)
   BOTTOMLESS_STRAIN: 0.5, // SS6 Bottomless: every strain cost the owner pays is × this

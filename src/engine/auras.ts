@@ -52,7 +52,9 @@ export function projectedReachM(owner: Actor): number {
 }
 
 export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };
-export type AuraFear = (a: Actor, id: string, gap?: number, overwhelm?: boolean) => void;
+export type AuraFear = (a: Actor, id: string, gap?: number, overwhelm?: boolean, mult?: number) => void;
+/** LG12 Fear Bites Deeper (Intimidation 40): morale the owner makes others lose is ×FEAR_BITES_MULT */
+export const fearMult = (owner: Actor): number => (hasPerk(owner, PK.fear_bites_deeper) ? CONFIG.FEAR_BITES_MULT : 1);
 
 /** MR2–MR4 Overwhelm (Resolve 100): any of the owner's auras that wins by OVERWHELM_TIERS or more against a target whose
  * max morale is at most OVERWHELM_MORALE_SHARE of the owner's breaks the target at once, and it surrenders */
@@ -82,7 +84,7 @@ export function engagementAuras(state: GameState, rng: Rng, fear: AuraFear): Aur
         (t.auraChecks ??= []).push(key(aura, owner));
         const { contest, took, ow } = auraContest(state, owner, t, aura.skill, rng);
         if (took && aura.shaken) applySpeech(owner, t, 'intimidate', contest); // I6: the bigger Shaken stands
-        if (took) fear(t, aura.fear, contest.gap, ow);
+        if (took) fear(t, aura.fear, contest.gap, ow, fearMult(owner));
         out.push({ owner, target: t, aura, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
       }
     }
@@ -103,7 +105,7 @@ export function sightDread(state: GameState, fear: AuraFear): { owner: Actor; ta
         if (t === owner || !isActive(t) || t.sightChecks?.includes(k) || (!!t.bandId && t.bandId === owner.bandId)) continue;
         if (probe(state, t, owner, 'silent', 'normal')?.cue !== 'sight') continue;
         (t.sightChecks ??= []).push(k);
-        fear(t, d.onSight!.fear);
+        fear(t, d.onSight!.fear, undefined, undefined, fearMult(owner));
         out.push({ owner, target: t, perk: d.id });
       }
     }
@@ -191,7 +193,7 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
     if (!projectedReaches(state, owner, ev, t)) continue;
     if (wary(state, t, owner)) {
       const { contest, took, ow } = auraContest(state, owner, t, SK.intimidation, rng);
-      if (took) fear(t, FR.battle_cry, contest.gap, ow);
+      if (took) fear(t, FR.battle_cry, contest.gap, ow, fearMult(owner));
       out.push({ target: t, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
     } else if (cryAlly(state, t, owner)) {
       rally(state, t, owner, SK.intimidation, rng);

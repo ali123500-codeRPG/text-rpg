@@ -104,6 +104,7 @@ export type AttackRequest = {
   /** situational context computed by the engine */
   context?: {
     defenderUnaware?: boolean; // ambush surprise: unaware modifier on the defense
+    defenderSuspicious?: boolean; // LG11: the defender only suspects the attacker (matters with Unseen Strike)
     helpless?: 'down' | 'asleep' | 'held'; // BG-207 (BF30): the defender can't defend: its defense roll fails outright (Critical Failure, no dice)
     defensesThisTurn?: number; // defenses the target already made this turn (outnumbered)
     attackerMods?: Mod[];
