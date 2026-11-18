@@ -762,11 +762,18 @@ Code checks the combat list top to bottom; the first rule that matches gives the
 4. **Search:** it is already in that zone and no hostile actor is there. It searches by the player's rule (Explore mode, Searching).
 5. **Hold.**
 
+**Skilled rows (D-17, Tactics tree, TC17-TC23).** Between rule 1 and rule 2 sit the rows of the library table FIGHT\_RULES (src/library/fightRules.ts), checked in table order (TC21 a, set by hand). A row may fire when the actor's value for its skill reaches the row's minimum: its own skill, or the best Command of a bandmate whose shouted words it hears clearly, whichever is higher (TC7 a). What a row needs comes from what it perceives (TacticsView, src/views/tactics.ts; given only to the combat list, never to its Planner). Built rows (Battle Sense; minimums are placeholders):
+- **B1 Call for help** (20): its fight has more foes than its side (anyone not hostile to it who fights one of its foes); it calls for help, once a fight.
+- **B2 Gang up** (35): an ally fights a foe within one move (slotMetres) of it; it attacks that foe.
+- **B4 Back off when hurt** (65): Wounded or worse and outnumbered, with a bandmate in sight who is not fighting; it walks to that bandmate instead of attacking.
+- **B5 Finish the hurt one** (75): it faces two or more foes and one looks hurt (others' health shows from HEALTH\_SHOWN\_FROM down); it attacks the one that looks most hurt.
+B3 (defense fits the foe) is open: a Parry defender facing a missile already uses its best usable defense. The Fieldcraft and Stratagem rows come next.
+
 Like every code mind, it reads only its ActorView. The rng pick uses the turn's seeded rng, so replay stays exact. Its orders carry source 'fallback'.
 
 **Per-type data.** Each body type, or the NPC template when it sets one, names fallback.attackSkill, used when the actor holds no weapon (one rule, ruleset fallbackAttackSkill, also used for the ambush roll and shown to its Planner). Slime: unarmed\_natural; slimes have only the general area, so targetPart is always null.
 
-The rule order is fixed in code for the prototype. Each rule is its own small check, so a per-type, data-driven rule order can replace the fixed one later (D-17). tactics does not change the list yet (D-17).
+Rules 1 to 5 stay fixed in code; the skilled rows between them are data (FIGHT\_RULES, D-17).
 
 ### Agent Parser
 

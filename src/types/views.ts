@@ -166,6 +166,12 @@ export type JobView = { id: string; text: string; state: string; giver?: string;
 /** T4/T5: the day number and time of day; never minutes */
 export type TimeView = { day: number; timeOfDay: string };
 
+/** D-17: what a code-run NPC's fight rows need, built from what it perceives (src/views/tactics.ts). rows: the FIGHT_RULES
+ * ids it may use; outnumbered: its fight has more foes than its side; calledHelp: it called for help this fight (B1);
+ * allyFoe: a foe an ally is fighting within one move of it (B2); freeAlly: a bandmate in sight who is not fighting (B4);
+ * hurtFoe: the foe in its fight that looks the most hurt, when it faces two or more (B5) */
+export type TacticsView = { rows: string[]; outnumbered?: true; calledHelp?: true; allyFoe?: ActorId; freeAlly?: { id: ActorId; zone: string }; hurtFoe?: ActorId };
+
 export type ActorView = {
   turn: number;
   time: TimeView;
@@ -227,6 +233,7 @@ export type ActorView = {
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
   jobs?: JobView[]; // QT5: the player's jobs from it or sending the player to it
+  tactics?: TacticsView; // D-17: set only for the code-run fight list (views/tactics.ts withTactics), never for an agent
 };
 
 // ---------- OppositionView: Agent Planner and Responder ----------

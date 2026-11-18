@@ -12,6 +12,7 @@ import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
 import { M_EPS, distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
 import { canSpeak } from '../ruleset/body';
+import { withTactics } from '../views/tactics';
 
 /** FR4: the one approach table: what each action needs of the actor's distance to its target, for every actor, player
  * or NPC. voice: the target hears it clearly (words, an order called out: BG-74, BG-78); approachMove plans the step up
@@ -194,7 +195,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     const a = actorById(state, id)!;
     // BF11: one staying where its own agent took it holds there instead of walking its routine
     const watch = isEngaged(state, a) ? undefined : suspicionOrder(state, a, v); // GD3: a code-run guard keeps close to someone it suspects
-    out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
+    out.set(id, isEngaged(state, a) ? fallbackOrder(withTactics(state, a, v), rng) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
   }
   // BF37/BF79: a broken nerve takes away any attack or perk move (and a walk toward a foe, where it runs); with nothing
   // allowed left the actor flees, or cowers when cornered or at Cowering

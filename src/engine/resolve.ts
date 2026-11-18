@@ -31,6 +31,7 @@ import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView, seesClearlyNow } from '../views';
+import { withTactics } from '../views/tactics';
 import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenHolds, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -675,7 +676,7 @@ function dropped(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   logCode(state, 'order_dropped', { actorId: a.id, type: o.type, target: o.target });
   if (a.kind === 'npc' && o.source !== 'fallback' && isEngaged(state, a)) {
-    const f = fallbackOrder(buildActorView(state, a.id), ctx.rng);
+    const f = fallbackOrder(withTactics(state, a, buildActorView(state, a.id)), ctx.rng);
     const near = reachOf(state, a, f); // TP2: the move time left closes in on the new target, as any blow's would (ZP3)
     if (near && !near.ok()) closeInOn(ctx, a, f, near);
     if (f.type === 'attack' && near && !near.ok() && runOn(ctx, a, f, near)) { const line = f.line ?? o.line; if (line) hold(ctx, a, { ...f, line }); return; } // BG-255: words said where the run ends
@@ -1878,6 +1879,7 @@ function step(ctx: Ctx, id: string): void {
   ctx.acted.add(id);
   const o = ctx.orders.get(id)!;
   if (o.defense) a.core.standingDefense = o.defense;
+  if (o.rule && a.mind) (a.mind.rowsUsed ??= {})[o.rule] = state.turn; // D-17: a fight row used (B1 calls for help once a fight)
   // FR2: a pick-up out of grip reach waits for the walk over to it (closeIn); the rest are free, before the action
   const later = (o.gear ?? []).filter((op) => op.op === 'pick_up' && !reachable(state, a, op));
   const gearNow = (o.gear ?? []).filter((op) => !later.includes(op));

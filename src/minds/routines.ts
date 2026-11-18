@@ -3,7 +3,9 @@ import type { ActorView, MapZone, Order, OrderTemplate, Routine, Rng } from '../
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
-import { AWARENESS, type TimeOfDay } from '../scales';
+import { AWARENESS, HEALTH_LEVELS, type TimeOfDay } from '../scales';
+import { FIGHT_RULES } from '../library/fightRules';
+import { FX } from '../library/tableIds';
 import { routine as getRoutine } from '../library';
 
 /** BG-34: the follow routine any NPC may switch to when it agrees to come along with the player, whatever its set */
@@ -231,6 +233,26 @@ export function brokenOrder(view: ActorView): Order {
   return view.self.surrendered ? order(view, 'hold', 'broken', 'hold') : fleeOrder(view, 'broken');
 }
 
+/** D-17 (TC17, TC23): the first FIGHT_RULES row the NPC may use whose situation holds, as an order; null when none fires.
+ * B4 counts Wounded or worse as hurt. */
+export function tacticsOrder(view: ActorView): Order | null {
+  const t = view.tactics;
+  if (!t) return null;
+  const s = view.self;
+  const strike = (target: string, rule: string) => order(view, 'attack', 'fallback', 'attack', { target, skill: s.attackSkill, targetPart: null, aimed: false, rule });
+  for (const r of FIGHT_RULES) {
+    if (!t.rows.includes(r.id)) continue;
+    if (r.id === FX.call_help && t.outnumbered && !t.calledHelp) return order(view, 'call_help', 'fallback', 'call for help', { rule: r.id });
+    if (r.id === FX.gang_up && t.allyFoe) return strike(t.allyFoe, r.id);
+    if (r.id === FX.back_off && t.outnumbered && t.freeAlly && HEALTH_LEVELS.pos(s.health) >= HEALTH_LEVELS.pos('wounded'))
+      return order(view, 'idle', 'fallback', `back off toward ${t.freeAlly.id}`, { move: t.freeAlly.zone, moveSpot: { near: t.freeAlly.id }, rule: r.id });
+    if (r.id === FX.finish_hurt && t.hurtFoe) return strike(t.hurtFoe, r.id);
+  }
+  return null;
+}
+
+/** the code-run fight list: broken first, then the NPC's skilled rows (D-17, tacticsOrder), then attack, close in,
+ * search and hold */
 export function fallbackOrder(view: ActorView, rng: Rng): Order {
   const s = view.self;
   // 1. Broken: flee, or cower when cornered (BF79); surrendered: hold
@@ -238,6 +260,8 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
   if (s.broken) return fleeOrder(view, 'fallback');
   // ZR12: a code-run pursuer at the end of its near chase range turns back
   if (s.atChaseLine && hostileBeliefs(view).some((b) => !b.lost)) return routineOrder(view);
+  const row = tacticsOrder(view);
+  if (row) return row;
   // 2. Attack
   const here = view.beliefs
     .filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
