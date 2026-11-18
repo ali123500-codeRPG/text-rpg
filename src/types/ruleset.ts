@@ -174,6 +174,7 @@ export type Order = {
   jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
   way?: { toZone: string; op: import('../engine/barriers').WayOp }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
+  warn?: string; // WN1/WN6 a: a warning shouted (or cried) about this foe, beside the action, at no time (engine/warnings.ts)
   targetPart?: string | null;
   aimed?: boolean;
   defense?: DefenseKind | null;

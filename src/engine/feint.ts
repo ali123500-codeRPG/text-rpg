@@ -19,7 +19,7 @@ export const fooledByFeint = (state: GameState, x: Actor, a: Actor | undefined):
 export function startFeint(state: GameState, a: Actor, rng: Rng): Effect[] {
   a.feint = { at: now(state), believers: [] };
   return watchers(state, a).map((x) => {
-    const fooled = bodyLie(state, a, x, rng);
+    const fooled = bodyLie(state, a, x, rng, 'feint');
     if (fooled) a.feint!.believers.push(x.id);
     return { kind: fooled ? 'feint_fooled' : 'feint_seen_through', actorId: x.id, data: { by: a.id } };
   });

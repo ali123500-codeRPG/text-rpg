@@ -49,7 +49,7 @@ export const DECK_KINDS = ['attack', 'finish', 'restrain', 'steady', 'yield', 's
   'barter', 'demand', 'give', 'take', 'buy', 'sell', 'show', 'lets_search', 'go', 'walk_up', 'back_away', 'follow', 'jump', 'stop',
   'keep_walking', 'way', 'sneak', 'filch', 'stash', 'look', 'look_at', 'listen', 'search', 'use_item', 'equip', 'draw',
   'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'set_down', 'summon', 'loot', 'open', 'break', 'pick', 'wait', 'rest',
-  'sleep', 'perk'] as const;
+  'sleep', 'perk', 'warn'] as const;
 export type DeckKind = (typeof DECK_KINDS)[number];
 /** Parser actions with no entry, and why */
 export const DECK_LEFT_OUT: Record<string, string> = {
@@ -286,6 +286,11 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     add('rest', 'use', 'Rest', [], () => order('Rest a while', { action: act('rest') }), { note: 'a short rest', ...(since < CONFIG.REST_COOLDOWN_MIN ? { limit: waiting(since, CONFIG.REST_COOLDOWN_MIN, 'min') } : {}) });
     add('sleep', 'use', 'Sleep', [], () => order('Sleep', { action: act('sleep') }));
   }
+
+  // ---- WN9 a: warn your side about a trick you saw through, or someone hidden you see (a free shout beside the turn) ----
+  const warnable = pv.player.warnable ?? [];
+  if (warnable.length) add('warn', 'talk', 'Warn your side', [who('Warn them about whom?', seen.filter((a) => warnable.some((w) => w.id === a.id)))],
+    (c) => order(`Warn your side about ${them(c)}`, { warn: c.target! }), { note: 'free · a shout' });
 
   // ---- Perks (AE5/AE8: perk moves; a free one goes beside the turn, an action one is the turn) ----
   for (const m of pv.player.perkMoves ?? []) {

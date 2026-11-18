@@ -130,6 +130,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     gearErrors.push(`perkMove ${out.perkMove.perk}`);
     out.perkMove = null;
   }
+  // WN9 a: a warning about a foe the player can't warn about now (not in player.warnable) is dropped
+  if (out.warn && !view.player.warnable?.some((w) => w.id === out.warn)) { gearErrors.push(`warn ${out.warn}`); out.warn = null; }
   if (out.addressees) {
     const okAddr = (x: string) => x === 'everyone' || talking.has(x) || bandIds.includes(x);
     for (const x of out.addressees) if (!okAddr(x)) illegal.push(`addressee ${x}`);

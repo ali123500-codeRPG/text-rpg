@@ -69,6 +69,11 @@ export function drawIn(state: GameState, owner: Actor, x: Actor): void {
 export const drawnTo = (state: GameState, x: Actor): string | undefined => x.perkMarks?.find((m) => m.perk === DRAWN && live(state, m))?.target;
 /** the drawn foe has spent its turn coming at the owner */
 export const spendDrawn = (x: Actor): void => drop(x, (m) => m.perk === DRAWN);
+/** WN13 a: x saw through the false opening after all: it is not drawn, and the owner has no opening on it */
+export function undraw(owner: Actor, x: Actor): void {
+  spendDrawn(x);
+  drop(owner, (m) => m.perk === PK.draw_them_in && m.target === x.id);
+}
 
 /** TC30 a Hug the Cover: the owner's first ranged attack taken this turn (the mark says one was already taken) */
 export const hugReady = (state: GameState, D: Actor): boolean => hasPerk(D, PK.hug_the_cover) && !D.perkMarks?.some((m) => m.perk === PK.hug_the_cover && m.made === state.turn);
@@ -77,6 +82,8 @@ export const hugReady = (state: GameState, D: Actor): boolean => hasPerk(D, PK.h
 export const bluffed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.bluff && m.made !== undefined && live(state, m));
 /** AT60: the hesitation is spent once waited out */
 export const spendBluff = (a: Actor): void => drop(a, (m) => m.perk === PK.bluff);
+/** WN13 a: x still hesitates at `by`'s bluff */
+export const bluffedBy = (state: GameState, x: Actor, by: string): boolean => !!x.perkMarks?.some((m) => m.perk === PK.bluff && m.target === by && m.made !== undefined && live(state, m));
 /** Dirt in the Eyes is spoiling this actor's sight right now */
 const blinded = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.dirt_in_the_eyes && live(state, m));
 /** LR3 Blind Spot: the owner may Melt Away with no cover or shade while a foe's sight is spoiled by Dirt in the Eyes */
@@ -86,8 +93,8 @@ export const blindSpotNow = (state: GameState, a: Actor): boolean =>
 export const slowed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.leg_bolt && live(state, m));
 
 /** a mark that runs out PERK_MARK_ROUNDS rounds from now (AT74) */
-export function markForRounds(state: GameState, a: Actor, perk: string): void {
-  add(a, { perk, made: state.turn });
+export function markForRounds(state: GameState, a: Actor, perk: string, by?: string): void {
+  add(a, { perk, made: state.turn, ...(by ? { target: by } : {}) }); // by: who left it (Bluff: who bluffed, WN13)
 }
 
 /** x counts A as a friend: its own stance, or for the player (who holds no stances) A's stance toward it */

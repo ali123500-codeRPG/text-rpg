@@ -46,6 +46,8 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, hasFreeGrip, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { TRICK, sawThrough, warnedShift } from './ruses';
+import { giveWarning, warnEvent, warnedChecks } from './warnings';
 import { actorById, allActors, atLeast, countsInFight, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -87,7 +89,7 @@ import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], play_dead: ['quiet', 'normal'], feint: ['quiet', 'normal'], body_checked: ['silent', 'low'], alarm: ['deafening', 'high'],
+  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], play_dead: ['quiet', 'normal'], feint: ['quiet', 'normal'], body_checked: ['silent', 'low'], warn: ['loud', 'normal'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
   way: ['quiet', 'normal'], pick: ['hushed', 'slight'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper, made out only up close (Slight)
   stash: ['hushed', 'low'], // SE9: tucking something away
@@ -1892,7 +1894,7 @@ function step(ctx: Ctx, id: string): void {
   ctx.acted.add(id);
   const o = ctx.orders.get(id)!;
   // TC32 a: lying still is a hold with no move, words, gear or way; anything else gets the owner up, for every foe
-  if (a.playingDead && !(o.type === 'hold' && !o.move && !o.line && !o.gear?.length && !o.perkMove && !o.way)) {
+  if (a.playingDead && !(o.type === 'hold' && !o.move && !o.line && !o.gear?.length && !o.perkMove && !o.way && !o.warn)) {
     ctx.risen.set(id, endPlayDead(a));
     emit(ctx, mk(ctx, a, 'perk_move', { effects: [{ kind: 'play_dead_ends', actorId: a.id, data: { why: 'acts' } }] }));
   }
@@ -1983,6 +1985,7 @@ function step(ctx: Ctx, id: string): void {
     }
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
+  if (o.warn) doWarn(ctx, a, o.warn);
   // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting); BG-253: nor
   // after words said at the turn's start
   const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > M_EPS);
@@ -2232,6 +2235,14 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
 }
 
+/** WN1-WN9: a warning shouted (or cried) about a foe, beside the action, at no time (WN6 a); its allies take it in */
+function doWarn(ctx: Ctx, a: Actor, about: string): void {
+  if (!actorById(ctx.state, about)) return logCode(ctx.state, 'warn_dropped', { actorId: a.id, about });
+  const ev = mk(ctx, a, 'warn', { target: about, ...warnEvent(ctx.state, a, about) });
+  emit(ctx, ev);
+  ev.effects.push(...giveWarning(ctx.state, a, about, ev));
+}
+
 /** TC44 a Play Dead (Guile 20): the turn's main action; the owner drops as if Down and each foe that sees it clearly rolls */
 function doPlayDead(ctx: Ctx, a: Actor): void {
   useMain(ctx, a, { row: actionRow(DU.play_dead) });
@@ -2251,12 +2262,13 @@ function doDrawThemIn(ctx: Ctx, a: Actor): void {
   const watchers = allActors(state).filter((x) => x !== a && !!x.mind && countsInFight(x) && (foe(state, x, a) || foe(state, a, x)) && seesClearlyNow(state, x, a.id))
     .sort((x, y) => x.id.localeCompare(y.id));
   for (const x of watchers) {
-    const c = ruleset.contested(req(a.id, SK.stratagem), req(x.id, SK.insight), state, rng);
+    const c = ruleset.contested(req(a.id, SK.stratagem), { ...req(x.id, SK.insight), tierShifts: warnedShift(x, a.id, TRICK.draw_them_in) }, state, rng); // WN11
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c);
     markUse(state, x, c.b.skill, c);
     const drawn = c.winner !== 'b'; // the foe must win outright to see through it
     if (drawn) drawIn(state, a, x);
+    else sawThrough(state, x, a, TRICK.draw_them_in); // WN11, WN8
     ev.effects.push({ kind: drawn ? 'drawn_in' : 'draw_seen_through', actorId: x.id, data: { by: a.id, perk: PK.draw_them_in } });
   }
   emit(ctx, ev);
@@ -2437,7 +2449,7 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
   if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';
   if (npc && r?.kind === 'follow' && a.bandId === state.player.bandId) a.posture = state.player.posture ?? 'open';
-  if (o.line ? o.line.volume !== 'whisper' : isSpeech(o.type)) a.posture = 'open'; // BG-202: a whisper keeps you stealthy, whatever action carries it
+  if (o.warn || (o.line ? o.line.volume !== 'whisper' : isSpeech(o.type))) a.posture = 'open'; // WN6 a: a warning is a shout or a cry // BG-202: a whisper keeps you stealthy, whatever action carries it
   if (!npc || a.posture === was) return;
   if (a.posture === 'stealthy') stealthStart(state, a);
   else stealthEnd(state, a);
@@ -2716,6 +2728,12 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const c of playDeadChecks(state, rng)) for (const f of c.effects) {
     const x = actorById(state, f.actorId)!;
     const ev = mk(ctx, x, 'body_checked', { target: c.owner.id, effects: [f] });
+    ev.perception = computePerception(ev, state, rng);
+    emit(ctx, ev);
+  }
+  // WN3 a, WN13 a: a believer that learned the trick this turn looks again, knowing it
+  for (const w of warnedChecks(state, rng)) {
+    const ev = mk(ctx, w.x, 'body_checked', { target: w.owner.id, effects: [w.effect] });
     ev.perception = computePerception(ev, state, rng);
     emit(ctx, ev);
   }

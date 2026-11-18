@@ -16,6 +16,7 @@ import { contestFeat } from './feats';
 import { answerRoll, answerSkill } from './speech';
 import { withinGrip } from './position';
 import { seesClearlyNow } from '../views';
+import { sawThrough, warnedShift, type Trick } from './ruses';
 
 /** TC44 a: a blow left it Wounded or worse but not Down: the move opens for this turn and the next */
 export function openPlayDead(state: GameState, a: Actor): void {
@@ -34,23 +35,28 @@ export const watchers = (state: GameState, a: Actor): Actor[] => allActors(state
   .sort((x, y) => x.id.localeCompare(y.id));
 
 /** a lie told with the body (Play Dead, S3 feigned flight): the owner's Guile against the foe's answer to a lie; the foe
- * must win outright to see through it. True: the foe is fooled */
-export function bodyLie(state: GameState, a: Actor, x: Actor, rng: Rng): boolean {
-  const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.guile, modifiers: [], tierShifts: [], against: x.id, contest: true }, state, rng), answerRoll(state, x, answerSkill('deceive'), a.id, rng));
+ * must win outright to see through it, WARNED_SHIFT tiers better if it knows the trick (WN3, WN11). One that sees through
+ * knows it from now on, and on its own look (`own`) may warn its allies (WN8). True: the foe is fooled */
+export function bodyLie(state: GameState, a: Actor, x: Actor, rng: Rng, t: Trick, own = true): boolean {
+  const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.guile, modifiers: [], tierShifts: [], against: x.id, contest: true }, state, rng), answerRoll(state, x, answerSkill('deceive'), a.id, rng, warnedShift(x, a.id, t)));
   markUse(state, a, c.a.skill, c);
   contestFeat(state, c);
   markUse(state, x, c.b.skill, c);
+  if (c.winner === 'b') sawThrough(state, x, a, t, own);
   return c.winner !== 'b';
 }
 
 /** one foe's roll against the act */
-function judge(state: GameState, a: Actor, x: Actor, rng: Rng): Effect {
+function judge(state: GameState, a: Actor, x: Actor, rng: Rng, own = true): Effect {
   const pd = a.playingDead!;
-  const fooled = bodyLie(state, a, x, rng);
+  const fooled = bodyLie(state, a, x, rng, 'play_dead', own);
   if (!pd.judged.includes(x.id)) pd.judged = [...pd.judged, x.id].sort();
   pd.believers = fooled ? [...new Set([...pd.believers, x.id])].sort() : pd.believers.filter((id) => id !== x.id);
   return { kind: fooled ? 'play_dead_fooled' : 'play_dead_seen_through', actorId: x.id, data: { by: a.id, perk: PK.play_dead } };
 }
+
+/** WN3 a: a believer that was warned looks again, knowing the trick (not news of its own to pass on) */
+export const rejudgePlayDead = (state: GameState, a: Actor, x: Actor, rng: Rng): Effect => judge(state, a, x, rng, false);
 
 /** the owner drops: every foe that sees it clearly rolls */
 export function startPlayDead(state: GameState, a: Actor, rng: Rng): Effect[] {

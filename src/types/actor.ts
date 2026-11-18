@@ -255,6 +255,11 @@ export type Mind = {
   stay?: { zone: string; since: number }; // BF11: a place its own agent moved it to holds AGENT_STAY_S from this turn
   startled?: number; // BF65: the turn it was struck unseen, saw someone struck, or found a body: it gets a Planner call to react
   bodiesFound?: string[]; // BF65: the bodies it has come upon or seen fall (each found once)
+  /** WN8 a: what it saw through or spotted itself, still to warn its allies of (engine/warnings.ts), and the warnings given (about:trick -> the turn) */
+  toWarn?: { about: ActorId; trick: string }[];
+  warned?: Record<string, number>;
+  /** WN4 b: a hidden foe an ally pointed out, and when: its next notice or search roll at it is easier */
+  pointed?: Record<ActorId, number>;
   rowsUsed?: Record<string, number>; // D-17: the turn each FIGHT_RULES row (FX id) last gave its order; one used since its engagement began counts as used this fight
   lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, until it does that kind of thing
   errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
@@ -366,6 +371,10 @@ export type Journal = {
   lastSpot?: Record<ActorId, { x: number; y: number }>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
+  /** WN2/WN11: the tricks the player saw through or was warned of, by whose (engine/warnings.ts); as NPCs' ruse facts */
+  ruses?: Record<ActorId, string[]>;
+  /** WN4 b: a foe an ally pointed out while hidden, and when: the player's next notice or search roll at it is easier */
+  pointed?: Record<ActorId, Turn>;
   /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */
   trail?: { zone: string; left: Turn }[];
   /** the Map page: every zone the player has stood in or seen across a sight link, oldest first */

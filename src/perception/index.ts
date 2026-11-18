@@ -12,6 +12,7 @@ import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
+import { RUSE, queueLearned } from '../engine/ruses';
 import { FN } from '../library/functionIds';
 import { recordMadeOut } from './madeOut';
 import { SK } from '../library/skillIds';
@@ -27,7 +28,7 @@ export type BeliefUpdate =
 
 /** communication events copy the sender's beliefs (Information model); barks never do */
 export const isComm = (e: GameEvent) =>
-  !e.bark && (['call_help', 'alarm', 'report'].includes(e.kind) || (['speak', 'talk'].includes(e.kind) && !!e.line));
+  !e.bark && (['call_help', 'alarm', 'report'].includes(e.kind) || (['speak', 'talk', 'warn'].includes(e.kind) && !!e.line)); // WN2: a warning in words
 
 type Seen = { level: Perception; cue: Cue; heard?: true };
 /** BG-59: a bark is a line said beside a deed. Only a bark that is nothing but words is left out of NPC views and history;
@@ -325,9 +326,12 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     }
     if (isComm(e) && sender.mind && hearsWords(p)) {
       for (const [about, sb] of Object.entries(sender.mind.knowledge)) {
-        if (about === o.id || sb.status === 'unaware') continue;
+        if (about === o.id || (sb.status === 'unaware' && !sb.revealed?.length)) continue;
         const mine = o.mind.knowledge[about];
-        if (atLeast(mine?.status, 'aware')) continue; // own sight beats hearsay
+        // WN2 a: revealed facts always pass on, even to one that sees the person; a trick newly learned is looked at again
+        const fresh = (sb.revealed ?? []).filter((f) => !mine?.revealed?.includes(f));
+        for (const f of fresh) if (f.startsWith(RUSE)) queueLearned(state, o.id, about, f);
+        if (atLeast(mine?.status, 'aware') || sb.status === 'unaware') { if (fresh.length) write(o, about, { revealed: fresh }); continue; } // own sight beats hearsay
         write(o, about, {
           status: raise(mine?.status, 'suspicious'), // told is capped at suspicious
           source: 'told', lastKnownZone: sb.lastKnownZone, lastSeenTurn: sb.lastSeenTurn, revealed: sb.revealed,
