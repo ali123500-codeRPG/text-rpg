@@ -13,6 +13,7 @@ import { freeGrips } from '../ruleset/body';
 import { actorById, isActive, wary } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markForRounds } from './perkMarks';
+import { playDeadOpen } from './playDead';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
@@ -46,6 +47,7 @@ export function countPerkMove(state: GameState, a: Actor, perk: string, targetId
 export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId: string | null): string | null {
   const def = PERK_MOVES[perk];
   if (!def || !hasPerk(a, perk)) return 'not_owned';
+  if (perk === PK.play_dead && !playDeadOpen(state, a)) return a.playingDead ? 'already_down' : 'not_now'; // TC44 a
   if (def.untargeted) return def.perEngagement && a.engagement && !usableThisEngagement(a, perk, def.perEngagement) ? 'used_this_engagement' : null;
   const t = targetId ? actorById(state, targetId) : undefined;
   if (!t || t === a || !isActive(t) || !inRange(state, a, t, perk)) return 'no_target';
