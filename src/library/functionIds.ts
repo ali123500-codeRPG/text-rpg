@@ -16,3 +16,8 @@ export const FN = {
 export const GR = {
   melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7', speed: 'GR8', will: 'GR9', aura: 'GR10', sleight: 'GR11', stamina: 'GR12', medicine: 'GR13', tactics: 'GR14',
 } as const;
+/** compound ratings (GR10, GR36): rows that pool several skill groups into one rating (CONFIG.RATINGS). Prefix RT. */
+export const RT = {
+  melee_strength: 'RT1', ranged_strength: 'RT2', toughness: 'RT3', agility: 'RT4', presence: 'RT5', senses: 'RT6',
+} as const;
+export type RatingId = (typeof RT)[keyof typeof RT];

@@ -263,6 +263,10 @@ export function rangeMod(dist: number, reach: number): number {
   return CONFIG.RANGE_SHARE_MODS.find(([share]) => dist / reach <= share)?.[1] ?? CONFIG.RANGE_SHARE_MODS.at(-1)![1];
 }
 
+/** a ranged attack's range modifier as a roll modifier (rangeMod), none at 0 */
+export const rangeMods = (far: number): Mod[] => (far ? [{ source: 'range', type: 'situational', value: far }] : []);
+/** RD5, SZ19: a ranged attack with a hostile near the shooter (Point Blank removes it) */
+export const hostileCloseMods = (A: Actor): Mod[] => (CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank) ? [{ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD }] : []);
 /** a mode's weapon class profile (damage, hit), fists' for a mode with none */
 export const modeClass = (mode: AttackMode) => CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
 /** the weapon's own hit modifier: the class hit and the mode's hitAdj, one gear entry at full value (CS2) */
@@ -360,10 +364,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   am.push(...weaponHitMods(mode, name));
   if (ranged) {
     const far = rangeMod(dist / seenSizeFactor(state, A, D), mode.reach); // SZ13: a bigger target is as easy as a person nearer
-    if (far) am.push({ source: 'range', type: 'situational', value: far });
+    am.push(...rangeMods(far));
     // RD5, SZ19: a hostile near enough to strike or grab (a step plus its own melee reach, hostileNearM); either way: the player holds no stances of its own
     const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && withinM(sightDistM(state, A, o), hostileNearM(state, o)));
-    if (crowded && CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD });
+    if (crowded) am.push(...hostileCloseMods(A));
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   // CV6: the target's cover, by what shows of its body: a roll modifier (COVER_HALVING_MOD a halving); CV8 b Past the Cover
