@@ -32,6 +32,8 @@ export const TREE_VIEW: { id: string; c: string }[] = [
 ];
 
 const STEP = 5;
+/** Ctrl+click (Cmd+click on a Mac) on Raise or Lower moves the skill by 1 instead of STEP */
+const stepOf = (e: MouseEvent) => (e.ctrlKey || e.metaKey ? 1 : STEP);
 /** the practice swings behind the "Vs one slime" estimate: the start, and the most and fewest the panel takes */
 const SWINGS = { start: 400, min: 50, max: 5000 };
 
@@ -116,9 +118,9 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         h('div', { class: 'bar' }, h('div', { class: 'tr' }, h('i', { class: 's' }), h('i', { class: 'f' })),
           h('span', { class: 'tk', style: 'left:50%' }), h('span', { class: 'tk cap', style: `left:${cap(k)}%` }), range),
         h('div', { class: 'step' },
-          h('button', { class: 'hs-icon-btn mi', type: 'button', title: `Lower by ${STEP}`, 'aria-label': `Lower ${skillName(k)}`, onclick: () => setVal(k, st.v[k] - STEP) }, '−'),
+          h('button', { class: 'hs-icon-btn mi', type: 'button', title: `Lower by ${STEP} (Ctrl+click: by 1)`, 'aria-label': `Lower ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] - stepOf(e)) }, '−'),
           h('span', { class: 'val hs-num' }),
-          h('button', { class: 'hs-icon-btn pl', type: 'button', title: `Raise by ${STEP}`, 'aria-label': `Raise ${skillName(k)}`, onclick: () => setVal(k, st.v[k] + STEP) }, '+')),
+          h('button', { class: 'hs-icon-btn pl', type: 'button', title: `Raise by ${STEP} (Ctrl+click: by 1)`, 'aria-label': `Raise ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] + stepOf(e)) }, '+')),
         h('div', { class: 'tagc', onclick: (e: Event) => {
           const b = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null;
           if (!b || b.disabled) return;
