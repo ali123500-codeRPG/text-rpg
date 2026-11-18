@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-311
+
+**What was wrong:** A new story on a brand-new world opened on the plain fallback stage instead of the Weaver's planned opening. The story start first asks the World builder to draw the region, then asks the Weaver for the opening plan, and both shared one 2-minute limit, so a slow region call left the Weaver too little time.
+
+**What was done:** The region call now has its own wait (REGION_TIMEOUT_MS, 120 s, placeholder), and the Weaver's 2 minutes start only once the land is drawn.
+
+**Fixed by:** [PR #1064](https://github.com/ali123500-codeRPG/text-rpg/pull/1064)
+
 ## BG-310
 
 **What was wrong:** On the play page the right column hid anything that did not fit, and its minimap was always 360 px tall. On a window shorter than about 1000 px, the Level / XP bar, Coin and the "Skills and full sheet" link at the bottom of the column were cut off.

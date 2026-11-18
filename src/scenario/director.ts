@@ -145,9 +145,9 @@ export class ScenarioDirector {
     this.held.clear();
     const w = this.begin(state, eventRoll);
     // WZ1 + WZ13: the land comes first; the story's first settlement stands on the brief's start site
-    // WEAVER_TIMEOUT bounds the whole scenario-start wait (the region call, the first call and repair together)
+    // BG-311: a new world's first region call has its own wait; WEAVER_TIMEOUT then bounds the first call and repair together
+    if (this.opening) await this.firstRegion(state, this.opts.clock.now() + CONFIG.REGION_TIMEOUT_MS);
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    if (this.opening) await this.firstRegion(state, deadline);
     const { ctx, target } = this.aim(state, eventRoll, w);
     if (ahead) {
       const r = await ahead.result;
