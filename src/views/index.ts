@@ -17,7 +17,7 @@ import type { AttackOutcome, ScenarioFrame, Tier,
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, RANKS, SCENARIO_SCALES, VISIBILITY, type NarrationBand, type VisibilityKey } from '../scales';
-import { timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
+import { isDark, timeView, zoneLight, clockSet, now, timeOfDay, durationText, spanText } from '../time';
 import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
@@ -286,7 +286,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     // Q17/BG-252 (PG11 a): someone the player saw clearly (by distance, a look or a make-out roll) stays seen while they
     // stay put and can still be glimpsed (sight is not null here); anyone made out by sight this turn is seen clearly
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone || madeOutBySight(state, viewer.id, a.id);
-    const dark = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
+    const dark = isDark(zoneLight(state, zoneById(state, a.zone))) && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
     const level = keptSight ? 'full' : sight === 'partial' || dark ? 'partial' : 'full';
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place, ...lying }); continue; }

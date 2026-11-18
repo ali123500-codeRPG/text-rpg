@@ -1264,11 +1264,11 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Night Eyes (Perception, Eyesight) · T5e
 
-*Story:* The dark hides little from you. Light counts one step brighter when you look.
+*Story:* The dark hides little from you. Light counts ten times brighter when you look.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an Eyesight roll.
-- **Effect:** The light there is read one step brighter (dark as dim, dim as bright). The mirror of Child of Night.
+- **Effect:** The light there is read ten times brighter (+5 on the light modifier, never above 0; pitch black stays black). The mirror of Child of Night.
 - **Lasts:** That roll.
 - **Built:** yes
 
@@ -1285,11 +1285,11 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 
 ### Child of Night (Stealth – Conventional, passive) · T6c
 
-*Story:* The dark knows you. Light counts one step darker for all your stealth.
+*Story:* The dark knows you. Light counts ten times darker for all your stealth.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a roll of a stealth skill (Sneaking, Combat Stealth, Vanishing).
-- **Effect:** The light there is read one step darker (bright as dim, dim as dark).
+- **Effect:** The light there is read ten times darker (5 more from the light modifier, from the level where sight starts to fade).
 - **Lasts:** That roll.
 - **Built:** yes
 

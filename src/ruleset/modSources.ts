@@ -5,6 +5,7 @@ import { modeName } from './gear';
 import { D100_MEAN } from '../rng';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
+import { lightMod } from '../time';
 import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
 import { GRADES } from '../types/core';
 import { gradeMod } from './index';
@@ -106,7 +107,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'wounds', roll: 'skill', source: 'Shield damaged', at: 'src/ruleset/body.ts', when: 'Block rolls with a Damaged shield.', value: `${sg(CONFIG.ROLE_PENALTY.damaged)}%${OF_AVG}` },
   // situational
   { type: 'situational', roll: 'skill', source: 'Light', at: 'src/ruleset/gear.ts', when: 'Rolls whose skill has a light tag (sight, stealth …): the tag\'s sign × the light where the action is.',
-    value: Object.entries(CONFIG.LIGHT_MODS).map(([k, v]) => `${LIGHT.name(k as (typeof LIGHT.keys)[number])} ${sg(v)}`).join(' · ') },
+    value: LIGHT.keys.map((k) => `${LIGHT.name(k)} ${sg(lightMod(k))}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by the distance to the target as a share of the weapon\'s reach (both from real metres).',
     value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile near enough to strike or grab the shooter: within ${CONFIG.HOSTILE_NEAR_STEP_M} m (a step) plus its own melee reach, between bodies (Point Blank removes it).`,

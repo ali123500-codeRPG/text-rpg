@@ -429,7 +429,7 @@ describe('leftover scan round 10', () => {
   it('the Stacking tab names noise, attention and light by their scale names', () => {
     const v = (src: string) => MOD_SOURCES.find((m) => m.source === src)!.value;
     expect(v('Waking')).toMatch(/^Faint /);
-    expect(v('Light')).toMatch(/dim -5/);
+    expect(v('Light')).toMatch(/dim -6/);
     expect(MOD_SOURCES.some((m) => m.source === 'Travel pace')).toBe(false); // SR5: one travel pace
   });
   it('no literal durations in motion, one walk chip, one plural, packet words used as they come', () => {

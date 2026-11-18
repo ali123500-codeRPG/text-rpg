@@ -88,8 +88,8 @@ describe('111 game clock', () => {
     field.outdoor = true;
     field.light = 'dark'; // no lamps: only the sky lights it
     startClock(s, 'night');
-    expect(zoneLight(s, field)).toBe('dark');
-    expect(zoneView(s, field).light).toBe('dark');
+    expect(zoneLight(s, field)).toBe('moonlit'); // LT3: one flat night level, the sky's moonlight
+    expect(zoneView(s, field).light).toBe('moonlit');
     expect(zoneLight(s, zone(s, 'tav_common'))).toBe('bright');
     field.light = 'dim'; // torches
     expect(zoneLight(s, field)).toBe('dim');
