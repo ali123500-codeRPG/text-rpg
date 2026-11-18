@@ -189,8 +189,8 @@ export type Progression = {
   /** every scenario's gains as the gains moment showed them, oldest first, for the Gains page (D-226); never trimmed */
   gainsLog?: import('./game').GainsRecord[];
   /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
-   * the name and XP level live only in that table. name is only on entries from older saves. */
-  achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string; reached?: number }[]; // reached: the tally that earned it
+   * the name and XP level live only in that table. */
+  achievements?: { id: string; key?: string; of?: string; turn: Turn; replacedBy?: string; reached?: number }[]; // reached: the tally that earned it
   /** D-226: achievements earned while a scenario runs, granted at its end (grantAchievement queues them) */
   pendingAchievements?: { key: string; of?: string; reached?: number; turn?: number }[]; // turn: when it was reached (BF60)
   title?: string; // T18: the id of the earned achievement worn as a title (wornTitle in src/engine/xp.ts)

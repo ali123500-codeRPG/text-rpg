@@ -732,10 +732,4 @@ export function refreshCopies(state: GameState): void {
     a.core.perks = a.core.perks.filter((p) => p.source !== 'level'); // NG11: a copy's milestone perks follow its rebuilt skills
     npcMilestonePerks(a, t, perkPointsUpTo(templateLevel(t)), state.turn);
   }
-  // AG2: a save from before ages gets them on load, as a new spawn would; a birth day once set is never re-rolled (AG13)
-  for (const a of [state.player, ...state.actors]) {
-    if (a.core.bornDay !== undefined) continue;
-    if (a.kind === 'player') { if (creationAgeRange(a.core.raceId)) a.core.bornDay = Math.floor(now(state) / DAY_MINUTES - creationAge(Object.values(getLibrary().starts).find((s) => s.classId === a.core.classes[0]?.classId)?.id) * CONFIG.YEAR_DAYS); }
-    else if (a.core.templateId && hasTemplate(state, a.core.templateId)) Object.assign(a.core, npcBornDay(state, npcTemplate(state, a.core.templateId), a.id));
-  }
 }

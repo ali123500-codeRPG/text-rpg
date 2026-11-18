@@ -27,7 +27,7 @@ export function clockSecondsText(minutes: number): string {
 }
 const from = (k: TimeOfDay): number => CONFIG.TIME_OF_DAY_FROM[k];
 
-/** has the story's clock been set (false at story start and in saves from before the clock) */
+/** has the story's clock been set (false at story start) */
 export const clockSet = (state: GameState): boolean => state.clocks.time !== undefined;
 /** HF22: the day the story's world started on the Universe calendar (1 for the first world) */
 const startDay = (state: GameState): number => state.clocks.startDay ?? 1;

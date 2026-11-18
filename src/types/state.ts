@@ -22,7 +22,7 @@ export type StageInfo = {
   /** P7: set by the engine; the director starts a new scenario after this turn (knocked_out: D-54, the player wakes somewhere
    * safe; scenario_end: one of the scenario's endings was met, SC7). Rest, sleep and time skips never end a scenario (SC4, SC9). */
   breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scenario_end' | 'roam';
-  /** SC1/SC2/SC7: the scenario's question, scale and endings (absent before the first scenario, or on an old save) */
+  /** SC1/SC2/SC7: the scenario's question, scale and endings (absent before the first scenario) */
   scenario?: import('./hidden').ScenarioFrame;
   /** SC4: the bigger scenario (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
   outer?: import('./hidden').ScenarioFrame;
@@ -197,8 +197,8 @@ export type FameEntry = {
   perks: string[]; achievements: string[]; scars: string[];
   defeats: number; turn: number; day: number; place: string;
   downedBy?: import('./game').DownedBy;
-  /** TS1: the report card, a rank key per line (letters come from GRADE_LETTERS); absent on entries from before it */
-  card?: { combat: string; achievements: string; reputation: string };
+  /** TS1: the report card, a rank key per line (letters come from GRADE_LETTERS) */
+  card: { combat: string; achievements: string; reputation: string };
   fellAt: string; // ISO time the story was archived
 };
 export type StoryOwner = 'player' | 'agent';
@@ -231,7 +231,7 @@ export type EnginePage = {
   mercy?: PlayerMercy;
   barriers?: Record<string, import('./core').Barrier>;
   turnEnds?: Record<number, number>;
-  /** NPC view history (GameState.recentEvents); absent in older saves */
+  /** NPC view history (GameState.recentEvents) */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */
   order?: { actors: string[]; places: string[]; regions?: string[] };
@@ -291,8 +291,6 @@ export type TurnRecord = {
   aimed?: boolean;
   /** the story's opening (scenario setup alone); a carried-on world's story opens after the world's last turn (HF26) */
   opening?: true;
-  /** save schema the record was written under (absent before v5) */
-  schemaVersion?: number;
 };
 
 export type { ActorId };

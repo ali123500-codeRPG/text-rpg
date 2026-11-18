@@ -427,10 +427,10 @@ export const wearable = (state: GameState) => {
 };
 
 /** Display name of an earned achievement, read from the library table now. */
-export function achievementName(state: GameState, a: { id: string; key?: string; of?: string; name?: string }): string {
+export function achievementName(state: GameState, a: { id: string; key?: string; of?: string }): string {
   const lib = getLibrary();
   const d = a.key ? lib.achievements?.[a.key] : undefined;
-  if (!d) return a.name ?? a.id;
+  if (!d) return a.id;
   if (a.of && d.names?.[a.of]) return d.names[a.of]; // a name of its own for this earning
   return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source|place_kind|health_level)\}/g, title(kindName(state, d, a.of)));
 }
