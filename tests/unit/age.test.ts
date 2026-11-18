@@ -142,18 +142,17 @@ describe('no children', () => {
     expect(bad.map((e) => e.castKey).sort()).toEqual(p.cast.map((c) => c.key).sort());
     expect(bad.find((e) => e.castKey === 'guard_1')?.message).toMatch(/no children/);
   });
-  it('on load drops an NPC who is still a child, keeps a teen, and ages a child player up to 13', () => {
+  it('on load drops an NPC who is still a child (after a library change) and keeps a teen; the player is never dropped', () => {
     const s = makeVillage();
     const [kid, teen] = s.actors.filter((a) => a.kind === 'npc' && a.core.raceId === RC.human);
     kid.core.bornDay = bornDayFor(s, 9);
     teen.core.bornDay = bornDayFor(s, 16);
-    s.player.core.bornDay = bornDayFor(s, 10);
     const pages = toPages(s);
     repairReferences(pages, getLibrary(), newReport());
     const after = fromPages(s.meta, { libraryVersion: s.libraryVersion } as Head, pages);
     expect(after.actors.some((a) => a.id === kid.id)).toBe(false);
     expect(Math.round(ageYears(after, after.actors.find((a) => a.id === teen.id)!)!)).toBe(16);
-    expect(Math.round(ageYears(after, after.player)!)).toBe(13);
+    expect(after.player.id).toBe(s.player.id);
   });
 });
 

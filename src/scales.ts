@@ -11,7 +11,7 @@ export type Scale<K extends string> = {
   at(i: number): K;
   /** display name of a key */
   name(k: K): string;
-  /** key for a key or display name in any case (text from Claude or an old save); undefined if unknown */
+  /** key for a key or display name in any case (text from Claude); undefined if unknown */
   keyOf(word: unknown): K | undefined;
   /** is this one of the scale's keys */
   has(x: unknown): x is K;

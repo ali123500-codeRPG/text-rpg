@@ -324,7 +324,7 @@ async function freeWorlds(store: Store, owner: StoryOwner): Promise<(FreeWorld &
   for (const m of await allMetas(store)) if ((m.owner ?? 'player') === owner) byWorld.set(worldOf(m), [...(byWorld.get(worldOf(m)) ?? []), m]);
   const free: (FreeWorld & { at: string })[] = [];
   for (const [worldId, ms] of byWorld) {
-    if (ms.some((m) => !m.archivedAt || !m.end)) continue; // someone lives there (or an old save that kept no ending)
+    if (ms.some((m) => !m.archivedAt || !m.end)) continue; // someone lives there (a story with no ending predates them and is too old to carry on anyway)
     ms.sort((a, b) => a.archivedAt!.localeCompare(b.archivedAt!));
     const last = ms.at(-1)!, title = await store.get<{ name: string }>(worldTitle(worldId));
     if ((last.schemaVersion ?? 0) < CONFIG.OLDEST_SAVE_SCHEMA) continue; // a world too old to load ends with its saves
