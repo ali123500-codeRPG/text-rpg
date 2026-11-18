@@ -266,6 +266,26 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('BG-310: on a short window the minimap shrinks (to about 180 px of map at least) so the Level / XP bar stays inside the window; past that the column scrolls', async () => {
+    const xpIn = () => page.evaluate(() => document.querySelector('.cs-side [data-m="xp-track"]')!.getBoundingClientRect().bottom <= innerHeight);
+    // the map's height as shown: -1 when its box cuts it off
+    const map = () => page.evaluate(() => {
+      const svg = document.querySelector('.cs-side .mm-svg')!.getBoundingClientRect(), box = document.querySelector('.cs-side .mm')!.getBoundingClientRect();
+      return box.bottom + 0.5 >= svg.bottom ? Math.round(svg.height) : -1;
+    });
+    await page.setViewportSize({ width: 1400, height: 1300 });
+    await expect.poll(map).toBe(360); // room to spare: the full minimap
+    await page.setViewportSize({ width: 1400, height: 900 }); // the minimap gives way, the bar stays in view
+    await expect.poll(xpIn).toBe(true);
+    expect(await map()).toBeGreaterThanOrEqual(175);
+    for (const height of [595, 420]) { // shorter than the floor allows: the column scrolls to the bar
+      await page.setViewportSize({ width: 1568, height });
+      await expect.poll(async () => { const m = await map(); return m >= 175 && m <= 205; }).toBe(true); // the floor: about 180 px
+      await page.locator('.cs-side [data-m="xp-track"]').scrollIntoViewIfNeeded();
+      await expect.poll(xpIn).toBe(true);
+    }
+    expect(errors).toEqual([]);
+  });
   it('the map is a big pop-up from the Play header, not a tab: Map opens it over Play, Esc closes it', async () => {
     await nav('Play');
     expect(await page.locator('nav').getByText('Map', { exact: true }).count()).toBe(0);
