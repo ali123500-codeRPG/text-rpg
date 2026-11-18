@@ -11,7 +11,7 @@ export const barrierOn = (state: GameState, l: ZoneLink | undefined): Barrier | 
 export const barrierName = (b: Barrier): string => getLibrary().barrierKinds?.[b.kind]?.name.toLowerCase() ?? 'barrier';
 
 /** broken through (the walls thread's wear): open to everyone */
-const broken = (b: Barrier) => b.state === 'destroyed';
+export const broken = (b: Barrier) => b.state === 'destroyed';
 /** BA7: a barrier broken to Crippled lets an amorphous body through */
 const squeezes = (b: Barrier, a: Actor) => b.state === 'crippled' && a.core.bodyTypeId === BT.amorphous;
 

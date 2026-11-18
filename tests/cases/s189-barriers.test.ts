@@ -241,9 +241,9 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     });
   });
   describe('the Weaver puts barriers on ways', () => {
-    const plan = (barrier: object): StagePlan => ({
+    const plan = (barrier: object, drop = false): StagePlan => ({
       event: { summary: 's', challenge: 'minor', gain: 'minor' }, places: [], frontiers: [], bands: [], rewards: [], hiddenTerms: [], weaverNote: '',
-      zones: [{ key: 'shed', place: 'street', kind: 'ZK1', name: 'the shed', look: 'a shed', links: [{ to: 'street_square', label: 'the shed door', sight: false, barrier: barrier as never }] }],
+      zones: [{ key: 'shed', place: 'street', kind: 'ZK1', name: 'the shed', look: 'a shed', links: [{ to: 'street_square', label: 'the shed door', sight: false, ...(drop ? { drop: true } : {}), barrier: barrier as never }] }],
       cast: [], seeds: { plans: [], triggers: [], secrets: [] },
     });
     it('one record for both sides, keys handed to the holders it names', () => {
@@ -265,6 +265,13 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
       expect(errs({ kind: 'BK99' })).toMatch(/barrier kind id/);
       expect(errs({ kind: BK.gate, barredFrom: 'tav_cellar' })).toMatch(/barredFrom/);
       expect(errs({ kind: BK.rubble, locked: true })).toMatch(/takes no lock/);
+    });
+    it('PC3: a window\'s shutters go only on a drop, and a drop takes no other barrier', () => {
+      const s = quiet();
+      const errs = (b: object, drop: boolean) => validateStagePlan(s, plan(b, drop), { kind: 'extension', tier: 'success', placeId: 'street' }).filter((e) => !e.repaired).map((e) => e.message).join(' ');
+      expect(errs({ kind: BK.window, locked: true }, true)).toBe('');
+      expect(errs({ kind: BK.window }, false)).toMatch(/goes only on a drop/);
+      expect(errs({ kind: BK.door }, true)).toMatch(/a barrier on a drop is a window/);
     });
   });
   it('BA8: the Weaver gets the tier\'s lean in words, and each ended scenario counts its barriers', () => {

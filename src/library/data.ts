@@ -806,6 +806,16 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
 
 const act = (id: string, look: string, attention: ActivityDef['attention'], noise: ActivityDef['noise'], visibility: ActivityDef['visibility']): ActivityDef =>
   ({ id, look, attention, noise, visibility });
+/** PC1: each furniture kind's size, [length, width, height] in metres (placeholders from common furniture: a bar counter
+ * about 1.1 m high, a table 0.75 m, a barrel 1 m, a cart bed about 1 m, a well's wall 0.9 m) */
+const FURNITURE_SIZE_M: Record<string, [number, number, number]> = {
+  [FU.counter]: [3, 0.6, 1.1], [FU.hearth]: [1.5, 0.6, 1], [FU.table]: [1.5, 0.8, 0.75], [FU.bench]: [1.5, 0.35, 0.45],
+  [FU.bed]: [2, 0.9, 0.5], [FU.barrels]: [1.2, 0.6, 1], [FU.shelves]: [1, 0.4, 1.8], [FU.crates]: [1, 1, 1], [FU.sacks]: [1, 0.6, 0.6],
+  [FU.anvil]: [0.6, 0.3, 0.8], [FU.forge]: [1.2, 1, 1], [FU.rack]: [1.5, 0.4, 1.6], [FU.brazier]: [0.5, 0.5, 0.9],
+  [FU.woodpile]: [2, 1, 1.2], [FU.water_barrel]: [0.6, 0.6, 1], [FU.stool]: [0.35, 0.35, 0.45], [FU.chair]: [0.45, 0.45, 0.9],
+  [FU.cupboard]: [1, 0.5, 1.8], [FU.well]: [1.5, 1.5, 0.9], [FU.cart]: [1.5, 1, 1], [FU.fence]: [3, 0.1, 1.2], [FU.rail]: [3, 0.1, 1],
+  [FU.altar]: [1.5, 0.8, 1], [FU.other]: [0.5, 0.5, 0.5],
+};
 /** FR2: furniture each zone kind gets unless a layout or the Weaver lists its own (colour, mostly: FR1) */
 const KIND_FURNITURE: Record<string, import('../types').PlanFurniture[]> = {
   [ZK.room]: [{ kind: FU.table, name: 'table' }, { kind: FU.bench, name: 'bench', at: 'w' }],
@@ -1321,15 +1331,15 @@ export function prototypeLibrary(): Library {
     zoneKinds: Object.fromEntries(([
       // CV2: Street light cover (carts, doorways, barrels); CV4: coverM, how high the cover stands (placeholders): a bar counter
       // 1.1 m, barrels 1 m, carts and yard walls 2 m, a mature oak 20 m (the Woods land cover's note)
-      [ZK.room, 'Room', false, 'some', 'lamplit', 'room', 1, 1.1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4, 0], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2, 0],
-      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1, 1], [ZK.street, 'Street', true, 'light', 'dark', 'yard', 4, 2], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1, 0],
+      [ZK.room, 'Room', false, 'none', 'lamplit', 'room', 1, 1.1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4, 0], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2, 0],
+      [ZK.cellar, 'Cellar or cave', false, 'none', 'dark', 'room', 1, 1], [ZK.street, 'Street', true, 'light', 'dark', 'yard', 4, 2], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1, 0],
       [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2, 0], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1, 2], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1, 0],
       [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1, 20], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1, 0],
     ] as const).map(([id, name, outdoor, cover, light, size, aspect, coverM]) => [id, { id, name, outdoor, cover, light, size, aspect, ...(coverM ? { coverM } : {}), edge: outdoor ? EK.open : EK.wall,
       ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}),
       ...(KIND_FURNITURE[id] ? { furniture: KIND_FURNITURE[id] } : {}) }])),
     // FR1: what furniture can be (a piece's kind sets its map icon; its name is the story's)
-    furnitureKinds: Object.fromEntries(Object.entries(FU).map(([k, id]) => [id, { id, name: k.replace(/_/g, ' ') }])),
+    furnitureKinds: Object.fromEntries(Object.entries(FU).map(([k, id]) => [id, { id, name: k.replace(/_/g, ' '), ...(FURNITURE_SIZE_M[id] ? { sizeM: FURNITURE_SIZE_M[id] } : {}) }])),
     // TV3/TV4: a road is one long zone; its length and danger words
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
@@ -1381,8 +1391,10 @@ export function prototypeLibrary(): Library {
       [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.', CONFIG.DOORWAY_M],
       [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.', [0.7, 0.7], true],
       [BK.rubble, 'Rubble', false, false, true, false, 'wall', 'A cave-in or fallen stone: no way through until it is cleared.'],
-    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical]) =>
-      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}) }])),
+      // PC3: a common casement window about 0.6 × 1 m with its sill 0.9 m up (placeholders); shutters shut, nothing passes
+      [BK.window, 'Window', true, true, false, false, 'window', 'Wooden shutters over a window: you see, shoot and jump through it only while they are open; they may be locked, or barred from inside.', [0.6, 1], undefined, 0.9],
+    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?, number?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical, sillM]) =>
+      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}), ...(sillM !== undefined ? { window: true as const, sillM } : {}) }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',

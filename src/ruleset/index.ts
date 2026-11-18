@@ -278,7 +278,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   // CV6: the target's cover, by what shows of its body: a roll modifier (COVER_HALVING_MOD a halving); CV8 b Past the Cover
   // counts it as showing four times as much
-  const shown = zoneD ? coverShown(state, D, zoneD) : 1;
+  const shown = zoneD ? coverShown(state, D, zoneD, A) : 1; // PC2: seen from the shooter
   const coverHit = ranged ? tagSign('cover', rollTags(skill)) * coverMod(Math.min(1, shown * (hasPerk(A, PK.past_the_cover) ? 2 ** CONFIG.PAST_THE_COVER_HALVINGS : 1))) : 0;
   if (coverHit) am.push({ source: 'cover', type: 'situational', value: coverHit });
   am.push(...(req.context?.attackerMods ?? []));

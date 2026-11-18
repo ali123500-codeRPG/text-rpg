@@ -19,7 +19,9 @@ import { IT } from '../../src/library/itemIds';
 
 const L = (to: string, label: string, sight = true, frontier = false): ZoneLink => ({ to, label, sight, ...(frontier ? { frontier: true as const } : {}) });
 const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: Cover = 'none', light: Light = 'bright'): Zone =>
-  ({ id, placeId, name, look, links, cover, light, groundItems: [] });
+  ({ id, placeId, name, look, links, cover, light, groundItems: [], ...(OUTDOOR.has(placeId) ? { outdoor: true as const } : {}) });
+/** the village's zones under the sky (PC1: only they keep a clutter cover level) */
+const OUTDOOR = new Set(['street', 'gate', 'field']);
 
 export function villagePlaces(storyId = 'test'): Place[] {
   const P = (id: string, kind: string, parentId: string | null, name: string, zones: Zone[]): Place =>

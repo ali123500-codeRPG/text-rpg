@@ -60,7 +60,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
-import { gripsOf, isAccSlot, isGripSlot, isHeld, modeName, pieceName, usableModes } from '../ruleset/gear';
+import { clutterCover, gripsOf, isAccSlot, isGripSlot, isHeld, modeName, pieceName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -109,7 +109,7 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
       ...(b.bar ? { bar: `${b.bar.drawn ? 'drawn' : 'open'}, bolt on the ${b.bar.side === z.id ? 'this' : 'far'} side` } : {}), ...(b.blocked ? { blocked: true as const } : {}), ...(b.guarded ? { guarded: true as const } : {}) } };
   };
   return {
-    id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
+    id: z.id, name: z.name, look: z.look, cover: COVER.name(clutterCover(z)), light: LIGHT.name(zoneLight(state, z)), // PC1: indoors, furniture gives the cover
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
     groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
     ...furnitureView(state, z.id, viewer),

@@ -240,6 +240,11 @@ const DEFAULTS = {
   /** CV6, CV7 (placeholder): a shot loses, and a hide gains, this much for each halving of what shows of the body: the step
    * AIM_PENALTY takes between big, normal and small parts, each half the hit weight of the last */
   COVER_HALVING_MOD: 10,
+  /** PC2: a viewer's eye stands this share of its body's height above its floor (eye height ÷ stature, ANSUR II) */
+  EYE_SHARE: 0.94,
+  /** PC2: hiding with nobody in particular to hide from, a piece of furniture this near the body (metres, floor gap) hides
+   * its own height (placeholder) */
+  OBJECT_COVER_M: 1,
   /** CV8 b: Past the Cover counts the target as showing 2^this times as much (two halvings back) */
   PAST_THE_COVER_HALVINGS: 2,
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
