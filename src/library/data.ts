@@ -1173,6 +1173,7 @@ export function prototypeLibrary(): Library {
       [DU.span_crossbow]: { id: DU.span_crossbow, name: 'Span a crossbow', effort: 'base', seconds: 0, readies: DU.crossbow_shot },
       // voice (AT11f-g): barks stay free (AE7); the words said before a break are heard
       [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
+      [DU.rally]: { id: DU.rally, name: 'Rally', effort: 'all_out', seconds: 1 }, // TC39 a: like Battle Cry
       [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
       // gear and things in hand (AT11h-j): changing gear is instant and costs no strain (less realism)
       [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 0 },
