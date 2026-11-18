@@ -23,7 +23,7 @@ import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
-import { SK, OLD_SKILL_IDS, ROLLED_SKILL } from './skillIds';
+import { SK, ROLLED_SKILL } from './skillIds';
 import { ACH, ACH_HEADS } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
@@ -934,7 +934,7 @@ const ANIMALS = [RC.dog, RC.wolf, RC.tiger, RC.bear, RC.boar, RC.horse, RC.lizar
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
     version: 1,
-    status: Object.fromEntries(Object.entries(OLD_SKILL_IDS).map(([old, to]) => [old, { state: 'renamed' as const, to }])), // old name IDs → numbers
+    status: {}, // D-116: renamed, replaced and deleted entries (none while the prototype keeps no old saves)
     skills: SKILLS,
     // Skill tree access (TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.

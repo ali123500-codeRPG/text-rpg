@@ -1,132 +1,27 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
 import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, ZoneLink } from '../types';
 import { resolveAlias } from '../library';
+import { CONFIG } from '../config';
 import type { Pages } from './pages';
-import { TACTICS, TIERS } from '../scales';
 import { ageYears, bornDayFor, youngestAge } from '../ruleset/age';
-import { tierAt } from '../ruleset';
 import { gripSlot, gripsOf } from '../ruleset/slots';
-/** v2 saves numbered zone light and cover by the three levels of that time (LT1 and CV1 added more) */
-const V2_LIGHT = ['bright', 'dim', 'dark'] as const;
-const V2_COVER = ['none', 'some', 'heavy'] as const;
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
 
 // ---------- migrations ----------
-// v4 -> v5: "opposed" used to mean attack on sight; that is now "hostile", and "opposed" means
-// at odds but never striking first. Saved band relations, personal overrides and planned stances keep their behavior.
-// A logged stance step "more_opposed" is now "colder".
-export function opposedToHostile(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(opposedToHostile);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  for (const k of ['relations', 'overrides']) {
-    const m = o[k];
-    if (m && typeof m === 'object' && !Array.isArray(m)) for (const [id, st] of Object.entries(m)) if (st === 'opposed') (m as Record<string, unknown>)[id] = 'hostile';
-  }
-  if (Array.isArray(o.overrides)) for (const x of o.overrides) if (x && x.stance === 'opposed') x.stance = 'hostile';
-  if (o.step === 'more_opposed') o.step = 'colder';
-  Object.values(o).forEach(opposedToHostile);
-}
+/** step from version v to v + 1, keyed by v. Defaults for missing fields go only here. Empty while the prototype keeps no
+ * old saves (D-116: before release, each change to the save's shape adds its step here). */
+export const MIGRATIONS: Record<number, (pages: Pages) => void> = {};
 
-// v1 stored tiers by name (old names Partial and Strong included) and roll results with a tierIndex 0..5.
-// v2 stores tier IDs −3..2 (unclamped on rolls): tier = tierIndex − 3.
-const V1_TIER_IDS: Record<string, number> = {
-  'Critical Failure': -3, Failure: -2, Partial: -1, 'Near Miss': -1, Success: 0, Strong: 1, 'Great Success': 1, 'Critical Success': 2,
-};
-export function tiersToIds(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(tiersToIds);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  if (typeof o.tierIndex === 'number') { o.tier = o.tierIndex - 3; delete o.tierIndex; }
-  for (const k of ['tier', 'minTier', 'playerTier']) if (typeof o[k] === 'string' && o[k] as string in V1_TIER_IDS) o[k] = V1_TIER_IDS[o[k] as string];
-  Object.values(o).forEach(tiersToIds);
-}
-
-// v3 stores every ordered scale by its key (src/scales.ts): tier IDs become tier keys (a roll past either end keeps
-// the end key plus `beyond`), zone light and cover levels and band tacticsLevel become keys (tacticsLevel → tactics).
-// Perk tiers (50, 100, 150) are not check tiers and stay numbers.
-export function levelsToKeys(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(levelsToKeys);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  const isPerk = typeof o.perkId === 'string';
-  if (typeof o.tier === 'number' && !isPerk) Object.assign(o, tierAt(o.tier + 3));
-  for (const k of ['minTier', 'playerTier']) if (typeof o[k] === 'number') o[k] = TIERS.at((o[k] as number) + 3);
-  if (typeof o.light === 'number') o.light = V2_LIGHT[o.light]; // v2 numbered the three light levels of that time
-  if (typeof o.cover === 'number') o.cover = V2_COVER[o.cover]; // and its three cover levels
-  if (typeof o.tacticsLevel === 'number') { o.tactics = TACTICS.at(o.tacticsLevel - 1); delete o.tacticsLevel; }
-  Object.values(o).forEach(levelsToKeys);
-}
-
-// v3 -> v4: humanoids have a left and a right leg instead of one "legs" part. Both legs start from
-// the old pool; armor that covered "legs" covers both. Only humanoids had a part named "legs".
-export function splitLegs(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(splitLegs);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  const parts = (o.condition as { parts?: Record<string, number> } | undefined)?.parts;
-  if (o.creatureTypeId === 'humanoid' && parts && 'legs' in parts) {
-    parts.left_leg = parts.right_leg = parts.legs;
-    delete parts.legs;
-  }
-  if (Array.isArray(o.covers) && o.covers.includes('legs')) o.covers = o.covers.flatMap((c) => (c === 'legs' ? ['left_leg', 'right_leg'] : [c]));
-  Object.values(o).forEach(splitLegs);
-}
-
-// v5 -> v6 (PM1): an NPC's one memory note becomes the first entry of its memory list.
-export function notesToLists(pages: Pages): void {
-  const h = pages.hidden as { memory?: Record<string, unknown> } | undefined;
-  for (const [id, m] of Object.entries(h?.memory ?? {})) if (typeof m === 'string') h!.memory![id] = m ? [{ turn: 0, text: m }] : [];
-}
-
-// v6 -> v7: event noise and visibility levels 0..3 become NOISE / VISIBILITY keys (coding rule). The v6 levels are fixed here,
-// not read from the tables, which have grown since.
-const V6_NOISE = ['silent', 'quiet', 'normal', 'loud'] as const;
-const V6_VISIBILITY = ['unseen', 'low', 'normal', 'high'] as const;
-export function senseToKeys(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(senseToKeys);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  if (typeof o.noise === 'number') o.noise = V6_NOISE[o.noise] ?? 'normal';
-  if (typeof o.visibility === 'number') o.visibility = V6_VISIBILITY[o.visibility] ?? 'normal';
-  Object.values(o).forEach(senseToKeys);
-}
-
-// v7 -> v8 (BG-186): a held item's slot is 'grip:<part>' (FR2), once 'hand:<part>'.
-export function handToGrip(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(handToGrip);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  if (Array.isArray(o.equippedIn)) o.equippedIn = o.equippedIn.map((x) => (typeof x === 'string' && x.startsWith('hand:') ? `grip:${x.slice(5)}` : x));
-  Object.values(o).forEach(handToGrip);
-}
-
-/** WZ12 the first schema with land (regions): older saves end */
-export const LAND_SCHEMA = 9;
-
-/** step from version v to v + 1, keyed by v. v1 is the baseline: no steps yet. Defaults for missing fields go only here. */
-export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
-  1: (pages) => Object.values(pages).forEach(tiersToIds),
-  2: (pages) => Object.values(pages).forEach(levelsToKeys),
-  3: (pages) => Object.values(pages).forEach(splitLegs),
-  4: (pages) => Object.values(pages).forEach(opposedToHostile),
-  5: notesToLists,
-  6: (pages) => Object.values(pages).forEach(senseToKeys),
-  7: (pages) => Object.values(pages).forEach(handToGrip),
-  // no step 8: LAND_SCHEMA (9) ends older saves; the steps above stay for the record and their tests
-};
-
-/** run steps from → to in order; returns false (and an error) when a step is missing. */
+/** run steps from → to in order; returns false (and an error) when the save is too old, too new or a step is missing. */
 export function migrate(pages: Pages, from: number, to: number, r: CheckReport): boolean {
   if (from > to) {
     r.errors.push(`schema: save is version ${from}, newer than this code (${to})`);
     return false;
   }
-  // WZ12: a save from before the land has no ground under its places; it ends (the prototype keeps no old saves)
-  if (from < LAND_SCHEMA && to >= LAND_SCHEMA) {
-    r.errors.push('schema: this save was made before the land (the new zone system); start a new character');
+  if (from < CONFIG.OLDEST_SAVE_SCHEMA) {
+    r.errors.push(`schema: this save was made ${CONFIG.OLDEST_SAVE_REASON}; start a new character`);
     return false;
   }
   for (let v = from; v < to; v++) {

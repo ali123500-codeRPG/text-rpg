@@ -606,7 +606,10 @@ const DEFAULTS = {
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 9, // v9: land (regions, WZ12): older saves end; v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
+  SCHEMA_VERSION: 9, // v9: land (regions, WZ12)
+  /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
+  OLDEST_SAVE_SCHEMA: 9,
+  OLDEST_SAVE_REASON: 'before the land (the new zone system)',
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 5,
   /** AX1/AX2: an accessory's bonus = this × EQUIP_NEED of its level: Common 5, Fine 10, Superior 15, Masterwork 20 */
