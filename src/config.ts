@@ -1059,6 +1059,7 @@ const DEFAULTS = {
   IRON_RIM_MULT: 0.75, // All-50 Iron Rim (Block's part): damage the owner's shield pool takes (placeholder)
   AUGMENT_TRADE_SHARE: 0.5, // D-276 trade augment: share of the giving skill's true skill moved to the receiving skill (placeholder)
   AUGMENT_PERCENT_RATE: 0.2, // D-276 percentage augment: receiving true skill × this × giving true skill ÷ 100 (placeholder)
+  MIND_OVER_BODY_SHARE: 0.25, // All-100 Mind Over Body (Resolve's part): share of Resolve that adds to health, as Endurance does (placeholder)
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   MISDIRECTION_SHARE: 0.25, // All-50 Misdirection (Vanishing's part): share of Guile that augments Vanishing (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)

@@ -128,7 +128,9 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
 /** a hit that costs health marks Endurance when the attacker's true skill is inside Endurance's learning window (SP2), as armor learns */
 export function markEndurance(state: GameState, actor: Actor, lostPct: number, result: AttackResult): void {
   const a = actorById(state, result.attack.actorId);
-  if (a && actor.id === state.player.id && lostPct > 0 && close(actor, SK.endurance, trueSkill(a, result.attack.skill))) mark(actor, SK.endurance);
+  if (!a || actor.id !== state.player.id || lostPct <= 0 || !close(actor, SK.endurance, trueSkill(a, result.attack.skill))) return;
+  mark(actor, SK.endurance);
+  if (hasPerk(actor, PK.mind_over_body)) mark(actor, SK.resolve); // Mind Over Body: Resolve trains whenever Endurance does
 }
 
 /** a single morale loss of RESOLVE_MARK_PCT % of max morale or more marks the player's Resolve */

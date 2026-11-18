@@ -1206,6 +1206,17 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Lasts:** Always.
 - **Built:** yes
 
+### Mind Over Body (Fortitude, Resolve) · T4-100r
+
+*Story:* A hard mind makes a hard body. A quarter of your Resolve adds to your health the way Endurance does, and whenever Endurance learns, Resolve learns too.
+
+- **Kind:** Always on
+- **Trigger:** Always: max health, and every time Endurance is marked for training.
+- **Conditions:** Resolve's All-100 part: granted with the Fortitude All-100 when Resolve is at 100.
+- **Effect:** Max health adds Resolve (raw) × 0.25 (CONFIG.MIND_OVER_BODY_SHARE, placeholder) × HP_PER_END, before the body's and prefix's multipliers, the same way Endurance adds. Whenever Endurance is marked for training, Resolve is marked too.
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Second Breath (Fortitude, Stamina) · SS8
 
 *Story:* Just when your lungs give out, they find more. Once a fight, when your breath runs out, half of it comes back at once.
