@@ -4,7 +4,7 @@
 import type { Actor, GameEvent, GameState, ItemInstance } from '../types';
 import { getLibrary } from '../library';
 import { allActors, zoneById } from '../engine/relations';
-import { inside } from '../engine/position';
+import { inside, withinGrip } from '../engine/position';
 import { fightRenewed } from '../engine/engagement';
 import { healthLevel } from '../ruleset/body';
 import { buildActorView, buildNarrationView, buildPlayerView } from '../views';
@@ -108,14 +108,14 @@ const RULES: Record<string, (c: Ctx) => string[]> = {
       ...(c.moraleLost === undefined || (fin(c.moraleLost) && c.moraleLost >= 0) ? [] : [`${a.id} moraleLost ${c.moraleLost}`]),
     ];
   }),
-  /** beliefs, stances, bands and holds point at people and bands that exist; a hold is in one zone */
+  /** beliefs, stances, bands and holds point at people and bands that exist; a hold is within the holder's grip reach */
   links_real: ({ s }) => {
     const ids = new Set(allActors(s).map((a) => a.id));
     return allActors(s).flatMap((a) => [
       ...(s.bands.some((b) => b.id === a.bandId) ? [] : [`${a.id} band ${a.bandId} unknown`]),
       ...Object.keys(a.mind?.knowledge ?? {}).filter((id) => !ids.has(id)).map((id) => `${a.id} believes about unknown ${id}`),
       ...Object.keys(a.mind?.overrides ?? {}).filter((id) => !ids.has(id)).map((id) => `${a.id} stance toward unknown ${id}`),
-      ...(a.heldBy && !allActors(s).some((h) => h.id === a.heldBy && h.zone === a.zone) ? [`${a.id} held by ${a.heldBy} from another zone`] : []),
+      ...(a.heldBy && !allActors(s).some((h) => h.id === a.heldBy && withinGrip(s, h, a)) ? [`${a.id} held by ${a.heldBy} out of grip reach`] : []), // BG-297
     ]);
   },
   /** BG-33/60/97/130: every person in the Parser's, Narrator's and NPCs' views carries their pronouns */

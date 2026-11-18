@@ -17,7 +17,7 @@ export type LootSource = { key: string; kind: 'body' | 'container' | 'ground'; t
 export function lootSources(pv: PlayerView): LootSource[] {
   const out: LootSource[] = [];
   for (const a of pv.actors) {
-    if (a.level !== 'full' || a.zone !== pv.zone.id || !a.health || !isDownLevel(a.health)) continue;
+    if (a.level !== 'full' || !a.health || !isDownLevel(a.health)) continue;
     const name = a.name ?? theOf(a.label);
     const items: LootItem[] = [];
     for (const g of a.gear) {

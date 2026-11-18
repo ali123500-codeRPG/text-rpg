@@ -15,7 +15,6 @@ import { charLevel, power, tally, xpToNext } from './xp';
 import { logCode } from './effects';
 import { isActive, isEngaged, wary } from './relations';
 import { canSpeak, gripReachM, healthLevel } from '../ruleset/body';
-import { threatHere } from './resolve';
 import { dealRolls } from './growth';
 import { fireEssenceAuto } from '../ruleset/threadboundItems';
 import { isEcho } from '../library/echo';
@@ -203,8 +202,8 @@ export function expireOffers(state: GameState, newScenario = false): void {
   if (!pr.essenceOffers.length) delete pr.essenceOffers;
 }
 
-/** EG3 b: removal and swaps happen at rest: out of any fight, with no hostile in the zone (what a rest needs) */
-export const playerAtRest = (state: GameState): boolean => !isEngaged(state, state.player) && !threatHere(state, state.player);
+/** EG3 b: removal and swaps happen at rest: out of any fight (BG-293: no zone check; rests have no gate since BG-107) */
+export const playerAtRest = (state: GameState): boolean => !isEngaged(state, state.player);
 
 /** EB3: essence changes left that cost no XP (the first ESSENCE_FREE_CHANGES) */
 export const freeEssenceChanges = (a: Actor): number => Math.max(0, CONFIG.ESSENCE_FREE_CHANGES - (a.progression?.essenceChanges ?? 0));
