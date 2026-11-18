@@ -22,7 +22,7 @@ import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardNa
 import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
 import { r1 } from '../words';
 import { levelCost, perkPointAt, xpToReach } from '../ruleset/levels';
-import { combatLevel, refFighter } from './fightModel';
+import { combatLevel, refFighter } from './combatLevel';
 import { nonCombatGroups, nonCombatPart } from './nonCombat';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
@@ -295,7 +295,7 @@ export const levelRating = (a: Actor, state?: GameState): number => CONFIG.LEVEL
 
 /** GR45 (PLACEHOLDER): the combat part: what the skill part (ratingGroups) gives the reference fighter at a level */
 export const refSkillPart = (state: GameState, L: number): number => ratingGroups(refFighter(state, L, '__ref').ref).reduce((n, g) => n + g.adds, 0);
-/** GR45: the actor's combat part: the reference's skill part at the actor's combat level (the fight model, engine/fightModel.ts) */
+/** GR45: the actor's combat part: the reference's skill part at the actor's combat level (engine/combatLevel.ts) */
 export const combatPart = (state: GameState, a: Actor): number => refSkillPart(state, combatLevel(state, a));
 
 /** An actor's power (GR45, PLACEHOLDER): its level part + its combat part + its non-combat part (engine/nonCombat.ts).

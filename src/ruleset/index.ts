@@ -168,7 +168,7 @@ function overdrive(actor: Actor, skill: string): Mod[] {
 }
 
 /** everything a roll is made of before the dice: the skill it rolls at, its modifiers, its tier shifts and its reach past
- * the table's ends. roll() throws the d100 on it; the ratings' fight model (src/ruleset/expect.ts) takes every d100 on it,
+ * the table's ends. roll() throws the d100 on it; the ratings' expectations (src/ruleset/expect.ts) take every d100 on it,
  * so dice and expectation read one set of rules. `actor` defaults to the request's actor in the state. */
 export type RollSetup = { actor: Actor; eff: { skill: string; value: number; parts?: string[] }; modifiers: Mod[]; shifts: TierShift[]; reach: Reach };
 export function rollSetup(req: RollRequest, state: GameState, actor: Actor = mustActor(state, req.actorId)): RollSetup {
@@ -192,7 +192,7 @@ export function rollSetup(req: RollRequest, state: GameState, actor: Actor = mus
   return { actor, eff, modifiers, shifts, reach: tierReach(actor, req.rollKind, !!req.contest) };
 }
 /** the tier level a d100 gives on a set-up roll (unclamped, Part 1 §4), with the after-roll shifts it sets off; `reach`
- * replaces the setup's own (the fight model's endless tiers) */
+ * replaces the setup's own (the ratings' endless tiers) */
 export function rollLevel(su: RollSetup, d: number, auto = true, nearMissUp?: string, reach: Reach = su.reach): { level: number; shifts: TierShift[] } {
   const shifts = [...su.shifts];
   let level = tierOf(d, su.eff.value, su.modifiers, shifts, reach);
@@ -322,16 +322,23 @@ export function turnsAside(state: GameState, D: Actor, location: string, outcome
 }
 /** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
  * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
- * blow (its pool takes it in applyEffects). Dice and the ratings' fight model both call it. */
+ * blow (its pool takes it in applyEffects). Dice and the combat level's equation both call it. */
+/** what worn and natural armor do to a blow on `at` (D-368: each takes its share first, then its flat soak, the worn piece
+ * before the hide): the blow × share − soak gets through. The damage step and the combat level's equation both read it. */
+export function armorOn(state: GameState, D: Actor, at: string, pierce = 0): { share: number; soak: number } {
+  const ct = actorBody(state, D);
+  const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
+  let share = 1, soak = 0;
+  for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) { share *= a.multiplier; soak = soak * a.multiplier + Math.max(0, a.reduction - pierce); }
+  return { share, soak };
+}
 export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMode, location: string, multiplier: number, openArm: string | null): { damage: number; generalShare: number } {
-  const ct = actorBody(state, D), skill = modeSkill(mode), ranged = mode.tree === 'ranged';
+  const skill = modeSkill(mode), ranged = mode.tree === 'ranged';
   const kind: AttackKind = ranged ? 'ranged' : 'melee';
   const pierce = boostAdd(A, skill, 'armorPierce', kind); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
-    let d = raw;
-    const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
-    for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) d = d * a.multiplier - Math.max(0, a.reduction - pierce); // D-368: the share first, then the flat soak
-    return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
+    const { share, soak } = armorOn(state, D, at, pierce);
+    return Math.max(0, raw * share - soak); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, PK.iron_knuckles) ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles

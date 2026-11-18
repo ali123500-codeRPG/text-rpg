@@ -1,12 +1,10 @@
-// Skill groups as ratings (GR1-GR36), the expected blow (ruleset/expect.ts) and the combat rating's fight model
-// (engine/fightModel.ts, a placeholder): a lone skill rates itself, more skills add less, the expectation matches dice,
-// a fighter in the reference's relics fights it evenly at its own level, and non-combat shares face an equal foe.
+// Skill groups as ratings (GR1-GR36) and the combat rating's equation (engine/combatLevel.ts, a placeholder): a lone
+// skill rates itself, more skills add less, the standard soldier rates its own level, and non-combat shares face an equal foe.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { compoundRating, groupRating, holdStrength, poolOf, ratingOf, strengthFor } from '../../src/ruleset/ratings';
-import { expectBlow } from '../../src/ruleset/expect';
-import { clearCombatLevels, combatLevel, duel, refFighter } from '../../src/engine/fightModel';
+import { clearCombatLevels, combatLevel, combatParts, combatRates, refFighter } from '../../src/engine/combatLevel';
 import { nonCombatGroups } from '../../src/engine/nonCombat';
 import { itemDef } from '../../src/library';
 import { requirement, shortBy } from '../../src/ruleset/requirements';
@@ -50,24 +48,7 @@ describe('group ratings (GR1)', () => {
   });
 });
 
-describe('the expected blow matches the dice', () => {
-  it('a sword on mail: the average health lost over many rolled attacks is the expectation', () => {
-    const S = makeVillage({ seed: 1, playerZone: 'field_edge', without: ['guard_1', 'trader', 'patron_1', 'slime_1', 'slime_2'] });
-    const A = sheet(S, 'atk', { [SK.melee_medium]: 50 }, [IT.arming_sword]), D = sheet(S, 'def', { [SK.parry]: 50, [SK.medium_armor]: 50, [SK.endurance]: 50 }, [IT.arming_sword, IT.mail_hauberk]);
-    D.core.standingDefense = 'parry';
-    for (const x of [A, D]) { x.zone = S.player.zone; x.placeId = S.player.placeId; x.pos = S.player.pos && { ...S.player.pos }; S.actors.push(x); }
-    const m = usableModes(S, A).find((x) => x.mode.tree === 'melee')!;
-    const want = expectBlow(S, A, D, m).body;
-    const rng = createRng(7);
-    let sum = 0;
-    const N = 6000;
-    for (let i = 0; i < N; i++) sum += ruleset.attack({ attackerId: A.id, targetId: D.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: null, aimed: false }, S, rng).damage;
-    expect(sum / N).toBeGreaterThan(want * 0.9);
-    expect(sum / N).toBeLessThan(want * 1.1);
-  });
-});
-
-describe('fight model (placeholder)', () => {
+describe('combat level equation (placeholder)', () => {
   it('the reference fighter carries relics whose requirement is its level, their stats following (GR40)', () => {
     const S = makeVillage({ seed: 1 });
     const { S: S2, ref } = refFighter(S, 30, 'r');
@@ -76,20 +57,40 @@ describe('fight model (placeholder)', () => {
     expect(mail.armor!.reduction).toBeCloseTo(armorStop(mail.armor!.weight, 30), 9);
     expect(shortBy(ref, mail)).toBe(0);
   });
-  it('the reference against itself is even; a fighter in its relics rates its level; standard kit rates at its own level', () => {
+  it('its rates come from the tier table and the gap ladder at the pivot, worked by hand', () => {
     const S = makeVillage({ seed: 1 });
-    const p = refFighter(S, 80, 'p'), q = refFighter(p.S, 80, 'q');
-    expect(duel(q.S, p.ref, q.ref).v).toBeCloseTo(1, 6);
+    const k = combatRates(S), gap = Object.fromEntries(k.gaps);
+    // the level-50 soldier: attack total 35 (skill 50 + kit 20, × 0.5), parry total 25. Attack tiers Near Miss 23 %, Success
+    // 25 %, Great Success 42 %, Critical Success 5 % (5 % miss); parry tiers 5, 8, 25, 25, 32, 5 %
+    expect([k.attack * 50, k.defense * 50]).toEqual([35, 25]);
+    expect(gap[0]).toBeCloseTo(0.23 * 0.25 + 0.25 * 0.25 + 0.42 * 0.32 + 0.05 * 0.05, 9);
+    expect(gap[2]).toBeCloseTo(0.23 * 0.32 + 0.25 * 0.05, 9);
+    expect(k.gaps.reduce((n, [, p]) => n + p, 0)).toBeCloseTo(0.95, 9);
+    // the weights of attack, defense and soak add up to 1, so the soldier comes out at its own level
+    expect((k.bA * k.attack + k.bD * k.defense + k.c * k.soakShare) / k.K).toBeCloseTo(1, 9);
+    for (const v of [k.bA, k.bD, k.c, k.tierA, k.tierD]) expect(v).toBeGreaterThan(0);
+  });
+  it('the standard soldier rates its own level at every level, with no ceiling', () => {
+    const S = makeVillage({ seed: 1 });
     clearCombatLevels();
-    const twin = refFighter(S, 100, 'twin');
-    expect(combatLevel(twin.S, twin.ref)).toBeCloseTo(100, 0);
+    for (const L of [50, 75, 100, 150, 200, 400, 1000]) { const r = refFighter(S, L, 'r' + L); expect(combatLevel(r.S, r.ref)).toBeCloseTo(L, 6); }
     const f = sheet(S, 'f', Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), CONFIG.MODEL_REF_KIT); // sword and mail ask for 50
     f.core.standingDefense = 'parry';
-    expect(combatLevel(S, f)).toBeGreaterThan(48);
-    expect(combatLevel(S, f)).toBeLessThan(52);
-    const plate = sheet(S, 'g', { ...Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50])), [SK.heavy_armor]: 50 }, [IT.arming_sword, IT.plate_harness]);
-    plate.core.standingDefense = 'parry';
-    expect(combatLevel(S, plate)).toBeGreaterThan(combatLevel(S, f) * 1.5);
+    expect(combatLevel(S, f)).toBeCloseTo(50, 6);
+  });
+  it('every part of a sheet counts: skill, health, nerve, armor, a shield, a harder or faster blow', () => {
+    const S = makeVillage({ seed: 1 });
+    const base = Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50]));
+    const at = (id: string, skills: Record<string, number>, kit: string[] = CONFIG.MODEL_REF_KIT, def: 'parry' | 'block' = 'parry') => { const a = sheet(S, id, skills, kit); a.core.standingDefense = def; return combatLevel(S, a); };
+    const std = at('std', base);
+    for (const k of [SK.melee_medium, SK.parry, SK.endurance]) expect(at('up' + k, { ...base, [k]: 80 })).toBeGreaterThan(std);
+    expect(at('coward', { ...base, [SK.resolve]: 0 })).toBeLessThan(std);
+    expect(at('bare', base, [IT.arming_sword])).toBeLessThan(std);
+    expect(at('plate', { ...base, [SK.heavy_armor]: 75 }, [IT.arming_sword, IT.plate_harness])).toBeGreaterThan(std * 1.5);
+    expect(at('shield', { ...base, [SK.block]: 50 }, [...CONFIG.MODEL_REF_KIT, IT.round_shield], 'block')).toBeGreaterThan(std);
+    // a doubling of health is worth the same as a doubling of anything else in the ratio
+    const p = combatParts(S, sheet(S, 'parts', base, CONFIG.MODEL_REF_KIT));
+    expect(p.perDoubling).toBeCloseTo(Math.LN2 / (combatRates(S).K + 1 / 100), 6);
   });
 });
 

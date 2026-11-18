@@ -1023,8 +1023,8 @@ const DEFAULTS = {
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (xpToReach) */
   LEVEL_RATING_SHARE: 0.02,
   DEFEAT_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
-  // PLACEHOLDER: the combat rating's fight model (src/engine/fightModel.ts). An actor's combat level is the level of the
-  // reference fighter it fights evenly; every number below is a placeholder until the model is redone.
+  // PLACEHOLDER: the combat rating's equation (src/engine/combatLevel.ts). An actor's combat level is the level of the
+  // reference fighter (the standard soldier) it fights evenly; every number below is a placeholder.
   /** extra tier bands each way the model's rolls reach (balance models count tiers with no end) */
   MODEL_TIER_REACH: 40,
   /** the reference fighter: a human with these skills all at the level, holding and wearing this kit, standing in this defense */
@@ -1035,11 +1035,11 @@ const DEFAULTS = {
   /** GR34, GR42: the XP rating's non-combat groups and how each one's share of an equal fight is worked out
    * (engine/nonCombat.ts): slip past or filch unseen, catch a sneaker, talk a fight down, heal */
   NONCOMBAT_SHARES: { [GR.stealth]: 'slip', [GR.notice]: 'catch', [GR.sleight]: 'slip', [GR.medicine]: 'heal', [GR.influence]: 'talk_down' } as Record<string, import('./engine/nonCombat').ShareRule>,
-  /** the matched-level search: its first upper guess (doubled until the actor no longer fights evenly), its ceiling, and
-   * how narrow (levels) its bracket gets before it stops */
-  MODEL_LEVEL_FIRST: 64,
-  MODEL_LEVEL_TOP: 1000,
-  MODEL_LEVEL_TOL: 0.05,
+  /** the equation's rates (how the average blow moves with attack, defense, soak and damage) are measured on the standard
+   * soldier at COMBAT_PIVOT, between the soldiers COMBAT_SPAN levels below and above it (50: the average professional;
+   * 25: one equipment level each way) */
+  COMBAT_PIVOT: 50,
+  COMBAT_SPAN: 25,
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on, its own step growing with its place (BG-256: I = +5, II = +15, III = +30), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,

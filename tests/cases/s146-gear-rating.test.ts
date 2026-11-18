@@ -1,5 +1,5 @@
 import { SK } from '../../src/library/skillIds';
-// 146 Gear in power: weapons, armor and shields count through the fight model, skill lines through the ratings; coin no longer counts (GR45).
+// 146 Gear in power: weapons, armor and shields count through the combat level, skill lines through the ratings; coin no longer counts (GR45).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actorLevel, combatPart, defeatXp, levelCost, levelRating, power, xpToReach } from '../../src/engine/xp';
@@ -8,7 +8,7 @@ import { CONFIG } from '../../src/config';
 import { TP } from '../../src/library/templateIds';
 
 describe('146 Gear in power (GR45: through the fight, never by its coin)', () => {
-  it('a geared foe is stronger through its weapon and armor in the fight model; stowed gear does not count', () => {
+  it('a geared foe is stronger through its weapon and armor in the combat level; stowed gear does not count', () => {
     const s = makeVillage();
     const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
     const geared = power(s, g);
