@@ -154,7 +154,7 @@ Points follow the source's skill, so hunting stronger things matters at every st
 
 ### 3.1 Marks
 
-Marks are recorded exactly as today: the learning window (MARK\_WINDOW), close calls, endurance by big hits, stacking every MARK\_STACK\_EVERY (3), and the Every Fall a Lesson capstone. The only change is that nothing rolls when a mark is made. A scenario keeps its own mark counts per skill (`ScenarioFrame.marks`). Marks made in an inner scenario count only there. Marks made in free roam wait for the next scenario to start, and count in it.
+Marks are recorded exactly as today: the learning window (MARK\_WINDOW), close calls, Endurance by hits from foes inside its window, stacking every MARK\_STACK\_EVERY (3), and the Every Fall a Lesson capstone. The only change is that nothing rolls when a mark is made. A scenario keeps its own mark counts per skill (`ScenarioFrame.marks`). Marks made in an inner scenario count only there. Marks made in free roam wait for the next scenario to start, and count in it.
 
 ### 3.2 The formula
 

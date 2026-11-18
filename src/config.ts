@@ -110,8 +110,6 @@ const DEFAULTS = {
   /** SG3 a: true = a skill's own cap (120 tagged, 75 flawed) is in the roll too, so the room left counts from it;
    * false = every skill rolls against SKILL_CAP and only its stop moves */
   GROWTH_CAP_IN_ROLL: true,
-  /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
-  ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----
   HP_BASE: 50,
   HP_PER_END: 1,
@@ -329,7 +327,7 @@ const DEFAULTS = {
   MORALE_BEYOND_CF: 0.5,
   /** MB9: share of max morale back when an actor's engagement ends */
   MORALE_ENGAGEMENT_END_PCT: 25,
-  /** a single loss of this % of max morale or more marks the player's Resolve (like ENDURANCE_MARK_PCT) */
+  /** a single loss of this % of max morale or more marks the player's Resolve */
   RESOLVE_MARK_PCT: 10,
   /** others' morale shows (as words) from this level down (MB16), like HEALTH_SHOWN_FROM */
   MORALE_SHOWN_FROM: 'afraid' as MoraleLevel,
