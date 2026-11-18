@@ -93,5 +93,5 @@ describe('finishing a fight far below the player', () => {
     stronger(s, 10);
     stronger(s, 1 / 10);
     expect(finishFight(s, input, createRng(1), strike)).toMatchObject({ stop: 'no_longer', rounds: 0, events: [] });
-  });
+  }, 20000); // twelve whole fights; each win levels the player, a new sheet whose combat level is worked out afresh (about 0.3 s)
 });

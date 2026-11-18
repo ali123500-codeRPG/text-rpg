@@ -205,14 +205,21 @@ export function vAt(state: GameState, a: Actor, L: number): number {
 }
 
 const cache = new Map<string, number>();
+/** the sheet the combat level reads: true skills to the nearest whole point, so a skill's slow growth in play does not
+ * work the level out afresh every turn (a fraction of a point moves it by a fraction of a level) */
+function wholeSkills(a: Actor): Actor {
+  const sk = a.core.skills;
+  if (Object.values(sk).every((x) => Number.isInteger(x.raw))) return a;
+  return { ...a, core: { ...a.core, skills: Object.fromEntries(Object.entries(sk).map(([k, x]) => [k, { ...x, raw: Math.round(x.raw) }])) } };
+}
 /** the sheet that sets a combat level: everything but the moment (condition, marks, holds) */
-const sheetKey = (a: Actor): string => JSON.stringify([a.core.raceId, a.core.bodyTypeId, a.core.prefix, a.core.skills, a.core.perks, a.core.classes, a.core.inventory.map((i) => [i.itemId, i.equippedIn, i.boundTo]), a.core.standingDefense, a.core.bornDay, a.core.hollowed, a.progression?.achievements]);
+const sheetKey = (a: Actor): string => JSON.stringify([a.core.raceId, a.core.bodyTypeId, a.core.prefix, a.core.skills, a.core.perks, a.core.classes, a.core.inventory.map((i) => [i.itemId, i.equippedIn, i.boundTo]), a.core.standingDefense, a.core.bornDay, a.core.hollowed, (a.progression?.achievements ?? []).filter((x) => !x.replacedBy).map((x) => x.key).sort()]);
 
 /** PLACEHOLDER: the combat level: the level of the reference fighter this actor fights evenly (V = 1). V falls as the
  * reference's level rises, so the search brackets V = 1 (doubling from MODEL_LEVEL_FIRST up to MODEL_LEVEL_TOP) and closes
- * in by false position on ln V (Illinois) until the bracket is under MODEL_LEVEL_TOL. Cached by sheet. */
-export function combatLevel(state: GameState, a: Actor): number {
-  const key = sheetKey(a);
+ * in by false position on ln V (Illinois) until the bracket is under MODEL_LEVEL_TOL. Read at whole skill points and cached by sheet. */
+export function combatLevel(state: GameState, a0: Actor): number {
+  const a = wholeSkills(a0), key = sheetKey(a);
   const hit = cache.get(key);
   if (hit !== undefined) return hit;
   const L = searchLevel((L) => Math.log(vAt(state, a, L)));
