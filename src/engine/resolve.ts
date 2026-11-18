@@ -31,6 +31,7 @@ import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView, seesClearlyNow } from '../views';
+import { neverFlatFooted, noteSeen } from './flatFooted';
 import { withTactics } from '../views/tactics';
 import { markReaction } from './tacticsMarks';
 import { UNREACHABLE } from '../minds/routines';
@@ -294,7 +295,7 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
   const delay = new Map<string, number>();
   const rows = ids.map((id) => {
     const a = actorById(state, id)!;
-    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x, armorNoise(state, x, 'attack', SENSE.attack[0])));
+    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !neverFlatFooted(a, x) && !hearsItComing(state, a, x, armorNoise(state, x, 'attack', SENSE.attack[0])));
     // AT58: in a fight, the reaction rolled when the actor's fight started: its first turn starts that many seconds in, and
     // the roll orders it for the rest of the fight; outside a fight the roll is fresh each turn, as before
     let init: number, wait = 0;
@@ -813,8 +814,9 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   // BG-25: someone down can't defend: the blow lands as on someone unaware
   let surprised = !isActive(t) || isAsleep(t); // NW14: a sleeper is struck as unaware (Never Surprised doesn't help it)
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
+  // TC35 b Never Flat-Footed: a foe the target has seen this fight is no ambush (bystanders still roll to notice it)
   if (!surprised && !atLeast(beliefStatus(state, t, a), 'suspicious')) {
-    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise);
+    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise) && !neverFlatFooted(t, a);
     if (surprised) ctx.surprised.add(t.id);
   }
   if (shows) stealthEnd(state, a);
@@ -836,7 +838,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   const helpless = !isActive(t) ? 'down' as const : isAsleep(t) ? 'asleep' as const : t.heldBy ? 'held' as const : undefined;
   const opening = openingShifts(ctx, a, t, m.mode.tree);
   // LR1 Ghost Blade: Hidden Strike also lands on a target only suspicious of the owner, once per target per engagement
-  if (!surprised && hasPerk(a, PK.ghost_blade) && beliefStatus(state, t, a) === 'suspicious' && onceThisEngagement(state, a, `${PK.ghost_blade}:${t.id}`)) {
+  if (!surprised && hasPerk(a, PK.ghost_blade) && beliefStatus(state, t, a) === 'suspicious' && !neverFlatFooted(t, a) && onceThisEngagement(state, a, `${PK.ghost_blade}:${t.id}`)) {
     opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Ghost Blade', value: 1 }];
   }
   gaveUpFeats(state, a, t); // AS1–AS11: striking someone who already gave up, before this blow changes anything
@@ -2665,6 +2667,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scenario breaks
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
+  noteSeen(state); // TC35 b: who each Never Flat-Footed owner has seen this fight
   if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight, ctx.events);
   turnFeats(state, ctx.events);
