@@ -18,4 +18,6 @@ export const FIGHT_RULES: readonly FightRule[] = [
   { id: FX.into_dark, name: 'Into the dark', skill: SK.fieldcraft, min: 75 }, // F3: walks to a darker zone where it still sees its foes clearly
   { id: FX.finish_hurt, name: 'Finish the hurt one', skill: SK.battle_sense, min: 75 }, // B5: two or more foes, one visibly hurt: it attacks that one
   { id: FX.strike_from_hiding, name: 'Strike from hiding', skill: SK.stratagem, min: 55 }, // S2: sees no foe now: sneaks toward the one it hunts instead of closing in openly
+  // S3 (TC50-TC52 a): outnumbered, not Wounded, once a fight: runs as if broken (engine/feint.ts); a believer that follows alone is struck
+  { id: FX.feigned_flight, name: 'Feigned flight', skill: SK.stratagem, min: 70 },
 ];

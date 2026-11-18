@@ -29,9 +29,9 @@ function alone() {
 }
 
 describe('376 Stratagem fight rows', () => {
-  it('rows sit in table order: S1 after B4, S2 last, at 40 and 55', () => {
-    expect(FIGHT_RULES.map((r) => r.id)).toEqual([FX.call_help, FX.gang_up, FX.back_off, FX.draw_into_pack, FX.out_of_sight, FX.into_cover, FX.into_dark, FX.finish_hurt, FX.strike_from_hiding]);
-    expect(FIGHT_RULES.filter((r) => r.skill === SK.stratagem).map((r) => r.min)).toEqual([40, 55]);
+  it('rows sit in table order: S1 after B4, S2 then S3 last, at 40, 55 and 70', () => {
+    expect(FIGHT_RULES.map((r) => r.id)).toEqual([FX.call_help, FX.gang_up, FX.back_off, FX.draw_into_pack, FX.out_of_sight, FX.into_cover, FX.into_dark, FX.finish_hurt, FX.strike_from_hiding, FX.feigned_flight]);
+    expect(FIGHT_RULES.filter((r) => r.skill === SK.stratagem).map((r) => r.min)).toEqual([40, 55, 70]);
   });
 
   it('S1: alone against one foe, it falls back toward the idle bandmate (Stratagem 40); below 40 it attacks', () => {

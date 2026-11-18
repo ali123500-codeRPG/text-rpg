@@ -175,7 +175,8 @@ export type TacticsWalk = { zone: string; via: string };
  * hurtFoe: the foe in its fight that looks the most hurt, when it faces two or more (B5); outOfSight, intoCover, intoDark:
  * the Fieldcraft walks F1 to F3; drawTo: the bandmate S1 falls back toward */
 export type TacticsView = { rows: string[]; outnumbered?: true; calledHelp?: true; allyFoe?: ActorId; freeAlly?: { id: ActorId; zone: string }; hurtFoe?: ActorId;
-  outOfSight?: TacticsWalk; intoCover?: TacticsWalk; intoDark?: TacticsWalk; drawTo?: { id: ActorId; zone: string } };
+  outOfSight?: TacticsWalk; intoCover?: TacticsWalk; intoDark?: TacticsWalk; drawTo?: { id: ActorId; zone: string };
+  feint?: 'start' | 'run'; turnOn?: ActorId }; // S3: begin or keep up a feigned flight; turnOn: the lone believer to strike
 
 export type ActorView = {
   turn: number;

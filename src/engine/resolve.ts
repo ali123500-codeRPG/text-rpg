@@ -5,7 +5,7 @@ import { noticeGoals, runSteps } from './goals';
 import { noteHappened } from './happened';
 import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
-import { CP, DU, FR, HL, RL } from '../library/tableIds';
+import { CP, DU, FR, FX, HL, RL } from '../library/tableIds';
 import { passiveFatigue, payMove, payRow, payStrain, restRecover, sleepMinutes, tooSpent } from './fatigue';
 import { payFear } from './morale';
 import { nerveCowers, nerveLetsWalk } from './nerve';
@@ -33,6 +33,7 @@ import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears
 import { buildActorView, seesClearlyNow } from '../views';
 import { neverFlatFooted, noteSeen } from './flatFooted';
 import { endPlayDead, fooledBy, openPlayDead, playDeadChecks, startPlayDead } from './playDead';
+import { expireFeint, fooledByFeint, startFeint } from './feint';
 import { withTactics } from '../views/tactics';
 import { markReaction } from './tacticsMarks';
 import { UNREACHABLE } from '../minds/routines';
@@ -86,7 +87,7 @@ import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], play_dead: ['quiet', 'normal'], body_checked: ['silent', 'low'], alarm: ['deafening', 'high'],
+  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], play_dead: ['quiet', 'normal'], feint: ['quiet', 'normal'], body_checked: ['silent', 'low'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
   way: ['quiet', 'normal'], pick: ['hushed', 'slight'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper, made out only up close (Slight)
   stash: ['hushed', 'low'], // SE9: tucking something away
@@ -825,6 +826,9 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   }
   // TC32 a Play Dead: the owner's first blow on a foe that took it for Down lands as on an unaware foe
   if (!surprised && ctx.risen.get(a.id)?.includes(t.id)) { surprised = true; ctx.surprised.add(t.id); ctx.risen.delete(a.id); }
+  // TC51 a: a feigned flight's turn-around blow on a foe that believed it lands as on an unaware foe; any blow ends the feint
+  if (!surprised && fooledByFeint(state, t, a)) { surprised = true; ctx.surprised.add(t.id); }
+  delete a.feint;
   if (shows) stealthEnd(state, a);
   if (inAndOut) updateBeliefs(state, { kind: 'detection', observerId: t.id, aboutId: a.id, status: 'aware', event: ev });
   // A11 Cover Ally: a friend in the zone steps into the path of a ranged attack and defends in the target's place
@@ -1897,6 +1901,11 @@ function step(ctx: Ctx, id: string): void {
   }
   if (o.defense) a.core.standingDefense = o.defense;
   if (o.rule && a.mind) (a.mind.rowsUsed ??= {})[o.rule] = state.turn; // D-17: a fight row used (B1 calls for help once a fight)
+  if (o.rule === FX.feigned_flight && o.type !== 'attack' && !a.feint) { // S3 (TC50-TC52 a): the run begins; onlookers roll
+    const ev = mk(ctx, a, 'feint', { effects: startFeint(state, a, ctx.rng) });
+    ev.perception = computePerception(ev, state, ctx.rng);
+    emit(ctx, ev);
+  }
   // FR2: a pick-up out of grip reach waits for the walk over to it (closeIn); the rest are free, before the action
   const later = (o.gear ?? []).filter((op) => op.op === 'pick_up' && !reachable(state, a, op));
   const gearNow = (o.gear ?? []).filter((op) => !later.includes(op));
@@ -2720,7 +2729,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // SM3: marks still count per engagement (or per scenario) for stacking
   if (!CONFIG.GROWTH_AT_SCENARIO_END) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
-  for (const x of allActors(state)) expireMarks(state, x);
+  for (const x of allActors(state)) { expireMarks(state, x); expireFeint(state, x); }
   bindCarriedCharms(state); // D-218: a Threadbound charm binds to the player carrying it
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
     syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks

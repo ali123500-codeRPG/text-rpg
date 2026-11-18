@@ -38,6 +38,8 @@ export type Actor = {
   /** TC32 a Play Dead (engine/playDead.ts): lying as if Down. believers: the foes who take it for Down (each on its own,
    * TC48 a, so a sharing rule can take ids out); judged: every foe that has rolled against it */
   playingDead?: { believers: string[]; judged: string[] };
+  /** TC50-TC52 a S3 feigned flight (engine/feint.ts): when it began (game minutes) and the foes who believe the flight */
+  feint?: { at: number; believers: string[] };
   /** NW12/NW20: asleep since this game minute; `until` ends a planned sleep (the player's, a night watch); none: a
    * routine's sleep, which ends with its time. Asleep, an actor perceives nothing and is an unaware target. */
   asleep?: { since: number; until?: number };

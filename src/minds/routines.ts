@@ -255,6 +255,9 @@ export function tacticsOrder(view: ActorView): Order | null {
   if (!t) return null;
   const s = view.self;
   const strike = (target: string, rule: string) => order(view, 'attack', 'fallback', 'attack', { target, skill: s.attackSkill, targetPart: null, aimed: false, rule });
+  // S3 (TC50 a): a feint under way comes before every other row: turn on the lone believer, else keep running
+  if (t.turnOn) return strike(t.turnOn, FX.feigned_flight);
+  if (t.feint === 'run') return { ...fleeOrder(view, 'fallback'), rule: FX.feigned_flight };
   for (const r of FIGHT_RULES) {
     if (!t.rows.includes(r.id)) continue;
     if (r.id === FX.call_help && t.outnumbered && !t.calledHelp) return order(view, 'call_help', 'fallback', 'call for help', { rule: r.id });
@@ -266,6 +269,7 @@ export function tacticsOrder(view: ActorView): Order | null {
     const walk = r.id === FX.out_of_sight ? t.outOfSight : r.id === FX.into_cover ? t.intoCover : r.id === FX.into_dark ? t.intoDark : undefined;
     if (walk) return order(view, 'idle', 'fallback', r.name.toLowerCase(), { move: walk.zone, moveSpot: { near: walk.via }, rule: r.id });
     if (r.id === FX.finish_hurt && t.hurtFoe) return strike(t.hurtFoe, r.id);
+    if (r.id === FX.feigned_flight && t.feint === 'start') return { ...fleeOrder(view, 'fallback'), rule: r.id };
   }
   return null;
 }
