@@ -11,6 +11,7 @@ import { actorById, isActive, isEngaged, reachesAcross, seesAcross, zoneById } f
 import { drawnTo, spendDrawn } from './perkMarks';
 import { fooledBy } from './playDead';
 import { codePerkMove } from './npcPerkMoves';
+import { codeWarn } from './warnings';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
 import { M_EPS, distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
@@ -102,6 +103,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     ...(mv?.spot ? { moveSpot: mv.spot } : {}),
     ...(mv?.jump ? { jump: true as const } : {}),
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),
+    ...(intent?.warn ? { warn: intent.warn } : {}), // WN9 a
     ...(intent?.way ? { way: intent.way } : {}),
     targetPart: a?.targetPart ?? null,
     aimed: (!!aimed || (!!a?.aimed && !!a.targetPart)) && a?.type === 'attack', // BG-200: the Aim button, or words that aim at a part
@@ -199,8 +201,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     const a = actorById(state, id)!;
     // BF11: one staying where its own agent took it holds there instead of walking its routine
     const watch = isEngaged(state, a) ? undefined : suspicionOrder(state, a, v); // GD3: a code-run guard keeps close to someone it suspects
-    // TC53-TC59 a: the perk moves it owns are weighed on the order its fight list gave
-    out.set(id, isEngaged(state, a) ? codePerkMove(state, a, v, fallbackOrder(withTactics(state, a, v), rng)) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
+    // TC53-TC59 a: the perk moves it owns are weighed on the order its fight list gave; WN8 a row W1: then a warning beside it
+    out.set(id, isEngaged(state, a) ? codeWarn(state, a, codePerkMove(state, a, v, fallbackOrder(withTactics(state, a, v), rng))) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
   }
   // TC31 a Draw Them In: a drawn foe spends this turn coming at the one who drew it, whatever it chose (its words stay)
   for (const id of ids) {

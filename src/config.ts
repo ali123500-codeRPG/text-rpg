@@ -271,6 +271,9 @@ const DEFAULTS = {
   SEARCH_M2_PER_FIGHT_M: 120,
   /** SE14 b: Look around is also a search against anyone hiding in its range, this many tiers down */
   LOOK_SEARCH_SHIFT: -1,
+  WARNED_SHIFT: 2, // WN3: tiers on an answer to a lie (Insight) by one that knows the trick (saw through it, or was warned)
+  POINTED_SHIFT: 1, // WN4 b (placeholder): tiers on the next notice or search roll at a hidden foe an ally pointed out
+  POINTED_TURNS: 6, // WN4 b (placeholder, = DECAY_TURNS): how long a pointed-out spot stays fresh
   /** SE25: what an item search learns against when no one did the hiding (a Weaver-hidden item, concealed gear): a
    * hidden-at tier counts as this skill at Success, and this much more for each tier step above it (less below, never under 0) */
   HIDDEN_TIER_SUCCESS_SKILL: 50,

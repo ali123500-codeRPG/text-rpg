@@ -13,6 +13,7 @@ import { freeGrips } from '../ruleset/body';
 import { actorById, isActive, wary } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markForRounds } from './perkMarks';
+import { TRICK, sawThrough, warnedShift } from './ruses';
 import { playDeadOpen } from './playDead';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -72,12 +73,13 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   if (perk === PK.bluff) {
-    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng));
+    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng, warnedShift(t, a.id, TRICK.bluff)));
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c);
     markUse(state, t, c.b.skill, c);
     const seen = c.winner === 'b'; // the foe must win outright to see through it
-    if (!seen) markForRounds(state, t, PK.bluff);
+    if (seen) sawThrough(state, t, a, TRICK.bluff); // WN11, WN8
+    else markForRounds(state, t, PK.bluff, a.id);
     return { effects: [{ kind: seen ? 'bluff_seen_through' : 'bluff_believed', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   return { effects: [] };

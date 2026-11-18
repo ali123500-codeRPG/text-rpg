@@ -125,6 +125,7 @@ export type PlayerView = {
     bodyAttacks?: BodyAttackView[]; // BG-193: the body's own attacks (fists, a grapple), named by mode even with a weapon in hand
     playingDead?: true; // TC32 a: lying as if Down; anything but a still hold gets it up
     perkMoves?: PerkMoveView[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
+    warnable?: { id: string; why: 'trick' | 'hidden' }[]; // WN9 a: foes it can warn its allies about now (the Parser's warn is the id)
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)

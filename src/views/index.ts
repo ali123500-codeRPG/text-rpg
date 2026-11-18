@@ -40,6 +40,7 @@ import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
+import { warnableOf } from '../engine/warnings';
 import { fooledBy, playDeadOpen } from '../engine/playDead';
 import { fooledByFeint } from '../engine/feint';
 import { tacticsWord } from './tactics';
@@ -416,6 +417,10 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'play_dead_seen_through') out.push(own ? `${who} see ${by} is only playing dead` : `${who} sees ${by} is only playing dead`);
     if (f.kind === 'feint_fooled' && !own) out.push(`${who} takes ${by}'s flight for a real one`); // TC52 a: the fooled are never told
     if (f.kind === 'feint_seen_through') out.push(`${who} ${own ? 'see' : 'sees'} that ${by}'s flight is a trick`);
+    if (f.kind === 'warned') { // WN1-WN9: an ally's warning taken in
+      const about = callName(state, viewerId, String(f.data.about));
+      out.push(f.data.tricks ? `${by} warns ${who} that ${about} is playing a trick` : f.data.pointed ? `${by} points out where ${about} is hiding to ${who}` : `${by} warns ${who} about ${about}`);
+    }
     if (f.kind === 'play_dead_ends') out.push(`${who} ${own ? 'are' : 'is'} up again, the act over`);
     if (f.kind === 'aura_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by} and gives up` : `${who} falters before ${by}`); // NT14 auras: Dread Presence; MR4 Overwhelm
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
@@ -564,6 +569,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...bodyAttacks(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...perkMovesOf(state, p, actors), ...(p.playingDead ? { playingDead: true as const } : {}),
+      ...(warnableOf(state, p).length ? { warnable: warnableOf(state, p) } : {}), // WN9 a
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',

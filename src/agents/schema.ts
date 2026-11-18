@@ -82,6 +82,7 @@ const intent = obj<Intent>({
     fall: num as V<number>,
   }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade', 'fall'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
+  warn: nul(str),
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(WAY_OPS) })),
   gear: GEAR,
   spoken: nul(str),
@@ -95,7 +96,7 @@ const intent = obj<Intent>({
   letsSearch: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null,
   standDown: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null, // TF11
   look: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(['stats', 'inv'] as const)(v, p, e)) as 'stats' | 'inv',
-}, ['perkMove', 'yields', 'finish', 'letsSearch', 'standDown', 'way', 'volume', 'look', 'answers']);
+}, ['perkMove', 'warn', 'yields', 'finish', 'letsSearch', 'standDown', 'way', 'volume', 'look', 'answers']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(NPC_ACTIONS),

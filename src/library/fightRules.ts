@@ -20,4 +20,7 @@ export const FIGHT_RULES: readonly FightRule[] = [
   { id: FX.strike_from_hiding, name: 'Strike from hiding', skill: SK.stratagem, min: 55 }, // S2: sees no foe now: sneaks toward the one it hunts instead of closing in openly
   // S3 (TC50-TC52 a): outnumbered, not Wounded, once a fight: runs as if broken (engine/feint.ts); a believer that follows alone is struck
   { id: FX.feigned_flight, name: 'Feigned flight', skill: SK.stratagem, min: 70 },
+  // W1 (WN8 a): beside whatever the fight list chose, never instead of it (engine/warnings.ts codeWarn): its own roll just saw
+  // through a trick or spotted someone hidden, and an ally that hears it clearly doesn't know; once per foe and trick a fight
+  { id: FX.warn, name: 'Warn the others', skill: SK.battle_sense, min: 10 },
 ];
