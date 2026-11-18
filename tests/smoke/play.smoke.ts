@@ -83,6 +83,22 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('creation: Ctrl+click (or Cmd+click) on Raise or Lower moves the skill by 1, a plain click by 5', async () => {
+    const raise = page.getByRole('button', { name: 'Raise Parry' }), lower = page.getByRole('button', { name: 'Lower Parry' });
+    const val = async () => Number(await page.locator('.row[data-k]', { has: raise }).locator('.val').textContent());
+    await lower.click(); await lower.click(); // the opening build spends every point: free 10
+    const v0 = await val();
+    await raise.click({ modifiers: ['Control'] });
+    expect(await val()).toBe(v0 + 1);
+    await raise.click({ modifiers: ['Meta'] });
+    expect(await val()).toBe(v0 + 2);
+    await lower.click({ modifiers: ['Control'] });
+    expect(await val()).toBe(v0 + 1);
+    await raise.click();
+    expect(await val()).toBe(v0 + 6);
+    expect(errors).toEqual([]);
+  });
+
   it('plays a turn: the input shows, the turn advances, the narration shows', async () => {
     await turn('look around', 1);
     await expect.poll(() => page.getByText(NARRATION).count()).toBe(2); // the opening and this turn
