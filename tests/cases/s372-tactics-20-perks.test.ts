@@ -85,3 +85,42 @@ describe('372 Tactics 20 perks', () => {
     expect(o).toMatchObject({ type: 'idle', move: trader.zone, moveSpot: { near: 'trader' } });
   });
 });
+
+describe('372 Draw Them In (TC31 a)', () => {
+  it('a free move once a fight: a foe that sees it and loses comes at the owner next turn, and the owner gets +1 on it', async () => {
+    const { play, intent } = await import('./w4-kit');
+    const s = makeVillage();
+    const patron = place(s, 'patron_1', s.player.zone);
+    patron.mind!.overrides = { player: 'hostile' };
+    patron.mind!.control = 'code';
+    patron.mind!.knowledge.player = { status: 'engaged', source: 'seen', revealed: [], lastKnownZone: s.player.zone, lastSeenTurn: s.turn };
+    patron.core.skills[SK.insight] = { raw: 0, state: 'normal' };
+    give(s.player, PK.draw_them_in);
+    s.player.core.skills[SK.stratagem] = { raw: 200, state: 'normal' }; // sure to win
+    const ev = play(s, { intent: intent({ perkMove: { perk: PK.draw_them_in, target: null } } as never) });
+    const pm = ev.find((e) => e.kind === 'perk_move' && e.actorId === 'player')!;
+    expect(pm.effects).toContainEqual(expect.objectContaining({ kind: 'drawn_in', actorId: 'patron_1' }));
+    expect(markShifts(s, s.player, patron, false).attack).toContainEqual({ source: 'Draw Them In', value: 1 });
+    // its next turn: an attack on the player, whatever it chose
+    const ev2 = play(s, { intent: intent() });
+    expect(ev2.some((e) => e.kind === 'attack' && e.actorId === 'patron_1' && e.target === 'player')).toBe(true);
+    // once a fight
+    const ev3 = play(s, { intent: intent({ perkMove: { perk: PK.draw_them_in, target: null } } as never) });
+    expect(ev3.some((e) => e.kind === 'perk_move' && e.actorId === 'player')).toBe(false);
+  });
+
+  it('the drawn foe\'s order is replaced by an attack on the owner, even when its agent chose to hold', async () => {
+    const { plannerOut, act } = await import('./w4-kit');
+    const { mergeOrders } = await import('../../src/engine/merge');
+    const { drawIn } = await import('../../src/engine/perkMarks');
+    const s = makeVillage();
+    const patron = place(s, 'patron_1', s.player.zone);
+    patron.mind!.overrides = { player: 'hostile' };
+    drawIn(s, s.player, patron);
+    const views = new Map([[patron.id, buildActorView(s, patron.id)]]);
+    const input = { intent: null, aimed: false, agentOutputs: [plannerOut(patron.id, act('hold'))], spokespeople: [] };
+    const o = mergeOrders(s, input as never, views, [], forcedRng([50]));
+    expect(o.get(patron.id)).toMatchObject({ type: 'attack', target: 'player', intent: 'drawn in' });
+    expect(mergeOrders(s, input as never, views, [], forcedRng([50])).get(patron.id)?.type).toBe('hold'); // spent
+  });
+});

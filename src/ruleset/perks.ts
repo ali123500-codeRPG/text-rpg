@@ -40,6 +40,8 @@ export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number;
   // I9: the turn's main action, once per engagement, aimed at no one
   [PK.battle_cry]: { free: false, perEngagement: 1, untargeted: true, does: 'a war cry or roar to shake the foes and rally your side ("Come on, then!", a wordless bellow)' },
   // LI1c: once per foe per engagement
+  // TC31 a: free, once per engagement, aimed at no one: every foe that sees it rolls
+  [PK.draw_them_in]: { free: true, perEngagement: 1, untargeted: true, does: 'show a false opening to lure foes in (drop your guard, step into the open, turn as if to look away)' },
   [PK.bluff]: { free: true, perEngagement: 1, perFoe: true, does: 'a quick lie or false warning at a foe, to make it look away or hesitate ("Behind you!", "Your boot\'s untied", pointing at nothing)' },
 };
 /** the perk moves an actor owns (shown to the Parser and in Commands) */

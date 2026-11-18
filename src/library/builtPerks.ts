@@ -8,6 +8,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
   PK.press_the_opening, // TC28 a (Battle Sense 20): src/engine/perkMarks.ts afterAttack() and markShifts()
   PK.fall_back_on_me, // TC36 c (Command 20): src/engine/nerve.ts fallBackOwner(), nerveLetsWalk(); minds fleeOrder()
+  PK.draw_them_in, // TC31 a (Stratagem 20): src/engine/resolve.ts doDrawThemIn(), src/engine/perkMarks.ts drawIn(); the drawn foe's order in merge.ts
   PK.hug_the_cover, // TC30 a (Fieldcraft 20): src/engine/perkMarks.ts hugReady(), src/ruleset/index.ts attack()
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
   PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
