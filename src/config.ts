@@ -1,8 +1,9 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
 import type { Past100Key, EffortKey, FatigueLevel, FragilityKey, GradeLevel, GrandeurKey, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
-import { FN, GR } from './library/functionIds';
+import { FN, GR, RT } from './library/functionIds';
 import { SK } from './library/skillIds';
 import { ES } from './library/essenceIds';
+import { IT } from './library/itemIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
 // Read CONFIG at call time (tests may change a value and call resetConfig()).
@@ -990,11 +991,42 @@ const DEFAULTS = {
   /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
   SKILL_RATING_AT_50: 23.1,
   SKILL_RATING_POWER: 2,
+  /** GR1: in a skill group's pool the worths count highest first at 1, then × this each step (½, ¼…) */
+  RATING_SHARE_STEP: 0.5,
+  /** GR10, GR36: compound ratings, each pooling the skills of these groups (a skill once, even when it names two) */
+  RATINGS: { [RT.melee_strength]: [GR.melee, GR.health], [RT.ranged_strength]: [GR.ranged, GR.health], [RT.toughness]: [GR.health, GR.defense],
+    [RT.agility]: [GR.speed, GR.stealth], [RT.presence]: [GR.influence, GR.will], [RT.senses]: [GR.notice] } as Record<string, string[]>,
+  /** GR11: an action that needs strength takes the best kind × its share (placeholders) */
+  STRENGTH_KINDS: { break: { [RT.melee_strength]: 1, [RT.ranged_strength]: 0.5 } } as Record<string, Record<string, number>>,
+  /** GR26: breaking free of a hold, both sides add this × their Melee strength (Grapple left out of its pool) to the Grapple roll (placeholder) */
+  STRENGTH_HOLD_SHARE: 0.5,
   /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
   GEAR_RATING_FACTOR: 0.25,
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (xpToReach) */
   LEVEL_RATING_SHARE: 0.02,
   DEFEAT_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
+  // PLACEHOLDER: the combat rating's fight model (src/engine/fightModel.ts). An actor's combat level is the level of the
+  // reference fighter it fights evenly; every number below is a placeholder until the model is redone.
+  /** extra tier bands each way the model's rolls reach (balance models count tiers with no end) */
+  MODEL_TIER_REACH: 40,
+  /** the reference fighter: a human with these skills all at the level, holding and wearing this kit, standing in this defense */
+  MODEL_REF_SKILLS: [SK.melee_medium, SK.parry, SK.endurance, SK.medium_armor, SK.resolve, SK.battle_sense] as string[],
+  MODEL_REF_KIT: [IT.arming_sword, IT.mail_hauberk] as string[],
+  /** with MODEL_REF_MIX on, the reference is every kit here at once (GR22: fists, arming sword, greatsword × bare, mail,
+   * half plate, plate), with every skill those kits use at the level; V = the mean rate of winning ÷ the mean rate of losing */
+  MODEL_REF_MIX: false as boolean,
+  MODEL_REF_MIX_KITS: [[], [IT.arming_sword], [IT.greatsword]].flatMap((w) => [[], [IT.mail_hauberk], [IT.half_plate], [IT.plate_harness]].map((a) => [...w, ...a])) as string[][],
+  MODEL_REF_MIX_SKILLS: [SK.unarmed_strike, SK.melee_medium, SK.melee_heavy, SK.parry, SK.endurance, SK.medium_armor, SK.heavy_armor, SK.resolve, SK.battle_sense] as string[],
+  MODEL_REF_DEFENSE: 'parry' as DefenseKind,
+  /** below its kit's level the reference fighter: 'met' meets the kit anyway; 'by_level' carries the best kit it meets
+   * (MODEL_REF_KIT_BY_LEVEL, the reference kit from the first row its level reaches); 'short' falls short as anyone would */
+  MODEL_REF_KIT_RULE: 'met' as 'met' | 'by_level' | 'short',
+  MODEL_REF_KIT_BY_LEVEL: [[0, [IT.cudgel]], [25, [IT.hand_axe, IT.brigandine]]] as [number, string[]][],
+  /** words in one threat (talk row seconds × this) */
+  MODEL_THREAT_WORDS: 8,
+  /** the levels the matched-level search runs between, and its steps (each halves the range) */
+  MODEL_LEVEL_TOP: 1000,
+  MODEL_LEVEL_STEPS: 16,
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on, its own step growing with its place (BG-256: I = +5, II = +15, III = +30), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,

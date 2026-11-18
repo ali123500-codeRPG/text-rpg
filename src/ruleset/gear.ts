@@ -215,13 +215,13 @@ export const rollFnSkills = (actor: Actor, fn: string): string[] => {
 export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: rollFnSkills(actor, fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
-export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind; when?: AugmentWhen[] } = {}) {
+export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind; when?: AugmentWhen[]; alone?: true } = {}) {
   const skills = getLibrary().skills;
   const table = standInTable(skill, actor, ctx.standInFns);
   const share = (id: string) => standInShare(skill, id, table, ctx.fullValue);
-  const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
+  const cands = ctx.alone ? [skill] : [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)]; // alone: no stand-ins (a rating's pool counts each skill once)
   // base: the skill's own true skill at its share and tier (P2: base plus each gear line is the value)
-  let best: { skill: string; value: number; base: number; share: number; gear: { source: string; value: number }[] } | null = null;
+  let best: { skill: string; value: number; base: number; share: number; gear: { source: string; value: number }[]; items: number } | null = null;
   for (const id of cands) {
     const k = share(id);
     const entry = actor.core.skills[id];
@@ -233,7 +233,7 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const own = (entry && !entry.dormant ? trueSkill(actor, id) : 0) * k;
     const value = (own + gear.reduce((s, g) => s + g.value, 0)) * tier + given.reduce((s, g) => s + g.value, 0);
     for (const g of gear) g.value *= tier;
-    if (!best || value > best.value) best = { skill: id, value, base: own * tier, share: k, gear: [...gear, ...given] };
+    if (!best || value > best.value) best = { skill: id, value, base: own * tier, share: k, gear: [...gear, ...given], items: gear.reduce((s, g) => s + g.value, 0) }; // items: what held, worn and kit lines add (GR8's gear portion)
   }
   const old = ageMult(state, actor, skill); // AG20: augments to a declining skill decline with it
   for (const a of augmentsOf(actor, skill, ctx.rollKind, ctx.when)) { const g = { ...a, value: a.value * old }; best!.value += g.value; best!.gear.push(g); } // skills that augment this one
