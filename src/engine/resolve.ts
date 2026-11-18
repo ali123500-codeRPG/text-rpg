@@ -26,7 +26,7 @@ import { companions, travel, travelSpeed, tripGoal, type TripWorld } from './tra
 import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
-import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markUse, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -36,14 +36,14 @@ import { markReaction } from './tacticsMarks';
 import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenHolds, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
-import { afterAttack, bluffed, coverFor, spendBluff, expireMarks, slowed } from './perkMarks';
+import { afterAttack, bluffed, coverFor, drawIn, spendBluff, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras, sightDread } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, hasFreeGrip, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, countsInFight, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wary, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -66,7 +66,7 @@ import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { cantExtract, extractEssence } from './extract';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
-import { fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
+import { contestFeat, fightEnded, gaveUpFeats, outmatchedOnce, turnFeats, type ActContest } from './feats';
 import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
 import { answerOffer, answerOffers, canOffer, feelsThreats, makeOffer, OFFER_TYPES, playerOffer, speaks, truceBars, type StoodDown, type TalkedYield } from './offer';
 import { minutesUntil, nextTimeOfDay, noteTurnEnd, now, timeOfDay } from '../time';
@@ -2202,8 +2202,30 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry && tooSpent(a, actionRow(DU.battle_cry)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' }); // FT10
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
+  if (pm.perk === PK.draw_them_in) return doDrawThemIn(ctx, a);
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
+}
+
+/** TC31 a Draw Them In: free, once a fight; each foe that sees the owner clearly rolls Insight against its Stratagem, and one
+ * that does not win is drawn in (perkMarks drawIn: it comes at the owner next turn, merge.ts; the owner's next attack on it +1) */
+function doDrawThemIn(ctx: Ctx, a: Actor): void {
+  const { state, rng } = ctx;
+  countPerkMove(state, a, PK.draw_them_in, null);
+  const ev = mk(ctx, a, 'perk_move', {});
+  const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
+  const watchers = allActors(state).filter((x) => x !== a && !!x.mind && countsInFight(x) && (foe(state, x, a) || foe(state, a, x)) && seesClearlyNow(state, x, a.id))
+    .sort((x, y) => x.id.localeCompare(y.id));
+  for (const x of watchers) {
+    const c = ruleset.contested(req(a.id, SK.stratagem), req(x.id, SK.insight), state, rng);
+    markUse(state, a, c.a.skill, c);
+    contestFeat(state, c);
+    markUse(state, x, c.b.skill, c);
+    const drawn = c.winner !== 'b'; // the foe must win outright to see through it
+    if (drawn) drawIn(state, a, x);
+    ev.effects.push({ kind: drawn ? 'drawn_in' : 'draw_seen_through', actorId: x.id, data: { by: a.id, perk: PK.draw_them_in } });
+  }
+  emit(ctx, ev);
 }
 
 /** I9 Battle Cry: the main action; a Loud roar heard at any level, however far (battleCry in auras.ts) */

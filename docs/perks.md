@@ -298,6 +298,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** That attack.
 - **Open:** Once cover levels change (thread "Rebalance cover and add cover levels"), this may become "cover counts one level better" (TC30).
 
+### Draw Them In (Stratagem) · TC31
+
+*Story:* You drop your guard for a heartbeat, and they can't resist. Once per fight, without giving up your action, you show a false opening: every foe that sees it and falls for it comes straight at you, and your next blow on it lands one outcome better.
+
+- **Kind:** Free move
+- **Trigger:** The owner uses the move. It does not use the owner's action.
+- **Effect:** Each foe that sees the owner clearly rolls Insight against the owner's Stratagem. Unless the foe wins, it is drawn in: its next turn's action is an attack on the owner (it closes in), whatever it meant to do, and the owner's next attack on it gets tier shift +1.
+- **Lasts:** The drawn foe's next turn; the owner's opening until it is used or the fight ends.
+- **Cooldown:** Once per engagement.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1

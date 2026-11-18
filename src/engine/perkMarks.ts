@@ -8,6 +8,7 @@
 //   Bluff (LI1c): a foe that believed the bluff hesitates: its next turn starts after its reaction time again (perkMoves.ts
 //   makes it, resolve.ts initiativeOrder reads and spends it).
 //   Press the Opening (TC28 a): an ally's hit on a foe opens it to the owner's next attack, until the owner's next turn ends.
+//   Draw Them In (TC31 a): a drawn foe comes at the owner on its next turn, and the owner's next attack on it is +1 tier.
 //   Hug the Cover (TC30 a): marks the turn the owner took its first ranged attack (the shift is in ruleset attack()).
 //   Set Them Up (B15): a Strike attack, hit or miss, marks the target for the owner's next improvised attack on it, and an
 //   improvised attack marks it for the owner's next Strike.
@@ -27,7 +28,7 @@ import { secondsSince } from '../time';
 /** AT74: a timed mark lasts PERK_MARK_ROUNDS rounds from the turn it was made; one with no stamp lasts until used */
 const live = (state: GameState, m: PerkMark): boolean => m.made === undefined || secondsSince(state, m.made) < CONFIG.PERK_MARK_ROUNDS * CONFIG.ROUND_S;
 
-export const MARK_SOURCE: Record<string, string> = { [PK.press_the_opening]: 'Press the Opening', [PK.hug_the_cover]: 'Hug the Cover', [PK.set_them_up]: 'Set Them Up', [PK.turn_the_blade]: 'Turn the Blade', [PK.hunters_mark]: 'Hunter’s Mark', [PK.make_them_stumble]: 'Make Them Stumble', [PK.leg_bolt]: 'Leg Bolt', [PK.dirt_in_the_eyes]: 'Dirt in the Eyes' };
+export const MARK_SOURCE: Record<string, string> = { [PK.draw_them_in]: 'Draw Them In', [PK.press_the_opening]: 'Press the Opening', [PK.hug_the_cover]: 'Hug the Cover', [PK.set_them_up]: 'Set Them Up', [PK.turn_the_blade]: 'Turn the Blade', [PK.hunters_mark]: 'Hunter’s Mark', [PK.make_them_stumble]: 'Make Them Stumble', [PK.leg_bolt]: 'Leg Bolt', [PK.dirt_in_the_eyes]: 'Dirt in the Eyes' };
 
 const drop = (a: Actor, f: (m: NonNullable<Actor['perkMarks']>[number]) => boolean) => {
   if (!a.perkMarks) return;
@@ -51,11 +52,23 @@ export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean
   const open = ranged ? PK.hunters_mark : PK.turn_the_blade;
   const dirt = [{ source: MARK_SOURCE[PK.dirt_in_the_eyes], value: -2 }];
   return {
-    attack: [...(has(A, open, D.id) ? [{ source: MARK_SOURCE[open], value: 1 }] : []), ...(has(A, PK.press_the_opening, D.id) ? [{ source: MARK_SOURCE[PK.press_the_opening], value: 1 }] : []), ...(has(A, PK.dirt_in_the_eyes) ? dirt : []),
+    attack: [...(has(A, open, D.id) ? [{ source: MARK_SOURCE[open], value: 1 }] : []), ...(has(A, PK.press_the_opening, D.id) ? [{ source: MARK_SOURCE[PK.press_the_opening], value: 1 }] : []), ...(has(A, PK.draw_them_in, D.id) ? [{ source: MARK_SOURCE[PK.draw_them_in], value: 1 }] : []), ...(has(A, PK.dirt_in_the_eyes) ? dirt : []),
       ...(skill && SET_UP[skill] && has(A, SET_UP[skill].uses, D.id) ? [{ source: MARK_SOURCE[PK.set_them_up], value: mark(A, SET_UP[skill].uses, D.id)?.value ?? 1 }] : [])],
     defense: [...(has(D, PK.make_them_stumble) ? [{ source: MARK_SOURCE[PK.make_them_stumble], value: -1 }] : []), ...(has(D, PK.dirt_in_the_eyes) ? dirt : [])],
   };
 }
+
+/** TC31 a Draw Them In: the mark a drawn foe carries (the owner it comes at), spent by its next turn's order */
+const DRAWN = 'drawn_in';
+/** the owner gets an opening on the drawn foe (until used or the engagement ends); the foe comes at the owner next turn */
+export function drawIn(state: GameState, owner: Actor, x: Actor): void {
+  add(owner, { perk: PK.draw_them_in, target: x.id });
+  add(x, { perk: DRAWN, target: owner.id, made: state.turn });
+}
+/** whom a drawn foe comes at this turn, if it is still drawn */
+export const drawnTo = (state: GameState, x: Actor): string | undefined => x.perkMarks?.find((m) => m.perk === DRAWN && live(state, m))?.target;
+/** the drawn foe has spent its turn coming at the owner */
+export const spendDrawn = (x: Actor): void => drop(x, (m) => m.perk === DRAWN);
 
 /** TC30 a Hug the Cover: the owner's first ranged attack taken this turn (the mark says one was already taken) */
 export const hugReady = (state: GameState, D: Actor): boolean => hasPerk(D, PK.hug_the_cover) && !D.perkMarks?.some((m) => m.perk === PK.hug_the_cover && m.made === state.turn);
@@ -86,6 +99,7 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   for (const perk of [PK.turn_the_blade, PK.hunters_mark]) if (used(MARK_SOURCE[perk], r.attack.tierShifts)) drop(A, (m) => m.perk === perk && m.target === D.id);
   if (used(MARK_SOURCE[PK.make_them_stumble], r.defense?.tierShifts)) drop(D, (m) => m.perk === PK.make_them_stumble);
   if (used(MARK_SOURCE[PK.press_the_opening], r.attack.tierShifts)) drop(A, (m) => m.perk === PK.press_the_opening && m.target === D.id);
+  if (used(MARK_SOURCE[PK.draw_them_in], r.attack.tierShifts)) drop(A, (m) => m.perk === PK.draw_them_in && m.target === D.id);
   if (ranged && hasPerk(D, PK.hug_the_cover)) add(D, { perk: PK.hug_the_cover, made: state.turn }); // TC30 a: the first ranged attack this turn is taken
   // TC28 a Press the Opening: a hit opens the foe to the attacker's friends who own the perk, until their next turn ends
   if (met(r.outcome)) for (const x of allActors(state)) {
@@ -107,7 +121,7 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
 
 /** each turn: stumbles run out; an actor whose engagement ended loses its openings */
 export function expireMarks(state: GameState, a: Actor): void {
-  drop(a, (m) => !live(state, m) || (!a.engagement && (m.perk === PK.turn_the_blade || m.perk === PK.hunters_mark || m.perk.startsWith('set_up:'))));
+  drop(a, (m) => !live(state, m) || (!a.engagement && (m.perk === PK.turn_the_blade || m.perk === PK.hunters_mark || m.perk === PK.draw_them_in || m.perk.startsWith('set_up:'))));
 }
 
 /** Cover Ally (A11): an actor within its own grip reach of the target (ZR2), friendly to it, with the perk switched on, standing on block and able
