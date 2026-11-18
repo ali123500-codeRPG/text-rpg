@@ -492,4 +492,3 @@ export function achievementInfo(state: GameState, a: { id: string; key?: string;
     : `Turn ${a.turn}: you reached ${earnedAt}.`;
   return { id: a.id, name, level, levelName: rewardName(level), xp: state.player.progression?.xpLog?.find((x) => x.source === `achievement:${a.id}`)?.amount ?? achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
 }
-export type AchievementInfo = ReturnType<typeof achievementInfo>;

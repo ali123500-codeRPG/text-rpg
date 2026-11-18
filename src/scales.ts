@@ -85,7 +85,6 @@ export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicio
 /** XP reward levels for achievements; XP per level is rewardXp (the REWARD_XP_CURVE equation) */
 export const REWARD_LEVELS = scale([['minus_2', '−2'], ['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
   ['vii', 'VII'], ['viii', 'VIII'], ['ix', 'IX'], ['x', 'X'], ['xi', 'XI'], ['xii', 'XII'], ['xiii', 'XIII'], ['xiv', 'XIV'], ['xv', 'XV']]);
-export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** QT28: the reward levels a quest may have, 0 to IV: rows of REWARD_LEVELS (keys and names from there); XP per level is
  * rewardXp, as for achievements; the level from CONFIG.QUEST_GAIN_LEVEL */
 export const QUEST_REWARD_LEVELS = scale(REWARD_LEVELS.keys.slice(REWARD_LEVELS.pos('zero'), REWARD_LEVELS.pos('iv') + 1).map((k) => [k, REWARD_LEVELS.name(k)] as const));

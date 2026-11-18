@@ -36,9 +36,6 @@ export function newInstanceId(prefix = 'it'): string {
   seq += 1;
   return `${prefix}_${seq}`;
 }
-export function resetInstanceIds(): void {
-  seq = 0;
-}
 
 export function fullParts(state: GameState | null, bodyTypeId: string): Record<string, number> {
   return Object.fromEntries(bodyType(state, bodyTypeId).parts.map((p) => [p.id, 100]));

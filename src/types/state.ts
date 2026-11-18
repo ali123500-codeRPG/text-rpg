@@ -156,7 +156,6 @@ export type GameState = {
   recentEvents?: GameEvent[];
 };
 
-export type LibraryMeta = { libraryVersion: number; status: Record<LibraryRef, EntryStatus> };
 export type EntryStatus =
   | { state: 'active' }
   | { state: 'renamed'; to: LibraryRef }
