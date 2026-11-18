@@ -1013,8 +1013,6 @@ const DEFAULTS = {
   /** GR34, GR42: the XP rating's non-combat groups and how each one's share of an equal fight is worked out
    * (engine/nonCombat.ts): slip past or filch unseen, catch a sneaker, talk a fight down, heal */
   NONCOMBAT_SHARES: { [GR.stealth]: 'slip', [GR.notice]: 'catch', [GR.sleight]: 'slip', [GR.medicine]: 'heal', [GR.influence]: 'talk_down' } as Record<string, import('./engine/nonCombat').ShareRule>,
-  /** words in one threat (talk row seconds × this) */
-  MODEL_THREAT_WORDS: 8,
   /** the matched-level search: its first upper guess (doubled until the actor no longer fights evenly), its ceiling, and
    * how narrow (levels) its bracket gets before it stops */
   MODEL_LEVEL_FIRST: 64,

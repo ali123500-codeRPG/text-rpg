@@ -30,6 +30,7 @@ export const DU = {
   drink: 'DU27', look: 'DU29', armor_light_on: 'DU30', armor_light_off: 'DU31', armor_medium_on: 'DU32', armor_medium_off: 'DU33',
   armor_heavy_on: 'DU34', armor_heavy_off: 'DU35', wait: 'DU36', break_open: 'DU37', from_pack: 'DU38',
   blow_unarmed: 'DU39', blow_medium: 'DU40', blow_heavy: 'DU41', // blows by class (DU6 blow is the light weapon blow)
+  speech: 'DU42', // TK1 c: persuade, lie or threaten, however long
   rally: 'DU43', // TC39 a Rally (DU42 is held by another thread)
   play_dead: 'DU44', // TC44 a Play Dead
 } as const;

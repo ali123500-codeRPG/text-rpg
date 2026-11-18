@@ -212,11 +212,10 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
     }
     default:
-      // TP6 c: in a fight plain talk is no action (its time stays and carries); words that use a skill (persuade, lie,
-      // threaten, haggle) take their words' time
-      if (o.type === 'talk' && state.mode === 'tactical') return { row: actionRow(DU.talk)!, seconds: 0 };
-      if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row, undefined, f) * o.line.text.trim().split(/\s+/).length }; }
-      return undefined;
+      // TP6 c, TK6: plain talk in a fight takes no time (its time stays and carries); TK1 c: words that use a skill (persuade,
+      // lie, threaten) take the Speech row's fixed time however long they are, and so does a turn of plain talk outside a
+      // fight (the world moves on while you talk; it costs you nothing there, as nothing competes for it)
+      return o.type === 'talk' && state.mode === 'tactical' ? of(DU.talk) : isSpeech(o.type) ? of(DU.speech) : undefined;
   }
 }
 

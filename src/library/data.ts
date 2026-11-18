@@ -1186,7 +1186,10 @@ export function prototypeLibrary(): Library {
       [DU.battle_cry]: { id: DU.battle_cry, name: 'Battle Cry', effort: 'all_out', seconds: 1 },
       [DU.rally]: { id: DU.rally, name: 'Rally', effort: 'all_out', seconds: 1 }, // TC39 a: like Battle Cry
       [DU.play_dead]: { id: DU.play_dead, name: 'Play dead', effort: 'light', seconds: 1 }, // TC44 a: dropping as if Down takes the turn
-      [DU.talk]: { id: DU.talk, name: 'Talking (a word)', effort: 'base', seconds: 0.4, perWord: true, output: 'share', onBreak: [{ upTo: 1, then: 'share' }] },
+      // TK6: plain talk in a fight takes no time; TK1 c: persuading, lying or threatening takes a fixed time however long the
+      // words (haggling is a trade), and so does a turn of plain talk outside a fight (the world moves on while you talk)
+      [DU.talk]: { id: DU.talk, name: 'Talking in a fight', effort: 'base', seconds: 0 },
+      [DU.speech]: { id: DU.speech, name: 'Persuade, lie or threaten; talking outside a fight', effort: 'base', seconds: 3 },
       // gear and things in hand (AT11h-j): changing gear is instant and costs no strain (less realism)
       [DU.draw]: { id: DU.draw, name: 'Draw a weapon', effort: 'base', seconds: 0 },
       [DU.stow]: { id: DU.stow, name: 'Stow a weapon', effort: 'base', seconds: 0 },

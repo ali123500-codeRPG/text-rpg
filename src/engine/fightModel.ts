@@ -137,9 +137,9 @@ const contactMods = (state: GameState, A: Actor, m: ModeRef): Mod[] =>
 /** the time A needs to break B by threats alone: Intimidation against B's Intimidation each threat, a win costing B the
  * lost-to-intimidation fear per tier of the gap; Infinity when A cannot win */
 function threatPath(state: GameState, A: Actor, B: Actor): number {
-  const row = actionRow(DU.talk);
+  const row = actionRow(DU.speech); // TK1 c: a threat takes the Speech row's fixed time
   if (!row || !(A.core.skills[SK.intimidation]?.raw ?? 0)) return Infinity;
-  const secs = actionSeconds(row) * CONFIG.MODEL_THREAT_WORDS, f = getLibrary().fears?.[FR.lost_intimidation];
+  const secs = actionSeconds(row), f = getLibrary().fears?.[FR.lost_intimidation];
   if (!f) return Infinity;
   const k: Track = { lost: 0, moraleLost: 0, t: 0 };
   const odds = rollOdds({ actorId: A.id, skill: SK.intimidation, modifiers: [], tierShifts: [], against: B.id, contest: true }, state, A);

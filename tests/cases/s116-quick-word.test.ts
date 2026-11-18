@@ -7,6 +7,10 @@ import { quickWord, resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
 import { act, intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { DU } from '../../src/library/tableIds';
+import { getLibrary } from '../../src/library';
+import { CONFIG } from '../../src/config';
+import { now } from '../../src/time';
 
 it('116 Quick Word: the line and the reply are free; both actions still happen', () => {
   const s = makeVillage();
@@ -34,18 +38,20 @@ it('116 Quick Word: the line and the reply are free; both actions still happen',
   expect(ev.filter((e) => e.bark).length).toBe(0); // neither line is said twice
 });
 
-it('116b TP6 c: plain talk in a fight takes no time; words that use a skill (a threat) take their words\' time', () => {
-  for (const [type, free] of [['talk', true], ['intimidate', false]] as const) {
+it('116b TP6 c, TK1 c, TK6: plain talk in a fight takes no time; outside one its turn, like persuading, lying or threatening takes the Speech row\'s fixed time', () => {
+  const short = 'Put it down.', long = 'Put the knife down now, friend, and nobody here gets hurt today, I promise you that on my name.';
+  for (const mode of ['tactical', 'explore'] as const) for (const [type, spoken] of [['talk', long], ['intimidate', short], ['intimidate', long], ['persuade', long], ['deceive', short]] as const) {
     const s = makeVillage();
     const wim = s.actors.find((a) => a.id === 'patron_1')!;
     wim.zone = s.player.zone;
-    s.mode = 'tactical';
-    const i = intent({ action: { type, skill: SK.persuasion, target: wim.id }, spoken: 'Put the knife down now, friend, and nobody here gets hurt today.', addressees: [wim.id] });
+    s.mode = mode;
+    const i = intent({ action: { type, skill: SK.persuasion, target: wim.id }, spoken, addressees: [wim.id] });
     const spokespeople = selectSpokespeople(s, i);
     const exchange = resolveSpeech(s, i, spokespeople, createRng(3));
+    const t0 = now(s);
     play(s, { intent: i, spokespeople, exchange, agentOutputs: [] });
-    const kept = (s.player.carry ?? []).reduce((n, c) => n + c.main, 0);
-    if (free) expect(kept).toBeGreaterThan(0); // the turn's time was not spent: it carries
-    else expect(kept).toBe(0);
+    const secs = Math.round((now(s) - t0) * 600) / 10, kept = (s.player.carry ?? []).reduce((n, c) => n + c.main, 0);
+    if (type === 'talk' && mode === 'tactical') { expect(kept).toBeGreaterThan(0); expect(secs).toBe(CONFIG.FIGHT_TURN_MIN_S); } // no time: it carries
+    else { expect(kept).toBe(0); expect(secs).toBe(getLibrary().durations![DU.speech].seconds); } // however long the words
   }
 });
