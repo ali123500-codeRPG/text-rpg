@@ -1190,18 +1190,23 @@ export function gearSnap(s: GameState, p: Actor): GearSnap {
 }
 /** ready-to-show rows for what a turn changed in the player's gear: "Picked up: …", "Now held: right hand · …" */
 export function gearRows(a: GearSnap, b: GearSnap): string[] {
-  const rows: string[] = [];
+  // A1: rows for the same item merge and say how many ("Picked up: arrow ×3"), in the order they first come
+  const rows = new Map<string, { head: string; name: string; n: number }>();
+  const add = (head: string, name: string, n: number) => {
+    const r = rows.get(`${head}\0${name}`);
+    if (r) r.n += n; else rows.set(`${head}\0${name}`, { head, name, n });
+  };
   for (const [id, x] of b) {
     const was = a.get(id);
-    if (!was || x.qty > was.qty) rows.push(`Picked up: ${x.name}`);
-    else if (x.qty < was.qty) rows.push(`Used: ${x.name}`);
+    if (!was || x.qty > was.qty) add('Picked up', x.name, x.qty - (was?.qty ?? 0));
+    else if (x.qty < was.qty) add('Used', x.name, was.qty - x.qty);
     if (was && was.where === x.where) continue;
-    if (x.where.startsWith('held:')) rows.push(`Now held: ${x.where.slice(5)} · ${x.name}`);
-    else if (x.where === 'worn') rows.push(`Now worn: ${x.name}`);
-    else if (was) rows.push(`Put away: ${x.name}`);
+    if (x.where.startsWith('held:')) add(`Now held: ${x.where.slice(5)}`, x.name, x.qty);
+    else if (x.where === 'worn') add('Now worn', x.name, x.qty);
+    else if (was) add('Put away', x.name, x.qty);
   }
-  for (const [id, x] of a) if (!b.has(id)) rows.push(`Gone: ${x.name}`);
-  return rows;
+  for (const [id, x] of a) if (!b.has(id)) add('Gone', x.name, x.qty);
+  return [...rows.values()].map((r) => `${r.head}${r.head.startsWith('Now held') ? ' ·' : ':'} ${r.name}${r.n > 1 ? ` ×${r.n}` : ''}`);
 }
 
 /** what the player did at a barrier, as the play screen's Way row words it (BG-65: a way with nothing on it says "way") */

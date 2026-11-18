@@ -11,7 +11,7 @@ import { skillName } from './creation';
 import { perkSeries } from './perks';
 import { getLibrary } from '../library';
 import { SCENARIO_ENDING_NAMES, SCENARIO_ENDING_OUTCOMES, type AchievementNote, type GameApi, type ScenarioEndNote, type ScenarioGains, type XpPart } from '../types';
-import { cap } from '../words';
+import { cap, termAttrs } from '../words';
 
 /** one way to write a number in the moment, counting or still, so a count never ends in a jump (XP can be fractional) */
 const num = (v: number) => String(+v.toFixed(1));
@@ -79,7 +79,7 @@ function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLEleme
   const lib = getLibrary();
   const star = (mark = '✦') => h('span', { class: 'st', 'aria-hidden': 'true' }, mark);
   const sec = (key: string, label: string, ...items: HTMLElement[]) =>
-    h('li', { class: 'g-sec', 'data-sec': key }, h('span', { class: 'g-node', 'aria-hidden': 'true' }, '✦'), h('p', { class: 'hs-label g-label' }, label), h('div', { class: 'g-items' }, ...items));
+    h('li', { class: 'g-sec', 'data-sec': key }, h('span', { class: 'g-node', 'aria-hidden': 'true' }, '✦'), h('p', { class: 'hs-label g-label', ...termAttrs(label) }, label), h('div', { class: 'g-items' }, ...items));
   const secs: HTMLElement[] = [];
   if (g.skills.length) secs.push(sec('skills', 'Skills', ...g.skills.map((s) => h('div', { class: 'g-skill', 'data-from': String(s.from), 'data-to': String(s.to) },
     h('b', { class: 'n' }, skillName(s.skill)), h('span', { class: 'num' }, num(s.to)),

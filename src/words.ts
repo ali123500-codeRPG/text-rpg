@@ -37,3 +37,23 @@ export const listWords = (xs: string[], last: 'and' | 'or' = 'and'): string =>
   xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} ${last} ${xs[xs.length - 1]}`;
 /** a number rounded to one decimal, the way metres, XP and stats are shown and kept */
 export const r1 = (x: number): number => Math.round(x * 10) / 10;
+
+/** G3: every game term on screen has one tip with its plain meaning, from this one table, the same on every page */
+export const GAME_TERMS: Record<string, string> = {
+  'Critical Failure': 'Far below what was needed: the worst result a roll can give.',
+  Failure: 'Below what was needed: it doesn’t work.',
+  'Near Miss': 'Just short of what was needed: it doesn’t quite work.',
+  Success: 'What was needed: it works.',
+  'Great Success': 'Well above what was needed: it works better than planned.',
+  'Critical Success': 'Far above what was needed: the best result a roll can give.',
+  Burden: 'The more skill points you hold, the harder an untagged skill is to improve: Burden comes off its improvement rolls.',
+  Thread: 'Your XP. It gathers from what you do and brings character levels.',
+  'All-50': 'When enough skills of one tree reach this step (three in most trees), the tree gives a perk for free. The steps go on every 50: All-100, All-150.',
+  Breakthrough: 'The perks at 20, 60, 100 and 140 of a skill: each changes what you can do.',
+  Refinement: 'The perks at 40, 80 and 120 of a skill: each raises numbers.',
+};
+/** a term's plain meaning; a tier with + or − marks, "The Thread" and any All step read their base term */
+export const termMeaning = (word: string): string | undefined =>
+  GAME_TERMS[word] ?? GAME_TERMS[word.replace(/[+−]+$/, '')] ?? GAME_TERMS[word.replace(/^The /, '')] ?? (/^All-\d+$/.test(word) ? GAME_TERMS['All-50'] : undefined);
+/** attributes that give an element its term's tip (and the dotted underline that says it has one) */
+export const termAttrs = (word: string): Record<string, string> => { const m = termMeaning(word); return m ? { title: m, 'data-term': '' } : {}; };

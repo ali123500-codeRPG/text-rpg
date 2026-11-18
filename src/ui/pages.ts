@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
+import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -145,7 +145,7 @@ function openGearPop(s: GameState, opener?: HTMLElement | null): void {
       const n = gearNote(s, i);
       return h('button', { type: 'button', class: 'gp-row', 'data-gear': i.id, onclick: () => openItemPop(s, i, opener) },
         h('b', {}, name(i)), h('span', {}, isHeld(i) ? 'held' : 'worn'), n ? h('span', { class: `cs-gn ${n.cls}` }, n.text) : null);
-    }))] : [h('p', { class: 'empty' }, 'Nothing held or worn.')] });
+    }))] : [h('p', { class: 'empty' }, 'Nothing held or worn. Equip something from your pack on the Inventory page.')] });
 }
 
 /** one piece of gear: its exact stats (the Inventory's rows), a way back to the list, and a link to it in the Inventory */
@@ -283,10 +283,10 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   }, w.label);
   // hover or keyboard focus shows the stats; the item's name opens the side panel like the table does
   const hover = (el: HTMLElement, it: InvItem) => {
-    el.addEventListener('pointerenter', () => showTip(s, it, el));
-    el.addEventListener('pointerleave', hideTip);
-    el.addEventListener('focusin', () => showTip(s, it, el));
-    el.addEventListener('focusout', hideTip);
+    el.addEventListener('pointerenter', () => tipOn(() => showTip(s, it, el)));
+    el.addEventListener('pointerleave', () => tipOff(hideTip));
+    el.addEventListener('focusin', () => tipOn(() => showTip(s, it, el), true));
+    el.addEventListener('focusout', () => tipOff(hideTip));
     return el;
   };
   const icon = (it: InvItem) => itemIcon(iconName(s, it.itemId), kindOf(it));
@@ -756,13 +756,13 @@ export function journalPage(api: GameApi) {
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
       sec('People', `A label until you learn the name. Health shows only from ${HEALTH_LEVELS.name(CONFIG.HEALTH_SHOWN_FROM)} down. Heard of: names you have heard for people you have never met.`,
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
-          groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
+          groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet. People you meet are written here.' })),
       sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',
         groupedTable({ cols: [{ key: 'name', title: 'Place' }, { key: 'parent', title: 'Part of' }, { key: 'facts', title: 'What you know' }],
-          groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet.' })),
+          groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet. Places you visit or hear of are written here.' })),
       sec('Timeline', 'Turns played since this page was opened, oldest first.',
         groupedTable({ cols: [{ key: 'turn', title: 'Turn', right: true }, { key: 'did', title: 'You did' }, { key: 'happened', title: 'What happened' }],
-          groups: tGroups, open: opened.time, sort: sorts.time, onField: field('Turn'), redraw: update, emptyText: 'Nothing yet this session.' })));
+          groups: tGroups, open: opened.time, sort: sorts.time, onField: field('Turn'), redraw: update, emptyText: 'Nothing yet this session. Each turn you play is written here.' })));
   }
   return { el, update };
 }
