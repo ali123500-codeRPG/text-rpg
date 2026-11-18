@@ -20,7 +20,7 @@ import { pressureMods } from './pressure';
 import { achievementAimEase, achievementRollMods, bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
-import { markShifts } from '../engine/perkMarks';
+import { MARK_SOURCE, hugReady, markShifts } from '../engine/perkMarks';
 import { forScenarioAhead, rollFeats, tally } from '../engine/xp';
 import { killedSurrenderedFeat } from '../engine/feats';
 import { shortShifts } from './requirements';
@@ -278,10 +278,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
-  const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
+  const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15, TC28
+  const bodyCover = zoneD ? coverFor(state, D, zoneD) : undefined; // SZ12: the target's cover by its size
+  // TC30 a Hug the Cover: the first ranged attack on the owner each turn, while it has cover, lands one outcome worse
+  const hug = ranged && bodyCover && COVER.pos(bodyCover) > 0 && hugReady(state, D) ? [{ source: MARK_SOURCE[PK.hug_the_cover], value: -1 }] : [];
   const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
-    ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
+    ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...hug, ...(req.context?.attackerShifts ?? [])];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', ...(req.context?.fromHiding ? { when: ['from_hiding' as const] } : {}), against: D.id, contest: true, standInFns: mode.standInFns, blend: mode.blend, attackKind: kind }, state, rng);
   const atkEff = mode.blend ? blendedSkill(state, A, mode.blend, { itemId: req.weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit', true));
@@ -328,7 +331,6 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // PA11: Parry too; All-50 Against the Grain (Parry's part) takes it off the owner's parries
   if (mode.class === 'heavy' && type !== 'dodge' && !(type === 'parry' && hasPerk(D, PK.against_the_grain))) gapShifts.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP }); // PA11: Parry too
   // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
-  const bodyCover = zoneD ? coverFor(state, D, zoneD) : undefined; // SZ12: the target's cover by its size
   const coverKey = zoneD && ranged && hasPerk(A, PK.past_the_cover) ? COVER.at(Math.max(0, COVER.pos(bodyCover!) - 1)) : bodyCover; // All-50: Past the Cover
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
