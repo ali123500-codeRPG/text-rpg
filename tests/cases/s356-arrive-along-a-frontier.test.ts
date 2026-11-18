@@ -10,10 +10,10 @@ import { TIERS } from '../../src/scales';
 import { ZK } from '../../src/library/tableIds';
 import { zoneById } from '../../src/engine/relations';
 import type { GameState, StagePlan, WeaverView } from '../../src/types';
+import { waysOut } from '../../src/plan/where';
 
 function newcomer(): GameState {
   const s = makeVillage();
-  s.stage.zoneIds = [];
   delete s.stage.scenario; delete s.stage.roam;
   s.player.zone = '';
   s.player.placeId = 'tavern';
@@ -29,16 +29,16 @@ const plan = (view: WeaverView, more: Partial<StagePlan>): StagePlan => ({
 
 it('an arrival zone keyed as a frontier builds that frontier: one way in, the frontier\'s own, and the hero arrives on it', async () => {
   const s = newcomer();
-  const label = zoneById(s, 'field_far')!.links.find((l) => l.to === 'woods' && l.frontier)!.label;
+  const label = waysOut(s, 'field_far').find((l) => l.to === 'woods' && l.frontier)!.label;
   const errors: string[][] = [];
   const d = new ScenarioDirector({ clock: new VirtualClock(), weave: async (view, errs) => {
     errors.push((errs ?? []).map((e) => e.code));
     expect(view.places.flatMap((p) => p.areas).flatMap((a) => a.links).some((l) => l.to === 'woods' && l.frontier)).toBe(true); // the Weaver sees the way
-    return plan(view, { arriveAt: 'woods', zones: [{ key: 'woods', place: 'field', kind: ZK.yard, name: 'the woods path', look: 'a path under the trees', links: [{ to: 'field_far', label: 'back out to the field', sight: true }] }] });
+    return plan(view, { arriveAt: 'woods', zones: [{ key: 'woods', place: 'field', kind: ZK.yard, name: 'the woods path', look: 'a path under the trees', ways: [{ to: 'field_far', label: 'back out to the field' }] }] });
   } });
   await d.startScenario(s, forcedRng([50, 50, 50, 50]));
   expect(errors).toEqual([[]]); // accepted at once
-  const ways = zoneById(s, 'field_far')!.links.filter((l) => l.to === 'woods');
+  const ways = waysOut(s, 'field_far').filter((l) => l.to === 'woods');
   expect(ways).toEqual([expect.objectContaining({ to: 'woods', label })]);
   expect(ways[0].frontier).toBeUndefined();
   expect(zoneById(s, 'woods')!.name).toBe('the woods path');

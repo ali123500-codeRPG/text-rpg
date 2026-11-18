@@ -72,7 +72,7 @@ export type PlanEnding = { when: EndCheck; as: (typeof PLAN_ENDINGS)[number]; te
 /** SC1/SC2/SC7: the scenario's hidden question, its scale and its endings */
 export type ScenarioFrame = {
   question: string; scale: ScenarioScale; endings: PlanEnding[];
-  /** SW8: hidden, what is lost if the player does nothing (absent on an old save) */
+  /** SW8: hidden, what is lost if the player does nothing (absent only when a plan applied after a failed repair gave none) */
   stake?: string;
   tier: Tier; startTurn: number; startMinute: number; number: number;
   /** BG-240: game minutes spent waiting, resting, sleeping or on a trip since it began (left out of an actingOnly budget) */

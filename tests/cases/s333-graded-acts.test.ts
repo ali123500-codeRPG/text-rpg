@@ -16,14 +16,16 @@ import { checkParserLegality } from '../../src/agents/legality';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
+import { layAll, furnish } from '../harness';
+import { groundIn } from '../../src/engine/ground';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
   s.player.core.skills[SK.endurance] = { raw: 50, state: 'normal' };
-  zoneById(s, 'tav_common')!.furniture = makeFurniture('tav_common', [{ kind: 'other', name: 'winch', at: 'n' }]);
+  furnish(s, 'tav_common', [{ kind: 'other', name: 'winch', at: 'n' }]);
   return s;
 };
-const winch = (s: GameState) => zoneById(s, 'tav_common')!.furniture![0];
+const winch = (s: GameState) => s.furniture.find((f) => f.zone === 'tav_common')!;
 const turnWinch = (s: GameState, grade?: 'none' | 'minor' | 'moderate' | 'major' | 'extreme', seed?: number) =>
   play(s, { intent: intent({ action: { type: 'interact', skill: SK.endurance, target: winch(s).id, ...(grade ? { grade } : {}) } }) }, seed).find((e) => e.actorId === 'player' && e.kind === 'interact')!;
 const eff = (s: GameState) => effectiveSkill(s, s.player, SK.endurance).value;
@@ -84,8 +86,9 @@ describe('333 graded acts (OD2, OD3, OD4, OD11, OD12)', () => {
     expect(checkParserLegality(intent({ action: { type: 'attack', skill: SK.melee_medium, target: id } }), v).illegal).toEqual([`action.target ${id}`]);
   });
   it('the Weaver can grade a piece; an unknown grade is dropped', () => {
-    expect(makeFurniture('z', [{ kind: 'other', name: 'hatch', grade: 'major' }])[0].grade).toBe('major');
-    expect(makeFurniture('z', [{ kind: 'other', name: 'hatch', grade: 'divine' as never }])[0]).not.toHaveProperty('grade');
+    const s = village(), z = zoneById(s, 'tav_common')!;
+    expect(makeFurniture(s, z, [{ kind: 'other', name: 'hatch', grade: 'major' }])[0].grade).toBe('major');
+    expect(makeFurniture(s, z, [{ kind: 'other', name: 'hatch', grade: 'divine' as never }])[0]).not.toHaveProperty('grade');
   });
   it('OD11 a: a check_passed secret is met by a roll (or a sure act) with its skill at its tier, aimed at its person', () => {
     const s = village();
@@ -100,8 +103,8 @@ describe('333 graded acts (OD2, OD3, OD4, OD11, OD12)', () => {
 
 describe('333 breaking a box open on the gate (OD13 a)', () => {
   const box = (s: GameState, grade: 'none' | 'extreme') => {
-    zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, contents: [{ id: 'vial', itemId: IT.healing_draught, qty: 3 }], lock: { locked: true }, grade });
-    return zoneById(s, 'tav_common')!.groundItems.find((i) => i.id === 'box')!;
+    layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, contents: [{ id: 'vial', itemId: IT.healing_draught, qty: 3 }], lock: { locked: true }, grade });
+    return groundIn(s, 'tav_common').find((i) => i.id === 'box')!;
   };
   const bare = (s: GameState, raw: number) => {
     s.player.core.skills[SK.unarmed_improvised] = { raw, state: 'normal' };

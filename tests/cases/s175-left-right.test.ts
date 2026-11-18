@@ -4,7 +4,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
 import { placeAll, sideFrom } from '../../src/engine/position';
 import { checkParserLegality } from '../../src/agents/legality';
 import { PARSER_INSTRUCTIONS } from '../../src/agents/prompts';
@@ -15,8 +14,6 @@ import type { GameState } from '../../src/types';
 function mapped(playerZone: string): GameState {
   const s = makeVillage({ playerZone });
   const zs = s.places.flatMap((p) => p.zones);
-  for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, zs);
   placeAll(s);
   return s;
 }

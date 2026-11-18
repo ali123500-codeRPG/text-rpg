@@ -6,6 +6,13 @@ export const BUILT_PERKS = new Set<string>([
   PK.fists_do_the_talking, // essence trait (Tavern Brawler), D-276 trade augment: src/ruleset/gear.ts augmentRows() and tradesOut()
   PK.dreaded_on_sight, // quirk: src/engine/auras.ts sightDread(), src/engine/relations.ts stance()
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
+  PK.press_the_opening, // TC28 a (Battle Sense 20): src/engine/perkMarks.ts afterAttack() and markShifts()
+  PK.fall_back_on_me, // TC36 c (Command 20): src/engine/nerve.ts fallBackOwner(), nerveLetsWalk(); minds fleeOrder()
+  PK.play_dead, // TC32 a, TC44-TC48 (Guile 20): src/engine/playDead.ts, resolve.ts doPlayDead(); views show believers the owner Down
+  PK.rally, // TC39 a (Command 100): src/engine/resolve.ts doRally(), src/engine/auras.ts rallyCall()
+  PK.never_flat_footed, // TC35 b (Battle Sense 100): src/engine/flatFooted.ts noteSeen(), neverFlatFooted() in resolve.ts initiativeOrder() and doAttack()
+  PK.draw_them_in, // TC31 a (Stratagem 20): src/engine/resolve.ts doDrawThemIn(), src/engine/perkMarks.ts drawIn(); the drawn foe's order in merge.ts
+  PK.hug_the_cover, // TC30 a (Fieldcraft 20): src/engine/perkMarks.ts hugReady(), src/ruleset/index.ts attack()
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
   PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
   PK.overheard, // LI5a (Insight 20): src/engine/speech.ts overhearLie(), from doSpeak() and the exchange slot in resolve.ts

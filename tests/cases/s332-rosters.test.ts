@@ -8,13 +8,15 @@ import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/s
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { drawRegion, type RegionBrief } from '../../src/land/generate';
 import { groupMembers, landmarkRoster, roadRoster, siteRoster, wildTable } from '../../src/land/roster';
-import { buildWorldView } from '../../src/views';
+import { buildWeaverView, buildWorldView } from '../../src/views';
+import { cellAt } from '../../src/land/sight';
 import { getLibrary } from '../../src/library';
-import { RK, LM, LC } from '../../src/library/tableIds';
+import { RK, LM, LC, ZK } from '../../src/library/tableIds';
 import { GP, HK, RO, TH as THEME } from '../../src/library/npcLayerIds';
 import { RC } from '../../src/library/raceIds';
 import { RANKS } from '../../src/scales';
 import { CONFIG } from '../../src/config';
+import { waysOut } from '../../src/plan/where';
 
 const brief: RegionBrief = {
   kind: RK.river_valley, name: 'Vale', look: 'a broad vale', river: { name: 'the Wend', from: 'w', to: 'e' },
@@ -134,6 +136,54 @@ describe('332 rosters and groups', () => {
     expect(vs.roster!.length).toBe(siteRoster(site('village')).length - 1);
     expect(v.land!.wild).toBeDefined();
     expect(v.catalogs.compose.groups.map((g) => g.id)).toContain(GP.bandit_gang);
+  });
+
+  it('RE4: an encounter\'s Weaver sees the road\'s unfilled travellers and the wild table for the cover where it happens', () => {
+    const s = makeVillage();
+    s.regions = [structuredClone(region)];
+    const road = s.regions[0].roads.find((r) => roadRoster(r).length)!;
+    const at = road.pts[Math.floor(road.pts.length / 2)];
+    const z = s.places.flatMap((p) => p.zones)[0];
+    z.road = road.id;
+    s.stage.encounter = { eventRoll: {} as never, zone: z.id, at };
+    const e = buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter!;
+    expect(e.travellers!.map((x) => x.key)).toEqual(roadRoster(road).map((x) => x.key));
+    const r = s.regions![0], i = cellAt(r, at), cover = getLibrary().landCovers![`LC${parseInt(r.cover[i], 36)}`].name;
+    expect(e.wild?.length).toBeGreaterThan(0);
+    expect(e.wild).toEqual(wildTable(r, false).find((x) => x.cover === cover)?.meet);
+    s.hidden.rosterFilled = [roadRoster(road)[0].key]; // a filled entry is gone
+    expect(buildWeaverView(s, { kind: 'scenario', placeId: s.player.placeId }).target.encounter!.travellers?.length ?? 0).toBe(roadRoster(road).length - 1);
+  });
+
+  it('RE8: a road encounter can open a side way: a junction on the road where it stands, and a path toward a landmark', () => {
+    const s = withLand();
+    expect(validateStagePlan(s, villageStagePlan(), ctx)).toEqual([]);
+    applyStagePlan(s, villageStagePlan(), ctx, { entry: 'open' }, createRng(1));
+    const r = s.regions![0], road = r.roads.find((x) => x.pts.length >= 2)!;
+    const z = s.zones.find((x) => x.id.startsWith('field_mid'))!;
+    z.road = road.id; road.zone = z.id;
+    const at = road.pts[Math.floor(road.pts.length / 2)];
+    s.stage.encounter = { eventRoll: {} as never, zone: z.id, at };
+    const quarry = r.features.find((f) => f.name === 'the old quarry')!;
+    const L = (to: string, label: string) => ({ to, label, kind: 'open' as const });
+    const plan = { ...villageStagePlan(), places: [], frontiers: [], cast: [],
+      zones: [{ key: 'camp', place: z.placeId, kind: ZK.woods, name: 'a camp in the trees', look: 'a cold fire ring under the alders', ways: [L(z.id, 'back to the road')], sideWay: { toward: 'The old quarry', name: 'the quarry track' } }] } as StagePlan;
+    expect(validateStagePlan(s, plan, ctx)).toEqual([]);
+    applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
+    const camp = s.zones.find((x) => x.name === 'a camp in the trees')!;
+    const jn = r.nodes.find((n) => n.zone === camp.id)!;
+    expect(jn.kind).toBe('junction');
+    expect(Math.hypot(jn.at.x - at.x, jn.at.y - at.y)).toBeLessThan(1); // on the road where the encounter stands
+    const path = r.roads.find((x) => x.ends.includes(jn.id))!;
+    expect(path).toMatchObject({ kind: 'path', name: 'the quarry track', danger: road.danger });
+    const end = r.nodes.find((n) => n.id === path.ends[1])!;
+    expect(end).toMatchObject({ kind: 'junction', feature: quarry.id, at: quarry.at });
+    expect(road.ends).not.toContain(jn.id); // the road stays one zone
+    expect(waysOut(s, z.id).some((l) => l.to === camp.id) && waysOut(s, camp.id).some((l) => l.to === z.id)).toBe(true);
+    expect(waysOut(s, camp.id).find((l) => l.frontier && l.to === path.id)?.label).toMatch(/the quarry track .*toward the old quarry/);
+    // with nowhere named it is a short trail of its own; outside an encounter the field is refused
+    delete s.stage.encounter;
+    expect(validateStagePlan(s, { ...plan, zones: [{ ...plan.zones[0], key: 'camp2' }] }, ctx).map((e) => e.code)).toContain('bad_zone');
   });
 
   it('NR27: a group entry spawns its leader and followers, counts once against the cast cap, and keeps the band', () => {

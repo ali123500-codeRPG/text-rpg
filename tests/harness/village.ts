@@ -3,51 +3,59 @@
 import { TP } from '../../src/library/templateIds';
 import { BT } from '../../src/library/raceIds';
 import { RC } from '../../src/library/raceIds';
-import type { Actor, Band, Cover, Light, GameState, Place, Zone, ZoneLink } from '../../src/types';
+import type { Actor, Band, Barrier, Furniture, Rect, ItemInstance, Light, GameState, Place, PlanFurniture, TitleSpec, WaySpec, WayKind } from '../../src/types';
 import { spawnNpc, equipLoadout, fullParts } from '../../src/library/spawn';
 import { resetLibrary } from '../../src/library';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
-import { doorway, placeZones } from '../../src/scenario/geometry';
-import { inferHeights } from '../../src/scenario/heights';
+import { floorGap } from '../../src/engine/position';
+import { drawTitles } from '../../src/plan/draw';
+import { inTitle, middle, wayTo } from '../../src/plan/where';
+import { boxOf } from '../../src/plan/geom';
 import { placeAll } from '../../src/engine/position';
 import { SK } from '../../src/library/skillIds';
+import { WK } from '../../src/library/tableIds';
+import { fitBarrier, makeFurniture, setTitleLight } from '../../src/plan/draw';
 import { CL } from '../../src/library/classIds';
 import { IT } from '../../src/library/itemIds';
 
-const L = (to: string, label: string, sight = true, frontier = false): ZoneLink => ({ to, label, sight, ...(frontier ? { frontier: true as const } : {}) });
-const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: Cover = 'none', light: Light = 'bright'): Zone =>
-  ({ id, placeId, name, look, links, cover, light, groundItems: [] });
+/** a way: where to, its words, seen through (an open way; else a door), a kind where it climbs, and frontier (off the stage) */
+const L = (to: string, label: string, sight = true, frontier = false, kind?: WayKind): WaySpec =>
+  ({ to, label, kind: kind ?? (sight ? 'open' : 'door'), ...(frontier ? { frontier: true as const } : {}) });
+/** a title of the village; light is the word its lamps are drawn to: bright indoors, none out under the sky (the sky lights it
+ * by the clock) */
+const Z = (id: string, placeId: string, name: string, look: string, ways: WaySpec[], light?: Light): TitleSpec =>
+  ({ id, placeId, name, look, ways, light: light ?? (OUTDOOR.has(placeId) ? 'dark' : 'bright'), roof: !OUTDOOR.has(placeId), area: CONFIG.ZONE_SIZE_M2[placeId === 'field' ? 'open' : placeId === 'tavern' ? 'room' : 'yard'] });
+/** the village's titles under the sky */
+const OUTDOOR = new Set(['street', 'gate', 'field']);
 
 export function villagePlaces(storyId = 'test'): Place[] {
-  const P = (id: string, kind: string, parentId: string | null, name: string, zones: Zone[]): Place =>
-    ({ id, storyId, kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
+  const P = (id: string, kind: string, parentId: string | null, name: string): Place =>
+    ({ id, storyId, kind, parentId, names: { current: name, past: [] }, zones: [], state: {}, headlines: [] });
   return [
-    P('village', 'settlement', null, 'Brookmere', []),
-    P('tavern', 'place', 'village', 'The Crooked Kettle', [
-      Z('tav_common', 'tavern', 'common room', 'a low smoky room of benches and tables', [L('tav_counter', 'behind the bar'), L('street_door', 'out the front door', false)]),
-      Z('tav_counter', 'tavern', 'behind the bar', 'a scarred counter with kegs behind it', [L('tav_common', 'the common room'), L('tav_cellar', 'down the cellar steps', false)]),
-      Z('tav_cellar', 'tavern', 'cellar', 'a damp cellar of barrels', [L('tav_counter', 'up the cellar steps', false)], 'some', 'dark'),
-    ]),
-    P('street', 'place', 'village', 'Market Street', [
-      Z('street_door', 'street', 'outside the tavern', 'a muddy street before the tavern door', [L('tav_common', 'inside the tavern', false), L('street_square', 'down the street')]),
-      Z('street_square', 'street', 'the square', 'a small square around a well', [L('street_door', 'up the street'), L('gate_inner', 'toward the gate')]),
-    ]),
-    P('gate', 'place', 'village', 'the village gate', [
-      Z('gate_inner', 'gate', 'the gate', 'a timber gate in the palisade', [L('street_square', 'back toward the square'), L('field_edge', 'through the gate')]),
-    ]),
-    P('field', 'place', 'village', 'the slime field', [
-      Z('field_edge', 'field', 'edge of the field', 'trampled grass outside the palisade', [L('gate_inner', 'back through the gate'), L('field_mid', 'out across the field')]),
-      Z('field_mid', 'field', 'the open field', 'wet grass streaked with slime trails', [L('field_edge', 'toward the gate'), L('field_far', 'the far side of the field')]),
-      Z('field_far', 'field', 'far side of the field', 'long grass by a line of trees', [L('field_mid', 'back across the field'), L('woods', 'into the woods', false, true)], 'some'),
-    ]),
+    P('village', 'settlement', null, 'Brookmere'), P('tavern', 'place', 'village', 'The Crooked Kettle'), P('street', 'place', 'village', 'Market Street'),
+    P('gate', 'place', 'village', 'the village gate'), P('field', 'place', 'village', 'the slime field'),
+  ];
+}
+/** PZ14 a: the village's titles as a plan hands them over (ways, sizes, light: no positions); drawn by plan/draw */
+export function villageTitles(): TitleSpec[] {
+  return [
+    Z('tav_common', 'tavern', 'common room', 'a low smoky room of benches and tables', [L('tav_counter', 'behind the bar'), L('street_door', 'out the front door', false)]),
+    Z('tav_counter', 'tavern', 'behind the bar', 'a scarred counter with kegs behind it', [L('tav_common', 'the common room'), L('tav_cellar', 'down the cellar steps', false, false, 'down')]),
+    Z('tav_cellar', 'tavern', 'cellar', 'a damp cellar of barrels', [L('tav_counter', 'up the cellar steps', false, false, 'up')], 'dark'),
+    Z('street_door', 'street', 'outside the tavern', 'a muddy street before the tavern door', [L('tav_common', 'inside the tavern', false), L('street_square', 'down the street')]),
+    Z('street_square', 'street', 'the square', 'a small square around a well', [L('street_door', 'up the street'), L('gate_inner', 'toward the gate')]),
+    Z('gate_inner', 'gate', 'the gate', 'a timber gate in the palisade', [L('street_square', 'back toward the square'), L('field_edge', 'through the gate')]),
+    Z('field_edge', 'field', 'edge of the field', 'trampled grass outside the palisade', [L('gate_inner', 'back through the gate'), L('field_mid', 'out across the field')]),
+    Z('field_mid', 'field', 'the open field', 'wet grass streaked with slime trails', [L('field_edge', 'toward the gate'), L('field_far', 'the far side of the field')]),
+    Z('field_far', 'field', 'far side of the field', 'long grass by a line of trees', [L('field_mid', 'back across the field'), L('woods', 'into the woods', false, true)]),
   ];
 }
 
 export function villageBands(): Band[] {
   const B = (id: string, name: string, relations: Band['relations'], lethal = true): Band =>
-    ({ id, name, goals: '', temperament: '', tactics: 'simple', lethal, relations });
+    ({ id, name, goals: '', temperament: '', lethal, relations });
   return [
     B('player_band', 'the player', { slimes: 'hostile' }),
     B('village_watch', 'the village watch', { slimes: 'hostile' }),
@@ -90,14 +98,22 @@ function withRoutine(a: Actor, setId: string, slots: Record<string, string | str
   return a;
 }
 
-export type VillageOpts = { seed?: number; playerZone?: string; without?: string[] };
+/** shape: changes to a title's spec before it is drawn (a footprint, walls, light …), by title id */
+export type VillageOpts = { seed?: number; playerZone?: string; without?: string[]; shape?: Record<string, Partial<TitleSpec>>; add?: TitleSpec[] };
+/** a village title's spec with more ways (fixture setup: a way to a title added with `add`) */
+export const withWays = (id: string, ...ways: WaySpec[]): Partial<TitleSpec> => ({ ways: [...villageTitles().find((t) => t.id === id)!.ways, ...ways] });
+/** FR4: the counter village: an 8 m common room with the bar's 3 m floor north of it behind a counter (a low wall) */
+export const COUNTER_SHAPE: Record<string, Partial<TitleSpec>> = {
+  tav_common: { rect: { x: 0, y: 0, w: 8, d: 8 }, walls: { n: WK.low, e: WK.wall, s: WK.wall, w: WK.wall } },
+  tav_counter: { rect: { x: 0, y: 5.5, w: 3, d: 3 }, walls: { n: WK.wall, e: WK.wall, s: WK.low, w: WK.wall } },
+};
 
 export function makeVillage(opts: VillageOpts = {}): GameState {
   resetConfig();
   resetLibrary();
   const storyId = 'test';
-  const places = villagePlaces(storyId);
-  const zoneOf = (id: string) => places.flatMap((p) => p.zones).find((z) => z.id === id)!;
+  const places = villagePlaces(storyId), titles = [...villageTitles().map((t) => ({ ...t, ...opts.shape?.[t.id] })), ...(opts.add ?? [])];
+  const zoneOf = (id: string) => titles.find((z) => z.id === id)!;
   const playerZone = opts.playerZone ?? 'tav_common';
   const npc = (tpl: string, id: string, zone: string, bandId: string, name: string) =>
     spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId });
@@ -111,11 +127,10 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
   // pronouns as every stage plan gives them, so the turn checker's view_pronouns rule has something to check (TQ1, F7)
   for (const a of actors) a.pronouns = ({ guard_1: 'he', trader: 'she', patron_1: 'he' } as const)[a.id as 'trader'] ?? 'it';
   actors = actors.filter((a) => !opts.without?.includes(a.id));
-  const zoneIds = places.flatMap((p) => p.zones.map((z) => z.id));
   const seed = opts.seed ?? 12345;
   const state: GameState = {
     storyId, turn: 1, mode: 'explore',
-    zones: places.flatMap((p) => p.zones),
+    zones: [], walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [],
     player: { ...recommendedPlayer(storyId, playerZone, zoneOf(playerZone).placeId), pronouns: 'he' },
     actors,
     bands: villageBands(),
@@ -124,17 +139,15 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     rngSeed: seed, rngState: seed,
     pending: { turn: 1, mode: 'explore', engaged: [], fired: [] },
     places, facts: [],
-    stage: { zoneIds, tier: 'success', scenarioNumber: 1, scenarioStartTurn: 0 },
-    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [],
+    stage: { tier: 'success', scenarioNumber: 1, scenarioStartTurn: 0 },
+    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, quests: [],
     settings: { showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],
     meta: { storyId, title: 'Test story', schemaVersion: CONFIG.SCHEMA_VERSION, createdAt: '2026-11-07', settings: { showMechanics: true, tone: 'grounded low fantasy' } },
   };
-  // ZR8: real rectangles, so everyone stands at a point in metres, as in every world the game builds
-  for (const z of state.zones) z.area = CONFIG.ZONE_SIZE_M2[z.placeId === 'field' ? 'open' : z.placeId === 'tavern' ? 'room' : 'yard'];
-  inferHeights(state, state.zones);
-  placeZones(state, state.zones);
+  // PZ1: titles on a floor plan, so everyone stands at a point in metres, as in every world the game builds
+  drawTitles(state, titles);
   placeAll(state);
   return state;
 }
@@ -169,17 +182,75 @@ export function beside(state: GameState, id: string, near = 'player', m = 0.5): 
   const a = actor(state, id), b = actor(state, near);
   a.zone = b.zone;
   a.placeId = b.placeId;
-  const r = state.zones.find((z) => z.id === b.zone)!.rect!;
-  const x = b.pos!.x + m <= r.x + r.w / 2 ? b.pos!.x + m : b.pos!.x - m;
-  a.pos = { x, y: b.pos!.y };
+  const z = state.zones.find((q) => q.id === b.zone)!;
+  // SZ5: m metres between their bodies (each turned as it stands): the centres sit farther apart by both bodies' extents
+  for (const side of [1, -1]) {
+    a.pos = { x: b.pos!.x + side * m, y: b.pos!.y };
+    a.pos.x += side * (m - floorGap(state, b, a));
+    if (inTitle(z, a.pos)) break;
+  }
   return a;
 }
 
 /** stands `id` in `zone`, `m` metres in from its doorway to `other`, toward the zone's centre (fixture setup only) */
 export function byDoor(state: GameState, id: string, zone: string, other: string, m: number): Actor {
   const a = place(state, id, zone);
-  const z = state.zones.find((x) => x.id === zone)!, d = doorway(z, state.zones.find((x) => x.id === other)!)!;
-  const dx = z.rect!.x - d.x, dy = z.rect!.y - d.y, len = Math.hypot(dx, dy);
+  const z = state.zones.find((x) => x.id === zone)!, d = wayTo(state, zone, other)!.opening.at, c = middle(z);
+  const dx = c.x - d.x, dy = c.y - d.y, len = Math.hypot(dx, dy);
   a.pos = { x: d.x + dx / len * m, y: d.y + dy / len * m };
   return a;
+}
+
+/** SD3: puts a barrier on the way between titles a and b (fixture setup only); the barrier record, made if new */
+export function putBarrier(state: GameState, a: string, b: string, rec: Barrier): Barrier {
+  (state.barriers ??= {})[rec.id] = rec;
+  const o = state.openings.find((x) => (x.joins[0] === a && x.joins[1] === b) || (x.joins[0] === b && x.joins[1] === a));
+  if (!o) throw new Error(`no way between ${a} and ${b}`);
+  o.barrier = rec.id;
+  fitBarrier(state, o);
+  return rec;
+}
+/** the village with title `id`'s footprint changed by `f` (from its usual one), the titles named in `pin` kept where
+ * they usually are; the rest are drawn around them (fixture setup only) */
+export function makeVillageResized(opts: VillageOpts, id: string, f: (r: Rect) => Rect, pin: string[] = []): GameState {
+  const base = makeVillage(opts);
+  const rectOf = (z: string): Rect => { const b = boxOf(base.zones.find((q) => q.id === z)!.outline); return { x: b.x, y: b.y, w: b.w, d: b.d }; };
+  const shape: Record<string, Partial<TitleSpec>> = { ...opts.shape };
+  for (const z of pin) shape[z] = { ...shape[z], rect: rectOf(z) };
+  shape[id] = { ...shape[id], rect: f(rectOf(id)) };
+  return makeVillage({ ...opts, shape });
+}
+/** lays an item on the ground at a point of a title (`at`, else its own `at`, else the title's middle), on its floor; the
+ * same object, so a test can keep it (fixture setup only) */
+export function lay(state: GameState, zone: string, item: ItemInstance, at?: { x: number; y: number }): ItemInstance {
+  const z = state.zones.find((q) => q.id === zone)!, p = at ?? item.at ?? middle(z);
+  item.at = { x: p.x, y: p.y, floor: z.floor };
+  state.ground.push(item);
+  return item;
+}
+/** lays items on the ground in a title (each at its own `at`, else the title's middle) */
+export const layAll = (state: GameState, zone: string, ...items: ItemInstance[]): void => { for (const i of items) lay(state, zone, i); };
+/** PZ5: draws every title's lights to one word (so no lamp next door lights the title a test darkens; fixture setup only) */
+export function lightAll(state: GameState, word: Light): void {
+  for (const z of state.zones) setTitleLight(state, z, word);
+}
+/** FR2: replaces a title's furniture with a list (fixture setup only) */
+export function furnish(state: GameState, zone: string, list: PlanFurniture[]): Furniture[] {
+  const z = state.zones.find((q) => q.id === zone)!;
+  const made = makeFurniture(state, z, list);
+  state.furniture = state.furniture.filter((f) => f.zone !== zone).concat(made);
+  return made;
+}
+/** FR2: adds one piece of furniture to a title, with id `id` (fixture setup only) */
+export function addPiece(state: GameState, zone: string, piece: PlanFurniture, id: string): Furniture {
+  const f = { ...makeFurniture(state, state.zones.find((q) => q.id === zone)!, [piece])[0], id };
+  state.furniture.push(f);
+  return f;
+}
+/** puts barrier `id` (already in state.barriers) on the way between titles a and b, fitted to it (fixture setup only) */
+export function setBarrier(state: GameState, a: string, b: string, id: string): void {
+  const o = state.openings.find((x) => (x.joins[0] === a && x.joins[1] === b) || (x.joins[0] === b && x.joins[1] === a));
+  if (!o) throw new Error(`no way between ${a} and ${b}`);
+  o.barrier = id;
+  fitBarrier(state, o);
 }

@@ -1,14 +1,13 @@
 // Paying a fear (MB21–MB28): one rule for every source of the library fears table, the player included (MB11).
 // A rolled fear's cost is scaled by the morale roll's tier (MB6); reaching Broken breaks the actor (MB1), or makes it
 // surrender when the roll that broke it was a Critical Failure or worse (MB7). The caller applies what a break does.
-import type { Actor, GameState, Rng } from '../types';
+import type { Actor, FearDef, GameState, Rng } from '../types';
 import { getLibrary } from '../library';
-import { HEALTH_LEVELS, INTELLIGENCE, TIERS } from '../scales';
-import { hasPerk, healthLevel, moraleRoll, tierLevel } from '../ruleset';
+import { INTELLIGENCE, TIERS } from '../scales';
+import { moraleRoll, tierLevel } from '../ruleset';
 import { CONFIG } from '../config';
-import { PK } from '../library/perkIds';
 import { markResolve } from '../ruleset/improve';
-import { isBrokenLevel, maxMorale, moraleLevel, moraleLost, setMoraleLost, tierCostMult } from '../ruleset/morale';
+import { fearCost, isBrokenLevel, maxMorale, moraleLevel, moraleLost, setMoraleLost, tierCostMult } from '../ruleset/morale';
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { tally } from './xp';
@@ -38,9 +37,7 @@ export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { g
     logCode(state, 'morale', { actorId: a.id, fear: id, paid, overwhelm: true, from, to: moraleLevel(a) });
     return isBrokenLevel(from) ? undefined : breakAs(a, true);
   }
-  let cost = (o.cost ?? f.cost) * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
-  // All-50 Last to Fall: at Wounded or worse, morale losses shrink
-  if (cost > 0 && hasPerk(a, PK.last_to_fall) && HEALTH_LEVELS.pos(healthLevel(a)) >= HEALTH_LEVELS.pos('wounded')) cost *= CONFIG.LAST_TO_FALL_MULT;
+  let cost = fearCost(a, f, o);
   let level: number | undefined;
   if (f.rolled && cost > 0) {
     const r = moraleRoll(state, a, rng, o.shift);

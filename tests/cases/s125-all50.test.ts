@@ -19,6 +19,10 @@ import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { setTitleLight } from '../../src/plan/draw';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
+import { lightAll } from '../harness';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const set = (a: Actor, skills: string[], raw: number) => { for (const k of skills) a.core.skills[k] = { raw, state: 'normal' }; };
@@ -134,28 +138,28 @@ describe('125 All-50 parts', () => {
     expect(dmg(false)).toBeGreaterThan(0);
     expect(dmg(true)).toBeCloseTo(dmg(false) * 0.9);
   });
-  it('Past the Cover: cover counts one step lighter for the owner\'s ranged attacks', () => {
+  it('Past the Cover (CV8 b): the target counts as showing four times as much to the owner\'s ranged attacks', () => {
     const gap = (perk: boolean) => {
       const s = makeVillage();
       place(s, 'player', 'field_edge');
-      zoneById(s, 'field_mid')!.cover = 'heavy';
+      landUnder(s, zoneById(s, 'field_mid')!.outline, LC.woods);
       arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.past_the_cover);
-      return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).gapShifts;
+      return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).attack.modifiers.find((m) => m.source === 'cover')?.value;
     };
-    expect(gap(false)).toEqual([{ source: 'cover', value: 2 }]);
-    expect(gap(true)).toEqual([{ source: 'cover', value: 1 }]);
+    expect(gap(false)).toBe(-45);
+    expect(gap(true)).toBe(-25); // two halvings back
   });
-  it('Child of Night: light counts one step darker for the owner\'s stealth rolls only', () => {
+  it('Child of Night: light counts ten times darker for the owner\'s stealth rolls only', () => {
     const s = makeVillage();
     const zone = zoneById(s, s.player.zone)!;
-    zone.light = 'dim';
-    delete (zone as { outdoor?: true }).outdoor;
+    lightAll(s, 'dim');
+    delete s.player.pos; // read the room's own light word, not the light where they stand
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.sneaking), mod(SK.eyesight)];
     give(s.player, PK.child_of_night);
-    expect(before).toEqual([5, -5]);
-    expect([mod(SK.sneaking), mod(SK.eyesight)]).toEqual([10, -5]); // dim read as dark for sneaking; sight unchanged
+    expect(before).toEqual([6, -6]); // LT2: dim, 3 lux
+    expect([mod(SK.sneaking), mod(SK.eyesight)]).toEqual([11, -6]); // dim read ten times darker for sneaking; sight unchanged
   });
   it('Curiouser and Curiouser: a sight or hearing roll at Success or better counts one tier higher', () => {
     const s = makeVillage();
@@ -256,15 +260,15 @@ describe('125 All-50 parts', () => {
     expect(dmg(false)).toBeGreaterThan(0);
     expect(dmg(true)).toBeCloseTo(dmg(false) * 0.95);
   });
-  it('Night Eyes: light counts one step brighter for the owner\'s Eyesight rolls only', () => {
+  it('Night Eyes: light counts ten times brighter for the owner\'s Eyesight rolls only', () => {
     const s = makeVillage();
     const zone = zoneById(s, s.player.zone)!;
-    zone.light = 'dark';
-    delete (zone as { outdoor?: true }).outdoor;
+    lightAll(s, 'dark');
+    delete s.player.pos; // read the room's own light word, not the light where they stand
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.eyesight), mod(SK.sneaking)];
     give(s.player, PK.night_eyes);
-    expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([situational(s, SK.eyesight, { light: { ...zone, light: 'dim' } }).modifiers[0]?.value ?? 0, before[1]]);
+    expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([-17, before[1]]); // LT2: dark (0.002 lux) read as 0.02 lux: −17, not −22
     expect(mod(SK.eyesight)).toBeGreaterThan(before[0]);
   });
   it('Dodgy: attack rolls against the owner get −10 effective skill', () => {

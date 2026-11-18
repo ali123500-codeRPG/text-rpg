@@ -2,7 +2,7 @@
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
 import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { beside, createRng, makeVillage, place } from '../harness';
+import { beside, createRng, makeVillage, place, putBarrier } from '../harness';
 import { CONFIG } from '../../src/config';
 import { resolveTurn } from '../../src/engine';
 import { ruleset } from '../../src/ruleset';
@@ -12,6 +12,11 @@ import type { ContestResult, GameState, Intent, RollRequest } from '../../src/ty
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { BK, FU } from '../../src/library/tableIds';
+import { zoneById } from '../../src/engine/relations';
+import { coverMod, coverShown } from '../../src/ruleset/gear';
+import { boxOf } from '../../src/plan/geom';
+import { makeFurniture } from '../../src/engine/furniture';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
@@ -144,40 +149,48 @@ describe('117 stealth', () => {
   it('darkness and cover help a sneak; it feels leg wounds (ST6, ST10, HA1)', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_cellar');
-    place(s, 'trader', 'tav_cellar');
+    const t = place(s, 'trader', 'tav_cellar');
+    // PC1, PC2: barrels in the middle of the cellar, the player crouched just past them from the trader
+    putBarrier(s, 'tav_counter', 'tav_cellar', { id: 'hatch', kind: BK.hatch, grade: 'minor' }); // its hatch shut: no lamplight from the bar
+    const z = zoneById(s, 'tav_cellar')!, c = { x: boxOf(z.outline).x, y: boxOf(z.outline).y };
+    s.furniture = s.furniture.filter((f) => f.zone !== z.id).concat(makeFurniture(s, z, [{ kind: FU.barrels, name: 'barrels' }]));
+    s.player.pos = { x: c.x, y: c.y + 0.7 }; t.pos = { x: c.x, y: c.y - 3 };
     s.player.core.condition.parts.left_leg = -30;
+    const cover = coverMod(coverShown(s, s.player, z, t));
+    expect(cover).toBe(11); // the line over 1 m barrels from the trader's eye hides 53% of the player
     const calls = rig();
     turn(s, intent(null, { type: 'sneak' }));
     const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe(SK.sneaking);
     // P14: darkness gives no help against a listener
-    expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 10 }] : []);
-    expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
+    expect(a.modifiers).toEqual([...(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 22 }] : []), { source: 'cover', type: 'situational', value: cover }]);
+    expect(a.tierShifts).toEqual([]);
     expect(a.roles).toBeUndefined();
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
-    expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
+    expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -22 }] : []); // ST21: sight is hurt
   });
-  it('tags decide the tables (ST21, HA1): a sneak gets cover, whether the watcher rolls Sneaking or Vanishing', () => {
+  it('tags decide the tables (ST21, HA1): a sneak rolls Sneaking or Vanishing by what the watcher knows', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_counter');
     place(s, 'trader', 'tav_cellar');
     s.player.posture = 'stealthy';
     const calls = rig();
     turn(s, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
-    expect(calls.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.sneaking, tierShifts: [{ source: 'cover', value: 1 }] });
+    expect(calls.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.sneaking, tierShifts: [] }); // CV6: cover is a roll modifier now, never a tier shift
     const v = makeVillage();
     place(v, 'player', 'tav_counter');
     place(v, 'trader', 'tav_cellar');
     aware(v, 'trader', 'tav_counter');
     const vc = rig();
     turn(v, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
-    expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.vanishing, tierShifts: [{ source: 'cover', value: 1 }] });
+    expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.vanishing, tierShifts: [] });
   });
   it('VS5: slipping away from a foe fighting you within VANISH_NEAR_M takes a tier shift; one only aware of you, or farther off, does not', () => {
     const shifts = (engaged: boolean, m: number) => {
       const s = makeVillage();
       place(s, 'player', 'gate_inner');
       const g = beside(s, 'guard_1', 'player', m);
+      delete g.core.skills[SK.battle_sense]; // its Reaction (Battle Sense) would close in before the slip, so the metres stay as set
       aware(s, 'guard_1', 'gate_inner');
       if (engaged) { g.mind!.knowledge.player!.status = 'engaged'; g.mind!.overrides = { player: 'hostile' }; }
       const calls = rig({ guard_1: -1 });

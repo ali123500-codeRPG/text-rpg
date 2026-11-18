@@ -29,7 +29,7 @@ describe('prompts', () => {
     expect(PARSER_INSTRUCTIONS).toContain('8. If the player names a body part of the target, put it in "targetPart". Set "aimed": true only when the player says they aim at that part or go for it');
   });
   it('the Weaver is told a barrier never goes on a drop or a way to a frontier, as the plan check rules (BG-204)', () => {
-    expect(FIXED.weaver).toContain('A barrier goes only on a way between two zones, never on a drop or on a way to a frontier');
+    expect(FIXED.weaver).toContain('A barrier goes only on a way between two zones, never on a way to a frontier, and on a "window" way only a window kind');
   });
 });
 
@@ -59,12 +59,12 @@ describe('schemas', () => {
     const r = checkStagePlan({ event: { summary: 's', challenge: 'huge', gain: 'none' }, places: [], zones: [], frontiers: [], bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '' });
     expect(r.errors).toEqual(['$.event.challenge: expected one of none, minor, moderate, major, extreme']);
   });
-  it('weaver: band tactics are written as words and kept as keys', () => {
+  it('weaver: bands carry no tactics word (TC4 a: each NPC reads its own Battle Sense); a word in an old plan is dropped', () => {
     const band = (t: unknown) => ({ key: 'b', name: 'b', goals: '', temperament: '', tactics: t, relations: {} });
     const plan = (t: unknown) => ({ event: { summary: 's', challenge: 'minor', gain: 'minor' }, places: [], zones: [], frontiers: [], bands: [band(t)], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '' });
-    expect(checkStagePlan(plan('Cunning')).value.bands[0].tactics).toBe('cunning');
-    expect(checkStagePlan(plan('simple')).value.bands[0].tactics).toBe('simple');
-    expect(checkStagePlan(plan('clever')).errors).toEqual(['$.bands[0].tactics: expected one of simple, competent, cunning']);
+    const r = checkStagePlan(plan('clever'));
+    expect(r.errors).toEqual([]);
+    expect('tactics' in r.value.bands[0]).toBe(false);
   });
 });
 

@@ -27,7 +27,7 @@ export function clockSecondsText(minutes: number): string {
 }
 const from = (k: TimeOfDay): number => CONFIG.TIME_OF_DAY_FROM[k];
 
-/** has the story's clock been set (false at story start and in saves from before the clock) */
+/** has the story's clock been set (false at story start) */
 export const clockSet = (state: GameState): boolean => state.clocks.time !== undefined;
 /** HF22: the day the story's world started on the Universe calendar (1 for the first world) */
 const startDay = (state: GameState): number => state.clocks.startDay ?? 1;
@@ -83,10 +83,15 @@ export function startClock(state: GameState, k: TimeOfDay): void {
 /** what views show: the day number and time of day, never minutes (T4/T5) */
 export const timeView = (state: GameState): { day: number; timeOfDay: string } => ({ day: dayOf(now(state)), timeOfDay: TIME_OF_DAY.name(timeOfDay(now(state))) });
 
-/** T3a: an outdoor zone is lit by the sky or its own lamps, whichever is brighter; indoors only its own light counts */
-export function zoneLight(state: GameState, z: Pick<Zone, 'light' | 'outdoor'> | undefined): Light {
-  const own = z?.light ?? 'bright';
-  if (!z?.outdoor) return own;
-  const sky = CONFIG.SKY_LIGHT[timeOfDay(now(state))] as Light;
-  return LIGHT.pos(sky) < LIGHT.pos(own) ? sky : own;
+/** LT2: a sight roll's light modifier: −LIGHT_DECADE_MOD for each tenfold drop below FULL_SIGHT_LUX; `brighter` reads the
+ * light that many tenfold steps brighter (Night Eyes +1, Child of Night −1) */
+export function lightMod(light: Light, brighter = 0): number {
+  const lux = Math.max(CONFIG.LIGHT_LUX[light] ?? 0, CONFIG.LIGHT_FLOOR_LUX) * 10 ** brighter;
+  return 0 - Math.round(CONFIG.LIGHT_DECADE_MOD * Math.max(0, Math.log10(CONFIG.FULL_SIGHT_LUX / lux))); // 0 -: never −0
 }
+/** the rules that read "dark" (sight at most partial) hold from CONFIG.DARK_FROM down */
+export const isDark = (light: Light): boolean => LIGHT.pos(light) >= LIGHT.pos(CONFIG.DARK_FROM as Light);
+/** LT1: in pitch black nothing is seen */
+export const pitchBlack = (light: Light): boolean => (CONFIG.LIGHT_LUX[light] ?? 0) <= 0;
+
+export { zoneLight } from './plan/light';

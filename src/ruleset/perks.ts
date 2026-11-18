@@ -2,11 +2,11 @@
 // skill perks; ladder milestones and all-XXX perks read it. A milestone unlocks at 20, 40 … 140 true skill; taking its perk costs one
 // perk point and can be undone until the next turn is played (K3).
 import { achievementSkill } from './achRewards';
-import type { Actor, GameState, PerkDef } from '../types';
+import type { Actor, AttackKind, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
-import { COVER, LIGHT } from '../scales';
+import { LIGHT } from '../scales';
 import { PK } from '../library/perkIds';
 import { AURA_SKILLS } from '../library/auras';
 import { syncPerkLinks } from './perkLinks';
@@ -40,6 +40,12 @@ export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number;
   // I9: the turn's main action, once per engagement, aimed at no one
   [PK.battle_cry]: { free: false, perEngagement: 1, untargeted: true, does: 'a war cry or roar to shake the foes and rally your side ("Come on, then!", a wordless bellow)' },
   // LI1c: once per foe per engagement
+  // TC31 a: free, once per engagement, aimed at no one: every foe that sees it rolls
+  // TC39 a: the turn's main action, once per engagement, aimed at no one, like Battle Cry
+  [PK.rally]: { free: false, perEngagement: 1, untargeted: true, does: 'shout to steady your side ("Hold together!", "With me!")' },
+  [PK.draw_them_in]: { free: true, perEngagement: 1, untargeted: true, does: 'show a false opening to lure foes in (drop your guard, step into the open, turn as if to look away)' },
+  // TC44 a: the turn's main action, open the turn a blow leaves you Wounded or worse (not Down) and the next
+  [PK.play_dead]: { free: false, untargeted: true, does: 'drop as if knocked out or dead after a bad blow, and lie still' },
   [PK.bluff]: { free: true, perEngagement: 1, perFoe: true, does: 'a quick lie or false warning at a foe, to make it look away or hesitate ("Behind you!", "Your boot\'s untied", pointing at nothing)' },
 };
 /** the perk moves an actor owns (shown to the Parser and in Commands) */
@@ -110,25 +116,27 @@ export const standInAdd = (a: Actor, fn: string): number =>
  * health (Natural recovery), morale (Natural composure) and stamina (Catching your breath) */
 export const recoveryMult = (a: Actor): number =>
   owned(a).reduce((m, p) => m * (getLibrary().perks[p.perkId]?.numbers?.recoveryMult ?? 1), 1);
-/** a ladder perk's numbers work with this skill: its own skill, or the skills it lists (PerkDef.numbersFor: Keen Edge, every weapon) */
-const numbersWork = (d: PerkDef | undefined, skill: string): boolean => !!d?.ladder && (d.numbersFor ?? [d.ladder.skill]).includes(skill);
+/** a ladder perk's numbers work with this roll: its own skill, the skills it lists (PerkDef.numbersFor),
+ * or every attack of one kind, whatever skill rolls it (PerkDef.numbersForAttack: Keen Edge, any melee attack) */
+const numbersWork = (d: PerkDef | undefined, skill: string, kind?: AttackKind): boolean => !!d?.ladder &&
+  (d.numbersForAttack ? kind === d.numbersForAttack : (d.numbersFor ?? [d.ladder.skill]).includes(skill));
 /** a 40/80/120 perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
-export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult'): number {
+export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult', kind?: AttackKind): number {
   const perks = getLibrary().perks;
-  return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return numbersWork(d, skill) ? m * (d!.numbers?.[key] ?? 1) : m; }, 1);
+  return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return numbersWork(d, skill, kind) ? m * (d!.numbers?.[key] ?? 1) : m; }, 1);
 }
 /** 40/80/120 perk roll modifiers for one skill: rollAdd on every roll, hitAdd on attack rolls only, each named by its perk */
-export function boostRollMods(a: Actor, skill: string, attack: boolean): { source: string; type: 'roll_perk'; value: number }[] {
+export function boostRollMods(a: Actor, skill: string, attack: boolean, kind?: AttackKind): { source: string; type: 'roll_perk'; value: number }[] {
   const perks = getLibrary().perks;
   return owned(a).flatMap((p) => {
     const d = perks[p.perkId];
-    const v = numbersWork(d, skill) ? (d!.numbers?.rollAdd ?? 0) + (attack ? d!.numbers?.hitAdd ?? 0 : 0) : 0;
+    const v = numbersWork(d, skill, kind) ? (d!.numbers?.rollAdd ?? 0) + (attack ? d!.numbers?.hitAdd ?? 0 : 0) : 0;
     return v ? [{ source: d!.name, type: 'roll_perk' as const, value: v }] : [];
   });
 }
-export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
+export function boostAdd(a: Actor, skill: string, key: 'armorPierce', kind?: AttackKind): number {
   const perks = getLibrary().perks;
-  return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return numbersWork(d, skill) ? n + (d!.numbers?.[key] ?? 0) : n; }, 0);
+  return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return numbersWork(d, skill, kind) ? n + (d!.numbers?.[key] ?? 0) : n; }, 0);
 }
 
 /** ladder perks this actor owns in one skill */
@@ -180,9 +188,10 @@ export function undoPerk(s: GameState, a: Actor, perkId: string): void {
   syncPerkLinks(a, s.turn);
 }
 
-/** A19 Melt Away: a zone with some cover or more, or light dim or darker, lets the owner vanish in place */
-export const meltAwayHere = (cover: string | undefined, light: string | undefined): boolean =>
-  COVER.pos(COVER.keyOf(cover) ?? 'none') >= COVER.pos('some') || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= LIGHT.pos('dim');
+/** A19 Melt Away: where at most as much of the owner shows as of a person in some cover (CV8), or the light is dim or
+ * darker, the owner can vanish in place. `shown` is coverShown's share (1 = in the open) */
+export const meltAwayHere = (shown: number, light: string | undefined): boolean =>
+  shown <= 1 - (CONFIG.COVER_HIDDEN.some ?? 0) || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= LIGHT.pos('dim');
 
 /** CN3 a: the pieces a payoff perk counts: owned perks with the theme tag (or quirks), whatever their source, each counted
  * once. Dormant perks count for now (D-307). */

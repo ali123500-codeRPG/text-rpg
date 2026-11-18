@@ -4,6 +4,8 @@
 // F8: prompts here differ from the artifact's: the CLI joins the fixed and per-turn user turns into one prompt, adds its
 // own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
 //   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
+import { zoneById } from '../src/engine/relations';
+import { topPlace } from '../src/scenario/stage';
 import { mkdirSync, writeFileSync, appendFileSync, readFileSync, copyFileSync } from 'node:fs';
 import { listWorlds, readTurnRecord } from '../src/save';
 import { join } from 'node:path';
@@ -130,6 +132,7 @@ function deckMenu(st: GameState): { items: MenuItem[]; suggested: string } {
   const groups = deck(ctx);
   const items: MenuItem[] = [];
   for (const g of groups) for (const a of g.actions) {
+    if (a.limit) continue; // A3: used or waiting, it can't be picked
     if (a.kind === 'loot') {
       const src = lootSources(pv), all = new Set(src.flatMap((x) => x.items.map((i) => i.id)));
       const line = lootOrder(src, all);
@@ -177,14 +180,14 @@ const GOAL_RULES = `How to play this test:
 
 /** --near-seller: start the player one zone from the first seller on the stage (across its counter), else in its zone */
 function nearSeller(st: GameState) {
-  const seller = st.actors.find((a) => isSeller(a) && st.stage.zoneIds.includes(a.zone));
+  const seller = st.actors.find((a) => isSeller(a) && topPlace(st, a.placeId) === topPlace(st, st.player.placeId));
   if (!seller) { console.log('no seller on the stage; the player starts where the story put them'); return; }
   placeNextTo(st, seller);
 }
 
 /** the player one zone from `who` on the stage (else in its zone), with the place that zone is in */
 function placeNextTo(st: GameState, who: GameState['actors'][number]) {
-  const next = st.zones.find((z) => z.id === who.zone)?.links.find((l) => !l.frontier && st.stage.zoneIds.includes(l.to))?.to;
+  const next = st.zones.find((z) => z.id === who.zone)?.links.find((l) => !l.frontier && !!zoneById(st, l.to))?.to;
   st.player.zone = next ?? who.zone;
   st.player.placeId = st.zones.find((z) => z.id === st.player.zone)?.placeId ?? st.player.placeId;
   console.log(`player placed in ${st.player.zone}, next to ${who.id} in ${who.zone}`);
@@ -192,7 +195,7 @@ function placeNextTo(st: GameState, who: GameState['actors'][number]) {
 
 /** --near-slimes: start the player one zone from the first slime on the stage, else in its zone */
 function nearSlimes(st: GameState) {
-  const slime = st.actors.find((a) => a.core.templateId === TP.slime && st.stage.zoneIds.includes(a.zone));
+  const slime = st.actors.find((a) => a.core.templateId === TP.slime && topPlace(st, a.placeId) === topPlace(st, st.player.placeId));
   if (!slime) { console.log('no slime on the stage; the player starts where the story put them'); return; }
   placeNextTo(st, slime);
 }

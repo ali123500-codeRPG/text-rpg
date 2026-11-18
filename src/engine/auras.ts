@@ -5,25 +5,27 @@
 // and pays the aura's fear per tier of gap. Several auras check and cost on their own, so their morale costs add up.
 //   Dread Presence (Intimidation 100): Shaken toward the owner by SHAKEN_PER_TIER × gap until the engagement ends (the
 //   bigger of aura and spoken Shaken stands), and FR.dread_presence (10 morale per tier).
-import type { Actor, ContestResult, GameEvent, GameState, Rng } from '../types';
+import type { Actor, ContestResult, GameEvent, GameState, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
-import { hasPerk, markUse, moraleRoll, ruleset, toContest } from '../ruleset';
+import { hasPerk, markUse, moraleRoll, ruleset, tierLevel, toContest, trueSkill } from '../ruleset';
 import { FN } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { CP, FR } from '../library/tableIds';
 import { calm } from './heal';
 import { allActors, atLeast, atLeastStance, isActive, onSightPerks, stance, wary } from './relations';
-import { STANCES } from '../scales';
+import { STANCES, TIERS } from '../scales';
 import { probe } from './yield';
 import { distM, withinM } from './position';
 import { besidePlayer } from './engagement';
-import { perceptionOf } from '../perception';
+import { hears, perceptionOf } from '../perception';
 import { AURAS, type AuraDef } from '../library/auras';
 import { applySpeech } from './speech';
 import { contestFeat } from './feats';
-import { maxMorale } from '../ruleset/morale';
+import { maxMorale, moraleLost } from '../ruleset/morale';
 import { payoffShare, themeCount } from '../ruleset/perks';
+import { augmentK } from '../ruleset/gear';
+import { skillName } from '../library/skillNames';
 
 export { AURAS, type AuraDef } from '../library/auras';
 
@@ -41,6 +43,12 @@ export function auraReachM(owner: Actor): number {
   if (!hasPerk(owner, PK.chorus)) return CONFIG.AURA_REACH_M;
   const n = themeCount(owner, 'shout');
   return CONFIG.AURA_REACH_M * (1 + payoffShare(n)) + CONFIG.CHORUS_REACH_M * n;
+}
+
+/** TC37/TC38: a projected aura reaches whoever perceives it at any level, or anyone within PROJECTED_AURA_MULT × the
+ * owner's aura reach (heard or not) */
+export function projectedReachM(owner: Actor): number {
+  return CONFIG.PROJECTED_AURA_MULT * auraReachM(owner);
 }
 
 export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };
@@ -112,27 +120,81 @@ export function cryAlly(state: GameState, t: Actor, owner: Actor): boolean {
   return (!!t.bandId && t.bandId === owner.bandId) || atLeastStance(s, 'friend') || (owner === state.player && besidePlayer(state, t));
 }
 
-/** TM28: a battle cry's rally restores morale through the composure table (CP.rallied), unless the actor already broke */
-const rally = (state: GameState, a: Actor): void => { if (isActive(a) && !a.mind?.moraleState) calm(state, a, CP.rallied); };
+/** TC43 a: a rally is one roll by the one rallied: its morale check (Resolve) plus RALLY_SHARE of the rallier's rallying
+ * skill (Battle Cry: Intimidation; Rally later: Command) through the augment equation, added to the skill like any
+ * augment (× SKILL_WEIGHT on the roll). Each tier above Near Miss gives the composure row CP.rallied's points (10) back,
+ * so a steadier ally and a stronger voice both help, and the ally's own morale penalty still counts.
+ * BG-301 (TC42 a): it reaches broken allies too; back under 100 % of max morale lost, the break ends (liftBreak); a
+ * spoken surrender stays. TC41 a: a rally that gives anything back makes the actor Rallied (CONFIG.RALLIED_MOD on every
+ * roll) for the rest of the fight, no stacking. */
+export function rallyRoll(state: GameState, a: Actor, by: Actor, skill: string, rng: Rng): { roll: RollResult; tiers: number } {
+  const help = CONFIG.SKILL_WEIGHT * trueSkill(by, skill) * augmentK(by, { share: CONFIG.RALLY_SHARE }, skill, SK.resolve);
+  const roll = moraleRoll(state, a, rng, 0, help ? [{ source: `rallied by ${skillName(skill)}`, type: 'situational', value: help }] : []);
+  return { roll, tiers: Math.max(0, tierLevel(roll) - TIERS.pos('near_miss')) };
+}
+const rally = (state: GameState, a: Actor, by: Actor, skill: string, rng: Rng): number => {
+  if (!isActive(a)) return 0;
+  const { tiers } = rallyRoll(state, a, by, skill, rng);
+  if (tiers) {
+    calm(state, a, CP.rallied, { times: tiers });
+    if (a.engagement) a.engagement.rallied = true;
+  }
+  liftBreak(state, a);
+  return tiers;
+};
 
-/** I9/MB27 Battle Cry (Intimidation 140), an offensive aura triggered by its move: the owner's roar (`ev`, a Loud event)
- * reaches everyone who perceives it at any level, however far. Each foe (opposed or hostile to the owner) rolls its
+/** BG-301: a broken actor whose morale lost is back under 100 % of max is no longer broken: it stops yielding to those
+ * it was fighting (loseNerve set them to yielded) and fights on. A spoken surrender (moraleState 'surrendered') stays. */
+export function liftBreak(state: GameState, a: Actor): boolean {
+  const m = a.mind;
+  if (m?.moraleState !== 'broken' || moraleLost(a) >= maxMorale(a)) return false;
+  delete m.moraleState;
+  for (const [id, st] of Object.entries(m.overrides ?? {})) if (st === 'yielded') m.overrides![id] = 'hostile';
+  return true;
+}
+
+/** TC37/TC38 b: a projected aura's shout (`ev`) reaches whoever perceives it at any level, or anyone within the projected reach */
+const projectedReaches = (state: GameState, owner: Actor, ev: GameEvent, t: Actor): boolean =>
+  !!(ev.perception[t.id] ?? perceptionOf(ev, state, t)) || withinM(distM(state, owner, t), projectedReachM(owner));
+
+/** TC39 a Rally (Command 100), a projected aura triggered by its move: each ally the call reaches (projectedReaches; not a
+ * foe, not the owner) makes the rally roll with the owner's Command (rallyRoll): morale back per tier above Near Miss, the
+ * Rallied buff, and a break lifted once morale lost is back under max. Returns the tiers each ally got. */
+export function rallyCall(state: GameState, owner: Actor, ev: GameEvent, rng: Rng): { target: Actor; tiers: number }[] {
+  const out: { target: Actor; tiers: number }[] = [];
+  for (const t of allActors(state)) {
+    if (t === owner || !isActive(t) || wary(state, t, owner) || !cryAlly(state, t, owner) || !projectedReaches(state, owner, ev, t)) continue;
+    out.push({ target: t, tiers: rally(state, t, owner, SK.command, rng) });
+  }
+  return out;
+}
+
+/** TC55 a: before calling, whether a Rally would reach `t`: an ally (as rallyCall counts one) that would hear the Loud call
+ * from where the owner stands, or stands within the projected reach */
+export const rallyWouldReach = (state: GameState, owner: Actor, t: Actor): boolean =>
+  t !== owner && isActive(t) && !wary(state, t, owner) && cryAlly(state, t, owner)
+  && (hears(state, t, { zone: owner.zone, ...(owner.pos ? { pos: owner.pos } : {}) }, 'loud') || withinM(distM(state, owner, t), projectedReachM(owner)));
+
+/** I9/MB27 Battle Cry (Intimidation 140), a projected aura triggered by its move: the owner's roar (`ev`, a Loud event)
+ * reaches everyone who perceives it at any level, however far, and anyone within the projected reach (projectedReachM),
+ * heard or not. Each foe (opposed or hostile to the owner) rolls its
  * morale skill (Resolve) against the owner's Intimidation and pays FR.battle_cry per tier of gap when it loses. Each
  * ally, and the owner, gets the composure row CP.rallied (10 morale back, TM28) and loses any Shaken. */
 export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rng, fear: AuraFear): CryResult[] {
   const out: CryResult[] = [];
   // the roar rallies the one who roars as it rallies their allies
-  rally(state, owner);
+  rally(state, owner, owner, SK.intimidation, rng);
   for (const p of Object.values(owner.pressure ?? {})) delete p.shaken;
   out.push({ target: owner, rallied: true });
   for (const t of allActors(state)) {
-    if (t === owner || !isActive(t) || !(ev.perception[t.id] ?? perceptionOf(ev, state, t))) continue;
+    if (t === owner || !isActive(t)) continue;
+    if (!projectedReaches(state, owner, ev, t)) continue;
     if (wary(state, t, owner)) {
       const { contest, took, ow } = auraContest(state, owner, t, SK.intimidation, rng);
       if (took) fear(t, FR.battle_cry, contest.gap, ow);
       out.push({ target: t, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
     } else if (cryAlly(state, t, owner)) {
-      rally(state, t);
+      rally(state, t, owner, SK.intimidation, rng);
       for (const p of Object.values(t.pressure ?? {})) delete p.shaken;
       out.push({ target: t, rallied: true });
     }

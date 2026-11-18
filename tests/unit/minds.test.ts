@@ -74,7 +74,7 @@ describe('routineOrder', () => {
     g.zone = 'gate_inner';
     o = routineOrder(fakeView(s, 'guard_1'));
     expect(o).toMatchObject({ type: 'idle', source: 'routine', activity: 'stand_watch' });
-    s.stage.zoneIds = s.stage.zoneIds.filter((z) => z !== 'street_square');
+    s.zones = s.zones.filter((z) => z.id !== 'street_square'); // the square out of the guard's map
     g.zone = 'street_door';
     o = routineOrder(fakeView(s, 'guard_1'));
     expect(o).toMatchObject({ type: 'idle', intent: UNREACHABLE, activity: 'stand_watch' });
@@ -90,8 +90,9 @@ describe('fallback list', () => {
     sl.mind!.knowledge.player = belief('field_mid');
     sl.mind!.knowledge.comp = belief('field_mid');
     void c;
-    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1))).toMatchObject({ type: 'attack', target: 'player', skill: SK.slam, targetPart: null, aimed: false, source: 'fallback' });
-    expect(fallbackOrder(fakeView(s, 'slime_1', { lastHitBy: 'comp' }), createRng(1)).target).toBe('comp');
+    const near = ['comp', 'player']; // BG-306: in strike reach (metres), not "in my zone"
+    expect(fallbackOrder(fakeView(s, 'slime_1', { withinStrike: near }), createRng(1))).toMatchObject({ type: 'attack', target: 'player', skill: SK.slam, targetPart: null, aimed: false, source: 'fallback' });
+    expect(fallbackOrder(fakeView(s, 'slime_1', { lastHitBy: 'comp', withinStrike: near }), createRng(1)).target).toBe('comp');
   });
   it('rng pick among non-player targets', () => {
     const s = makeVillage();
@@ -101,7 +102,7 @@ describe('fallback list', () => {
     const sl = actor(s, 'slime_1');
     sl.mind!.knowledge.comp = belief('field_mid');
     sl.mind!.knowledge.comp2 = belief('field_mid');
-    expect(fallbackOrder(fakeView(s, 'slime_1'), forcedRng([1])).target).toBe('comp2');
+    expect(fallbackOrder(fakeView(s, 'slime_1', { withinStrike: ['comp', 'comp2'] }), forcedRng([1])).target).toBe('comp2');
   });
   it('closes in one link, never through a frontier, then searches', () => {
     const s = makeVillage();

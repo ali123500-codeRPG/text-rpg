@@ -60,6 +60,7 @@ it('its think queues steps: code walks it there, then the queue runs out and it 
 it('a step that cannot begin is dropped and the next one begins', () => {
   const s = village();
   const wim = actorById(s, 'patron_1')!;
+  place(s, 'trader', 'field_far'); // BG-307: far off, out of talking range (arrival = near enough to talk, not the same zone)
   seedGoals(s, wim, [{ text: 'wait for Mags' }]);
   play(s, { agentOutputs: [plannerOut('patron_1', act('hold'), { steps: [{ routine: 'no_such_routine' }, { wait: true, until: { arrival: 'trader' } }] })] });
   const d = s.hidden.drives!.patron_1;

@@ -14,6 +14,7 @@ import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { CL } from '../../src/library/classIds';
+import { waysOut } from '../../src/plan/where';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -71,7 +72,7 @@ describe('153 Parry', () => {
     s.player.core.standingDefense = 'parry';
     const p = npc(s, 'patron_1');
     hold(p, [IT.shortbow]);
-    s.player.zone = s.zones.find((z) => z.links.length && z.id !== p.zone && s.zones.find((y) => y.id === p.zone)!.links.some((l) => l.to === z.id))?.id ?? s.player.zone;
+    s.player.zone = s.zones.find((z) => waysOut(s, z.id).length && z.id !== p.zone && waysOut(s, p.zone).some((l) => l.to === z.id))?.id ?? s.player.zone;
     const shot = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
     expect(shot.defenseType).toBe('block');
     hold(s.player, [IT.arming_sword]);

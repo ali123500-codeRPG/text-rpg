@@ -4,7 +4,7 @@
 import type { Actor, GameEvent, GameState, ItemInstance } from '../types';
 import { getLibrary } from '../library';
 import { allActors, zoneById } from '../engine/relations';
-import { inside } from '../engine/position';
+import { inside, withinGrip } from '../engine/position';
 import { fightRenewed } from '../engine/engagement';
 import { healthLevel } from '../ruleset/body';
 import { buildActorView, buildNarrationView, buildPlayerView } from '../views';
@@ -33,13 +33,13 @@ export const TURN_CHECK: TurnCheckMode = (g.turnCheck ??= { strict: false, skip:
 const fin = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
 const inZone = (s: GameState, a: Actor) => {
   const z = zoneById(s, a.zone);
-  return !z?.rect || !a.pos || inside(z, a.pos);
+  return !z?.outline?.length || !a.pos || inside(z, a.pos);
 };
 function items(s: GameState): ItemInstance[] {
   const out: ItemInstance[] = [];
   const add = (list: ItemInstance[] = []) => list.forEach((it) => { out.push(it); add(it.contents); });
   allActors(s).forEach((a) => add(a.core.inventory));
-  s.places.forEach((p) => p.zones.forEach((z) => add(z.groundItems)));
+  add(s.ground);
   return out;
 }
 /** a view entry for someone clearly seen (by id, else by the name or label it shows) whose actor has pronouns carries them;
@@ -52,14 +52,15 @@ function pronounGaps(s: GameState, where: string, list: Entry[] = []): string[] 
 }
 
 const RULES: Record<string, (c: Ctx) => string[]> = {
-  /** everyone stands in a zone that exists, on that zone's place */
+  /** everyone stands in a zone that exists, on that zone's place; WI8 a: the live zones are exactly the built ones */
   real_zone: ({ s }) => [
+    ...s.zones.filter((z) => zoneById(s, z.id) !== z).map((z) => `live zone ${z.id} is on no place`),
+    ...s.places.flatMap((p) => p.zones).filter((z) => !s.zones.includes(z)).map((z) => `built zone ${z.id} is not live`),
     ...allActors(s).filter((a) => zoneById(s, a.zone)?.placeId !== a.placeId).map((a) => `${a.id} in ${a.zone} (place ${a.placeId})`),
-    ...s.stage.zoneIds.filter((id) => !zoneById(s, id)).map((id) => `stage zone ${id} does not exist`),
   ],
-  /** ZR8: every zone on stage has a rectangle, and everyone's point lies inside their zone's */
+  /** PZ1: every title on stage has a footprint, and everyone's point lies inside their title's */
   inside_zone: ({ s }) => [
-    ...s.zones.filter((z) => !z.rect).map((z) => `zone ${z.id} has no rectangle`),
+    ...s.zones.filter((z) => !z.outline?.length).map((z) => `title ${z.id} has no outline`),
     ...allActors(s).filter((a) => (a.pos && !(fin(a.pos.x) && fin(a.pos.y))) || !inZone(s, a)).map((a) => `${a.id} at ${JSON.stringify(a.pos)} outside ${a.zone}`),
   ],
   /** a zone change always shows as a move (fromZone), travel, or a logged silent catch-up; a new scenario places everyone */
@@ -107,14 +108,14 @@ const RULES: Record<string, (c: Ctx) => string[]> = {
       ...(c.moraleLost === undefined || (fin(c.moraleLost) && c.moraleLost >= 0) ? [] : [`${a.id} moraleLost ${c.moraleLost}`]),
     ];
   }),
-  /** beliefs, stances, bands and holds point at people and bands that exist; a hold is in one zone */
+  /** beliefs, stances, bands and holds point at people and bands that exist; a hold is within the holder's grip reach */
   links_real: ({ s }) => {
     const ids = new Set(allActors(s).map((a) => a.id));
     return allActors(s).flatMap((a) => [
       ...(s.bands.some((b) => b.id === a.bandId) ? [] : [`${a.id} band ${a.bandId} unknown`]),
       ...Object.keys(a.mind?.knowledge ?? {}).filter((id) => !ids.has(id)).map((id) => `${a.id} believes about unknown ${id}`),
       ...Object.keys(a.mind?.overrides ?? {}).filter((id) => !ids.has(id)).map((id) => `${a.id} stance toward unknown ${id}`),
-      ...(a.heldBy && !allActors(s).some((h) => h.id === a.heldBy && h.zone === a.zone) ? [`${a.id} held by ${a.heldBy} from another zone`] : []),
+      ...(a.heldBy && !allActors(s).some((h) => h.id === a.heldBy && withinGrip(s, h, a)) ? [`${a.id} held by ${a.heldBy} out of grip reach`] : []), // BG-297
     ]);
   },
   /** BG-33/60/97/130: every person in the Parser's, Narrator's and NPCs' views carries their pronouns */

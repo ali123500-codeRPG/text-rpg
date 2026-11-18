@@ -9,14 +9,13 @@ import { intent, play } from './w4-kit';
 import { distM } from '../../src/engine/position';
 
 it('BG-125: walking to someone last seen in the room goes where they were last seen', () => {
-  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
-  s.zones.find((z) => z.id === 'tav_common')!.rect = { x: 0, y: 0, w: 12, d: 8 };
+  const s = makeVillage({ shape: { tav_common: { rect: { x: 0, y: 0, w: 12, d: 8 } } }, without: ['slime_1', 'slime_2', 'guard_1'] });
   const w = place(s, 'patron_1', 'tav_common');
   w.pronouns = 'he';
   s.player.zone = 'tav_common'; s.player.pos = { x: -5, y: 0 };
   w.pos = { x: 4, y: 3 };
   play(s, { intent: intent({ action: { type: 'observe', target: null } }) }); // the player sees him there
-  expect(s.player.journal!.lastSpot!.patron_1).toEqual({ x: 4, y: 3 });
+  expect(s.player.journal!.lastSpot!.patron_1).toEqual({ x: 4, y: 3, floor: 0 });
   w.posture = 'stealthy'; w.pos = { x: 4, y: -3 }; delete s.player.journal!.clearSight!.patron_1; // he slips off unseen
   const v = buildPlayerView(s);
   expect(v.actors.some((a) => a.id === 'patron_1')).toBe(false);

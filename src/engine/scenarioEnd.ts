@@ -8,7 +8,7 @@ import { createRng } from '../rng';
 import { CONFIG } from '../config';
 import { SCENARIO_SCALES, TIME_OF_DAY, type ScenarioScale } from '../scales';
 import { now, timeOfDay } from '../time';
-import { actorById, isActive, isEngaged, stance } from './relations';
+import { actorById, isActive, isEngaged, stance, zoneById } from './relations';
 import { actorIn, givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
 import { flushGrowth, keepGains, xpBar } from './growth';
@@ -68,13 +68,13 @@ function mapCheck(w: EndCheck, ref: (kind: 'band' | 'place' | 'actor', key: stri
 /** a band is out: every member is down, broken (fled or surrendered) or no longer on the stage */
 function bandOut(state: GameState, band: string): boolean {
   const members = state.actors.filter((a) => a.bandId === band);
-  return members.length > 0 && members.every((a) => !isActive(a) || !!a.mind?.moraleState || !state.stage.zoneIds.includes(a.zone));
+  return members.length > 0 && members.every((a) => !isActive(a) || !!a.mind?.moraleState || !zoneById(state, a.zone));
 }
 
 /** BG-287: those hostile to the player still standing in a place or zone: up, not broken, and on the stage, as bandOut
  * counts a band's members out */
 export const foesIn = (state: GameState, place: string) => state.actors.filter((a) => actorIn(state, a, place) && isActive(a) && !a.mind?.moraleState
-  && state.stage.zoneIds.includes(a.zone) && stance(state, a, state.player) === 'hostile');
+  && !!zoneById(state, a.zone) && stance(state, a, state.player) === 'hostile');
 
 /** is this ending's check met now (judged ones never are: the Weaver check-in decides them) */
 export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], frame: ScenarioFrame | undefined = state.stage.scenario): boolean {
@@ -171,7 +171,7 @@ export function checkinErrors(state: GameState, a: CheckinAnswer | null): string
   if (a.verdict !== 'continue' && a.verdict !== 'end') return ['verdict is continue or end'];
   if (a.verdict === 'end' && !PLAN_AS.has(String(a.as))) return [`as is one of ${[...PLAN_AS].join(', ')}`];
   if (a.beats !== undefined && !Array.isArray(a.beats)) return ['beats is a list'];
-  return (a.beats ?? []).flatMap((t) => triggerErrors(t, { isZone: (r) => state.stage.zoneIds.includes(r), isActor: (r) => !!actorById(state, r) }));
+  return (a.beats ?? []).flatMap((t) => triggerErrors(t, { isZone: (r) => !!zoneById(state, r), isActor: (r) => !!actorById(state, r) }));
 }
 
 /** a check-in's continue checked and applied by the caller: a scenario change, arrivals and frontiers (SC12) */
@@ -265,8 +265,8 @@ function mergeGains(a?: Part, b?: Part): Part | undefined {
 
 /**
  * At a break, before the next scenario starts: record how the scenario went, and say what comes next. 'resume' = an inner scenario
- * ended inside a bigger one, which carries on (no event roll, no Weaver call); 'new' = a new scenario starts (an encounter
- * inside an Episode or Venture starts an inner one, keeping the bigger scenario as `outer`); 'roam' = free roam starts, and no
+ * ended inside a bigger one, which carries on (no event roll, no Weaver call); 'new' = a new scenario starts (RE7: a road
+ * encounter is always an inner one: the running scenario becomes `outer`, or, already inside one, waits as `paused`); 'roam' = free roam starts, and no
  * scenario runs until something starts one (SD2 a): after leaving the ground (SC16), escaping off it (CH7), or any ending
  * CONFIG.ROAM_AFTER lists (every ending for now, so players can explore the world).
  */
@@ -275,44 +275,56 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
   const cause = st.breakCause;
   const as = st.ended?.as ?? (cause ? BREAK_ENDING[cause] : undefined) ?? 'interrupted';
   const text = st.ended?.text ?? '';
-  const cur = st.scenario, outer = st.outer;
+  const cur = st.scenario, outer = st.outer, paused = st.paused;
   // SW10 a: danger or a window between Situations starts the next one inside the Episode: nothing closes; the Episode
   // becomes the bigger scenario when the new Situation begins (beginScenario)
   if (cause === 'roam' && cur && !outer && st.between) return 'new';
   // free roam after the endings CONFIG.ROAM_AFTER lists; a road encounter or a knock-out starts the next scenario instead
   const roam = !!cur && cause !== 'encounter' && cause !== 'knocked_out' && (!!st.ended?.roam || CONFIG.ROAM_AFTER.includes(as));
   const endsOuter = !!st.ended?.outer || cause === 'knocked_out';
-  // SC4: an encounter inside an Episode or Venture: this scenario carries on as the bigger one, so it pays nothing yet; its
-  // owed rolls and waiting achievements are kept apart while the inner scenario runs
-  const becomesOuter = !!cur && !outer && !endsOuter && cause === 'encounter' && holdsInner(cur.scale);
+  // SC4 + RE7: a road encounter sets the running scenario aside, whatever its scale: with no bigger one it becomes the bigger
+  // one; inside one it waits (paused). It pays nothing yet; its owed rolls and waiting achievements are kept apart meanwhile
+  const becomesOuter = !!cur && !outer && !endsOuter && cause === 'encounter';
+  const pauses = !!cur && !!outer && !paused && !endsOuter && cause === 'encounter';
   const pr = state.player.progression;
-  if (becomesOuter) holdForInner(state, cur!);
+  if (becomesOuter || pauses) holdForInner(state, cur!);
+  if (pauses) { keep(state, record(state, cur!, as, text, true)); st.paused = cur; delete st.scenario; delete st.ended; delete st.ending; return 'new'; }
+  if (endsOuter && paused && pr) restoreHeld(paused, pr); // all end: the set-aside scenario's waiting growth is paid too
   if (endsOuter && outer && pr) restoreHeld(outer, pr); // both end: the bigger scenario's waiting growth joins the inner's, paid at its ending
   // D-226/EG7: what waited for the end is paid and granted now, with one gains summary (both scenarios' when the bigger one ends too)
   if (cur && !becomesOuter) {
-    const f = endsOuter && outer ? { ...cur, tier: outer.tier, beyond: outer.beyond, gains: mergeGains(outer.gains, cur.gains), xpFrom: outer.xpFrom, xpStart: outer.xpStart, startTurn: outer.startTurn } : cur;
+    const f = endsOuter && outer ? { ...cur, tier: outer.tier, beyond: outer.beyond, gains: mergeGains(mergeGains(outer.gains, paused?.gains), cur.gains), xpFrom: outer.xpFrom, xpStart: outer.xpStart, startTurn: outer.startTurn } : cur;
     const r = rng ?? createRng(state.rngState);
     flushGrowth(state, f, as, r);
     if (!rng) state.rngState = r.state;
     keepGains(state, as); // the Gains page keeps every scenario's gains
   }
   if (cur) keep(state, record(state, cur, endsOuter && outer ? 'interrupted' : as, text, !!outer));
+  if (paused && endsOuter) { keep(state, record(state, paused, 'interrupted', text, true)); delete st.paused; }
   if (outer && endsOuter) keep(state, record(state, outer, as, text, false));
   if (cur) st.closed = { as, turn: state.turn }; // SD1: the ending moment reads it after resolveTurn
   delete st.ended; delete st.ending;
+  if (outer && !endsOuter && paused && cause !== 'encounter') { // RE7: the encounter is over; the scenario it set aside carries on
+    st.scenario = paused; delete st.paused;
+    if (pr) restoreHeld(paused, pr);
+    paused.xpFrom = state.player.progression?.xpLog?.length ?? 0; paused.xpStart = xpBar(state); // D-226
+    delete st.breakCause;
+    logCode(state, 'scenario_resumed', { number: paused.number });
+    return 'resume';
+  }
   if (outer && !endsOuter) {
-    if (cause === 'encounter') { delete st.scenario; return 'new'; } // a new inner scenario in the same bigger one
+    if (cause === 'encounter') { delete st.scenario; return 'new'; } // another encounter in the same bigger one
     st.scenario = outer; delete st.outer; // SC4: the bigger scenario carries on
     if (pr) restoreHeld(outer, pr); // its owed rolls and waiting achievements come back
     outer.xpFrom = state.player.progression?.xpLog?.length ?? 0; outer.xpStart = xpBar(state); // D-226: the inner scenario's XP was in its own summary
     delete st.breakCause;
     // SW10 a: back in the Episode, between Situations: danger and windows start the next one, after the rest (WB7)
-    st.between = { since: state.turn, sinceMin: now(state), rest: CONFIG.ROAM_REST_MIN[state.hidden.stage?.challenge] ?? 0 };
+    if (holdsInner(outer.scale)) st.between = { since: state.turn, sinceMin: now(state), rest: CONFIG.ROAM_REST_MIN[state.hidden.stage?.challenge] ?? 0 };
     logCode(state, 'scenario_resumed', { number: outer.number });
     return 'resume';
   }
   delete st.outer; delete st.between;
-  if (cur && !endsOuter && cause === 'encounter' && holdsInner(cur.scale)) st.outer = cur; // SC4: the encounter is an inner scenario
+  if (becomesOuter) st.outer = cur; // SC4 + RE7: the encounter is an inner scenario
   delete st.scenario;
   if (roam) {
     delete st.breakCause;

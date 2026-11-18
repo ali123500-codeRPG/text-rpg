@@ -1,130 +1,27 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
-import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, ZoneLink } from '../types';
+import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, GroundPage } from '../types';
 import { resolveAlias } from '../library';
+import { CONFIG } from '../config';
 import type { Pages } from './pages';
-import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
-import { ageYears, bornDayFor, youngestAge } from '../ruleset/age';
-import { tierAt } from '../ruleset';
-import { skillCap } from '../ruleset/skillCap';
+import { ageYears, youngestAge } from '../ruleset/age';
 import { gripSlot, gripsOf } from '../ruleset/slots';
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
 
 // ---------- migrations ----------
-// v4 -> v5: "opposed" used to mean attack on sight; that is now "hostile", and "opposed" means
-// at odds but never striking first. Saved band relations, personal overrides and planned stances keep their behavior.
-// A logged stance step "more_opposed" is now "colder".
-export function opposedToHostile(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(opposedToHostile);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  for (const k of ['relations', 'overrides']) {
-    const m = o[k];
-    if (m && typeof m === 'object' && !Array.isArray(m)) for (const [id, st] of Object.entries(m)) if (st === 'opposed') (m as Record<string, unknown>)[id] = 'hostile';
-  }
-  if (Array.isArray(o.overrides)) for (const x of o.overrides) if (x && x.stance === 'opposed') x.stance = 'hostile';
-  if (o.step === 'more_opposed') o.step = 'colder';
-  Object.values(o).forEach(opposedToHostile);
-}
+/** step from version v to v + 1, keyed by v. Defaults for missing fields go only here. Empty while the prototype keeps no
+ * old saves (D-116: before release, each change to the save's shape adds its step here). */
+export const MIGRATIONS: Record<number, (pages: Pages) => void> = {};
 
-// v1 stored tiers by name (old names Partial and Strong included) and roll results with a tierIndex 0..5.
-// v2 stores tier IDs −3..2 (unclamped on rolls): tier = tierIndex − 3.
-const V1_TIER_IDS: Record<string, number> = {
-  'Critical Failure': -3, Failure: -2, Partial: -1, 'Near Miss': -1, Success: 0, Strong: 1, 'Great Success': 1, 'Critical Success': 2,
-};
-export function tiersToIds(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(tiersToIds);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  if (typeof o.tierIndex === 'number') { o.tier = o.tierIndex - 3; delete o.tierIndex; }
-  for (const k of ['tier', 'minTier', 'playerTier']) if (typeof o[k] === 'string' && o[k] as string in V1_TIER_IDS) o[k] = V1_TIER_IDS[o[k] as string];
-  Object.values(o).forEach(tiersToIds);
-}
-
-// v3 stores every ordered scale by its key (src/scales.ts): tier IDs become tier keys (a roll past either end keeps
-// the end key plus `beyond`), zone light and cover levels and band tacticsLevel become keys (tacticsLevel → tactics).
-// Perk tiers (50, 100, 150) are not check tiers and stay numbers.
-export function levelsToKeys(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(levelsToKeys);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  const isPerk = typeof o.perkId === 'string';
-  if (typeof o.tier === 'number' && !isPerk) Object.assign(o, tierAt(o.tier + 3));
-  for (const k of ['minTier', 'playerTier']) if (typeof o[k] === 'number') o[k] = TIERS.at((o[k] as number) + 3);
-  if (typeof o.light === 'number') o.light = LIGHT.at(o.light);
-  if (typeof o.cover === 'number') o.cover = COVER.at(o.cover);
-  if (typeof o.tacticsLevel === 'number') { o.tactics = TACTICS.at(o.tacticsLevel - 1); delete o.tacticsLevel; }
-  Object.values(o).forEach(levelsToKeys);
-}
-
-// v3 -> v4: humanoids have a left and a right leg instead of one "legs" part. Both legs start from
-// the old pool; armor that covered "legs" covers both. Only humanoids had a part named "legs".
-export function splitLegs(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(splitLegs);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  const parts = (o.condition as { parts?: Record<string, number> } | undefined)?.parts;
-  if (o.creatureTypeId === 'humanoid' && parts && 'legs' in parts) {
-    parts.left_leg = parts.right_leg = parts.legs;
-    delete parts.legs;
-  }
-  if (Array.isArray(o.covers) && o.covers.includes('legs')) o.covers = o.covers.flatMap((c) => (c === 'legs' ? ['left_leg', 'right_leg'] : [c]));
-  Object.values(o).forEach(splitLegs);
-}
-
-// v5 -> v6 (PM1): an NPC's one memory note becomes the first entry of its memory list.
-export function notesToLists(pages: Pages): void {
-  const h = pages.hidden as { memory?: Record<string, unknown> } | undefined;
-  for (const [id, m] of Object.entries(h?.memory ?? {})) if (typeof m === 'string') h!.memory![id] = m ? [{ turn: 0, text: m }] : [];
-}
-
-// v6 -> v7: event noise and visibility levels 0..3 become NOISE / VISIBILITY keys (coding rule). The v6 levels are fixed here,
-// not read from the tables, which have grown since.
-const V6_NOISE = ['silent', 'quiet', 'normal', 'loud'] as const;
-const V6_VISIBILITY = ['unseen', 'low', 'normal', 'high'] as const;
-export function senseToKeys(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(senseToKeys);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  if (typeof o.noise === 'number') o.noise = V6_NOISE[o.noise] ?? 'normal';
-  if (typeof o.visibility === 'number') o.visibility = V6_VISIBILITY[o.visibility] ?? 'normal';
-  Object.values(o).forEach(senseToKeys);
-}
-
-// v7 -> v8 (BG-186): a held item's slot is 'grip:<part>' (FR2), once 'hand:<part>'.
-export function handToGrip(v: unknown): void {
-  if (Array.isArray(v)) return v.forEach(handToGrip);
-  if (!v || typeof v !== 'object') return;
-  const o = v as Record<string, unknown>;
-  if (Array.isArray(o.equippedIn)) o.equippedIn = o.equippedIn.map((x) => (typeof x === 'string' && x.startsWith('hand:') ? `grip:${x.slice(5)}` : x));
-  Object.values(o).forEach(handToGrip);
-}
-
-/** WZ12 the first schema with land (regions): older saves end */
-export const LAND_SCHEMA = 9;
-
-/** step from version v to v + 1, keyed by v. v1 is the baseline: no steps yet. Defaults for missing fields go only here. */
-export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
-  1: (pages) => Object.values(pages).forEach(tiersToIds),
-  2: (pages) => Object.values(pages).forEach(levelsToKeys),
-  3: (pages) => Object.values(pages).forEach(splitLegs),
-  4: (pages) => Object.values(pages).forEach(opposedToHostile),
-  5: notesToLists,
-  6: (pages) => Object.values(pages).forEach(senseToKeys),
-  7: (pages) => Object.values(pages).forEach(handToGrip),
-  // no step 8: LAND_SCHEMA (9) ends older saves; the steps above stay for the record and their tests
-};
-
-/** run steps from → to in order; returns false (and an error) when a step is missing. */
+/** run steps from → to in order; returns false (and an error) when the save is too old, too new or a step is missing. */
 export function migrate(pages: Pages, from: number, to: number, r: CheckReport): boolean {
   if (from > to) {
     r.errors.push(`schema: save is version ${from}, newer than this code (${to})`);
     return false;
   }
-  // WZ12: a save from before the land has no ground under its places; it ends (the prototype keeps no old saves)
-  if (from < LAND_SCHEMA && to >= LAND_SCHEMA) {
-    r.errors.push('schema: this save was made before the land (the new zone system); start a new character');
+  if (from < CONFIG.OLDEST_SAVE_SCHEMA) {
+    r.errors.push(`schema: this save was made ${CONFIG.OLDEST_SAVE_REASON}; start a new character`);
     return false;
   }
   for (let v = from; v < to; v++) {
@@ -144,7 +41,7 @@ export function migrate(pages: Pages, from: number, to: number, r: CheckReport):
 type Kind = 'string' | 'number' | 'object' | 'array' | 'boolean';
 const T = (v: unknown, k: Kind) => (k === 'array' ? Array.isArray(v) : k === 'object' ? !!v && typeof v === 'object' && !Array.isArray(v) : typeof v === k);
 const SHAPES: Record<string, Record<string, Kind>> = {
-  engine: { storyId: 'string', turn: 'number', mode: 'string', rngSeed: 'number', rngState: 'number', pending: 'object', stage: 'object', scenarioCaps: 'object', clocks: 'object', flags: 'object', bands: 'array', quests: 'array' },
+  engine: { storyId: 'string', turn: 'number', mode: 'string', rngSeed: 'number', rngState: 'number', pending: 'object', stage: 'object', scenarioCaps: 'object', clocks: 'object', bands: 'array', quests: 'array' },
   hidden: { storyId: 'string', plans: 'object', memory: 'object', secrets: 'array', firedLog: 'array', weaverNote: 'string', stage: 'object' },
   actor: { id: 'string', storyId: 'string', kind: 'string', names: 'object', label: 'string', placeId: 'string', zone: 'string', bandId: 'string', core: 'object' },
   core: { bodyTypeId: 'string', skills: 'object', classes: 'array', perks: 'array', condition: 'object', inventory: 'array', standingDefense: 'string' },
@@ -152,6 +49,8 @@ const SHAPES: Record<string, Record<string, Kind>> = {
   facts: { storyId: 'string', placeId: 'string', facts: 'array' },
   blueprint: { storyId: 'string', id: 'string', kind: 'string', data: 'object' },
   region: { id: 'string', storyId: 'string', kind: 'string', heights: 'array', cover: 'string', waters: 'array', roads: 'array', nodes: 'array', sites: 'array', features: 'array' },
+  plan: { storyId: 'string', placeId: 'string', walls: 'array', openings: 'array', roofs: 'array', lights: 'array', furniture: 'array' }, // PZ16
+  ground: { storyId: 'string', items: 'array' },
 };
 const kindOf = (key: string) => key.split('.')[0];
 
@@ -164,7 +63,6 @@ export function checkShape(pages: Pages, r: CheckReport): void {
     const fields = bad(page, shape);
     if (kindOf(key) === 'actor' && !fields.includes('core')) fields.push(...bad((page as Actor).core, SHAPES.core).map((f) => `core.${f}`));
     if (kindOf(key) === 'place' && !((page as Place).parentId === null || typeof (page as Place).parentId === 'string')) fields.push('parentId');
-    if (kindOf(key) === 'engine' && !T((page as EnginePage).stage?.zoneIds, 'array')) fields.push('stage.zoneIds');
     if (fields.length) r.errors.push(`shape: ${key} bad ${fields.join(', ')}`);
   }
 }
@@ -240,13 +138,10 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
   const zonePlace = new Map(places.flatMap((p) => p.zones.map((z) => [z.id, p.id] as const)));
   const actors = actorKeys(pages).map((k) => pages[k] as Actor);
   if (actors.filter((a) => a.kind === 'player').length !== 1) r.errors.push('invariant: exactly one player actor');
-  for (const z of (pages.engine as EnginePage).stage.zoneIds) if (!zonePlace.has(z)) r.errors.push(`invariant: stage zone ${z} is on no place page`);
   for (const a of actors) {
     const c = a.core;
     if (c.classes.length && c.classes.filter((x) => x.state === 'current').length !== 1) r.errors.push(`invariant: ${a.id} must have exactly one current class`);
     if (zonePlace.get(a.zone) !== a.placeId) r.errors.push(`invariant: ${a.id} placeId ${a.placeId} is not the place of zone ${a.zone}`);
-    // D-314 c: only the player's raw is held to the cap; NPC sheets come from their presets, Beyond and up uncapped
-    if (a.kind === 'player') for (const [s, e] of Object.entries(c.skills)) if (e.raw > skillCap(e)) r.warnings.push(`${a.id} raw ${s} ${e.raw} above its cap ${skillCap(e)}`);
     const ct = L.bodyType(c.bodyTypeId);
     if (!ct) { r.errors.push(`invariant: ${a.id} body type ${c.bodyTypeId} unknown`); continue; }
     const parts = new Set(ct.parts.map((p) => p.id).filter((p) => !c.condition.destroyed?.includes(p)));
@@ -268,16 +163,14 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
   }
 }
 
-/** No children: an NPC under its race's youngest age leaves the world (the links to it are dropped below); a player made
- * before the rule is aged up to it */
+/** No children: an NPC under its race's youngest age (after a library change) leaves the world (the links to it are dropped
+ * below). A player is never under it: creation keeps to the race's creation ages */
 function dropChildren(pages: Pages, r: CheckReport): void {
   const clock = { clocks: (pages.engine as EnginePage | undefined)?.clocks ?? {} } as GameState;
   for (const k of actorKeys(pages)) {
     const a = pages[k] as Actor, years = ageYears(clock, a), min = youngestAge(a.core.raceId);
-    if (years === undefined || min === undefined || years >= min) continue;
-    if (a.kind === 'npc') { delete pages[k]; r.repairs.push(`reference: dropped child ${a.id}`); continue; }
-    a.core.bornDay = Math.floor(bornDayFor(clock, min));
-    r.repairs.push(`reference: ${a.id} aged up to ${min}`); r.changed.add(k);
+    if (a.kind !== 'npc' || years === undefined || min === undefined || years >= min) continue;
+    delete pages[k]; r.repairs.push(`reference: dropped child ${a.id}`);
   }
 }
 
@@ -289,7 +182,6 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
   const placeIds = new Set(keys.filter((k) => k.startsWith('place.')).map((k) => (pages[k] as Place).id));
   const actorIds = new Set(actorKeys(pages).map((k) => (pages[k] as Actor).id));
   const factIds = new Set(keys.filter((k) => k.startsWith('facts.')).flatMap((k) => (pages[k] as FactsPage).facts.map((f) => f.id)));
-  const placePages = keys.filter((k) => k.startsWith('place.'));
   const bands = (pages.engine as EnginePage | undefined)?.bands.map((b) => b.id) ?? [];
   const fix = (key: string, msg: string) => { r.repairs.push(`reference: ${key} ${msg}`); r.changed.add(key); };
   const keep = <T>(key: string, list: T[], ok: (x: T) => boolean, what: string): T[] => {
@@ -303,22 +195,11 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       const p = page as Place;
       if (p.parentId !== null && !placeIds.has(p.parentId)) { fix(k, `dropped parent ${p.parentId}`); p.parentId = null; }
       p.headlines = keep(k, p.headlines, (f) => factIds.has(f), 'headlines');
-      // an item the library no longer has would make every zone view throw: drop it, as for inventories
-      for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
-      for (const z of p.zones) for (const c of z.groundItems) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
-      // BG-285: a way back added before a frontier was joined left two ways to the same zone; the one added by code (named
-      // after the zone) goes, the way the story named stays
-      for (const z of p.zones) {
-        const nameOf = (to: string) => placePages.map((x) => (pages[x] as Place).zones.find((zz) => zz.id === to)).find(Boolean)?.name;
-        const twin = (l: ZoneLink) => !l.frontier && l.label === nameOf(l.to) && z.links.some((b) => b !== l && !b.frontier && b.to === l.to);
-        for (const l of [...z.links]) if (twin(l)) { z.links.splice(z.links.indexOf(l), 1); fix(k, `dropped a second way from ${z.id} to ${l.to}`); }
-      }
-      // every link runs both ways (scenarios planned before the fix kept one-way links among their new zones)
-      for (const z of p.zones) for (const l of z.links) {
-        if (l.frontier) continue;
-        const ok = placePages.map((x) => [x, (pages[x] as Place).zones.find((zz) => zz.id === l.to)] as const).find(([, zz]) => zz);
-        if (ok && !ok[1]!.links.some((b) => b.to === z.id)) { ok[1]!.links.push({ to: z.id, label: z.name, sight: l.sight }); fix(ok[0], `added the way back from ${l.to} to ${z.id}`); }
-      }
+    } else if (k === 'ground') {
+      // an item the library no longer has would make every title's view throw: drop it, as for inventories
+      const g = page as GroundPage;
+      g.items = keep(k, g.items ?? [], (it) => L.hasItem(it.itemId), 'unknown ground items');
+      for (const c of g.items) if (c.contents) c.contents = keep(k, c.contents, (it) => L.hasItem(it.itemId), `unknown items in ${c.id}`); // CT1
     } else if (k.startsWith('facts.')) {
       for (const f of (page as FactsPage).facts) f.promotedTo = keep(k, f.promotedTo, (p) => placeIds.has(p), `promotions of ${f.id}`);
     } else if (k.startsWith('actor.')) {

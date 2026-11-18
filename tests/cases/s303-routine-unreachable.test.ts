@@ -17,18 +17,21 @@ describe('303 routine_unreachable is logged once', () => {
   it('a guard cut off from its post logs it once, and again only after it found a way', () => {
     const s = makeVillage({ playerZone: 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
     const g = s.actors.find((a) => a.id === 'guard_1')!;
-    const all = [...s.stage.zoneIds];
+    // the square taken out of the world for a while (no ground is off a stage now, WI8 a)
+    const place = s.places.find((p) => p.zones.some((z) => z.id === 'street_square'))!, sq = place.zones.find((z) => z.id === 'street_square')!;
+    const cut = () => { place.zones.splice(place.zones.indexOf(sq), 1); s.zones.splice(s.zones.indexOf(sq), 1); };
+    const open = () => { place.zones.push(sq); s.zones.push(sq); };
     g.zone = 'street_door'; delete g.pos;
-    s.stage.zoneIds = all.filter((z) => z !== 'street_square'); // its post, gate_inner, lies past the square
+    cut(); // its post, gate_inner, lies past the square
     turn(s); turn(s); turn(s);
     expect(stuck(s)).toHaveLength(1);
     expect(stuck(s)[0].detail).toMatchObject({ from: 'street_door', to: 'gate_inner' });
     expect(g.zone).toBe('street_door');
-    s.stage.zoneIds = all; // the way opens: its routine walks on
+    open(); // the way opens: its routine walks on
     turn(s);
     expect(g.mind!.unreachable).toBeUndefined();
     g.zone = 'street_door'; delete g.pos;
-    s.stage.zoneIds = all.filter((z) => z !== 'street_square');
+    cut();
     turn(s);
     expect(stuck(s)).toHaveLength(2);
   });

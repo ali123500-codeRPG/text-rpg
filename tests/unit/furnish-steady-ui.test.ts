@@ -17,7 +17,7 @@ const foe = (s: GameState): GameState => {
   m.knowledge.player = { status: 'engaged', lastKnownZone: s.player.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   return s;
 };
-const offered = (s: GameState) => deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).some((a) => a.kind === 'steady');
+const offered = (s: GameState) => deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).some((a) => a.kind === 'steady' && !a.limit); // A3: within its cooldown it stays, dimmed, but can't be played
 
 describe('furnished rooms and steady yourself on the play screen', () => {
   it('FR5: every furniture kind has a glyph of its own', () => {

@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
-import { makeVillage, beside } from '../harness';
+import { makeVillage, beside, lay } from '../harness';
 import { play } from '../cases/w4-kit';
 import { CONFIG } from '../../src/config';
 import { IT } from '../../src/library/itemIds';
@@ -94,7 +94,7 @@ describe('turn checker (TQ1)', () => {
     s.player.core.inventory.push({ id: 'd1', itemId: IT.dagger, equippedIn: ['grip:right_arm'] });
     expect(rules(s)).toContain('invariants');
     s.player.core.inventory.pop();
-    s.zones[0].groundItems.push({ ...s.player.core.inventory[0] });
+    lay(s, s.zones[0].id, { ...s.player.core.inventory[0] });
     expect(rules(s)).toContain('one_item_one_place');
   });
 
@@ -147,7 +147,7 @@ describe('turn checker (TQ1)', () => {
     ago(s, 4, engagementEndS() + 1);
     expect(rules(s)).toContain('fight_ends');
     const t = makeVillage();
-    t.stage.zoneIds.push('nowhere');
+    t.zones.push({ ...t.zones[0], id: 'nowhere' });
     expect(rules(t)).toContain('real_zone');
   });
 

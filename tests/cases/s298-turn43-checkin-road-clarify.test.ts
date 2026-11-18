@@ -14,7 +14,6 @@ import { isBugCode } from '../../src/save/bugs';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { ROAD_LENGTHS } from '../../src/scales';
 import { clarifyPicks } from '../../src/ui/play';
-import { getLibrary } from '../../src/library';
 
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
 const framed = (): GameState => {
@@ -46,11 +45,9 @@ describe('BG-222: endings that name an item made in play', () => {
 
 describe('BG-223: road lengths in the words the Weaver is told', () => {
   const road = (length: unknown) => {
-    const lib = getLibrary();
-    const roadKind = Object.entries(lib.zoneKinds ?? {}).find(([, k]) => (k as { road?: boolean }).road)![0];
     const p = villageStagePlan();
-    const z = p.zones[0] as { kind: string; length?: unknown };
-    z.kind = roadKind; z.length = length;
+    const z = p.zones[0] as { kind?: string; length?: unknown };
+    delete z.kind; z.length = length; // PZ9: a road has no kind, only its length
     const errs = validateStagePlan(toStoryStart(makeVillage()), p, { tier: 'success', kind: 'scenario', placeId: 'tavern' });
     return { errs: errs.filter((e) => !e.repaired && e.code === 'bad_zone' && /length/.test(e.message)), z };
   };

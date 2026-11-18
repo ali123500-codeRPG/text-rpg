@@ -33,6 +33,13 @@ export type Actor = {
   journal?: Journal;
   engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
   perkMarks?: PerkMark[]; // short-lived perk effects this actor carries (src/engine/perkMarks.ts)
+  /** TC44 a Play Dead: the turn a blow left it Wounded or worse (not Down); the move is open that turn and the next */
+  playDeadOpen?: number;
+  /** TC32 a Play Dead (engine/playDead.ts): lying as if Down. believers: the foes who take it for Down (each on its own,
+   * TC48 a, so a sharing rule can take ids out); judged: every foe that has rolled against it */
+  playingDead?: { believers: string[]; judged: string[] };
+  /** TC50-TC52 a S3 feigned flight (engine/feint.ts): when it began (game minutes) and the foes who believe the flight */
+  feint?: { at: number; believers: string[] };
   /** NW12/NW20: asleep since this game minute; `until` ends a planned sleep (the player's, a night watch); none: a
    * routine's sleep, which ends with its time. Asleep, an actor perceives nothing and is an unaware target. */
   asleep?: { since: number; until?: number };
@@ -53,6 +60,8 @@ export type Actor = {
   };
   /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered */
   walking?: NonNullable<import('./agents').Intent['move']>;
+  /** RE1 (BG-291): minutes travelled on roads since the last encounter roll, carried from trip to trip; a full TRAVEL_LEG_MIN rolls */
+  roadMin?: number;
   /** BG-190: the player lost the one they were following this turn: who, why, and the zone they last had them in */
   followLost?: { who: string; why: 'down' | 'slipped_away' | 'out_of_sight'; zone: string };
   /** BF34: something it holds out to `to` (an item instance, from hand, pack or its own bag): it changes hands only when
@@ -84,7 +93,13 @@ export type PerkMark = { perk: string; target?: string; made?: number; /** the t
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
 export type EngagementKind = 'talk' | 'fight' | 'spar';
-export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
+export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog;
+  /** TC41 a: rallied this fight (Battle Cry's rally; Rally later): CONFIG.RALLIED_MOD on every roll until the engagement ends */
+  rallied?: true;
+  /** TC35 b Never Flat-Footed: everyone its owner has seen this engagement (kept only for owners of the perk) */
+  seen?: string[];
+  /** GR44: its power when it joined the fight (engine/xp.ts notePower); defeat XP and the stronger-foe achievements read it */
+  power?: number };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
 export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true;
@@ -173,8 +188,8 @@ export type Progression = {
   /** every scenario's gains as the gains moment showed them, oldest first, for the Gains page (D-226); never trimmed */
   gainsLog?: import('./game').GainsRecord[];
   /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
-   * the name and XP level live only in that table. name is only on entries from older saves. */
-  achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string; reached?: number }[]; // reached: the tally that earned it
+   * the name and XP level live only in that table. */
+  achievements?: { id: string; key?: string; of?: string; turn: Turn; replacedBy?: string; reached?: number }[]; // reached: the tally that earned it
   /** D-226: achievements earned while a scenario runs, granted at its end (grantAchievement queues them) */
   pendingAchievements?: { key: string; of?: string; reached?: number; turn?: number }[]; // turn: when it was reached (BF60)
   title?: string; // T18: the id of the earned achievement worn as a title (wornTitle in src/engine/xp.ts)
@@ -184,7 +199,8 @@ export type Progression = {
   charges?: Record<string, number>;
   /** skills the player has rolled, on the sheet or not, so the sheet and /stats can show an off-sheet skill in use (fists: Strike) */
   used?: LibraryRef[];
-  zonesSeen?: string[]; // zones the player has entered
+  zonesSeen?: string[]; // PZ13: titles the player has entered
+  cellsStood?: string[]; // PZ17: the land cells (REGION_CELL_M squares, '<x>:<y>' on the world's grid) the player has stood in
   placesSeen?: string[]; // TM14: places the player has stood in, or that held where they stood (counted per kind)
   /** AS1–AS11: foes the player struck while seeing them surrendered or broken, each counted once */
   gaveUpStruck?: { surrendered: string[]; broken: string[] };
@@ -242,6 +258,12 @@ export type Mind = {
   stay?: { zone: string; since: number }; // BF11: a place its own agent moved it to holds AGENT_STAY_S from this turn
   startled?: number; // BF65: the turn it was struck unseen, saw someone struck, or found a body: it gets a Planner call to react
   bodiesFound?: string[]; // BF65: the bodies it has come upon or seen fall (each found once)
+  /** WN8 a: what it saw through or spotted itself, still to warn its allies of (engine/warnings.ts), and the warnings given (about:trick -> the turn) */
+  toWarn?: { about: ActorId; trick: string }[];
+  warned?: Record<string, number>;
+  /** WN4 b: a hidden foe an ally pointed out, and when: its next notice or search roll at it is easier */
+  pointed?: Record<ActorId, number>;
+  rowsUsed?: Record<string, number>; // D-17: the turn each FIGHT_RULES row (FX id) last gave its order; one used since its engagement began counts as used this fight
   lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, until it does that kind of thing
   errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
   /** AT63: time ran on past its agent's order (a stretch or a night) while it went on by code; its next Planner call is told */
@@ -348,16 +370,24 @@ export type Journal = {
   /** BG-28: where the player last saw or heard each actor (any perception of it, a sound included); never forgotten by an
    * unseen move, so lastSeen still names someone heard running off */
   lastKnown?: Record<ActorId, string>;
-  /** BG-125: the point in that zone where the player last perceived each actor, when the event had one */
-  lastSpot?: Record<ActorId, { x: number; y: number }>;
+  /** BG-125: the point (and floor) where the player last perceived each actor, when the event had one */
+  lastSpot?: Record<ActorId, import('./core').Pt3>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
+  /** WN2/WN11: the tricks the player saw through or was warned of, by whose (engine/warnings.ts); as NPCs' ruse facts */
+  ruses?: Record<ActorId, string[]>;
+  /** WN4 b: a foe an ally pointed out while hidden, and when: the player's next notice or search roll at it is easier */
+  pointed?: Record<ActorId, Turn>;
   /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */
   trail?: { zone: string; left: Turn }[];
-  /** the Map page: every zone the player has stood in or seen across a sight link, oldest first */
+  /** PZ13: every title the player has stood in or looked into (its name is known), oldest first */
   zonesSeen?: string[];
-  /** the Map page (MAP-33): every zone the player has stood in, oldest first; a save made before it starts from the trail */
+  /** the Map page (MAP-33): every title the player has stood in, oldest first */
   zonesVisited?: string[];
+  /** PZ12 a, the Map's fog: the ground the player has seen, in squares (1 m under a roof, FOG_OPEN_SQUARE_M in the open
+   * where no land lies under it) per floor: chunks of FOG_CHUNK squares a side, keyed '<floor>:<size>:<cx>:<cy>', one bit
+   * per square, base64 (src/plan/fog.ts); in the open over the land, landSeen */
+  seenSquares?: Record<string, string>;
   /** WZ4 the land the player has made out, per region id: one bit per grid cell, base64 (src/land/sight.ts) */
   landSeen?: Record<string, string>;
 };

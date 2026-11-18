@@ -11,7 +11,7 @@ it('43 One belief writer', () => {
   const s = makeVillage();
   s.turn = 4;
   updateBeliefs(s, { kind: 'opening', observerId: 'guard_1', aboutId: 'player', status: 'suspicious', zone: 'tav_common' });
-  expect(actor(s, 'guard_1').mind!.knowledge.player).toEqual({ status: 'suspicious', source: 'seen', lastKnownZone: 'tav_common', lastSeenTurn: 4, revealed: [] });
+  expect(actor(s, 'guard_1').mind!.knowledge.player).toEqual({ status: 'suspicious', source: 'seen', lastKnownZone: 'tav_common', lastKnownAt: { x: 0, y: 0, floor: 0 }, lastSeenTurn: 4, revealed: [] }); // PZ11 a: the point, here the room's middle
   // no source file outside src/perception assigns into Mind.knowledge
   expect(Object.keys(sources).length).toBeGreaterThan(10);
   const writers = Object.entries(sources)

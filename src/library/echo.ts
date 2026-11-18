@@ -73,5 +73,3 @@ export const uniqueInWorld = (state: GameState, templateId: string): boolean =>
 /** D-243: an echo never learns: no marks, gains, XP, achievements or scars */
 export const isEcho = (a: Actor): boolean => a.core.origin === 'echo';
 
-/** HF18: only the item's owner may use a soulbound item */
-export const soulboundElsewhere = (inst: ItemInstance, a: Actor): boolean => !!inst.soulbound && inst.boundTo !== a.id;

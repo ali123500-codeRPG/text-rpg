@@ -9,6 +9,7 @@ import { applyCheckinPlan, checkinPlanErrors } from '../../src/scenario/checkin'
 import { checkCheckin } from '../../src/agents/schema';
 import { FIXED } from '../../src/agents/prompts';
 import { TP } from '../../src/library/templateIds';
+import { waysOut } from '../../src/plan/where';
 
 const judged: PlanEnding[] = [{ when: { kind: 'judged' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }];
 const setup = () => {
@@ -17,7 +18,7 @@ const setup = () => {
   return s;
 };
 const riders = (zone: string): CheckinAnswer['arrivals'] => ({
-  bands: [{ key: 'riders', name: 'the riders', goals: 'find the stranger', temperament: 'hard', tactics: 'competent', lethal: true, relations: {} }],
+  bands: [{ key: 'riders', name: 'the riders', goals: 'find the stranger', temperament: 'hard', lethal: true, relations: {} }],
   cast: [{ template: TP.guard, key: 'rider_1', label: 'a rider', name: 'Hal', appearance: 'a rider in a dusty cloak', band: 'riders', routineSetId: 'gate_guard',
     slots: { post: zone }, awarenessOfPlayer: 'unaware', motive: 'paid to bring the stranger back' }],
   seeds: { plans: [], triggers: [], secrets: [] },
@@ -52,7 +53,7 @@ describe('188 what a check-in may change (SC12)', () => {
   it('new frontiers open on stage zones; what lies behind is built later', () => {
     const s = setup();
     go(s, { verdict: 'continue', frontiers: [{ zone: 'tav_cellar', key: 'old_tunnel', label: 'a loose board over a tunnel' }] });
-    expect(s.zones.find((z) => z.id === 'tav_cellar')!.links.find((l) => l.label === 'a loose board over a tunnel')).toMatchObject({ frontier: true, sight: false });
+    expect(waysOut(s, 'tav_cellar').find((l) => l.label === 'a loose board over a tunnel')).toMatchObject({ frontier: true });
     go(s, { verdict: 'continue', frontiers: [{ zone: 'nowhere', key: 'x', label: 'y' }] });
     expect(codes(s)).toContain('checkin_failed');
   });

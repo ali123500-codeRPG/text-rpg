@@ -6,6 +6,7 @@ import { loadHistory, memoryStore, saveHistory, saveTurn } from '../../src/save'
 import { CONFIG, resetConfig } from '../../src/config';
 import { clockText, durationText } from '../../src/time';
 import type { GameState, TurnRecord } from '../../src/types';
+import { setBarrier } from '../harness';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
@@ -18,13 +19,13 @@ describe('BG-123 GM backups', () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage(); // resets the config, so the lever is set after it
     CONFIG.BACKUP_EVERY = 2;
-    for (let t = 1; t <= 4; t++) { s.turn = t; s.flags.last = t; await saveTurn(store, s, rec(s)); }
+    for (let t = 1; t <= 4; t++) { s.turn = t; s.clocks.last = t; await saveTurn(store, s, rec(s)); }
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     expect(await g.resume()).toBe(true);
     await tick();
     expect(g.gm().backups.map((b) => b.turn)).toEqual([4, 2]);
     await g.restoreBackup(2);
-    expect(g.state()?.flags.last).toBe(2);
+    expect(g.state()?.clocks.last).toBe(2);
     expect(g.lines().at(-1)?.text).toBe('Restored the backup from turn 2.');
     expect(g.notices().some((n) => n.kind === 'load_refused')).toBe(false);
   });
@@ -33,7 +34,7 @@ describe('BG-123 GM backups', () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage();
     CONFIG.BACKUP_EVERY = 2;
-    for (let t = 1; t <= 4; t++) { s.turn = t; s.flags.last = t; await saveTurn(store, s, rec(s)); }
+    for (let t = 1; t <= 4; t++) { s.turn = t; s.clocks.last = t; await saveTurn(store, s, rec(s)); }
     await saveHistory(store, s.storyId, [1, 2, 3, 4].map((turn) => ({ turn, kind: 'narration' as const, text: `turn ${turn}` })), 0);
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     await g.resume();
@@ -47,12 +48,12 @@ describe('BG-123 GM backups', () => {
   it('a backup that is not there is refused with a notice, and the story stays as it was', async () => {
     const clock = new VirtualClock(), store = memoryStore();
     const s = makeVillage();
-    s.turn = 1; s.flags.last = 1;
+    s.turn = 1; s.clocks.last = 1;
     await saveTurn(store, s, rec(s));
     const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
     await g.resume();
     await g.restoreBackup(7);
-    expect(g.state()?.flags.last).toBe(1);
+    expect(g.state()?.clocks.last).toBe(1);
     expect(g.notices().some((n) => n.kind === 'load_refused')).toBe(true);
   });
 });
@@ -92,7 +93,9 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     const { now, startClock } = await import('../../src/time');
     const { IT } = await import('../../src/library/itemIds');
     const { BK } = await import('../../src/library/tableIds');
-    const s = makeVillage({ playerZone: opts.playerZone ?? 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
+    const { WK } = await import('../../src/library/tableIds');
+    // the gate's palisade on the square side, so the door in it is the only way through
+    const s = makeVillage({ playerZone: opts.playerZone ?? 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'], shape: { gate_inner: { walls: { w: WK.wall } } } });
     startClock(s, 'morning');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     g.zone = 'gate_inner';
@@ -102,8 +105,7 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     const b = { id: 'gate_door', kind: BK.door, grade: 'minor' as const, lock: { locked: true },
       ...(opts.bar ? { bar: { drawn: true, side: 'gate_inner' } } : {}) };
     (s.barriers ??= {})[b.id] = b;
-    zoneById(s, 'gate_inner')!.links.find((l) => l.to === 'street_square')!.barrier = b.id;
-    zoneById(s, 'street_square')!.links.find((l) => l.to === 'gate_inner')!.barrier = b.id;
+    setBarrier(s, 'gate_inner', 'street_square', b.id);
     if (opts.key !== false) g.core.inventory.push({ id: 'key_g', itemId: IT.key, opens: [b.id] });
     return { s, g, b };
   }

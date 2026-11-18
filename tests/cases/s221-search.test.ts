@@ -13,6 +13,7 @@ import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, ContestResult, GameState, RollRequest } from '../../src/types';
+import { boxOf } from '../../src/plan/geom';
 
 /** forces each search contest's gap; records the watcher's side of each stealth contest */
 function rig(gap: number) {
@@ -80,7 +81,7 @@ describe('221 search', () => {
   it('SE20/SE21: outside a fight a big area is searched only around you; a fight turn reaches area ÷ 120 m', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const t = thief(s, 'street_square');
-    const r = s.zones.find((z) => z.id === 'street_square')!.rect!;
+    const r = boxOf(s.zones.find((z) => z.id === 'street_square')!.outline);
     s.player.pos = { x: r.x - r.w / 2 + 0.5, y: r.y };
     t.pos = { x: r.x + r.w / 2 - 0.5, y: r.y }; // across a 400 m² square: beyond the 60 m² around a skill-50 searcher
     rig(1);

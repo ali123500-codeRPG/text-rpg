@@ -11,10 +11,9 @@ import { TP } from '../../src/library/templateIds';
 import { SK } from '../../src/library/skillIds';
 
 const field = () => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+  const s = makeVillage({ shape: { tav_common: { rect: { x: 0, y: 0, w: 40, d: 40 } } }, playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
   s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening;
   const z = s.zones.find((x) => x.id === 'tav_common')!;
-  z.rect = { x: 0, y: 0, w: 40, d: 40 };
   s.player.pos = { x: 0, y: 0 };
   return s;
 };
@@ -40,7 +39,7 @@ describe('327 running on at a foe out of reach', () => {
     expect(lost(ev, g.id)).toBeUndefined();
     expect(struck(ev, g.id)).toBe(false);
     expect(s.log.some((l) => l.code === 'ran_on' && l.detail?.actorId === g.id)).toBe(true);
-    expect(d(g, s.player)).toBeLessThan(20 - ran(ev, g.id) + 0.01);
+    expect(d(g, s.player)).toBeLessThan(20 - ran(ev, g.id) + 0.1); // each move's metres are said to 0.1 m (r1)
     const walked = ev.find((e) => e.actorId === g.id && e.kind === 'move')!.metres!;
     expect(ran(ev, g.id)).toBeGreaterThan(walked + 1); // the move time's walk, then the run on its main time
     const ev2 = play(s, { intent: intent(), agentOutputs: [fists(g.id)] });

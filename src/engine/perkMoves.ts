@@ -13,6 +13,8 @@ import { freeGrips } from '../ruleset/body';
 import { actorById, isActive, wary } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markForRounds } from './perkMarks';
+import { TRICK, sawThrough, warnedShift } from './ruses';
+import { playDeadOpen } from './playDead';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
@@ -21,6 +23,7 @@ import { hearsClearly } from '../perception';
 import { sightDistM, withinM } from './position';
 import { CONFIG } from '../config';
 import { VOLUME_NOISE } from '../perception/noise';
+import { notePower } from './xp';
 
 /** the actor has a working Grip part with nothing held in it */
 export const hasFreeGrip = (state: GameState, a: Actor) => freeGrips(state, a).length > 0;
@@ -39,6 +42,7 @@ const useKey = (perk: string, targetId: string | null) => PERK_MOVES[perk]?.perF
 /** counts a use of the move; one used outside an engagement starts one, so its once-per-engagement use is counted */
 export function countPerkMove(state: GameState, a: Actor, perk: string, targetId: string | null): void {
   if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
+  notePower(state, a); // GR44
   useThisEngagement(a, useKey(perk, targetId));
 }
 
@@ -46,6 +50,7 @@ export function countPerkMove(state: GameState, a: Actor, perk: string, targetId
 export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId: string | null): string | null {
   const def = PERK_MOVES[perk];
   if (!def || !hasPerk(a, perk)) return 'not_owned';
+  if (perk === PK.play_dead && !playDeadOpen(state, a)) return a.playingDead ? 'already_down' : 'not_now'; // TC44 a
   if (def.untargeted) return def.perEngagement && a.engagement && !usableThisEngagement(a, perk, def.perEngagement) ? 'used_this_engagement' : null;
   const t = targetId ? actorById(state, targetId) : undefined;
   if (!t || t === a || !isActive(t) || !inRange(state, a, t, perk)) return 'no_target';
@@ -70,12 +75,13 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   if (perk === PK.bluff) {
-    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng));
+    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng, warnedShift(t, a.id, TRICK.bluff)));
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c);
     markUse(state, t, c.b.skill, c);
     const seen = c.winner === 'b'; // the foe must win outright to see through it
-    if (!seen) markForRounds(state, t, PK.bluff);
+    if (seen) sawThrough(state, t, a, TRICK.bluff); // WN11, WN8
+    else markForRounds(state, t, PK.bluff, a.id);
     return { effects: [{ kind: seen ? 'bluff_seen_through' : 'bluff_believed', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   return { effects: [] };

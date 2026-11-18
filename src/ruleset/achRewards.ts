@@ -163,8 +163,8 @@ export function rewardSum(a: Actor, f: 'freeLevels' | 'bonusLevels' | 'searchAre
     + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + ((perks[p.perkId] as Partial<Record<typeof f, number>> | undefined)?.[f] ?? 0), 0);
 }
 export const freeLevelsEarned = (a: Actor) => rewardSum(a, 'freeLevels');
-/** free levels earned and not yet taken */
-export const freeLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'freeLevels') - (a.progression?.freeLevelsTaken ?? 0));
+/** free levels earned and not yet taken: halves add up over every source first, and only whole levels are given */
+export const freeLevelsOwed = (a: Actor) => Math.max(0, Math.floor(rewardSum(a, 'freeLevels')) - (a.progression?.freeLevelsTaken ?? 0));
 /** bonus levels earned and not yet taken */
 export const bonusLevelsOwed = (a: Actor) => Math.max(0, rewardSum(a, 'bonusLevels') - (a.progression?.bonusLevelsTaken ?? 0));
 
@@ -257,17 +257,18 @@ const TOP = () => REWARD_LEVELS.keys.length - 1;
 export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);
 export const rewardKeyAt = (pos: number): string => REWARD_LEVELS.at(Math.min(TOP(), Math.max(0, pos)));
 export const rewardName = (key: string): string => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : key);
-/** the XP of the reward level at place p (0 = level 0, I = 1, −1 = −1): the one reward-XP equation (REWARD_XP_CURVE) */
-export function rewardXpAt(p: number): number {
-  const c = CONFIG.REWARD_XP_CURVE;
-  return Math.round(c.base * Math.max(0, (p + c.shift) / c.div) ** c.power);
+/** the XP of the reward level at place p (0 = level 0, I = 1, −1 = −1): the one reward-XP equation. A fixed part
+ * (REWARD_XP_CURVE) plus a share of `need`, the earner's XP to the next level (ACH_LEVEL_SHARE, AL1-AL8); need 0 = the fixed part */
+export function rewardXpAt(p: number, need = 0): number {
+  const c = CONFIG.REWARD_XP_CURVE, s = CONFIG.ACH_LEVEL_SHARE;
+  return Math.round(c.base * Math.max(0, (p + c.shift) / c.div) ** c.power + (s.floor + (s.atI - s.floor) * Math.max(0, p) ** s.power) * need);
 }
 /** a reward level's XP, for achievements and quests alike (quest levels are REWARD_LEVELS keys too) */
-export const rewardXp = (key: string): number => (REWARD_LEVELS.has(key) ? rewardXpAt(REWARD_LEVELS.pos(key as 'i') - REWARD_LEVELS.pos('zero')) : 0);
+export const rewardXp = (key: string, need = 0): number => (REWARD_LEVELS.has(key) ? rewardXpAt(REWARD_LEVELS.pos(key as 'i') - REWARD_LEVELS.pos('zero'), need) : 0);
 /** the achievement reward level whose XP a quest of this level pays: CONFIG.QUEST_XP_LEVELS_UP places higher */
 export const questXpLevel = (key: string): string => rewardKeyAt(rewardPos(key) + CONFIG.QUEST_XP_LEVELS_UP);
-/** a quest reward level's XP: the XP of its achievement level (questXpLevel) */
-export const questLevelXp = (key: string): number => rewardXp(questXpLevel(key));
+/** a quest reward level's XP: the XP of its achievement level (questXpLevel), share of `need` included */
+export const questLevelXp = (key: string, need = 0): number => rewardXp(questXpLevel(key), need);
 
 /** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
  * step past its first count (an every-N row climbs as it is earned again), capped at the top level (XV). */
@@ -277,10 +278,9 @@ export function achLevel(d: { level: string; levelUp?: Partial<Record<string, nu
   return up && rewardPos(d.level) >= 0 ? rewardKeyAt(rewardPos(d.level) + up) : d.level;
 }
 
-/** the XP an achievement pays: its reward level's XP; a scar pays the level one step below (none below the lowest) */
-export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number; scar?: true }, of?: string): number {
+/** the XP an achievement pays: its reward level's XP; a scar pays the place one step below (below the lowest: no fixed part,
+ * only the share). need: the earner's XP to the next level (0 = the fixed part only, as the library and report card read it) */
+export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number; scar?: true }, of?: string, need = 0): number {
   const lv = achLevel(d, of);
-  if (!d.scar) return rewardXp(lv);
-  const i = rewardPos(lv);
-  return i > 0 ? rewardXp(rewardKeyAt(i - 1)) : 0;
+  return REWARD_LEVELS.has(lv) ? rewardXpAt(rewardPos(lv) - rewardPos('zero') - (d.scar ? 1 : 0), need) : 0;
 }

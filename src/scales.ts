@@ -11,7 +11,7 @@ export type Scale<K extends string> = {
   at(i: number): K;
   /** display name of a key */
   name(k: K): string;
-  /** key for a key or display name in any case (text from Claude or an old save); undefined if unknown */
+  /** key for a key or display name in any case (text from Claude); undefined if unknown */
   keyOf(word: unknown): K | undefined;
   /** is this one of the scale's keys */
   has(x: unknown): x is K;
@@ -70,8 +70,8 @@ export const ESSENCE_GRADES = scale([['common', 'Common'], ['fine', 'Fine'], ['r
 export type EssenceGradeKey = (typeof ESSENCE_GRADES.keys)[number];
 /** band tactics (V2) */
 export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], ['cunning', 'cunning']]);
-/** zone light, brightest first (V1) */
-export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
+/** zone light, brightest first (V1, LT1); each level's light in lux is CONFIG.LIGHT_LUX */
+export const LIGHT = scale([['bright', 'bright'], ['lamplit', 'lamplit'], ['dim', 'dim'], ['moonlit', 'moonlit'], ['dark', 'dark'], ['black', 'pitch black']]);
 /** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, on guard, won't strike
  * first; unfriendly = dislike without a standoff: not on guard, still trades, pays no XP; friend = helps at a cost to itself;
  * loyal = takes the other's side: anyone hostile to them it treats as hostile too) */
@@ -85,7 +85,6 @@ export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicio
 /** XP reward levels for achievements; XP per level is rewardXp (the REWARD_XP_CURVE equation) */
 export const REWARD_LEVELS = scale([['minus_2', '−2'], ['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
   ['vii', 'VII'], ['viii', 'VIII'], ['ix', 'IX'], ['x', 'X'], ['xi', 'XI'], ['xii', 'XII'], ['xiii', 'XIII'], ['xiv', 'XIV'], ['xv', 'XV']]);
-export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** QT28: the reward levels a quest may have, 0 to IV: rows of REWARD_LEVELS (keys and names from there); XP per level is
  * rewardXp, as for achievements; the level from CONFIG.QUEST_GAIN_LEVEL */
 export const QUEST_REWARD_LEVELS = scale(REWARD_LEVELS.keys.slice(REWARD_LEVELS.pos('zero'), REWARD_LEVELS.pos('iv') + 1).map((k) => [k, REWARD_LEVELS.name(k)] as const));
@@ -200,8 +199,8 @@ export const equipPos = (k: EquipLevelKey): number => (EQUIP_LEVELS.has(k) ? EQU
 export const equipAt = (i: number): EquipLevelKey => (i <= LAST_EQUIP ? EQUIP_LEVELS.at(i) : `divine_${i - LAST_EQUIP}`);
 /** an equip level's name: past the last row it gains a + per step (Divine+, Divine++) */
 export const equipName = (k: EquipLevelKey): string => (EQUIP_LEVELS.has(k) ? EQUIP_LEVELS.name(k) : EQUIP_LEVELS.name(EQUIP_LEVELS.keys[LAST_EQUIP]) + '+'.repeat(equipStepsPast(k)));
-/** zone cover (V1) */
-export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
+/** zone cover (V1, CV1), least first: each level hides CONFIG.COVER_HIDDEN of a standing person */
+export const COVER = scale([['none', 'none'], ['light', 'light'], ['some', 'some'], ['heavy', 'heavy'], ['dense', 'dense']]);
 /** CO16 zone sizes, smallest first; the m² of each is CONFIG.ZONE_SIZE_M2 and its real or fantasy reference is the library's zoneSizes row */
 export const ZONE_SIZES = scale([['cramped', 'cramped'], ['small', 'small'], ['room', 'room'], ['hall', 'hall'], ['yard', 'yard'], ['open', 'open'], ['vast', 'vast']]);
 export type ZoneSizeKey = (typeof ZONE_SIZES.keys)[number];

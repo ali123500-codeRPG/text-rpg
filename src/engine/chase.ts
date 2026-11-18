@@ -4,6 +4,7 @@
 // pursuers keep to their chase range (CH5), and follow through a frontier only with range far (CH6). When no pursuer has
 // seen or heard the player for CHASE_LOST_S seconds, the chase is lost (CH7): they drop to tracking, go back to their
 // routines and remember it (the price comes from the fiction, SC23), and off the ground the scenario ends as escaped.
+import { waysOut } from '../plan/where';
 import type { Actor, GameEvent, GameState, Lull, WindowAnswer } from '../types';
 import { CONFIG } from '../config';
 import { CHASE_RANGES, type ChaseRange } from '../scales';
@@ -54,20 +55,20 @@ function homePlace(state: GameState, a: Actor): string {
   }
   return a.placeId;
 }
-const zonesOfPlaces = (state: GameState, places: Set<string>) => state.stage.zoneIds.filter((z) => places.has(zoneById(state, z)?.placeId ?? ''));
+const zonesOfPlaces = (state: GameState, places: Set<string>) => state.zones.filter((z) => places.has(z.placeId)).map((z) => z.id);
 
 /** ZR12: metres from `at` back to the ground (`inGround`, every zone of its places) by the walking path: 0 on it, else the
  * walk to the nearest way into it. Without a point, from where its zone is left toward the ground. Infinity: no way back. */
 function metresToGround(state: GameState, at: { zone: string; pos?: Located['pos'] }, inGround: Set<string>): number {
   if (inGround.has(at.zone)) return 0;
   let best = Infinity;
-  const edges = [...inGround].filter((g) => zoneById(state, g)?.links.some((l) => !inGround.has(l.to)));
+  const edges = [...inGround].filter((g) => waysOut(state, g).some((l) => !inGround.has(l.to)));
   for (const g of edges) {
     const p = shortestPath(state, at.zone, g);
     if (!p || p.some((z) => z !== g && inGround.has(z))) continue; // only the ways into the ground from outside it
-    const prev = p.length > 1 ? p[p.length - 2] : at.zone, from = { zone: at.zone, pos: at.pos ?? wayPoint(state, at.zone, p[0], at) ?? undefined };
-    const edge = wayPoint(state, prev, g, from);
-    if (edge) best = Math.min(best, pathM(state, from, { zone: prev, pos: edge }, p.slice(0, -1)));
+    const prev = p.length > 1 ? p[p.length - 2] : at.zone;
+    const edge = wayPoint(state, prev, g);
+    if (edge) best = Math.min(best, pathM(state, at, { zone: prev, pos: edge }));
   }
   return best;
 }
@@ -92,7 +93,7 @@ function chaseGround(state: GameState, a: Actor): Set<string> | undefined {
 export function chaseZones(state: GameState, a: Actor): string[] | undefined {
   const inGround = chaseGround(state, a);
   if (!inGround || chaseRange(state, a) !== 'near') return inGround && [...inGround];
-  return state.stage.zoneIds.filter((z) => metresToGround(state, { zone: z }, inGround) <= CONFIG.CHASE_NEAR_M);
+  return state.zones.map((z) => z.id).filter((z) => metresToGround(state, { zone: z }, inGround) <= CONFIG.CHASE_NEAR_M);
 }
 
 /** ZR12: a code-run pursuer with range near that stands CHASE_NEAR_M or more past the ground's edge turns back there, even
@@ -111,7 +112,7 @@ export function noteCrossing(state: GameState, from: string, to: string): void {
   if (!ps.length) return;
   (state.stage.crossings ??= []).push({ from, to, turn: state.turn });
   const ev = state.events.filter((e) => e.turn === state.turn && e.actorId === p.id && e.effects.some((x) => x.kind === 'frontier_crossed')).at(-1);
-  for (const a of ps) if (ev?.perception[a.id] && mayCross(state, a)) a.mind!.knowledge[p.id]!.lastKnownZone = to;
+  for (const a of ps) if (ev?.perception[a.id] && mayCross(state, a)) { const b = a.mind!.knowledge[p.id]!; b.lastKnownZone = to; delete b.lastKnownAt; } // PZ11 a: a new title, no point yet
   logCode(state, 'chase_crossing', { from, to, followers: ps.filter((a) => a.mind!.knowledge[p.id]!.lastKnownZone === to).map((a) => a.id) });
 }
 
@@ -126,7 +127,7 @@ export function updateChase(state: GameState): void {
   if (!ps.length) { delete st.crossings; return; }
   for (const c of st.crossings ?? []) for (const a of ps) {
     const b = a.mind!.knowledge[p.id]!;
-    if (a.zone === c.from && b.lastKnownZone === c.from && mayCross(state, a)) b.lastKnownZone = c.to;
+    if (a.zone === c.from && b.lastKnownZone === c.from && mayCross(state, a)) { b.lastKnownZone = c.to; delete b.lastKnownAt; }
   }
   const last = Math.max(...ps.map((a) => a.mind!.knowledge[p.id]!.lastSeenTurn ?? state.turn));
   if (secondsSince(state, last) < CONFIG.CHASE_LOST_S) return;

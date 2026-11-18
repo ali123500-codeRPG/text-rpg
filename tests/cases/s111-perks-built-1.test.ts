@@ -73,7 +73,7 @@ describe('111 coded perks, batch 1', () => {
     give(s.player, PK.tough_it_out); // Crippled counts as Damaged
     expect(grip()).toBe(0);
   });
-  it('Read Wounds: a foe’s Damaged parts and its health one level earlier', () => {
+  it('Read Wounds: anyone’s Damaged parts and their health one level earlier, foe or friend', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     s.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'opposed';
@@ -86,11 +86,14 @@ describe('111 coded perks, batch 1', () => {
     expect(seen()).toMatchObject({ health: 'injured', damaged: ['left_arm'] });
     wim.core.condition.hpLostPct = 20; // Hurt: still hidden
     expect(seen().health).toBeUndefined();
+    s.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'friendly'; // IC11 a: not foes only
+    wim.core.condition.hpLostPct = 40;
+    expect(seen()).toMatchObject({ health: 'injured', damaged: ['left_arm'] });
   });
   it('Keen Ear: hears 10 dB quieter, about three times as far; silence stays silent', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    const far = beside(s, 'slime_2', 'player', 20); // quiet (40 dB) fades under the floor by 10 m, with Keen Ear by about 32 m
+    const far = beside(s, 'slime_2', 'player', 19.5); // SZ5: between bodies, inside the 40 m field; quiet (40 dB) fades under the floor by 10 m, with Keen Ear by about 32 m
     const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, pos: far.pos, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
     const before = perceptionOf(ev, s, s.player);
     give(s.player, PK.keen_ear);

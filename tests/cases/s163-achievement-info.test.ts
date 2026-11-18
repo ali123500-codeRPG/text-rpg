@@ -14,6 +14,7 @@ const got = (s: GameState, key: string) => s.player.progression!.achievements!.f
 describe('163 achievement info', () => {
   it('a count achievement says what it asks for, its level and XP, and when you reached it', () => {
     const s = makeVillage();
+  CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
     s.turn = 7;
     for (let i = 0; i < 10; i++) tally(s, 'won_panicking');
     const info = achievementInfo(s, got(s, ACH.won_panicking_10));
@@ -49,6 +50,7 @@ describe('163 achievement info', () => {
   });
   it('a scar says it is one and pays one level lower', () => {
     const s = makeVillage();
+  CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
     tally(s, 'morale_breaks');
     expect(achievementInfo(s, got(s, ACH.morale_breaks_1))).toMatchObject({ scar: true, levelName: '0', xp: rewardXp('minus_1') });
   });

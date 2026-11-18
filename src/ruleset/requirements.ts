@@ -27,7 +27,7 @@ export function requiredSkill(def: ItemDef): string | undefined {
 
 export function requirement(def: ItemDef): { skill: string; level: EquipLevelKey; need: number } | null {
   const level = itemLevel(def), skill = requiredSkill(def);
-  return level && skill ? { skill, level, need: equipNeed(level) } : null;
+  return level && skill ? { skill, level, need: def.relicNeed ?? equipNeed(level) } : null;
 }
 
 /** true skill toward a requirement: the skill itself, or the best stand-in at its share */

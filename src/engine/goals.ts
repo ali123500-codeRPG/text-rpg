@@ -2,6 +2,7 @@
 // routine, wait). It thinks (one Planner call, src/agents/game.ts goalThinkers) when its queue runs out or a step fails,
 // when it perceives something a goal names, or whenever it would get a Planner call anyway (engaged, talked to, a deal).
 // No call runs inside a long turn: queued steps run on through it by code (runSteps in the night and stretch loops).
+import { groundIn } from './ground';
 import type { Actor, Drive, GameState, GoalOps, GoalStep } from '../types';
 import { CONFIG } from '../config';
 import { DAY_MINUTES, minutesUntil, now } from '../time';
@@ -10,6 +11,8 @@ import { HEAD_TO } from '../minds/routines';
 import { actorById, isActive, zoneById } from './relations';
 import { logCode } from './effects';
 import { buildActorView } from '../views';
+import { hearsClearly } from '../perception';
+import { VOLUME_NOISE } from '../perception/noise';
 
 /** the shared routine a wait step runs: it stays where it stands (slot 'here') */
 const WAIT = 'wait';
@@ -88,7 +91,8 @@ const stepDone = (state: GameState, a: Actor, d: Drive): boolean => {
   const s = d.steps[0];
   if (now(state) >= (d.endsAt ?? Infinity)) return true;
   if (s.go) return a.mind?.routine?.id !== HEAD_TO; // headArrivals ended the walk
-  return !!s.until?.arrival && actorById(state, s.until.arrival)?.zone === a.zone;
+  const who = s.until?.arrival ? actorById(state, s.until.arrival) : undefined;
+  return !!who && hearsClearly(state, who, a, VOLUME_NOISE.normal); // BG-307: arrived = near enough to talk, not the same zone
 };
 
 /** UG16: each goal holder's step that is over gives way to the next; runs at the end of a turn and inside long turns */
@@ -111,7 +115,7 @@ export function noticeGoals(state: GameState): void {
     if (!named.size || !a || a.kind === 'player' || !isActive(a) || a.asleep) continue;
     const z = zoneById(state, a.zone);
     const here = new Set<string>([
-      a.zone, ...(z ? [z.placeId, ...z.groundItems.flatMap((i) => [i.id, i.itemId])] : []),
+      a.zone, ...(z ? [z.placeId, ...groundIn(state, z.id).flatMap((i) => [i.id, i.itemId])] : []),
       ...a.core.inventory.flatMap((i) => [i.id, i.itemId]),
       ...buildActorView(state, id).seen.map((s) => s.id),
     ]);

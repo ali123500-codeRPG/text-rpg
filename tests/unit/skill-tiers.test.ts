@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill } from '../../src/ruleset';
-import { skillRating, rating, xpGroupFactor } from '../../src/engine/xp';
+import { groupRating } from '../../src/ruleset/ratings';
 import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
@@ -24,9 +24,7 @@ describe('skill tiers', () => {
     delete slime.core.skills[SK.scent];
     slime.core.skills[SK.tremor] = { raw: 60, state: 'normal' };
     expect(effectiveSkill(s, slime, SK.tremor).value).toBe(30);
-    const before = rating(slime);
-    slime.core.skills[SK.tremor] = { raw: 0, state: 'normal' };
-    // tremor 60 rates as a 30 (its Eyesight and Earshot are 0, so nothing else counts for notice)
-    expect(before - rating(slime)).toBeCloseTo(xpGroupFactor(GR.notice) * skillRating(30));
+    // tremor 60 counts as a 30 in the Notice rating
+    expect(groupRating(s, slime, GR.notice).parts.find((x) => x.skill === SK.tremor)?.value).toBeCloseTo(30, 6);
   });
 });

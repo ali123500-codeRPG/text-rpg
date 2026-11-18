@@ -62,10 +62,11 @@ describe('336 equip ladder', () => {
       if (!d.gearClass || d.gearClass === GC.improvised || d.gearClass === GC.shield) continue;
       const t = types[d.gearType ?? ''];
       expect(t, d.id).toBeDefined();
-      for (const m of d.weapon?.modes ?? []) if (!m.thrown) expect([m.reachM, m.reach], d.id).toEqual([t.reachM, t.reachM]);
+      // SZ8: a melee type gives its length past the hand (its library reach is a standard arm + that); a bow its range
+      for (const m of d.weapon?.modes ?? []) if (!m.thrown) expect(t.lengthM !== undefined ? m.lengthM : m.reachM, d.id).toBe(t.lengthM ?? t.reachM);
       if (d.armor) expect(d.armor.covers, d.id).toEqual(t.covers);
     }
-    expect(item(IT.rapier).weapon!.modes[0].reachM).toBe(1.6); // a Sword: rounds to its type
+    expect(item(IT.rapier).weapon!.modes[0].lengthM).toBe(0.9); // a Sword: rounds to its type
     expect(item(IT.dagger).weapon!.modes.find((m) => m.thrown)!.reachM).toBe(CONFIG.THROW_M.knife); // a throw keeps the throw table
   });
 });

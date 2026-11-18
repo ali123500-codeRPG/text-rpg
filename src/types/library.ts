@@ -12,6 +12,8 @@ import type { GrandeurKey, HealthLevelKey, PartStateKey, Past100Key, SkillTierKe
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
 export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
+/** the kind of an attack, by its mode: 'ranged' = a ranged-tree mode (shots and throws), 'melee' = every other (melee and unarmed, natural attacks included) */
+export type AttackKind = 'melee' | 'ranged';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
@@ -143,8 +145,9 @@ export type ClassDef = {
   capstones?: { perk: string; needs: TreeAccess }[];
 };
 
-/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2) */
-export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number };
+/** reachM (grip parts): how far the part reaches to take or hand over something, metres from the body (FR2); arm: an arm,
+ * whose reach comes from the body's size instead (SZ8, library/bodySize armReachM) */
+export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[]; reachM?: number; arm?: true };
 /** AB20: natural armor stops ARMOR_FACTOR × the owner's Hide skill × `hide` (the race's multiplier), then multiplies as worn armor */
 export type NaturalArmor = { covers: string[]; hide: number; multiplier: number; pools?: Record<string, number> };
 /** BR1: a body type is the shape only: parts, general area, silhouette, and the attacks the shape
@@ -161,7 +164,12 @@ export type BodyType = {
   sleepNeed?: number;
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
   figure?: { viewBox: string; parts: Record<string, string> };
+  /** SZ1–SZ3: the shape's usual size in metres (a race multiplies it, RaceDef.sizeMult): length nose to rump (head and body,
+   * no tail), width at the widest point, height standing (stature upright, shoulder height for beasts). Left out (a story's own body type) = the Humanoid's */
+  size?: BodySize;
 };
+/** SZ2: a body's length, width and height in metres */
+export type BodySize = { lengthM: number; widthM: number; heightM: number };
 
 /** PL6: one personality axis; `low` and `high` are the words for its two ends, each with a short behaviour hint */
 export type PersonalityAxisDef = { id: string; name: string; low: string; high: string; lowHint: string; highHint: string };
@@ -217,7 +225,9 @@ export type Library = {
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
-  edgeKinds?: Record<string, EdgeKind>; // CO15
+  wallKinds?: Record<string, WallKind>; // PZ2: WK…
+  openingKinds?: Record<string, OpeningKind>; // PZ2: OP…
+  lightKinds?: Record<string, LightKind>; // PZ5: LK…
   furnitureKinds?: Record<string, FurnitureKind>; // FR1
   barrierKinds?: Record<string, BarrierKind>; // SD3–SD5: what can stand on a way
   zoneSizes?: Record<string, ZoneSize>; // CO16
@@ -230,39 +240,51 @@ export type Library = {
   visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
   itemFamilies?: Record<string, { id: string; name: string; rule: string }>; // IF…: Mundane and the special families (IR30)
-  gearTypes?: Record<string, { id: string; name: string; reachM?: number; covers?: string[] }>; // GT…: a gear type's reach or coverage (IR23)
+  gearTypes?: Record<string, { id: string; name: string; reachM?: number; lengthM?: number; covers?: string[] }>; // GT…: a gear type's reach, length past the hand (SZ8) or coverage (IR23)
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' | 'unarmed' }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
-/** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
- * indoor or outdoor and gives the default cover and light, which the Weaver may change. */
+/** PZ14 a: a title kind is a drawing template: how code draws a title of this kind. roof: a roof goes over it (indoors);
+ * wall: the wall kind (WK) each side gets unless the Weaver or a layout names another (none: no wall); light: the light word
+ * it is drawn lit to (a source at its middle, PZ5); size and aspect: its footprint. */
 export type ZoneKind = {
-  id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light;
-  /** CO16 default size, and CO15 the edge kind every side gets unless the Weaver names another */
-  size: import('../scales').ZoneSizeKey; edge: string;
-  /** FR2: furniture every zone of this kind gets unless a layout or the Weaver gives its own */
+  id: string; name: string; roof: boolean; light: import('./core').Light;
+  size: import('../scales').ZoneSizeKey; wall: string;
+  /** FR2: furniture every title of this kind gets unless a layout or the Weaver gives its own */
   furniture?: PlanFurniture[];
-  /** long side ÷ short side of the zone's rectangle (1 = square) */
+  /** long side ÷ short side of its footprint (1 = square) */
   aspect: number;
-  /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
-  road?: true;
-  /** NW4 a zone of this kind leads onward: besides the way in, it must link to another zone or a frontier (no dead-end streets) */
+  /** NW4 a title of this kind leads onward: besides the way in, it must have another way or a frontier (no dead-end streets) */
   onward?: true;
 };
+/** PZ2: a kind of wall: walk = walked across, see = seen through, reach = struck or handed over across it, climb = crossed by
+ * climbing; heightM: how high it stands above its floor (none: a storey); sound: what a sound loses crossing it (HB4); none:
+ * an open side, drawn as no wall at all */
+export type WallKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; sound: import('../scales').SoundLossKey; heightM?: number; none?: true; text: string };
+/** PZ2: a kind of way: a doorway, gap, window or stairs. seeThrough: the far side shows (with no barrier shut in it); walk:
+ * walked through (a window is only jumped down, SD7); floors: it joins two floors (stairs, a ladder, a hatch); sizeM:
+ * [width, height] when no barrier gives one (none: as wide as the ground the two titles share); sillM: a window's sill */
+export type OpeningKind = { id: string; name: string; seeThrough: boolean; walk: boolean; floors?: true; sizeM?: [number, number]; sillM?: number; text: string };
+/** PZ5 a: a kind of light source and its brightness in candela (placeholders); scaled: its brightness is set per source
+ * (a title's lights, drawn bright enough for its light word) */
+export type LightKind = { id: string; name: string; candela: number; scaled?: true; like: string };
 /** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
-export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string;
+  /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true;
+  /** PC3: a window's shutters: it goes only on a drop (seen, shot and jumped through, never walked); sillM = how high its sill stands above the inside floor */ window?: true; sillM?: number;
+  /** PC4: nothing to open or shut (an arrow slit, bars): it stays as it is until broken */ fixed?: true };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
-export type FurnitureKind = { id: string; name: string };
-/** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
+/** PC1: sizeM = [length, width, height] in metres (placeholders): it hides what is behind it (ruleset/objectCover) */
+export type FurnitureKind = { id: string; name: string; sizeM?: [number, number, number] };
+/** CO17, PZ14 a: a prebuilt layout, a small floor plan: titles with keys local to it, the wall kind of any side that differs
+ * from the kind's (walls), and its ways: [title key, label, way kind] (WAY_KINDS: open, door, window, up, down) */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;
-  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][]; furniture?: PlanFurniture[] }[];
+  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; walls?: Partial<Record<import('./core').Side, string>>; ways: [string, string, import('./core').WayKind][]; furniture?: PlanFurniture[] }[];
 };
-/** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
-export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all in the open in a quiet place (openAirReachM) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
 export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string };
@@ -311,6 +333,9 @@ export type PerkDef = {
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
   /** the skills a ladder perk's `numbers` work with (Keen Edge: every melee weapon skill); none = the perk's own skill */
   numbersFor?: string[];
+  /** the kind of attack its numbers work with instead of skills: 'melee' (melee and unarmed attacks, natural ones included)
+   * or 'ranged' (shots and throws), whatever skill rolls it; wins over numbersFor */
+  numbersForAttack?: AttackKind;
   /** SH1/SH4: 120 perks: a share of the ladder skill's true skill (read without shares) added as true skill, to the ladder skill
    * itself (shareOwn) and to it and every skill sharing a group with it (shareGroup); several shares on one skill stack (SH7 b) */
   shareOwn?: number; shareGroup?: number;
@@ -458,6 +483,8 @@ export type RaceDef = {
   /** RD7, AB1 c: base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both
    * (engine/speed). On the race, not the body type: one Quadruped shape serves a dog and a tiger */
   speed: { walk: number; run: number };
+  /** SZ1: × the body type's size, per measure (left out = 1); written from the race's cited metres (data.ts sized) */
+  sizeMult?: { length: number; width: number; height: number };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
   playable?: true; // CC7 a: the player can pick this race on the creation screen
@@ -467,7 +494,7 @@ export type RaceDef = {
 };
 
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
-export type AchievementRule = 'places' | 'health_reached' | 'struck_surrendered' | 'killed_surrendered' | 'struck_fleeing' | 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
+export type AchievementRule = 'places' | 'health_reached' | 'struck_surrendered' | 'killed_surrendered' | 'struck_fleeing' | 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'ground' | 'deals' | 'days'
   | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'

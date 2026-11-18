@@ -1,6 +1,7 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
+import { waysOut } from '../plan/where';
 import { gripWord, gripsOf } from '../ruleset/gear';
 import { coinWords, coins, countWords } from '../engine/trade';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
@@ -34,7 +35,7 @@ import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { threadboundInWorld } from '../ruleset/threadboundItems';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
-import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
+import { defaultStandingDefense, healthLevel, isDownLevel, partStates, FLAW_MARK, TAG_MARK, takePerk, tierAt, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { echoPast, fameEntry } from './fame';
 import { echoSheet } from '../library/echo';
@@ -111,6 +112,10 @@ function nerveBlocksAll(s: GameState, i: Intent): boolean {
 }
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
+/** IQ7 a: said when Finish the fight is asked for with no fight far below the player */
+export const FINISH_REFUSED = 'There is no fight here so far below you that it can be played out in one go.';
+/** IQ4 a: a finished fight's blow each round: an attack on that foe with what is in hand */
+const finishAttack = (target: string): Intent => ({ move: null, action: { type: 'attack', skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null });
 /** the bands of the people the player can see (the Parser's legality reads them) */
 const bandsOf = (s: GameState, pv: import('../types').PlayerView) => pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean);
 /** NW18: a turn played while the player sleeps */
@@ -375,6 +380,12 @@ export function createGame(deps: GameDeps): Game {
     }
     const intent = engine.fillSpeech(s, parsed.intent, text);
     if (yieldNext) intent.yields = true;
+    // IQ7 a: Finish the fight only while the fight is far below the player (IQ6 a); else nothing happens and no time passes
+    if (intent.finish && !engine.farBelow(s)) {
+      lines.push({ turn: s.turn, kind: 'clarify', text: FINISH_REFUSED });
+      lastLog = [...turnLog];
+      return;
+    }
     // OQ-27 (c): ask who is meant, from code: no Claude call, no turn spent
     const unclear = engine.unclearAddressee(s, intent, pv.actors.map((a) => a.id));
     if (unclear) {
@@ -439,7 +450,9 @@ export function createGame(deps: GameDeps): Game {
     agentOutputs.push(...collectPlanners([...spokespeople, ...beat]));
     agentOutputs.sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0));
     const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(beat.length ? { beatSpeakers: beat } : {}), ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
-    const events = engine.resolveTurn(s, input, rng);
+    // IQ4 a: a finished fight plays its rounds on code in this one turn, the player striking each round (finishAttack)
+    const events = intent.finish ? engine.finishFight(s, input, rng, (t) => acceptIntent(finishAttack(t), views.buildPlayerView(s), bandsOf(s, views.buildPlayerView(s)), []).intent).events
+      : engine.resolveTurn(s, input, rng);
     s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
     // SD1: the play page can start the ending moment now, while the next scenario's Weaver and the Narrator run
     const ended = pendingEnding(s);
@@ -462,7 +475,7 @@ export function createGame(deps: GameDeps): Game {
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
     s.agentLog = [...turnLog];
     const record: TurnRecord = {
-      storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, schemaVersion: CONFIG.SCHEMA_VERSION, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
+      storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
       agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed, ...(rec.opening ? { opening: true as const } : {}),
       ...(s.scratch?.eventRoll ? { eventRoll: s.scratch.eventRoll as TurnRecord['eventRoll'] } : {}),
     };
@@ -567,9 +580,9 @@ export function createGame(deps: GameDeps): Game {
         const p = s.player;
         // ✦ marks a tagged skill, as on the Character page (the play screen shows "Tagged" on hover); − a flawed one
         const sheet = Object.entries(p.core.skills);
-        const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? '−' : ''}`);
+        const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? FLAW_MARK : ''}`);
         const off = usedOffSheet(p).map((k) => `${skillName(k)} 0`); // rolled but not on the sheet yet, e.g. fists use Strike
-        const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? '− flawed' : ''].filter(Boolean).join(', ');
+        const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? `${FLAW_MARK} flawed` : ''].filter(Boolean).join(', ');
         return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${healthWord(p)}. Skills: ${skills.join(', ')}.`
           + (off.length ? ` Also used, not on your sheet yet: ${off.join(', ')}.` : '') + (key ? ` (${key})` : ''));
       }
@@ -960,7 +973,7 @@ function zoneDistances(s: GameState, from: string): Map<string, number> {
   const queue = [from];
   while (queue.length) {
     const z = queue.shift()!;
-    for (const l of s.zones.find((x) => x.id === z)?.links ?? []) {
+    for (const l of waysOut(s, z)) {
       if (l.frontier || dist.has(l.to)) continue;
       dist.set(l.to, dist.get(z)! + 1);
       queue.push(l.to);
@@ -1027,7 +1040,7 @@ export function worldIds(s: GameState): Set<string> {
   return new Set([
     ...all.map((a) => a.id),
     ...s.zones.map((z) => z.id),
-    ...s.zones.flatMap((z) => [...z.links.map((l) => l.to), ...z.groundItems.map((i) => i.id)]),
+    ...s.openings.flatMap((o) => o.joins), ...s.ground.map((i) => i.id),
     ...all.flatMap((a) => a.core.inventory.map((i) => i.id)),
     ...s.places.map((p) => p.id),
   ]);
@@ -1178,18 +1191,23 @@ export function gearSnap(s: GameState, p: Actor): GearSnap {
 }
 /** ready-to-show rows for what a turn changed in the player's gear: "Picked up: …", "Now held: right hand · …" */
 export function gearRows(a: GearSnap, b: GearSnap): string[] {
-  const rows: string[] = [];
+  // A1: rows for the same item merge and say how many ("Picked up: arrow ×3"), in the order they first come
+  const rows = new Map<string, { head: string; name: string; n: number }>();
+  const add = (head: string, name: string, n: number) => {
+    const r = rows.get(`${head}\0${name}`);
+    if (r) r.n += n; else rows.set(`${head}\0${name}`, { head, name, n });
+  };
   for (const [id, x] of b) {
     const was = a.get(id);
-    if (!was || x.qty > was.qty) rows.push(`Picked up: ${x.name}`);
-    else if (x.qty < was.qty) rows.push(`Used: ${x.name}`);
+    if (!was || x.qty > was.qty) add('Picked up', x.name, x.qty - (was?.qty ?? 0));
+    else if (x.qty < was.qty) add('Used', x.name, was.qty - x.qty);
     if (was && was.where === x.where) continue;
-    if (x.where.startsWith('held:')) rows.push(`Now held: ${x.where.slice(5)} · ${x.name}`);
-    else if (x.where === 'worn') rows.push(`Now worn: ${x.name}`);
-    else if (was) rows.push(`Put away: ${x.name}`);
+    if (x.where.startsWith('held:')) add(`Now held: ${x.where.slice(5)}`, x.name, x.qty);
+    else if (x.where === 'worn') add('Now worn', x.name, x.qty);
+    else if (was) add('Put away', x.name, x.qty);
   }
-  for (const [id, x] of a) if (!b.has(id)) rows.push(`Gone: ${x.name}`);
-  return rows;
+  for (const [id, x] of a) if (!b.has(id)) add('Gone', x.name, x.qty);
+  return [...rows.values()].map((r) => `${r.head}${r.head.startsWith('Now held') ? ' ·' : ':'} ${r.name}${r.n > 1 ? ` ×${r.n}` : ''}`);
 }
 
 /** what the player did at a barrier, as the play screen's Way row words it (BG-65: a way with nothing on it says "way") */
@@ -1456,7 +1474,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     const d = l.detail as { actorId: string; kind: string; why: string; seconds: number; row?: string };
     if (d.actorId !== s.player.id) continue;
     const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing', appeared: 'someone came into sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
-    const what = (d.row && getLibrary().durations?.[d.row]?.name) || ({ rest: 'Rest', wait: 'Wait', walk: 'Walk' } as Record<string, string>)[d.kind] || d.kind; // AT45: a long action by its row's name
+    const what = (d.row && getLibrary().durations?.[d.row]?.name) || ({ rest: 'Rest', wait: 'Wait', walk: 'Walk', trip: 'Trip' } as Record<string, string>)[d.kind] || d.kind; // AT45: a long action by its row's name
     out.push(`${what} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
   }
   // NW15/NW18: the night watch, and what woke you
@@ -1496,13 +1514,14 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
   const settings = defaultSettings();
   return {
     storyId, turn: 0, mode: 'explore', zones: [], player, actors: [],
-    bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} }],
+    bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', lethal: true, relations: {} }],
     hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: seed, rngState: seed,
     pending: { turn: 0, mode: 'explore', engaged: [], fired: [] },
-    places: [], facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
-    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [], settings,
+    places: [], facts: [], stage: { tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
+    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, quests: [], settings,
     libraryVersion: getLibrary().version, blueprints: [],
+    walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [],
     meta: { storyId, title: CONFIG.STORY_PREMISE, schemaVersion: CONFIG.SCHEMA_VERSION, createdAt, settings },
   };
 }

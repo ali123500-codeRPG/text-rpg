@@ -43,7 +43,7 @@ describe('299 achievement trim, round 4', () => {
     turnFeats(s, []);
     expect(s.player.progression!.tally!['places:place_kind:place']).toBe(1); // the same place again counts nothing
     const line = chainLines(s, false).find((l) => l.id === ACH_HEADS.areas)!;
-    expect(line).toMatchObject({ name: 'Areas entered', tag: 'exploration', count: 3 });
+    expect(line).toMatchObject({ name: 'Areas entered', tag: 'exploration', count: 4 }); // areas, places, settlements and new ground (PZ17)
   });
 
   it('TM23: the first time health reaches each wound level, the milder ones on the way too, once', () => {

@@ -1,33 +1,29 @@
-// 46 Saved zone re-entry: a zone saved on its place page but off the stage is linked by a frontier and loads again
-// with no Weaver call.
+// 46 Built ground stays live (WI8 a, which replaces saved zone re-entry): the stage keeps no list of zones, so ground built
+// in an earlier story is as live as the rest (old saves with re-entry marks are not loaded, PZ16 b). The planners see the ground near the player (PLAN_VIEW_M metres by the walking path, BG-305);
+// ground further off is still there to link to.
 import { describe, expect, it, vi } from 'vitest';
-import { makeVillage, createRng, place } from '../harness';
-import { ScenarioDirector, frontiersNearPlayer } from '../../src/scenario';
+import { makeVillage } from '../harness';
+import { ScenarioDirector, frontiersNearPlayer, nearbyZones } from '../../src/scenario';
 import { VirtualClock } from '../../src/scenario/fixtures';
+import { loadStory, memoryStore, saveTurn } from '../../src/save';
+import { getLibrary } from '../../src/library';
+import { zoneById } from '../../src/engine/relations';
+import type { TurnRecord } from '../../src/types';
+import { waysOut, wayTo } from '../../src/plan/where';
+import { drawTitles } from '../../src/plan/draw';
 
-describe('46 Saved zone re-entry', () => {
-  it('reloads the saved field without the Weaver', async () => {
+describe('46 Built ground stays live', () => {
+  it('the planners see the village around the player; ground past PLAN_VIEW_M stays out of view', () => {
     const s = makeVillage({ playerZone: 'tav_common' });
-    // the field is off the stage but saved on its place page; links into it are frontiers
-    const field = ['field_edge', 'field_mid', 'field_far'];
-    s.stage.zoneIds = s.stage.zoneIds.filter((id) => !field.includes(id));
-    s.zones = s.zones.filter((z) => !field.includes(z.id));
-    for (const z of s.zones) for (const l of z.links) if (field.includes(l.to)) l.frontier = true;
-    expect(s.places.find((p) => p.id === 'field')!.zones).toHaveLength(3); // still saved on the place page
-    const gate = s.zones.find((z) => z.id === 'gate_inner')!;
-    expect(gate.links.find((l) => l.to === 'field_edge')!.frontier).toBe(true);
-
-    const weave = vi.fn(async () => null);
-    const d = new ScenarioDirector({ weave, clock: new VirtualClock() });
-    place(s, 'player', 'gate_inner');
-    expect(frontiersNearPlayer(s)).toEqual([]);
-    expect(d.afterSave(s)).toEqual([]);
-    const r = await d.cross(s, 'field_edge', createRng(1));
-    expect(r.outcome).toBe('loaded');
-    expect(weave).not.toHaveBeenCalled();
-    expect(s.player.zone).toBe('field_edge');
-    expect(s.stage.zoneIds).toContain('field_edge');
-    expect(gate.links.find((l) => l.to === 'field_edge')!.frontier).toBeUndefined();
-    expect(s.zones.find((z) => z.id === 'field_edge')!.links.find((l) => l.to === 'field_mid')!.frontier).toBe(true);
+    const near = nearbyZones(s, ['tav_common'], ['tavern']).map((z) => z.id);
+    expect(near).toEqual(expect.arrayContaining(['tav_common', 'street_square', 'field_far'])); // the whole village
+    // field_far spans x 130 to 170: the road runs on east of it, 60 m, then its end 40 m (metres decide, BG-305)
+    s.places.push({ ...structuredClone(s.places.find((p) => p.id === 'field')!), id: 'far_place', parentId: null, zones: [] });
+    drawTitles(s, [
+      { id: 'far_road', placeId: 'far_place', name: 'far road', look: '', roof: false, rect: { x: 200, y: -14, w: 60, d: 40 }, ways: [{ to: 'field_far', label: 'back', back: 'the far road', kind: 'open' }, { to: 'far_end', label: 'on', kind: 'open' }] },
+      { id: 'far_end', placeId: 'far_place', name: 'far end', look: '', roof: false, rect: { x: 250, y: -14, w: 40, d: 40 }, ways: [{ to: 'far_road', label: 'back', kind: 'open' }] },
+    ]);
+    expect(nearbyZones(s, ['field_far'], ['field']).map((z) => z.id)).toEqual(expect.arrayContaining(['far_road', 'far_end'])); // within 200 m by the walk
+    expect(nearbyZones(s, ['tav_common'], ['tavern']).map((z) => z.id)).not.toContain('far_end'); // about 250 m away
   });
 });

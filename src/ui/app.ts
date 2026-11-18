@@ -1,6 +1,6 @@
 // App shell: side rail (64px items, active pill fills the item, rail scrolls on its own), page area and the push-aside panel.
 import type { GameApi } from '../types';
-import { boxOf, h, lineIcon, plural, setPanelHost, closePanel, playDraft } from './kit';
+import { boxOf, h, lineIcon, plural, setPanelHost, closePanel, playDraft, tipOff, tipOn } from './kit';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
@@ -54,8 +54,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     tip.style.top = `${r.top + r.height / 2}px`; tip.style.left = `${r.right + 8}px`;
     tip.hidden = false;
   };
-  const hideTip = () => { tip.hidden = true; };
-  rail.addEventListener('mouseover', showTip); rail.addEventListener('focusin', showTip);
+  const hideTip = () => tipOff(() => { tip.hidden = true; });
+  rail.addEventListener('mouseover', (e) => tipOn(() => showTip(e))); rail.addEventListener('focusin', (e) => tipOn(() => showTip(e), true)); // A7
   rail.addEventListener('mouseleave', hideTip); rail.addEventListener('focusout', hideTip); rail.addEventListener('scroll', hideTip);
   rail.addEventListener('click', hideTip);
 
@@ -90,20 +90,22 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   }
 
   // the rail is rebuilt only when what it shows changes, so a redraw never cuts short the perk badge's beat (M-74)
-  let railKey = '', railPoints = 0;
+  let railKey = '', railPoints = 0, railReady = false;
   function drawRail(page: string) {
     const started = !!api.state();
     // BF64: while a turn runs the badge keeps the count it had, so a new point never gives away an ending or a level-up
     // before the gains pop-up or the level-up card shows it
     if (!api.busy()) railPoints = api.state()?.player.progression?.unspentPerkPoints ?? 0;
-    const key = [page, started, gmOn, railPoints].join('|');
+    if (!api.busy()) railReady = !!api.state()?.quests.some((q) => q.state === 'ready'); // C7
+    const key = [page, started, gmOn, railPoints, railReady].join('|');
     if (key === railKey) return;
     railKey = key;
     // icons only: the name is kept for screen readers and shown in a tip on hover or focus
     const item = (id: string, label: string, enabled: boolean) => h('a', {
       href: enabled ? '#' + id : undefined, 'aria-current': page === id ? 'page' : undefined, 'aria-disabled': enabled ? undefined : 'true',
-      'data-tip': enabled ? label : `${label}: opens once your character is made`,
-    }, icon(id), h('span', { class: 'rail-label' }, label), id === 'stats' ? pointsBadge() : null);
+      'data-tip': !enabled ? `${label}: opens once your character is made` : id === 'quests' && railReady ? `${label}: a quest is ready to hand in` : label,
+    }, icon(id), h('span', { class: 'rail-label' }, id === 'quests' && railReady ? `${label}, a quest is ready to hand in` : label), id === 'stats' ? pointsBadge() : null,
+      id === 'quests' && railReady ? h('span', { class: 'rail-dot', 'aria-hidden': 'true' }) : null); // C7: a dot, the words only in the tip
     // V2b: perk points waiting to be spent; after a turn the Play screen holds a new count back until its level-up lands (M-38)
     function pointsBadge() {
       const n = railPoints;

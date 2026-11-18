@@ -3,6 +3,7 @@
 import type { GameState, Region, Side } from '../types';
 import { OPP_SIDE, SIDE_STEP, SIDES } from '../types';
 import { zoneById } from '../engine/relations';
+import { middle, roofed } from '../plan/where';
 import type { EdgeJoin } from './generate';
 import { landSightM, regionAt } from './sight';
 
@@ -12,11 +13,11 @@ const drawn = (state: GameState, gx: number, gy: number) => state.regions?.find(
  * stands outdoors, or that the road the player is on leaves toward */
 export function squaresWanted(state: GameState): { gx: number; gy: number }[] {
   const p = state.player, z = zoneById(state, p.zone);
-  const at = p.pos ?? (z?.rect ? { x: z.rect.x, y: z.rect.y } : undefined);
+  const at = p.pos ?? (z?.outline?.length ? middle(z) : undefined);
   const r = at && regionAt(state, at);
   if (!r || !z) return [];
   const sides = new Set<Side>();
-  if (z.outdoor) {
+  if (!roofed(state, z)) {
     const S = r.size, x0 = r.gx * S, y0 = r.gy * S, reach = landSightM();
     const gap: Record<Side, number> = { n: y0 + S - at.y, s: at.y - y0, e: x0 + S - at.x, w: at.x - x0 };
     for (const sd of SIDES) if (gap[sd] < reach) sides.add(sd);

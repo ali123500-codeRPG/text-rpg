@@ -6,6 +6,165 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-309
+
+**What was wrong:** Stepping up to be heard (approachMove) only happened when the listener was in the same zone or one sight link away, so someone two open ways off and out of earshot was never walked toward.
+
+**What was done:** Anyone with a sight line to the speaker (seeingM) is stepped toward when out of earshot.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-308
+
+**What was wrong:** An NPC leading someone (BF4) waited at the end until they stood in its zone, so one in the doorway beside it still kept it waiting.
+
+**What was done:** It waits until the one it leads hears its normal voice clearly (hearsClearly), in any zone.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-307
+
+**What was wrong:** A goal step "wait until X arrives" ended only when X stood in the same zone, so X talking from across the counter had not arrived and X 60 m off in the same square had.
+
+**What was done:** Arrived = X is near enough to talk: the waiter hears X's normal voice clearly (hearsClearly).
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-306
+
+**What was wrong:** The code-run fight list attacked only foes it believed in its own zone, so a foe a step away across a field's edge or a doorway was walked toward (one zone) instead of struck.
+
+**What was done:** It attacks the foes it knows of that one move and its melee reach would reach this turn (ActorView self.withinStrike, metres), else the foes it sees (an attack closes in and runs on, BG-255).
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-305
+
+**What was wrong:** A planner's or NPC agent's view held the zones within 2 ways of where it looks (PLAN_VIEW_WAYS), so a 3 km road counted as near and three small rooms did not.
+
+**What was done:** PLAN_VIEW_M (200 m, placeholder) by the walking path.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-304
+
+**What was wrong:** Fieldcraft rows (Out of sight, Into cover, Into the dark) looked for zones only up to 3 ways off (FIELD_WAYS_OUT), so a zone four small rooms off that one move reaches was never offered.
+
+**What was done:** Every zone one move reaches by the walk (slotMetres), however many ways off; FIELD_WAYS_OUT removed.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-303
+
+**What was wrong:** A bed a code-run NPC gets when its plan gave none was any bed within 2 zone links of its own spots (BED_NEAR_HOPS), so a bed 70 m off across two fields counted and one up a corridor of three small rooms did not.
+
+**What was done:** BED_NEAR_M (30 m, placeholder) by the walking path, nearest first.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-297
+
+**What was wrong:** The turn check flagged a hold only when holder and held were in different zones, so a grip across a doorway was flagged and one from 30 m in the same zone was not.
+
+**What was done:** The check now flags a hold whose holder is out of grip reach (withinGrip).
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-296
+
+**What was wrong:** The loot list only offered downed bodies in the player's zone, so a body just through a doorway was missing and one across a 100 m square was listed.
+
+**What was done:** The list offers every downed body the player sees clearly; taking from one out of reach walks there, as picking up from the ground does.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-295
+
+**What was wrong:** Sleeping companions shared watches only in the sleeper's zone: one 3 m away in the next room kept no watch, one 90 m across a field did.
+
+**What was done:** Band companions who would hear the sleeper shout (WAKE_NOISE) share the watches, wherever they stand.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-294
+
+**What was wrong:** A broken actor's walk only weighed foes in its own zone or the zone it walked to, so a foe a step away through a doorway did not count.
+
+**What was done:** Every foe it perceives now counts, whatever its zone.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-293
+
+**What was wrong:** Essence removal and swaps needed no hostile in the zone, so one 100 m across a square blocked them and one a step away through a doorway did not.
+
+**What was done:** At rest is now out of any fight only, as rests have needed since BG-107; threatHere is gone.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-302
+
+**What was wrong:** On Play, a few button texts showed in Arial instead of the game font: the hint under every action-deck entry ("hold them back unhurt"), the quick-use healing slot's count and the pin button on the map card. Browsers give buttons their own font, and these three set none.
+
+**What was done:** One rule at the top of the play styles: buttons, inputs, selects and text boxes take the page font. A font scan of creation, Play and every rail page in the fake game now finds no text outside the game fonts, and a styles test keeps the rule.
+
+**Fixed by:** [PR #1016](https://github.com/ali123500-codeRPG/text-rpg/pull/1016)
+
+## BG-301
+
+**What was wrong:** Battle Cry's rally passed over any ally who had already broken, although no decision ever said a broken ally can't be helped (the skip came in with PR #740). Once an NPC broke, it stayed broken, fleeing or yielding to those it fought, until the scenario ended, even if its morale came back.
+
+**What was done:** A rally now reaches broken allies too. When a broken ally's morale lost falls back under 100 % of its max, the break ends: it stops yielding to the foes it was fighting and fights on. A spoken surrender stays. Every rally is now one roll by the one rallied, its morale check plus half of the rallier's skill, giving 10 morale per tier above Near Miss, so steadier allies gain more (TC43). Any gain also gives Rallied, +5 on every roll until the fight ends (no stacking), as Ali chose on the Tactics page (TC41, TC42).
+
+**Fixed by:** [PR #1015](https://github.com/ali123500-codeRPG/text-rpg/pull/1015)
+## BG-300
+
+**What was wrong:** On a phone (390 px wide), six tabs of the library viewer scrolled sideways: Body types (by 22 px), Skills, Stand-ins, Equations, Quests and Nerve (by up to 409 px). Their small tables kept every column, and a card's body sized its column to fit the widest table, so cards and the page grew wider than the screen.
+
+**What was done:** At 760 px and below, every small table in a view (such as a body type's parts, a skill group's skills or an equation's table) now shows one small card per row, with each value labelled by its column. The main table view and the perk ladder grid keep their own phone layout. A card's body can no longer grow wider than its card. All 58 tabs were checked at 390, 600 and 760 px: none scrolls sideways.
+
+**Fixed by:** [PR #1011](https://github.com/ali123500-codeRPG/text-rpg/pull/1011)
+
+## BG-299
+
+**What was wrong:** On the Questions hub, Ali emptied his new answer to TC31 ("Tactics skill tree"), a question that had been asked again, and his earlier answer disappeared too. The hub keeps the earlier answer inside the same saved record as the new one, and emptying a box deleted that whole record. The BG-298 fix shortly before had been tested on typing only, not on erasing.
+
+**What was done:** Emptying the box of a question that was asked again (hub version 25) now writes the earlier answer back exactly as it was, dated just before the question was asked again. The box is empty, the question shows "Asked again" and nothing is deleted. Questions that were never asked again still clear as before. TC31's earlier answer was put back. The hub README records the rule.
+
+**Fixed by:** [PR #1013](https://github.com/ali123500-codeRPG/text-rpg/pull/1013)
+
+## BG-298
+
+**What was wrong:** On the Questions hub, Ali typed a new answer to TC31 ("Tactics skill tree"), which had been asked again. Each time the answer saved, the box above it ("Your earlier answer") changed to what he had just typed, and the question kept saying "Asked again". His real earlier answer was overwritten. The page had set the time TC31 was asked again to 21:40, ten minutes after the page was actually written, so at 21:35 every save counted as older than the re-ask and was treated as the earlier answer.
+
+**What was done:** The hub (version 24) never lets an "asked again" time be later than the page write that asked it, and anything typed during a visit always counts as the new answer, even on a device whose clock runs slow. TC31's original earlier answer was put back from the copy quoted on the page. The Tactics page builder now uses the page's own write time, and the hub README says an "asked again" time must be that write time, never a rounded-up guess. Five other pages had the same kind of future time, but all their answers came after it, so none was stuck.
+
+**Fixed by:** [PR #1012](https://github.com/ali123500-codeRPG/text-rpg/pull/1012)
+
+## BG-292
+
+**What was wrong:** On the Questions hub, question TC6 ("Tactics skill tree") kept showing "Asked again" and an empty answer box after Ali had answered it. The page marked the question as asked again with the word `true` instead of a time. The hub counts an answer only if it is newer than the time the question was asked again, and `true` is not a time, so no answer could ever count. Questions D-20 and D-21 on "Open parked items" had the same fault.
+
+**What was done:** The three questions were given the time they were asked again (TC6 was then settled on its page). Both page builders now write a fixed time instead of `true`. The hub (version 23) now treats an "asked again" with no time as asked at the page's last update, so a bad value can't block answers again, and the hub README says an "asked again" must store a time.
+
+**Fixed by:** [PR #1001](https://github.com/ali123500-codeRPG/text-rpg/pull/1001)
+
+## BG-289
+
+**What was wrong:** In run 17's world (carried on in run 18) the road nwroad still had a way to new ground, "back up the road north-west, toward the crossroads", but that crossroads (crossways) had already been built from the other side. Walking it could build a second crossroads, because a junction of the land recorded no area and nothing tied the way to the land. The same world also had a second copy of the road (nwroad_2), and the causeway had a way to each.
+
+**What was done:** Ali's WI2 and WI7 answers. WI2 (PR #982): the land's roads, junctions and settlements are built once and code makes the ways between them, so a new world can't get this. WI7: a world built before that is mended once when it loads. The crossroads becomes the junction's area, nwroad's way to new ground becomes a plain way to the crossroads, nwroad_2 folds into nwroad with everything in it, the causeway keeps one way, and the north and south roads' ways on now carry the land's keys.
+
+**Fixed by:** [PR #988](https://github.com/ali123500-codeRPG/text-rpg/pull/988)
+
+## BG-291
+
+**What was wrong:** A road trip rolls for an encounter after each hour of walking, but the hour that arrives never rolled. So any road shorter than an hour's walk (4.5 km by day, 3 km in the dark) could never meet anything, and in run 18's world 18 of 19 roads are that short. Road encounters were close to switched off.
+
+**What was done:** Ali's RE1 answer: minutes walked on roads now count up across trips. Every full hour of them, whichever trips it took, rolls once by the danger of the road you are on at that moment, and the count starts again. The trip stops right there if something meets you.
+
+**Fixed by:** [PR #978](https://github.com/ali123500-codeRPG/text-rpg/pull/978)
+
 ## BG-290
 
 **What was wrong:** In run 18, a story beat had the weir-house man come to his door and size up the hero with Insight. The game rolled it against a set difficulty, as if the hero were a stuck hatch, and filed a missing-difficulty bug. Beats had no way to give a difficulty, two agents were told to give one only for some of the acts that need it, and sizing up a person ignored the person entirely.

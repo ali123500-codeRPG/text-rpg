@@ -1,12 +1,16 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
-import type { Actor, Barrier, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
+import type { Actor, Barrier, Belief, BeliefStatus, GameState, Opening, Stance, Wall, Zone } from '../types';
 import { AWARENESS, STANCES, type StanceKey } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
 import { healthLevel, isDownLevel } from '../ruleset/body';
 import { barrierOn, linkPassage } from './barriers';
 import { withinGrip } from './position';
-import { reachesOver } from '../scenario/geometry';
 import { getLibrary } from '../library';
+import { seesNow } from '../plan/line';
+import { fitsOpening } from '../plan/path';
+import { waysOut, type Way } from '../plan/where';
+import { wallAt, wallKind } from '../plan/walls';
+import { sharedSides } from '../plan/geom';
 
 /** the actor's active perks and quirks that work on sight (PerkDef.onSight) */
 export const onSightPerks = (a: Actor) => a.core.perks.filter((p) => !p.dormant).map((p) => getLibrary().perks?.[p.perkId]).filter((d): d is NonNullable<typeof d> => !!d?.onSight);
@@ -140,19 +144,44 @@ export function zoneById(state: GameState, id: string) {
   return undefined;
 }
 
-/** BG-70: sight passes this link: a sight link, or a way whose door stands open */
-export const seesAcross = (state: GameState, l: ZoneLink): boolean => l.sight || !!barrierOn(state, l)?.open;
+/** BG-70, PC4: sight passes this way now (plan/line seesNow: its barrier open, broken or seen through; else its kind) */
+export const seesAcross = (state: GameState, o: Opening | Way): boolean => seesNow(state, 'opening' in o ? o.opening : o);
 
-/** own zone plus zones linked to it with sight (no frontiers): what a viewer in `zoneId` perceives */
+/** PZ3: the titles a viewer in `zoneId` looks into: its own, those through a way it sees through now, and those across a
+ * wall seen over or through (glazing, a low wall, a fence, an arcade). Who is seen in them is the line of sight's
+ * (perception); this is the list of places in view, for views and the journal. */
 export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
   const z = zoneById(state, zoneId);
-  return [zoneId, ...(z?.links ?? []).filter((l) => seesAcross(state, l) && !l.frontier && zoneById(state, l.to)).map((l) => l.to)];
+  if (!z) return [zoneId];
+  const out = new Set([zoneId]);
+  for (const w of waysOut(state, zoneId)) if (!w.frontier && seesNow(state, w.opening) && zoneById(state, w.to)) out.add(w.to);
+  for (const o of state.zones) if (o.id !== zoneId && !out.has(o.id) && seenOver(state, z, o)) out.add(o.id);
+  return [...out];
+}
+/** the walls on the sides titles A and B share on A's floor */
+function wallsBetween(state: GameState, A: Zone, B: Zone): Wall[] {
+  if (Math.abs(A.floor - B.floor) > 0.01) return [];
+  const out: Wall[] = [];
+  for (const [a, b] of sharedSides(A.outline, B.outline)) {
+    const w = wallAt(state, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, A.floor);
+    if (w) out.push(w);
+  }
+  return out;
+}
+/** A and B share a side whose wall is seen over or through (or no wall stands there at all) */
+function seenOver(state: GameState, A: Zone, B: Zone): boolean {
+  if (Math.abs(A.floor - B.floor) > 0.01 || !sharedSides(A.outline, B.outline).length) return false;
+  const ws = wallsBetween(state, A, B);
+  return !ws.length || ws.some((w) => !!wallKind(w.kind)?.see || w.top < A.floor + 1.5);
 }
 
-/** SD3–SD5: the walking path for `walker`: round any barrier shut to it; with none, the plain path (whose first shut way
- * the walker then tries) */
+/** SD3–SD5: the titles on the walking path for `walker`: round any barrier shut to it that it knows of; with none, the plain
+ * path (whose first shut way the walker then tries). SZ7: never through a way too small for its body */
 export const wayPath = (state: GameState, from: string, to: string, walker: Actor): string[] | null =>
-  shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to);
+  shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to, false, undefined, walker);
+
+/** SZ7: `a`'s body goes through the way (plan/path fitsOpening) */
+export const fitsThrough = (state: GameState, a: Actor, o: Opening | Way): boolean => fitsOpening(state, a, 'opening' in o ? o.opening : o);
 
 /** BG-69, FR5: a walk is planned around a shut way only by someone who knows it is shut: they tried it, or it is rubble in
  * plain view; an NPC also knows the ways of a place it lives or works in (one its routine is bound to: mind.slots). A
@@ -163,22 +192,25 @@ export function knowsShut(state: GameState, b: Barrier, a: Actor, from: string):
   return !!place && Object.values(a.mind?.slots ?? {}).flat().some((z) => zoneById(state, z)?.placeId === place);
 }
 
-/** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
- * barrier is shut to it (no key, the far side of the bar, rubble) is left out (SD3–SD5); with none, barriers are ignored
- * (how far away, for sound and sight). */
-export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor): string[] | null {
+/** the titles a walk passes from one title to another, by the ways between them (no frontiers): the ids after `from`, or
+ * null. The fewest ways, for words and plans (metres are plan/path walkPath's). With a `walker`, a way whose barrier is
+ * shut to it and that it knows is shut is left out (SD3–SD5); with none, barriers are ignored. SZ7: with a `body` (the
+ * walker's, unless given alone), a way too small for it is left out too. sightOnly: only ways seen through now. */
+export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor, body: Actor | undefined = walker): string[] | null {
   if (from === to) return [];
-  const stage = new Set(state.stage.zoneIds);
+  const stage = new Set(state.zones.map((z) => z.id));
   const prev = new Map<string, string>();
   const q = [from];
   const seen = new Set([from]);
+  const walked = (k: string) => !!getLibrary().openingKinds?.[k]?.walk;
   while (q.length) {
     const cur = q.shift()!;
-    const z = zoneById(state, cur);
-    for (const l of z?.links ?? []) {
+    for (const l of waysOut(state, cur)) {
       // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
-      if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !seesAcross(state, l)) || (l.drop && !sightOnly)) continue;
-      if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(state, barrierOn(state, l)!, walker, cur)) continue;
+      if (l.frontier || !stage.has(l.to) || seen.has(l.to)) continue;
+      if (sightOnly ? !seesNow(state, l.opening) : l.drop || !walked(l.opening.kind)) continue;
+      if (walker && linkPassage(state, l.opening, walker, cur) === 'shut' && knowsShut(state, barrierOn(state, l.opening)!, walker, cur)) continue;
+      if (body && !sightOnly && !fitsOpening(state, body, l.opening)) continue; // SZ7: too big for the way
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {
@@ -196,11 +228,11 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
   return null;
 }
 
-/** across a counter, fence or rail from zone `a` into the next zone `b`: see and reach across it (edge kind Low) */
+/** across a counter, fence or rail from title `a` into the next title `b`: a wall between them that is seen over and
+ * reached across (a low wall, a fence) */
 export function reachesAcross(state: GameState, a: string, b: string): boolean {
   const A = zoneById(state, a), B = zoneById(state, b);
-  // BG-124: only across a way that is seen through (a counter, a rail), never a door
-  return !!A && !!B && A.links.some((l) => l.to === B.id && seesAcross(state, l)) && reachesOver(A, B, getLibrary().edgeKinds ?? {});
+  return !!A && !!B && wallsBetween(state, A, B).some((w) => !!wallKind(w.kind)?.reach);
 }
 
 /** BG-95: one rule for who knows whose name, player and NPC alike: their own, a public figure's (knownOnSight), a

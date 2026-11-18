@@ -6,7 +6,7 @@ import { essenceSlots, removeCostText } from '../engine/essence';
 import { getLibrary } from '../library';
 import { ESSENCE_GRADES } from '../scales';
 import { durationText, now } from '../time';
-import { h } from './kit';
+import { askInPlace, h } from './kit';
 import { skillName } from './creation';
 import { openPop } from './pop';
 
@@ -33,13 +33,17 @@ function tile(e: HeldEssence, extra: (Node | string | null)[] = []): HTMLElement
 /** the buttons for one offer: Take it (or, with every slot full, Take it in place of each held one), Let it go */
 function offerButtons(p: Actor, i: number, run: (cmd: string) => void, later?: () => void): HTMLElement {
   const held = p.progression?.essences ?? [], full = held.length >= essenceSlots(p);
-  return h('div', { class: 'ess-acts' },
+  // A6: giving one up and letting one go can't be undone, so each asks once, in place
+  const acts: HTMLElement = h('div', { class: 'ess-acts' },
     ...(full
-      ? held.map((x, k) => h('button', { type: 'button', class: 'hs-btn-main', 'data-chip': 'essence-take', onclick: () => run(`/essence take ${i + 1} give ${k + 1}`) },
+      ? held.map((x, k) => h('button', { type: 'button', class: 'hs-btn-main', 'data-chip': 'essence-take',
+        onclick: () => askInPlace(acts, `${nameOf(x)} is gone for good, and giving it up costs ${removeCostText(p)}.`, `Give up ${nameOf(x)}`, () => run(`/essence take ${i + 1} give ${k + 1}`), 'Keep it') },
         `Take it, give up ${nameOf(x)}`))
       : [h('button', { type: 'button', class: 'hs-btn-main', 'data-chip': 'essence-take', onclick: () => run(`/essence take ${i + 1}`) }, 'Take it')]),
-    h('button', { type: 'button', class: 'ess-pass', 'data-chip': 'essence-pass', title: 'Gone for good', onclick: () => run(`/essence pass ${i + 1}`) }, 'Let it go'),
+    h('button', { type: 'button', class: 'ess-pass', 'data-chip': 'essence-pass', title: 'Gone for good',
+      onclick: () => askInPlace(acts, 'This essence is gone for good.', 'Let it go', () => run(`/essence pass ${i + 1}`), 'Keep it') }, 'Let it go'),
     later ? h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'essence-later', onclick: later }, 'Decide later') : null);
+  return acts;
 }
 
 const waitText = (s: GameState, o: EssenceOffer, paired = false) => `Waits ${durationText(Math.max(0, o.untilMin - now(s)))} more${o.pair && !paired ? ' · one of two: taking one lets the other go' : ''}`;
@@ -96,6 +100,7 @@ export function essencesBody(api: GameApi, s: GameState, after: () => void): (No
   return [
     h('p', { class: 'ess-meta' }, slotsText(p)),
     h('p', { class: 'hs-note' }, 'An essence is a package of true skill points you take into a slot. They are offered by beaten foes and by scenarios you end well. You get one more slot every few character levels.'),
+    !held.length && !offers.length ? h('p', { class: 'empty' }, 'No essences yet. A foe you defeat can offer one.') : null, // G4
     h('div', { class: 'ess-grid' },
       ...held.map((e) => tile(e)),
       ...Array.from({ length: Math.max(0, slots - held.length) }, () => h('div', { class: 'ess-tile ess-empty' }, h('span', {}, 'Empty slot')))),

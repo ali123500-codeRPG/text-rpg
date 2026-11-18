@@ -12,7 +12,7 @@ describe('329 NPC roles, first round', () => {
   it('NR4: a Hunter is a civilian bowman who sneaks; at Trained it carries a bow', () => {
     const r = getLibrary().npcRoles![RO.hunter];
     expect(r.kind).toBe('civilian');
-    expect(r.bands.high).toEqual([SK.ranged_medium, SK.sneaking]);
+    expect(r.bands.high).toEqual([SK.ranged_medium, SK.sneaking, SK.fieldcraft]);
     const t = composeTemplate({ race: RC.human, role: RO.hunter, theme: TH.village_folk, rank: 'Trained' }, 'a hunter');
     const sk = templateSkills(t, 'x');
     expect(sk[SK.ranged_medium].raw).toBeGreaterThan(sk[SK.melee_light].raw);

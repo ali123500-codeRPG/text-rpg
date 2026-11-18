@@ -12,9 +12,11 @@ import { CONFIG } from '../../src/config';
 import { mechanicsLines } from '../../src/agents/game';
 import { checkNear, contact, startWatch, stepS, warnS } from '../../src/engine/comingNear';
 import { moveSpeed } from '../../src/engine/speed';
+import { hostileNearM } from '../../src/ruleset/gear';
 import { IT } from '../../src/library/itemIds';
 import { DU, HL } from '../../src/library/tableIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
+import { boxOf } from '../../src/plan/geom';
 
 const rest = intent({ action: { type: 'rest' } });
 const tavern = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
@@ -139,14 +141,14 @@ describe('272 the coming-near check', () => {
   it('AT67: someone rushing in faster than RUSH_SHARE × their walk fires it within the warning time; a walker passing is listed', () => {
     const check = (speedOf: (walk: number, run: number) => number) => {
       const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-      const field = s.zones.find((z) => z.id === 'field_far')!.rect!;
+      const field = boxOf(s.zones.find((z) => z.id === 'field_far')!.outline);
       s.player.zone = 'field_far';
       s.player.pos = { x: field.x - field.w / 2 + 1, y: field.y };
       const w = wim(s);
       const watch = startWatch(s, s.player, 'standing');
       expect(watch.accepted.has(w.id)).toBe(false); // in the tavern, out of the senses
       const { walk, run } = moveSpeed(s, w);
-      const near = CONFIG.HOSTILE_NEAR_M + run * warnS(watch) - 0.5;
+      const near = hostileNearM(s, w) + run * warnS(watch) - 0.5; // SZ19: a step plus its own reach
       w.zone = 'field_far';
       w.placeId = s.player.placeId;
       w.pos = { x: s.player.pos.x + near, y: field.y };

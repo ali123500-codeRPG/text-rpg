@@ -1,16 +1,16 @@
-// The action deck on Play (AD1–AD16): the suggested action, the Aim and Stance rows, and every action the code allows in
+// The action deck on Play (AD1–AD16): the Aim and Stance rows, and every action the code allows in
 // its groups. Clicking an action asks what it still needs (whom, with what, which part) in a small pop-up, then plays
 // the turn at once with no Parser call (AD6, AD7); a move planned on the minimap rides along (AD12). Actions that need
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
 import { ATTACK_STANCES, type AttackStance, type GameApi, type GameState, type PlayerView } from '../types';
 import { personalityOf } from '../ruleset/personality';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
-import { buildPlayerView } from '../views';
+import { buildPlayerView, findInstance } from '../views';
+import { hideTip, showTip } from './pages';
 import { h } from './kit';
 import { cap } from '../words';
 import { closePop, openPop } from './pop';
 import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
-import { suggestions, type Suggestion } from './suggest';
 import { openLoot } from './loot';
 import { instanceIcon } from './itemIcons';
 import type { MinimapPoint } from './minimap';
@@ -38,8 +38,8 @@ export function deckView(api: GameApi, o: {
   /** an action waits for words: the Say box takes them (null: it no longer waits) */
   sayMode(m: SayMode | null): void;
 }) {
-  let aim = false, stance: Stance = 'normal', sugAt = 0, sayMode: SayMode | null = null;
-  let groups: ReturnType<typeof deck> = [], sugs: Suggestion[] = [], ctx: DeckCtx | null = null, disabled = false;
+  let aim = false, stance: Stance = 'normal', sayMode: SayMode | null = null;
+  let groups: ReturnType<typeof deck> = [], ctx: DeckCtx | null = null, disabled = false;
   const ctxOf = (s: GameState, pv: PlayerView): DeckCtx => ({ pv, s, stance, aim, broken: isBrokenLevel(moraleLevel(s.player)), cowering: isCoweringLevel(moraleLevel(s.player)), self: personalityOf(s.player) });
 
   async function play(order: Order, aimed: boolean) {
@@ -60,7 +60,8 @@ export function deckView(api: GameApi, o: {
   /** asks the action's next missing step; with nothing missing, plays it */
   function run(a: DeckAction, c: Choice = {}, opener: HTMLElement | null = null) {
     if (disabled) return;
-    if (a.kind === 'loot') { const s = api.state(), pv = ctx?.pv; if (s && pv) openLoot(pv, opener, (line, gear) => void play({ line, intent: { ...NO_ORDER, gear } }, false), (id) => instanceIcon(s, id, 'iico lico')); return; }
+    if (a.kind === 'loot') { const s = api.state(), pv = ctx?.pv; if (s && pv) openLoot(pv, opener, (line, gear) => void play({ line, intent: { ...NO_ORDER, gear } }, false), (id) => instanceIcon(s, id, 'iico lico'),
+      (id, at) => { const it = at && findInstance(s, id); if (it) showTip(s, it, at!); else hideTip(); }); return; }
     const next = a.steps.find((st) => !(st.key in c));
     if (!next) { closePop(); void play(a.play(c), !!c.part); return; }
     if (next.key === 'words') { closePop(); setSay({ action: a, choice: c, to: (pickLabel(a, c) ?? '').replace(/^(A|An|The) /, (x) => x.toLowerCase()) }); return; }
@@ -84,28 +85,13 @@ export function deckView(api: GameApi, o: {
   }
 
   // ---- the parts on screen ----
-  const sugBtn = h('button', { type: 'button', class: 'dk-go' });
-  const sugWhy = h('p', { class: 'dk-why' });
-  const altBtn = h('button', { type: 'button', class: 'hs-btn-text dk-alt', title: 'Show the next best idea', onclick: () => { sugAt = (sugAt + 1) % Math.max(1, sugs.length); paintSug(); } }, '↻ Another');
-  const sugEl = h('section', { class: 'dk-sug', 'aria-label': 'Suggested action' }, h('p', { class: 'hs-label dk-sl' }, 'Suggested'), sugBtn, altBtn, sugWhy);
-  function paintSug() {
-    const x = sugs[sugAt];
-    sugEl.hidden = !x;
-    if (!x) return;
-    const who = pickLabel(x.action, x.choice);
-    sugBtn.textContent = who && !x.action.label.includes(who) ? `${x.action.label} ${who}` : x.action.label;
-    sugBtn.onclick = () => run(x.action, x.choice, sugBtn);
-    sugBtn.disabled = disabled;
-    sugWhy.textContent = x.reason;
-    altBtn.hidden = sugs.length < 2;
-  }
-
   const aimBtn = h('button', { type: 'button', class: 'dk-tog', 'aria-pressed': 'false', title: 'When on, an attack asks which body part to aim at', onclick: () => { aim = !aim; repaint(); } }, 'Aim');
   const stanceBtns = STANCE_BUTTONS.map(([k, name]) => h('button', { type: 'button', 'data-stance': k, 'aria-pressed': String(k === stance), onclick: () => { stance = k; repaint(); } }, name));
   const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label' }, 'Stance'), h('span', { class: 'dk-seg', role: 'group', 'aria-label': 'Stance' }, ...stanceBtns));
   const cols = h('div', { class: 'dk-groups' });
   const el = h('div', { class: 'deck' }, mods, cols);
-  let html = '';
+  let html = '', wasLimited = new Set<string>();
+  const actOf = (b: HTMLElement) => groups[Array.from(cols.children).indexOf(b.closest('.dk-col')!)]?.actions[Number(b.dataset.i)];
 
   function repaint() {
     aimBtn.setAttribute('aria-pressed', String(aim));
@@ -120,31 +106,31 @@ export function deckView(api: GameApi, o: {
     const pv = s ? safePv(s) : null;
     ctx = s && pv ? ctxOf(s, pv) : null;
     groups = ctx ? deck(ctx) : [];
-    const before = sugs[sugAt]?.reason;
-    sugs = ctx ? suggestions(groups, ctx) : [];
-    if (!sugs.some((x) => x.reason === before)) sugAt = 0; // a new moment starts from the best idea again
     if (sayMode && !groups.some((g) => g.actions.some((a) => a.kind === sayMode!.action.kind))) setSay(null);
-    paintSug();
     const kids = groups.map((g) => h('div', { class: `dk-col g-${g.group}` }, h('p', { class: 'dk-h' }, g.name),
-      ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : ''), 'data-kind': a.kind, 'data-i': String(i) },
-        h('span', { class: 't' }, a.label), a.note ? h('span', { class: 'n' }, a.note) : null))));
+      ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : '') + (a.limit ? ' dk-lim' : ''), 'data-kind': a.kind, 'data-i': String(i),
+        ...(a.limit ? { 'aria-disabled': 'true', title: a.limit.tip, 'aria-label': `${a.label}, ${a.limit.tip}` } : {}) },
+        h('span', { class: 't' }, limitMark(a), a.label), a.note ? h('span', { class: 'n' }, a.note) : null))));
     const now = kids.map((k) => k.outerHTML).join('');
     if (now === html && !force) return;
     html = now;
     cols.replaceChildren(...kids);
+    // A3: a move whose limit ran out since the last redraw pulses once
+    const limited = new Set(groups.flatMap((g) => g.actions.filter((a) => a.limit).map(keyOf)));
+    cols.querySelectorAll<HTMLButtonElement>('.dk-act:not(.dk-lim)').forEach((b) => { const a = actOf(b); if (a && wasLimited.has(keyOf(a))) b.classList.add('dk-ready'); });
+    wasLimited = limited;
     // the buttons find their action by group and place, so a rebuilt list never keeps a stale handler
     cols.querySelectorAll<HTMLButtonElement>('.dk-act').forEach((b) => {
-      const gi = Array.from(cols.children).indexOf(b.closest('.dk-col')!);
-      const a = groups[gi]?.actions[Number(b.dataset.i)];
-      if (a) b.onclick = () => run(a, {}, b);
+      const a = actOf(b);
+      if (a && !a.limit) b.onclick = () => run(a, {}, b);
     });
     lock();
   }
   /** M-06: while a turn runs every action is off, with nothing rebuilt */
-  function lock() { el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => { b.disabled = disabled; }); sugBtn.disabled = disabled; altBtn.disabled = disabled; }
+  function lock() { el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => { b.disabled = disabled; }); }
 
   return {
-    el, sugEl, mods, update, personMenu,
+    el, mods, update, personMenu,
     aimOn: () => aim,
     toggleAim() { aim = !aim; repaint(); },
     /** the first action of this kind, with what is already chosen (the heal slot uses it) */
@@ -160,6 +146,14 @@ export function deckView(api: GameApi, o: {
     },
     cancelSay() { setSay(null); },
   };
+}
+
+const keyOf = (a: DeckAction) => `${a.kind}|${a.label}`;
+/** A3: a used move's hollow mark with a slash; a waiting one's ring, filled by the share of the wait gone */
+function limitMark(a: DeckAction): HTMLElement | null {
+  if (!a.limit) return null;
+  return 'used' in a.limit ? h('span', { class: 'dk-mark used', 'aria-hidden': 'true' })
+    : h('span', { class: 'dk-mark wait', 'aria-hidden': 'true', style: `--share:${+a.limit.share.toFixed(2)}` });
 }
 
 const safePv = (s: GameState): PlayerView | null => { try { return buildPlayerView(s); } catch { return null; } };

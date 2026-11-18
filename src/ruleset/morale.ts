@@ -1,18 +1,24 @@
 // The morale bar (MB1–MB43): a second, mental health bar. Max morale comes from Resolve as HP comes from Endurance;
 // fears cost flat points (the library fears table); the level is the share of max morale lost (CONFIG.MORALE_TRACK).
 import type { Actor, FearDef, Mod, PartDef } from '../types';
+import type { FigPart } from './body';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, TIERS, type HealthLevelKey, type MoraleLevel, type PartStateKey } from '../scales';
 import { skillOpen } from './access';
+import { hasPerk } from './perks';
+import { healthLevel } from './body';
+import { PK } from '../library/perkIds';
 import { achievementMaxMorale, chainRewards, currentAchievements } from './achRewards';
 
 /** MB29: max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (raw, like Endurance for HP), plus the flat points the
- * actor's current achievements add (AchievementDef.maxMorale) */
-export function maxMorale(a: Actor): number {
+ * actor's current achievements add (AchievementDef.maxMorale); `parts`, when given, gets each line (P2) */
+export function maxMorale(a: Actor, parts?: FigPart[]): number {
   const r = a.core.skills[SK.resolve];
-  return CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * (r && !r.dormant && skillOpen(a, SK.resolve) ? r.raw : 0) + achievementMaxMorale(a);
+  const raw = r && !r.dormant && skillOpen(a, SK.resolve) ? r.raw : 0, ach = achievementMaxMorale(a);
+  parts?.push({ label: 'Base', adds: CONFIG.MORALE_BASE }, { label: `Resolve ${raw} × ${CONFIG.MORALE_PER_RESOLVE}`, adds: CONFIG.MORALE_PER_RESOLVE * raw }, ...(ach ? [{ label: 'Achievements', adds: ach }] : []));
+  return CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * raw + ach;
 }
 export const moraleLost = (a: Actor): number => a.core.condition.moraleLost ?? 0;
 /** share of max morale lost, in % */
@@ -87,4 +93,11 @@ export const restoreMorale = (a: Actor, pct: number): number => setMoraleLost(a,
 export function tierCostMult(level: number): number {
   if (level < 0) return CONFIG.MORALE_TIER_MULT.critical_failure + CONFIG.MORALE_BEYOND_CF * -level;
   return CONFIG.MORALE_TIER_MULT[TIERS.at(level)] ?? 0;
+}
+
+/** a fear's cost before its morale roll's tier: its cost (or the given one) × the gap's tiers when it counts per tier × any
+ * multiplier, shrunk by All-50 Last to Fall at Wounded or worse. payFear and the combat rating's fight model both read it. */
+export function fearCost(a: Actor, f: FearDef, o: { gap?: number; mult?: number; cost?: number } = {}): number {
+  const cost = (o.cost ?? f.cost) * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
+  return cost > 0 && hasPerk(a, PK.last_to_fall) && HEALTH_LEVELS.pos(healthLevel(a)) >= HEALTH_LEVELS.pos('wounded') ? cost * CONFIG.LAST_TO_FALL_MULT : cost; // All-50 Last to Fall
 }

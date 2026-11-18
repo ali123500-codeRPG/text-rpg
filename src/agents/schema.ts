@@ -1,11 +1,11 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // A missing nullable field reads as null; only a missing required field fails the answer (CS9).
-import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { GoalOps, GoalStep, StepEnd, PlanFurniture, AgreementMade, CheckinAnswer, WindowAnswer, Grade, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput, WayKind } from '../types';
 import { ATTACK_STANCES, GEAR_OPS, OFFERED_GOAL_KINDS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, PARSER_ACTIONS, PRONOUNS, type GearOp, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
+import { CHASE_RANGES, COVER, FRAGILITY, LIGHT, QUALITY_LEVELS, STANCES, TIERS, TIME_OF_DAY, type FragilityKey, type QualityKey, type Scale, type TimeOfDay } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 import { WAY_OPS } from '../engine/barriers';
 
@@ -82,6 +82,7 @@ const intent = obj<Intent>({
     fall: num as V<number>,
   }, ['qty', 'for', 'demand', 'aimed', 'noSkillFits', 'grade', 'fall'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
+  warn: nul(str),
   way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(WAY_OPS) })),
   gear: GEAR,
   spoken: nul(str),
@@ -91,10 +92,11 @@ const intent = obj<Intent>({
   clarify: nul(str),
   answers: (v, p, e) => (v === undefined || v === null ? undefined : arr(str)(v, p, e)) as string[], // BG-228: replies to the clarify, shown as buttons
   yields: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
+  finish: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean, // IQ7 a
   letsSearch: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null,
   standDown: (v, p, e) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null, // TF11
   look: (v, p, e) => (v === undefined || v === null ? undefined : oneOf(['stats', 'inv'] as const)(v, p, e)) as 'stats' | 'inv',
-}, ['perkMove', 'yields', 'letsSearch', 'standDown', 'way', 'volume', 'look', 'answers']);
+}, ['perkMove', 'warn', 'yields', 'finish', 'letsSearch', 'standDown', 'way', 'volume', 'look', 'answers']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(NPC_ACTIONS),
@@ -147,7 +149,8 @@ const acceptYield = yields;
 const letsSearch = (v: unknown, p: string, e: string[]) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null; // BF16
 const spare = yields; // D-239
 const standDown = yields; // TF15
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead', 'goals', 'steps'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'standDown' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps')[];
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead', 'goals', 'steps', 'perkMove'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'standDown' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps' | 'perkMove')[];
+const npcPerkMove = nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })); // TC49
 const headTo = nStr; // NW2
 // UG5/UG16: a goal holder's goals met, failed or added, and its next steps
 const goalOps = nul(obj<GoalOps>({
@@ -160,9 +163,9 @@ const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, 
 const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
 const npcMove = nul(obj<{ toZone: string; after?: boolean; speakAt?: 'end' }>({ toZone: str, after: bool, speakAt: oneOf(['end'] as const) }, ['after', 'speakAt']));
-const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({
@@ -202,16 +205,15 @@ const weaver = obj<StagePlan>({
     layout: str, names: record(str), looks: record(str), furniture: record(arr(FURNITURE)), site: str }, ['layout', 'names', 'looks', 'furniture', 'site'])), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
     key: str, place: str, kind: str, name: str, look: str,
-    cover: level(COVER), light: level(LIGHT),
-    height: num, size: str, area: num, edges: record(str) as V<NonNullable<StagePlan['zones'][number]['edges']>>,
+    light: level(LIGHT),
+    size: str, area: num, walls: record(str) as V<NonNullable<StagePlan['zones'][number]['walls']>>,
     length: (v, p, e) => (typeof v === 'number' ? num(v, p, e) : str(v, p, e)), danger: str, road: str, fromLayout: any as V<true>, furniture: arr(FURNITURE),
-    links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool, drop: bool,
-      barrier: obj<PlanBarrier>({ kind: str, grade: GRADE, locked: bool, barredFrom: str, guarded: bool, keys: arr(str) }, ['grade', 'locked', 'barredFrom', 'guarded', 'keys']) }, ['drop', 'barrier'])),
-  }, ['cover', 'light', 'height', 'size', 'area', 'edges', 'length', 'danger', 'road', 'fromLayout', 'furniture'])),
+    ways: arr(obj<StagePlan['zones'][number]['ways'][number]>({ to: str, label: str, kind: str as V<WayKind>,
+      barrier: obj<PlanBarrier>({ kind: str, grade: GRADE, locked: bool, barredFrom: str, guarded: bool, keys: arr(str) }, ['grade', 'locked', 'barredFrom', 'guarded', 'keys']) }, ['kind', 'barrier'])),
+  }, ['kind', 'light', 'size', 'area', 'walls', 'length', 'danger', 'road', 'fromLayout', 'furniture'])),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str, brief: str }, ['brief'])),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
-    tactics: level(TACTICS),
     lethal: (v, p, e) => (v === undefined || v === null ? true : bool(v, p, e)),
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
     chase: level(CHASE_RANGES), // CH5; BG-40: the schema shows the names ("Ground"), so a name is read as its key

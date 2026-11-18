@@ -37,6 +37,8 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
+  /** GR40: a relic's requirement in true skill, whatever its level; every stat that scales with need follows it (the combat rating's reference kit) */
+  relicNeed?: number;
   /** IF id (IR30): its family. Mundane pieces scale only by their level (IR31); a special family (Threadbound, Relic) stands on a
    * Mundane base and adds its own extras (IR33). Set for every equipment piece when the library loads */
   family?: string;
@@ -80,6 +82,9 @@ export type AttackMode = {
   skill?: LibraryRef; // unarmed only
   /** how far the mode strikes or shoots, in metres, from real weapons (the library's item rows) */
   reachM: number;
+  /** SZ8: a mode wielded in a grip (a held weapon, fists, a grapple): its own length past the hand. In use it reaches the
+   * wielder's grip reach plus this (ruleset/gear inGrip); reachM is then what a Humanoid of the standard size reaches */
+  lengthM?: number;
   /** the metres it reaches in use: reachM, plus a thrown weapon's perk metres (ruleset/gear modeReach) */
   reach: number;
   grips: 0 | 1 | 2; // Grip parts it takes (0 for natural attacks)
@@ -92,6 +97,7 @@ export type AttackMode = {
    * an improvised melee strike takes Arms stand-ins, an improvised throw takes Ranged ones) */
   standInFns?: SkillFunction[];
   partId?: string; // natural attacks: the Strike part used
+  partIds?: readonly string[]; // BV7 a: natural attacks from either part of a pair (claws from either foreleg); usable while one works
   name?: string; // public name for natural modes (packet); else the attackModes row's name
 };
 
@@ -107,7 +113,7 @@ export type ItemInstance = {
    * no Threadbound item's one of a kind (HF19), and it fades when its owner dies */
   soulbound?: true;
   usedAt?: Record<string, number>; // D-218: game minute each active ability last fired, by perk id
-  at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
+  at?: import('./core').Pt3; // FR2, PZ11: where it lies on the ground (a point and its floor); absent while carried
   hiddenAt?: import('./core').TierRoll; // SE8/SE9: lying hidden: a search must beat this outcome tier to find it (a tie gives a hint)
   knownTo?: string[]; // SE8: who knows where a hidden item lies (its stasher, anyone who saw it stashed or found it)
   hiderSkill?: number; // SE25 a: the stasher's true stealth skill when it was stashed: a search learns against it

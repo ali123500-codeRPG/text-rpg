@@ -1,7 +1,7 @@
 // Dialogue turns: spokespeople, the player's speech check, impressions (Dialogue input table), SLIPS.
 import { talkedPast } from './suspicion';
 import { FN } from '../library/functionIds';
-import type { Actor, ContestResult, GameEvent, GameState, Intent, PersonRead, Rng, RollResult, Secret, Tier } from '../types';
+import type { Actor, ContestResult, GameEvent, GameState, Intent, PersonRead, Rng, RollResult, Secret, Tier, TierShift } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
@@ -261,9 +261,9 @@ export const tellFor = (listener: Actor | undefined, gap?: number): string =>
 
 /** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better;
  * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
-export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng): RollResult {
+export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng, extra: TierShift[] = []): RollResult {
   const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
+  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: [...(hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : []), ...extra], against: speakerId, contest: true, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
 }
 
 /** OQ-29: an NPC's speech roll at the player (NL1: or a lie at another NPC); the listener answers (answerSkill; the speaker is side a) */

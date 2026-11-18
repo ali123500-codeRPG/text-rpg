@@ -1,4 +1,4 @@
-// AD9: the suggested action. Code scores what the deck offers right now from what the character knows (danger in reach,
+// AD9: the suggested action, now used only by the deck playtest to pick its move (HS7: the Suggested box left Play). Code scores what the deck offers right now from what the character knows (danger in reach,
 // its own wounds and nerve, a walk under way, something held out, things to take, new ground) and the character's
 // leanings; no Claude call, so it can never hint at anything hidden. Scores read levels and words, never raw skill
 // numbers, so they behave the same at 50, 100 and 200. Every weight is a SUGGEST_* lever in config.
@@ -16,7 +16,7 @@ export type Suggestion = { action: DeckAction; choice: Choice; reason: string; s
 export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Suggestion[] {
   const { pv, s } = ctx;
   const W = CONFIG.SUGGEST;
-  const all = groups.flatMap((g) => g.actions);
+  const all = groups.flatMap((g) => g.actions).filter((a) => !a.limit); // A3: a used or waiting move is never suggested
   const find = (kind: DeckAction['kind']) => all.find((a) => a.kind === kind);
   const out: Suggestion[] = [];
   const put = (kind: DeckAction['kind'], choice: Choice, score: number, reason: string) => { const action = find(kind); if (action) out.push({ action, choice, reason, score }); };
@@ -47,6 +47,7 @@ export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Sugg
     const look = pick.health && pick.health !== 'unhurt' ? `${cap(nameOf(pick))} is ${othersHealthWord(pick.health, pick.level === 'full')}` : `${cap(nameOf(pick))} ${doing}`;
     put('attack', { target: pick.id }, W.attack + (inReach.includes(pick) ? W.inReach : 0), `${look}${inReach.includes(pick) && reach ? ` and within your ${reach.name}'s reach` : ''}.`);
   }
+  if (fight && me.finishable) put('finish', {}, W.finish, 'They are far below you: you can play the whole fight out in one go.'); // IQ7 a
   if (me.walking) put('keep_walking', {}, W.walking, `You are on your way to ${me.walking.to}.`);
   if (!fight) {
     if (find('loot')) put('loot', {}, W.loot, 'There are things here you can take.');

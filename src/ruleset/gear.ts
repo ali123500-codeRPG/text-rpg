@@ -1,18 +1,22 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
+import { clutterAt } from '../plan/clutter';
+import { inTitle, middle } from '../plan/where';
 import { ageMult } from './age';
-import type { Actor, AugmentKind, AugmentWhen, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
-import { zoneLight } from '../time';
+import type { Actor, AugmentKind, AugmentWhen, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone, Cover, Pt } from '../types';
+import { lightMod, zoneLight } from '../time';
 import { LIGHT } from '../scales';
+import { HUMANOID_SIZE } from '../library/bodySize';
 import { CONFIG } from '../config';
 import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
-import { partPct, poolState, usableGrips, working } from './body';
+import { attackParts, gripReachM, partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, payoffShare, perkSum, standInAdd, themeCount, trueSkill } from './perks';
 import type { PayoffCount } from '../library/perkThemes';
 import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { withinM } from '../engine/position';
+import { objectHidden, openingShown } from './objectCover';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL, ROLLED_SKILL } from '../library/skillIds';
 import { createRng, textSeed } from '../rng';
 import { equipNeed, itemLevel, requirement, requiredSkill } from './requirements';
@@ -142,16 +146,41 @@ export const rollTags = (skill: string, add: SituationTag[] = []): SituationTag[
 /** the summed sign a situational table gives a roll's tags (+ helps the roll's owner) */
 export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number => tags.reduce((n, t) => n + (CONFIG.SITUATION_TAGS[table][t] ?? 0), 0);
 
-/** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover tier
- * shift (the roller's zone) for one roll. A ranged attack's cover is a gap shift instead (ruleset attack). */
-export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
+/** PC1, PZ6 a: the scattered clutter at a point in a title (its middle by default): the land cell's cover outdoors
+ * (trees, brush); indoors and in a settlement none, since walls and furniture give the cover there */
+export const clutterCover = (state: GameState, zone: Zone, p?: Pt): Cover => clutterOf(state, zone, p).cover;
+const clutterOf = (state: GameState, zone: Zone, p?: Pt) => (zone.outline?.length ? clutterAt(state, p && inTitle(zone, p) ? p : middle(zone), zone.floor) : { cover: 'none' as Cover, standsM: 0 });
+
+/** CV3, CV4, PC1: the share of a body that shows (1 = all of it): the less of what shows through the zone's clutter and
+ * what shows past its furniture or through the opening it is seen through, seen from `from` (the shooter or watcher;
+ * objectHidden, openingShown). The clutter level is set for a
+ * standing person (COVER_HIDDEN); a smaller body shows less in proportion to its height, with no top; a taller one shows
+ * more, but only for its height above what the clutter stands (the zone kind's coverM: trees still hide a giant). */
+export function coverShown(state: GameState, body: Actor | undefined, zone: Zone, from?: Actor): number {
+  const objects = body ? Math.min(1 - objectHidden(state, body, zone, from), openingShown(state, body, zone, from)) : 1;
+  const c = clutterOf(state, zone, body?.zone === zone.id ? body.pos : undefined);
+  const hidden = CONFIG.COVER_HIDDEN[c.cover] ?? 0;
+  if (hidden <= 0) return objects;
+  const h = body ? actorBody(state, body).size.heightM : HUMANOID_SIZE.heightM;
+  const standsM = Math.max(HUMANOID_SIZE.heightM, c.standsM);
+  const grow = h <= HUMANOID_SIZE.heightM ? h / HUMANOID_SIZE.heightM : Math.max(1, h / standsM);
+  return Math.min(objects, Math.min(1, (1 - hidden) * grow));
+}
+/** CV6, CV7: how much cover counts on a roll: COVER_HALVING_MOD for each halving of what shows (0 when all of it shows) */
+export const coverMod = (shown: number): number => Math.round(CONFIG.COVER_HALVING_MOD * Math.log2(1 / Math.max(shown, 1e-9)));
+
+/** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover modifier
+ * (the roller's zone; CV7: by what shows of the `body` it hides, when one does, to `from`, the one it hides from) for one roll. A ranged attack's cover is
+ * the target's, added in ruleset attack(). */
+export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor; body?: Actor; from?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
-  // All-50 Child of Night: light reads one step darker for the owner's stealth rolls
-  // All-50 Night Eyes: light reads one step brighter for the owner's Eyesight rolls
-  const darker = (tags.includes('stealth') && hasPerk(at.actor, PK.child_of_night) ? 1 : 0) - (skill === SK.eyesight && hasPerk(at.actor, PK.night_eyes) ? 1 : 0);
-  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(Math.max(0, LIGHT.pos(zoneLight(state, at.light)) + darker))] ?? 0) : 0;
-  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[at.cover.cover] ?? 0) : 0;
-  return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
+  // All-50 Child of Night: light reads ten times darker for the owner's stealth rolls (LT2)
+  // All-50 Night Eyes: light reads ten times brighter for the owner's Eyesight rolls
+  const brighter = (skill === SK.eyesight && hasPerk(at.actor, PK.night_eyes) ? 1 : 0) - (tags.includes('stealth') && hasPerk(at.actor, PK.child_of_night) ? 1 : 0);
+  const who = at.body ?? at.actor, here = at.light && who?.zone === at.light.id ? who.pos : undefined;
+  const light = at.light ? tagSign('light', tags) * lightMod(zoneLight(state, at.light, here), brighter) : 0;
+  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * coverMod(coverShown(state, at.body, at.cover, at.from)) : 0;
+  return { modifiers: [...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []), ...(cover ? [{ source: 'cover', type: 'situational' as const, value: cover }] : [])], tierShifts: [] };
 }
 
 /** a skill's final efficiency multiplier from its tier (1 for an unknown skill) */
@@ -186,12 +215,13 @@ export const rollFnSkills = (actor: Actor, fn: string): string[] => {
 export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: rollFnSkills(actor, fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
-export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind; when?: AugmentWhen[] } = {}) {
+export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind; when?: AugmentWhen[]; alone?: true } = {}) {
   const skills = getLibrary().skills;
   const table = standInTable(skill, actor, ctx.standInFns);
   const share = (id: string) => standInShare(skill, id, table, ctx.fullValue);
-  const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
-  let best: { skill: string; value: number; gear: { source: string; value: number }[] } | null = null;
+  const cands = ctx.alone ? [skill] : [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)]; // alone: no stand-ins (a rating's pool counts each skill once)
+  // base: the skill's own true skill at its share and tier (P2: base plus each gear line is the value)
+  let best: { skill: string; value: number; base: number; share: number; gear: { source: string; value: number }[]; items: number } | null = null;
   for (const id of cands) {
     const k = share(id);
     const entry = actor.core.skills[id];
@@ -200,9 +230,10 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const tier = tierMult(id) * ageMult(state, actor, id);
     // D-276: what this skill gives away by trade augments, at its share here and its age (its tier is in the amount)
     const given = tradesOut(actor, id).map((g) => ({ ...g, value: g.value * k * ageMult(state, actor, id) }));
-    const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier + given.reduce((s, g) => s + g.value, 0);
+    const own = (entry && !entry.dormant ? trueSkill(actor, id) : 0) * k;
+    const value = (own + gear.reduce((s, g) => s + g.value, 0)) * tier + given.reduce((s, g) => s + g.value, 0);
     for (const g of gear) g.value *= tier;
-    if (!best || value > best.value) best = { skill: id, value, gear: [...gear, ...given] };
+    if (!best || value > best.value) best = { skill: id, value, base: own * tier, share: k, gear: [...gear, ...given], items: gear.reduce((s, g) => s + g.value, 0) }; // items: what held, worn and kit lines add (GR8's gear portion)
   }
   const old = ageMult(state, actor, skill); // AG20: augments to a declining skill decline with it
   for (const a of augmentsOf(actor, skill, ctx.rollKind, ctx.when)) { const g = { ...a, value: a.value * old }; best!.value += g.value; best!.gear.push(g); } // skills that augment this one
@@ -333,6 +364,19 @@ export function modeIdOf(word: string): string {
 /** fallback unarmed mode for a body type with no natural attacks (class punch) */
 export const UNARMED_MODE: AttackMode = { ...FISTS, id: AM.unarmed };
 
+/** SZ8: a mode wielded in a grip part (one with lengthM: a held weapon, fists, a grapple) reaches the actor's grip reach (its
+ * arm, from its size) plus the weapon's own length; other modes keep their own reach. The one held-reach equation. */
+export function inGrip(state: GameState, actor: Actor, mode: AttackMode): AttackMode {
+  return mode.lengthM === undefined ? mode : { ...mode, reach: gripReachM(state, actor, true) + mode.lengthM + (mode.reach - mode.reachM) };
+}
+
+/** SZ19: the longest melee reach the actor has now (0 with none) */
+export const meleeReachM = (state: GameState, actor: Actor): number =>
+  Math.max(0, ...usableModes(state, actor).filter((m) => m.mode.tree !== 'ranged').map((m) => m.mode.reach));
+
+/** RD5, SZ19: how near (between bodies) a hostile is close enough to strike or grab: a step plus its own melee reach */
+export const hostileNearM = (state: GameState, actor: Actor): number => CONFIG.HOSTILE_NEAR_STEP_M + meleeReachM(state, actor);
+
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {
   const grips = usableGrips(state, actor);
@@ -341,13 +385,14 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
   for (const inst of actor.core.inventory) {
     if (!isHeld(inst) || !gripsOf(inst).every((h) => grips.includes(h))) continue;
     const def = itemDef(state, inst.itemId);
-    for (const mode of def.weapon?.modes ?? []) if (mode.grips <= maxGrips) out.push({ itemId: inst.id, mode: withRow(actor, def, mode) });
+    for (const mode of def.weapon?.modes ?? []) if (mode.grips <= maxGrips) out.push({ itemId: inst.id, mode: inGrip(state, actor, withRow(actor, def, mode)) });
   }
   const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {
-    if (!mode.partId || working(poolState(partPct(actor, mode.partId)))) out.push({ itemId: `natural:${mode.id}`, mode });
+    const ids = attackParts(mode);
+    if (!ids.length || ids.some((id) => working(poolState(partPct(actor, id))))) out.push({ itemId: `natural:${mode.id}`, mode: inGrip(state, actor, mode) });
   }
-  if (!ct.naturalAttacks.length) out.push({ itemId: 'unarmed', mode: UNARMED_MODE });
+  if (!ct.naturalAttacks.length) out.push({ itemId: 'unarmed', mode: inGrip(state, actor, UNARMED_MODE) });
   return out;
 }
 
@@ -370,14 +415,14 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
   const ct = actorBody(state, actor);
   if (weaponId === 'unarmed' || weaponId.startsWith('natural:')) {
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
-    const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);
+    const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !attackParts(m).length) ?? UNARMED_MODE : undefined);
     if (!mode) throw new Error(`no natural attack ${weaponId}`);
-    return { mode, name: modeName(mode) };
+    return { mode: inGrip(state, actor, mode), name: modeName(mode) };
   }
   const inst = actor.core.inventory.find((i) => i.id === weaponId);
   if (!inst) throw new Error(`${actor.id} has no item ${weaponId}`);
   const def = itemDef(state, inst.itemId);
-  const modes = (def.weapon?.modes ?? []).map((m) => withRow(actor, def, m));
+  const modes = (def.weapon?.modes ?? []).map((m) => inGrip(state, actor, withRow(actor, def, m)));
   const mode = modeId ? modes.find((m) => m.id === modeId) : modes.find((m) => withinM(distance, m.reach)) ?? modes[0];
   if (!mode) throw new Error(`no attack mode ${modeId ?? ''} on ${weaponId}`);
   return { mode, name: def.name };

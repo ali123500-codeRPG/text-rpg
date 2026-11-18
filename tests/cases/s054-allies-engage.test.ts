@@ -10,7 +10,7 @@ import { SK } from '../../src/library/skillIds';
 
 it('54 Allies engage', () => {
   const s = makeVillage({ playerZone: 'tav_cellar' });
-  s.bands.push({ id: 'bandits', name: 'bandits', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: { village_watch: 'hostile' } });
+  s.bands.push({ id: 'bandits', name: 'bandits', goals: '', temperament: '', lethal: true, relations: { village_watch: 'hostile' } });
   s.bands.find((b) => b.id === 'village_watch')!.relations.bandits = 'hostile';
   s.actors.push(spawnNpc(s, TP.guard, { id: 'bandit_1', zone: 'gate_inner', placeId: 'gate', bandId: 'bandits', name: 'Rook', storyId: s.storyId }));
   actor(s, 'guard_1').mind!.knowledge.bandit_1 = { status: 'aware', lastKnownZone: 'gate_inner', lastSeenTurn: 1, source: 'seen', revealed: [] };

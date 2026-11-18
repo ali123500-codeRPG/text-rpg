@@ -1,0 +1,21 @@
+Source models for the body figures (scripts/figures.mjs bakes them into assets/figures/<key>.json).
+Each is CC0 or CC-BY 4.0; CC-BY models are credited wherever they are shown (library viewer cards).
+
+human_man: "Universal Base Characters" by Quaternius, CC0, https://quaternius.com
+human_woman: "Emma – Stylized Adventure Character" by Sunny, CC-BY 4.0, https://sketchfab.com/3d-models/790391aec68649dab097e5b83d0351a4
+wolf: "Ultimate Animated Animals: Wolf" by Quaternius, CC0, https://quaternius.com
+horse: "Ultimate Animated Animals: Horse" by Quaternius, CC0, https://quaternius.com
+dog: "Shiba Inu" by Quaternius, CC0, https://poly.pizza/m/y4wdQpg767
+boar: "Free Animal Pack: Boar" by Gobkit, CC0, https://gobkit.itch.io
+bear: "Realistic Animated Bear 3D Model" by WildMesh 3D, CC-BY 4.0, https://sketchfab.com/3d-models/bffc3c87d2d148ff8533e1cc8a11c9f1
+tiger: "Running Tiger" by Amil (francescolima74), CC-BY 4.0, https://sketchfab.com/3d-models/fc2c7fd74dd04e39935803b884c77258
+lion: "Lion" by doizy, CC-BY 4.0, https://sketchfab.com/3d-models/79d5e1173bba4f2b80661620a2eca9bc
+leopard: "Leopard Animation Run" by GremorySaiyan, CC-BY 4.0, https://sketchfab.com/3d-models/5a36868106f843d4a24d87334f1550fe
+hyena: "Hyena" by SleepyPineapple, CC-BY 4.0, https://sketchfab.com/3d-models/86cdfbb9f1b74d01ab338d5fb3e13dab
+lizard: "Komodo" by denys4624, CC-BY 4.0, https://sketchfab.com/3d-models/a3bb3a390dd1466e9bbab4a994329d45
+crocodile: "Crocodile" by rafaelrafi, CC-BY 4.0, https://sketchfab.com/3d-models/2b7c0624091a4e7793e7b4748a61795c
+python: "Ball python" by bluekiwi.dog, CC-BY 4.0, https://sketchfab.com/3d-models/74166573c34c40bc977c7a8db5b92ff4
+spider: "Black giant spider" by Josean_3dev, CC-BY 4.0, https://sketchfab.com/3d-models/5ce2a6c5b4ba4b848bdbf915e65916cd
+dragon: "Low Poly Dragon (Rigged)" by Yanez Designs, CC-BY 4.0, https://sketchfab.com/3d-models/c23530e89e8e4f21b0682860c9b2235b
+
+Built shapes (shape_*.json) are made in scripts/figureShapes.mjs.

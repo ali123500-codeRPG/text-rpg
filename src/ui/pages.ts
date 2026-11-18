@@ -5,7 +5,7 @@ import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
 import { HEALTH_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, THREADBOUND_RANKS } from '../scales';
-import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
+import { achLevel, achievementInfo, achievementName, earnedAtText, xpToNext } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
 import { questLevelXp, rewardName } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
@@ -19,7 +19,7 @@ import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
-import { boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
+import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
 import { closePop, fullOpen, openFull, openPop } from './pop';
 import { personalityBlock, signaturesBox } from './personality';
@@ -33,6 +33,7 @@ import { gripParts } from '../engine/gear';
 import { coins, coinWords, countWords, itemValue } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
 import { cap, r1 } from '../words';
+import { compareRows } from './compare';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -73,7 +74,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
       document.getElementById('grp-' + id)?.scrollIntoView({ block: 'nearest' });
     };
     const onField = (row: TRow, key: string) => openPanel(spec.panelTitle,
-      [...spec.cols.map((c) => ({ k: c.title, v: row.cells[c.key] ?? '–', edit: c.key === key })), ...(spec.detail?.(s, row.id) ?? [])],
+      [...spec.cols.map((c) => ({ k: c.title, v: row.cells[c.key] ?? '–', picked: c.key === key })), ...(spec.detail?.(s, row.id) ?? [])],
       'The game changes these through play, so the field is shown read-only here.', spec.panelHead?.(s, row.id));
     const want = spec.focus?.();
     if (want) {
@@ -144,13 +145,13 @@ function openGearPop(s: GameState, opener?: HTMLElement | null): void {
       const n = gearNote(s, i);
       return h('button', { type: 'button', class: 'gp-row', 'data-gear': i.id, onclick: () => openItemPop(s, i, opener) },
         h('b', {}, name(i)), h('span', {}, isHeld(i) ? 'held' : 'worn'), n ? h('span', { class: `cs-gn ${n.cls}` }, n.text) : null);
-    }))] : [h('p', { class: 'empty' }, 'Nothing held or worn.')] });
+    }))] : [h('p', { class: 'empty' }, 'Nothing held or worn. Equip something from your pack on the Inventory page.')] });
 }
 
 /** one piece of gear: its exact stats (the Inventory's rows), a way back to the list, and a link to it in the Inventory */
 function openItemPop(s: GameState, i: ItemInstance, opener?: HTMLElement | null): void {
   openPop({ title: cap(safe(() => pieceName(s, i)) ?? i.itemId), cls: 'gear-pop', opener, body: [
-    h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
+    h('dl', { class: 'gp-rows' }, itemRows(s, i).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, r.k), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])),
     h('div', { class: 'actions' },
       h('button', { type: 'button', class: 'hs-btn-text', onclick: () => openGearPop(s, opener) }, '‹ All gear'),
       h('a', { href: '#inv', class: 'hs-btn-text', onclick: () => { invFocus.id = i.id; closePop(); } }, 'Open in Inventory')),
@@ -209,6 +210,7 @@ export function itemRows(s: GameState, it: { id?: string; itemId: string; boundT
   const worth = safe(() => itemValue(s, it.itemId)) ?? 0, n = it.qty ?? 1;
   rows.push({ k: 'Value', v: !worth ? 'Worthless' : n > 1 ? `${coinWords(worth)} each, ${coinWords(worth * n)} for ${n}` : coinWords(worth) });
   if (d.threadbound) rows.push(...threadboundRows(s, it, d));
+  rows.push(...compareRows(s, it)); // P1: only for an item the player could equip and has not
   return rows;
 }
 
@@ -251,20 +253,21 @@ export function gearWords(s: GameState, it: InvItem): { label: string; text: str
 }
 
 let tipEl: HTMLElement | null = null;
-function showTip(s: GameState, it: InvItem, at: HTMLElement) {
+/** the item card beside `at`: its exact stats, and (P1) what equipping it would change; Loot uses it too */
+export function showTip(s: GameState, it: ItemInstance, at: HTMLElement) {
   const d = safe(() => itemDef(s, it.itemId));
   if (!d) return;
   tipEl ??= document.body.appendChild(h('div', { class: 'itip', role: 'tooltip', hidden: true }));
   tipEl.dataset.kind = d.kind;
   tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(countWords(it.itemId, safe(() => pieceName(s, it)) ?? d.name, it.qty))),
-    h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])));
+    h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', { class: r.split ? 'split' : undefined }, r.k), h('dd', { class: [r.split ? 'split' : '', r.tone ?? ''].join(' ').trim() || undefined }, r.v)])));
   tipEl.hidden = false;
   const r = boxOf(at), v = viewSize(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
   const left = r.right + 12 + w < v.w ? r.right + 12 : Math.max(12, r.left - 12 - w);
   tipEl.style.left = `${left}px`;
   tipEl.style.top = `${Math.max(12, Math.min(v.h - ht - 12, r.top))}px`;
 }
-const hideTip = () => { if (tipEl) tipEl.hidden = true; };
+export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 function equipment(api: GameApi, s: GameState): HTMLElement {
   hideTip(); // the panel is rebuilt on every change, so a card left open would point at nothing
@@ -280,10 +283,10 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
   }, w.label);
   // hover or keyboard focus shows the stats; the item's name opens the side panel like the table does
   const hover = (el: HTMLElement, it: InvItem) => {
-    el.addEventListener('pointerenter', () => showTip(s, it, el));
-    el.addEventListener('pointerleave', hideTip);
-    el.addEventListener('focusin', () => showTip(s, it, el));
-    el.addEventListener('focusout', hideTip);
+    el.addEventListener('pointerenter', () => tipOn(() => showTip(s, it, el)));
+    el.addEventListener('pointerleave', () => tipOff(hideTip));
+    el.addEventListener('focusin', () => tipOn(() => showTip(s, it, el), true));
+    el.addEventListener('focusout', () => tipOff(hideTip));
     return el;
   };
   const icon = (it: InvItem) => itemIcon(iconName(s, it.itemId), kindOf(it));
@@ -507,15 +510,16 @@ export function questsPage(api: GameApi) {
       for (const q of s.quests) { const root = questChain(s, q)[0].id; chains.set(root, [...(chains.get(root) ?? []), q]); }
       const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
         text: q.text, giver: cap(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
-        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${questLevelXp(q.level)} XP`, pay: payText(s, q),
-        due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: QUEST_STATE_NAME[q.state] },
-        ...(q.unpaid || !isOpen(q) ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(!isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
+        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${questLevelXp(q.level, xpToNext(s.player))} XP`, pay: payText(s, q),
+        due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: `${q.state === 'ready' ? '✓ ' : ''}${QUEST_STATE_NAME[q.state]}` }, // C7: a gold check when ready
+        ...(q.unpaid || !isOpen(q) || q.state === 'ready' ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(q.state === 'ready' ? { state: 'gold' as const } : !isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
       return [...chains.values()].map((qs) => {
         const rows = qs.map(row).sort((a, b) => (a.sortKey ?? 0) - (b.sortKey ?? 0) || natural(a.cells.text, b.cells.text));
         const last = rows[rows.length - 1];
         const givers = [...new Set(rows.map((r) => r.cells.giver))];
         return { id: `chain-${rows[0].id}`, title: rows[0].cells.text, rows, value: String(rows.length), unit: unitOf(rows.length, 'quest'), sub: '', how: '',
-          combined: { giver: givers.length === 1 ? givers[0] : 'Mixed', goal: last.cells.goal, pay: last.cells.pay, due: last.cells.due, state: last.cells.state } };
+          combined: { giver: givers.length === 1 ? givers[0] : 'Mixed', goal: last.cells.goal, pay: last.cells.pay, due: last.cells.due, state: last.cells.state },
+          ...(last.tones?.state ? { combinedTones: { state: last.tones.state } } : {}) };
       }).sort((a, b) => (a.rows[0].sortKey ?? 0) - (b.rows[0].sortKey ?? 0));
     },
     tiles: (s) => QUEST_STATES.filter((st) => s.quests.some((q) => q.state === st)).map((st) => {
@@ -546,7 +550,7 @@ export function questsPage(api: GameApi) {
     },
     line: (s) => {
       const done = s.quests.filter((q) => q.state === 'done');
-      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + questLevelXp(q.level), 0)} XP from quests`;
+      return `${plural(done.length, 'quest')} done · ${(s.player.progression?.xpLog ?? []).filter((x) => x.source.startsWith('quest:')).reduce((n, x) => n + x.amount, 0)} XP from quests`;
     },
   });
 }
@@ -572,11 +576,10 @@ export function achievementsPage(api: GameApi) {
     const views = chainViews(s, scars);
     const tags = (Object.keys(ACH_TAGS) as (keyof typeof ACH_TAGS)[]).filter((t) => views.some((v) => v.tag === t));
     const shown = views.filter((v) => visPass(v.tag, picks));
-    const xpAll = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + achXp(lib[a.key!], a.of), 0);
     const noun: [string, string] = scars ? ['scar chain', 'scar chains'] : ['chain', 'chains'];
     const onOpen = (id: string) => { for (const k of Object.keys(picks)) if (k !== id && picks[k] === 'shown') picks[k] = 'off'; if (picks[id] === 'out') picks[id] = 'off'; update(); document.getElementById('ach-' + id)?.scrollIntoView({ block: 'nearest' }); };
-    const tiles = tags.map((t) => { const vs = views.filter((v) => v.tag === t), xp = vs.reduce((n, v) => n + v.xp, 0);
-      return { id: t, label: ACH_TAGS[t], value: String(vs.length), unit: unitOf(vs.length, noun[0]), sub: `${xp} XP`, how: `${scars ? 'Scar' : 'Achievement'} chains of the ${ACH_TAGS[t]} section.` }; });
+    const tiles = tags.map((t) => { const vs = views.filter((v) => v.tag === t), held = vs.reduce((n, v) => n + v.rows, 0);
+      return { id: t, label: ACH_TAGS[t], value: String(vs.length), unit: unitOf(vs.length, noun[0]), sub: `${plural(held, 'level')} held`, how: `${scars ? 'Scar' : 'Achievement'} chains of the ${ACH_TAGS[t]} section.` }; });
     const detail = (v: ChainView) => () => openPanel(scars ? 'Scar' : 'Achievement', chainDetail(s, v.id, scars));
     el.replaceChildren(
       h('div', { class: 'pk-tabs', role: 'tablist' }, tab(false, 'Achievements'), tab(true, 'Scars')),
@@ -584,7 +587,7 @@ export function achievementsPage(api: GameApi) {
         ? 'What went wrong and left its mark on you. Same as /achievements.'
         : 'Deeds that earned you a name. Each chain is a thread: a tied knot for every level you hold, a loose one for the next. Open a chain to see its branches; click a name or a knot for the details. Same as /achievements.'))),
       h('div', { class: 'sec' }, tiles.length ? visTiles(tiles, picks, update, onOpen, how) : null,
-        h('p', { class: 'subline' }, scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, ${xpAll} XP` : `${xpAll} XP earned this way`), how),
+        scars ? h('p', { class: 'subline' }, plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')) : null, how),
       h('div', { class: 'sec' },
         h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), foldAll(shown, update)),
         views.length ? null : h('p', { class: 'empty' }, scars ? 'No scars yet.' : 'No achievements yet. Defeat foes, win fights, strike deals and explore.'),
@@ -606,7 +609,7 @@ export function achievementsPage(api: GameApi) {
 /** the chain an achievement belongs to, lowest level first: each row's `after` names the level below it */
 export const achievementChain = (key: string): string[] => chainRows(key);
 
-type ChainLine = { id: string; tag: string; name: string; level: string; next?: string; count: number; branches: number; xp: number; turn: number };
+type ChainLine = { id: string; tag: string; name: string; level: string; next?: string; count: number; branches: number; turn: number };
 /** a chain position in Roman numerals (1 to 39), as the sketch shows it: "III of IV" */
 const romanOf = (n: number): string => n < 1 || n > 39 ? String(n) : 'X'.repeat(Math.floor(n / 10)) + ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][n % 10];
 /** "III of IV": a held chain's place, its highest held row among all its rows */
@@ -628,7 +631,6 @@ function closestNext(s: GameState, branches: HeldChain[]): string {
 
 /** TB4: one line per chain head the player has started */
 export function chainLines(s: GameState, scars: boolean): ChainLine[] {
-  const lib = getLibrary().achievements ?? {};
   return [...heldChains(s, scars)].map(([id, chains]) => {
     const head = id.split(':')[0];
     const trunk = chains.find((c) => c.root === head);
@@ -641,8 +643,7 @@ export function chainLines(s: GameState, scars: boolean): ChainLine[] {
     const level = trunk ? `${placeText(trunk)}${kinds ? ` · ${plural(kinds, 'branch', 'branches')}` : ''}` : plural(new Set(chains.map((c) => c.root)).size, 'branch', 'branches');
     // BG-215: a finished trunk still has branches climbing, so Next shows the branch row closest to being earned
     const next = trunk?.next || !branches.length ? (trunk ? nextText(s, trunk) : '') : closestNext(s, branches);
-    return { id, tag: chainTag(head), name, level, ...(next ? { next } : {}), count: earned.length, branches: kinds,
-      xp: earned.reduce((n, m) => n + achXp(lib[m.key!], m.of), 0), turn: latest.turn };
+    return { id, tag: chainTag(head), name, level, ...(next ? { next } : {}), count: earned.length, branches: kinds, turn: latest.turn };
   });
 }
 
@@ -659,15 +660,13 @@ export function chainDetail(s: GameState, id: string, scars: boolean): PanelRow[
     const cur = earnedOf(s, trunk).find((m) => m.key === trunk.current)!;
     const info = achievementInfo(s, cur);
     rows.push({ k: 'How it is earned', v: cap(info.earnedAt) }, { k: 'You earned it', v: info.why },
-      { k: 'Reward', v: [`Level ${info.levelName} · ${info.xp} XP`, ...info.rewards].join(' · ') });
+      { k: 'Reward', v: [`Level ${info.levelName}`, ...info.rewards].join(' · ') });
     if (trunk.held.length > 1) rows.push({ k: 'Earlier', v: trunk.held.slice(0, -1).map((k) => `${achievementName(s, { id: '', key: k, ...(trunk.of ? { of: trunk.of } : {}) })} (${earnedAtText(s, lib[k], trunk.of)})`).join(' · ') });
   }
   for (const c of chains.filter((x) => x !== trunk)) {
     const cur = earnedOf(s, c).find((m) => m.key === c.current)!;
     rows.push({ k: `Branch · ${branchLabel(lib[c.root])}`, v: `${achievementName(s, cur)} · ${placeText(c)}${c.next ? ` · next: ${nextText(s, c)}` : ''}` });
   }
-  const earned = chains.flatMap((c) => earnedOf(s, c));
-  rows.push({ k: 'Chain XP', v: `${earned.reduce((n, m) => n + achXp(lib[m.key!], m.of), 0)} XP from ${plural(earned.length, 'row', 'rows')}` });
   return rows;
 }
 
@@ -725,7 +724,7 @@ export function journalPage(api: GameApi) {
   const opened = { people: new Set<string>(), places: new Set<string>(), time: new Set<string>() };
   const sorts = { people: { key: 'name', dir: 0 as 0 | 1 | -1 }, places: { key: 'name', dir: 0 as 0 | 1 | -1 }, time: { key: 'turn', dir: 0 as 0 | 1 | -1 } };
   const el = h('main');
-  const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, edit: k === key })), 'Written by the game as you play, so it is read-only here.');
+  const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, picked: k === key })));
   function update() {
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
@@ -753,13 +752,13 @@ export function journalPage(api: GameApi) {
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
       sec('People', `A label until you learn the name. Health shows only from ${HEALTH_LEVELS.name(CONFIG.HEALTH_SHOWN_FROM)} down. Heard of: names you have heard for people you have never met.`,
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
-          groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
+          groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet. People you meet are written here.' })),
       sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',
         groupedTable({ cols: [{ key: 'name', title: 'Place' }, { key: 'parent', title: 'Part of' }, { key: 'facts', title: 'What you know' }],
-          groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet.' })),
+          groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet. Places you visit or hear of are written here.' })),
       sec('Timeline', 'Turns played since this page was opened, oldest first.',
         groupedTable({ cols: [{ key: 'turn', title: 'Turn', right: true }, { key: 'did', title: 'You did' }, { key: 'happened', title: 'What happened' }],
-          groups: tGroups, open: opened.time, sort: sorts.time, onField: field('Turn'), redraw: update, emptyText: 'Nothing yet this session.' })));
+          groups: tGroups, open: opened.time, sort: sorts.time, onField: field('Turn'), redraw: update, emptyText: 'Nothing yet this session. Each turn you play is written here.' })));
   }
   return { el, update };
 }

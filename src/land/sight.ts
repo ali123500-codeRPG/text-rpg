@@ -7,6 +7,7 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { zoneById } from '../engine/relations';
 import { heightOf } from '../scenario/heights';
+import { middle, roofed } from '../plan/where';
 import { coverOf } from './generate';
 
 const cellsOf = (r: Region) => Math.round(r.size / r.cell);
@@ -73,8 +74,8 @@ export const landSightM = () => Math.max(...Object.values(CONFIG.SIGHT_M).flatMa
 /** WZ4: from outdoors, the player makes out the land around them; the cells join what their journal keeps */
 export function seeLand(state: GameState): void {
   const p = state.player, z = zoneById(state, p.zone);
-  if (!z?.outdoor || !state.regions?.length) return;
-  const at = p.pos ?? (z.rect ? { x: z.rect.x, y: z.rect.y } : undefined);
+  if (!z?.outline?.length || roofed(state, z) || !state.regions?.length) return;
+  const at = p.pos ?? middle(z);
   if (!at || !regionAt(state, at)) return;
   const range = landSightM(), world = state.regions;
   const j = (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });

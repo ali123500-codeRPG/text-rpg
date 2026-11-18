@@ -1,4 +1,6 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
+import { areaOf } from '../plan/geom';
+import { groundIn } from '../engine/ground';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, ContestResult, Cue, GameEvent, GameState, ItemInstance, Order, Rng, RollResult, Tier, TierRoll, Zone } from '../types';
 import { TIERS } from '../scales';
@@ -8,9 +10,10 @@ import { CONFIG } from '../config';
 import { now, secondsSince, timeOfDay, zoneLight } from '../time';
 import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
-import { beliefStatus, computePerception, inLookReach, perceptionOf, updateBeliefs } from '../perception';
+import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionOf, updateBeliefs } from '../perception';
+import { VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
-import { rollFnSkills } from '../ruleset/gear';
+import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
 import { distM, seeingM, withinGrip, withinM, type Located } from '../engine/position';
 import { hasPerk, meltAwayHere } from '../ruleset/perks';
@@ -23,6 +26,7 @@ import { contestFeat, matchedCritFeat, outmatchedOnce, type ActContest } from '.
 import { tally } from '../engine/xp';
 import { journalOf } from '../engine/trail';
 import { carriedContents } from '../engine/containers';
+import { pointedShift, spotted } from '../engine/ruses';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
@@ -68,7 +72,7 @@ export function switchRoutine(state: GameState, actor: Actor, routineId: string,
  * A second headTo on the way changes only where it is going. Returns false (logged) for a place not on the stage. */
 export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent' | 'weaver' | 'yield' = 'agent', lead?: string): boolean {
   const mind = actor.mind;
-  const onStage = state.stage.zoneIds.includes(dest) || state.zones.some((z) => state.stage.zoneIds.includes(z.id) && z.links.some((l) => l.frontier && l.to === dest));
+  const onStage = !!zoneById(state, dest) || state.openings.some((o) => o.frontier && o.joins[1] === dest);
   if (!mind || !onStage) {
     log(state, 'invalid_head_to', { actorId: actor.id, dest, by });
     return false;
@@ -98,7 +102,9 @@ export function headArrivals(state: GameState): void {
     const dest = m.slots?.dest;
     if ((Array.isArray(dest) ? dest[0] : dest) !== a.zone) continue;
     // BF4: leading someone, it waits there until they come or LEAD_WAIT_S pass
-    if (m.leading && actorById(state, m.leading.id)?.zone !== a.zone && secondsSince(state, m.leading.since ??= state.turn) < CONFIG.LEAD_WAIT_S) continue;
+    // BG-308: it waits until the one it leads is near enough to talk (hears a normal voice), not until it is in the same zone
+    const led = m.leading && actorById(state, m.leading.id);
+    if (m.leading && (!led || !hearsClearly(state, led, a, VOLUME_NOISE.normal)) && secondsSince(state, m.leading.since ??= state.turn) < CONFIG.LEAD_WAIT_S) continue;
     delete m.leading;
     if (m.headBack) m.routine = m.headBack;
     else delete m.routine;
@@ -220,14 +226,17 @@ const cueSense = (cue: Cue | undefined): Sense => (cue === 'sound' ? FN.hearing 
 /** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
  * (a Vanish in place, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
-function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean) {
+function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean, watcher?: Actor) {
   const zone = zoneById(state, s.zone);
   const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {};
-  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
+  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s, body: s, from: watcher }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */
-function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined) {
-  return { actorId: a.id, skill: SENSE_SKILL[sense], ...situational(state, fnRoller(state, a, sense), { light, actor: a }), rollKind: 'perception' as const, fn: sense };
+function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined, hider?: Actor) {
+  const sit = situational(state, fnRoller(state, a, sense), { light, actor: a });
+  // WN4 b: a hider an ally pointed out is easier to notice, once (the shift is spent by this roll)
+  const pointed = hider ? pointedShift(state, a, hider) : [];
+  return { actorId: a.id, skill: SENSE_SKILL[sense], ...sit, ...(pointed.length ? { tierShifts: [...(sit.tierShifts ?? []), ...pointed] } : {}), rollKind: 'perception' as const, fn: sense };
 }
 /** ST4/SE5: this turn's stealth contests, one per hider and watcher (`key`) */
 function contestedThisTurn(state: GameState): { turn: number; ids: string[] } {
@@ -256,11 +265,11 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const zone = zoneById(state, s.zone);
   const fade = event.kind === 'vanish'; // Strike and Fade
   const moved = event.kind === 'move';
-  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(zone.cover, zoneLight(state, zone)));
+  const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverShown(state, s, zone), zoneLight(state, zone, s.pos)));
   const still = fade || melt;
   const from: Located = { zone: event.fromZone ?? s.zone, pos: event.fromPos ?? s.pos };
-  const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, still);
-  const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone);
+  const mine = (sk: string, sense: Sense, a?: Actor) => hiderRoll(state, s, sk, sense, still, a);
+  const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone, s);
   // VS5: slipping away from a foe that is fighting you within VANISH_NEAR_M is harder (by distance, not weapon reach)
   const near = (a: Actor) => fightingWith(state, a, s) && withinM(distM(state, from, a), CONFIG.VANISH_NEAR_M);
   // one contest per observer per turn (ST4): later events of the turn are not tested again. BG-263: a shot (any attack while
@@ -278,7 +287,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     if (!seen) continue;
     const sense = cueSense(seen.cue);
     const skill = sees ? SK.vanishing : stealthSkill(s, event);
-    const roll = mine(skill, sense);
+    const roll = mine(skill, sense, a);
     if (sees && near(a)) roll.tierShifts = [...roll.tierShifts, { source: 'foe close by', value: CONFIG.VANISH_NEAR_SHIFT }];
     const r = ruleset.contested(roll, theirs(a, sense), state, rng);
     done.ids.push(key);
@@ -289,13 +298,13 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     markUse(state, s, skill, r); // ST8
     markUse(state, a, r.b.skill, r); // the watcher's sense learns too (only the player keeps marks)
     log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill, kind: event.kind, gap: r.gap });
-    if (r.gap > 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'aware', event });
+    if (r.gap > 0) { updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'aware', event }); spotted(a, s); } // WN8
     else if (sees) {
       if (r.gap >= 0) continue;
       // ST23: an observer with Unblinking who loses the Vanishing roll still needs beating with Sneaking or Combat Stealth
       if (hasPerk(a, PK.unblinking)) {
         const second = stealthSkill(s);
-        const r2 = ruleset.contested(mine(second, sense), theirs(a, sense), state, rng);
+        const r2 = ruleset.contested(mine(second, sense, a), theirs(a, sense), state, rng);
         contestFeat(state, r2, a.kind === 'player' ? [sense] : undefined);
         markUse(state, s, second, r2);
         markUse(state, a, r2.b.skill, r2);
@@ -321,7 +330,7 @@ function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean
   if (h.zone !== a.zone) return false;
   if (state.mode === 'tactical') return withinM(distM(state, a, h), area / CONFIG.SEARCH_M2_PER_FIGHT_M);
   const z = zoneById(state, a.zone);
-  return (z?.area ?? (z?.rect ? z.rect.w * z.rect.d : Infinity)) <= area || withinM(distM(state, a, h), Math.sqrt(area / Math.PI));
+  return (z?.outline?.length ? areaOf(z.outline) : Infinity) <= area || withinM(distM(state, a, h), Math.sqrt(area / Math.PI));
 }
 
 /** SE2 b, SE3, SE5, SE14, SE16: a search, by anyone, is a contest of the searcher's better sense after light against the
@@ -342,8 +351,8 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
   for (const h of allActors(state)) {
     if (h.id === a.id || h.posture !== 'stealthy' || h.bandId === a.bandId || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
     if (atLeast(beliefStatus(state, a, h), 'aware') || !reaches(h)) continue;
-    const w = watcherRoll(state, a, sense, zoneById(state, h.zone));
-    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true), opts.look ? { ...w, tierShifts: [...w.tierShifts, { source: 'look around', value: CONFIG.LOOK_SEARCH_SHIFT }] } : w, state, rng);
+    const w = watcherRoll(state, a, sense, zoneById(state, h.zone), h);
+    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), opts.look ? { ...w, tierShifts: [...w.tierShifts, { source: 'look around', value: CONFIG.LOOK_SEARCH_SHIFT }] } : w, state, rng);
     if (!done.ids.includes(pairKey(h, a))) done.ids.push(pairKey(h, a));
     contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
     if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: sense }); } // N3
@@ -351,7 +360,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     markUse(state, a, r.b.skill, r);
     log(state, 'search_contest', { actorId: a.id, hiderId: h.id, gap: r.gap, ...(opts.look ? { look: true } : {}) });
     const at = { ...event, zone: h.zone, ...(h.pos ? { pos: { ...h.pos } } : {}) };
-    if (r.gap > 0) { updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'aware', event: at }); won.push({ found: h, r }); }
+    if (r.gap > 0) { updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'aware', event: at }); spotted(a, h); won.push({ found: h, r }); } // WN8
     else if (r.gap === 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: h.id, status: 'suspicious', event: at });
   }
   return won;
@@ -377,7 +386,7 @@ const hiddenLevel = (i: ItemInstance): number => i.hiderSkill ?? tierSkill(i.hid
 export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollResult; found: ItemInstance[]; hint: boolean } {
   const z = zoneById(state, a.zone);
   const area = searchAreaM2(a, senseSkill(state, a, FN.sight));
-  const hidden = (z?.groundItems ?? []).filter((i) => hiddenFrom(i, a) && inSearch(state, a, { zone: a.zone, ...(i.at ? { pos: i.at } : {}) }, area));
+  const hidden = groundIn(state, a.zone).filter((i) => hiddenFrom(i, a) && inSearch(state, a, { zone: a.zone, ...(i.at ? { pos: i.at } : {}) }, area));
   if (!hidden.length) return { found: [], hint: false };
   const r = sightRoll(state, a, z, rng);
   const found = hidden.filter((i) => tierLevel(r) > tierLevel(i.hiddenAt!));

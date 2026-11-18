@@ -1,5 +1,5 @@
 // Agent I/O (Part 2: Parser, Planner, Responder, Voice, Narrator, Weaver) and the Claude-call boundary.
-import type { Cover, Grade, Light, Stance, Tactics } from './core';
+import type { Cover, Grade, Light, Stance } from './core';
 import type { GearOp } from './items';
 import type { DefenseKind } from './actor';
 import type { TimeOfDay } from '../scales';
@@ -54,6 +54,7 @@ export type Intent = {
   } | null;
   /** AE5/AE8: an owned perk move by perk id (a free one resolves beside the main action) */
   perkMove?: { perk: string; target: string | null } | null;
+  warn?: string | null; // WN9 a: a warning shouted to the player's allies about this foe (one of player.warnable)
   /** BA3/BA4: lock or unlock the way to toZone with a key, or slide its bar across or back; it takes the move slot */
   way?: { toZone: string; op: import('../engine/barriers').WayOp } | null;
   gear: GearOp[] | null;
@@ -65,6 +66,7 @@ export type Intent = {
   clarify: string | null;
   answers?: string[]; // BG-228: with a clarify, two or three replies the player might pick (shown as buttons that fill the box)
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
+  finish?: boolean; // IQ7 a: the player finishes a fight far below them (player.finishable) on code, in one turn
   standDown?: string | null; // TF11: the player takes the offer to stand down that this one made (player.standDownOffers)
   letsSearch?: string | null; // BF16: the one the player lets search them
   look?: 'stats' | 'inv'; // OA4: the player only looks at their own sheet or what they carry: no turn passes
@@ -139,6 +141,7 @@ export type PlannerOutput = {
   lead?: string | null; // BF4: who it takes along on that walk; it waits there for them
   goals?: GoalOps | null; // UG5: a goal holder's goals met, failed or added
   steps?: import('./hidden').GoalStep[] | null; // UG16: a goal holder's next steps, in order (replaces its queue)
+  perkMove?: { perk: string; target: string | null } | null; // TC49: one of self.perkMoves, as the player's
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {
@@ -186,24 +189,28 @@ export type StagePlan = {
     site?: string;
   }[];
   zones: {
-    key: string; place: string; kind: string; name: string; look: string;
-    cover?: Cover; light?: Light; // Z3: default from the kind
-    height?: number; // metres above the ground; inferred from up/down exit words when left out
+    key: string; place: string; kind?: string; name: string; look: string; // PZ9: a road has no kind
+    light?: Light; // PZ5: the light it is drawn lit to (a source at its middle); default from the kind
     size?: string; // CO16 a ZONE_SIZES word; the kind's default when left out
     area?: number; // CO16 m², instead of a size word
-    edges?: Partial<Record<import('./core').Side, string>>; // CO15 edge kind ids by side; the kind's default when left out
+    walls?: Partial<Record<import('./core').Side, string>>; // PZ2 a wall kind id (WK) by side, where it differs from the kind's
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     road?: string; // WZ1 a road zone: the region road it runs along (its length and danger come from the land)
+    node?: string; // WI2 a junction's zone: the land junction id (land.junctions) it is built at
+    sideWay?: { toward?: string; name?: string }; // RE8 a: on a road encounter, this zone opens a side way off the road: a path toward a site id or landmark name, or a short path of its own
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
-    links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];
+    /** PZ10, PZ14: the ways out: to a title key, a frontier key or a land id; kind open (a gap, seen through), door, window
+     * (only jumped down), up or down (stairs, a ladder: the title is a storey above or below); open outdoors, door indoors
+     * when left out */
+    ways: { to: string; label: string; kind?: import('./core').WayKind; barrier?: PlanBarrier }[];
   }[];
   /** brief (WB3): one short line for the World builder on what lies beyond */
   frontiers: { key: string; label: string; brief?: string }[];
   bands: {
     key: string; name: string; goals: string; temperament: string;
-    tactics: Tactics; lethal: boolean; relations: Record<string, Stance>;
+    lethal: boolean; relations: Record<string, Stance>;
     chase?: import('../scales').ChaseRange; // CH5
   }[];
   cast: {

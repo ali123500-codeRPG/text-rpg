@@ -39,10 +39,10 @@ describe('skill tree access', () => {
 
   it('a swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
     const p = swordsman();
-    expect(open(p)).toEqual([TR.armor, TR.defense, TR.fortitude, TR.medicine, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.trickery, TR.unarmed].sort());
+    expect(open(p)).toEqual([TR.armor, TR.defense, TR.fortitude, TR.medicine, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tactics, TR.tools, TR.trickery, TR.unarmed].sort());
     expect(treeBlock(p, TR.natural)).toMatch(/^Needs one of: Amorphous, Dragon, Dog, /); // AB16: every body and race with a natural attack
     const slime = spawnNpc(null, TP.slime, opts);
-    expect(open(slime)).toEqual([TR.defense, TR.fortitude, TR.natural, TR.perception, TR.stealth].sort()); // AB19: Scent, not Tremor
+    expect(open(slime)).toEqual([TR.defense, TR.fortitude, TR.natural, TR.perception, TR.stealth].sort()); // AB19: Scent, not Tremor; no Tactics (unintelligent)
     // Scent sits in Perception: a slime may smell, but has no eyes or ears; a human has no Scent
     expect([skillBlock(slime, SK.scent), skillBlock(slime, SK.eyesight), skillBlock(slime, SK.insight)]).toEqual(['', 'Blocked by: Amorphous', 'Blocked by: Amorphous']);
     expect(skillBlock(p, SK.scent)).toMatch(/^Needs one of: Slime, /);

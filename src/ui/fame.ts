@@ -42,7 +42,7 @@ export function famePage(api: GameApi) {
     h('p', { class: 'hs-note' }, `Fell on day ${c.day}, turn ${c.turn}, at ${c.place || 'an unknown place'}.`),
     h('p', { class: 'fame-cause' }, fellLine(c.downedBy, c.turn)),
     c.downedBy ? h('p', { class: 'hs-note' }, fellFacts(c.downedBy)) : '',
-    c.card ? list('Report card', [`Combat Power ${gradeLetter(c.card.combat)}`, `Achievements ${gradeLetter(c.card.achievements)}`, `Reputation ${gradeLetter(c.card.reputation)}`]) : '',
+    list('Report card', [`Combat Power ${gradeLetter(c.card.combat)}`, `Achievements ${gradeLetter(c.card.achievements)}`, `Reputation ${gradeLetter(c.card.reputation)}`]),
     sendRow(c)),
     h('div', { class: 'fame-had' }, c.skills.length ? h('div', { class: 'fame-list' }, h('p', { class: 'hs-label' }, 'Best skills'),
       h('p', {}, ...c.skills.map((s) => h('span', { class: 'hs-tg' }, `${s.name} ${s.value}`)))) : '',

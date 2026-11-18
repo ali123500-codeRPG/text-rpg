@@ -1,8 +1,9 @@
 // Part 3: total HP, health track, body parts, roles, hit table.
 import { RL } from '../library/tableIds';
 import { D100_MEAN } from '../rng';
-import type { Actor, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
+import type { Actor, AttackMode, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
 import { CONFIG } from '../config';
+import { armReachM } from '../library/bodySize';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { hasPerk } from './perks';
 import { skillOpen } from './access';
@@ -10,15 +11,28 @@ import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { moraleMods } from './morale';
 import { fatigueMods } from './fatigue';
-import { HEALTH_LEVELS, PART_STATES } from '../scales';
+import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { gripsOf } from './slots';
 import { cap } from '../words';
 
-export function totalHp(state: GameState, actor: Actor): number {
+/** the Strike parts a natural attack uses: one part, or either part of a pair (BV7 a) */
+export function attackParts(mode: AttackMode | undefined): readonly string[] {
+  return mode?.partIds ?? (mode?.partId ? [mode.partId] : []);
+}
+
+/** P2: one line of a figure's make-up, for the Character card's pop-ups: a part that adds, or a multiplier */
+export type FigPart = { label: string; adds?: number; times?: number };
+
+/** total HP; `parts`, when given, gets each line that makes it (base, Endurance, body, prefix) */
+export function totalHp(state: GameState, actor: Actor, parts?: FigPart[]): number {
   const end = actor.core.skills[SK.endurance];
   const raw = end && !end.dormant && skillOpen(actor, SK.endurance) ? end.raw : 0;
-  const prefix = actor.core.prefix ? getLibrary().prefixes?.[actor.core.prefix]?.hpMult ?? 1 : 1; // NR37: Dire x1.5
-  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * actorBody(state, actor).hpMultiplier * prefix;
+  const pre = actor.core.prefix ? getLibrary().prefixes?.[actor.core.prefix] : undefined;
+  const prefix = pre?.hpMult ?? 1; // NR37: Dire x1.5
+  const body = actorBody(state, actor);
+  parts?.push({ label: 'Base', adds: CONFIG.HP_BASE }, { label: `Endurance ${raw} × ${CONFIG.HP_PER_END}`, adds: CONFIG.HP_PER_END * raw },
+    ...(body.hpMultiplier !== 1 ? [{ label: `Body: ${body.name}`, times: body.hpMultiplier }] : []), ...(prefix !== 1 ? [{ label: pre?.name ?? 'Prefix', times: prefix }] : []));
+  return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * body.hpMultiplier * prefix;
 }
 
 export function healthLevel(actor: Actor): HealthLevel {
@@ -65,11 +79,13 @@ export function roleOff(state: GameState, actor: Actor, role: RoleId): boolean {
   return hurt >= CONFIG.SHARED_ROLE_OFF_PCT * parts.length - 1e-9; // weights like 1.2 add up with float error
 }
 
-/** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres, from its body
- * type); 0 with none, as an amorphous body */
-export function gripReachM(state: GameState, actor: Actor): number {
-  const parts = new Set(usableGrips(state, actor));
-  return Math.max(0, ...actorBody(state, actor).parts.filter((p) => parts.has(p.id)).map((p) => p.reachM ?? 0));
+/** FR2: how far the actor reaches to take or hand over something: its longest working grip part (metres past the body's
+ * edge, SZ5); 0 with none, as an amorphous body. An arm reaches by the body's size (SZ8); any other part by its body
+ * type's metres × the race's factor (SZ10). `anyPart`: every grip part counts, working or not (how far a blow reaches) */
+export function gripReachM(state: GameState, actor: Actor, anyPart = false): number {
+  const body = actorBody(state, actor);
+  const parts = new Set(anyPart ? body.parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id) : usableGrips(state, actor));
+  return Math.max(0, ...body.parts.filter((p) => parts.has(p.id)).map((p) => (p.arm ? armReachM(body.size) : (p.reachM ?? 0) * body.reachScale)));
 }
 
 /** the actor can speak: its race talks (tag 'speaks') and a part with the speech role is not Destroyed */
@@ -150,8 +166,8 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
         const pens = (held.length ? held : parts.map((p) => p.id)).map((id) => pen(id));
         v = held.length ? Math.min(...pens) : Math.max(...pens);
       } else if (role === RL.strike && ctx.itemId?.startsWith('natural:')) {
-        const partId = ct.naturalAttacks.find((m) => m.id === ctx.itemId!.slice(8))?.partId;
-        if (partId) v = pen(partId);
+        const ids = attackParts(ct.naturalAttacks.find((m) => m.id === ctx.itemId!.slice(8)));
+        if (ids.length) v = Math.max(...ids.map((id) => pen(id))); // BV7 a: a pair strikes with its better leg (penalties are negative)
       }
     }
     if (v) out.push({ source: `${lib.roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
@@ -192,3 +208,11 @@ export function adjacent(state: GameState, actor: Actor, a: string, b: string): 
   const parts = actorBody(state, actor).parts;
   return !!(parts.find((p) => p.id === a)?.adjacent?.includes(b) || parts.find((p) => p.id === b)?.adjacent?.includes(a));
 }
+
+/** NR34 (placeholders): the share of what is missing one Heal gives back at a Healing roll's tier level: CONFIG.HEAL_TIER_SHARE,
+ * plus HEAL_PAST_STEP per step past Critical Success (at most all of it); below Near Miss, nothing */
+export const healShare = (level: number): number => {
+  const top = TIERS.pos('critical_success');
+  if (level > top) return Math.min(1, CONFIG.HEAL_TIER_SHARE.critical_success + (level - top) * CONFIG.HEAL_PAST_STEP);
+  return CONFIG.HEAL_TIER_SHARE[TIERS.at(level)] ?? 0;
+};

@@ -1,17 +1,18 @@
-// SD3–SD5, BA3–BA7: barriers on ways (doors, gates, grates, hatches, rubble). One record per barrier, in
-// GameState.barriers; the links on both sides of the way name it by id. A shut barrier stops walking: a key opens a lock
+// SD3–SD5, BA3–BA7: barriers on ways (doors, gates, grates, hatches, shutters, rubble). One record per barrier, in
+// GameState.barriers; the way's opening names it by id (PZ2). A shut barrier stops walking: a key opens a lock
 // (BA3), the bolt's side draws a bar back (BA4), each in a move slot; rubble opens only by clearing it. Breaking any of
 // them (wear, material, thickness) belongs to the walls thread: a Destroyed barrier is open to all, a Crippled one lets an
 // amorphous body through (BA7). Guarded is a tag only (BA6).
-import type { Actor, Barrier, GameState, ZoneLink } from '../types';
+import type { Actor, Barrier, GameState } from '../types';
 import { getLibrary } from '../library';
 import { BT } from '../library/raceIds';
 
-export const barrierOn = (state: GameState, l: ZoneLink | undefined): Barrier | undefined => (l?.barrier ? state.barriers?.[l.barrier] : undefined);
+/** the barrier in a way (an opening, or a way read from one side) */
+export const barrierOn = (state: GameState, l: { barrier?: string } | undefined): Barrier | undefined => (l?.barrier ? state.barriers?.[l.barrier] : undefined);
 export const barrierName = (b: Barrier): string => getLibrary().barrierKinds?.[b.kind]?.name.toLowerCase() ?? 'barrier';
 
 /** broken through (the walls thread's wear): open to everyone */
-const broken = (b: Barrier) => b.state === 'destroyed';
+export const broken = (b: Barrier) => b.state === 'destroyed';
 /** BA7: a barrier broken to Crippled lets an amorphous body through */
 const squeezes = (b: Barrier, a: Actor) => b.state === 'crippled' && a.core.bodyTypeId === BT.amorphous;
 
@@ -35,8 +36,8 @@ export function passage(b: Barrier, a: Actor | undefined, from: string): Passage
   const barOk = !b.bar?.drawn || boltSide(b, from);
   return lockOk && barOk ? 'opens' : 'shut';
 }
-/** the passage of link `l` out of `from` for `a` ('open' when it has no barrier) */
-export const linkPassage = (state: GameState, l: ZoneLink, a: Actor | undefined, from: string): Passage => {
+/** the passage of way `l` out of `from` for `a` ('open' when it has no barrier) */
+export const linkPassage = (state: GameState, l: { barrier?: string }, a: Actor | undefined, from: string): Passage => {
   const b = barrierOn(state, l);
   return b ? passage(b, a, from) : 'open';
 };
@@ -68,6 +69,7 @@ export type WayOp = (typeof WAY_OPS)[number];
  * BG-70: opening it to stand open (its key turns and the bar on this side slides back with it) or shutting it again; a
  * way shut to `a` returns 'shut' (the caller lets them try it) */
 export function wayOp(b: Barrier, a: Actor, from: string, op: WayOp): string | null {
+  if ((op === 'open' || op === 'shut') && getLibrary().barrierKinds?.[b.kind]?.fixed) return 'fixed'; // PC4: a slit or bars
   if (op === 'open') {
     if (b.open || broken(b)) return 'already';
     if (passage(b, a, from) === 'shut') return 'shut';

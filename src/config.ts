@@ -1,8 +1,9 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
 import type { Past100Key, EffortKey, FatigueLevel, FragilityKey, GradeLevel, GrandeurKey, HealthLevelKey, MoraleLevel, NarrationBand, NarrationScale, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
-import { FN, GR } from './library/functionIds';
+import { FN, GR, RT } from './library/functionIds';
 import { SK } from './library/skillIds';
 import { ES } from './library/essenceIds';
+import { IT } from './library/itemIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
 // Read CONFIG at call time (tests may change a value and call resetConfig()).
@@ -79,6 +80,14 @@ const DEFAULTS = {
   POOL_QUALITY_FACTOR: 0.1,
   POTENTIAL: 300,
   K: 20,
+  /** D-374 TB1 (placeholders): how much of a skill's raw counts toward Burden's Total: 100 % less TAG_BURDEN_SELF_PCT for its
+   * own tag, less TAG_BURDEN_GROUP_PCT per tagged skill sharing a group with it (itself included). A lone tag counts 0; two tags
+   * in one group count below 0 and lower the Total */
+  TAG_BURDEN_SELF_PCT: 95,
+  TAG_BURDEN_GROUP_PCT: 5,
+  /** D-374 TB5 (placeholder): each tagged skill adds this share of its true skill to the improvement rolls of every other
+   * skill sharing a group with it (D-376: true skill or raw is checked at the balance pass) */
+  TAG_GROUP_ROLL_SHARE: 0.05,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
   /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (1: every mark;
@@ -86,25 +95,22 @@ const DEFAULTS = {
   MARK_STACK_EVERY: 1,
   /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
   SKILL_CAP: 100,
-  /** EG16: a tagged skill's cap is SKILL_CAP plus this */
-  TAG_CAP_BONUS: 25,
+  /** EG16: a tagged skill's cap is SKILL_CAP plus this (D-374 TB7: 25 -> 20, since the roll, not a hard limit, now ends training) */
+  TAG_CAP_BONUS: 20,
   /** a flawed skill's cap is SKILL_CAP minus this */
   FLAW_CAP_PENALTY: 25,
-  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder; with GROWTH_GAIN
-   * below, about 1.6 points a roll at raw 50) */
-  GROWTH_ROLL_NEEDED: 90,
-  /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
-  GROWTH_GAIN: { success: 2, great_success: 3, critical_success: 4 } as Partial<Record<Tier, number>>,
-  /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
-  GROWTH_GAIN_PAST_CRIT: 1,
-  /** SG2 a: natural edges (01–05, 96–100) do not move the improvement roll's tier: no skill grows from the die face
-   * alone (LF4) */
-  GROWTH_NATURAL_EDGES: false,
-  /** SG3 a: true = a skill's own cap (125 tagged, 75 flawed) is in the roll too, so the room left counts from it;
+  /** D-377 FC4 a (placeholder): each flawed skill adds this % to the Total share of every skill sharing a group with it,
+   * itself included (the mirror of TAG_BURDEN_GROUP_PCT) */
+  FLAW_BURDEN_GROUP_PCT: 5,
+  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden + group bonus) − this (placeholder). D-374 TB7: 100, so
+   * raw runs out at its cap (at raw = cap a natural 100 is margin 0, which gains nothing) */
+  GROWTH_ROLL_NEEDED: 100,
+  /** D-383 (placeholder): raw gained = margin ÷ this, rounded up; margin 0 or below gains nothing, so raw stops exactly where
+   * the roll runs out */
+  GROWTH_MARGIN_PER_POINT: 15,
+  /** SG3 a: true = a skill's own cap (120 tagged, 75 flawed) is in the roll too, so the room left counts from it;
    * false = every skill rolls against SKILL_CAP and only its stop moves */
   GROWTH_CAP_IN_ROLL: true,
-  /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
-  ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----
   HP_BASE: 50,
   HP_PER_END: 1,
@@ -187,17 +193,58 @@ const DEFAULTS = {
   PERK_MARK_ROUNDS: 2,
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
+  /** TC37 a: a projected aura (Battle Cry, later Rally) also reaches anyone within this × the owner's aura reach, heard or not */
+  PROJECTED_AURA_MULT: 2,
+  /** TC50 a: S3 feigned flight ends after this many seconds of game time with no lone follower (three fight turns) [placeholder] */
+  FEINT_S: 18,
+  /** TC41 a: Rallied, from any rally: this bonus on every roll for the rest of the fight; a second rally adds nothing */
+  RALLIED_MOD: 5,
+  /** TC43 a: a rally roll is the rallied one's morale check plus this share of the rallier's rallying skill (augment equation) [placeholder] */
+  RALLY_SHARE: 0.5,
+  /** TC55 a: a code-run NPC with Rally uses it when an ally it would reach is at this morale level or worse [placeholder] */
+  RALLY_AT: 'afraid' as MoraleLevel,
+  /** TC58 a: a code-run NPC plays dead (window open) when at this morale level or worse [placeholder] ... */
+  PLAY_DEAD_AT: 'afraid' as MoraleLevel,
+  /** ... or when this many foes or more are within one move of it [placeholder] */
+  PLAY_DEAD_FOES: 2,
   AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (placeholder); the aura skill sets it once RD9's formula is chosen (D-193)
   SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
   RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
-  HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile within HOSTILE_NEAR_M of the shooter (Point Blank removes it)
+  HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile near the shooter (HOSTILE_NEAR_STEP_M + its reach) (Point Blank removes it)
   /** BG-267, IC7 a: every reach check (withinM) allows this many metres past the reach for a step's rounding */
   REACH_MARGIN_M: 0.1,
-  HOSTILE_NEAR_M: 2, // RD5: close enough to strike or grab the shooter (a step and a blow)
-  LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
-  COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
+  /** SZ8: arm span (fingertip to fingertip) as a share of height; about 1 for people (placeholder). An arm reaches
+   * (height × this − width) ÷ 2 past the body's edge (library/bodySize armReachM), and a held weapon reaches that plus its length */
+  ARM_SPAN_SHARE: 1,
+  /** RD5, SZ19: a hostile is near the shooter (close enough to strike or grab) within this step plus its own melee reach,
+   * between bodies: a knife 1.7 m, a longsword 2.3 m, a horse's kick 2.6 m. The step is the far end of Hall's personal distance */
+  HOSTILE_NEAR_STEP_M: 0.75,
+  /** LT1 (placeholders): each LIGHT level's light in lux (Wikipedia "Lux": overcast day 1,000; living room 50; civil
+   * twilight ends at 3.4; full moon 0.05-0.3; moonless clear night 0.002; a shut cellar 0) */
+  LIGHT_LUX: { bright: 1000, lamplit: 50, dim: 3, moonlit: 0.2, dark: 0.002, black: 0 } as Record<string, number>,
+  /** LT2: a sight roll takes −LIGHT_DECADE_MOD for each tenfold drop below FULL_SIGHT_LUX (the eye works on a log scale) */
+  LIGHT_DECADE_MOD: 5,
+  FULL_SIGHT_LUX: 50,
+  /** LT2 (placeholder, open question): the lux a roll in pitch black reads, so its modifier stays a number (an overcast
+   * moonless night, 0.0001 lux: −28); in pitch black nothing is seen at all (perception) */
+  LIGHT_FLOOR_LUX: 0.0001,
+  /** the rules that once read "dark" (sight at most partial, a still figure only half seen) hold from this level down */
+  DARK_FROM: 'moonlit' as string,
+  /** CV1 (placeholders): the share of a standing person each COVER level hides from a shooter (D&D 5e SRD half and
+   * three-quarters cover; light and dense added at either end) */
+  COVER_HIDDEN: { none: 0, light: 0.25, some: 0.5, heavy: 0.75, dense: 0.875 } as Record<string, number>,
+  /** CV6, CV7 (placeholder): a shot loses, and a hide gains, this much for each halving of what shows of the body: the step
+   * AIM_PENALTY takes between big, normal and small parts, each half the hit weight of the last */
+  COVER_HALVING_MOD: 10,
+  /** PC2: a viewer's eye stands this share of its body's height above its floor (eye height ÷ stature, ANSUR II) */
+  EYE_SHARE: 0.94,
+  /** PC2: hiding with nobody in particular to hide from, a piece of furniture this near the body (metres, floor gap) hides
+   * its own height (placeholder) */
+  OBJECT_COVER_M: 1,
+  /** CV8 b: Past the Cover counts the target as showing 2^this times as much (two halvings back) */
+  PAST_THE_COVER_HALVINGS: 2,
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
   /** BG-251: how loud a missile's impact is where it lands: on armour, a shield or a hard surface like an axe biting wood
@@ -244,13 +291,16 @@ const DEFAULTS = {
   SEARCH_M2_PER_FIGHT_M: 120,
   /** SE14 b: Look around is also a search against anyone hiding in its range, this many tiers down */
   LOOK_SEARCH_SHIFT: -1,
+  WARNED_SHIFT: 2, // WN3: tiers on an answer to a lie (Insight) by one that knows the trick (saw through it, or was warned)
+  POINTED_SHIFT: 1, // WN4 b (placeholder): tiers on the next notice or search roll at a hidden foe an ally pointed out
+  POINTED_TURNS: 6, // WN4 b (placeholder, = DECAY_TURNS): how long a pointed-out spot stays fresh
   /** SE25: what an item search learns against when no one did the hiding (a Weaver-hidden item, concealed gear): a
    * hidden-at tier counts as this skill at Success, and this much more for each tier step above it (less below, never under 0) */
   HIDDEN_TIER_SUCCESS_SKILL: 50,
   HIDDEN_TIER_SKILL_STEP: 25,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
-   * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
-   * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
+   * light adds sign × lightMod(the light where the action is) to the roll; cover is sign × coverMod (CV6, CV7: what shows of
+   * the body there) on the roll. A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
   SITUATION_TAGS: { light: { sight: 1, stealth: -1 }, cover: { hide: 1, ranged: -1 } } as Record<'light' | 'cover', Partial<Record<import('./types').SituationTag, number>>>,
   // ---- morale bar (MB1–MB43; placeholders) ----
   /** max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (MB29), like HP from Endurance */
@@ -268,7 +318,7 @@ const DEFAULTS = {
   IDEA_AGAINST_NATURE: 50,
   /** AD9 the suggested action: base score of each kind of suggestion (higher wins); leanShare: points per point of the
    * character's pull toward it; healInFight: taken off treating wounds while a fight runs. [placeholder] */
-  SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
+  SUGGEST: { broken: 100, offer: 90, heldOut: 80, steady: 55, heal: 50, healInFight: 15, attack: 60, inReach: 10, finish: 65, walking: 45, loot: 40, newGround: 30, quest: 35, look: 10, leanShare: 0.1 },
   /** AD9: the morale level from which steadying is suggested in a fight, and the health level from which treating wounds is */
   SUGGEST_STEADY_FROM: 'rattled' as import('./scales').MoraleLevel,
   SUGGEST_HEAL_FROM: 'hurt' as import('./scales').HealthLevelKey,
@@ -308,7 +358,7 @@ const DEFAULTS = {
   MORALE_BEYOND_CF: 0.5,
   /** MB9: share of max morale back when an actor's engagement ends */
   MORALE_ENGAGEMENT_END_PCT: 25,
-  /** a single loss of this % of max morale or more marks the player's Resolve (like ENDURANCE_MARK_PCT) */
+  /** a single loss of this % of max morale or more marks the player's Resolve */
   RESOLVE_MARK_PCT: 10,
   /** others' morale shows (as words) from this level down (MB16), like HEALTH_SHOWN_FROM */
   MORALE_SHOWN_FROM: 'afraid' as MoraleLevel,
@@ -358,7 +408,7 @@ const DEFAULTS = {
   /** FT9: a sleep lasts until the long-term bar is clear, within these hours, or until a named time */
   SLEEP_MIN_HOURS: 1,
   /** SH1/SH2/SH4: a 120 perk adds HIGH_PERK_SHARE × its skill's true skill to that skill (instead of +5), and HIGH_PERK_SPREAD × it
-   * to every skill sharing a group (beside the +1). Placeholders */
+   * to every skill sharing a group (in place of the 40 and 80 perks' +1). Placeholders */
   HIGH_PERK_SHARE: 0.05,
   HIGH_PERK_SPREAD: 0.01,
   /** Stamina perks and sleep quirks (SS1-SS14). All placeholders */
@@ -411,13 +461,13 @@ const DEFAULTS = {
   /** BG-231: a wait until someone appears stops after this many hours if no one comes */
   WAIT_SOMEONE_MAX_H: 8,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
-  SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
+  SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'moonlit', night: 'moonlit' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys); LT3: one flat night level until moon phases (parked)
   // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN
   WAKE_NOISE: 'loud' as import('./scales').NoiseKey, // NW18: a sound this loud or louder wakes a sleeper who hears it (a shout is loud)
   WAKE_CONTACT: ['attack'] as string[], // NW14: a blow wakes the one it is aimed at, hit or miss
   /** NW19: the difficulty of a light sleeper's hearing check against someone moving openly, by their noise (louder is easier) */
   WAKE_GRADE: { faint: 'extreme', hushed: 'major', quiet: 'moderate', murmur: 'minor', normal: 'none', raised: 'none', loud: 'none', blaring: 'none', deafening: 'none' } as Record<string, import('./scales').GradeLevel>,
-  BED_NEAR_HOPS: 2, // BF68: a real bed this many zone links or fewer from one's own spots is one's bed when none was given (placeholder)
+  BED_NEAR_M: 30, // BF68, BG-303: a real bed this many metres or less away by the walking path from one's own spots is one's bed when none was given (placeholder: about across a house and up its stairs)
   FALL_ASLEEP_MIN: 30, // NW20: an NPC woken falls asleep again by its routine no sooner than this
   NIGHT_MAX_MIN: 12 * 60, // NW22 b: a night shared out in watches lasts at most 12 hours
   SLEEP_STEP_MIN: 10, // NW12: a sleep is stepped this many minutes at a time, to stop when someone hostile arrives
@@ -460,6 +510,8 @@ const DEFAULTS = {
   GRADE_ACH_XP: { rank_0: 0, rank_1: 100, rank_2: 300, rank_3: 1000, rank_4: 3000, rank_5: 10000, rank_6: 30000, rank_7: 100000, rank_transcendent: 300000, rank_8: 1000000 } as Record<string, number>,
   GRADE_KNOWN_BY: { rank_0: 0, rank_1: 1, rank_2: 3, rank_3: 10, rank_4: 30, rank_5: 100, rank_6: 300, rank_7: 1000, rank_transcendent: 3000, rank_8: 10000 } as Record<string, number>,
   GRADE_BEYOND_MULT: 3,
+  /** TC4 a: the Planner's tactics word comes from the NPC's own Battle Sense: the last word whose value it reaches (placeholders; past 100 parked, D-370) */
+  TACTICS_FROM: { simple: 0, competent: 35, cunning: 65 } as Record<import('./types').Tactics, number>,
   /** NG2: a role's bands as shares of the rank's anchor */
   ROLE_BAND_SHARE: { high: 1, moderate: 0.8, low: 0.6 },
   /** NG2: one lever over every NPC's skills at once (it took over from points per level) */
@@ -489,6 +541,7 @@ const DEFAULTS = {
   START_LEVEL: 4, // EQ13: a Start's level when its row names none (every Start names 1 today)
   CREATION_MAX_UNTAGGED: 30, // the most points one untagged skill can take at creation
   CREATION_MAX_TAGGED: 40, // the most points one tagged skill can take at creation
+  CREATION_MAX_FLAWED: 20, // FC3: the most points one flawed skill can take at creation
   // Character age (AG1–AG22; placeholders)
   YEAR_DAYS: 365, // AG2: game days in a year; age = (today − birth day) ÷ YEAR_DAYS
   AGE_PLUS_NUMBER_FROM: 4, // AG7: from this many steps past the last life stage the name reads "Ancient +4" instead of "Ancient++++"
@@ -502,6 +555,7 @@ const DEFAULTS = {
   TALENT_BEYOND_MULT: 0.5,
   NPC_TALENT_DEFAULT: 'talent_2' as import('./scales').TalentKey, // AG24, AG25: Able, a real professional's pace, when neither the preset nor its theme names one
   CREATION_TAGS: 3,
+  CREATION_FLAWS: 3, // FC1: one flaw per tag, required
   STARTING_COIN: 20,
   // Trade (D-93, PY4–PY10; placeholders): price = base × MARKUP × haggle × Hard Bargain, rounded up, at least 1
   TRADE_MARKUP: 2,
@@ -551,7 +605,10 @@ const DEFAULTS = {
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 9, // v9: land (regions, WZ12): older saves end; v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key; v8: held items in 'grip:' slots
+  SCHEMA_VERSION: 10, // v10: titles and the floor plan (PZ16 b); v9: land (regions, WZ12)
+  /** MG2: a save older than this is refused (the prototype keeps no old saves, D-116); OLDEST_SAVE_REASON ends "this save was made …" */
+  OLDEST_SAVE_SCHEMA: 10,
+  OLDEST_SAVE_REASON: 'before zones became titles on a floor plan (walls, doors and light at points)',
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 5,
   /** AX1/AX2: an accessory's bonus = this × EQUIP_NEED of its level: Common 5, Fine 10, Superior 15, Masterwork 20 */
@@ -560,6 +617,8 @@ const DEFAULTS = {
   SUSPECT_ASK_TURNS: 3,
   /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
   ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
+  /** MD1 (D-368): the flat soak grows with weight: reduction = ARMOR_FACTOR × need × this (placeholders) */
+  ARMOR_WEIGHT_SOAK: { light: 1, medium: 1.5, heavy: 2 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs (placeholders); IR3: past Masterwork (100) the task grade steps, Divine 400 */
   EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100, ...PAST_100 } as Record<string, number>,
   /** IR3: each step past Divine (Divine+, Divine++ …) needs this much more true skill (placeholder) */
@@ -689,6 +748,9 @@ const DEFAULTS = {
   /** ZR12: how far past the edge of the scenario's ground, by the walking path, a pursuer with chase range near follows the
    * player before it turns back (placeholder: about a village street or two; a game number, not a real-world reference) */
   CHASE_NEAR_M: 200,
+  /** WI8 a, BG-305: a planner's or NPC agent's view holds the zones within this many metres of where it looks, by the walking
+   * path (placeholder: about a village street or two, as CHASE_NEAR_M) */
+  PLAN_VIEW_M: 200,
   IMPROVISED_HIT_ADJ: -10,
   /** RD7 worn armor's slowing by weight: flat m/s off the body type's speeds, then a share off what is left (an armor item's
    * own `speed` overrides). Placeholders: no study gives speed loss directly; heavy is about a fifth, as asked */
@@ -732,7 +794,7 @@ const DEFAULTS = {
   /** TV3 a road's width in metres: a cart track or Roman road, about 4 m (Roman viae ran about 4 to 6 m with the verges) */
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
-  ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
+  ROAD_ENCOUNTER_PCT: { safe: 5, quiet: 10, wild: 20, dangerous: 35 } as Record<string, number>, // RE3: per hour on a road (placeholders)
   /** NR21 a: rank weights (RANKS keys) for rostered people. crowd: a crowd person the player picks out (made a Commoner then);
    * face: services, traders, the watch and people in need; lead: leaders and rivals, one step up; threat: by settlement size
    * (hamlet and village up to Elite, town up to Paragon, city and court up to Beyond); seat: the seat of the Great's lowest rank
@@ -762,21 +824,31 @@ const DEFAULTS = {
   TRAVEL_STRAIN_PER_HOUR: 1,
   LONG_TURN_LINES: 5, // BF2e4: a long turn's summary names at most this many people; the rest are "others came and went"
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
+  OUTCLASS_EACH: 0.25, // IQ6 a: a fight is far below the player when each foe's power (defeat XP rating + gear) is at most this share of the player's (placeholder)
+  OUTCLASS_ALL: 1, // IQ6 a: ...and all the foes' power together is at most this share of the player's (placeholder)
+  FINISH_MAX_ROUNDS: 60, // IQ4: a finished fight (Finish the fight) plays at most this many rounds on code in one turn
+  SIDE_WAY_M: 800, // RE8: a side way an encounter opens with no landmark or settlement to lead to ends this far off the road (placeholder)
   TRAVEL_LEG_MIN: 60,
   TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn
   /** TV4/TV5 pressing on in the dark: the event roll's modifier and the encounter chance's multiplier (placeholders) */
   NIGHT_TRAVEL_EVENT_MOD: -15,
   NIGHT_ENCOUNTER_MULT: 2,
-  /** TV4 how far ahead on the road an encounter stands when it starts: D&D's encounter distance in a forest, 2d6 × 10 ft
-   * (about 21 m on average) */
-  ENCOUNTER_M: 20,
-  /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
-   * personal distance (Hall's proxemics, 0.45–1.2 m) */
-  PLACE_SPACING_M: 1, // BF71: arm's length: the grid code places people on, how far a walk up to someone stops, and a step in from a door
-  PLACE_GAP_M: 0.2, // BF71: the room a walk's end keeps from everyone but the one it closes in on
+  /** RE6: an encounter starts where its people are first glimpsed standing still: this visibility's glimpse range in the
+   * sight table (CONFIG.SIGHT_M low: 60 m), the one sight rule; dark makes them only half seen, hiders use their stealth */
+  ENCOUNTER_VISIBILITY: 'low' as import('./scales').VisibilityKey,
+  /** ZP1, SZ19: how far apart code places people in a zone when nothing says where they stand, between their bodies: arm's
+   * length, the far end of Hall's close personal distance (0.45–0.75 m) */
+  PLACE_SPACING_M: 0.75, // BF71: the grid code places people on, how far a walk up to someone stops
+  PLACE_GAP_M: 0.15, // BF71, SZ19: the room a walk's end keeps from everyone but the one it closes in on (Hall: intimate distance starts at 0.15 m)
   RING_STEPS: 24, // BF71: the spots round someone a walk closing in on them tries when the straight-line spot is taken
+  /** SZ7: a doorway, width × height in metres: a house door about 0.9 × 2 m (interior doors are commonly 0.8–0.9 m by
+   * 2.0 m). Every way into or out of an indoor zone with no barrier of its own has it; ways between outdoor zones have none */
+  DOORWAY_M: [0.9, 2] as [number, number],
+  /** SZ7: a body passes an opening when the narrower of its length and width fits the width (it turns sideways) and its
+   * height ducked to this share fits the height; ducking takes no extra time. Crawling lower is parked (D-369) */
+  DUCK_SHARE: 0.5,
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
-   * wall or a way out stops this far inside it */
+   * wall or a way out stops this far inside it. SZ19: measured to the body's near edge, so a whole horse stands inside */
   ENTER_M: 1,
   /** BF35 following someone: the distance kept when none is said, sneaking or not (real metres: a tail stays back, a
    * companion keeps close), and at range how much of the weapon's reach is used (a little margin inside it) */
@@ -850,7 +922,30 @@ const DEFAULTS = {
   /** FL5: stance steps colder when caught: the owner, and every other watcher who caught it */
   FILCH_CAUGHT_OWNER_STEPS: 2,
   FILCH_CAUGHT_WITNESS_STEPS: 1,
-  STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
+  STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs: a title up or down a way of kind up or down sits this far above or below (PZ7)
+  // ---- PZ1-PZ17 titles and the floor plan (src/plan); placeholders unless a source is given ----
+  /** PZ1 a: how high a title under the open sky reaches above its floor (its space's top), so the smallest space wins */
+  OPEN_AIR_TOP_M: 30,
+  /** PZ2: a low wall or counter, and a fence or rail, stand this high above their floor (a bar counter is about 1.1 m) */
+  LOW_WALL_M: 1.1,
+  FENCE_M: 1.2,
+  /** PZ2: a wall's thickness in metres when drawn by a template (a timber-framed wall of wattle and daub, about 0.15 to
+   * 0.3 m; an estimate); its material is left out until the walls thread breaks walls (BW1) */
+  WALL_THICKNESS_M: 0.25,
+  /** PZ2: an open way (an arch, a counter's gap) cut across a wall is this wide, or the wall's length if shorter */
+  ARCH_M: 2,
+  /** PZ8: a walk round a wall's end keeps this far from the corner (a little more than half a person's width) */
+  CORNER_CLEAR_M: 0.4,
+  /** PZ5: a title's lights hang this far below its top indoors; outdoors a lamp stands this high (a lamp post) */
+  LIGHT_BELOW_TOP_M: 0.5,
+  LIGHT_POST_M: 2.5,
+  /** PZ12 a: the Map's fog in the open where no land lies under it is kept in squares this many metres across (1 m under a
+   * roof); fog chunks are FOG_CHUNK squares a side; each turn the player's eye marks the squares it sees within FOG_ROOF_M
+   * under a roof and FOG_OPEN_M in the open */
+  FOG_OPEN_SQUARE_M: 10,
+  FOG_CHUNK: 32,
+  FOG_ROOF_M: 30,
+  FOG_OPEN_M: 200,
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");
    * a knife 7 (the longest standard distance in
@@ -873,6 +968,8 @@ const DEFAULTS = {
   CLASS_MAX_LEVEL: 20,
   /** CB5: Late Bloom gives the double improvement roll to a skill whose raw is below this share of the owner's highest raw skill (placeholder) */
   LATE_BLOOM_SHARE: 0.5,
+  /** UL1: Any Road Will Do adds this to the stand-in share of every function (placeholder) */
+  UL_STAND_IN_ADD: 0.2,
   /** CS11: a ladder perk milestone every this many points of true skill, and an All step every ALL_STEP_EVERY, with no top */
   PERK_MILESTONE_EVERY: 20,
   ALL_STEP_EVERY: 50,
@@ -887,16 +984,40 @@ const DEFAULTS = {
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
-  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter', [GR.medicine]: 'half' } as Record<string, string>,
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full', [GR.stamina]: 'quarter', [GR.medicine]: 'half', [GR.tactics]: 'half' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
   /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
   SKILL_RATING_AT_50: 23.1,
   SKILL_RATING_POWER: 2,
-  /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
-  GEAR_RATING_FACTOR: 0.25,
+  /** GR1: in a skill group's pool the worths count highest first at 1, then × this each step (½, ¼…) */
+  RATING_SHARE_STEP: 0.5,
+  /** GR10, GR36: compound ratings, each pooling the skills of these groups (a skill once, even when it names two) */
+  RATINGS: { [RT.melee_strength]: [GR.melee, GR.health], [RT.ranged_strength]: [GR.ranged, GR.health], [RT.toughness]: [GR.health, GR.defense],
+    [RT.agility]: [GR.speed, GR.stealth], [RT.presence]: [GR.influence, GR.will], [RT.senses]: [GR.notice] } as Record<string, string[]>,
+  /** GR11: an action that needs strength takes the best kind × its share (placeholders) */
+  STRENGTH_KINDS: { break: { [RT.melee_strength]: 1, [RT.ranged_strength]: 0.5 } } as Record<string, Record<string, number>>,
+  /** GR26: breaking free of a hold, both sides add this × their Melee strength (Grapple left out of its pool) to the Grapple roll (placeholder) */
+  STRENGTH_HOLD_SHARE: 0.5,
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (xpToReach) */
   LEVEL_RATING_SHARE: 0.02,
   DEFEAT_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
+  // PLACEHOLDER: the combat rating's fight model (src/engine/fightModel.ts). An actor's combat level is the level of the
+  // reference fighter it fights evenly; every number below is a placeholder until the model is redone.
+  /** extra tier bands each way the model's rolls reach (balance models count tiers with no end) */
+  MODEL_TIER_REACH: 40,
+  /** the reference fighter: a human with these skills all at the level, holding and wearing this kit, standing in this defense */
+  MODEL_REF_SKILLS: [SK.melee_medium, SK.parry, SK.endurance, SK.medium_armor, SK.resolve, SK.battle_sense] as string[],
+  /** GR40: its kit are relics of these pieces whose requirement is the level itself (every stat that scales with need follows) */
+  MODEL_REF_KIT: [IT.arming_sword, IT.mail_hauberk] as string[],
+  MODEL_REF_DEFENSE: 'parry' as DefenseKind,
+  /** GR34, GR42: the XP rating's non-combat groups and how each one's share of an equal fight is worked out
+   * (engine/nonCombat.ts): slip past or filch unseen, catch a sneaker, talk a fight down, heal */
+  NONCOMBAT_SHARES: { [GR.stealth]: 'slip', [GR.notice]: 'catch', [GR.sleight]: 'slip', [GR.medicine]: 'heal', [GR.influence]: 'talk_down' } as Record<string, import('./engine/nonCombat').ShareRule>,
+  /** the matched-level search: its first upper guess (doubled until the actor no longer fights evenly), its ceiling, and
+   * how narrow (levels) its bracket gets before it stops */
+  MODEL_LEVEL_FIRST: 64,
+  MODEL_LEVEL_TOP: 1000,
+  MODEL_LEVEL_TOL: 0.05,
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on, its own step growing with its place (BG-256: I = +5, II = +15, III = +30), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,
@@ -922,6 +1043,10 @@ const DEFAULTS = {
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), one equation for achievements and quests with no top:
    * XP = base × ((p + shift) ÷ div)^power, p = the level's place (0 = level 0, I = 1, −1 = −1); read through rewardXp */
   REWARD_XP_CURVE: { base: 50, shift: 2, div: 2, power: 3 },
+  /** AL1-AL8: every reward also pays a share of the earner's XP to the next level, in the same equation:
+   * + (floor + (atI − floor) × max(0, p)^power) × xpToNext. Level I pays atI, VI about 30%; level 0 and below (scars there
+   * too) pay the floor; power under 2 (weaker than squared). All placeholders. */
+  ACH_LEVEL_SHARE: { floor: 0.005, atI: 0.02, power: 1.67 },
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
   /** a quest pays the XP of the achievement reward level this many places above its own (quest 0 = achievement II) */

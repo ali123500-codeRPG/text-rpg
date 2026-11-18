@@ -16,7 +16,8 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status';
+/** rating: a rating riding on a roll (GR26: Strength on a Grapple roll to break free or hold on) */
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status' | 'rating';
 /** pct: a wound's % of the average roll that `value` came from (PW5 a) */
 export type Mod = { source: string; type: ModType; value: number; pct?: number };
 export type TierShift = { source: string; value: number };
@@ -55,6 +56,8 @@ export type RollRequest = {
   blend?: { skill: string; share: number }[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
+  /** an attack roll's kind (melee or ranged, by the attack mode), for perks whose numbers work with one kind (PerkDef.numbersForAttack) */
+  attackKind?: import('./library').AttackKind;
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
   against?: string;
   /** a roll made as one side of a contest: tier unlocks for roll 'contest' apply (D-292) */
@@ -172,6 +175,7 @@ export type Order = {
   jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
   way?: { toZone: string; op: import('../engine/barriers').WayOp }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
+  warn?: string; // WN1/WN6 a: a warning shouted (or cried) about this foe, beside the action, at no time (engine/warnings.ts)
   targetPart?: string | null;
   aimed?: boolean;
   defense?: DefenseKind | null;
@@ -184,6 +188,7 @@ export type Order = {
   activity?: string; // routine idle/move activity
   addressees?: string[];
   triggerId?: string;
+  rule?: string; // D-17: the FIGHT_RULES row (FX id) a code-run NPC's order comes from; counted once used this engagement
 };
 
 export type { GameEvent };

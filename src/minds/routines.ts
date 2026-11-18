@@ -3,7 +3,9 @@ import type { ActorView, MapZone, Order, OrderTemplate, Routine, Rng } from '../
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
-import { AWARENESS, type TimeOfDay } from '../scales';
+import { AWARENESS, HEALTH_LEVELS, type TimeOfDay } from '../scales';
+import { FIGHT_RULES } from '../library/fightRules';
+import { FX } from '../library/tableIds';
 import { routine as getRoutine } from '../library';
 
 /** BG-34: the follow routine any NPC may switch to when it agrees to come along with the player, whatever its set */
@@ -154,14 +156,14 @@ function hostileBeliefs(view: ActorView) {
   return view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && b.status !== 'unaware');
 }
 /** BF37/BF79: what a broken nerve blocks: any attack, grab, filch or perk move, except the perk moves in
- * NERVE_ALLOWED_PERK_MOVES (Battle Cry: a broken one can still roar), and any walk toward a foe (the walk itself is judged
+ * NERVE_ALLOWED_PERK_MOVES (Battle Cry: a broken one can still roar; Play Dead), and any walk toward a foe (the walk itself is judged
  * where it runs: engine/nerve.ts walksAway). A walk or run away is allowed. Talking, begging, persuading, lying, yielding,
  * giving, using an item, picking up and unlocking or opening a door or container within reach still work. At Cowering (below
  * Broken) the walks go too (NERVE_MOVES). */
 export const NERVE_BLOCKED: readonly string[] = ['attack', 'filch', 'restrain'];
 /** BF79: the order types that are only a walk: allowed while broken (away only), blocked at Cowering */
 export const NERVE_MOVES: readonly string[] = ['move', 'flee'];
-export const NERVE_ALLOWED_PERK_MOVES: readonly string[] = [PK.battle_cry];
+export const NERVE_ALLOWED_PERK_MOVES: readonly string[] = [PK.battle_cry, PK.play_dead]; // TC58 a: a broken one can still play dead
 const NOTHING_CHOSEN: readonly string[] = ['idle', 'hold', 'wait'];
 /** BF37: the cowering order: no move and no action, only words */
 export const cowerOrder = (actorId: string, source: Order['source']): Order => ({ actorId, type: 'idle', target: null, skill: null, intent: 'cower', source, activity: 'cowering' });
@@ -192,6 +194,9 @@ const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b
 export function fleeOrder(view: ActorView, source: Order['source']): Order {
   const cower = () => cowerOrder(view.self.id, source);
   if (view.self.cowering) return cower();
+  // TC36 c Fall Back on Me: it runs to the owner instead of away
+  const back = view.self.fallBackTo;
+  if (back) return order(view, 'idle', source, `fall back on ${back.id}`, { move: back.zone, moveSpot: { near: back.id } });
   const here = view.self.zone;
   const threats = fleeFrom(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
   // toward its exit or refuge, unless that way runs into a foe's zone
@@ -220,6 +225,8 @@ export function fleeOrder(view: ActorView, source: Order['source']): Order {
 /** BF79: what a broken NPC does with its order: nerveHolds; with nothing allowed left and no walk away, it flees (fleeOrder),
  * keeping its words, gear and a way within reach */
 export function brokenHolds(view: ActorView, o: Order): Order {
+  // TC58/TC59 a: dropping to play dead, or lying still while it does, is a still hold a broken nerve keeps
+  if (o.type === 'hold' && !o.move && (o.perkMove?.perk === PK.play_dead || (view.self.playingDead && !o.perkMove))) return o;
   const { order: held } = nerveHolds(o, !!view.self.cowering);
   if (held.intent !== 'cower' || held.move) return held;
   const run = fleeOrder(view, o.source);
@@ -231,18 +238,68 @@ export function brokenOrder(view: ActorView): Order {
   return view.self.surrendered ? order(view, 'hold', 'broken', 'hold') : fleeOrder(view, 'broken');
 }
 
+/** TC23 a S2: no foe in sight now, so it believes none sees it: it sneaks one way toward the foe it would close in on
+ * (the same pick and chase limit as close in), so its first blow can come from hiding */
+function stalkOrder(view: ActorView, rule: string): Order | null {
+  const s = view.self, seen = new Set((view.seen ?? []).map((x) => x.id));
+  const hunted = hostileBeliefs(view).filter((b) => b.hostile && b.lastKnownZone); // a spar is never stalked
+  if (hunted.some((b) => seen.has(b.about))) return null;
+  const recent = hunted.filter((b) => !b.lost).sort((a, b) => (b.lastSeenTurn ?? -1) - (a.lastSeenTurn ?? -1) || a.about.localeCompare(b.about))[0];
+  if (!recent || recent.lastKnownZone === s.zone) return null;
+  const path = mapPath(view.map, s.zone, recent.lastKnownZone!);
+  return path && (!s.chaseZones || s.chaseZones.includes(path[0])) ? order(view, 'sneak', 'fallback', `steal up on ${recent.about}`, { target: path[0], rule }) : null;
+}
+
+/** D-17 (TC17, TC23): the first FIGHT_RULES row the NPC may use whose situation holds, as an order; null when none fires.
+ * B4 counts Wounded or worse as hurt. */
+export function tacticsOrder(view: ActorView): Order | null {
+  const t = view.tactics;
+  if (!t) return null;
+  const s = view.self;
+  const strike = (target: string, rule: string) => order(view, 'attack', 'fallback', 'attack', { target, skill: s.attackSkill, targetPart: null, aimed: false, rule });
+  // S3 (TC50 a): a feint under way comes before every other row: turn on the lone believer, else keep running
+  if (t.turnOn) return strike(t.turnOn, FX.feigned_flight);
+  if (t.feint === 'run') return { ...fleeOrder(view, 'fallback'), rule: FX.feigned_flight };
+  for (const r of FIGHT_RULES) {
+    if (!t.rows.includes(r.id)) continue;
+    if (r.id === FX.call_help && t.outnumbered && !t.calledHelp) return order(view, 'call_help', 'fallback', 'call for help', { rule: r.id });
+    if (r.id === FX.gang_up && t.allyFoe) return strike(t.allyFoe, r.id);
+    if (r.id === FX.back_off && t.outnumbered && t.freeAlly && HEALTH_LEVELS.pos(s.health) >= HEALTH_LEVELS.pos('wounded'))
+      return order(view, 'idle', 'fallback', `back off toward ${t.freeAlly.id}`, { move: t.freeAlly.zone, moveSpot: { near: t.freeAlly.id }, rule: r.id });
+    if (r.id === FX.draw_into_pack && t.drawTo) return order(view, 'idle', 'fallback', `fall back toward ${t.drawTo.id}`, { move: t.drawTo.zone, moveSpot: { near: t.drawTo.id }, rule: r.id });
+    if (r.id === FX.strike_from_hiding) { const o = stalkOrder(view, r.id); if (o) return o; }
+    const walk = r.id === FX.out_of_sight ? t.outOfSight : r.id === FX.into_cover ? t.intoCover : r.id === FX.into_dark ? t.intoDark : undefined;
+    if (walk) return order(view, 'idle', 'fallback', r.name.toLowerCase(), { move: walk.zone, moveSpot: { near: walk.via }, rule: r.id });
+    if (r.id === FX.finish_hurt && t.hurtFoe) return strike(t.hurtFoe, r.id);
+    if (r.id === FX.feigned_flight && t.feint === 'start') return { ...fleeOrder(view, 'fallback'), rule: r.id };
+  }
+  return null;
+}
+
+/** the code-run fight list: broken first, then the NPC's skilled rows (D-17, tacticsOrder), then attack, close in,
+ * search and hold. B3 Ready the shield goes beside whatever it chose: shot at, it draws the stowed shield too (a free gear
+ * op before the action) */
 export function fallbackOrder(view: ActorView, rng: Rng): Order {
+  const o = fightList(view, rng);
+  const sh = view.tactics?.readyShield;
+  return sh && !view.self.broken && !view.self.surrendered ? { ...o, gear: [...(o.gear ?? []), { op: 'draw', item: sh }] } : o;
+}
+
+function fightList(view: ActorView, rng: Rng): Order {
   const s = view.self;
   // 1. Broken: flee, or cower when cornered (BF79); surrendered: hold
   if (s.surrendered) return order(view, 'hold', 'fallback', 'hold');
   if (s.broken) return fleeOrder(view, 'fallback');
   // ZR12: a code-run pursuer at the end of its near chase range turns back
   if (s.atChaseLine && hostileBeliefs(view).some((b) => !b.lost)) return routineOrder(view);
+  const row = tacticsOrder(view);
+  if (row) return row;
   // 2. Attack
-  const here = view.beliefs
-    .filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
-    .map((b) => b.about)
-    .sort();
+  // BG-306: the foes it knows of that a move and a blow reach this turn, else the foes it sees (an attack closes in and runs
+  // on, BG-255); never "in my zone"
+  const foes = view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware'));
+  const near = foes.filter((b) => s.withinStrike?.includes(b.about));
+  const here = (near.length ? near : foes.filter((b) => view.seen?.some((x) => x.id === b.about))).map((b) => b.about).sort();
   if (here.length) {
     const target = s.lastHitBy && here.includes(s.lastHitBy) ? s.lastHitBy
       : here.includes('player') ? 'player'

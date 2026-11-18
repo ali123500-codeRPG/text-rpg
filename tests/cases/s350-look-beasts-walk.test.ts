@@ -10,6 +10,7 @@ import { deck } from '../../src/ui/deck';
 import { lookAround, noteSightings } from '../../src/perception';
 import { makeOut } from '../../src/engine/makeOut';
 import type { GameEvent } from '../../src/types';
+import { setTitleLight } from '../../src/plan/draw';
 
 const targets = (s: ReturnType<typeof makeVillage>, kind: string): string[] => {
   const step = deck({ pv: buildPlayerView(s), s }).flatMap((g) => g.actions).find((a) => a.kind === kind)?.steps[0];
@@ -19,7 +20,7 @@ const targets = (s: ReturnType<typeof makeVillage>, kind: string): string[] => {
 it('BG-279: a good look keeps a moving slime seen for the rest of the turn', () => {
   const s = makeVillage({ playerZone: 'gate_inner', without: ['slime_2'] });
   s.clocks.time = CONFIG.TIME_OF_DAY_FROM.night;
-  for (const z of s.zones) z.light = 'dark';
+  for (const z of s.zones) setTitleLight(s, z, 'dark');
   beside(s, 'slime_1', 'player', 4);
   expect(buildPlayerView(s).actors.find((a) => a.id === 'slime_1')?.level).toBe('partial');
   expect(lookAround(s)).toContain('slime_1');

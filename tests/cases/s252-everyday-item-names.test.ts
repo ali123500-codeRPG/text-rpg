@@ -9,10 +9,11 @@ import { zoneById } from '../../src/engine/relations';
 import { buildLeakContext, leakScan } from '../../src/agents/narration';
 import { buildNarrationView } from '../../src/views';
 import { IT } from '../../src/library/itemIds';
+import { layAll } from '../harness';
 
 it('a catalog item lying elsewhere is an everyday noun, a story-made one is still a name', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
-  zoneById(s, 'tav_cellar')!.groundItems.push({ id: 'box', itemId: IT.chest }, { id: 'odd', itemId: 'bp_idol' });
+  layAll(s, 'tav_cellar', { id: 'box', itemId: IT.chest }, { id: 'odd', itemId: 'bp_idol' });
   s.blueprints.push({ kind: 'item', id: 'bp_idol', data: { id: 'bp_idol', kind: 'misc', name: 'the jade idol', look: 'a jade idol', bulk: 0, value: 50 } } as never);
   const ctx = buildLeakContext(s);
   expect(leakScan('You set your chest against the door.', '{}', ctx)).toEqual([]);

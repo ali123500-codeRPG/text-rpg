@@ -9,7 +9,6 @@ import type { NarrationScale, QuestRewardLevel, TimeOfDay } from '../scales';
 export type Pending = { turn: number; mode: Mode; engaged: string[]; fired: string[] };
 
 export type StageInfo = {
-  zoneIds: string[];
   tier: Tier;
   /** steps the scenario's event roll went past its Critical tier (an achievement opened them) */
   tierBeyond?: number;
@@ -23,10 +22,12 @@ export type StageInfo = {
   /** P7: set by the engine; the director starts a new scenario after this turn (knocked_out: D-54, the player wakes somewhere
    * safe; scenario_end: one of the scenario's endings was met, SC7). Rest, sleep and time skips never end a scenario (SC4, SC9). */
   breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scenario_end' | 'roam';
-  /** SC1/SC2/SC7: the scenario's question, scale and endings (absent before the first scenario, or on an old save) */
+  /** SC1/SC2/SC7: the scenario's question, scale and endings (absent before the first scenario) */
   scenario?: import('./hidden').ScenarioFrame;
   /** SC4: the bigger scenario (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
   outer?: import('./hidden').ScenarioFrame;
+  /** RE7: the scenario a road encounter set aside inside `outer`; it carries on when the encounter ends */
+  paused?: import('./hidden').ScenarioFrame;
   /** SC7/SC13: an ending that was met, waiting for a clear turn (no fight, chase or talk) before it ends the scenario */
   ending?: { as: import('./hidden').ScenarioEnding; text: string; outer?: true; turn: number; roam?: true };
   /** SC10: how the scenario that just ended ended, set with breakCause and recorded when the next one begins */
@@ -58,9 +59,9 @@ export type StageInfo = {
   checkinDue?: import('./hidden').CheckinReason;
   /** SC8: the turn a beat (a quiet_turns trigger) last fired */
   beatTurn?: number;
-  /** TV4: an encounter on the road: its event roll (the next scenario's tier), whether the player saw it coming (TV8), and
-   * where on the road it stands; cleared at the start of the next turn */
-  encounter?: { eventRoll: import('./ruleset').EventRollResult; noticed: boolean; zone: string; at: { x: number; y: number } };
+  /** TV4: an encounter on the road: its event roll (the next scenario's tier) and where on the road it stands (RE6: first
+   * glimpsed); cleared at the start of the next turn */
+  encounter?: { eventRoll: import('./ruleset').EventRollResult; zone: string; at: { x: number; y: number } };
   /** OQ-27 (c): the NPC the player last spoke with this scenario (sticky dialogue partner) */
   partner?: string;
 };
@@ -116,7 +117,17 @@ export type GameState = {
   storyId: StoryId;
   turn: number;
   mode: Mode;
-  zones: Zone[]; // the stage: same objects as in places[].zones
+  zones: Zone[]; // WI8 a: every built title in the world, the same objects as in places[].zones
+  /** PZ2, PZ5 (src/plan): the floor plan of every built place: walls, openings (the ways), roofs and light sources; each
+   * record names its place (placeId), and is saved on that place's plan page */
+  walls: import('./core').Wall[];
+  openings: import('./core').Opening[];
+  roofs: import('./core').Roof[];
+  lights: import('./core').LightSource[];
+  /** FR1, PZ1: furniture at points */
+  furniture: import('./core').Furniture[];
+  /** PZ11: items lying on the ground, each at a point and floor (at) */
+  ground: import('./items').ItemInstance[];
   player: Actor;
   actors: Actor[]; // NPCs and enemies (never the player)
   bands: Band[];
@@ -137,7 +148,6 @@ export type GameState = {
   clocks: Record<string, number>;
   /** AT15: game minutes each recent turn ended, by turn (time.ts turnTime): timers count game time from turn stamps */
   turnEnds?: Record<number, number>;
-  flags: Record<string, string | number | boolean>;
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   yielding?: PlayerYield; // MB40: cleared when the scenario ends
@@ -156,7 +166,6 @@ export type GameState = {
   recentEvents?: GameEvent[];
 };
 
-export type LibraryMeta = { libraryVersion: number; status: Record<LibraryRef, EntryStatus> };
 export type EntryStatus =
   | { state: 'active' }
   | { state: 'renamed'; to: LibraryRef }
@@ -188,8 +197,8 @@ export type FameEntry = {
   perks: string[]; achievements: string[]; scars: string[];
   defeats: number; turn: number; day: number; place: string;
   downedBy?: import('./game').DownedBy;
-  /** TS1: the report card, a rank key per line (letters come from GRADE_LETTERS); absent on entries from before it */
-  card?: { combat: string; achievements: string; reputation: string };
+  /** TS1: the report card, a rank key per line (letters come from GRADE_LETTERS) */
+  card: { combat: string; achievements: string; reputation: string };
   fellAt: string; // ISO time the story was archived
 };
 export type StoryOwner = 'player' | 'agent';
@@ -214,7 +223,6 @@ export type EnginePage = {
   stage: StageInfo;
   scenarioCaps: { promotions: number; minted: number };
   clocks: Record<string, number>;
-  flags: Record<string, string | number | boolean>;
   bands: Band[];
   quests: Quest[];
   spars?: Spar[];
@@ -223,7 +231,7 @@ export type EnginePage = {
   mercy?: PlayerMercy;
   barriers?: Record<string, import('./core').Barrier>;
   turnEnds?: Record<number, number>;
-  /** NPC view history (GameState.recentEvents); absent in older saves */
+  /** NPC view history (GameState.recentEvents) */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */
   order?: { actors: string[]; places: string[]; regions?: string[] };
@@ -264,6 +272,10 @@ export type StoryFact = {
   promotedTo: PlaceId[];
 };
 export type FactsPage = { storyId: StoryId; placeId: PlaceId; facts: StoryFact[] };
+/** PZ16: one place's floor plan (plan.<placeId>): its walls, openings, roofs, lights and furniture */
+export type PlanPage = { storyId: StoryId; placeId: PlaceId; walls: import('./core').Wall[]; openings: import('./core').Opening[]; roofs: import('./core').Roof[]; lights: import('./core').LightSource[]; furniture: import('./core').Furniture[] };
+/** PZ11: what lies on the ground anywhere (ground) */
+export type GroundPage = { storyId: StoryId; items: import('./items').ItemInstance[] };
 
 export type TurnRecord = {
   storyId: StoryId;
@@ -279,8 +291,6 @@ export type TurnRecord = {
   aimed?: boolean;
   /** the story's opening (scenario setup alone); a carried-on world's story opens after the world's last turn (HF26) */
   opening?: true;
-  /** save schema the record was written under (absent before v5) */
-  schemaVersion?: number;
 };
 
 export type { ActorId };

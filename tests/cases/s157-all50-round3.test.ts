@@ -57,7 +57,7 @@ describe('157 All-50 round 3', () => {
     skill(s.player, SK.vanishing, 20);
     const before = effectiveSkill(s, s.player, SK.vanishing).value;
     give(s.player, PK.misdirection);
-    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Lying (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
+    expect(augmentsOf(s.player, SK.vanishing)).toContainEqual({ source: 'Falsehood (augments, Misdirection)', value: 40 * CONFIG.MISDIRECTION_SHARE });
     expect(effectiveSkill(s, s.player, SK.vanishing).value).toBeCloseTo(before + 40 * CONFIG.MISDIRECTION_SHARE, 9);
     expect(augmentsOf(s.player, SK.lying)).toEqual([]); // one way only
   });
@@ -147,5 +147,5 @@ describe('157 All-50 round 3', () => {
       expect(npc(s, 'patron_1').mind!.knowledge.player?.status).not.toBe('unaware'); // the target at least suspects the shooter's zone
     }
     expect(faded).toBeGreaterThan(0);
-  });
+  }, 20000); // twenty fresh villages; the player with and without the perk, the patron and the guard each get a combat level worked out afresh
 });

@@ -1,7 +1,8 @@
 // Library access. Lookup order: the story's blueprints first, then the library (Part 4 §2), following aliases.
-import type { ActivityDef, Actor, BodyType, GameState, ItemDef, Library, NaturalArmor, NpcTemplate, RaceDef, Routine, RoutineSet } from '../types';
+import type { ActivityDef, Actor, BodySize, BodyType, GameState, ItemDef, Library, NaturalArmor, NpcTemplate, RaceDef, Routine, RoutineSet } from '../types';
 import { prototypeLibrary } from './data';
-import { RC } from './raceIds';
+import { BT, RC } from './raceIds';
+import { volumeM3 } from './bodySize';
 
 let current: Library = prototypeLibrary();
 export function getLibrary(): Library {
@@ -44,7 +45,22 @@ export function bodyType(state: GameState | null | undefined, id: string): BodyT
 }
 /** BR3/BR5: an actor's shape merged with its race: the shape's attacks plus the race's, the race's speed (AB1), natural armor
  * and fallback skill (else the shape's), and the race's HP multiplier (BR2; 1 with no race). */
-export type ActorBody = BodyType & { hpMultiplier: number; speed: RaceDef['speed']; naturalArmor?: NaturalArmor };
+export type ActorBody = BodyType & { hpMultiplier: number; speed: RaceDef['speed']; naturalArmor?: NaturalArmor; size: BodySize; reachScale: number };
+/** SZ18: an actor's volume in m³ (its size's box: length × width × height), for perks and achievements to read */
+export const actorVolumeM3 = (state: GameState, a: Actor): number => volumeM3(actorBody(state, a).size);
+/** SZ1, SZ15: an actor's size in metres, the one place it is worked out: its body type's size (a story body type without one
+ * is the Humanoid's) × its race's factors per measure */
+export function sizeOf(b: BodyType, r: RaceDef | undefined): BodySize {
+  const s = b.size ?? current.bodyTypes[BT.humanoid].size!, m = r?.sizeMult;
+  return m ? { lengthM: s.lengthM * m.length, widthM: s.widthM * m.width, heightM: s.heightM * m.height } : s;
+}
+/** SZ10: how much farther the shape's own parts reach for this race: its factor on the shape's longest measure (height for
+ * an upright body, length for a beast) */
+function reachScaleOf(b: BodyType, r: RaceDef | undefined): number {
+  const s = b.size ?? current.bodyTypes[BT.humanoid].size!, m = r?.sizeMult;
+  if (!m) return 1;
+  return s.heightM >= Math.max(s.lengthM, s.widthM) ? m.height : s.lengthM >= s.widthM ? m.length : m.width;
+}
 export function race(id: string): RaceDef {
   const r = current.races?.[resolveAlias(id)];
   if (!r) throw new Error(`unknown race ${id}`);
@@ -59,8 +75,15 @@ export function actorBody(state: GameState | null | undefined, actor: Actor): Ac
     fallback: r?.fallback ?? b.fallback,
     speed: (r ?? race(RC.human)).speed, // an actor with no race moves as a person
     hpMultiplier: r?.hpMultiplier ?? 1,
+    size: sizeOf(b, r), reachScale: reachScaleOf(b, r),
     ...(r?.naturalArmor ? { naturalArmor: r.naturalArmor } : {}),
   };
+}
+/** BV3 a: the size a race's own figure is drawn at (its body type's size × the race's factors), before anything that
+ * changes one being's size; the figure stretches each measure by the being's size over this */
+export function raceSize(bodyTypeId: string, raceId: string | undefined): BodySize {
+  const r = raceId ? current.races?.[resolveAlias(raceId)] : undefined;
+  return sizeOf(bodyType(null, bodyTypeId), r);
 }
 export function npcTemplate(state: GameState | null | undefined, id: string): NpcTemplate {
   const d = blueprint<NpcTemplate>(state, 'npcTemplate', id) ?? current.templates[resolveAlias(id)];

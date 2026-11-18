@@ -23,7 +23,7 @@ import type { Actor, Quest, RollResult } from '../../src/types';
 import { rewardXp, rewardXpAt } from '../../src/ruleset/achRewards';
 import { poolState } from '../../src/ruleset/body';
 import { accSlot, gripSlot, gripsOf, isHeld, isWorn } from '../../src/ruleset/slots';
-import { xpFill } from '../../src/engine/xp';
+import { xpFill, xpToNext } from '../../src/engine/xp';
 import { questXp } from '../../src/engine/quests';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../../src/scales';
 import { perkPointAt, perkPointsUpTo } from '../../src/ruleset/levels';
@@ -31,8 +31,7 @@ import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { PUSH_TYPES, speechSkill } from '../../src/engine/speech';
 import { SPEECH_ACTIONS } from '../../src/types';
-import { edgeFacing, reachesOver } from '../../src/scenario/geometry';
-import { EK, RV, ZK } from '../../src/library/tableIds';
+import { RV, ZK } from '../../src/library/tableIds';
 import { recoverDebt } from '../../src/engine/fatigue';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import type { Zone } from '../../src/types';
@@ -240,7 +239,7 @@ describe('leftover scan round 5', () => {
 
 describe('answers CS15 to CS17', () => {
   it('CS15: one equation gives every reward level its XP, with no top; only achRewards reads it', () => {
-    expect(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'vi', 'x', 'xv'].map(rewardXp)).toEqual([6, 50, 169, 400, 781, 1350, 3200, 10800, 30706]);
+    expect(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'vi', 'x', 'xv'].map((k) => rewardXp(k))).toEqual([6, 50, 169, 400, 781, 1350, 3200, 10800, 30706]);
     expect(rewardXpAt(20)).toBeGreaterThan(rewardXpAt(15)); // past XV it keeps growing
     const readers = files('src').filter((f) => f !== 'src/config.ts' && /CONFIG\.REWARD_XP_CURVE/.test(readFileSync(f, 'utf8') as string));
     expect(readers).toEqual(['src/ruleset/achRewards.ts']);
@@ -249,9 +248,9 @@ describe('answers CS15 to CS17', () => {
     const s = makeVillage();
     for (const level of QUEST_REWARD_LEVELS.keys) {
       const q = { level, goal: { kind: 'deliver' } } as unknown as Quest;
-      expect(questXp(s, q)).toBe(rewardXp(REWARD_LEVELS.at(REWARD_LEVELS.pos(level) + 2)));
+      expect(questXp(s, q)).toBe(rewardXp(REWARD_LEVELS.at(REWARD_LEVELS.pos(level) + 2), xpToNext(s.player))); // AL4: the level share too
     }
-    expect(questXp(s, { level: 'zero', goal: { kind: 'deliver' } } as unknown as Quest)).toBe(rewardXp('ii'));
+    expect(questXp(s, { level: 'zero', goal: { kind: 'deliver' } } as unknown as Quest)).toBe(rewardXp('ii', xpToNext(s.player)));
   });
   it('CS17: items and attack modes count grips, never hands', () => {
     const offenders = files('src').filter((f) => /([{,]|^)\s*hands\??:|\.hands\b|'hands'/m.test(readFileSync(f, 'utf8') as string));
@@ -403,12 +402,8 @@ describe('leftover scan round 9', () => {
 
 describe('leftover scan round 10', () => {
   const read = (f: string) => readFileSync(f, 'utf8') as string;
-  it('one edge rule: an unnamed side is its zone kind\'s default edge, for sound and for reaching over alike', () => {
-    const z = (id: string, x: number, kind: string, edges?: Zone['edges']) => ({ id, kind, rect: { x, y: 0, w: 4, d: 4 }, links: [], ...(edges ? { edges } : {}) }) as unknown as Zone;
-    const room = z('a', 0, ZK.room), yard = z('b', 4, ZK.yard), bar = z('c', 0, ZK.room, { e: EK.low });
-    expect([edgeFacing(room, yard), edgeFacing(yard, room), edgeFacing(bar, yard)]).toEqual([EK.wall, EK.open, EK.low]);
-    const kinds = getLibrary().edgeKinds ?? {};
-    expect([reachesOver(room, yard, kinds), reachesOver(bar, yard, kinds)]).toEqual([false, true]);
+  it('one edge rule: a side is a wall on the floor plan, for sound and for reaching over alike (PZ2 replaced edge kinds)', () => {
+    expect(getLibrary()).not.toHaveProperty('edgeKinds');
     expect(read('src/perception/noise.ts')).not.toMatch(/zoneKinds\?\.\[z\.kind\]\?\.edge/);
     expect(read('src/scenario/geometry.ts').match(/const chain = \(id/g)).toBeNull();
   });
@@ -429,7 +424,7 @@ describe('leftover scan round 10', () => {
   it('the Stacking tab names noise, attention and light by their scale names', () => {
     const v = (src: string) => MOD_SOURCES.find((m) => m.source === src)!.value;
     expect(v('Waking')).toMatch(/^Faint /);
-    expect(v('Light')).toMatch(/dim -5/);
+    expect(v('Light')).toMatch(/dim -6/);
     expect(MOD_SOURCES.some((m) => m.source === 'Travel pace')).toBe(false); // SR5: one travel pace
   });
   it('no literal durations in motion, one walk chip, one plural, packet words used as they come', () => {

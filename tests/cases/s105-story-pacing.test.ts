@@ -65,7 +65,7 @@ describe('105 Story pacing', () => {
     s.stage.breakCause = 'story_beat';
     s.stage.quiet = 5;
     const scenario = s.stage.scenarioNumber;
-    const client = new ScriptedClaude().push('weaver', { ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [] });
+    const client = new ScriptedClaude().push('weaver', { ...villageStagePlan('success'), places: [], zones: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [] });
     const clock = new VirtualClock();
     await createDirector(clock).afterResolve(s, [], createRng(1), { client, clock, turn: s.turn, log: () => {} });
     expect(client.callsFor('weaver')).toHaveLength(1);

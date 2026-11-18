@@ -12,7 +12,8 @@ import { actorBody, getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
-import { power, tally } from './xp';
+import { fightPower, tally } from './xp';
+import { markFightSurvived } from './tacticsMarks';
 import { HEALTH_LEVELS, TIERS } from '../scales';
 import { tierLevel } from '../ruleset';
 import { seeingM } from './position';
@@ -23,6 +24,11 @@ export function turnFeats(state: GameState, events: GameEvent[]): void {
   if (!pr) return;
   const seen = (pr.zonesSeen ??= []);
   if (!seen.includes(p.zone)) { seen.push(p.zone); tally(state, 'zones', { to: seen.length }); }
+  // PZ17: new ground, each land cell (REGION_CELL_M square on the world's grid) the player stands in, counted once
+  if (p.pos) {
+    const cell = `${Math.floor(p.pos.x / CONFIG.REGION_CELL_M)}:${Math.floor(p.pos.y / CONFIG.REGION_CELL_M)}`, cells = (pr.cellsStood ??= []);
+    if (!cells.includes(cell)) { cells.push(cell); tally(state, 'ground', { to: cells.length }); }
+  }
   placeFeats(state);
   tally(state, 'days', { to: dayOf(now(state)) - 1 });
   logFight(state, events);
@@ -173,9 +179,9 @@ function logFight(state: GameState, events: GameEvent[]): void {
   if (HEALTH_LEVELS.pos(healthLevel(p)) >= HEALTH_LEVELS.pos('critical')) f.brink = true;
   if (isBrokenLevel(moraleLevel(p))) f.broke = true;
   // D-177: the strongest hostile foe, against the player's own power (the same power defeat XP uses)
-  const mine = power(state, p);
+  const mine = fightPower(state, p); // GR44: the powers taken when each joined the fight
   for (const x of foes.filter((y) => hostile(state, y, p))) {
-    const gap = power(state, x) - mine;
+    const gap = fightPower(state, x) - mine;
     f.above = Math.max(f.above ?? gap, gap);
     if (mine > 0) f.abovePct = Math.max(f.abovePct ?? -100, (gap / mine) * 100);
   }
@@ -204,6 +210,7 @@ export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = 
   const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !countsInFight(x); });
   const lost = !!(f.down || f.broke || yieldTaken(state) || !isActive(state.player));
   strongerFoe(state, f, won && !lost);
+  markFightSurvived(state, f); // TC6 b, TC15 a: the Tactics skills learn from a fight survived
   // your nerve broke and the fight was won all the same; it still counts as a lost fight below (MB12), as going Down does
   if (won && f.broke && f.foes.length && isActive(state.player) && !yieldTaken(state)) tally(state, 'won_broken');
   if (lost) return tally(state, 'defeated');

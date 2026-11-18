@@ -67,7 +67,7 @@ export function wakeCheck(state: GameState, sleeper: Actor, other: Actor, noise:
     const skill = stealthSkill(other);
     const zone = zoneById(state, other.zone);
     const r = ruleset.contested(
-      { actorId: other.id, skill, ...situational(state, skill, { cover: zone, actor: other }), rollKind: 'stealth' as const },
+      { actorId: other.id, skill, ...situational(state, skill, { cover: zone, actor: other, body: other, from: sleeper }), rollKind: 'stealth' as const },
       { actorId: sleeper.id, skill: SK.earshot, ...situational(state, fnRoller(state, sleeper, FN.hearing), { actor: sleeper }), rollKind: 'perception' as const, fn: FN.hearing },
       state, rng);
     matchedCritFeat(state, r); // D-292
