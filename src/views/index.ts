@@ -531,14 +531,17 @@ function bodyAttacks(state: GameState, a: Actor): { bodyAttacks?: BodyAttackView
   return l.length ? { bodyAttacks: l } : {};
 }
 
-/** AE8/TC49: the perk moves an actor owns, for its Parser or its agent; inRange lists the seen people it could aim each at */
+/** AE8: one owned perk move as the view shows it; used (A3): spent for this engagement (an aimed one: on everyone in range) */
+function perkMoveOf(state: GameState, p: Actor, id: string, actors: { id: string }[]): PerkMoveView {
+  const def = PERK_MOVES[id];
+  const inRange = def.untargeted ? undefined : actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id);
+  const used = inRange ? inRange.length > 0 && inRange.every((x) => perkMoveBlock(state, p, id, x) === 'used_this_engagement') : perkMoveBlock(state, p, id, null) === 'used_this_engagement';
+  return { id, name: getLibrary().perks[id]?.name ?? id, does: def.does, ...(def.free ? {} : { action: true as const }), ...(inRange ? { inRange } : {}), ...(used ? { used: true as const } : {}) };
+}
+/** TC49: the perk moves an actor owns, for its Parser or its agent (Play Dead only while open, TC44 a) */
 function perkMovesOf(state: GameState, a: Actor, seen: { id: string }[]): { perkMoves?: PerkMoveView[] } {
-  const ids = ownPerkMoves(a).filter((id) => id !== PK.play_dead || playDeadOpen(state, a)); // TC44 a: only while open
-  if (!ids.length) return {};
-  return { perkMoves: ids.map((id) => ({
-    id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }),
-    ...(PERK_MOVES[id].untargeted ? {} : { inRange: seen.filter((x) => perkMoveBlock(state, a, id, x.id) !== 'no_target').map((x) => x.id) }),
-  })) };
+  const ids = ownPerkMoves(a).filter((id) => id !== PK.play_dead || playDeadOpen(state, a));
+  return ids.length ? { perkMoves: ids.map((id) => perkMoveOf(state, a, id, seen)) } : {};
 }
 
 export function buildPlayerView(state: GameState): PlayerView {

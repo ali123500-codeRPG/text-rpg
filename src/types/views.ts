@@ -124,7 +124,7 @@ export type PlayerView = {
     reaches?: { name: string; metres: number }[];
     bodyAttacks?: BodyAttackView[]; // BG-193: the body's own attacks (fists, a grapple), named by mode even with a weapon in hand
     playingDead?: true; // TC32 a: lying as if Down; anything but a still hold gets it up
-    perkMoves?: PerkMoveView[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
+    perkMoves?: PerkMoveView[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound
     morale: string; // the morale bar's level (MB11)
@@ -248,7 +248,7 @@ export type ActorView = {
 // ---------- OppositionView: Agent Planner and Responder ----------
 /** AE8: an owned perk move (perkMove.perk is the id); does: what it looks like; action: it is the turn's main action;
  * inRange: seen people near enough to aim it at (left out for a move aimed at no one) */
-export type PerkMoveView = { id: string; name: string; does: string; action?: true; inRange?: string[] };
+export type PerkMoveView = { id: string; name: string; does: string; action?: true; inRange?: string[]; used?: true }; // used: spent for this engagement (A3)
 export type OppositionView = ActorView; // formatted for the prompt by the agent wrapper
 
 // ---------- DialogueView: Agent Voice ----------
