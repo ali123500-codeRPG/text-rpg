@@ -68,6 +68,7 @@ export type WayOp = (typeof WAY_OPS)[number];
  * BG-70: opening it to stand open (its key turns and the bar on this side slides back with it) or shutting it again; a
  * way shut to `a` returns 'shut' (the caller lets them try it) */
 export function wayOp(b: Barrier, a: Actor, from: string, op: WayOp): string | null {
+  if ((op === 'open' || op === 'shut') && getLibrary().barrierKinds?.[b.kind]?.fixed) return 'fixed'; // PC4: a slit or bars
   if (op === 'open') {
     if (b.open || broken(b)) return 'already';
     if (passage(b, a, from) === 'shut') return 'shut';
