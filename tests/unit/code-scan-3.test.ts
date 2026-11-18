@@ -6,6 +6,7 @@ import { loadHistory, memoryStore, saveHistory, saveTurn } from '../../src/save'
 import { CONFIG, resetConfig } from '../../src/config';
 import { clockText, durationText } from '../../src/time';
 import type { GameState, TurnRecord } from '../../src/types';
+import { setBarrier } from '../harness';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
@@ -102,8 +103,7 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     const b = { id: 'gate_door', kind: BK.door, grade: 'minor' as const, lock: { locked: true },
       ...(opts.bar ? { bar: { drawn: true, side: 'gate_inner' } } : {}) };
     (s.barriers ??= {})[b.id] = b;
-    zoneById(s, 'gate_inner')!.links.find((l) => l.to === 'street_square')!.barrier = b.id;
-    zoneById(s, 'street_square')!.links.find((l) => l.to === 'gate_inner')!.barrier = b.id;
+    setBarrier(s, 'gate_inner', 'street_square', b.id);
     if (opts.key !== false) g.core.inventory.push({ id: 'key_g', itemId: IT.key, opens: [b.id] });
     return { s, g, b };
   }

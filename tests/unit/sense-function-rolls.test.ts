@@ -10,6 +10,7 @@ import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { PK } from '../../src/library/perkIds';
+import { setTitleLight } from '../../src/plan/draw';
 
 const sense = (actorId: string, f: 'sight' | 'hearing') => ({ actorId, skill: f === 'sight' ? SK.eyesight : SK.earshot, fn: FN[f], modifiers: [], tierShifts: [], auto: false as const });
 const value = (r: { d100: number; margin: number }) => (r.margin - r.d100 + CONFIG.ROLL_NEEDED) / CONFIG.SKILL_WEIGHT;
@@ -38,7 +39,7 @@ describe('sense rolls use the function', () => {
     slime.core.skills[SK.tremor] = { raw: 50, state: 'normal' };
     p.core.skills[SK.eyesight] = { raw: 40, state: 'normal' };
     const zone = zoneById(s, p.zone)!;
-    zone.light = 'dark';
+    setTitleLight(s, zone, 'dark');
     delete (zone as { outdoor?: true }).outdoor;
     expect(situational(s, fnRoller(s, slime, FN.hearing), { light: zone, actor: slime }).modifiers).toEqual([]);
     expect(fnRoller(s, p, FN.sight)).toBe(SK.eyesight);

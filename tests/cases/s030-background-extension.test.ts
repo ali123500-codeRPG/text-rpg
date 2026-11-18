@@ -5,6 +5,7 @@ import { makeVillage } from '../harness';
 import type { WeaverView } from '../../src/types';
 import { ScenarioDirector } from '../../src/scenario';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
+import { waysOut } from '../../src/plan/where';
 
 describe('30 Background extension', () => {
   it('starts one call for the frontier and holds the result', async () => {
@@ -19,6 +20,6 @@ describe('30 Background extension', () => {
     expect(weave).toHaveBeenCalledTimes(1);
     expect(d.heldKeys()).toEqual(['woods']);
     expect(s.zones.map((z) => z.id)).not.toContain('grove');
-    expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.to === 'woods')!.frontier).toBe(true);
+    expect(waysOut(s, 'field_far').find((l) => l.to === 'woods')!.frontier).toBe(true);
   });
 });

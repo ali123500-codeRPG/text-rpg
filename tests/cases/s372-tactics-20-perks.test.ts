@@ -14,6 +14,8 @@ import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, AttackResult, GameState } from '../../src/types';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -49,12 +51,12 @@ describe('372 Tactics 20 perks', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     const slime = npc(s, 'slime_1');
-    zoneById(s, 'field_edge')!.cover = 'some';
+    landUnder(s, zoneById(s, 'field_edge')!.outline, LC.marsh);
     for (const i of s.player.core.inventory) delete i.equippedIn;
     s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     give(slime, PK.hug_the_cover);
     place(s, 'slime_1', 'field_edge');
-    zoneById(s, 'field_edge')!.cover = 'some';
+    landUnder(s, zoneById(s, 'field_edge')!.outline, LC.marsh);
     const shot = () => ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([60, 50, 50]));
     expect(hugReady(s, slime)).toBe(true);
     const r = shot();
@@ -63,7 +65,7 @@ describe('372 Tactics 20 perks', () => {
     expect(hugReady(s, slime)).toBe(false);
     expect(shot().attack.tierShifts.some((t) => t.source === 'Hug the Cover')).toBe(false); // the second this turn
     s.turn += 1;
-    zoneById(s, 'field_edge')!.cover = 'none';
+    landUnder(s, zoneById(s, 'field_edge')!.outline, LC.pasture);
     expect(shot().attack.tierShifts.some((t) => t.source === 'Hug the Cover')).toBe(false); // no cover
   });
 

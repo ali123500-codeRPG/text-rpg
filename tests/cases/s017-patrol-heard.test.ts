@@ -7,6 +7,7 @@ import { zoneById } from '../../src/engine/relations';
 import { BK } from '../../src/library/tableIds';
 import { SENSE_SKILL, SK } from '../../src/library/skillIds';
 import { FN } from '../../src/library/functionIds';
+import { setBarrier } from '../harness';
 
 // BG-57: footsteps outside a shut door a dozen metres off are lost under the hearing floor; once the door is broken
 // through (no sound lost, still no sight round it) the patrol is heard: a partial move event, cue sound, no name
@@ -15,8 +16,7 @@ const patrol = (broken: boolean) => {
   delete s.player.core.skills[SENSE_SKILL[FN.hearing]]; // PG3: a poor ear, so the make-out roll does not make the footsteps out
   if (broken) {
     (s.barriers ??= {}).front = { id: 'front', kind: BK.door, grade: 'minor', state: 'destroyed' };
-    zoneById(s, 'tav_common')!.links.find((l) => l.to === 'street_door')!.barrier = 'front';
-    zoneById(s, 'street_door')!.links.find((l) => l.to === 'tav_common')!.barrier = 'front';
+    setBarrier(s, 'tav_common', 'street_door', 'front');
   }
   const g = byDoor(s, 'guard_1', 'street_square', 'street_door', 2); // 2 m from the street outside the tavern
   delete g.core.skills[SK.battle_sense]; // its Reaction (Battle Sense) would start the walk sooner, and so nearer the door

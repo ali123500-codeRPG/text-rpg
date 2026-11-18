@@ -6,11 +6,12 @@ import { actor, beside, makeVillage } from '../harness';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { deck } from '../../src/ui/deck';
 import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
+import { setTitleLight } from '../../src/plan/draw';
 
 const dark = () => {
   const s = makeVillage({ playerZone: 'gate_inner', without: ['slime_1', 'slime_2'] });
   s.clocks.time = CONFIG.TIME_OF_DAY_FROM.night;
-  for (const z of s.zones) z.light = 'dark';
+  for (const z of s.zones) setTitleLight(s, z, 'dark');
   beside(s, 'guard_1', 'player', 1.4);
   return s;
 };

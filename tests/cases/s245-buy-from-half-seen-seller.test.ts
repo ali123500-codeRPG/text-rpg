@@ -8,11 +8,12 @@ import { buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 import { zoneById } from '../../src/engine/relations';
 import { SV } from '../../src/library/serviceIds';
+import { setTitleLight } from '../../src/plan/draw';
 
 it('a half-seen seller the player knows can be bought from', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
   place(s, 'trader', 'tav_common').wares = { items: [], services: [SV.drink] };
-  zoneById(s, 'tav_common')!.light = 'dark';
+  setTitleLight(s, zoneById(s, 'tav_common')!, 'dark');
   (s.player.journal ??= {} as never).lastKnown = { trader: 'tav_common' };
   const v = buildPlayerView(s);
   expect(v.actors.find((a) => a.id === 'trader')?.level).toBe('partial');

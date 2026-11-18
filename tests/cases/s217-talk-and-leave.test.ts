@@ -5,16 +5,14 @@
 // out of the Narrator's view, which then wrote the player searching their own pockets.
 import { expect, it } from 'vitest';
 import type { GameEvent } from '../../src/types';
-import { makeVillage, place } from '../harness';
+import { COUNTER_SHAPE, makeVillage, place } from '../harness';
 import { approachMove } from '../../src/engine/merge';
 import { buildNarrationView } from '../../src/views';
-import { EK } from '../../src/library/tableIds';
 
 it('BG-124: talking to someone while walking out a door beside a counter side keeps the walk', () => {
-  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
+  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'], shape: COUNTER_SHAPE }); // the counter on one side, the front door on another
   place(s, 'patron_1', 'tav_common');
   s.player.zone = 'tav_common';
-  s.zones.find((z) => z.id === 'tav_common')!.edges = { n: EK.low, e: EK.low, s: EK.low, w: EK.low };
   const talk = { type: 'talk', target: 'patron_1' };
   expect(approachMove(s, s.player, talk, { toZone: 'street_door' })?.toZone).toBe('street_door');
   expect(approachMove(s, s.player, talk, { toZone: 'tav_counter' })).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });

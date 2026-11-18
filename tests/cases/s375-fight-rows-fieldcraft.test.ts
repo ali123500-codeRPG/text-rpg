@@ -13,6 +13,10 @@ import { FX } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
+import { setTitleLight } from '../../src/plan/draw';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
+import { waysOut } from '../../src/plan/where';
 
 const skill = (a: Actor, id: string, raw: number) => { a.core.skills[id] = { raw, state: 'normal' }; };
 /** the guard, a step from the way into the street square, fights the player, who holds a shortbow at `at` */
@@ -45,19 +49,19 @@ describe('375 Fieldcraft fight rows', () => {
 
   it('F2: a foe with a bow in sight, more cover one move off: it walks there (Fieldcraft 50); below 50, or with no better cover, it does not', () => {
     const { s, g } = archerDuel({ zone: 'gate_inner', x: 45 });
-    zoneById(s, 'street_square')!.cover = 'some';
+    landUnder(s, zoneById(s, 'street_square')!.outline, LC.marsh);
     skill(g, SK.fieldcraft, 49);
     expect(tacticsOf(s, g)?.intoCover).toBeUndefined();
     skill(g, SK.fieldcraft, 50);
     expect(tacticsOf(s, g)?.intoCover).toEqual({ zone: 'street_square', via: 'gate_inner' });
     expect(orderOf(s, g)).toMatchObject({ type: 'idle', move: 'street_square', moveSpot: { near: 'gate_inner' }, rule: FX.into_cover });
-    zoneById(s, 'gate_inner')!.cover = 'some'; // no more cover there than here
+    landUnder(s, zoneById(s, 'gate_inner')!.outline, LC.marsh); // no more cover there than here
     expect(tacticsOf(s, g)?.intoCover).toBeUndefined();
   });
 
   it('F2 is too far when the cover is beyond one move, and never fires with a foe near enough to strike', () => {
     const { s, g } = archerDuel({ zone: 'gate_inner', x: 45 });
-    zoneById(s, 'street_square')!.cover = 'some';
+    landUnder(s, zoneById(s, 'street_square')!.outline, LC.marsh);
     skill(g, SK.fieldcraft, 100);
     g.pos = { x: 49, y: -14 }; // 19 m from the doorway: beyond one move
     expect(tacticsOf(s, g)?.intoCover).toBeUndefined();
@@ -68,7 +72,7 @@ describe('375 Fieldcraft fight rows', () => {
 
   it('F1: shot at from beyond reach, it walks where the shooter can\'t see (Fieldcraft 30); not shot, it does not', () => {
     const { s, g } = archerDuel({ zone: 'field_edge', x: 70 });
-    for (const [a, b] of [['gate_inner', 'street_square'], ['street_square', 'gate_inner']]) zoneById(s, a)!.links.find((l) => l.to === b)!.sight = false;
+    for (const [a, b] of [['gate_inner', 'street_square'], ['street_square', 'gate_inner']]) waysOut(s, a).find((l) => l.to === b)!.sight = false;
     skill(g, SK.fieldcraft, 30);
     expect(tacticsOf(s, g)?.outOfSight).toBeUndefined();
     shotAt(s, g);
@@ -79,7 +83,7 @@ describe('375 Fieldcraft fight rows', () => {
   it('F3: a darker zone one move off, from where it still sees its foe clearly (Fieldcraft 75); too far to see clearly, it stays', () => {
     const { s, g } = archerDuel({ zone: 'gate_inner', x: 45 });
     for (const id of ['gate_inner', 'street_square']) delete zoneById(s, id)!.outdoor;
-    zoneById(s, 'street_square')!.light = 'dim';
+    setTitleLight(s, zoneById(s, 'street_square')!, 'dim');
     skill(g, SK.fieldcraft, 75);
     expect(tacticsOf(s, g)?.intoDark).toEqual({ zone: 'street_square', via: 'gate_inner' });
     expect(orderOf(s, g)).toMatchObject({ type: 'idle', move: 'street_square', rule: FX.into_dark });

@@ -19,6 +19,9 @@ import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { setTitleLight } from '../../src/plan/draw';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const set = (a: Actor, skills: string[], raw: number) => { for (const k of skills) a.core.skills[k] = { raw, state: 'normal' }; };
@@ -138,7 +141,7 @@ describe('125 All-50 parts', () => {
     const gap = (perk: boolean) => {
       const s = makeVillage();
       place(s, 'player', 'field_edge');
-      zoneById(s, 'field_mid')!.cover = 'heavy';
+      landUnder(s, zoneById(s, 'field_mid')!.outline, LC.woods);
       arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.past_the_cover);
       return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).attack.modifiers.find((m) => m.source === 'cover')?.value;
@@ -149,7 +152,7 @@ describe('125 All-50 parts', () => {
   it('Child of Night: light counts ten times darker for the owner\'s stealth rolls only', () => {
     const s = makeVillage();
     const zone = zoneById(s, s.player.zone)!;
-    zone.light = 'dim';
+    setTitleLight(s, zone, 'dim');
     delete (zone as { outdoor?: true }).outdoor;
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.sneaking), mod(SK.eyesight)];
@@ -259,7 +262,7 @@ describe('125 All-50 parts', () => {
   it('Night Eyes: light counts ten times brighter for the owner\'s Eyesight rolls only', () => {
     const s = makeVillage();
     const zone = zoneById(s, s.player.zone)!;
-    zone.light = 'dark';
+    setTitleLight(s, zone, 'dark');
     delete (zone as { outdoor?: true }).outdoor;
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.eyesight), mod(SK.sneaking)];

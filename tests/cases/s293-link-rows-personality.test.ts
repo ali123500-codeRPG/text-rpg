@@ -21,6 +21,8 @@ import { personalityOf } from '../../src/ruleset/personality';
 import { trueSkill } from '../../src/ruleset/perks';
 import { checkParserLegality } from '../../src/agents/legality';
 import { buildPlayerView } from '../../src/views';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
 
 const give = (a: Actor, ...perks: string[]) => { for (const perkId of perks) a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 }); };
 const owns = (a: Actor, perkId: string) => a.core.perks.some((p) => p.perkId === perkId);
@@ -81,7 +83,7 @@ describe('293 link rows and personality nudges', () => {
   it('LR3 Blind Spot: with a foe blinded by Dirt in the Eyes, Melt Away works in a bare, bright zone', () => {
     const run = (dirt: boolean) => {
       const s = makeVillage({ playerZone: 'tav_counter' });
-      zoneById(s, 'tav_counter')!.cover = 'none';
+      landUnder(s, zoneById(s, 'tav_counter')!.outline, LC.pasture);
       give(s.player, PK.dirt_in_the_eyes, PK.melt_away, PK.blind_spot);
       const foe = place(s, 'patron_1', 'tav_counter');
       foe.mind!.overrides = { player: 'hostile' };

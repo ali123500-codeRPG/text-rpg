@@ -13,6 +13,8 @@ import { buildActorView } from '../../src/views';
 import { headTo, routineOrder } from '../../src/minds';
 import { zoneById } from '../../src/engine/relations';
 import { ZK } from '../../src/library/tableIds';
+import { waysOut } from '../../src/plan/where';
+import { addFrontier } from '../../src/plan/draw';
 
 const idle: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 const go = (to: string): Intent => ({ ...idle, move: { toZone: to } });
@@ -50,7 +52,7 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     const grove = s.zones.find((z) => z.name === 'a grove')!;
     expect(s.places.flatMap((p) => p.zones)).toContain(grove);
     expect(s.player.zone).toBe('tav_cellar');
-    expect(zoneById(s, 'field_far')!.links.find((l) => l.to === grove.id)!.frontier).toBeUndefined();
+    expect(waysOut(s, 'field_far').find((l) => l.to === grove.id)!.frontier).toBeUndefined();
     expect(g.mind!.slots!.dest).toBe(grove.id); // its head_to now names the zone beyond
     turn(s);
     // it steps in and arrives; with the rest of the minute it heads back toward its post (NW11)
@@ -61,7 +63,7 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
   });
   it('NW3: at most NPC_BUILDS_PER_TURN a turn; a frontier already held starts nothing new', async () => {
     const s = village('tav_cellar');
-    zoneById(s, 'gate_inner')!.links.push({ to: 'east_road', label: 'the east road', sight: true, frontier: true });
+    addFrontier(s, zoneById(s, 'gate_inner')!, 'east_road', 'the east road');
     const g = guardToWoods(s);
     const t = s.actors.find((a) => a.id === 'trader')!;
     t.zone = 'gate_inner'; t.placeId = 'gate'; delete t.pos;
@@ -103,6 +105,6 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
   });
   it('NW4 still holds for builds ahead: the grove leads on', () => {
     expect(grovePlan().zones[0].kind).toBe(ZK.woods);
-    expect(grovePlan().zones[0].links.length).toBeGreaterThan(1);
+    expect(grovePlan().zones[0].ways.length).toBeGreaterThan(1);
   });
 });

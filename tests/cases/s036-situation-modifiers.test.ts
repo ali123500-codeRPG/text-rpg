@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
+import { setTitleLight } from '../../src/plan/draw';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
 
 describe('36 Situation modifiers', () => {
   it('a perk naming the event roll changes it; Wounded and terrain do not', () => {
@@ -17,7 +20,7 @@ describe('36 Situation modifiers', () => {
     s.player.core.perks = [];
 
     s.player.core.condition.hpLostPct = 50; // Wounded
-    for (const z of s.zones) { z.cover = 'heavy'; z.light = 'dark'; } // terrain
+    for (const z of s.zones) { landUnder(s, z.outline, LC.woods); setTitleLight(s, z, 'dark'); } // terrain
     const hurt = ruleset.eventRoll(s.player, s, forcedRng([60]));
     expect(hurt.modifiers).toEqual([]);
     expect(hurt.tier).toBe(base.tier);

@@ -7,13 +7,13 @@ import { byDoor, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { zoneById } from '../../src/engine/relations';
 import { BK } from '../../src/library/tableIds';
+import { setBarrier } from '../harness';
 
 it('a step to a gate, opening it and searching all fit one turn', () => {
   const s = makeVillage({ playerZone: 'street_door', without: ['slime_1', 'slime_2', 'guard_1'] });
   const bar: Barrier = { id: 'side_gate', kind: BK.gate, grade: 'minor' };
   (s.barriers ??= {})[bar.id] = bar;
-  zoneById(s, 'street_door')!.links.find((l) => l.to === 'tav_common')!.barrier = bar.id;
-  zoneById(s, 'tav_common')!.links.find((l) => l.to === 'street_door')!.barrier = bar.id;
+  setBarrier(s, 'street_door', 'tav_common', bar.id);
   byDoor(s, 'player', 'street_door', 'tav_common', 1);
   const ev = play(s, { intent: intent({ way: { toZone: 'tav_common', op: 'open' }, action: { type: 'search' } }) });
   expect(ev.some((e) => e.actorId === 'player' && e.kind === 'wasted')).toBe(false);

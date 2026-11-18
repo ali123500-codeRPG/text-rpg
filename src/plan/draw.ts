@@ -3,7 +3,7 @@
 // by its wall kind, one opening per way, a roof over a roofed title, its lights (PZ5) and its furniture at points.
 // addTitles makes the titles and their openings (an opening to a title not yet drawn waits for it); drawPlan draws them.
 // drawTitles does both.
-import type { Furniture, GameState, LightSource, Opening, PlanFurniture, Pt, Side, TitleSpec, WayKind, WaySpec, Zone } from '../types';
+import type { Furniture, GameState, Light, LightSource, Opening, PlanFurniture, Pt, Side, TitleSpec, WayKind, WaySpec, Zone } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
@@ -317,6 +317,12 @@ function drawLights(state: GameState, z: Zone, sp: TitleSpec | undefined, roof: 
   const far = Math.max(...z.outline.map((p) => Math.hypot(dist(p, at), h - z.floor)));
   const src: LightSource = { id: `${z.id}.light`, placeId: z.placeId, kind: LS.lights, at, h, candela: lux * far * far * 1.0001 };
   state.lights.push(src);
+}
+
+/** PZ5 a: a title's lights are drawn anew for a light word (its old ones taken down first) */
+export function setTitleLight(state: GameState, z: Zone, word: Light): void {
+  state.lights = state.lights.filter((l) => l.id !== `${z.id}.light`);
+  drawLights(state, z, { light: word } as TitleSpec, roofed(state, z));
 }
 
 const WORDS: Record<string, string> = { n: 'north', ne: 'north east', e: 'east', se: 'south east', s: 'south', sw: 'south west', w: 'west', nw: 'north west' };

@@ -16,6 +16,7 @@ import { GP, HK, RO, TH as THEME } from '../../src/library/npcLayerIds';
 import { RC } from '../../src/library/raceIds';
 import { RANKS } from '../../src/scales';
 import { CONFIG } from '../../src/config';
+import { waysOut } from '../../src/plan/where';
 
 const brief: RegionBrief = {
   kind: RK.river_valley, name: 'Vale', look: 'a broad vale', river: { name: 'the Wend', from: 'w', to: 'e' },
@@ -164,9 +165,9 @@ describe('332 rosters and groups', () => {
     const at = road.pts[Math.floor(road.pts.length / 2)];
     s.stage.encounter = { eventRoll: {} as never, zone: z.id, at };
     const quarry = r.features.find((f) => f.name === 'the old quarry')!;
-    const L = (to: string, label: string) => ({ to, label, sight: true });
+    const L = (to: string, label: string) => ({ to, label, kind: 'open' as const });
     const plan = { ...villageStagePlan(), places: [], frontiers: [], cast: [],
-      zones: [{ key: 'camp', place: z.placeId, kind: ZK.woods, name: 'a camp in the trees', look: 'a cold fire ring under the alders', links: [L(z.id, 'back to the road')], sideWay: { toward: 'The old quarry', name: 'the quarry track' } }] } as StagePlan;
+      zones: [{ key: 'camp', place: z.placeId, kind: ZK.woods, name: 'a camp in the trees', look: 'a cold fire ring under the alders', ways: [L(z.id, 'back to the road')], sideWay: { toward: 'The old quarry', name: 'the quarry track' } }] } as StagePlan;
     expect(validateStagePlan(s, plan, ctx)).toEqual([]);
     applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
     const camp = s.zones.find((x) => x.name === 'a camp in the trees')!;
@@ -178,8 +179,8 @@ describe('332 rosters and groups', () => {
     const end = r.nodes.find((n) => n.id === path.ends[1])!;
     expect(end).toMatchObject({ kind: 'junction', feature: quarry.id, at: quarry.at });
     expect(road.ends).not.toContain(jn.id); // the road stays one zone
-    expect(z.links.some((l) => l.to === camp.id) && camp.links.some((l) => l.to === z.id)).toBe(true);
-    expect(camp.links.find((l) => l.frontier && l.to === path.id)?.label).toMatch(/the quarry track .*toward the old quarry/);
+    expect(waysOut(s, z.id).some((l) => l.to === camp.id) && waysOut(s, camp.id).some((l) => l.to === z.id)).toBe(true);
+    expect(waysOut(s, camp.id).find((l) => l.frontier && l.to === path.id)?.label).toMatch(/the quarry track .*toward the old quarry/);
     // with nowhere named it is a short trail of its own; outside an encounter the field is refused
     delete s.stage.encounter;
     expect(validateStagePlan(s, { ...plan, zones: [{ ...plan.zones[0], key: 'camp2' }] }, ctx).map((e) => e.code)).toContain('bad_zone');

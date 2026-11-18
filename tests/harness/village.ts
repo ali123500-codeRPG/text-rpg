@@ -218,3 +218,10 @@ export function lay(state: GameState, zone: string, item: ItemInstance, at?: { x
 }
 /** lays items on the ground in a title (each at its own `at`, else the title's middle) */
 export const layAll = (state: GameState, zone: string, ...items: ItemInstance[]): void => { for (const i of items) lay(state, zone, i); };
+/** puts barrier `id` (already in state.barriers) on the way between titles a and b, fitted to it (fixture setup only) */
+export function setBarrier(state: GameState, a: string, b: string, id: string): void {
+  const o = state.openings.find((x) => (x.joins[0] === a && x.joins[1] === b) || (x.joins[0] === b && x.joins[1] === a));
+  if (!o) throw new Error(`no way between ${a} and ${b}`);
+  o.barrier = id;
+  fitBarrier(state, o);
+}

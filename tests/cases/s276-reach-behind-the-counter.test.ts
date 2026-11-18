@@ -2,17 +2,15 @@
 // they are reached over it. An NPC never claims an item it doesn't carry, nor a key for a way without a lock. The Weaver's
 // personality picks count whether given by id or by name.
 import { expect, it } from 'vitest';
-import { actor, makeVillage } from '../harness';
+import { actor, makeVillage, COUNTER_SHAPE } from '../harness';
 import { intent, play } from './w4-kit';
-import { EK, PY, VL } from '../../src/library/tableIds';
+import { PY, VL } from '../../src/library/tableIds';
 import { personalityFrom } from '../../src/ruleset/personality';
 import { PLANNER_INSTRUCTIONS, RESPONDER_INSTRUCTIONS, VOICE_INSTRUCTIONS } from '../../src/agents/prompts';
 
 const tavern = (traderY: number) => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
+  const s = makeVillage({ shape: COUNTER_SHAPE, playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
   const z = (id: string) => s.zones.find((x) => x.id === id)!;
-  z('tav_common').rect = { x: 0, y: 0, w: 8, d: 8 }; z('tav_common').edges = { n: EK.low, e: EK.wall, s: EK.wall, w: EK.wall };
-  z('tav_counter').rect = { x: 0, y: 5.5, w: 3, d: 3 }; z('tav_counter').edges = { n: EK.wall, e: EK.wall, s: EK.low, w: EK.wall };
   const t = actor(s, 'trader'); t.zone = 'tav_counter'; t.pos = { x: 0, y: traderY }; // the counter's edge is at y 4
   s.player.pos = { x: 0, y: -2 };
   s.player.core.inventory.push({ id: 'coin_x', itemId: s.player.core.inventory[0]?.itemId, qty: 1 } as never);

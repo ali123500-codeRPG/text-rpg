@@ -7,6 +7,7 @@ import { CONFIG } from '../../src/config';
 import { isDark, lightMod, startClock, zoneLight } from '../../src/time';
 import { sightAt } from '../../src/perception';
 import { zoneById } from '../../src/engine/relations';
+import { setTitleLight } from '../../src/plan/draw';
 
 describe('381 light levels (LT1-LT3)', () => {
   it('each level reads its lux: 0 down to a lit room, then −5 a tenfold drop; pitch black reads the floor', () => {
@@ -22,11 +23,11 @@ describe('381 light levels (LT1-LT3)', () => {
     const p = beside(s, 'patron_1', 'player', 1);
     const z = zoneById(s, p.zone)!;
     delete (z as { outdoor?: true }).outdoor;
-    z.light = 'lamplit';
+    setTitleLight(s, z, 'lamplit');
     expect(sightAt(s, s.player, p, 'normal')).toBe('full');
-    z.light = 'dark';
+    setTitleLight(s, z, 'dark');
     expect(sightAt(s, s.player, p, 'normal')).toBe('partial');
-    z.light = 'black';
+    setTitleLight(s, z, 'black');
     expect(sightAt(s, s.player, p, 'normal')).toBeNull();
   });
 
@@ -34,7 +35,7 @@ describe('381 light levels (LT1-LT3)', () => {
     const s = makeVillage();
     const field = zoneById(s, 'field_mid')!;
     field.outdoor = true;
-    field.light = 'black';
+    setTitleLight(s, field, 'black');
     for (const t of ['evening', 'night'] as const) { startClock(s, t); expect(zoneLight(s, field)).toBe(CONFIG.SKY_LIGHT[t]); }
     expect(CONFIG.SKY_LIGHT.night).toBe('moonlit');
   });
