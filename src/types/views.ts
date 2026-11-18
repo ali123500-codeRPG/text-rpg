@@ -177,7 +177,8 @@ export type TacticsWalk = { zone: string; via: string };
  * the Fieldcraft walks F1 to F3; drawTo: the bandmate S1 falls back toward */
 export type TacticsView = { rows: string[]; outnumbered?: true; calledHelp?: true; allyFoe?: ActorId; freeAlly?: { id: ActorId; zone: string }; hurtFoe?: ActorId;
   outOfSight?: TacticsWalk; intoCover?: TacticsWalk; intoDark?: TacticsWalk; drawTo?: { id: ActorId; zone: string };
-  feint?: 'start' | 'run'; turnOn?: ActorId }; // S3: begin or keep up a feigned flight; turnOn: the lone believer to strike
+  feint?: 'start' | 'run'; turnOn?: ActorId; // S3: begin or keep up a feigned flight; turnOn: the lone believer to strike
+  readyShield?: string }; // B3: the stowed shield (item instance id) to draw, beside the order
 
 export type ActorView = {
   turn: number;

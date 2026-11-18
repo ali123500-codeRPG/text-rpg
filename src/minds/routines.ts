@@ -277,8 +277,15 @@ export function tacticsOrder(view: ActorView): Order | null {
 }
 
 /** the code-run fight list: broken first, then the NPC's skilled rows (D-17, tacticsOrder), then attack, close in,
- * search and hold */
+ * search and hold. B3 Ready the shield goes beside whatever it chose: shot at, it draws the stowed shield too (a free gear
+ * op before the action) */
 export function fallbackOrder(view: ActorView, rng: Rng): Order {
+  const o = fightList(view, rng);
+  const sh = view.tactics?.readyShield;
+  return sh && !view.self.broken && !view.self.surrendered ? { ...o, gear: [...(o.gear ?? []), { op: 'draw', item: sh }] } : o;
+}
+
+function fightList(view: ActorView, rng: Rng): Order {
   const s = view.self;
   // 1. Broken: flee, or cower when cornered (BF79); surrendered: hold
   if (s.surrendered) return order(view, 'hold', 'fallback', 'hold');
