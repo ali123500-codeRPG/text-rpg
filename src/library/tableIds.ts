@@ -10,7 +10,7 @@ export const RV = { sleep: 'RV1', rest: 'RV2', breath: 'RV3', perk: 'RV4' } as c
 export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5', steady: 'CP6', foe_downed: 'CP7', rallied: 'CP8' } as const;
 /** D-17 FIGHT_RULES rows (TC17-TC23): the code-run fight list's skilled rows (src/library/fightRules.ts). FX3 is kept for
  * B3, whose effect is still open */
-export const FX = { call_help: 'FX1', gang_up: 'FX2', back_off: 'FX4', finish_hurt: 'FX5' } as const;
+export const FX = { call_help: 'FX1', gang_up: 'FX2', back_off: 'FX4', finish_hurt: 'FX5', out_of_sight: 'FX6', into_cover: 'FX7', into_dark: 'FX8', draw_into_pack: 'FX9', strike_from_hiding: 'FX10' } as const;
 /** fears: what costs (or restores) morale (MB21–MB28) */
 export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', dread_presence: 'FR7', battle_cry: 'FR8', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12', steady_slipped: 'FR13' } as const; // FR6, FR9 retired: moved to the composure table (TM28)
 /** PL6: personality axes; PL19: values; PL10: named personality types */

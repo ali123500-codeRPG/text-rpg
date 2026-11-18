@@ -1,17 +1,22 @@
 // D-17: the facts a code-run NPC's fight rows read (TacticsView), built only from what it perceives. The rows themselves
 // (what each one does) live in minds/routines.ts tacticsOrder; their skills and minimums in library/fightRules.ts.
-import type { Actor, ActorView, GameState, Tactics, TacticsView } from '../types';
+import type { Actor, ActorView, GameState, Tactics, TacticsView, TacticsWalk } from '../types';
+import type { Located, Pos } from '../engine/position';
 import { FIGHT_RULES } from '../library/fightRules';
 import { SK } from '../library/skillIds';
 import { FX } from '../library/tableIds';
 import { trueSkill } from '../ruleset/perks';
-import { allActors, countsInFight, hostile, isActive } from '../engine/relations';
+import { allActors, countsInFight, hostile, isActive, zoneById } from '../engine/relations';
 import { fightingWith } from '../engine/engagement';
-import { distM } from '../engine/position';
+import { distM, entryPoint, seeingM, walkRoute } from '../engine/position';
+import { hostileNearM } from '../ruleset/gear';
+import { itemDef } from '../library';
+import { sightLevel } from '../perception/sight';
+import { zoneLight } from '../time';
 import { slotMetres } from '../engine/speed';
 import { hearsClearly } from '../perception';
 import { VOLUME_NOISE } from '../perception/noise';
-import { HEALTH_LEVELS, TACTICS } from '../scales';
+import { COVER, HEALTH_LEVELS, LIGHT, TACTICS } from '../scales';
 import { CONFIG } from '../config';
 
 /** TC4 a: the Planner's tactics word: the last TACTICS word whose CONFIG.TACTICS_FROM value its own Battle Sense reaches */
@@ -47,6 +52,64 @@ export const rowUsedThisFight = (a: Actor, rule: string): boolean => {
   return at !== undefined && !!a.engagement && at >= a.engagement.start;
 };
 
+type Near = TacticsWalk & { pos: Pos; m: number };
+/** TC18 a: the zones `a` can step into within one move (its move slot in metres, by its own walk through the ways it
+ * knows), nearest first; each with the point a step inside the doorway it comes in by */
+function oneMoveZones(state: GameState, a: Actor): Near[] {
+  const oneMove = slotMetres(state, a, 'move'), from: Located = { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) };
+  const out: Near[] = [];
+  // the zones a few ways out (CONFIG.FIELD_WAYS_OUT): a move never crosses more, and the world holds every built zone
+  const ids = new Set([a.zone]);
+  let ring = [a.zone];
+  for (let i = 0; i < CONFIG.FIELD_WAYS_OUT; i++) ring = ring.flatMap((id) => (zoneById(state, id)?.links ?? []).map((l) => l.to)).filter((id) => !ids.has(id) && !!ids.add(id));
+  for (const id of [...ids].sort()) {
+    const z = zoneById(state, id);
+    if (!z || z.id === a.zone) continue;
+    try {
+      const r = walkRoute(state, from, { zone: z.id }, a);
+      if (!r || !r.path.length) continue;
+      const via = r.path.length > 1 ? r.path[r.path.length - 2] : a.zone, pos = entryPoint(state, z.id, via, a);
+      if (!pos) continue;
+      const m = walkRoute(state, from, { zone: z.id, pos }, a)?.metres;
+      if (m !== undefined && m <= oneMove) out.push({ zone: z.id, via, pos, m });
+    } catch { continue; } // a zone with no rectangle (an old map) is no place to walk to
+  }
+  return out.sort((x, y) => x.m - y.m || x.zone.localeCompare(y.zone));
+}
+
+/** F2: a foe that holds a weapon with a ranged mode, as the viewer sees its gear */
+const showsRanged = (state: GameState, view: ActorView, f: Actor): boolean => {
+  const seen = (view.seen ?? []).find((s) => s.id === f.id);
+  return !!seen?.gear.some((g) => g.where === 'held' && f.core.inventory.some((i) => i.id === g.id && itemDef(state, i.itemId).weapon?.modes.some((m) => m.tree === 'ranged')));
+};
+
+/** F1: the foe that shot at `a` from beyond its striking reach this turn or the last, if it can still see `a` */
+function shooterOf(state: GameState, a: Actor, foes: Actor[]): Actor | undefined {
+  const shot = [...(state.recentEvents ?? []), ...state.events].reverse()
+    .find((e) => e.kind === 'attack' && e.ranged && e.target === a.id && e.turn >= state.turn - 1 && e.perception[a.id] && foes.some((f) => f.id === e.actorId));
+  const s = shot && foes.find((f) => f.id === shot.actorId);
+  return s && distM(state, s, a) > hostileNearM(state, s) && seeingM(state, s, a) !== null ? s : undefined;
+}
+
+/** TC18 a, TC25 a: the Fieldcraft walks, only while no foe is near enough to strike `a` (a walk off would leave a fight) */
+function fieldWalks(state: GameState, a: Actor, view: ActorView, rows: string[], foes: Actor[], out: TacticsView): void {
+  if (!foes.length || foes.some((f) => distM(state, f, a) <= hostileNearM(state, f))) return;
+  const near = oneMoveZones(state, a);
+  if (!near.length) return;
+  const walk = (n: Near | undefined): TacticsWalk | undefined => (n ? { zone: n.zone, via: n.via } : undefined);
+  const shooter = rows.includes(FX.out_of_sight) ? shooterOf(state, a, foes) : undefined;
+  if (shooter) out.outOfSight = walk(near.find((n) => seeingM(state, shooter, { zone: n.zone, pos: n.pos }) === null));
+  const coverHere = COVER.pos(zoneById(state, a.zone)?.cover ?? 'none');
+  if (rows.includes(FX.into_cover) && foes.some((f) => showsRanged(state, view, f)))
+    out.intoCover = walk(near.find((n) => COVER.pos(zoneById(state, n.zone)?.cover ?? 'none') > coverHere));
+  const lightHere = LIGHT.pos(zoneLight(state, zoneById(state, a.zone)));
+  // TC25 a: it judges by its own eyes only: from there it still sees every foe it fights clearly
+  if (rows.includes(FX.into_dark))
+    out.intoDark = walk(near.find((n) => LIGHT.pos(zoneLight(state, zoneById(state, n.zone))) > lightHere
+      && foes.every((f) => zoneLight(state, zoneById(state, f.zone)) !== 'dark' && sightLevel('normal', seeingM(state, { zone: n.zone, pos: n.pos }, f)) === 'full')));
+  for (const k of ['outOfSight', 'intoCover', 'intoDark'] as const) if (!out[k]) delete out[k];
+}
+
 /** D-17: the TacticsView for `a`, from its own view's seen list; undefined when it may use no row */
 export function tacticsView(state: GameState, a: Actor, view: ActorView): TacticsView | undefined {
   const rows = rowsOf(state, a);
@@ -66,11 +129,14 @@ export function tacticsView(state: GameState, a: Actor, view: ActorView): Tactic
     const ganged = foes.filter((f) => allies.some((y) => fights(y, f)) && at(f) <= oneMove).sort((x, y) => at(x) - at(y) || x.id.localeCompare(y.id))[0];
     if (ganged) out.allyFoe = ganged.id;
   }
-  if (rows.includes(FX.back_off)) {
+  if (rows.includes(FX.back_off) || rows.includes(FX.draw_into_pack)) {
     const free = seen.filter((x) => x.bandId === a.bandId && !hostile(state, x, a) && !allActors(state).some((o) => o !== x && fights(x, o)))
       .sort((x, y) => at(x) - at(y) || x.id.localeCompare(y.id))[0];
-    if (free) out.freeAlly = { id: free.id, zone: free.zone };
+    if (free && rows.includes(FX.back_off)) out.freeAlly = { id: free.id, zone: free.zone };
+    // TC23 a S1: it fights one foe with no one on its side, and that bandmate stands too far to strike the foe when it follows
+    if (free && rows.includes(FX.draw_into_pack) && foes.length === 1 && !allies.length && at(free) > hostileNearM(state, free)) out.drawTo = { id: free.id, zone: free.zone };
   }
+  if (rows.some((r) => r === FX.out_of_sight || r === FX.into_cover || r === FX.into_dark)) fieldWalks(state, a, view, rows, foes, out);
   if (rows.includes(FX.finish_hurt) && foes.length >= 2) {
     // only a hurt it can see: others' health shows from CONFIG.HEALTH_SHOWN_FROM down (SeenActor.health)
     const hurt = (view.seen ?? []).filter((s) => s.health && foes.some((f) => f.id === s.id))

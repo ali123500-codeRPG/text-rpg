@@ -31,8 +31,8 @@ const outnumbered = () => {
 const orderOf = (s: GameState, a: Actor) => fallbackOrder(withTactics(s, a, buildActorView(s, a.id)), createRng(1));
 
 describe('369 Battle Sense fight rows', () => {
-  it('rows sit in table order B1, B2, B4, B5 at 20, 35, 65, 75', () => {
-    expect(FIGHT_RULES.map((r) => [r.id, r.skill, r.min])).toEqual([
+  it('rows sit in table order B1, B2, B4, B5 at 20, 35, 65, 75 (the Fieldcraft rows sit between B4 and B5: s375)', () => {
+    expect(FIGHT_RULES.filter((r) => r.skill === SK.battle_sense).map((r) => [r.id, r.skill, r.min])).toEqual([
       [FX.call_help, SK.battle_sense, 20], [FX.gang_up, SK.battle_sense, 35], [FX.back_off, SK.battle_sense, 65], [FX.finish_hurt, SK.battle_sense, 75]]);
   });
 

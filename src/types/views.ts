@@ -166,11 +166,15 @@ export type JobView = { id: string; text: string; state: string; giver?: string;
 /** T4/T5: the day number and time of day; never minutes */
 export type TimeView = { day: number; timeOfDay: string };
 
+/** a walk a Fieldcraft row picks: the zone, stepping in through the way from `via` (its doorway) */
+export type TacticsWalk = { zone: string; via: string };
 /** D-17: what a code-run NPC's fight rows need, built from what it perceives (src/views/tactics.ts). rows: the FIGHT_RULES
  * ids it may use; outnumbered: its fight has more foes than its side; calledHelp: it called for help this fight (B1);
  * allyFoe: a foe an ally is fighting within one move of it (B2); freeAlly: a bandmate in sight who is not fighting (B4);
- * hurtFoe: the foe in its fight that looks the most hurt, when it faces two or more (B5) */
-export type TacticsView = { rows: string[]; outnumbered?: true; calledHelp?: true; allyFoe?: ActorId; freeAlly?: { id: ActorId; zone: string }; hurtFoe?: ActorId };
+ * hurtFoe: the foe in its fight that looks the most hurt, when it faces two or more (B5); outOfSight, intoCover, intoDark:
+ * the Fieldcraft walks F1 to F3; drawTo: the bandmate S1 falls back toward */
+export type TacticsView = { rows: string[]; outnumbered?: true; calledHelp?: true; allyFoe?: ActorId; freeAlly?: { id: ActorId; zone: string }; hurtFoe?: ActorId;
+  outOfSight?: TacticsWalk; intoCover?: TacticsWalk; intoDark?: TacticsWalk; drawTo?: { id: ActorId; zone: string } };
 
 export type ActorView = {
   turn: number;

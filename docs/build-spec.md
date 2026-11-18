@@ -767,8 +767,14 @@ Code checks the combat list top to bottom; the first rule that matches gives the
 - **B1 Call for help** (20): its fight has more foes than its side (anyone not hostile to it who fights one of its foes); it calls for help, once a fight.
 - **B2 Gang up** (35): an ally fights a foe within one move (slotMetres) of it; it attacks that foe.
 - **B4 Back off when hurt** (65): Wounded or worse and outnumbered, with a bandmate in sight who is not fighting; it walks to that bandmate instead of attacking.
+- **S1 Draw into the pack** (Stratagem 40): it fights one foe with no one on its side, and a bandmate in sight who isn't fighting stands too far to strike that foe (hostileNearM); it walks toward that bandmate, so the foe follows into a fight it is outnumbered in.
+- **F1 Out of the shooter's sight** (Fieldcraft 30): a foe shot at it this turn or the last from beyond striking reach (hostileNearM) and still sees it; it walks to the nearest zone within one move the shooter can't see.
+- **F2 Into cover** (Fieldcraft 50): a foe it sees holds a weapon with a ranged mode; it walks to the nearest zone within one move with more cover than where it stands.
+- **F3 Into the dark** (Fieldcraft 75, TC25 a): it walks to the nearest darker zone within one move from where its own sight still reaches every foe it fights clearly (no guess at the foe's eyes).
+The Fieldcraft rows (TC18 a) walk a step inside the doorway they enter by (views/tactics.ts oneMoveZones: zones up to FIELD\_WAYS\_OUT ways off, reached by its own walk within slotMetres), and none fires while a foe stands near enough to strike it, so a row never walks out of a melee.
 - **B5 Finish the hurt one** (75): it faces two or more foes and one looks hurt (others' health shows from HEALTH\_SHOWN\_FROM down); it attacks the one that looks most hurt.
-B3 (defense fits the foe) is open: a Parry defender facing a missile already uses its best usable defense. The Fieldcraft and Stratagem rows come next.
+- **S2 Strike from hiding** (Stratagem 55): it sees none of the foes it hunts now, so it believes none sees it; instead of closing in openly (rule 3, same pick and chase limit) it sneaks one way toward that foe, so its first blow can come from hiding (minds/routines.ts stalkOrder).
+B3 (defense fits the foe) is open: a Parry defender facing a missile already uses its best usable defense. S3 (feigned flight) waits on its questions (TC50 onward).
 
 Like every code mind, it reads only its ActorView. The rng pick uses the turn's seeded rng, so replay stays exact. Its orders carry source 'fallback'.
 
