@@ -10,6 +10,7 @@ import { alertOrders, brokenHolds, brokenOrder, fallbackOrder, followMove, routi
 import { actorById, isActive, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import { drawnTo, spendDrawn } from './perkMarks';
 import { fooledBy } from './playDead';
+import { codePerkMove } from './npcPerkMoves';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
 import { M_EPS, distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
@@ -198,7 +199,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     const a = actorById(state, id)!;
     // BF11: one staying where its own agent took it holds there instead of walking its routine
     const watch = isEngaged(state, a) ? undefined : suspicionOrder(state, a, v); // GD3: a code-run guard keeps close to someone it suspects
-    out.set(id, isEngaged(state, a) ? fallbackOrder(withTactics(state, a, v), rng) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
+    // TC53-TC59 a: the perk moves it owns are weighed on the order its fight list gave
+    out.set(id, isEngaged(state, a) ? codePerkMove(state, a, v, fallbackOrder(withTactics(state, a, v), rng)) : watch ?? (staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v)));
   }
   // TC31 a Draw Them In: a drawn foe spends this turn coming at the one who drew it, whatever it chose (its words stay)
   for (const id of ids) {
@@ -206,7 +208,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     if (!to) continue;
     spendDrawn(a);
     const v = views.get(id)!, t = actorById(state, to);
-    if (!t || !isActive(t) || v.self.broken || v.self.surrendered) continue;
+    if (!t || !isActive(t) || v.self.broken || v.self.surrendered || a.playingDead) continue; // TC59 a: one lying still stays down
     const was = out.get(id);
     out.set(id, { actorId: id, type: 'attack', target: to, skill: v.self.attackSkill, intent: 'drawn in', source: was?.source ?? 'fallback', targetPart: null, aimed: false, ...(was?.line ? { line: was.line } : {}) });
   }

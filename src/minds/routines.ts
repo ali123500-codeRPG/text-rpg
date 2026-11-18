@@ -156,14 +156,14 @@ function hostileBeliefs(view: ActorView) {
   return view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && b.status !== 'unaware');
 }
 /** BF37/BF79: what a broken nerve blocks: any attack, grab, filch or perk move, except the perk moves in
- * NERVE_ALLOWED_PERK_MOVES (Battle Cry: a broken one can still roar), and any walk toward a foe (the walk itself is judged
+ * NERVE_ALLOWED_PERK_MOVES (Battle Cry: a broken one can still roar; Play Dead), and any walk toward a foe (the walk itself is judged
  * where it runs: engine/nerve.ts walksAway). A walk or run away is allowed. Talking, begging, persuading, lying, yielding,
  * giving, using an item, picking up and unlocking or opening a door or container within reach still work. At Cowering (below
  * Broken) the walks go too (NERVE_MOVES). */
 export const NERVE_BLOCKED: readonly string[] = ['attack', 'filch', 'restrain'];
 /** BF79: the order types that are only a walk: allowed while broken (away only), blocked at Cowering */
 export const NERVE_MOVES: readonly string[] = ['move', 'flee'];
-export const NERVE_ALLOWED_PERK_MOVES: readonly string[] = [PK.battle_cry];
+export const NERVE_ALLOWED_PERK_MOVES: readonly string[] = [PK.battle_cry, PK.play_dead]; // TC58 a: a broken one can still play dead
 const NOTHING_CHOSEN: readonly string[] = ['idle', 'hold', 'wait'];
 /** BF37: the cowering order: no move and no action, only words */
 export const cowerOrder = (actorId: string, source: Order['source']): Order => ({ actorId, type: 'idle', target: null, skill: null, intent: 'cower', source, activity: 'cowering' });
@@ -225,6 +225,8 @@ export function fleeOrder(view: ActorView, source: Order['source']): Order {
 /** BF79: what a broken NPC does with its order: nerveHolds; with nothing allowed left and no walk away, it flees (fleeOrder),
  * keeping its words, gear and a way within reach */
 export function brokenHolds(view: ActorView, o: Order): Order {
+  // TC58/TC59 a: dropping to play dead, or lying still while it does, is a still hold a broken nerve keeps
+  if (o.type === 'hold' && !o.move && (o.perkMove?.perk === PK.play_dead || (view.self.playingDead && !o.perkMove))) return o;
   const { order: held } = nerveHolds(o, !!view.self.cowering);
   if (held.intent !== 'cower' || held.move) return held;
   const run = fleeOrder(view, o.source);
