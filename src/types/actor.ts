@@ -12,6 +12,9 @@ export type NameHistory = { current: string; past: { name: string; untilTurn: Tu
 
 export type Actor = {
   id: ActorId;
+  /** PLACEHOLDER: the combat rating's reference fighter (engine/fightModel.ts), never a real actor: it meets every
+   * requirement of its kit, so the yardstick runs smoothly at every level */
+  yardstick?: true;
   storyId: StoryId;
   kind: 'player' | 'npc';
   names: NameHistory;
