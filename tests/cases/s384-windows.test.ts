@@ -60,3 +60,13 @@ describe('384 windows (PC3)', () => {
     expect(open.player.zone).toBe('street_door');
   });
 });
+
+describe('384 windows: the frame works one way', () => {
+  it('a target far out seen from just inside the window is not framed: the opening widens with distance', () => {
+    const s = house();
+    const g = s.actors.find((a) => a.id === 'guard_1')!;
+    // the guard looks out from right at the window; the player is 13 m out in the street
+    g.pos = { x: 0, y: -2.6 };
+    expect(openingShown(s, s.player, zoneById(s, 'street_door')!, g)).toBe(1);
+  });
+});

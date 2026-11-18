@@ -72,7 +72,8 @@ export function objectHidden(state: GameState, body: Actor, zone: Zone, from?: A
 
 /** PC3: the share of `body` that shows to `from` through the opening it is seen through (a window, a doorway, a gate): the
  * way into its zone on the line of sight. The opening's sill and top, carried along the sight line to the target, frame a
- * band of its height; a target wider than the opening shows only the opening's width of itself. 1 when it is seen in the
+ * band of its height, and its width carried on the same way bounds how much of the target's width shows (an archer at
+ * an arrow slit sees the whole field; a target behind one shows a strip). 1 when it is seen in the
  * same zone or across open ground. */
 export function openingShown(state: GameState, body: Actor, zone: Zone, from?: Actor): number {
   if (!from || from.zone === zone.id) return 1;
@@ -93,5 +94,5 @@ export function openingShown(state: GameState, body: Actor, zone: Zone, from?: A
   const eye = heightOf(zoneById(state, from.zone)) + actorBody(state, from).size.heightM * CONFIG.EYE_SHARE;
   const at = (y: number) => eye + (y - eye) * dT / dP - floorT; // a height on the opening, carried on to the target
   const band = Math.max(0, Math.min(h, at(sill + o.h)) - Math.max(0, at(sill))) / h;
-  return band * Math.min(1, o.w / size.widthM);
+  return band * Math.min(1, (o.w * dT / dP) / size.widthM); // the opening's width, carried on to the target as its height is
 }
