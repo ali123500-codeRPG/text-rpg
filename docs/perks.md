@@ -193,11 +193,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Slip the Blow (Light Armor) · A20
 
-*Story:* Light armor lets you roll with a blow. When your dodge only ties, the hit becomes a graze.
+*Story:* Light armor taught you to roll with a blow, in any armor or none. When your dodge only ties, the hit becomes a graze.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges an attack.
-- **Conditions:** The owner wears light armor. The gap is 0.
+- **Conditions:** The gap is 0.
 - **Effect:** The gap counts as +1: a graze for 0.8× damage.
 - **Lasts:** That attack.
 
@@ -212,12 +212,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Turn Aside (Heavy Armor) · A22
 
-*Story:* Plate takes the worst out of any blow. A heavy or crushing hit on a part your heavy armor covers lands as a plain full hit.
+*Story:* Heavy armor taught you to take the worst out of a blow. A heavy or crushing hit lands softer, whatever you wear.
 
 - **Kind:** Always on
 - **Trigger:** An attack hits the owner.
-- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or worse). The owner wears heavy armor that covers the struck part.
-- **Effect:** The hit counts as a full hit: damage multiplier 1× instead of the gap ladder's (on a dodge 1.5× at −4, 2× at −5, on a block 1.5× at −4, 2× at −5, on a parry 2× at −4, 2.5× at −5, more past that).
+- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or worse).
+- **Effect:** The gap counts +2, never past 0 (on a dodge 1.5× → 1.25× at −4, 2× → 1.375× at −5; on a block 1.5× → 1× at −4, 2× → 1× at −5; on a parry 2× → 1.25× at −4, 2.5× → 1.5× at −5; the same two steps past that).
 - **Lasts:** That hit.
 
 ### In and Out (Combat Stealth) · A23

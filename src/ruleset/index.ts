@@ -9,7 +9,7 @@ import type {
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
-import { HIT_OUTCOMES, TIERS } from '../scales';
+import { TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { seenSizeFactor, sightDistM, withinM } from '../engine/position';
@@ -32,7 +32,7 @@ import { augmentK, coverMod, coverShown, hostileNearM, blendedSkill, defenseItem
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
-import { pieceOn, wornPieces } from './worn';
+import { pieceOn } from './worn';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, burdenParts, groupRollBonus, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
@@ -294,12 +294,14 @@ export function defenseOwnMods(state: GameState, D: Actor, type: DefenseKind, ra
   return dm;
 }
 /** the gap's own shifts, given the rolls' tier difference (defense − attack): a heavy weapon against Block or Parry (PA11;
- * All-50 Against the Grain takes it off the owner's parries), A20 Slip the Blow (light armor: a tied Dodge grazes) */
+ * All-50 Against the Grain takes it off the owner's parries), A22 Turn Aside (a heavy or crushing hit counts TURN_ASIDE_GAP better, never past 0), A20 Slip the Blow (a tied Dodge
+ * grazes); neither asks what the owner wears */
 export function gapShiftsOf(state: GameState, D: Actor, mode: AttackMode, type: DefenseKind, diff: number): TierShift[] {
   const out: TierShift[] = [];
   if (mode.class === 'heavy' && type !== 'dodge' && !(type === 'parry' && hasPerk(D, PK.against_the_grain))) out.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP });
-  const pieces = wornPieces(state, D);
-  if (type === 'dodge' && pieces.length > 0 && pieces.every((p) => p.armor.weight === 'light') && hasPerk(D, PK.slip_the_blow) && diff + sumShifts(out) === 0) {
+  const pre = diff + sumShifts(out);
+  if (pre <= CONFIG.HIT_GAPS.heavy && hasPerk(D, PK.turn_aside)) out.push({ source: 'Turn Aside', value: Math.min(CONFIG.TURN_ASIDE_GAP, -pre) });
+  if (type === 'dodge' && hasPerk(D, PK.slip_the_blow) && diff + sumShifts(out) === 0) {
     out.push({ source: 'Slip the Blow', value: 1 });
   }
   return out;
@@ -315,10 +317,6 @@ export function restricted(state: GameState, D: Actor, type: DefenseKind, g: num
   const rule = locRule(type, g);
   const impact = actorBody(state, D).parts.find((p) => p.id === location)?.impact;
   return !!impact && ((rule === 'no_essential' && impact === 'essential') || (rule === 'non_essential_only' && impact !== 'non_essential'));
-}
-/** A22 Turn Aside: heavy armor turns a heavy or crushing hit on a part it covers into a full hit */
-export function turnsAside(state: GameState, D: Actor, location: string, outcome: AttackResult['outcome']): boolean {
-  return HIT_OUTCOMES.pos(outcome) >= HIT_OUTCOMES.pos('heavy_hit') && pieceOn(state, D, location)?.armor.weight === 'heavy' && hasPerk(D, PK.turn_aside);
 }
 /** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
  * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
@@ -474,12 +472,6 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (openArm) {
     location = openArm;
     locationHow = 'open_hand';
-  }
-
-  // A22 Turn Aside: heavy armor turns a heavy or crushing hit on a part it covers into a full hit
-  if (turnsAside(state, D, location, outcome)) {
-    outcome = 'full_hit';
-    multiplier = 1;
   }
 
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects

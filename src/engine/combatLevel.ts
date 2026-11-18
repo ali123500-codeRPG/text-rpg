@@ -12,7 +12,7 @@
 //
 // The standard soldier comes out at its own level at every level. Left out: reaction time, threats, wounds and morale
 // penalties on rolls, part damage, parry strike-backs, fatigue, the dodge and block ladders' own shapes past the shield,
-// and situational modifiers (light, cover, numbers).
+// a defender's gap-shift perks (Turn Aside, Slip the Blow), and situational modifiers (light, cover, numbers).
 import type { Actor, DefenseKind, GameState, ItemDef } from '../types';
 import { CONFIG } from '../config';
 import { HEALTH_LEVELS, TIERS, type HealthLevelKey } from '../scales';
