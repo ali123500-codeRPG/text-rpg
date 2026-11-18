@@ -12,10 +12,11 @@ import { MILESTONES } from './perks';
 import { growthRoll, learningWindow } from './improve';
 import { tierMult } from './gear';
 import { levelCost, xpToReach } from './levels';
+import { poolOf, ratingOf } from './ratings';
 import { skillName } from '../library/skillNames';
-import { groupName } from '../library/functionNames';
+import { groupName, ratingName } from '../library/functionNames';
 import { SK } from '../library/skillIds';
-import { FN } from '../library/functionIds';
+import { FN, RT } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { FR } from '../library/tableIds';
 
@@ -88,7 +89,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
         formula: 'tier = band of the margin + unlocked extra bands + natural edge + tier shifts',
         table: { head: ['Tier', 'Margin'], rows: bandRows(CONFIG.MARGIN_BANDS) },
-        terms: [['natural edge', `${edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')} (CONFIG.NATURAL_EDGE at each end); never more than one tier`], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
+        terms: [['natural edge', `${edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')} (CONFIG.NATURAL_EDGE at each end); never more than one tier`], ['tier shifts', 'whole tiers from Hidden Strike, Hug the Cover, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
         notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).',
           `Unlocked extra bands (D-211): each tier past Critical Success a perk or achievement opens for this kind of roll (tierUnlocks) adds a band ${n(CONFIG.TIER_EXTRA_BAND)} wider past the end, so Critical Success+ is reached from margin ${n(CONFIG.MARGIN_BANDS[CONFIG.MARGIN_BANDS.length - 1] + CONFIG.TIER_EXTRA_BAND)} and Critical Success++ from ${n(CONFIG.MARGIN_BANDS[CONFIG.MARGIN_BANDS.length - 1] + 2 * CONFIG.TIER_EXTRA_BAND)}; each tier below Critical Failure opened adds one below ${n(CONFIG.MARGIN_BANDS[0] - CONFIG.TIER_EXTRA_BAND)}, and so on. Unlocks for contest rolls count on every roll made as one side of a contest (attacks and defenses, speech, stealth against senses, holds, auras against morale; D-292). Without an unlock the table above is the whole table.`] },
       { name: 'Chance by effective skill', at: 'tierOf · src/ruleset/index.ts',
@@ -149,10 +150,10 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Throw (combined roll)', at: 'withRow · blendedSkill · src/ruleset/gear.ts',
         formula: `throw skill = ${n(CONFIG.THROW_BLEND.weapon)} × the weapon's own effective skill + ${n(CONFIG.THROW_BLEND.ranged)} × the effective ranged skill of the same class; reach = the throw mode's own range in metres (THROW_M: spear ${CONFIG.THROW_M.spear}, knife ${CONFIG.THROW_M.knife}, improvised ${CONFIG.THROW_M.improvised}) + perks' throwReach metres (modeReach), measured against the distance in metres`,
         terms: [["weapon's own skill", "the skill its gear class asks for (a dagger: Light weapons; an improvised weapon: Improvisation)"], ['ranged skill', 'Light, Medium or Heavy ranged, by the throw mode\'s class'], ['shares', 'CONFIG.THROW_BLEND, set on the Throw attack mode row']],
-        notes: ['Each part is its own effective skill: it takes its own stand-ins and only the gear that boosts it (the weapon\'s kit bonus goes to its own skill). Both skills that rolled can learn. The thrown item lands on the ground of the target\'s zone, hit or miss.'] },
+        notes: ['Each part is its own effective skill: it takes its own stand-ins and only the gear that boosts it (the weapon\'s kit bonus goes to its own skill). Both skills that rolled can learn. The thrown item lands where the target stands, hit or miss.'] },
       { name: 'Gap', at: 'attack · src/ruleset/index.ts',
         formula: `gap = defense tier − attack tier + gap shifts, at most ${sg(CONFIG.GAP_MAX)}`,
-        terms: [['gap shifts', `heavy weapon vs block or parry ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)} (not against a parry with Against the Grain), cover (ranged), Slip the Blow +1 on a tie`]] },
+        terms: [['gap shifts', `heavy weapon vs block or parry ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)} (not against a parry with Against the Grain), Slip the Blow +1 on a tie`]] },
       { name: 'Damage multiplier', at: 'ladder · src/ruleset/index.ts',
         formula: 'multiplier = GAP_LADDER[dodge, block or parry][gap]',
         table: { head: ['Gap', 'Dodge', 'Block', 'Parry'], rows: Array.from({ length: CONFIG.GAP_MAX - CONFIG.GAP_MIN + 1 }, (_, i) => CONFIG.GAP_MIN + i).map((g) => [sg(g), `×${n(ladder('dodge', g))}`, `×${n(ladder('block', g))}`, `×${n(ladder('parry', g))}`]) },
@@ -236,7 +237,34 @@ export function equations(lib: Library): EquationGroup[] {
         formula: 'a hit on a part your worn armor covers marks the armor\'s skill when the attacker\'s true skill, or the armor\'s requirement, is inside your armor skill\'s learning window',
         notes: ['A hit on a shield doesn\'t count.'] },
     ] },
-    { key: 'essences', title: 'Essences', about: 'Where an essence comes from: one rule for every essence of each kind.', equations: [
+    { key: 'power', title: 'Ratings and power', about: 'Skill groups read as one number, strength, and the power that sets defeat XP.', equations: [
+      { name: 'Group rating', at: 'worth · poolOf · ratingOf · ratingOfGroups · src/ruleset/ratings.ts',
+        formula: `rating = 50 × (pool ÷ ${n(CONFIG.SKILL_RATING_AT_50)})^(1/${n(CONFIG.SKILL_RATING_POWER)}); pool = Σ worth(skill) × ${n(CONFIG.RATING_SHARE_STEP)}^place, highest first; worth(s) = ${n(CONFIG.SKILL_RATING_AT_50)} × (s ÷ 50)^${n(CONFIG.SKILL_RATING_POWER)}`,
+        terms: [['s', 'each skill\'s effective value in the group (true skill × tier, gear lines, augments, age)'], [n(CONFIG.SKILL_RATING_AT_50), 'CONFIG.SKILL_RATING_AT_50'], [n(CONFIG.SKILL_RATING_POWER), 'CONFIG.SKILL_RATING_POWER'], [n(CONFIG.RATING_SHARE_STEP), 'CONFIG.RATING_SHARE_STEP: the second skill counts at this share, the third at its square …']],
+        table: { head: ['Skills in the group', 'Rating'], rows: [[50], [50, 50], [50, 50, 50], [75], [75, 50], [100], [100, 75, 50], [150], [200, 100]].map((v) => [v.join(' + '), n(ratingOf(poolOf(v)))]) },
+        notes: ['A lone skill rates exactly itself; every further skill adds less, and nothing caps it.', 'A skill counts in every group it names. The own rating leaves gear lines out; the gap between the two is what gear adds.'] },
+      { name: 'Compound ratings', at: 'compoundRating · src/ruleset/ratings.ts',
+        formula: 'a compound rating pools the skills of several groups as one group (each skill once)',
+        table: { head: ['Rating', 'Groups'], rows: Object.entries(CONFIG.RATINGS).map(([id, gs]) => [ratingName(id), gs.map(groupName).join(' + ')]) },
+        notes: ['Rows live in CONFIG.RATINGS.'] },
+      { name: 'Strength', at: 'strengthFor · holdStrength · src/ruleset/ratings.ts',
+        formula: 'strength for an action = the best of its kinds: compound rating × the kind\'s share',
+        table: { head: ['Action', 'Kinds'], rows: Object.entries(CONFIG.STRENGTH_KINDS).map(([act, ks]) => [act, Object.entries(ks).map(([k, s]) => `${ratingName(k)} × ${n(s)}`).join(' · ')]) },
+        notes: [`Breaking free of a hold or holding on: both sides add ${n(CONFIG.STRENGTH_HOLD_SHARE)} × their ${ratingName(RT.melee_strength)} (with ${skillName(SK.unarmed_grapple)} left out of its pool) to the ${skillName(SK.unarmed_grapple)} roll (CONFIG.STRENGTH_HOLD_SHARE).`] },
+      { name: 'Power (placeholder)', at: 'power · levelRating · combatPart · src/engine/xp.ts; combatLevel · src/engine/fightModel.ts; nonCombatPart · src/engine/nonCombat.ts',
+        formula: 'power = level part + combat part + non-combat part',
+        terms: [['level part', `${n(CONFIG.LEVEL_RATING_SHARE)} × the XP its level costs to reach (CONFIG.LEVEL_RATING_SHARE)`],
+          ['combat part', `the XP rating's skill part of the reference fighter at the actor's combat level: a human with ${CONFIG.MODEL_REF_SKILLS.map(skillName).join(', ')} all at the level, holding relics of ${CONFIG.MODEL_REF_KIT.map((id) => lib.items[id]?.name ?? id).join(' and ')} whose requirement is the level, standing in ${CONFIG.MODEL_REF_DEFENSE}`],
+          ['combat level', 'the level of the reference fighter the actor fights evenly on the fight model (each side\'s reaction plus its time to defeat the other, every blow taken on average)'],
+          ['non-combat part', `for each of ${Object.keys(CONFIG.NONCOMBAT_SHARES).map(groupName).join(', ')}: the group's pool × the share of an equal fight it settles (CONFIG.NONCOMBAT_SHARES)`]],
+        table: { head: ['Level', 'Level part'], rows: [1, 5, 10, 20, 40, 60].map((l) => [String(l), n(CONFIG.LEVEL_RATING_SHARE * xpToReach(l))]) },
+        notes: ['A fighter\'s power is taken as it joins a fight and kept until the fight ends.'] },
+      { name: 'Defeat XP', at: 'weakFoeTaper · src/engine/xp.ts',
+        formula: `defeat XP = foe power × min(1, ${n(CONFIG.DEFEAT_XP_TAPER)} × foe power ÷ your power) × ${n(CONFIG.DEFEAT_XP_MULT)}`,
+        terms: [[n(CONFIG.DEFEAT_XP_TAPER), 'CONFIG.DEFEAT_XP_TAPER: a weak foe gives less'], [n(CONFIG.DEFEAT_XP_MULT), 'CONFIG.DEFEAT_XP_MULT']],
+        notes: ['Both powers are the ones taken when each side joined the fight.'] },
+    ] },
+    { key: 'essences', title: 'Essences', about:'Where an essence comes from: one rule for every essence of each kind.', equations: [
       { name: 'Foe essence', at: 'notable · offersFromDefeats · src/engine/essence.ts',
         formula: `beating a notable foe of the essence's race or body type offers it; notable = power at least ${Math.round(CONFIG.ESSENCE_NOTABLE_SHARE * 100)}% of yours, or a notable or rolled NPC`,
         notes: ['Each such foe rolls once, ever.', 'A scenario you resolve at Great Success or better can also offer one from the foes you beat in it.'] },
