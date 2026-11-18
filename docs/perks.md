@@ -267,6 +267,37 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Besides refilling the short-term line, the rest clears sleep debt as 1 hour of sleep would there (the Sleep row's share of max an hour, × the spot, worn armour and sleep perks; CONFIG.CATNAP_SLEEP_HOURS, placeholder), by the share of the rest's hour that ran.
 - **Lasts:** Each rest.
 
+### Press the Opening (Battle Sense) · TC28
+
+*Story:* The moment a friend lands a blow, the foe's guard is somewhere else. When an ally hits a foe, your next attack on that foe lands one outcome better.
+
+- **Kind:** Always on
+- **Trigger:** An attack by someone the owner is friendly to hits a foe of the owner (grazed or better).
+- **Conditions:** The owner is not the attacker or the one hit.
+- **Effect:** The owner's next attack on that foe gets tier shift +1.
+- **Lasts:** Until it is used or the owner's next turn ends.
+
+### Fall Back on Me (Command) · TC36
+
+*Story:* "To me!" When their nerve goes, your people run to you instead of away. An ally in earshot who breaks may run toward you, even past a foe.
+
+- **Kind:** Always on
+- **Trigger:** Someone friendly to the owner (or in the owner's band) is broken.
+- **Conditions:** It hears the owner's shout clearly. The owner is up and not broken.
+- **Effect:** Its walks toward the owner are allowed, even toward a foe (a broken nerve otherwise only walks away). A code-run broken ally runs to the owner instead of fleeing. With several owners in earshot, the nearest.
+- **Lasts:** While it is broken and in earshot.
+
+### Hug the Cover (Fieldcraft) · TC30
+
+*Story:* You know how to make yourself small behind a crate. While you are in cover, the first shot or throw at you each turn lands one outcome worse.
+
+- **Kind:** Always on
+- **Trigger:** A ranged attack on the owner.
+- **Conditions:** The owner has cover where it stands (any cover above none). It is the first ranged attack on the owner this turn.
+- **Effect:** Tier shift −1 on that attack.
+- **Lasts:** That attack.
+- **Open:** Once cover levels change (thread "Rebalance cover and add cover levels"), this may become "cover counts one level better" (TC30).
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1

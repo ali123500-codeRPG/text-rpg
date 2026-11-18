@@ -194,6 +194,9 @@ const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b
 export function fleeOrder(view: ActorView, source: Order['source']): Order {
   const cower = () => cowerOrder(view.self.id, source);
   if (view.self.cowering) return cower();
+  // TC36 c Fall Back on Me: it runs to the owner instead of away
+  const back = view.self.fallBackTo;
+  if (back) return order(view, 'idle', source, `fall back on ${back.id}`, { move: back.zone, moveSpot: { near: back.id } });
   const here = view.self.zone;
   const threats = fleeFrom(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
   // toward its exit or refuge, unless that way runs into a foe's zone

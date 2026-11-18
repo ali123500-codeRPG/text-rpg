@@ -778,6 +778,8 @@ Rules 1 to 5 stay fixed in code; the skilled rows between them are data (FIGHT\_
 
 **How the Tactics skills learn (TC6, TC15, TC16; src/engine/tacticsMarks.ts).** Only the player learns. Battle Sense marks on the reaction roll at the start of a fight, against the best Reaction skill among the foes in it (D-132 closed). A fight the player survives (still up at its end) marks each Tactics skill once, against the strongest foe's (highest power) same skill. A foe untrained in the skill never teaches; the learning window holds as for every skill. A row or perk that fires teaches nothing yet (TC6 c, TC15 b inert, D-373).
 
+**Tactics 20 perks (TC28 a, TC36 c, TC30 a; rules in docs/perks.md).** Press the Opening (Battle Sense 20): an ally's hit opens that foe to the owner's next attack, +1 tier, until the owner's next turn ends. Fall Back on Me (Command 20): a broken ally in earshot of the owner may walk toward the owner even past a foe (src/engine/nerve.ts nerveLetsWalk), and a code-run one runs there instead of fleeing. Hug the Cover (Fieldcraft 20): in cover, the first ranged attack on the owner each turn gets −1 tier. Draw Them In (Stratagem 20) and Play Dead (Guile 20) come next.
+
 **Tactics skills on NPCs (TC9 a).** Role bands: Soldier High Battle Sense, Leader High Command, Hunter High Fieldcraft, Sneak High Stratagem, Skirmisher Moderate Battle Sense, Beast Moderate Battle Sense and Stratagem (only where its race can learn the tree, so never a slime). A banded skill raises the NPC's level from its skills like any other (a Trained guard is level 9, not 8).
 
 ### Agent Parser
