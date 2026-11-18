@@ -230,6 +230,7 @@ export type Library = {
   lightKinds?: Record<string, LightKind>; // PZ5: LK…
   furnitureKinds?: Record<string, FurnitureKind>; // FR1
   barrierKinds?: Record<string, BarrierKind>; // SD3–SD5: what can stand on a way
+  barrierMaterials?: Record<string, BarrierMaterial>; // BW24: what walls, barriers and rubble are made of, and how long they take to break
   zoneSizes?: Record<string, ZoneSize>; // CO16
   roadLengths?: Record<string, RoadLength>; // TV3
   roadDangers?: Record<string, RoadDanger>; // TV4
@@ -261,7 +262,13 @@ export type ZoneKind = {
 /** PZ2: a kind of wall: walk = walked across, see = seen through, reach = struck or handed over across it, climb = crossed by
  * climbing; heightM: how high it stands above its floor (none: a storey); sound: what a sound loses crossing it (HB4); none:
  * an open side, drawn as no wall at all */
-export type WallKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; sound: import('../scales').SoundLossKey; heightM?: number; none?: true; text: string };
+export type WallKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; sound: import('../scales').SoundLossKey; heightM?: number; none?: true; text: string;
+  /** BW26: the material (barrierMaterials, BM) a wall of this kind is made of when it names none, read at that material's example thickness */ material?: string };
+/** BW24: a material walls, barriers and rubble are made of (library barrierMaterials, BM). thicknessCm: its real range;
+ * exampleCm: the thickness secondsAt50 is for; secondsAt50: a working professional with the right tool breaking a
+ * person-sized hole through exampleCm of it (BW8: from the cited source; time grows with thickness); noise: each blow (BW10);
+ * trait: regrows (work left idle is lost, BW9) or deeper (harder deeper in the wild, waits on D-331); source: where the time comes from */
+export type BarrierMaterial = { id: string; name: string; thicknessCm: [number, number]; exampleCm: number; secondsAt50: number; noise: import('../scales').NoiseKey; trait?: 'regrows' | 'deeper'; fantasy?: true; source: string; text: string };
 /** PZ2: a kind of way: a doorway, gap, window or stairs. seeThrough: the far side shows (with no barrier shut in it); walk:
  * walked through (a window is only jumped down, SD7); floors: it joins two floors (stairs, a ladder, a hatch); sizeM:
  * [width, height] when no barrier gives one (none: as wide as the ground the two titles share); sillM: a window's sill */
@@ -274,7 +281,8 @@ export type LightKind = { id: string; name: string; candela: number; scaled?: tr
 export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string;
   /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true;
   /** PC3: a window's shutters: it goes only on a drop (seen, shot and jumped through, never walked); sillM = how high its sill stands above the inside floor */ window?: true; sillM?: number;
-  /** PC4: nothing to open or shut (an arrow slit, bars): it stays as it is until broken */ fixed?: true };
+  /** PC4: nothing to open or shut (an arrow slit, bars): it stays as it is until broken */ fixed?: true;
+  /** BW24: what it is made of when the barrier names no material (barrierMaterials, BM), read at that material's example thickness */ material?: string };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
 /** PC1: sizeM = [length, width, height] in metres (placeholders): it hides what is behind it (ruleset/objectCover) */

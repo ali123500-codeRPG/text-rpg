@@ -45,6 +45,8 @@ export const OP = { doorway: 'OP1', gap: 'OP2', window: 'OP3', stairs: 'OP4' } a
 export const LS = { candle: 'LS1', oil_lamp: 'LS2', lantern: 'LS3', torch: 'LS4', hearth: 'LS5', lights: 'LS6' } as const;
 /** SD3–SD5 barrier kinds: what stands on a way (door, gate, grate, hatch, rubble); a new kind is a new row */
 export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5', window: 'BK6', arrow_slit: 'BK7', barred_window: 'BK8', large_window: 'BK9' } as const;
+/** BW24 barrier materials: what a wall, a barrier or rubble is made of, and how long it takes to break (src/ruleset/breaking.ts); a new material is a new row */
+export const BM = { wattle: 'BM1', planks: 'BM2', oak: 'BM3', brick: 'BM4', iron: 'BM5', stone: 'BM6', glass: 'BM7', rubble: 'BM8', ice: 'BM9', living_wood: 'BM10', slime_membrane: 'BM11', lair_stone: 'BM12', starmetal: 'BM13' } as const;
 /** FR1 furniture kinds: what a named piece of furniture is (its map icon follows the kind); a new kind is a new row */
 export const FU = {
   counter: 'FU1', hearth: 'FU2', table: 'FU3', bench: 'FU4', bed: 'FU5', barrels: 'FU6', shelves: 'FU7', crates: 'FU8', sacks: 'FU9',

@@ -896,6 +896,21 @@ const DEFAULTS = {
   /** scaling: picking keeps halving forever (150: about 4 s, 200: about 1 s, so supernatural fingers open locks at a touch);
    * a number stops the halving at that skill instead */
   PICK_FAST_CAP: null as number | null,
+  // ---- breaking walls and barriers by strength (BW1, BW18-BW26; src/ruleset/breaking.ts; placeholders) ----
+  /** BW19 a: the lift (kg) at a strength, straight lines between these anchors up to 100: 75 and 100 are the power ladder's
+   * (TL17: the real record 510 kg, about 600 kg at the mortal limit); 250 kg at 50 is a placeholder for a working
+   * professional (no source yet) */
+  LIFT_KG_AT: [[0, 0], [50, 250], [75, 510], [100, 600]] as [number, number][],
+  /** BW19 a: past the last anchor the lift doubles every this many points, with no top (TL17) */
+  LIFT_DOUBLING_PER: 50,
+  /** BW22 a: what a breaking tool in use (a sledgehammer, a pick; a heavy weapon with Shield Breaker) adds to the force, kg */
+  BREAK_TOOL_KG: 150,
+  /** BW20 a: breaking time = the material's time at 50 × ((lift at 50 + BREAK_TOOL_KG) ÷ your force) ^ BREAK_FORCE_POWER */
+  BREAK_FORCE_POWER: 3,
+  /** BW20: the strength the materials' times are for (a working professional) */
+  BREAK_REF_STRENGTH: 50,
+  /** BW21 a: a wall or barrier that would take this long or less does not stop a walker: they go through it as part of a move */
+  WALK_THROUGH_S: 2,
   // ---- steadying yourself (SY1; src/engine/steady.ts; placeholders) ----
   /** % of max morale a steady roll wins back (+) or loses (−) by tier; past Critical Success each step adds STEADY_PAST_PCT, past
    * Critical Failure each step takes it away */

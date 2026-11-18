@@ -1,6 +1,11 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items and the routine bank (the library viewer shows every row). All numbers are placeholders.
-import { AM, BK, CP, DU, RV, WK, OP, LS, FR, FU, GC, GT, IF, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+import { AM, BK, BM, CP, DU, RV, WK, OP, LS, FR, FU, GC, GT, IF, HL, PA, PY, RL, TN, VL, ZK, RK, LC, LM } from './tableIds';
+/** BW26 a: what a wall of each kind is made of when it names no material (placeholders) */
+const WALL_MATERIAL: Record<string, string> = { [WK.wall]: BM.brick, [WK.glazed]: BM.glass, [WK.arcade]: BM.stone, [WK.low]: BM.brick, [WK.fence]: BM.planks };
+/** BW24: what each barrier kind is made of when it names no material (placeholders) */
+const BARRIER_MATERIAL: Record<string, string> = { [BK.door]: BM.oak, [BK.gate]: BM.oak, [BK.grate]: BM.iron, [BK.hatch]: BM.oak, [BK.rubble]: BM.rubble,
+  [BK.window]: BM.planks, [BK.arrow_slit]: BM.stone, [BK.barred_window]: BM.iron, [BK.large_window]: BM.planks };
 import { TP } from './templateIds';
 import { GP, HK, PF, RO, TH } from './npcLayerIds';
 import { BT, RC } from './raceIds';
@@ -32,7 +37,7 @@ import { GD } from './godIds';
 import { ST } from './startIds';
 import { ES } from './essenceIds';
 import { PK } from './perkIds';
-import { IT } from './itemIds';
+import { BREAK_TOOL_TAG, IT } from './itemIds';
 import { armorMultiplier, armorStop, shieldPool } from './gearScale';
 
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
@@ -534,6 +539,9 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, grips: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
+  // BW22 a: breaking tools. In use (held in both grips) each adds CONFIG.BREAK_TOOL_KG to the breaker's force (src/ruleset/breaking.ts)
+  { id: IT.sledgehammer, kind: 'tool', name: 'sledgehammer', look: 'a long-hafted iron sledgehammer', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },
+  { id: IT.pick, kind: 'tool', name: 'pick', look: 'a heavy iron pick on an ash haft', bulk: 2, grips: 2, tags: [BREAK_TOOL_TAG] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, grips: 1, stackable: true, consumable: true, heal: HL.draught },
   // generic bases for minted items with no close match, and for scenario objects the player grabs (loot L2, L3)
   { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, grips: 1, tags: ['improvised'],
@@ -1389,7 +1397,7 @@ export function prototypeLibrary(): Library {
       [WK.fence, 'Fence', false, true, true, true, 'open', CONFIG.FENCE_M, 'A fence or rail: seen through and reached over, crossed by climbing.'],
       [WK.arcade, 'Arcade', false, true, false, false, 'open', undefined, 'Arches on piers with a rail between: seen and heard through, not walked across.'],
     ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, number | undefined, string][]).map(([id, name, walk, see, reach, climb, sound, heightM, text]) =>
-      [id, { id, name, walk, see, reach, climb, sound, ...(heightM !== undefined ? { heightM } : {}), ...(id === WK.open ? { none: true as const } : {}), text }])),
+      [id, { id, name, walk, see, reach, climb, sound, ...(heightM !== undefined ? { heightM } : {}), ...(id === WK.open ? { none: true as const } : {}), text, ...(WALL_MATERIAL[id] ? { material: WALL_MATERIAL[id] } : {}) }])),
     // PZ2 a: kinds of way. A doorway is CONFIG.DOORWAY_M unless its barrier gives its own size (SZ7); a gap is as wide as the
     // ground the two titles share; a window (a drop, SD7) is a casement's size and sill unless its barrier gives one (PC3);
     // stairs about a metre wide (an estimate)
@@ -1428,7 +1436,27 @@ export function prototypeLibrary(): Library {
       [BK.barred_window, 'Barred window', false, false, false, true, 'window', 'Iron bars over a window: you see and shoot through it, but no one climbs through until the bars are broken.', [0.6, 1], undefined, 0.9, true],
       [BK.large_window, 'Large window', true, true, false, false, 'window', 'A tall window of a hall or a shop front behind shutters: open, it shows most of a room and is easy to climb through; they may be locked, or barred from inside.', [1.2, 1.5], undefined, 0.6],
     ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?, number?, true?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical, sillM, fixed]) =>
-      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}), ...(sillM !== undefined ? { window: true as const, sillM } : {}), ...(fixed ? { fixed } : {}) }])),
+      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}), ...(sillM !== undefined ? { window: true as const, sillM } : {}), ...(fixed ? { fixed } : {}), ...(BARRIER_MATERIAL[id] ? { material: BARRIER_MATERIAL[id] } : {}) }])),
+    // BW24 a, BW8 a: what walls, barriers and rubble are made of. secondsAt50 is a working professional with the right tool
+    // making a person-sized hole through exampleCm (time grows with thickness, src/ruleset/breaking.ts). The everyday rows
+    // carry their source; where none was found the row says it is an estimate. Fantasy rows are placeholders. BW9 b: no
+    // warded stone until magic exists (D-332).
+    barrierMaterials: Object.fromEntries(([
+      [BM.wattle, 'Wattle and daub', [10, 20], 15, 90, 'raised', undefined, 'Nearest source: a 2×4 stud wall with wood panel, 1.5 min to penetrate (NCEL TN-1425, Tancreto 1976, Table 1, NBS tests); wattle is no stronger.', 'Woven sticks packed with clay: village cottages and sheds.'],
+      [BM.planks, 'Timber planks', [3, 8], 5, 90, 'loud', undefined, 'A 2×4 stud wall with wood panel, 1.5 min to penetrate (NCEL TN-1425, Tancreto 1976, Table 1, NBS tests).', 'Board partitions, stables, shutters, fences.'],
+      [BM.oak, 'Oak', [4, 8], 5, 300, 'loud', undefined, 'EN 1627 resistance class RC3 (hammer, crowbar, screwdrivers): 5 min of working time.', 'A stout door, hatch or gate of oak; its lock or bar breaks with it.'],
+      [BM.brick, 'Brick', [10, 34], 20, 120, 'loud', undefined, 'An 8-in (20 cm) mortar-filled concrete block wall, 10 lb sledgehammer: 2.0 min (NCEL TN-1425, Tancreto 1976, Table 3).', 'Town houses and cellars: half a brick is about 10 cm, a brick about 22 cm.'],
+      [BM.iron, 'Iron bars', [2, 6], 3, 600, 'blaring', undefined, 'EN 1627 resistance class RC4 (saws, axes, hammers, chisels): 10 min of working time.', 'Cell bars, a grate, an iron-bound gate, bars over a window.'],
+      [BM.stone, 'Stone', [20, 400], 20, 660, 'blaring', undefined, 'Nearest source: 8-in (20 cm) unreinforced concrete with drill, sledgehammer and punch, 11 min (NCEL TN-1425, Tancreto 1976, Table 3; NBSIR 73-101).', 'Mortared stone: a cottage wall is about 60 cm, a castle curtain wall metres.'],
+      [BM.glass, 'Glass', [0.3, 1], 0.5, 1, 'loud', undefined, 'An estimate (no source found): one blow breaks a pane.', 'Window panes and glazed walls.'],
+      [BM.rubble, 'Rubble', [30, 300], 100, 1050, 'raised', undefined, 'About 150 shovels to the cubic yard (EngineersEdge, Typical capacities of earth-handling methods); a person-sized passage 1 m deep is about 2.4 cubic yards, at an estimated 3 s a shovel.', 'A cave-in or fallen stone, cleared by digging; its thickness is how deep it lies.'],
+      [BM.ice, 'Ice', [30, 200], 100, 1200, 'raised', undefined, 'A placeholder (fantasy).', 'A frozen cavern deep in the wild: soft for its size.', true],
+      [BM.living_wood, 'Living wood', [20, 100], 40, 1800, 'loud', 'regrows', 'A placeholder (fantasy).', 'A grown hedge-wall or a hollow giant tree: stop working and it closes again.', true],
+      [BM.slime_membrane, 'Slime membrane', [10, 50], 30, 120, 'murmur', 'regrows', 'A placeholder (fantasy).', 'The wet wall of a slime nest: quick to cut, quick to close, almost silent.', true],
+      [BM.lair_stone, 'Lair stone', [50, 500], 100, 14400, 'blaring', 'deeper', 'A placeholder (fantasy).', 'The walls of a dungeon or lair: harder the deeper the wild goes (waits on D-331).', true],
+      [BM.starmetal, 'Starmetal', [5, 30], 20, 1e7, 'deafening', undefined, 'A placeholder (fantasy): about four months at 50, so a Mythic needs half a day and a Transcendent minutes.', 'A vault or sealed tomb door of sky-fallen metal.', true],
+    ] as [string, string, [number, number], number, number, import('../scales').NoiseKey, 'regrows' | 'deeper' | undefined, string, string, true?][]).map(([id, name, thicknessCm, exampleCm, secondsAt50, noise, trait, source, text, fantasy]) =>
+      [id, { id, name, thicknessCm, exampleCm, secondsAt50, noise, ...(trait ? { trait } : {}), ...(fantasy ? { fantasy } : {}), source, text }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',

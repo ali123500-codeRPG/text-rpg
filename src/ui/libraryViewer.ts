@@ -1172,7 +1172,7 @@ function autoFacets(table: Record<string, Entry>): Facets {
   return (e: Entry) => keys.map((k) => [humanKey(k), typeof e[k] === 'string' ? typedId(e[k] as string)?.textContent ?? (e[k] as string) : (e[k] as string)]);
 }
 
-const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', npcRoles: 'NPC roles', themes: 'NPC themes', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Title kinds', wallKinds: 'Wall kinds', openingKinds: 'Way kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts', status: 'Old skill IDs' };
+const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', npcRoles: 'NPC roles', themes: 'NPC themes', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Title kinds', wallKinds: 'Wall kinds', openingKinds: 'Way kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts', barrierMaterials: 'Materials', status: 'Old skill IDs' };
 const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[])
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? humanKey(k), table: k }))];
@@ -1183,7 +1183,7 @@ const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['perks', 'essences', 'races', 'bodyTypes', 'classes', 'starts', 'gods', 'skills', 'achievements']],
   ['Rules', ['standIns', 'stacking', 'equations', 'attackModes', 'durations', 'quests']],
   ['Body and mind', ['healing', 'composure', 'fears']],
-  ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
+  ['Places', ['zoneKinds', 'zoneSizes', 'edgeKinds', 'barrierKinds', 'barrierMaterials', 'roadLengths', 'roadDangers', 'layouts', 'noiseLevels', 'visibilityLevels']],
   ['People', ['templates', 'npcRoles', 'themes', 'roles', 'activities', 'routines', 'routineSets', 'services']],
   ['Personality', ['nerve', 'personalityAxes', 'personalityTypes', 'tensions', 'values']],
   ['More', null], // a table not named above (a new one) lands here
