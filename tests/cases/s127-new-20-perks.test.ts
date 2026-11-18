@@ -97,7 +97,7 @@ describe('127 20 perks for the new skills', () => {
     expect(r.zone).toBe('tav_counter');
   });
 
-  it('Slip the Blow: in light armor, a Dodge that ties counts as a graze', () => {
+  it('Slip the Blow: a Dodge that ties counts as a graze, in any armor', () => {
     const setup = (armor: string, perk: boolean) => {
       const s = makeVillage();
       beside(s, 'patron_1');
@@ -108,12 +108,13 @@ describe('127 20 perks for the new skills', () => {
       return s;
     };
     const d = attackAtGap(setup(IT.gambeson, false), 0);
-    const hit = (s: GameState) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([60, d, 50, 50, 50]));
+    const hit = (s: GameState, dd = d) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([60, dd, 50, 50, 50]));
     const r = hit(setup(IT.gambeson, true));
     expect(r.gapShifts).toEqual([{ source: 'Slip the Blow', value: 1 }]);
     expect(r.outcome).toBe('grazed');
     expect(r.multiplier).toBeCloseTo(0.8);
-    expect(hit(setup(IT.mail_hauberk, true)).gapShifts).toEqual([]);
+    expect(hit(setup(IT.mail_hauberk, true), attackAtGap(setup(IT.mail_hauberk, false), 0)).gapShifts).toEqual([{ source: 'Slip the Blow', value: 1 }]); // always on: heavier armor too
+    expect(hit(setup(IT.gambeson, false)).gapShifts).toEqual([]);
   });
 
   it('Turn Aside: a heavy or crushing hit on a part heavy armor covers lands as a full hit', () => {

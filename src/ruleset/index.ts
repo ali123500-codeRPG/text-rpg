@@ -32,7 +32,7 @@ import { augmentK, coverMod, coverShown, hostileNearM, blendedSkill, defenseItem
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
-import { pieceOn, wornPieces } from './worn';
+import { pieceOn } from './worn';
 
 export { totalHp, healthLevel, isDownLevel, othersHealthWord, SHOWN_LEVELS, shownLevel, partStates, roleOff, woundsMods, hitTable } from './body';
 export { improveMarked, payRolls, growthRoll, skillCap, owedBySkill, burdenOf, burdenParts, groupRollBonus, clearMarkCounts, markEndurance, markStamina, markUse } from './improve';
@@ -294,12 +294,11 @@ export function defenseOwnMods(state: GameState, D: Actor, type: DefenseKind, ra
   return dm;
 }
 /** the gap's own shifts, given the rolls' tier difference (defense − attack): a heavy weapon against Block or Parry (PA11;
- * All-50 Against the Grain takes it off the owner's parries), A20 Slip the Blow (light armor: a tied Dodge grazes) */
+ * All-50 Against the Grain takes it off the owner's parries), A20 Slip the Blow (a tied Dodge grazes, whatever is worn) */
 export function gapShiftsOf(state: GameState, D: Actor, mode: AttackMode, type: DefenseKind, diff: number): TierShift[] {
   const out: TierShift[] = [];
   if (mode.class === 'heavy' && type !== 'dodge' && !(type === 'parry' && hasPerk(D, PK.against_the_grain))) out.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP });
-  const pieces = wornPieces(state, D);
-  if (type === 'dodge' && pieces.length > 0 && pieces.every((p) => p.armor.weight === 'light') && hasPerk(D, PK.slip_the_blow) && diff + sumShifts(out) === 0) {
+  if (type === 'dodge' && hasPerk(D, PK.slip_the_blow) && diff + sumShifts(out) === 0) {
     out.push({ source: 'Slip the Blow', value: 1 });
   }
   return out;
