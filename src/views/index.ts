@@ -120,7 +120,7 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
 /** FR1/FR5: what furniture stands in a zone and where; OD12: its grade once the viewer has tried it (always for the Weaver) */
 function furnitureView(state: GameState, zoneId: string, viewer?: Actor): { furniture?: ZoneView['furniture'] } {
   const fs = furnitureIn(state, zoneId);
-  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f), ...(f.grade && (!viewer || f.graded?.includes(viewer.id)) ? { grade: f.grade } : {}) })) } : {};
+  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f, zoneId), ...(f.grade && (!viewer || f.graded?.includes(viewer.id)) ? { grade: f.grade } : {}) })) } : {};
 }
 /** HF2: an echo's hidden past, for the Narrator only */
 const echoOf = (state: GameState, id: string): { echo?: string } => {

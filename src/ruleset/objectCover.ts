@@ -4,14 +4,15 @@
 // the target. So a shooter on a wall or an upper floor sees over a low wall, and a piece right in front of the shooter
 // hides nothing far off. With no viewer (hiding with nobody in particular to hide from), the tallest piece within
 // CONFIG.OBJECT_COVER_M of the body hides its own height.
-import type { Actor, Furniture, GameState, Zone } from '../types';
+import type { Actor, Furniture, GameState, Opening, Pt, Zone } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary } from '../library';
 import { furnitureIn, furniturePos } from '../engine/furniture';
 import { spotOf, type Pos } from '../engine/position';
 import { heightOf } from '../scenario/heights';
 import { zoneById } from '../engine/relations';
-import { crossings } from '../plan/line';
+import { crossings, openingsOn, seesNow } from '../plan/line';
+import { dist } from '../plan/geom';
 
 type Box = { lo: Pos; hi: Pos; h: number };
 
@@ -81,9 +82,14 @@ export function openingShown(state: GameState, body: Actor, zone: Zone, from?: A
   if (!t || !v) return 1;
   const floorT = heightOf(zone), size = actorBody(state, body).size, h = size.heightM;
   const eye = heightOf(zoneById(state, from.zone)) + actorBody(state, from).size.heightM * CONFIG.EYE_SHARE;
-  // PZ3: the last opening the sight line to the target's middle goes through
-  const c = crossings(state, { ...v, z: eye }, { ...t, z: floorT + h / 2 }).filter((x) => x.kind === 'wall' && !!x.opening).at(-1);
-  const o = c?.kind === 'wall' ? c.opening : undefined;
+  // PZ3: the last opening seen through that the sight line to the target passes, at whatever height (the frame below
+  // shows how much of the target it lets through)
+  let o: Opening | undefined, c: { at: Pt } | undefined;
+  for (const x of crossings(state, { ...v, z: eye }, { ...t, z: eye })) {
+    if (x.kind !== 'wall') continue;
+    const hit = openingsOn(state, x.wall).find((q) => dist(q.at, x.at) <= q.widthM / 2 + 1e-6 && seesNow(state, q));
+    if (hit) { o = hit; c = x; }
+  }
   if (!o || !c) return 1;
   const w = c.at, dP = Math.hypot(w.x - v.x, w.y - v.y), dT = Math.hypot(t.x - v.x, t.y - v.y);
   if (dP <= 0 || dT <= dP) return 1;

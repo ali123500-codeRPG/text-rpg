@@ -13,6 +13,7 @@ import { knownIds } from '../../src/agents/legality';
 import { distM } from '../../src/engine/position';
 import { IT } from '../../src/library/itemIds';
 import { BK } from '../../src/library/tableIds';
+import { layAll } from '../harness';
 
 const quiet = (zone = 'tav_common') => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1'] });
 const bandage = (s: GameState) => { s.player.core.inventory.push({ id: 'band', itemId: IT.bandage, qty: 2 }); };
@@ -32,7 +33,7 @@ it('BF13: a bandage used on someone else heals them, after stepping up to them',
 
 it('BF13: an NPC can take what an open chest shows', () => {
   const s = quiet();
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, open: true, contents: [{ id: 'roll', itemId: IT.bandage }] });
+  layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, open: true, contents: [{ id: 'roll', itemId: IT.bandage }] });
   expect(knownIds(buildActorView(s, 'patron_1')).ground.has('roll')).toBe(true);
 });
 

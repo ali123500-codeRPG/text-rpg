@@ -15,6 +15,7 @@ import { IT } from '../../src/library/itemIds';
 import { FU } from '../../src/library/tableIds';
 import { zoneById } from '../../src/engine/relations';
 import { coverMod, coverShown } from '../../src/ruleset/gear';
+import { boxOf } from '../../src/plan/geom';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
@@ -149,7 +150,7 @@ describe('117 stealth', () => {
     place(s, 'player', 'tav_cellar');
     const t = place(s, 'trader', 'tav_cellar');
     // PC1, PC2: barrels in the middle of the cellar, the player crouched just past them from the trader
-    const z = zoneById(s, 'tav_cellar')!, c = { x: z.rect!.x, y: z.rect!.y };
+    const z = zoneById(s, 'tav_cellar')!, c = { x: boxOf(z.outline).x, y: boxOf(z.outline).y };
     z.furniture = [{ id: 'tav_cellar.fu1', kind: FU.barrels, name: 'barrels' }];
     s.player.pos = { x: c.x, y: c.y + 0.7 }; t.pos = { x: c.x, y: c.y - 3 };
     s.player.core.condition.parts.left_leg = -30;

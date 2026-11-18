@@ -12,6 +12,7 @@ import { squaresWanted } from '../../src/land/edge';
 import { noteZonesSeen } from '../../src/engine/trail';
 import { CONFIG } from '../../src/config';
 import type { GameState, Region } from '../../src/types';
+import { boxOf } from '../../src/plan/geom';
 
 const FIRST = {
   kind: RK.river_valley, name: 'The Wendvale', look: 'A broad green vale.', river: { name: 'the Wend', from: 'w', to: 'e' },
@@ -31,7 +32,7 @@ async function story(): Promise<{ s: GameState; d: ScenarioDirector; asked: { gx
 }
 /** puts the player outdoors at point p */
 function standAt(s: GameState, p: { x: number; y: number }): void {
-  const out = s.places.flatMap((x) => x.zones).find((z) => z.outdoor && z.rect)!;
+  const out = s.places.flatMap((x) => x.zones).find((z) => z.outdoor && boxOf(z.outline))!;
   s.player.zone = out.id; s.player.placeId = out.placeId; s.player.pos = p;
 }
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -82,7 +83,7 @@ describe('316 the next region', () => {
     const { s, d } = await story();
     const a = s.regions![0], edgeNode = a.nodes.find((n) => n.kind === 'edge' && n.side === 'e')!;
     const line = a.roads.find((x) => x.ends.includes(edgeNode.id))!;
-    const out = s.places.flatMap((x) => x.zones).find((z) => z.outdoor && z.rect)!;
+    const out = s.places.flatMap((x) => x.zones).find((z) => z.outdoor && boxOf(z.outline))!;
     out.road = line.id;
     standAt(s, { x: S / 2, y: S / 2 }); // far from every edge: only the road asks
     expect(d.drawAhead(s)).toEqual(['1,0']);

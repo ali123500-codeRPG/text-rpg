@@ -17,6 +17,7 @@ import { maxMorale, moraleLevel, restoreMorale, tierCostMult } from '../../src/r
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
+import { groundIn } from '../../src/engine/ground';
 
 const sword = `player_${IT.arming_sword}_1`;
 
@@ -151,7 +152,7 @@ describe('ruleset methods', () => {
     const fx = ruleset.applyEffects({ ...hit, location: 'right_arm', damage: 5 }, s);
     expect(fx.map((e) => e.kind)).toContain('item_dropped');
     expect(g.core.inventory.some((i) => i.itemId === IT.arming_sword)).toBe(false);
-    const dropped = s.zones.find((z) => z.id === 'tav_common')!.groundItems;
+    const dropped = groundIn(s, 'tav_common');
     expect(dropped.map((i) => i.itemId)).toEqual([IT.arming_sword]);
     expect(dropped[0].equippedIn).toBeUndefined();
     g.core.condition.parts.neck = -95;

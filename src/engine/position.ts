@@ -387,6 +387,8 @@ function endOn(o: Opening, zoneId: string): Pos {
   return o.to && sideOfOpening(o, zoneId) === 1 ? o.to : o.at;
 }
 
+/** how far short of a shut way a walk stops, in metres (SD3) */
+const GATE_SHORT_M = 0.1;
 /** ZP2, PZ8: one leg of a walk toward `goal`: along the walking path until it crosses into the next title (entering it),
  * or, at the path's last straight stretch, straight at the goal's point, stopping `stopShort` metres before it. A goal
  * with no point is the title itself: the walk ends ENTER_M past where it comes in. At most `metres` are walked. Returns
@@ -406,7 +408,12 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string; facin
   for (let k = 0; k < pieces.length; k++) {
     const pc = pieces[k], left = metres - used;
     const into = pc.zone && pc.zone !== a.zone ? pc.zone : undefined;
-    if (into && gate && (pc.climb ? dist(pc.p, gate.o.at) <= 1 : dist(pc.p, gate.o.at) <= gate.o.widthM / 2 + 0.5)) return used; // SD3: up to the gate
+    if (into && gate && (pc.climb ? dist(pc.p, gate.o.at) <= 1 : dist(pc.p, gate.o.at) <= gate.o.widthM / 2 + 0.5)) { // SD3: up to the gate
+      // a hand's breadth short of it, on this side: standing in the doorway itself would be past it to every later walk
+      const back = k > 0 ? Math.min(GATE_SHORT_M, pieces[k - 1].m) : 0;
+      if (back > 0 && a.pos) step(a, lerp(pc.p, pieces[k - 1].p, back / pieces[k - 1].m));
+      return used - back > EPS ? used - back : 0;
+    }
     if (pc.climb) { // a climb is walked whole once begun from its foot (the next leg starts at the top)
       if (used > 0 && pc.m > left + EPS) return used;
       step(a, pc.q);

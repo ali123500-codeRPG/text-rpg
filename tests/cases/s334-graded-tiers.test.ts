@@ -14,6 +14,7 @@ import { NOISE } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { act, intent } from './w4-kit';
+import { layAll } from '../harness';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
@@ -96,7 +97,7 @@ describe('334 BG-257: each roll line says what that roll did', () => {
   it('a lock pick names what happened at the lock, never Look around\'s words', () => {
     const s = village();
     s.player.core.skills[SK.lockpicking] = { raw: 50, state: 'normal' };
-    zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, contents: [], lock: { locked: true }, grade: 'major' });
+    layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, contents: [], lock: { locked: true }, grade: 'major' });
     const evs = turn(s, intent({ action: { type: 'pick', target: 'box' } }), [50]);
     expect(line(s, evs)?.result).toMatch(/^(the lock opens|still at it|not yet|beyond you for now|the pick snaps)$/);
   });

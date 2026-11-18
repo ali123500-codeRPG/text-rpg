@@ -10,6 +10,7 @@ import { buildNarrationView } from '../../src/views';
 import { fallbackNarration } from '../../src/agents/narration';
 import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
 import { CONFIG } from '../../src/config';
+import { boxOf } from '../../src/plan/geom';
 
 describe('176 a move says where it came from (BG-22)', () => {
   it('a walk along the street to the tavern door, then inside: within the street, heading for the room; then from the street', () => {
@@ -18,7 +19,7 @@ describe('176 a move says where it came from (BG-22)', () => {
     for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
     placeZones(s, zs);
     placeAll(s);
-    const street = zs.find((z) => z.id === 'street_door')!.rect!, room = zs.find((z) => z.id === 'tav_common')!.rect!;
+    const street = boxOf(zs.find((z) => z.id === 'street_door')!.outline), room = boxOf(zs.find((z) => z.id === 'tav_common')!.outline);
     // the far side of the street from the tavern
     s.player.pos = { x: street.x + Math.sign(street.x - room.x) * (street.w / 2 - 0.5), y: street.y + Math.sign(street.y - room.y) * (street.d / 2 - 0.5) };
     const ev = play(s, { intent: intent({ move: { toZone: 'tav_common' } }) });

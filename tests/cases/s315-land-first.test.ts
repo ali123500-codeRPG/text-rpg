@@ -1,6 +1,8 @@
 // 315 WZ1, WZ2, WZ4, WZ13: a story draws its first region before its first plan, from the Weaver's brief; the opening
 // village stands on the brief's start site, the Weaver sees the land in words, a road zone along a road of the land takes
 // its real length, and the player makes out the land around them from outdoors.
+import { middle, roofed } from '../../src/plan/where';
+import { lineLength } from '../../src/land/generate';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { TIERS } from '../../src/scales';
@@ -40,8 +42,9 @@ describe('315 land first', () => {
     expect(village.parentId).toBeNull();
     expect(site.placeId).toBe(village.id);
     // the village's zones sit on the site, not at the world's origin
-    const z = s.places.filter((p) => p.id === village.id || p.parentId === village.id).flatMap((p) => p.zones).find((x) => x.rect)!;
-    expect(Math.hypot(z.rect!.x - site.at.x, z.rect!.y - site.at.y)).toBeLessThan(500);
+    const z = s.places.filter((p) => p.id === village.id || p.parentId === village.id).flatMap((p) => p.zones).find((x) => x.outline.length)!;
+    const m = middle(z);
+    expect(Math.hypot(m.x - site.at.x, m.y - site.at.y)).toBeLessThan(500);
     // the Weaver saw the land in words
     expect(views[0].land).toMatchObject({ name: 'The Wendvale', start: site.id });
     expect(views[0].land!.roads.length).toBeGreaterThan(0);
@@ -61,7 +64,7 @@ describe('315 land first', () => {
     const d = new ScenarioDirector({ clock: new VirtualClock(), weave: async (view) => ({
       ...villageStagePlan(TIERS.keyOf(view.tier)!),
       places: [{ key: 'way', name: 'the vale road', kind: 'road', parent: '' }],
-      zones: [{ key: 'vale_road', place: 'way', kind: ZK.road, name: 'the vale road', look: 'a cart track', road: line.id, ways: [{ to: s.player.zone, label: 'back' }, { to: 'beyond', label: 'on' }] }],
+      zones: [{ key: 'vale_road', place: 'way', name: 'the vale road', look: 'a cart track', road: line.id, ways: [{ to: s.player.zone, label: 'back' }, { to: 'beyond', label: 'on' }] }],
       frontiers: [{ key: 'beyond', label: 'on' }], cast: [], bands: [],
     }) });
     s.stage.breakCause = 'scenario_end';
@@ -69,14 +72,14 @@ describe('315 land first', () => {
     const road = s.places.flatMap((p) => p.zones).find((z) => z.road === line.id)!;
     expect(road).toBeDefined();
     expect(road.danger).toBe('wild');
-    expect(Math.max(road.rect!.w, road.rect!.d)).toBeCloseTo(line.length, -1);
+    expect(lineLength(road.line!)).toBeCloseTo(line.length, -1);
     expect(line.zone).toBe(road.id);
   });
 
   it('from outdoors the player makes out the land around them, and it is saved', async () => {
     const { s } = await start();
-    const out = s.places.flatMap((p) => p.zones).find((z) => z.outdoor && z.rect)!;
-    s.player.zone = out.id; s.player.placeId = out.placeId; s.player.pos = { x: out.rect!.x, y: out.rect!.y };
+    const out = s.places.flatMap((p) => p.zones).find((z) => z.outline.length && !roofed(s, z))!;
+    s.player.zone = out.id; s.player.placeId = out.placeId; s.player.pos = middle(out);
     noteZonesSeen(s);
     const r = s.regions![0], seen = landSeen(s, r.id);
     const n = r.heights.filter((_, i) => seen(i)).length;

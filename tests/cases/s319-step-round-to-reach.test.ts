@@ -12,10 +12,9 @@ import { SK } from '../../src/library/skillIds';
 import { floorGap, walkLeg } from '../../src/engine/position';
 
 const room = () => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+  const s = makeVillage({ shape: { tav_common: { rect: { x: 0, y: 0, w: 20, d: 20 } } }, playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
   s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening;
   const z = s.zones.find((x) => x.id === 'tav_common')!;
-  z.rect = { x: 0, y: 0, w: 20, d: 20 };
   s.player.pos = { x: 0, y: 0 };
   return s;
 };

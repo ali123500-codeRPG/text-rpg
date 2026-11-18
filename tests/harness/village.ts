@@ -97,7 +97,9 @@ function withRoutine(a: Actor, setId: string, slots: Record<string, string | str
 }
 
 /** shape: changes to a title's spec before it is drawn (a footprint, walls, light …), by title id */
-export type VillageOpts = { seed?: number; playerZone?: string; without?: string[]; shape?: Record<string, Partial<TitleSpec>> };
+export type VillageOpts = { seed?: number; playerZone?: string; without?: string[]; shape?: Record<string, Partial<TitleSpec>>; add?: TitleSpec[] };
+/** a village title's spec with more ways (fixture setup: a way to a title added with `add`) */
+export const withWays = (id: string, ...ways: WaySpec[]): Partial<TitleSpec> => ({ ways: [...villageTitles().find((t) => t.id === id)!.ways, ...ways] });
 /** FR4: the counter village: an 8 m common room with the bar's 3 m floor north of it behind a counter (a low wall) */
 export const COUNTER_SHAPE: Record<string, Partial<TitleSpec>> = {
   tav_common: { rect: { x: 0, y: 0, w: 8, d: 8 }, walls: { n: WK.low, e: WK.wall, s: WK.wall, w: WK.wall } },
@@ -108,7 +110,7 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
   resetConfig();
   resetLibrary();
   const storyId = 'test';
-  const places = villagePlaces(storyId), titles = villageTitles().map((t) => ({ ...t, ...opts.shape?.[t.id] }));
+  const places = villagePlaces(storyId), titles = [...villageTitles().map((t) => ({ ...t, ...opts.shape?.[t.id] })), ...(opts.add ?? [])];
   const zoneOf = (id: string) => titles.find((z) => z.id === id)!;
   const playerZone = opts.playerZone ?? 'tav_common';
   const npc = (tpl: string, id: string, zone: string, bandId: string, name: string) =>
@@ -206,10 +208,13 @@ export function putBarrier(state: GameState, a: string, b: string, rec: Barrier)
   fitBarrier(state, o);
   return rec;
 }
-/** lays an item on the ground at a point of a title, on its floor (fixture setup only) */
+/** lays an item on the ground at a point of a title (`at`, else its own `at`, else the title's middle), on its floor; the
+ * same object, so a test can keep it (fixture setup only) */
 export function lay(state: GameState, zone: string, item: ItemInstance, at?: { x: number; y: number }): ItemInstance {
-  const z = state.zones.find((q) => q.id === zone)!, p = at ?? middle(z);
-  const i = { ...item, at: { x: p.x, y: p.y, floor: z.floor } };
-  state.ground.push(i);
-  return i;
+  const z = state.zones.find((q) => q.id === zone)!, p = at ?? item.at ?? middle(z);
+  item.at = { x: p.x, y: p.y, floor: z.floor };
+  state.ground.push(item);
+  return item;
 }
+/** lays items on the ground in a title (each at its own `at`, else the title's middle) */
+export const layAll = (state: GameState, zone: string, ...items: ItemInstance[]): void => { for (const i of items) lay(state, zone, i); };

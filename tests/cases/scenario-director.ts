@@ -44,9 +44,9 @@ export const MILL_PLAN: StagePlan = {
   event: { summary: 'slime tracks lead toward the old mill', challenge: 'moderate', gain: 'moderate' },
   places: [{ key: 'mill', name: 'the old mill', kind: 'place', parent: 'village' }],
   zones: [
-    { key: 'mill_yard', place: 'mill', kind: ZK.yard, name: 'mill yard', look: 'a weedy yard before a sagging mill', cover: 'some', light: 'bright',
+    { key: 'mill_yard', place: 'mill', kind: ZK.yard, name: 'mill yard', look: 'a weedy yard before a sagging mill', light: 'bright',
       ways: [{ to: 'field_edge', label: 'back to the field' }, { to: 'mill_race', label: 'down to the race', kind: 'door' }] },
-    { key: 'mill_race', place: 'mill', kind: ZK.yard, name: 'mill race', look: 'a choked stone channel', cover: 'some', light: 'dim',
+    { key: 'mill_race', place: 'mill', kind: ZK.yard, name: 'mill race', look: 'a choked stone channel', light: 'dim',
       ways: [{ to: 'mill_yard', label: 'up to the yard', kind: 'door' }, { to: 'mill_pond', label: 'along the race', kind: 'door' }] },
   ],
   frontiers: [{ key: 'mill_pond', label: 'along the race' }],

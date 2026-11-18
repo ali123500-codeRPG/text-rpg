@@ -10,9 +10,10 @@ import { checkIntent } from '../../src/agents/schema';
 import { buildPlayerView } from '../../src/views';
 import { CONFIG } from '../../src/config';
 import type { GameState, Intent } from '../../src/types';
+import { boxOf } from '../../src/plan/geom';
 
 const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
-const rect = (s: GameState, id: string) => s.zones.find((z) => z.id === id)!.rect!;
+const rect = (s: GameState, id: string) => boxOf(s.zones.find((z) => z.id === id)!.outline);
 const to = (toZone: string, x: number, y: number): Intent => intent({ move: { toZone, spot: { at: { x, y } } } });
 /** plays the move until it stops getting closer */
 function walkTo(s: GameState, i: Intent, fight = false): number {

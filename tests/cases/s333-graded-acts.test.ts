@@ -16,6 +16,8 @@ import { checkParserLegality } from '../../src/agents/legality';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
+import { layAll } from '../harness';
+import { groundIn } from '../../src/engine/ground';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
@@ -100,8 +102,8 @@ describe('333 graded acts (OD2, OD3, OD4, OD11, OD12)', () => {
 
 describe('333 breaking a box open on the gate (OD13 a)', () => {
   const box = (s: GameState, grade: 'none' | 'extreme') => {
-    zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, contents: [{ id: 'vial', itemId: IT.healing_draught, qty: 3 }], lock: { locked: true }, grade });
-    return zoneById(s, 'tav_common')!.groundItems.find((i) => i.id === 'box')!;
+    layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, contents: [{ id: 'vial', itemId: IT.healing_draught, qty: 3 }], lock: { locked: true }, grade });
+    return groundIn(s, 'tav_common').find((i) => i.id === 'box')!;
   };
   const bare = (s: GameState, raw: number) => {
     s.player.core.skills[SK.unarmed_improvised] = { raw, state: 'normal' };

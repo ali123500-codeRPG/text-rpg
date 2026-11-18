@@ -2,6 +2,9 @@
 // Other workstreams' functions are replaced with small local fakes.
 import { RC } from '../../src/library/raceIds';
 import { ZK } from '../../src/library/tableIds';
+import { roofed, waysOut, wayTo } from '../../src/plan/where';
+import { groundIn } from '../../src/engine/ground';
+import { zoneById } from '../../src/engine/relations';
 import { TP } from '../../src/library/templateIds';
 import type { Tier } from '../../src/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -99,12 +102,12 @@ describe('validateStagePlan', () => {
   });
   it('links point to a plan zone, a stage zone or a frontier', () => {
     const p = villageStagePlan();
-    p.zones[0].links.push({ to: 'nowhere', label: 'a door' });
+    p.zones[0].ways.push({ to: 'nowhere', label: 'a door' });
     expect(codes(fresh(), p)).toContain('bad_link');
     // a stage zone and an existing frontier are fine
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }] };
     expect(validateStagePlan(s, ext, { ...ctx, kind: 'extension', frontierKey: 'woods', placeId: 'field' })).toEqual([]);
   });
   it('Z2: every zone names a known kind', () => {
@@ -217,7 +220,7 @@ describe('validateStagePlan', () => {
   });
   it('bound zones must reach each other', () => {
     const p = villageStagePlan();
-    p.zones.push({ key: 'island', place: 'field', kind: ZK.yard, name: 'an island', look: 'reeds', cover: 'none', light: 'bright', ways: [] });
+    p.zones.push({ key: 'island', place: 'field', kind: ZK.yard, name: 'an island', look: 'reeds', light: 'bright', ways: [] });
     p.cast[3].slots = { route: ['field_mid', 'field_far'], post: 'island' };
     expect(validateStagePlan(fresh(), p, ctx)).toEqual([expect.objectContaining({ code: 'unreachable_zone', castKey: 'slime_1', routineOnly: true })]);
   });
@@ -238,16 +241,16 @@ describe('applyStagePlan', () => {
     expect(s.places.map((p) => p.id)).toEqual(['village', 'tavern', 'street', 'field']);
     expect(s.places[1].parentId).toBe('village');
     expect(s.zones.map((z) => z.id)).toHaveLength(7);
-    expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.to === 'woods')).toEqual({ to: 'woods', label: 'into the woods', sight: false, frontier: true });
+    expect(wayTo(s, 'field_far', 'woods')).toMatchObject({ to: 'woods', label: 'into the woods', frontier: true });
     expect(s.player.zone).toBe('tav_common');
-    // Z3: the kind fixes outdoor and fills cover and light the plan leaves out
+    // Z3: the kind gives a roof or the open sky, and the light the plan leaves out
     const p2 = villageStagePlan();
     const field = p2.zones.find((z) => z.key === 'field_mid')!;
-    delete field.cover; delete field.light;
+    delete field.light;
     const s2 = fresh();
     applyStagePlan(s2, p2, ctx, { entry: 'open' }, createRng(1));
-    expect(s2.zones.find((z) => z.id === 'field_mid')).toMatchObject({ outdoor: true, cover: 'none', light: 'dark' });
-    expect(s2.zones.find((z) => z.id === 'tav_common')!.outdoor).toBeUndefined();
+    expect(roofed(s2, zoneById(s2, 'field_mid'))).toBe(false);
+    expect(roofed(s2, zoneById(s2, 'tav_common'))).toBe(true);
     expect(s.bands.map((b) => b.id)).toEqual(['player_band', 'village_watch', 'tavern_folk', 'slimes']);
     expect(s.actors.map((a) => [a.id, a.zone, a.placeId, a.bandId])).toEqual([
       ['guard_1', 'gate_inner', 'street', 'village_watch'], ['barkeep', 'tav_counter', 'tavern', 'tavern_folk'],
@@ -293,14 +296,14 @@ describe('applyStagePlan', () => {
     const bp = s.blueprints.find((b) => b.kind === 'item')!;
     expect((bp.data as { name: string }).name).toBe("Wim's old blade");
     expect((bp.data as { weapon: { modes: { hitAdj: number }[] } }).weapon.modes[0].hitAdj).toBe(4); // QUALITY_HIT_FACTOR 0.04 × need 50 (fine) × quality 2
-    expect(s.zones.find((z) => z.id === 'tav_cellar')!.groundItems[0].itemId).toBe(bp.id);
+    expect(groundIn(s, 'tav_cellar')[0].itemId).toBe(bp.id);
     expect(s.scenarioCaps.minted).toBe(1);
   });
   it('keys that collide with existing ids get fresh ids; existing bands keep lethal', () => {
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
       bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', lethal: undefined as never, relations: { player_band: 'hostile' } }],
-      zones: [{ key: 'field_mid', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }],
+      zones: [{ key: 'field_mid', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }],
       cast: [{ template: TP.slime, key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.zones.map((z) => z.id)).toContain('field_mid_2');
@@ -308,7 +311,8 @@ describe('applyStagePlan', () => {
     const a = s.actors.find((x) => x.id === 'slime_1_2')!;
     expect(a.mind!.slots).toEqual({ route: ['field_mid_2', 'field_far'], post: 'field_mid_2' });
     // the crossed frontier now leads to the entry zone, with a way back, and the player stands there
-    expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.label === 'into the woods')).toEqual({ to: 'field_mid_2', label: 'into the woods', kind: 'door' });
+    expect(waysOut(s, 'field_far').find((l) => l.label === 'into the woods')).toMatchObject({ to: 'field_mid_2', label: 'into the woods' });
+    expect(wayTo(s, 'field_mid_2', 'field_far')).toBeDefined();
     expect(s.player.zone).toBe('field_mid_2');
   });
   it('degrade: routine-error actors get idle_here; four flags', () => {
@@ -342,7 +346,7 @@ describe('applyFallbackStage', () => {
     applyFallbackStage(s, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, 'call_failed', []);
     const z = s.zones.find((x) => x.id === 'woods')!;
     expect(z.name).toBe('into the woods');
-    expect(z.links).toEqual([{ to: 'field_far', label: 'far side of the field', kind: 'door' }]);
+    expect(waysOut(s, z.id).map((l) => [l.to, l.label])).toEqual([['field_far', 'far side of the field']]);
     expect(s.player.zone).toBe('woods');
     expect(s.actors).toHaveLength(n);
     expect(s.stage.fallback!.reason).toBe('call_failed');
@@ -400,7 +404,7 @@ describe('ScenarioDirector', () => {
     const clock = new VirtualClock();
     const s = makeVillage({ playerZone: 'field_far' });
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }] };
     const weave = vi.fn(() => clock.sleep(5000).then(() => ext));
     const spy = vi.spyOn(ruleset, 'eventRoll');
     const d = new ScenarioDirector({ weave, clock });

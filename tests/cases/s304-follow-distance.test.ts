@@ -16,8 +16,7 @@ import { IT } from '../../src/library/itemIds';
 import type { Actor, GameState } from '../../src/types';
 
 const field = () => {
-  const s = makeVillage({ playerZone: 'field_mid', without: ['slime_1', 'slime_2', 'guard_1'] });
-  s.zones.find((z) => z.id === 'field_mid')!.rect = { x: 0, y: 0, w: 200, d: 20 };
+  const s = makeVillage({ shape: { field_mid: { rect: { x: 0, y: 0, w: 200, d: 20 } } }, playerZone: 'field_mid', without: ['slime_1', 'slime_2', 'guard_1'] });
   s.player.pos = { x: -90, y: 0 };
   const w = place(s, 'patron_1', 'field_mid');
   w.pos = { x: 10, y: 0 };

@@ -12,11 +12,13 @@ import { zoneById } from '../../src/engine/relations';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import { checkParserLegality } from '../../src/agents/legality';
+import { layAll } from '../harness';
+import { groundIn } from '../../src/engine/ground';
 
 const village = (): GameState => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
 const box = (s: GameState, itemId: string = IT.chest, extra: object = {}) => {
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId, contents: [{ id: 'cup', itemId: IT.curio }], lock: { locked: true }, grade: 'minor', ...extra });
-  return zoneById(s, 'tav_common')!.groundItems.find((i) => i.id === 'box')!;
+  layAll(s, 'tav_common', { id: 'box', itemId, contents: [{ id: 'cup', itemId: IT.curio }], lock: { locked: true }, grade: 'minor', ...extra });
+  return groundIn(s, 'tav_common').find((i) => i.id === 'box')!;
 };
 const bare = (s: GameState) => { for (const i of s.player.core.inventory) if (i.equippedIn?.some((g) => g.startsWith('grip:'))) i.equippedIn = []; };
 

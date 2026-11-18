@@ -9,6 +9,7 @@ import { ruleset } from '../../src/ruleset';
 import type { AttackRequest, AttackResult, RollResult } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { groundIn } from '../../src/engine/ground';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -33,7 +34,7 @@ it('90 Destroyed arm drops', () => {
   const drop = ev.find((e) => e.kind === 'item_dropped');
   expect(drop).toMatchObject({ actorId: 'guard_1', itemId: sword, zone: 'tav_common' });
   expect(drop!.perception.patron_1 ?? drop!.perception.player).toBeTruthy();
-  expect(s.zones.find((z) => z.id === 'tav_common')!.groundItems.map((i) => i.id)).toContain(sword);
+  expect(groundIn(s, 'tav_common').map((i) => i.id)).toContain(sword);
   play(s, { intent: intent({ gear: [{ op: 'pick_up', item: sword }] }) });
   expect(s.player.core.inventory.some((i) => i.id === sword)).toBe(true);
   expect(actor(s, 'guard_1').core.inventory.some((i) => i.id === sword)).toBe(false);

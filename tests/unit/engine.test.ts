@@ -158,6 +158,7 @@ vi.mock('../../src/minds', async (importOriginal) => {
 import { computePending, firedOrders, fromIntent, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee, impressionWords } from '../../src/engine';
 import type { TurnInput } from '../../src/engine';
 import { hostile, stance, wary } from '../../src/engine/relations';
+import { groundIn } from '../../src/engine/ground';
 
 type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
 const intent = ({ action, ...p }: IntentArg): Intent => ({
@@ -426,7 +427,7 @@ describe('gear and combat', () => {
     place(s, 'patron_1', s.player.zone); // a knife throw (7 m) reaches its own zone
     F.defended = false;
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: AM.throw } }) }), createRng(1));
-    expect(s.zones.find((z) => z.id === s.player.zone)!.groundItems.map((i) => i.id)).toEqual(['dg']);
+    expect(groundIn(s, s.player.zone).map((i) => i.id)).toEqual(['dg']);
     expect(s.player.core.inventory.some((i) => i.id === 'dg')).toBe(false);
   });
   it('a Destroyed sword arm drops the sword; pick up is free and returns it', () => {

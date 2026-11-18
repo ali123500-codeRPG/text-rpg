@@ -154,8 +154,11 @@ export function joinFrontier(state: GameState, key: string, to: Zone): void {
 /** one frontier opening is built: it now joins `to` (or goes, where its title already has a way to `to`) */
 export function frontierTo(state: GameState, o: Opening, to: Zone): void {
   const from = state.zones.find((z) => z.id === o.joins[0]);
-  const dup = !from || from === to || state.openings.some((x) => x !== o && !x.frontier && x.joins.includes(from.id) && x.joins.includes(to.id));
-  if (dup) { state.openings.splice(state.openings.indexOf(o), 1); planChanged(); return; }
+  const dup = from && from !== to ? state.openings.find((x) => x !== o && !x.frontier && x.joins.includes(from.id) && x.joins.includes(to.id)) : undefined;
+  if (!from || from === to || dup) {
+    if (dup && o.labels[0]) dup.labels[dup.joins[0] === from!.id ? 0 : 1] = o.labels[0]; // the way keeps the words it was known by
+    state.openings.splice(state.openings.indexOf(o), 1); planChanged(); return;
+  }
   o.joins = [o.joins[0], to.id];
   o.labels = [o.labels[0], o.labels[1] || from!.name];
   delete o.frontier;

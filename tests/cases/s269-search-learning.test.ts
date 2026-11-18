@@ -11,6 +11,7 @@ import { tierSkill } from '../../src/minds/state';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameState, RollResult, Tier } from '../../src/types';
+import { groundIn } from '../../src/engine/ground';
 
 /** forces every sight or stealth function roll to `tier` */
 function rigRolls(tier: Tier) {
@@ -57,7 +58,7 @@ describe('269 search learning and secrets', () => {
     s.player.core.inventory.push({ id: 'purse_1', itemId: IT.dagger });
     rigRolls('success');
     play(s, { intent: intent({ action: { type: 'stash', item: 'purse_1' } }) });
-    const it = s.zones.find((z) => z.id === 'street_square')!.groundItems.find((i) => i.id === 'purse_1')!;
+    const it = groundIn(s, 'street_square').find((i) => i.id === 'purse_1')!;
     expect(it.hiderSkill).toBe(30);
     expect(it.knownTo).toEqual(['player']);
     expect(marks(s, SK.sneaking)).toBe(0);

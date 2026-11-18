@@ -9,8 +9,7 @@ import { intent, play } from './w4-kit';
 import type { GameState } from '../../src/types';
 
 function slippedOff(): GameState {
-  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
-  s.zones.find((z) => z.id === 'tav_common')!.rect = { x: 0, y: 0, w: 12, d: 8 };
+  const s = makeVillage({ shape: { tav_common: { rect: { x: 0, y: 0, w: 12, d: 8 } } }, without: ['slime_1', 'slime_2', 'guard_1'] });
   const w = place(s, 'patron_1', 'tav_common');
   s.player.zone = 'tav_common'; s.player.pos = { x: -5, y: 0 };
   w.pos = { x: 4, y: 3 };

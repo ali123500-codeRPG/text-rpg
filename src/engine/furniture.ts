@@ -27,8 +27,11 @@ export const furnitureById = (state: GameState, zoneId: string, id: string): Fur
 /** the stored record of a piece by id: where its grade is kept (OD3) */
 export const furnitureRecord = (state: GameState, id: string): Furniture | undefined => state.furniture.find((f) => f.id === id);
 
-/** a piece's place in words: "north side", "south-west corner", "middle" (an edge piece as seen from its own title) */
-export function furnitureWhere(f: Furniture): string {
-  const w = f.side ? WORDS[f.side] ?? f.side : '';
+const OPPOSITE: Record<string, string> = { n: 's', s: 'n', e: 'w', w: 'e', ne: 'sw', sw: 'ne', nw: 'se', se: 'nw' };
+/** a piece's place in words: "north side", "south-west corner", "middle"; FR4: an edge piece seen from the title on its far
+ * side (`from`) stands on that title's opposite side */
+export function furnitureWhere(f: Furniture, from?: string): string {
+  const side = f.side && f.edge && from && from !== f.zone ? OPPOSITE[f.side] ?? f.side : f.side;
+  const w = side ? WORDS[side] ?? side : '';
   return !w ? 'middle' : w.includes(' ') ? `${w.replace(' ', '-')} corner` : `${w} side`;
 }

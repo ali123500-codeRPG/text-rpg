@@ -7,12 +7,13 @@ import { makeVillage } from '../harness';
 import { act, play } from './w4-kit';
 import { distM } from '../../src/engine/position';
 import { NOISE } from '../../src/scales';
+import { boxOf } from '../../src/plan/geom';
 
 it('BF3: a whispered answer across the counter to someone standing back is heard, said low', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
   const m = s.actors.find((a) => a.id === 'trader')!;
-  const common = s.zones.find((z) => z.id === 'tav_common')!.rect!;
-  const counter = s.zones.find((z) => z.id === 'tav_counter')!.rect!;
+  const common = boxOf(s.zones.find((z) => z.id === 'tav_common')!.outline);
+  const counter = boxOf(s.zones.find((z) => z.id === 'tav_counter')!.outline);
   // the far side of the common room from the counter
   s.player.pos = { x: common.x - Math.sign(counter.x - common.x) * (common.w / 2 - 0.5), y: common.y - Math.sign(counter.y - common.y) * (common.d / 2 - 0.5) };
   expect(distM(s, s.player, m)).toBeGreaterThan(3);

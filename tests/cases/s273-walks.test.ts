@@ -10,6 +10,7 @@ import { now } from '../../src/time';
 import { distM } from '../../src/engine/position';
 import { moveSpeed } from '../../src/engine/speed';
 import { SK } from '../../src/library/skillIds';
+import { boxOf } from '../../src/plan/geom';
 
 const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
 const go = (toZone: string) => intent({ move: { toZone } });
@@ -29,11 +30,11 @@ describe('273 walks', () => {
   it('BG-159: a way out 1.2 km along one long zone is walked in one turn, at a walk', () => {
     const s = quiet();
     const z = s.zones.find((x) => x.id === 'field_far')!, mid = s.zones.find((x) => x.id === 'field_mid')!;
-    const dir = Math.sign(z.rect!.x - mid.rect!.x);
+    const dir = Math.sign(boxOf(z.outline).x - boxOf(mid.outline).x);
     z.rect!.x += dir * 580; // field_far grows 1160 m longer, away from field_mid
     z.rect!.w += 1160;
     place(s, 'player', 'field_far');
-    s.player.pos = { x: z.rect!.x + dir * (z.rect!.w / 2 - 1), y: z.rect!.y };
+    s.player.pos = { x: boxOf(z.outline).x + dir * (boxOf(z.outline).w / 2 - 1), y: boxOf(z.outline).y };
     const metres = distM(s, s.player, { zone: 'field_mid' });
     expect(metres).toBeGreaterThan(1000);
     const t = now(s);

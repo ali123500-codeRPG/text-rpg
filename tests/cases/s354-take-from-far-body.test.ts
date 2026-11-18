@@ -9,15 +9,16 @@ import { IT } from '../../src/library/itemIds';
 import { distM } from '../../src/engine/position';
 import { slotMetres } from '../../src/engine/speed';
 import { zoneById } from '../../src/engine/relations';
+import { boxOf } from '../../src/plan/geom';
 
 const bodyAt = (m: number) => {
   const s = makeVillage({ playerZone: 'field_mid', without: ['slime_2', 'guard_1', 'trader', 'patron_1'] });
   const field = zoneById(s, 'field_mid')!;
-  field.rect = { ...field.rect!, w: 240 }; // a long open stretch, like the causeway
-  field.area = field.rect.w * field.rect.d;
+  field.rect = { ...boxOf(field.outline), w: 240 }; // a long open stretch, like the causeway
+  field.area = boxOf(field.outline).w * boxOf(field.outline).d;
   const t = beside(s, 'slime_1', 'player', 0.5);
-  s.player.pos = { x: field.rect.x - 110, y: field.rect.y };
-  t.pos = { x: s.player.pos.x + m, y: field.rect!.y };
+  s.player.pos = { x: boxOf(field.outline).x - 110, y: boxOf(field.outline).y };
+  t.pos = { x: s.player.pos.x + m, y: boxOf(field.outline).y };
   t.core.condition.hpLostPct = 105; // down
   t.core.inventory.push({ id: 'pack_1', itemId: IT.sack });
   return { s, t };

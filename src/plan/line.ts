@@ -20,24 +20,35 @@ export type Crossing =
   | { kind: 'roof'; roof: Roof; t: number; at: Pt; hole?: Opening };
 
 const CELL = 8; // metres a side of the walls' look-up grid
-type Index = { stamp: number; n: number; first?: Wall; last?: Wall; cells: Map<string, Wall[]>; byWall: Map<string, Opening[]>; on: number; holes: Opening[] };
+type Index = { stamp: number; n: number; first?: Wall; last?: Wall; cells: Map<string, Wall[]>; byWall: Map<string, Opening[]>; on: number; holes: Opening[]; box: { x0: number; y0: number; x1: number; y1: number } };
 const indexes = new WeakMap<object, Index>();
 
-/** the grid cells a segment passes through */
+/** the grid cells a segment passes through (both cells beside a corner it crosses exactly) */
 function cellsOf(a: Pt, b: Pt): string[] {
-  const out: string[] = [];
   let cx = Math.floor(a.x / CELL), cy = Math.floor(a.y / CELL);
-  const ex = Math.floor(b.x / CELL), ey = Math.floor(b.y / CELL);
+  const out = [`${cx}:${cy}`];
   const dx = b.x - a.x, dy = b.y - a.y, sx = Math.sign(dx), sy = Math.sign(dy);
   const tdx = dx ? Math.abs(CELL / dx) : Infinity, tdy = dy ? Math.abs(CELL / dy) : Infinity;
   let tx = dx ? ((sx > 0 ? (cx + 1) * CELL - a.x : a.x - cx * CELL) / Math.abs(dx)) : Infinity;
   let ty = dy ? ((sy > 0 ? (cy + 1) * CELL - a.y : a.y - cy * CELL) / Math.abs(dy)) : Infinity;
-  out.push(`${cx}:${cy}`);
-  for (let i = 0; i < 100000 && (cx !== ex || cy !== ey); i++) {
-    if (tx < ty) { cx += sx; tx += tdx; } else { cy += sy; ty += tdy; }
+  // walk the cell edges the segment crosses in order, stopping once past its end (t > 1)
+  while (Math.min(tx, ty) <= 1) {
+    if (Math.abs(tx - ty) < 1e-12) { out.push(`${cx + sx}:${cy}`, `${cx}:${cy + sy}`); cx += sx; cy += sy; tx += tdx; ty += tdy; }
+    else if (tx < ty) { cx += sx; tx += tdx; } else { cy += sy; ty += tdy; }
     out.push(`${cx}:${cy}`);
   }
   return out;
+}
+/** the part of segment a→b inside box (padded a cell), as [t0, t1], or null when it misses it */
+function clip(a: Pt, b: Pt, box: Index['box']): [number, number] | null {
+  let t0 = 0, t1 = 1;
+  const pad = CELL, d = { x: b.x - a.x, y: b.y - a.y };
+  for (const [p, q] of [[-d.x, a.x - (box.x0 - pad)], [d.x, box.x1 + pad - a.x], [-d.y, a.y - (box.y0 - pad)], [d.y, box.y1 + pad - a.y]] as const) {
+    if (p === 0) { if (q < 0) return null; continue; }
+    const r = q / p;
+    if (p < 0) { if (r > t1) return null; if (r > t0) t0 = r; } else { if (r < t0) return null; if (r < t1) t1 = r; }
+  }
+  return [t0, t1];
 }
 /** the walls' look-up grid and openings by wall, rebuilt when the plan changed */
 function indexOf(state: GameState): Index {
@@ -48,7 +59,9 @@ function indexOf(state: GameState): Index {
   for (const w of walls) for (const c of cellsOf(w.a, w.b)) { const l = cells.get(c); if (l) l.push(w); else cells.set(c, [w]); }
   const byWall = new Map<string, Opening[]>();
   for (const o of openings) if (o.wall) { const l = byWall.get(o.wall); if (l) l.push(o); else byWall.set(o.wall, [o]); }
-  ix = { stamp: planStamp(), n: walls.length, first: walls[0], last: walls[walls.length - 1], cells, byWall, on: openings.length, holes: openings.filter((o) => !!o.to && Math.abs(o.to.floor - o.floor) > 0.01 && o.kind === OP.stairs) };
+  const box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  for (const w of walls) for (const p of [w.a, w.b]) { box.x0 = Math.min(box.x0, p.x); box.y0 = Math.min(box.y0, p.y); box.x1 = Math.max(box.x1, p.x); box.y1 = Math.max(box.y1, p.y); }
+  ix = { box, stamp: planStamp(), n: walls.length, first: walls[0], last: walls[walls.length - 1], cells, byWall, on: openings.length, holes: openings.filter((o) => !!o.to && Math.abs(o.to.floor - o.floor) > 0.01 && o.kind === OP.stairs) };
   indexes.set(walls, ix);
   return ix;
 }
@@ -62,7 +75,8 @@ export function crossings(state: GameState, A: P3, B: P3): Crossing[] {
   const ix = indexOf(state), out: Crossing[] = [];
   const lo = Math.min(A.z, B.z), hi = Math.max(A.z, B.z);
   const seen = new Set<Wall>();
-  for (const c of cellsOf(A, B)) for (const w of ix.cells.get(c) ?? []) {
+  const span = clip(A, B, ix.box); // only the stretch of the line where walls stand is walked through the grid
+  if (span) for (const c of cellsOf(lerp(A, B, span[0]), lerp(A, B, span[1]))) for (const w of ix.cells.get(c) ?? []) {
     if (seen.has(w)) continue;
     seen.add(w);
     if (w.top <= lo + 1e-9 || w.floor > hi + 1e-9) continue;

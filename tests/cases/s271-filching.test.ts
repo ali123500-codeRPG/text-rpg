@@ -27,6 +27,7 @@ import { checkParserLegality } from '../../src/agents/legality';
 import { NEEDS } from '../../src/engine/merge';
 import { wholeTurn } from '../harness/turn';
 import { bannedLines } from '../harness/guard';
+import { layAll } from '../harness';
 
 const village = (): { s: GameState; wim: Actor } => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
@@ -95,7 +96,7 @@ it('FL2: the Parser may name a seen thing or leave the item open; the target mus
 it('CT4: opening a chest its owner watches is a filch contest, never a flat refusal', () => {
   const { s, wim } = village();
   skill(wim, SK.eyesight, 400);
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, owner: 'patron_1', contents: [], ...(wim.pos ? { at: { ...wim.pos } } : {}) });
+  layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, owner: 'patron_1', contents: [], ...(wim.pos ? { at: { ...wim.pos } } : {}) });
   const ev = play(s, { intent: intent({ action: { type: 'open', target: 'box' } }) });
   expect(ev.some((e) => e.kind === 'wasted' && e.reason === 'theft')).toBe(false);
   expect(ev.find((e) => e.kind === 'filch')?.filch).toBe('caught');

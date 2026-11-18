@@ -22,6 +22,8 @@ import { itemValue } from '../../src/ruleset/value';
 import { tierLevel } from '../../src/ruleset';
 import { STANCES } from '../../src/scales';
 import { CONFIG } from '../../src/config';
+import { layAll } from '../harness';
+import { groundIn } from '../../src/engine/ground';
 
 const village = (): GameState => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
 const inside = (): ItemInstance[] => [
@@ -29,8 +31,8 @@ const inside = (): ItemInstance[] => [
   { id: 'picks', itemId: IT.lockpicks }, { id: 'blade', itemId: IT.dagger }, { id: 'purse', itemId: IT.coin, qty: 12 },
 ];
 const box = (s: GameState, extra: object = {}) => {
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, contents: inside(), lock: { locked: true }, grade: 'minor', ...extra });
-  return zoneById(s, 'tav_common')!.groundItems.find((i) => i.id === 'box')!;
+  layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, contents: inside(), lock: { locked: true }, grade: 'minor', ...extra });
+  return groundIn(s, 'tav_common').find((i) => i.id === 'box')!;
 };
 const broken = (s: GameState, list: ItemInstance[]) => list.filter((i) => itemDef(s, i.itemId).tags?.includes('broken')).map((i) => i.id);
 
@@ -125,7 +127,7 @@ it('BK6: breaking a container its owner guards, under their eyes, is theft seen:
 it('BK6 (searches): letting someone search you does not let them break your locked box; it is theft seen all the same', () => {
   const s = village();
   const wim = actor(s, 'patron_1');
-  s.zones.find((z) => z.id === 'tav_common')!.groundItems = s.zones.find((z) => z.id === 'tav_common')!.groundItems.filter((i) => i.id !== 'box');
+  groundIn(s, 'tav_common') = groundIn(s, 'tav_common').filter((i) => i.id !== 'box');
   wim.core.inventory.push({ id: 'box', itemId: IT.sack, contents: inside(), lock: { locked: true }, grade: 'minor' });
   wim.letsSearch = { by: s.player.id, until: s.turn + 2 };
   const before = STANCES.pos(stance(s, wim, s.player) as never);

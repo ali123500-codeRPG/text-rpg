@@ -4,7 +4,9 @@
 // (Thievery) at the lock's grade. The Weaver puts barriers on links and hands out keys; the GM view counts them per tier.
 import { describe, expect, it } from 'vitest';
 import type { Barrier, GameState, Intent, StagePlan } from '../../src/types';
-import { byDoor, createRng, forcedRng, makeVillage } from '../harness';
+import { byDoor, createRng, forcedRng, makeVillage, putBarrier } from '../harness';
+import { withWays } from '../harness/village';
+import { waysOut, wayTo } from '../../src/plan/where';
 import { resolveTurn } from '../../src/engine';
 import { shortestPath, zoneById } from '../../src/engine/relations';
 import { buildActorView, buildNarrationView, buildPlayerView, buildWeaverView } from '../../src/views';
@@ -23,16 +25,17 @@ import { validateStagePlan } from '../../src/scenario/validate';
 import { applyStagePlan } from '../../src/scenario/apply';
 import { closeScenario, frameOf } from '../../src/engine/scenarioEnd';
 
-const quiet = (zone = 'tav_common') => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
+const quiet = (zone = 'tav_common', hatch = false) => makeVillage({ playerZone: zone, without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'], ...(hatch ? { shape: HATCH } : {}) });
+/** a second way out of the tavern: a hatch up from the cellar into the square */
+const HATCH = {
+  tav_cellar: withWays('tav_cellar', { to: 'street_square', label: 'the cellar hatch', kind: 'up' }),
+  street_square: withWays('street_square', { to: 'tav_cellar', label: 'the cellar hatch', kind: 'down' }),
+};
 /** the street outside the tavern, half a metre from its front door, within grip reach of it */
 const atDoor = () => { const s = quiet('street_door'); byDoor(s, 'player', 'street_door', 'tav_common', 0.5); return s; };
 /** a barrier on the way between zones a and b, on both links */
 function put(s: GameState, a: string, b: string, extra: Partial<Barrier> = {}): Barrier {
-  const bar: Barrier = { id: 'front_door', kind: BK.door, grade: 'minor', ...extra };
-  (s.barriers ??= {})[bar.id] = bar;
-  zoneById(s, a)!.links.find((l) => l.to === b)!.barrier = bar.id;
-  zoneById(s, b)!.links.find((l) => l.to === a)!.barrier = bar.id;
-  return bar;
+  return putBarrier(s, a, b, { id: 'front_door', kind: BK.door, grade: 'minor', ...extra });
 }
 const intent = (p: Partial<Intent>): Intent => ({ move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null, ...p });
 const go = (to: string): Intent => intent({ move: { toZone: to } });
@@ -113,9 +116,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(outside.player.zone).toBe('street_door');
   });
   it('a walk goes round a shut way when there is another, and rubble passes no one', () => {
-    const s = quiet();
-    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', kind: 'door' });
-    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', kind: 'door' });
+    const s = quiet(undefined, true);
     put(s, 'tav_common', 'street_door', { kind: BK.rubble, blocked: true });
     expect(shortestPath(s, 'tav_common', 'street_door', false, s.player)).toEqual(['tav_counter', 'tav_cellar', 'street_square', 'street_door']);
     expect(shortestPath(s, 'tav_common', 'street_door')).toEqual(['street_door']); // sound and distance ignore it
@@ -150,9 +151,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(b).toMatchObject({ open: true, lock: { locked: false } });
   });
   it('BG-69: the player walks to a door barred out of sight and tries it, never round it unseen; once tried, round it', () => {
-    const s = quiet('street_door');
-    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', kind: 'door' });
-    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', kind: 'door' });
+    const s = quiet('street_door', true);
     const b = put(s, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
     expect(shortestPath(s, 'street_door', 'tav_common', false, s.player)).toEqual(['tav_common']);
     const ev = turn(s, go('tav_common'));
@@ -161,9 +160,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(shortestPath(s, 'street_door', 'tav_common', false, s.player)?.[0]).toBe('street_square');
   });
   it('FR5: an NPC knows the bolts of a place it lives or works in; a visitor learns by trying, as the player does', () => {
-    const s = quiet('street_door');
-    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', kind: 'door' });
-    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', kind: 'door' });
+    const s = quiet('street_door', true);
     const b = put(s, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
     const npc = s.actors.find((a) => a.id === 'trader')!;
     npc.mind = { ...npc.mind!, slots: { post: 'gate_inner' } }; // works somewhere else: a visitor here
@@ -243,19 +240,19 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
   describe('the Weaver puts barriers on ways', () => {
     const plan = (barrier: object, drop = false): StagePlan => ({
       event: { summary: 's', challenge: 'minor', gain: 'minor' }, places: [], frontiers: [], bands: [], rewards: [], hiddenTerms: [], weaverNote: '',
-      zones: [{ key: 'shed', place: 'street', kind: 'ZK1', name: 'the shed', look: 'a shed', ways: [{ to: 'street_square', label: 'the shed door', sight: false, ...(drop ? { drop: true } : {}), barrier: barrier as never }] }],
+      zones: [{ key: 'shed', place: 'street', kind: 'ZK1', name: 'the shed', look: 'a shed', ways: [{ to: 'street_square', label: 'the shed door', kind: drop ? 'window' : 'door', barrier: barrier as never }] }],
       cast: [], seeds: { plans: [], triggers: [], secrets: [] },
     });
     it('one record for both sides, keys handed to the holders it names', () => {
       const s = quiet();
       const p = plan({ kind: BK.door, grade: 'major', locked: true, keys: ['trader'] });
-      expect(checkStagePlan(p).value.zones[0].links[0].barrier).toMatchObject({ kind: BK.door, locked: true });
+      expect(checkStagePlan(p).value.zones[0].ways[0].barrier).toMatchObject({ kind: BK.door, locked: true });
       expect(validateStagePlan(s, p, { kind: 'extension', tier: 'success', placeId: 'street' }).filter((e) => !e.repaired)).toEqual([]);
       applyStagePlan(s, p, { kind: 'extension', tier: 'success', placeId: 'street' }, { entry: 'open' }, createRng(1));
       const shed = s.zones.find((z) => z.name === 'the shed')!;
-      const id = shed.links.find((l) => l.to === 'street_square')!.barrier!;
+      const id = wayTo(s, shed.id, 'street_square')!.barrier!;
       expect(s.barriers![id]).toMatchObject({ kind: BK.door, grade: 'major', lock: { locked: true } });
-      expect(zoneById(s, 'street_square')!.links.find((l) => l.to === shed.id)!.barrier).toBe(id);
+      expect(wayTo(s, 'street_square', shed.id)!.barrier).toBe(id);
       expect(s.actors.find((a) => a.id === 'trader')!.core.inventory.find((i) => i.itemId === IT.key)!.opens).toEqual([id]);
       expect(buildWeaverView(s, { kind: 'scenario', placeId: 'street' }).places.flatMap((p) => p.areas).find((z) => z.id === shed.id)!.links[0].way).toMatchObject({ kind: 'door', grade: 'major', lock: 'locked' });
     });
