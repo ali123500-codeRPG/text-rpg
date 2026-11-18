@@ -1,6 +1,6 @@
 // Part 1 §6 skill improvement ("Skill progression: options" SP1–SP11).
 // A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
-// costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the
+// costs health marks Endurance when the attacker's skill is inside Endurance's window; a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the
 // scenario (EG7, engine/growth.ts payScenario), in rounds (payRolls). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
 import type { Actor, AttackResult, CheckResult, ContestResult, AugmentWhen, GameState, RollKind, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
@@ -125,12 +125,13 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
   }
 }
 
-/** SP5: a single hit that costs ENDURANCE_MARK_PCT health or more marks endurance */
-export function markEndurance(state: GameState, actor: Actor, lostPct: number): void {
-  if (actor.id === state.player.id && lostPct >= CONFIG.ENDURANCE_MARK_PCT) mark(actor, SK.endurance);
+/** a hit that costs health marks Endurance when the attacker's true skill is inside Endurance's learning window (SP2), as armor learns */
+export function markEndurance(state: GameState, actor: Actor, lostPct: number, result: AttackResult): void {
+  const a = actorById(state, result.attack.actorId);
+  if (a && actor.id === state.player.id && lostPct > 0 && close(actor, SK.endurance, trueSkill(a, result.attack.skill))) mark(actor, SK.endurance);
 }
 
-/** a single morale loss of RESOLVE_MARK_PCT % of max morale or more marks the player's Resolve (like Endurance) */
+/** a single morale loss of RESOLVE_MARK_PCT % of max morale or more marks the player's Resolve */
 export function markResolve(state: GameState, actor: Actor, lostPct: number): void {
   if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
 }
