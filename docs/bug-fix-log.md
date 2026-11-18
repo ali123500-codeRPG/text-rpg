@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Anyone with a sight line to the speaker (seeingM) is stepped toward when out of earshot.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
 ## BG-308
 
@@ -20,7 +20,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** It waits until the one it leads hears its normal voice clearly (hearsClearly), in any zone.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
 ## BG-307
 
@@ -28,7 +28,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Arrived = X is near enough to talk: the waiter hears X's normal voice clearly (hearsClearly).
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
 ## BG-306
 
@@ -36,7 +36,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** It attacks the foes it knows of that one move and its melee reach would reach this turn (ActorView self.withinStrike, metres), else the foes it sees (an attack closes in and runs on, BG-255).
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
 ## BG-305
 
@@ -44,7 +44,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** PLAN_VIEW_M (200 m, placeholder) by the walking path.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
 ## BG-304
 
@@ -52,7 +52,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Every zone one move reaches by the walk (slotMetres), however many ways off; FIELD_WAYS_OUT removed.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
 ## BG-303
 
@@ -60,7 +60,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** BED_NEAR_M (30 m, placeholder) by the walking path, nearest first.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
 
 ## BG-297
 
