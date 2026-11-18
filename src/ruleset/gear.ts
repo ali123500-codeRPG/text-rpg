@@ -1,7 +1,7 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
 import { ageMult } from './age';
 import type { Actor, AugmentKind, AugmentWhen, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
-import { zoneLight } from '../time';
+import { lightMod, zoneLight } from '../time';
 import { COVER, LIGHT } from '../scales';
 import { coverSteps } from '../library/bodySize';
 import { CONFIG } from '../config';
@@ -155,10 +155,10 @@ export function coverFor(state: GameState, body: Actor | undefined, zone: Zone):
  * is a gap shift instead (ruleset attack). */
 export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor; body?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
-  // All-50 Child of Night: light reads one step darker for the owner's stealth rolls
-  // All-50 Night Eyes: light reads one step brighter for the owner's Eyesight rolls
-  const darker = (tags.includes('stealth') && hasPerk(at.actor, PK.child_of_night) ? 1 : 0) - (skill === SK.eyesight && hasPerk(at.actor, PK.night_eyes) ? 1 : 0);
-  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(Math.max(0, LIGHT.pos(zoneLight(state, at.light)) + darker))] ?? 0) : 0;
+  // All-50 Child of Night: light reads ten times darker for the owner's stealth rolls (LT2)
+  // All-50 Night Eyes: light reads ten times brighter for the owner's Eyesight rolls
+  const brighter = (skill === SK.eyesight && hasPerk(at.actor, PK.night_eyes) ? 1 : 0) - (tags.includes('stealth') && hasPerk(at.actor, PK.child_of_night) ? 1 : 0);
+  const light = at.light ? tagSign('light', tags) * lightMod(zoneLight(state, at.light), brighter) : 0;
   const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[coverFor(state, at.body, at.cover)] ?? 0) : 0;
   return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
 }

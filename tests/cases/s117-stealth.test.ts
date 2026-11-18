@@ -151,11 +151,11 @@ describe('117 stealth', () => {
     const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe(SK.sneaking);
     // P14: darkness gives no help against a listener
-    expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 10 }] : []);
+    expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 22 }] : []);
     expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
     expect(a.roles).toBeUndefined();
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
-    expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
+    expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -22 }] : []); // ST21: sight is hurt
   });
   it('tags decide the tables (ST21, HA1): a sneak gets cover, whether the watcher rolls Sneaking or Vanishing', () => {
     const s = makeVillage();

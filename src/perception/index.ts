@@ -7,7 +7,7 @@ import { hearingOf, soundDb, VOLUME_NOISE } from './noise';
 import { M_EPS, distOrNull, seeingM, withinM, type Located } from '../engine/position';
 import { sightLevel, stillGlimpsed } from './sight';
 export { hearingOf, openAirReachM, soundDb } from './noise';
-import { now, turnTime, zoneLight } from '../time';
+import { isDark, now, pitchBlack, turnTime, zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
@@ -47,7 +47,7 @@ const stillSeen = (): number => CONFIG.SIGHT_M.low![0];
  * spot there is seen to be empty */
 export function spotInSight(state: GameState, at: Located): boolean {
   const p = state.player, d = isActive(p) && !isAsleep(p) ? seeingM(state, p, at) : null;
-  return d !== null && d <= stillSeen() && zoneLight(state, zoneById(state, at.zone)) !== 'dark';
+  return d !== null && d <= stillSeen() && !isDark(zoneLight(state, zoneById(state, at.zone)));
 }
 /** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres);
  * BG-274: the one look-range check, for the look that shows people and the look that searches (withinM, the reach check) */
@@ -85,8 +85,9 @@ export function soundCarries(state: GameState, observer: Actor, at: Located, noi
 /** what `observer` makes out by sight of something of this visibility at a point: by metres and walls (seeingM, the sight
  * table), and at most partial in a dark zone. One rule for events, filching and anything else seen. */
 export function sightAt(state: GameState, observer: Actor, at: Located, visibility: GameEvent['visibility']): 'full' | 'partial' | null {
-  const sl = sightLevel(visibility, seeingM(state, observer, at));
-  return sl && (zoneLight(state, zoneById(state, at.zone)) === 'dark' ? 'partial' : sl);
+  const light = zoneLight(state, zoneById(state, at.zone));
+  const sl = pitchBlack(light) ? null : sightLevel(visibility, seeingM(state, observer, at)); // LT1: nothing is seen in pitch black
+  return sl && (isDark(light) ? 'partial' : sl);
 }
 
 /** AB18 a: `observer` smells someone at that point: within its Scent skill in metres along the open ways (the straight line
@@ -129,9 +130,10 @@ export function faintness(state: GameState, event: GameEvent, observer: Actor, c
   const band = CONFIG.SIGHT_M[event.visibility];
   const at = (p: Located): number | null => {
     const m = seeingM(state, observer, p);
-    if (!band || m === null || m > band[1]) return null;
+    const light = zoneLight(state, zoneById(state, p.zone));
+    if (!band || m === null || m > band[1] || pitchBlack(light)) return null; // LT1: nothing is seen in pitch black
     const share = Math.max(0, (m - band[0]) / (band[1] - band[0]));
-    const dark = zoneLight(state, zoneById(state, p.zone)) === 'dark' && !hasPerk(observer, PK.night_eyes);
+    const dark = isDark(light) && !hasPerk(observer, PK.night_eyes);
     const g = GRADE_LEVELS.pos(pick(CONFIG.MAKE_OUT_SIGHT_GRADES, (n) => share <= n)) + (dark ? CONFIG.MAKE_OUT_DARK_STEPS : 0);
     return Math.min(g, GRADE_LEVELS.keys.length - 1);
   };
@@ -207,7 +209,7 @@ export function stealthStart(state: GameState, a: Actor): void {
   const p = state.player;
   if (!p.journal || a.id === p.id) return;
   const d = isActive(p) ? seeingM(state, p, a) : null;
-  const status: BeliefStatus = d === null || d > stillSeen() ? 'unaware' : zoneLight(state, zoneById(state, a.zone)) === 'dark' ? 'suspicious' : 'aware';
+  const status: BeliefStatus = d === null || d > stillSeen() ? 'unaware' : isDark(zoneLight(state, zoneById(state, a.zone))) ? 'suspicious' : 'aware';
   (p.journal.stealthSeen ??= {})[a.id] = status;
 }
 /** NS2: an actor turning open is simply seen again */

@@ -70,8 +70,8 @@ export const ESSENCE_GRADES = scale([['common', 'Common'], ['fine', 'Fine'], ['r
 export type EssenceGradeKey = (typeof ESSENCE_GRADES.keys)[number];
 /** band tactics (V2) */
 export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], ['cunning', 'cunning']]);
-/** zone light, brightest first (V1) */
-export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
+/** zone light, brightest first (V1, LT1); each level's light in lux is CONFIG.LIGHT_LUX */
+export const LIGHT = scale([['bright', 'bright'], ['lamplit', 'lamplit'], ['dim', 'dim'], ['moonlit', 'moonlit'], ['dark', 'dark'], ['black', 'pitch black']]);
 /** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, on guard, won't strike
  * first; unfriendly = dislike without a standoff: not on guard, still trades, pays no XP; friend = helps at a cost to itself;
  * loyal = takes the other's side: anyone hostile to them it treats as hostile too) */

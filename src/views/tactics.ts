@@ -12,7 +12,7 @@ import { distM, entryPoint, seeingM, walkRoute } from '../engine/position';
 import { hostileNearM } from '../ruleset/gear';
 import { itemDef } from '../library';
 import { sightLevel } from '../perception/sight';
-import { zoneLight } from '../time';
+import { isDark, zoneLight } from '../time';
 import { slotMetres } from '../engine/speed';
 import { hearsClearly } from '../perception';
 import { VOLUME_NOISE } from '../perception/noise';
@@ -108,7 +108,7 @@ function fieldWalks(state: GameState, a: Actor, view: ActorView, rows: string[],
   // TC25 a: it judges by its own eyes only: from there it still sees every foe it fights clearly
   if (rows.includes(FX.into_dark))
     out.intoDark = walk(near.find((n) => LIGHT.pos(zoneLight(state, zoneById(state, n.zone))) > lightHere
-      && foes.every((f) => zoneLight(state, zoneById(state, f.zone)) !== 'dark' && sightLevel('normal', seeingM(state, { zone: n.zone, pos: n.pos }, f)) === 'full')));
+      && foes.every((f) => !isDark(zoneLight(state, zoneById(state, f.zone))) && sightLevel('normal', seeingM(state, { zone: n.zone, pos: n.pos }, f)) === 'full')));
   for (const k of ['outOfSight', 'intoCover', 'intoDark'] as const) if (!out[k]) delete out[k];
 }
 

@@ -223,7 +223,17 @@ const DEFAULTS = {
   /** RD5, SZ19: a hostile is near the shooter (close enough to strike or grab) within this step plus its own melee reach,
    * between bodies: a knife 1.7 m, a longsword 2.3 m, a horse's kick 2.6 m. The step is the far end of Hall's personal distance */
   HOSTILE_NEAR_STEP_M: 0.75,
-  LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
+  /** LT1 (placeholders): each LIGHT level's light in lux (Wikipedia "Lux": overcast day 1,000; living room 50; civil
+   * twilight ends at 3.4; full moon 0.05-0.3; moonless clear night 0.002; a shut cellar 0) */
+  LIGHT_LUX: { bright: 1000, lamplit: 50, dim: 3, moonlit: 0.2, dark: 0.002, black: 0 } as Record<string, number>,
+  /** LT2: a sight roll takes −LIGHT_DECADE_MOD for each tenfold drop below FULL_SIGHT_LUX (the eye works on a log scale) */
+  LIGHT_DECADE_MOD: 5,
+  FULL_SIGHT_LUX: 50,
+  /** LT2 (placeholder, open question): the lux a roll in pitch black reads, so its modifier stays a number (an overcast
+   * moonless night, 0.0001 lux: −28); in pitch black nothing is seen at all (perception) */
+  LIGHT_FLOOR_LUX: 0.0001,
+  /** the rules that once read "dark" (sight at most partial, a still figure only half seen) hold from this level down */
+  DARK_FROM: 'moonlit' as string,
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
@@ -276,7 +286,7 @@ const DEFAULTS = {
   HIDDEN_TIER_SUCCESS_SKILL: 50,
   HIDDEN_TIER_SKILL_STEP: 25,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
-   * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
+   * light adds sign × lightMod(the light where the action is) to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
   SITUATION_TAGS: { light: { sight: 1, stealth: -1 }, cover: { hide: 1, ranged: -1 } } as Record<'light' | 'cover', Partial<Record<import('./types').SituationTag, number>>>,
   // ---- morale bar (MB1–MB43; placeholders) ----
@@ -438,7 +448,7 @@ const DEFAULTS = {
   /** BG-231: a wait until someone appears stops after this many hours if no one comes */
   WAIT_SOMEONE_MAX_H: 8,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
-  SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
+  SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'moonlit', night: 'moonlit' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys); LT3: one flat night level until moon phases (parked)
   // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN
   WAKE_NOISE: 'loud' as import('./scales').NoiseKey, // NW18: a sound this loud or louder wakes a sleeper who hears it (a shout is loud)
   WAKE_CONTACT: ['attack'] as string[], // NW14: a blow wakes the one it is aimed at, hit or miss
