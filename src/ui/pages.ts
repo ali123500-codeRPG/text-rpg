@@ -5,7 +5,7 @@ import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
 import { HEALTH_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, THREADBOUND_RANKS } from '../scales';
-import { achLevel, achXp, achievementInfo, achievementName, earnedAtText } from '../engine/xp';
+import { achLevel, achievementInfo, achievementName, earnedAtText, xpToNext } from '../engine/xp';
 import { earned } from '../ruleset/threadboundItems';
 import { questLevelXp, rewardName } from '../ruleset/achRewards';
 import { branchLabel, chainRows, chainTag, endInSight, heldChains, isBareHead, type HeldChain } from '../ruleset/achChains';
@@ -510,7 +510,7 @@ export function questsPage(api: GameApi) {
       for (const q of s.quests) { const root = questChain(s, q)[0].id; chains.set(root, [...(chains.get(root) ?? []), q]); }
       const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
         text: q.text, giver: cap(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
-        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${questLevelXp(q.level)} XP`, pay: payText(s, q),
+        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${questLevelXp(q.level, xpToNext(s.player))} XP`, pay: payText(s, q),
         due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: `${q.state === 'ready' ? '✓ ' : ''}${QUEST_STATE_NAME[q.state]}` }, // C7: a gold check when ready
         ...(q.unpaid || !isOpen(q) || q.state === 'ready' ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(q.state === 'ready' ? { state: 'gold' as const } : !isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
       return [...chains.values()].map((qs) => {
@@ -550,7 +550,7 @@ export function questsPage(api: GameApi) {
     },
     line: (s) => {
       const done = s.quests.filter((q) => q.state === 'done');
-      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + questLevelXp(q.level), 0)} XP from quests`;
+      return `${plural(done.length, 'quest')} done · ${(s.player.progression?.xpLog ?? []).filter((x) => x.source.startsWith('quest:')).reduce((n, x) => n + x.amount, 0)} XP from quests`;
     },
   });
 }
@@ -576,11 +576,10 @@ export function achievementsPage(api: GameApi) {
     const views = chainViews(s, scars);
     const tags = (Object.keys(ACH_TAGS) as (keyof typeof ACH_TAGS)[]).filter((t) => views.some((v) => v.tag === t));
     const shown = views.filter((v) => visPass(v.tag, picks));
-    const xpAll = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + achXp(lib[a.key!], a.of), 0);
     const noun: [string, string] = scars ? ['scar chain', 'scar chains'] : ['chain', 'chains'];
     const onOpen = (id: string) => { for (const k of Object.keys(picks)) if (k !== id && picks[k] === 'shown') picks[k] = 'off'; if (picks[id] === 'out') picks[id] = 'off'; update(); document.getElementById('ach-' + id)?.scrollIntoView({ block: 'nearest' }); };
-    const tiles = tags.map((t) => { const vs = views.filter((v) => v.tag === t), xp = vs.reduce((n, v) => n + v.xp, 0);
-      return { id: t, label: ACH_TAGS[t], value: String(vs.length), unit: unitOf(vs.length, noun[0]), sub: `${xp} XP`, how: `${scars ? 'Scar' : 'Achievement'} chains of the ${ACH_TAGS[t]} section.` }; });
+    const tiles = tags.map((t) => { const vs = views.filter((v) => v.tag === t), held = vs.reduce((n, v) => n + v.rows, 0);
+      return { id: t, label: ACH_TAGS[t], value: String(vs.length), unit: unitOf(vs.length, noun[0]), sub: `${plural(held, 'level')} held`, how: `${scars ? 'Scar' : 'Achievement'} chains of the ${ACH_TAGS[t]} section.` }; });
     const detail = (v: ChainView) => () => openPanel(scars ? 'Scar' : 'Achievement', chainDetail(s, v.id, scars));
     el.replaceChildren(
       h('div', { class: 'pk-tabs', role: 'tablist' }, tab(false, 'Achievements'), tab(true, 'Scars')),
@@ -588,7 +587,7 @@ export function achievementsPage(api: GameApi) {
         ? 'What went wrong and left its mark on you. Same as /achievements.'
         : 'Deeds that earned you a name. Each chain is a thread: a tied knot for every level you hold, a loose one for the next. Open a chain to see its branches; click a name or a knot for the details. Same as /achievements.'))),
       h('div', { class: 'sec' }, tiles.length ? visTiles(tiles, picks, update, onOpen, how) : null,
-        h('p', { class: 'subline' }, scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, ${xpAll} XP` : `${xpAll} XP earned this way`), how),
+        scars ? h('p', { class: 'subline' }, plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')) : null, how),
       h('div', { class: 'sec' },
         h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), foldAll(shown, update)),
         views.length ? null : h('p', { class: 'empty' }, scars ? 'No scars yet.' : 'No achievements yet. Defeat foes, win fights, strike deals and explore.'),
@@ -610,7 +609,7 @@ export function achievementsPage(api: GameApi) {
 /** the chain an achievement belongs to, lowest level first: each row's `after` names the level below it */
 export const achievementChain = (key: string): string[] => chainRows(key);
 
-type ChainLine = { id: string; tag: string; name: string; level: string; next?: string; count: number; branches: number; xp: number; turn: number };
+type ChainLine = { id: string; tag: string; name: string; level: string; next?: string; count: number; branches: number; turn: number };
 /** a chain position in Roman numerals (1 to 39), as the sketch shows it: "III of IV" */
 const romanOf = (n: number): string => n < 1 || n > 39 ? String(n) : 'X'.repeat(Math.floor(n / 10)) + ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][n % 10];
 /** "III of IV": a held chain's place, its highest held row among all its rows */
@@ -632,7 +631,6 @@ function closestNext(s: GameState, branches: HeldChain[]): string {
 
 /** TB4: one line per chain head the player has started */
 export function chainLines(s: GameState, scars: boolean): ChainLine[] {
-  const lib = getLibrary().achievements ?? {};
   return [...heldChains(s, scars)].map(([id, chains]) => {
     const head = id.split(':')[0];
     const trunk = chains.find((c) => c.root === head);
@@ -645,8 +643,7 @@ export function chainLines(s: GameState, scars: boolean): ChainLine[] {
     const level = trunk ? `${placeText(trunk)}${kinds ? ` · ${plural(kinds, 'branch', 'branches')}` : ''}` : plural(new Set(chains.map((c) => c.root)).size, 'branch', 'branches');
     // BG-215: a finished trunk still has branches climbing, so Next shows the branch row closest to being earned
     const next = trunk?.next || !branches.length ? (trunk ? nextText(s, trunk) : '') : closestNext(s, branches);
-    return { id, tag: chainTag(head), name, level, ...(next ? { next } : {}), count: earned.length, branches: kinds,
-      xp: earned.reduce((n, m) => n + achXp(lib[m.key!], m.of), 0), turn: latest.turn };
+    return { id, tag: chainTag(head), name, level, ...(next ? { next } : {}), count: earned.length, branches: kinds, turn: latest.turn };
   });
 }
 
@@ -663,15 +660,13 @@ export function chainDetail(s: GameState, id: string, scars: boolean): PanelRow[
     const cur = earnedOf(s, trunk).find((m) => m.key === trunk.current)!;
     const info = achievementInfo(s, cur);
     rows.push({ k: 'How it is earned', v: cap(info.earnedAt) }, { k: 'You earned it', v: info.why },
-      { k: 'Reward', v: [`Level ${info.levelName} · ${info.xp} XP`, ...info.rewards].join(' · ') });
+      { k: 'Reward', v: [`Level ${info.levelName}`, ...info.rewards].join(' · ') });
     if (trunk.held.length > 1) rows.push({ k: 'Earlier', v: trunk.held.slice(0, -1).map((k) => `${achievementName(s, { id: '', key: k, ...(trunk.of ? { of: trunk.of } : {}) })} (${earnedAtText(s, lib[k], trunk.of)})`).join(' · ') });
   }
   for (const c of chains.filter((x) => x !== trunk)) {
     const cur = earnedOf(s, c).find((m) => m.key === c.current)!;
     rows.push({ k: `Branch · ${branchLabel(lib[c.root])}`, v: `${achievementName(s, cur)} · ${placeText(c)}${c.next ? ` · next: ${nextText(s, c)}` : ''}` });
   }
-  const earned = chains.flatMap((c) => earnedOf(s, c));
-  rows.push({ k: 'Chain XP', v: `${earned.reduce((n, m) => n + achXp(lib[m.key!], m.of), 0)} XP from ${plural(earned.length, 'row', 'rows')}` });
   return rows;
 }
 

@@ -963,6 +963,10 @@ const DEFAULTS = {
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), one equation for achievements and quests with no top:
    * XP = base × ((p + shift) ÷ div)^power, p = the level's place (0 = level 0, I = 1, −1 = −1); read through rewardXp */
   REWARD_XP_CURVE: { base: 50, shift: 2, div: 2, power: 3 },
+  /** AL1-AL8: every reward also pays a share of the earner's XP to the next level, in the same equation:
+   * + (floor + (atI − floor) × max(0, p)^power) × xpToNext. Level I pays atI, VI about 30%; level 0 and below (scars there
+   * too) pay the floor; power under 2 (weaker than squared). All placeholders. */
+  ACH_LEVEL_SHARE: { floor: 0.005, atI: 0.02, power: 1.67 },
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
   /** a quest pays the XP of the achievement reward level this many places above its own (quest 0 = achievement II) */

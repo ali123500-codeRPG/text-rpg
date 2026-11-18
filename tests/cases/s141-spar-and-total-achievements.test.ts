@@ -56,6 +56,7 @@ describe('141 lost fights and the first spar lost', () => {
   it('a fight lost by going Down, or by getting away from a foe still fighting you, counts toward Loser', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
+  CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
     slime.mind!.overrides = { [s.player.id]: 'hostile' };
     fightEnded(s, { hp: 0, foes: [slime.id], most: 1, down: true }); // went Down (and woke)
     for (let i = 0; i < 3; i++) fightEnded(s, { hp: 0, foes: [slime.id], most: 1 }); // got away

@@ -40,6 +40,7 @@ describe('140 achievement ideas', () => {
 
   it('N8 aimed hits per part size: smaller parts pay a reward level more', () => {
     const s = makeVillage();
+  CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
     const d = getLibrary().achievements![ACH.aimed_size_10];
     expect(achLevel(d, 'normal')).toBe('i');
     expect(achLevel(d, 'small')).toBe('ii');

@@ -14,7 +14,7 @@ import { buildLeakContext, leakScan } from '../agents/narration';
 import { actorById, allActors, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
 import { logCode, stepStance } from './effects';
-import { awardXp, power, tally, weakFoeTaper } from './xp';
+import { awardXp, power, tally, weakFoeTaper, xpToNext } from './xp';
 import { coinWords } from './trade';
 import { freshId } from '../ids';
 
@@ -105,7 +105,7 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
 /** a done quest's XP: its reward level's amount (questLevelXp: an achievement two levels higher); a defeat job is cut by the defeat-XP taper of its foes' average power
  * (as each fell) against the player's power at hand-in (QX2, QX4) */
 export function questXp(state: GameState, q: Quest): number {
-  const xp = questLevelXp(q.level);
+  const xp = questLevelXp(q.level, xpToNext(state.player));
   if (q.goal.kind !== 'defeat' || !q.progress || q.foePower === undefined) return xp;
   return Math.round(xp * weakFoeTaper(q.foePower / q.progress, power(state, state.player)));
 }

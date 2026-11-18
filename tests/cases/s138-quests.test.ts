@@ -7,7 +7,7 @@ import { actor, createRng, makeVillage } from '../harness';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
 import { abandonQuest, pinQuest, questXp, unpaidQuests, updateQuests } from '../../src/engine/quests';
-import { power, weakFoeTaper } from '../../src/engine/xp';
+import { power, weakFoeTaper, xpToNext } from '../../src/engine/xp';
 import { stance } from '../../src/engine/relations';
 import { checkResponder } from '../../src/agents/schema';
 import { buildOppositionView, questGoalText } from '../../src/views';
@@ -96,14 +96,14 @@ describe('138 quests', () => {
     const s = shop();
     talk(s, offer(SLIMES));
     const q = s.quests[0];
-    const full = questLevelXp(q.level);
+    const full = questLevelXp(q.level, xpToNext(s.player)); // AL4: the level share of the player's next level too
     updateQuests(s, [], [actor(s, 'slime_1'), actor(s, 'slime_2')]);
     const avg = (power(s, actor(s, 'slime_1')) + power(s, actor(s, 'slime_2'))) / 2;
     expect(q.foePower).toBeCloseTo(avg * 2);
     expect(questXp(s, q)).toBe(Math.round(full * weakFoeTaper(avg, power(s, s.player))));
     s.player.core.classes[0].level = 15; // a much stronger player by hand-in: the slimes are worth little
     expect(questXp(s, q)).toBeLessThan(full / 2);
-    expect(questXp(s, { ...q, goal: { kind: 'reach', place: 'x' } })).toBe(full);
+    expect(questXp(s, { ...q, goal: { kind: 'reach', place: 'x' } })).toBe(questLevelXp(q.level, xpToNext(s.player))); // no taper; the share follows the new level
   });
 
   it('QT10/QT23: gifts from the giver count toward the promise; still owed when the talk ends, it is unpaid', () => {

@@ -79,6 +79,7 @@ describe('106 XP and levels', () => {
   });
   it('a slime the player hit and downed pays its defeat XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
+  CONFIG.ACH_LEVEL_SHARE = { floor: 0, atI: 0, power: 1 }; // the ladder alone (the level share has its own test, s379)
     const slime = actor(s, 'slime_1');
     const xp = defeatXp(s, slime);
     payDefeats(s, [hit('slime_1')]);
