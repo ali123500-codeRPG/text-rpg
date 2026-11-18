@@ -20,7 +20,7 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
   for (let t = from; t <= to; t++) {
     s.turn = t;
     s.rngState = 1000 + t;
-    s.flags.last = t;
+    s.clocks.last = t;
     await saveTurn(st, s, rec(s, t));
   }
 }
@@ -59,11 +59,11 @@ describe('save and load', () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    s.flags.x = 1;
+    s.clocks.x = 1;
     st.failNext = { match: /control\/head/, code: 'quota_exceeded' };
     await expect(saveTurn(st, s, rec(s, 1))).rejects.toMatchObject({ code: 'quota_exceeded', committed: false });
     expect((await head(st)).turn).toBe(0);
-    expect((await loadStory(st, 'test', lib())).state.flags.x).toBeUndefined();
+    expect((await loadStory(st, 'test', lib())).state.clocks.x).toBeUndefined();
   });
 
   it('refuses a tampered page and leaves the save untouched', async () => {
@@ -162,11 +162,11 @@ describe('undo', () => {
     await play(st, s, 1, 2);
     await undoTurn(st, 'test');
     const { state } = await loadStory(st, 'test', lib());
-    expect(state.flags.last).toBe(1);
+    expect(state.clocks.last).toBe(1);
     expect(state.rngState).toBe(1002); // not rolled back
     expect(await readTurnRecord(st, 'test', 2)).toBeNull();
     await expect(undoTurn(st, 'test')).rejects.toMatchObject({ code: 'nothing_to_undo' }); // D-72: one turn
-    s.flags.last = 2; s.rngState = 2002;
+    s.clocks.last = 2; s.rngState = 2002;
     await saveTurn(st, s, rec(s, 2)); // redo writes turn 2 again without touching the live engine page
     expect((await loadStory(st, 'test', lib())).state.rngState).toBe(2002);
     await undoTurn(st, 'test');
@@ -194,13 +194,13 @@ describe('cleanup, backups, restore', () => {
     await play(st, s, 1, 6);
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([6, 4]);
     const { state } = await restoreBackup(st, 'test', 4, lib());
-    expect(state.flags.last).toBe(4);
+    expect(state.clocks.last).toBe(4);
     const h = await head(st);
     expect(h.safety!.turn).toBe(6);
     expect(h.undo).toBeNull();
     await play(st, state, 5, 5);
     expect((await head(st)).safety).toBeUndefined(); // dropped after the next good turn
-    expect((await loadStory(st, 'test', lib())).state.flags.last).toBe(5);
+    expect((await loadStory(st, 'test', lib())).state.clocks.last).toBe(5);
   });
 });
 
@@ -210,15 +210,15 @@ describe('migration and reconcile', () => {
     const st = memoryStore();
     await play(st, s, 1, 2);
     CONFIG.SCHEMA_VERSION = 10;
-    MIGRATIONS[9] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    MIGRATIONS[9] = (pages) => { (pages.engine as { clocks: Record<string, unknown> }).clocks.migrated = 1; };
     const { state, report } = await loadStory(st, 'test', lib());
-    expect(state.flags.migrated).toBe(true);
+    expect(state.clocks.migrated).toBe(1);
     expect(report).toContain('migrated v9 -> v10');
     const h = await head(st);
     expect(h).toMatchObject({ schemaVersion: 10, undo: null, safety: { turn: 2 } });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
     // the safety bookmark can be taken back (it migrates again)
-    expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
+    expect((await useBookmark(st, 'test', 'safety', lib())).state.clocks.migrated).toBe(1);
   });
 
   it('refuses when a step is missing and leaves the save untouched', async () => {

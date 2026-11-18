@@ -1063,7 +1063,6 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const r = zoneById(state, state.player.zone)?.rect; return r ? { x: r.x, y: r.y } : undefined; })())),
     places: weaverPlaces(state, near, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
-    flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
     player: { level: charLevel(state.player), power: Math.round(power(state, state.player)), ...(state.player.pronouns ? { pronouns: state.player.pronouns } : {}), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
       standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone },

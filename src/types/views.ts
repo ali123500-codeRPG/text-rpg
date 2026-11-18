@@ -383,7 +383,6 @@ export type WeaverView = {
     areas: ZoneView[];
     people: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[] }[];
   quests: { id: string; state: string; text: string }[];
-  flags: Record<string, string | number | boolean>;
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;
     /** HF9: rating + gear rating, to set a unique's power against */

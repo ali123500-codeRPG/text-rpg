@@ -138,7 +138,6 @@ export type GameState = {
   clocks: Record<string, number>;
   /** AT15: game minutes each recent turn ended, by turn (time.ts turnTime): timers count game time from turn stamps */
   turnEnds?: Record<number, number>;
-  flags: Record<string, string | number | boolean>;
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   yielding?: PlayerYield; // MB40: cleared when the scenario ends
@@ -215,7 +214,6 @@ export type EnginePage = {
   stage: StageInfo;
   scenarioCaps: { promotions: number; minted: number };
   clocks: Record<string, number>;
-  flags: Record<string, string | number | boolean>;
   bands: Band[];
   quests: Quest[];
   spars?: Spar[];
