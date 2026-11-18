@@ -127,7 +127,7 @@ it('BK6: breaking a container its owner guards, under their eyes, is theft seen:
 it('BK6 (searches): letting someone search you does not let them break your locked box; it is theft seen all the same', () => {
   const s = village();
   const wim = actor(s, 'patron_1');
-  groundIn(s, 'tav_common') = groundIn(s, 'tav_common').filter((i) => i.id !== 'box');
+  s.ground = s.ground.filter((i) => i.id !== 'box');
   wim.core.inventory.push({ id: 'box', itemId: IT.sack, contents: inside(), lock: { locked: true }, grade: 'minor' });
   wim.letsSearch = { by: s.player.id, until: s.turn + 2 };
   const before = STANCES.pos(stance(s, wim, s.player) as never);

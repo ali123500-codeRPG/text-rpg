@@ -6,7 +6,7 @@
 import { actionRow } from '../../src/ruleset/actionTime';
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
-import { makeVillage } from '../harness';
+import { makeVillage, furnish } from '../harness';
 import { sleepDebtFor } from '../harness/sleep';
 import { intent, play } from './w4-kit';
 import { wholeTurn } from '../harness/turn';
@@ -125,7 +125,7 @@ describe('278 fatigue and stamina', () => {
     s.player.core.condition.fatigue!.debt = barMax(s.player);
     expect(sleepMinutes(s, s.player)).toBeLessThanOrEqual(CONFIG.SLEEP_MAX_HOURS * 60);
     const bed = quiet();
-    bed.zones.find((z) => z.id === bed.player.zone)!.furniture = [{ id: 'b1', kind: FU.bed, name: 'bed' }];
+    furnish(bed, bed.player.zone, [{ kind: FU.bed, name: 'bed' }]);
     bed.player.core.condition.fatigue = { debt: 10, line: 30 };
     bed.player.asleep = { since: now(bed) };
     pass(bed, 60);

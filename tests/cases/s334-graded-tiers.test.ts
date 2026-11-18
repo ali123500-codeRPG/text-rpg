@@ -14,15 +14,15 @@ import { NOISE } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { act, intent } from './w4-kit';
-import { layAll } from '../harness';
+import { layAll, furnish } from '../harness';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
   s.player.core.skills[SK.endurance] = { raw: 50, state: 'normal' };
-  zoneById(s, 'tav_common')!.furniture = makeFurniture('tav_common', [{ kind: 'other', name: 'winch', at: 'n', grade: 'major' }]);
+  furnish(s, 'tav_common', [{ kind: 'other', name: 'winch', at: 'n', grade: 'major' }]);
   return s;
 };
-const winch = (s: GameState) => zoneById(s, 'tav_common')!.furniture![0];
+const winch = (s: GameState) => s.furniture.find((f) => f.zone === 'tav_common')!;
 const turn = (s: GameState, i: Intent, d: number[]): GameEvent[] => { s.turn += 1; s.log = []; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, forcedRng([50, ...d])); };
 const tryWinch = (s: GameState, d: number, extra: object = {}) =>
   turn(s, intent({ action: { type: 'interact', skill: SK.endurance, target: winch(s).id, ...extra } }), [d]).find((e) => e.kind === 'interact')!;

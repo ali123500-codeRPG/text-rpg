@@ -4,7 +4,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
 import { placeAll } from '../../src/engine/position';
 import { buildNarrationView } from '../../src/views';
 import { fallbackNarration } from '../../src/agents/narration';
@@ -16,8 +15,6 @@ describe('176 a move says where it came from (BG-22)', () => {
   it('a walk along the street to the tavern door, then inside: within the street, heading for the room; then from the street', () => {
     const s = makeVillage({ playerZone: 'street_door' });
     const zs = s.places.flatMap((p) => p.zones);
-    for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-    placeZones(s, zs);
     placeAll(s);
     const street = boxOf(zs.find((z) => z.id === 'street_door')!.outline), room = boxOf(zs.find((z) => z.id === 'tav_common')!.outline);
     // the far side of the street from the tavern

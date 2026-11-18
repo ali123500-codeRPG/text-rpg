@@ -1,6 +1,6 @@
 import { BT } from '../../src/library/raceIds';
 import { afterEach, describe, expect, it } from 'vitest';
-import { makeVillage, actor } from '../harness';
+import { makeVillage, actor, lay } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import {
@@ -123,11 +123,11 @@ describe('save and load', () => {
 
   it('drops ground items the library no longer has, so zone views cannot throw', async () => {
     const s = makeVillage();
-    s.zones[0].groundItems.push({ id: 'gi1', itemId: 'retired_item' });
+    lay(s, s.zones[0].id, { id: 'gi1', itemId: 'retired_item' });
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
     const { state, report } = await loadStory(st, 'test', lib());
-    expect(state.zones[0].groundItems.map((i) => i.id)).not.toContain('gi1');
+    expect(state.ground.map((i) => i.id)).not.toContain('gi1');
     expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/unknown ground items/)]));
   });
 

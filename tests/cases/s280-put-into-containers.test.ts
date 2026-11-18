@@ -3,8 +3,8 @@
 // a stack can go in part; a container never goes inside another; worn things come off first; into a worn pack is a
 // plain stow (CT7). Taking it out again is pick_up. The inventory lists what each carried container holds.
 import { expect, it } from 'vitest';
-import type { GameState } from '../../src/types';
-import { makeVillage } from '../harness';
+import type { GameState, ItemInstance } from '../../src/types';
+import { makeVillage, lay } from '../harness';
 import { intent, play } from './w4-kit';
 import { wholeTurn } from '../harness/turn';
 import { actorById, zoneById } from '../../src/engine/relations';
@@ -12,6 +12,7 @@ import { IT } from '../../src/library/itemIds';
 import { checkNpcLegality, checkParserLegality } from '../../src/agents/legality';
 import { buildOppositionView, buildPlayerView } from '../../src/views';
 import type { NpcAction } from '../../src/types';
+import { groundIn } from '../../src/engine/ground';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -71,15 +72,12 @@ it('PI4: into a worn pack is a plain stow; into an open chest within reach works
   const held = s.player.core.inventory.find((x) => x.equippedIn?.some((e) => e.startsWith('grip:')))!;
   play(s, { intent: intent({ gear: [{ op: 'stow', item: held.id, into: pack.id }] }) });
   expect(s.player.core.inventory.find((x) => x.id === held.id)?.equippedIn).toBeUndefined();
-  const z = zoneById(s, 'tav_common')!;
-  z.groundItems.push({ id: 'box', itemId: IT.chest, open: true, contents: [], ...(s.player.pos ? { at: { ...s.player.pos } } : {}) },
-    { id: 'shut', itemId: IT.chest, contents: [], ...(s.player.pos ? { at: { ...s.player.pos } } : {}) },
-    { id: 'theirs', itemId: IT.chest, open: true, owner: 'patron_1', contents: [], ...(s.player.pos ? { at: { ...s.player.pos } } : {}) });
+  for (const i of [{ id: 'box', itemId: IT.chest, open: true, contents: [] }, { id: 'shut', itemId: IT.chest, contents: [] }, { id: 'theirs', itemId: IT.chest, open: true, owner: 'patron_1', contents: [] }] as ItemInstance[]) lay(s, 'tav_common', i, s.player.pos);
   expect(actorById(s, 'patron_1')).toBeTruthy();
   play(s, { intent: intent({ gear: [{ op: 'stow', item: 'knife', into: 'shut' }, { op: 'stow', item: 'knife', into: 'theirs' }] }) });
   expect(has(s, 'knife')).toBe(true);
   play(s, { intent: intent({ gear: [{ op: 'stow', item: 'knife', into: 'box' }] }) });
-  expect(z.groundItems.find((x) => x.id === 'box')?.contents?.map((x) => x.id)).toEqual(['knife']);
+  expect(groundIn(s, 'tav_common').find((x) => x.id === 'box')?.contents?.map((x) => x.id)).toEqual(['knife']);
 });
 
 it('PI1: the Parser may only put things into a container the player knows', () => {

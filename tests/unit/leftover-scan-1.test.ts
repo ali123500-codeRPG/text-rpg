@@ -31,8 +31,7 @@ import { validateStagePlan } from '../../src/scenario';
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import { PUSH_TYPES, speechSkill } from '../../src/engine/speech';
 import { SPEECH_ACTIONS } from '../../src/types';
-import { edgeFacing, reachesOver } from '../../src/scenario/geometry';
-import { EK, RV, ZK } from '../../src/library/tableIds';
+import { RV, ZK } from '../../src/library/tableIds';
 import { recoverDebt } from '../../src/engine/fatigue';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import type { Zone } from '../../src/types';
@@ -403,12 +402,8 @@ describe('leftover scan round 9', () => {
 
 describe('leftover scan round 10', () => {
   const read = (f: string) => readFileSync(f, 'utf8') as string;
-  it('one edge rule: an unnamed side is its zone kind\'s default edge, for sound and for reaching over alike', () => {
-    const z = (id: string, x: number, kind: string, edges?: Zone['edges']) => ({ id, kind, rect: { x, y: 0, w: 4, d: 4 }, links: [], ...(edges ? { edges } : {}) }) as unknown as Zone;
-    const room = z('a', 0, ZK.room), yard = z('b', 4, ZK.yard), bar = z('c', 0, ZK.room, { e: EK.low });
-    expect([edgeFacing(room, yard), edgeFacing(yard, room), edgeFacing(bar, yard)]).toEqual([EK.wall, EK.open, EK.low]);
-    const kinds = getLibrary().edgeKinds ?? {};
-    expect([reachesOver(room, yard, kinds), reachesOver(bar, yard, kinds)]).toEqual([false, true]);
+  it('one edge rule: a side is a wall on the floor plan, for sound and for reaching over alike (PZ2 replaced edge kinds)', () => {
+    expect(getLibrary()).not.toHaveProperty('edgeKinds');
     expect(read('src/perception/noise.ts')).not.toMatch(/zoneKinds\?\.\[z\.kind\]\?\.edge/);
     expect(read('src/scenario/geometry.ts').match(/const chain = \(id/g)).toBeNull();
   });

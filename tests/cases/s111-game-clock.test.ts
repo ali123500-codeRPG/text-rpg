@@ -86,7 +86,6 @@ describe('111 game clock', () => {
   it('outdoor zones follow the sky unless their own light is brighter; indoors do not', () => {
     const s = makeVillage();
     const field = zone(s, 'field_mid');
-    field.outdoor = true;
     setTitleLight(s, field, 'dark'); // no lamps: only the sky lights it
     startClock(s, 'night');
     expect(zoneLight(s, field)).toBe('moonlit'); // LT3: one flat night level, the sky's moonlight

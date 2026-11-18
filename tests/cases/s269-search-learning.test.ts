@@ -3,7 +3,7 @@
 // watching it, and nothing when unwatched. SE17: a search aimed at someone reveals their check_passed secrets of a sight
 // or hearing skill when the roll reaches the secret's minTier.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { makeVillage, beside } from '../harness';
+import { makeVillage, beside, lay } from '../harness';
 import { intent, play } from './w4-kit';
 import { intent as turnIntent, wholeTurn } from '../harness/turn';
 import { ruleset } from '../../src/ruleset';
@@ -23,8 +23,7 @@ function rigRolls(tier: Tier) {
 }
 const marks = (s: GameState, sk: string) => s.player.progression?.markCounts?.[sk] ?? 0;
 const hideHere = (s: GameState, over: object) => {
-  const z = s.zones.find((x) => x.id === s.player.zone)!;
-  z.groundItems.push({ id: 'ring_1', itemId: IT.dagger, at: { ...s.player.pos! }, hiddenAt: { tier: 'critical_success' }, knownTo: [], ...over });
+  lay(s, s.player.zone, { id: 'ring_1', itemId: IT.dagger, hiddenAt: { tier: 'critical_success' }, knownTo: [], ...over }, s.player.pos);
 };
 const search = (target: string | null = null) => ({ intent: intent({ action: { type: 'search', target } }) });
 

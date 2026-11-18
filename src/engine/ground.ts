@@ -17,10 +17,11 @@ export function groundPoint(state: GameState, at: Located): Pt3 | undefined {
   const p = at.pos ?? keepInside(middleOf(z.outline), z.outline, 0);
   return { x: p.x, y: p.y, floor: z.floor };
 }
-/** FR2: lays items on the ground where `at` stands (its point, else its title's middle) */
+/** FR2: lays items on the ground where `at` stands (its point, else its title's middle); the same objects, so a caller
+ * that keeps one (a stash marking it hidden) changes what lies there */
 export function dropOnGround(state: GameState, at: Located, ...items: ItemInstance[]): void {
   const p = groundPoint(state, at);
-  for (const i of items) state.ground.push(p ? { ...i, at: { ...p } } : i);
+  for (const i of items) { if (p) i.at = { ...p }; state.ground.push(i); }
 }
 /** takes an item off the ground by id: the item, or undefined when nothing lies there with that id */
 export function takeFromGround(state: GameState, id: string): ItemInstance | undefined {

@@ -3,7 +3,7 @@
 // order were broken, and the pack came off on the third turn. A take with nothing else to do now runs on with the main
 // time, as a dash does; one still short says how far and waits for next turn, with no bug filed.
 import { expect, it } from 'vitest';
-import { beside, makeVillage } from '../harness';
+import { beside, makeVillageResized } from '../harness';
 import { intent, play } from './w4-kit';
 import { IT } from '../../src/library/itemIds';
 import { distM } from '../../src/engine/position';
@@ -12,10 +12,9 @@ import { zoneById } from '../../src/engine/relations';
 import { boxOf } from '../../src/plan/geom';
 
 const bodyAt = (m: number) => {
-  const s = makeVillage({ playerZone: 'field_mid', without: ['slime_2', 'guard_1', 'trader', 'patron_1'] });
+  // the field a long open stretch, 240 m, like the causeway
+  const s = makeVillageResized({ playerZone: 'field_mid', without: ['slime_2', 'guard_1', 'trader', 'patron_1'] }, 'field_mid', (r) => ({ ...r, w: 240 }));
   const field = zoneById(s, 'field_mid')!;
-  field.rect = { ...boxOf(field.outline), w: 240 }; // a long open stretch, like the causeway
-  field.area = boxOf(field.outline).w * boxOf(field.outline).d;
   const t = beside(s, 'slime_1', 'player', 0.5);
   s.player.pos = { x: boxOf(field.outline).x - 110, y: boxOf(field.outline).y };
   t.pos = { x: s.player.pos.x + m, y: boxOf(field.outline).y };

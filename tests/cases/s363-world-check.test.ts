@@ -13,14 +13,14 @@ import { grovePlan } from '../../src/scenario/fixtures';
 import * as ways from '../../src/scenario/ways';
 import { worldCheck } from '../../src/scenario/ways';
 import { zoneById } from '../../src/engine/relations';
-import { ZK } from '../../src/library/tableIds';
+import { addFrontier, joinWay } from '../../src/plan/draw';
 import { loadStory, memoryStore, saveTurn } from '../../src/save';
 import { getLibrary } from '../../src/library';
 
 const ext = (frontierKey: string) => ({ kind: 'extension' as const, tier: 'success' as const, placeId: 'field', frontierKey });
 type PZ = StagePlan['zones'][number];
 const plan = (zones: PZ[]): StagePlan => ({ ...grovePlan(), frontiers: [], places: [], zones });
-const lane = (more: Partial<PZ> = {}): PZ => ({ key: 'lane', place: 'field', kind: ZK.road, name: 'the north-west road', look: 'a rutted road', ways: [], road: 'rg_r1', ...more });
+const lane = (more: Partial<PZ> = {}): PZ => ({ key: 'lane', place: 'field', name: 'the north-west road', look: 'a rutted road', ways: [], road: 'rg_r1', ...more });
 const build = (s: GameState) => applyStagePlan(s, plan([lane()]), ext('rg_r1'), { entry: 'open' }, createRng(1));
 
 describe('363 the world check', () => {
@@ -28,7 +28,7 @@ describe('363 the world check', () => {
     const s = landed();
     build(s);
     expect(worldCheck(s)).toEqual([]);
-    zoneById(s, 'tav_common')!.links.push({ to: 'street_door', label: 'the side door', kind: 'door' });
+    expect(joinWay(s, zoneById(s, 'tav_common')!, zoneById(s, 'street_door')!, { label: 'the side door', kind: 'door' })).toBeDefined();
     expect(worldCheck(s)).toEqual([]);
   });
 
@@ -39,8 +39,8 @@ describe('363 the world check', () => {
     copy.id = 'lane_2';
     s.places.find((p) => p.id === 'field')!.zones.push(copy);
     s.zones.push(copy);
-    zoneById(s, 'gate_inner')!.links = zoneById(s, 'gate_inner')!.links.filter((l) => l.to !== 'lane');
-    zoneById(s, 'gate_inner')!.links.push({ to: 'rg_r1', label: 'the old road', sight: true, frontier: true });
+    s.openings = s.openings.filter((o) => !(o.joins.includes('gate_inner') && o.joins.includes('lane')));
+    addFrontier(s, zoneById(s, 'gate_inner')!, 'rg_r1', 'the old road');
     expect(worldCheck(s)).toEqual(expect.arrayContaining([
       'road rg_r1 has 2 areas (lane, lane_2); a road is one area',
       'gate_inner\'s way "the old road" is new ground, but rg_r1 is already built as lane',

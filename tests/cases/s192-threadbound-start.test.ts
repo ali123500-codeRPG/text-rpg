@@ -16,6 +16,7 @@ import { ST } from '../../src/library/startIds';
 import { IT } from '../../src/library/itemIds';
 import { PK } from '../../src/library/perkIds';
 import type { ItemInstance } from '../../src/types';
+import { dropOnGround } from '../../src/engine/ground';
 
 const loopOf = (inv: ItemInstance[]) => inv.find((i) => i.itemId === IT.varos_loop);
 
@@ -66,7 +67,7 @@ describe('192 the Threadbound start', () => {
     expect(ev.some((e) => e.kind === 'summon' && e.actorId === 'player')).toBe(true);
     // from the ground of another place
     const far = s.places.at(-1)!.zones.at(-1)!;
-    far.groundItems.push(s.player.core.inventory.splice(s.player.core.inventory.findIndex((i) => i.id === 'loop'), 1)[0]);
+    dropOnGround(s, { zone: far.id }, s.player.core.inventory.splice(s.player.core.inventory.findIndex((i) => i.id === 'loop'), 1)[0]);
     expect(applyGearOps(s, s.player, [{ op: 'summon', item: 'loop' }]).summoned).toEqual(['loop']);
     // an item bound to no one, or someone else's, cannot be summoned
     npc.core.inventory.push({ id: 'plain', itemId: IT.charmed_ring });

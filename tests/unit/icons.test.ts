@@ -13,6 +13,7 @@ import { classIconName, iconName, ICON_CREDIT } from '../../src/ui/itemIcons';
 import { instanceItem } from '../../src/views';
 import { zoneById } from '../../src/engine/relations';
 import { intent } from '../cases/w4-kit';
+import { lay } from '../harness';
 
 describe('icons', () => {
   it('every library item picks an icon that exists; only the curio and unlisted misc things fall back on the pouch', () => {
@@ -31,8 +32,7 @@ describe('icons', () => {
 
   it('after a whole turn, the loot pop-up finds a thing inside an open chest by its instance id, in any place\'s zones', async () => {
     const g = wholeTurn();
-    const z = zoneById(g.state, g.state.player.zone)!;
-    z.groundItems.push({ id: 'chest_1', itemId: IT.chest, open: true, contents: [{ id: 'picks_1', itemId: IT.lockpicks }] } as never);
+    lay(g.state, g.state.player.zone, { id: 'chest_1', itemId: IT.chest, open: true, contents: [{ id: 'picks_1', itemId: IT.lockpicks }] }, g.state.player.pos);
     await g.turn(intent({ action: { type: 'wait' } } as never));
     expect(instanceItem(g.state, 'picks_1')).toBe(IT.lockpicks);
     expect(iconName(g.state, instanceItem(g.state, 'picks_1')!)).toBe('picks');

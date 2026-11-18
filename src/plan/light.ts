@@ -31,9 +31,20 @@ export function luxAt(state: GameState, p: Pt, floor: number, h = floor + 1): nu
 }
 /** PZ5 a: the light level at a point on a floor */
 export const lightAt = (state: GameState, p: Pt, floor: number, h?: number): Light => lightOfLux(luxAt(state, p, floor, h));
-/** PZ5: the light in a title: at point `p` in it (where someone stands), else at its middle; bright when it has no
- * footprint */
+/** PZ5: the light in a title: at point `p` in it (where someone stands), else the level that holds all across it (the
+ * dimmest of its middle and its corners, a step in: a title's light word is drawn to reach its far corner); bright when it
+ * has no footprint */
 export function zoneLight(state: GameState, z: Zone | undefined, p?: Pt): Light {
   if (!z?.outline?.length) return 'bright';
-  return lightAt(state, p ?? keepInside(middle(z), z.outline, 0), z.floor);
+  if (p) return lightAt(state, p, z.floor);
+  const m = middle(z);
+  let out = lightAt(state, keepInside(m, z.outline, 0), z.floor);
+  for (const c of z.outline) {
+    const d = Math.hypot(m.x - c.x, m.y - c.y), k = d ? Math.min(CORNER_IN_M, d) / d : 0;
+    const l = lightAt(state, keepInside({ x: c.x + (m.x - c.x) * k, y: c.y + (m.y - c.y) * k }, z.outline, 0), z.floor);
+    if (LIGHT.pos(l) > LIGHT.pos(out)) out = l;
+  }
+  return out;
 }
+/** how far in from a corner a title's light is read, in metres */
+const CORNER_IN_M = 0.5;

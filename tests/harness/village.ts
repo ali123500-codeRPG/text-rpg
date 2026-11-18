@@ -3,7 +3,7 @@
 import { TP } from '../../src/library/templateIds';
 import { BT } from '../../src/library/raceIds';
 import { RC } from '../../src/library/raceIds';
-import type { Actor, Band, Barrier, ItemInstance, Light, GameState, Place, TitleSpec, WaySpec, WayKind } from '../../src/types';
+import type { Actor, Band, Barrier, Furniture, Rect, ItemInstance, Light, GameState, Place, PlanFurniture, TitleSpec, WaySpec, WayKind } from '../../src/types';
 import { spawnNpc, equipLoadout, fullParts } from '../../src/library/spawn';
 import { resetLibrary } from '../../src/library';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -12,19 +12,21 @@ import { requirement } from '../../src/ruleset/requirements';
 import { floorGap } from '../../src/engine/position';
 import { drawTitles } from '../../src/plan/draw';
 import { inTitle, middle, wayTo } from '../../src/plan/where';
+import { boxOf } from '../../src/plan/geom';
 import { placeAll } from '../../src/engine/position';
 import { SK } from '../../src/library/skillIds';
 import { WK } from '../../src/library/tableIds';
-import { fitBarrier } from '../../src/plan/draw';
+import { fitBarrier, makeFurniture } from '../../src/plan/draw';
 import { CL } from '../../src/library/classIds';
 import { IT } from '../../src/library/itemIds';
 
 /** a way: where to, its words, seen through (an open way; else a door), a kind where it climbs, and frontier (off the stage) */
 const L = (to: string, label: string, sight = true, frontier = false, kind?: WayKind): WaySpec =>
   ({ to, label, kind: kind ?? (sight ? 'open' : 'door'), ...(frontier ? { frontier: true as const } : {}) });
-/** a title of the village; light is the word its lamps are drawn to (the open sky adds daylight by the clock) */
-const Z = (id: string, placeId: string, name: string, look: string, ways: WaySpec[], light: Light = 'bright'): TitleSpec =>
-  ({ id, placeId, name, look, ways, light, roof: !OUTDOOR.has(placeId), area: CONFIG.ZONE_SIZE_M2[placeId === 'field' ? 'open' : placeId === 'tavern' ? 'room' : 'yard'] });
+/** a title of the village; light is the word its lamps are drawn to: bright indoors, none out under the sky (the sky lights it
+ * by the clock) */
+const Z = (id: string, placeId: string, name: string, look: string, ways: WaySpec[], light?: Light): TitleSpec =>
+  ({ id, placeId, name, look, ways, light: light ?? (OUTDOOR.has(placeId) ? 'dark' : 'bright'), roof: !OUTDOOR.has(placeId), area: CONFIG.ZONE_SIZE_M2[placeId === 'field' ? 'open' : placeId === 'tavern' ? 'room' : 'yard'] });
 /** the village's titles under the sky */
 const OUTDOOR = new Set(['street', 'gate', 'field']);
 
@@ -208,6 +210,16 @@ export function putBarrier(state: GameState, a: string, b: string, rec: Barrier)
   fitBarrier(state, o);
   return rec;
 }
+/** the village with title `id`'s footprint changed by `f` (from its usual one), the titles named in `pin` kept where
+ * they usually are; the rest are drawn around them (fixture setup only) */
+export function makeVillageResized(opts: VillageOpts, id: string, f: (r: Rect) => Rect, pin: string[] = []): GameState {
+  const base = makeVillage(opts);
+  const rectOf = (z: string): Rect => { const b = boxOf(base.zones.find((q) => q.id === z)!.outline); return { x: b.x, y: b.y, w: b.w, d: b.d }; };
+  const shape: Record<string, Partial<TitleSpec>> = { ...opts.shape };
+  for (const z of pin) shape[z] = { ...shape[z], rect: rectOf(z) };
+  shape[id] = { ...shape[id], rect: f(rectOf(id)) };
+  return makeVillage({ ...opts, shape });
+}
 /** lays an item on the ground at a point of a title (`at`, else its own `at`, else the title's middle), on its floor; the
  * same object, so a test can keep it (fixture setup only) */
 export function lay(state: GameState, zone: string, item: ItemInstance, at?: { x: number; y: number }): ItemInstance {
@@ -218,6 +230,19 @@ export function lay(state: GameState, zone: string, item: ItemInstance, at?: { x
 }
 /** lays items on the ground in a title (each at its own `at`, else the title's middle) */
 export const layAll = (state: GameState, zone: string, ...items: ItemInstance[]): void => { for (const i of items) lay(state, zone, i); };
+/** FR2: replaces a title's furniture with a list (fixture setup only) */
+export function furnish(state: GameState, zone: string, list: PlanFurniture[]): Furniture[] {
+  const z = state.zones.find((q) => q.id === zone)!;
+  const made = makeFurniture(state, z, list);
+  state.furniture = state.furniture.filter((f) => f.zone !== zone).concat(made);
+  return made;
+}
+/** FR2: adds one piece of furniture to a title, with id `id` (fixture setup only) */
+export function addPiece(state: GameState, zone: string, piece: PlanFurniture, id: string): Furniture {
+  const f = { ...makeFurniture(state, state.zones.find((q) => q.id === zone)!, [piece])[0], id };
+  state.furniture.push(f);
+  return f;
+}
 /** puts barrier `id` (already in state.barriers) on the way between titles a and b, fitted to it (fixture setup only) */
 export function setBarrier(state: GameState, a: string, b: string, id: string): void {
   const o = state.openings.find((x) => (x.joins[0] === a && x.joins[1] === b) || (x.joins[0] === b && x.joins[1] === a));

@@ -11,10 +11,10 @@ import { contentsOf, findContainer } from '../../src/engine/containers';
 import { checkParserLegality } from '../../src/agents/legality';
 import { buildPlayerView } from '../../src/views';
 import { IT } from '../../src/library/itemIds';
-import { layAll } from '../harness';
+import { lay as layOne } from '../harness';
 
 const village = (): GameState => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
-const lay = (s: GameState, ...items: ItemInstance[]) => layAll(s, 'tav_common', ...items.map((i) => ({ ...i, at: s.player.pos && { ...s.player.pos } })));
+const lay = (s: GameState, ...items: ItemInstance[]) => { for (const i of items) layOne(s, 'tav_common', { ...i }, s.player.pos); };
 const packed = (s: GameState) => { // a worn pack
   if (!s.player.core.inventory.some((i) => i.equippedIn?.includes('pack'))) s.player.core.inventory.push({ id: 'player_pack', itemId: IT.pack, equippedIn: ['pack'] });
   return findContainer(s, s.player.core.inventory.find((i) => i.equippedIn?.includes('pack'))!.id)!;

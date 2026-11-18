@@ -4,7 +4,6 @@
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
 import { placeAll } from '../../src/engine/position';
 import { buildNarrationView } from '../../src/views';
 import { NARRATOR_INSTRUCTIONS } from '../../src/agents/prompts';
@@ -14,8 +13,6 @@ import { boxOf } from '../../src/plan/geom';
 it('BG-47: a leg that stops short of the door says how many metres are still to go', () => {
   const s = makeVillage({ playerZone: 'street_door' });
   const zs = s.places.flatMap((p) => p.zones);
-  for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, zs);
   s.actors.find((a) => a.id === 'slime_1')!.zone = 'field_edge'; // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
   placeAll(s);
   const street = boxOf(zs.find((z) => z.id === 'street_door')!.outline), room = boxOf(zs.find((z) => z.id === 'tav_common')!.outline);
@@ -32,8 +29,6 @@ it('BG-47: a leg that stops short of the door says how many metres are still to 
 it('BG-48: a leg toward someone in another zone that stops short says how far the way still is too', () => {
   const s = makeVillage({ playerZone: 'street_door' });
   const zs = s.places.flatMap((p) => p.zones);
-  for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, zs);
   s.actors.find((a) => a.id === 'slime_1')!.zone = 'field_edge'; // SZ11: a slime 0.3 m high is made out at 0.41 × a person's range; at the field's edge it is near enough that the turn is a fight
   placeAll(s);
   const street = boxOf(zs.find((z) => z.id === 'street_door')!.outline), room = boxOf(zs.find((z) => z.id === 'tav_common')!.outline);

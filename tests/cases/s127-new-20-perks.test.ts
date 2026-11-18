@@ -16,6 +16,7 @@ import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { FU } from '../../src/library/tableIds';
 import { boxOf } from '../../src/plan/geom';
+import { makeFurniture } from '../../src/engine/furniture';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const NOISE = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
@@ -78,7 +79,7 @@ describe('127 20 perks for the new skills', () => {
       const s = makeVillage({ playerZone: 'tav_counter' });
       // PC1: indoors the cover is furniture: a 1.1 m counter beside the player hides 63% of a person
       const z = zoneById(s, 'tav_counter')!;
-      z.furniture = cover === 'some' ? [{ id: 'tav_counter.fu1', kind: FU.counter, name: 'counter' }] : [];
+      s.furniture = s.furniture.filter((f) => f.zone !== z.id).concat(cover === 'some' ? makeFurniture(s, z, [{ kind: FU.counter, name: 'counter' }]) : []);
       s.player.pos = { x: boxOf(z.outline).x, y: boxOf(z.outline).y + 0.7 }; // just behind the counter in the middle
       const w = place(s, 'patron_1', 'tav_counter');
       w.mind!.knowledge.player = { status: 'aware', source: 'seen', lastKnownZone: 'tav_counter', lastSeenTurn: s.turn, revealed: [] };

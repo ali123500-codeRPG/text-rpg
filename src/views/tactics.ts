@@ -111,9 +111,10 @@ function fieldWalks(state: GameState, a: Actor, view: ActorView, rows: string[],
   if (rows.includes(FX.into_cover) && foes.some((f) => showsRanged(state, view, f)))
     out.intoCover = walk(near.find((n) => coverAt(n.zone, n.pos) > coverHere));
   const lightHere = LIGHT.pos(zoneLight(state, zoneById(state, a.zone), a.pos));
-  // TC25 a: it judges by its own eyes only: from there it still sees every foe it fights clearly
+  // TC25 a: it judges by its own eyes only: from there it still sees every foe it fights clearly. The title it goes to is
+  // judged by its light as a whole (its dimmest, plan/light zoneLight), not at the doorway, where the light it left spills in
   if (rows.includes(FX.into_dark))
-    out.intoDark = walk(near.find((n) => LIGHT.pos(zoneLight(state, zoneById(state, n.zone), n.pos)) > lightHere
+    out.intoDark = walk(near.find((n) => LIGHT.pos(zoneLight(state, zoneById(state, n.zone))) > lightHere
       && foes.every((f) => !isDark(zoneLight(state, zoneById(state, f.zone), f.pos)) && sightLevel('normal', seeingM(state, { zone: n.zone, pos: n.pos }, f)) === 'full')));
   for (const k of ['outOfSight', 'intoCover', 'intoDark'] as const) if (!out[k]) delete out[k];
 }

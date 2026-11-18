@@ -36,3 +36,24 @@ export function landUnder(state: GameState, pts: { x: number; y: number }[], lc:
       cover: parseInt(lc.slice(2), 10).toString(36).repeat(N * N), waters: [], roads: [], nodes: [], sites: [], features: [], beyond: {} });
   }
 }
+
+/** PZ6 a: like landUnder, but only the land cells under the box of these points (shrunk 1 cm, so a cell that only touches
+ *  its edge is left) take that cover; the rest of the region stays as it was, else pasture (fixture setup only) */
+export function landCellsUnder(state: GameState, pts: { x: number; y: number }[], lc: string): void {
+  const S = CONFIG.REGION_SIZE_M, cell = CONFIG.REGION_CELL_M, N = Math.round(S / cell), e = 0.01;
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  const x0 = Math.min(...xs) + e, x1 = Math.max(...xs) - e, y0 = Math.min(...ys) + e, y1 = Math.max(...ys) - e;
+  const code = parseInt(lc.slice(2), 10).toString(36);
+  for (let x = Math.floor(x0 / cell) * cell; x <= x1; x += cell) for (let y = Math.floor(y0 / cell) * cell; y <= y1; y += cell) {
+    const gx = Math.floor(x / S), gy = Math.floor(y / S);
+    let r = state.regions?.find((q) => q.gx === gx && q.gy === gy);
+    if (!r) {
+      landUnder(state, [{ x, y }], LC_PASTURE);
+      r = state.regions!.find((q) => q.gx === gx && q.gy === gy)!;
+    }
+    const i = Math.floor((y - gy * S) / cell) * N + Math.floor((x - gx * S) / cell);
+    r.cover = r.cover.slice(0, i) + code + r.cover.slice(i + 1);
+  }
+}
+const LC_PASTURE = 'LC2';
+

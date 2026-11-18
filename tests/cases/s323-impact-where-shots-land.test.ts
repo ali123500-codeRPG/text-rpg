@@ -72,7 +72,6 @@ describe('323 a shot sounds where it lands', () => {
     const indoor = archer('tav_common', 0);
     expect(impactOf(aMiss(indoor))).toMatchObject({ impact: 'hard', noise: 'loud' });
     const out = archer('field_edge', 0);
-    out.zones.find((z) => z.id === 'field_edge')!.outdoor = true;
     expect(impactOf(aMiss(out))).toMatchObject({ impact: 'soft', noise: 'raised' });
   });
 

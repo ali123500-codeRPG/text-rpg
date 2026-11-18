@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, withRoad } from '../harness';
 import { middle } from '../../src/plan/where';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
 import { roadShape } from '../../src/scenario/apply';
 import { placeAll } from '../../src/engine/position';
 import { travelSpeed } from '../../src/engine/travel';
