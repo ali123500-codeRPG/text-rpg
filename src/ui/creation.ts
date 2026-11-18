@@ -80,6 +80,13 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), flaws: new Set<string>(), swings: SWINGS.start };
   const total = () => creationPoints(startId), cap = (k?: string) => creationCap(!!k && st.tags.has(k), !!k && st.flaws.has(k));
   const maxTags = () => CONFIG.CREATION_TAGS, maxFlaws = () => CONFIG.CREATION_FLAWS;
+  // A6: Reset and the recommended build replace the build in one click, so they don't ask: the build before is kept for Undo
+  let before: { v: Record<string, number>; tags: string[]; flaws: string[] } | null = null;
+  const undoBtn = h('button', { class: 'hs-btn-text', type: 'button', 'data-act': 'undo', hidden: true, title: 'Back to the build before', onclick: () => { undo(); render(); } }, 'Undo');
+  const buildKey = () => JSON.stringify([st.v, [...st.tags], [...st.flaws]]);
+  let afterKey = ''; // the build the Reset made: any other change after it ends the Undo
+  const snap = () => { before = { v: { ...st.v }, tags: [...st.tags], flaws: [...st.flaws] }; undoBtn.hidden = false; };
+  const undo = () => { if (!before) return; st.v = { ...before.v }; st.tags = new Set(before.tags); st.flaws = new Set(before.flaws); before = null; undoBtn.hidden = true; };
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); st.flaws.clear(); };
   const recommended = () => { const r = recommendedBuild(startId, identity.raceId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); r.flawed.forEach((k) => st.flaws.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
@@ -138,6 +145,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   }
 
   function render() {
+    if (before && buildKey() !== afterKey) { before = null; undoBtn.hidden = true; }
     const L = left(), b = build(), p = preview(b, st.swings);
     const dash = (n: number | null, d = 0) => (n === null ? '—' : n.toFixed(d));
     const tiles: Readout[] = [
@@ -293,8 +301,9 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
           : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} and a flawed one ${CONFIG.CREATION_MAX_FLAWED}, and you tag ${maxTags()} skills and flaw ${maxFlaws()}.`)),
       h('div', { class: 'actions' },
-        h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { recommended(); render(); } }, 'Use recommended build'),
-        h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { reset(); render(); } }, 'Reset'),
+        h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); recommended(); afterKey = buildKey(); render(); } }, 'Use recommended build'),
+        h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); reset(); afterKey = buildKey(); render(); } }, 'Reset'),
+        undoBtn,
         h('button', { class: 'hs-btn-main', type: 'button', id: 'btn-go', onclick: go, disabled: !!stopped, title: stopped ? 'The story can’t start until Claude and the save database are available' : null }, 'Begin the story'))),
     h('div', { class: 'sec' }, tilesHost, src, how),
     msg, groups,

@@ -1413,6 +1413,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .ess-story { margin: 0; color: var(--muted); font-size: 14px; font-style: italic; }
 .ess-meta { margin: 0; color: var(--faint); font-size: 13px; }
 .ess-acts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+/* A6: a choice that can't be undone asks once, in place: what is lost, the choice, the way back */
+.ask-row { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in oklch, var(--danger) 45%, transparent); border-radius: var(--r-md, 8px); background: var(--danger-soft); }
+.ask-what { color: var(--text); flex: 1 1 16ch; }
 .ess-pop .dpop-body { display: grid; gap: var(--space-3); }
 /* CP4: the Character page's Essences pop-up; a pair on offer side by side as one choice */
 .ess-all { width: min(600px, calc(100vw - 32px)); }

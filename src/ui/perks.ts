@@ -92,7 +92,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
     st === 'own' && d && linkNote(p, d.id) ? h('p', { class: 'pk-link-note' }, linkNote(p, d.id)) : null,
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
-    st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? 'No perk point' : 'Take · 1 point') : null,
+    st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? `Needs ${1 - pts} more point` : 'Take · 1 point') : null,
     // A11: a perk the owner can switch off, on by default
     st === 'own' && d && SWITCHABLE.has(d.id) ? h('button', { type: 'button', class: 'hs-btn-text', 'aria-pressed': String(!p.core.perksOff?.includes(d.id)),
       onclick: () => { const off = new Set(p.core.perksOff ?? []); if (off.has(d.id)) off.delete(d.id); else off.add(d.id); p.core.perksOff = [...off]; redraw(); } },
