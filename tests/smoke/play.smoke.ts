@@ -115,7 +115,7 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
-  it('the suggestion from last turn is taken by clicking the box, or by Use it', async () => {
+  it('the next step of an order is taken by clicking the box, or played by Enter in the empty box (D-20 b)', async () => {
     await turn('look around then search the shelf', 1);
     const box = page.locator('.inbar .hs-input');
     await expect.poll(() => box.getAttribute('placeholder')).toBe('search the shelf');
@@ -123,8 +123,11 @@ describe('play page smoke (TQ7)', () => {
     expect(await box.inputValue()).toBe('search the shelf');
     await box.fill('');
     await turn('look around then open the door', 2);
-    await page.getByRole('button', { name: 'Use it' }).click();
-    expect(await box.inputValue()).toBe('open the door');
+    await page.getByRole('button', { name: 'Play it' }).waitFor();
+    const before = await page.locator('.ln-player').count();
+    await box.press('Enter');
+    await expect.poll(() => page.locator('.ln-player').count()).toBe(before + 1);
+    expect(await page.locator('.ln-player').last().innerText()).toBe('open the door');
     expect(errors).toEqual([]);
   });
 
