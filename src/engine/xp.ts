@@ -392,7 +392,7 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}), turn: at ?? state.turn });
   if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
-  const xp = achXp(d, of);
+  const xp = achXp(d, of, xpToNext(state.player)); // AL3: the player's own XP to the next level, as earned
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
   if (d.freeLevels || d.bonusLevels) spendXp(state); // free and bonus levels need no XP to arrive
@@ -490,6 +490,6 @@ export function achievementInfo(state: GameState, a: { id: string; key?: string;
   const why = reached !== undefined && !d.every && reached !== d.count
     ? `Turn ${a.turn}: you reached ${fmtCount(reached)}; this needs ${earnedAt}.`
     : `Turn ${a.turn}: you reached ${earnedAt}.`;
-  return { id: a.id, name, level, levelName: rewardName(level), xp: achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
+  return { id: a.id, name, level, levelName: rewardName(level), xp: state.player.progression?.xpLog?.find((x) => x.source === `achievement:${a.id}`)?.amount ?? achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
 }
 export type AchievementInfo = ReturnType<typeof achievementInfo>;

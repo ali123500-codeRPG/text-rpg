@@ -23,7 +23,7 @@ import type { Actor, Quest, RollResult } from '../../src/types';
 import { rewardXp, rewardXpAt } from '../../src/ruleset/achRewards';
 import { poolState } from '../../src/ruleset/body';
 import { accSlot, gripSlot, gripsOf, isHeld, isWorn } from '../../src/ruleset/slots';
-import { xpFill } from '../../src/engine/xp';
+import { xpFill, xpToNext } from '../../src/engine/xp';
 import { questXp } from '../../src/engine/quests';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../../src/scales';
 import { perkPointAt, perkPointsUpTo } from '../../src/ruleset/levels';
@@ -240,7 +240,7 @@ describe('leftover scan round 5', () => {
 
 describe('answers CS15 to CS17', () => {
   it('CS15: one equation gives every reward level its XP, with no top; only achRewards reads it', () => {
-    expect(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'vi', 'x', 'xv'].map(rewardXp)).toEqual([6, 50, 169, 400, 781, 1350, 3200, 10800, 30706]);
+    expect(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'vi', 'x', 'xv'].map((k) => rewardXp(k))).toEqual([6, 50, 169, 400, 781, 1350, 3200, 10800, 30706]);
     expect(rewardXpAt(20)).toBeGreaterThan(rewardXpAt(15)); // past XV it keeps growing
     const readers = files('src').filter((f) => f !== 'src/config.ts' && /CONFIG\.REWARD_XP_CURVE/.test(readFileSync(f, 'utf8') as string));
     expect(readers).toEqual(['src/ruleset/achRewards.ts']);
@@ -249,9 +249,9 @@ describe('answers CS15 to CS17', () => {
     const s = makeVillage();
     for (const level of QUEST_REWARD_LEVELS.keys) {
       const q = { level, goal: { kind: 'deliver' } } as unknown as Quest;
-      expect(questXp(s, q)).toBe(rewardXp(REWARD_LEVELS.at(REWARD_LEVELS.pos(level) + 2)));
+      expect(questXp(s, q)).toBe(rewardXp(REWARD_LEVELS.at(REWARD_LEVELS.pos(level) + 2), xpToNext(s.player))); // AL4: the level share too
     }
-    expect(questXp(s, { level: 'zero', goal: { kind: 'deliver' } } as unknown as Quest)).toBe(rewardXp('ii'));
+    expect(questXp(s, { level: 'zero', goal: { kind: 'deliver' } } as unknown as Quest)).toBe(rewardXp('ii', xpToNext(s.player)));
   });
   it('CS17: items and attack modes count grips, never hands', () => {
     const offenders = files('src').filter((f) => /([{,]|^)\s*hands\??:|\.hands\b|'hands'/m.test(readFileSync(f, 'utf8') as string));
