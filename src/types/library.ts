@@ -266,7 +266,8 @@ export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolea
   /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
-export type FurnitureKind = { id: string; name: string };
+/** PC1: sizeM = [length, width, height] in metres (placeholders): it hides what is behind it (ruleset/objectCover) */
+export type FurnitureKind = { id: string; name: string; sizeM?: [number, number, number] };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;

@@ -129,6 +129,7 @@ it('SZ12, CV3, CV4: cover is set for a person; a smaller body shows less by its 
   const s = room();
   const z = s.zones.find((x) => x.id === 'tav_common')!;
   const p = s.actors.find((a) => a.id === 'patron_1')!;
+  z.outdoor = true; // PC1: only a zone under the sky keeps a clutter level
   z.cover = 'some';
   expect(coverShown(s, s.player, z)).toBe(0.5);
   expect(coverMod(coverShown(s, s.player, z))).toBe(10); // CV6: one halving

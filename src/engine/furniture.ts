@@ -1,6 +1,6 @@
 // FR1–FR4: furnished rooms. A zone lists named furniture with where it stands (a compass side or corner, or the middle).
-// It is colour first (FR1): a move can end beside a piece, and search and stash work where one stands; it never blocks or
-// hides anything. FR2: a zone gets its kind's defaults unless a layout or the Weaver lists its own. FR4: a piece on an edge
+// It is colour first (FR1): a move can end beside a piece, and search and stash work where one stands; it never blocks a
+// walk, but it hides what is behind it (PC1, PC2: its kind's sizeM; ruleset/objectCover). FR2: a zone gets its kind's defaults unless a layout or the Weaver lists its own. FR4: a piece on an edge
 // (a counter, a rail) is one record on one zone and shows on the far side of that edge too.
 import type { Furniture, GameState, PlanFurniture, Side, Zone } from '../types';
 import { GRADES, OPP_SIDE } from '../types';

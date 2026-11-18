@@ -14,6 +14,7 @@ import { SK } from '../../src/library/skillIds';
 import { beliefStatus } from '../../src/perception';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { FU } from '../../src/library/tableIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const NOISE = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
@@ -74,7 +75,10 @@ describe('127 20 perks for the new skills', () => {
     expect(meltAwayHere(1, 'dim')).toBe(true);
     const run = (perk: boolean, cover: 'none' | 'some') => {
       const s = makeVillage({ playerZone: 'tav_counter' });
-      zoneById(s, 'tav_counter')!.cover = cover;
+      // PC1: indoors the cover is furniture: a 1.1 m counter beside the player hides 63% of a person
+      const z = zoneById(s, 'tav_counter')!;
+      z.furniture = cover === 'some' ? [{ id: 'tav_counter.fu1', kind: FU.counter, name: 'counter' }] : [];
+      s.player.pos = { x: z.rect!.x, y: z.rect!.y + 0.7 }; // just behind the counter in the middle
       const w = place(s, 'patron_1', 'tav_counter');
       w.mind!.knowledge.player = { status: 'aware', source: 'seen', lastKnownZone: 'tav_counter', lastSeenTurn: s.turn, revealed: [] };
       if (perk) give(s.player, PK.melt_away);

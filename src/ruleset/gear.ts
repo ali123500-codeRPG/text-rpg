@@ -14,6 +14,7 @@ import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { withinM } from '../engine/position';
+import { objectHidden } from './objectCover';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL, ROLLED_SKILL } from '../library/skillIds';
 import { createRng, textSeed } from '../rng';
 import { equipNeed, itemLevel, requirement, requiredSkill } from './requirements';
@@ -143,30 +144,36 @@ export const rollTags = (skill: string, add: SituationTag[] = []): SituationTag[
 /** the summed sign a situational table gives a roll's tags (+ helps the roll's owner) */
 export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number => tags.reduce((n, t) => n + (CONFIG.SITUATION_TAGS[table][t] ?? 0), 0);
 
-/** CV3, CV4: the share of a body that shows in a zone's cover (1 = all of it). The level is set for a standing person
- * (COVER_HIDDEN); a smaller body shows less in proportion to its height, with no top; a taller one shows more, but only
- * for its height above what the cover stands (the zone kind's coverM: trees still hide a giant). No cover gives none. */
-export function coverShown(state: GameState, body: Actor | undefined, zone: Zone): number {
-  const hidden = CONFIG.COVER_HIDDEN[zone.cover] ?? 0;
-  if (hidden <= 0) return 1;
+/** PC1: a zone's scattered clutter (trees, brush, a crowd): its cover level outdoors; indoors none, since walls and
+ * furniture give the cover there */
+export const clutterCover = (zone: Zone): Zone['cover'] => (zone.outdoor ? zone.cover : 'none');
+
+/** CV3, CV4, PC1: the share of a body that shows (1 = all of it): the less of what shows through the zone's clutter and
+ * what shows past its furniture, seen from `from` (the shooter or watcher; objectHidden). The clutter level is set for a
+ * standing person (COVER_HIDDEN); a smaller body shows less in proportion to its height, with no top; a taller one shows
+ * more, but only for its height above what the clutter stands (the zone kind's coverM: trees still hide a giant). */
+export function coverShown(state: GameState, body: Actor | undefined, zone: Zone, from?: Actor): number {
+  const objects = body ? 1 - objectHidden(state, body, zone, from) : 1;
+  const hidden = CONFIG.COVER_HIDDEN[clutterCover(zone)] ?? 0;
+  if (hidden <= 0) return objects;
   const h = body ? actorBody(state, body).size.heightM : HUMANOID_SIZE.heightM;
   const standsM = Math.max(HUMANOID_SIZE.heightM, (zone.kind ? getLibrary().zoneKinds?.[zone.kind]?.coverM : undefined) ?? 0);
   const grow = h <= HUMANOID_SIZE.heightM ? h / HUMANOID_SIZE.heightM : Math.max(1, h / standsM);
-  return Math.min(1, (1 - hidden) * grow);
+  return Math.min(objects, Math.min(1, (1 - hidden) * grow));
 }
 /** CV6, CV7: how much cover counts on a roll: COVER_HALVING_MOD for each halving of what shows (0 when all of it shows) */
 export const coverMod = (shown: number): number => Math.round(CONFIG.COVER_HALVING_MOD * Math.log2(1 / Math.max(shown, 1e-9)));
 
 /** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover modifier
- * (the roller's zone; CV7: by what shows of the `body` it hides, when one does) for one roll. A ranged attack's cover is
+ * (the roller's zone; CV7: by what shows of the `body` it hides, when one does, to `from`, the one it hides from) for one roll. A ranged attack's cover is
  * the target's, added in ruleset attack(). */
-export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor; body?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
+export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor; body?: Actor; from?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
   // All-50 Child of Night: light reads ten times darker for the owner's stealth rolls (LT2)
   // All-50 Night Eyes: light reads ten times brighter for the owner's Eyesight rolls
   const brighter = (skill === SK.eyesight && hasPerk(at.actor, PK.night_eyes) ? 1 : 0) - (tags.includes('stealth') && hasPerk(at.actor, PK.child_of_night) ? 1 : 0);
   const light = at.light ? tagSign('light', tags) * lightMod(zoneLight(state, at.light), brighter) : 0;
-  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * coverMod(coverShown(state, at.body, at.cover)) : 0;
+  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * coverMod(coverShown(state, at.body, at.cover, at.from)) : 0;
   return { modifiers: [...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []), ...(cover ? [{ source: 'cover', type: 'situational' as const, value: cover }] : [])], tierShifts: [] };
 }
 

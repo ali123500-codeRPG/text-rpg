@@ -221,10 +221,10 @@ const cueSense = (cue: Cue | undefined): Sense => (cue === 'sound' ? FN.hearing 
 /** the hider's stealth roll against one sense. ST21/ST22: light and cover reach it by situation tag; staying put
  * (a Vanish in place, or hiding from a search) ignores leg wounds (ST10). P14: darkness never hurts hearing, so it gives no help against one who only hears.
  * All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against one who only hears. */
-function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean) {
+function hiderRoll(state: GameState, s: Actor, sk: string, sense: Sense, still: boolean, watcher?: Actor) {
   const zone = zoneById(state, s.zone);
   const hushed = sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {};
-  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s, body: s }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
+  return { actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, actor: s, body: s, from: watcher }), rollKind: 'stealth' as const, ...(still ? { roles: [] } : {}), ...hushed };
 }
 /** the watcher's sense roll in the light where the hider is: a function roll, the best sight (or hearing) skill at full value */
 function watcherRoll(state: GameState, a: Actor, sense: Sense, light: Zone | undefined, hider?: Actor) {
@@ -263,7 +263,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const melt = !moved && !fade && event.kind !== 'attack' && hasPerk(s, PK.melt_away) && !!zone && (blindSpotNow(state, s) || meltAwayHere(coverShown(state, s, zone), zoneLight(state, zone)));
   const still = fade || melt;
   const from: Located = { zone: event.fromZone ?? s.zone, pos: event.fromPos ?? s.pos };
-  const mine = (sk: string, sense: Sense) => hiderRoll(state, s, sk, sense, still);
+  const mine = (sk: string, sense: Sense, a?: Actor) => hiderRoll(state, s, sk, sense, still, a);
   const theirs = (a: Actor, sense: Sense) => watcherRoll(state, a, sense, zone, s);
   // VS5: slipping away from a foe that is fighting you within VANISH_NEAR_M is harder (by distance, not weapon reach)
   const near = (a: Actor) => fightingWith(state, a, s) && withinM(distM(state, from, a), CONFIG.VANISH_NEAR_M);
@@ -282,7 +282,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     if (!seen) continue;
     const sense = cueSense(seen.cue);
     const skill = sees ? SK.vanishing : stealthSkill(s, event);
-    const roll = mine(skill, sense);
+    const roll = mine(skill, sense, a);
     if (sees && near(a)) roll.tierShifts = [...roll.tierShifts, { source: 'foe close by', value: CONFIG.VANISH_NEAR_SHIFT }];
     const r = ruleset.contested(roll, theirs(a, sense), state, rng);
     done.ids.push(key);
@@ -299,7 +299,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
       // ST23: an observer with Unblinking who loses the Vanishing roll still needs beating with Sneaking or Combat Stealth
       if (hasPerk(a, PK.unblinking)) {
         const second = stealthSkill(s);
-        const r2 = ruleset.contested(mine(second, sense), theirs(a, sense), state, rng);
+        const r2 = ruleset.contested(mine(second, sense, a), theirs(a, sense), state, rng);
         contestFeat(state, r2, a.kind === 'player' ? [sense] : undefined);
         markUse(state, s, second, r2);
         markUse(state, a, r2.b.skill, r2);
@@ -347,7 +347,7 @@ export function searchFor(state: GameState, a: Actor, event: GameEvent, rng: Rng
     if (h.id === a.id || h.posture !== 'stealthy' || h.bandId === a.bandId || !isActive(h) || (opts.only && h.id !== opts.only)) continue;
     if (atLeast(beliefStatus(state, a, h), 'aware') || !reaches(h)) continue;
     const w = watcherRoll(state, a, sense, zoneById(state, h.zone), h);
-    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true), opts.look ? { ...w, tierShifts: [...w.tierShifts, { source: 'look around', value: CONFIG.LOOK_SEARCH_SHIFT }] } : w, state, rng);
+    const r = ruleset.contested(hiderRoll(state, h, stealthSkill(h), sense, true, a), opts.look ? { ...w, tierShifts: [...w.tierShifts, { source: 'look around', value: CONFIG.LOOK_SEARCH_SHIFT }] } : w, state, rng);
     if (!done.ids.includes(pairKey(h, a))) done.ids.push(pairKey(h, a));
     contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
     if (a.kind === 'player' && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: sense }); } // N3
