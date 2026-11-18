@@ -151,8 +151,9 @@ describe('117 stealth', () => {
     const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe(SK.sneaking);
     // P14: darkness gives no help against a listener
-    expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 22 }] : []);
-    expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
+    // CV7: the cellar's "some" cover hides half a person: one halving, +10 to hide
+    expect(a.modifiers).toEqual([...(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 22 }] : []), { source: 'cover', type: 'situational', value: 10 }]);
+    expect(a.tierShifts).toEqual([]);
     expect(a.roles).toBeUndefined();
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
     expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -22 }] : []); // ST21: sight is hurt
@@ -164,14 +165,14 @@ describe('117 stealth', () => {
     s.player.posture = 'stealthy';
     const calls = rig();
     turn(s, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
-    expect(calls.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.sneaking, tierShifts: [{ source: 'cover', value: 1 }] });
+    expect(calls.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.sneaking, tierShifts: [], modifiers: expect.arrayContaining([{ source: 'cover', type: 'situational', value: 10 }]) });
     const v = makeVillage();
     place(v, 'player', 'tav_counter');
     place(v, 'trader', 'tav_cellar');
     aware(v, 'trader', 'tav_counter');
     const vc = rig();
     turn(v, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
-    expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.vanishing, tierShifts: [{ source: 'cover', value: 1 }] });
+    expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.vanishing, tierShifts: [], modifiers: expect.arrayContaining([{ source: 'cover', type: 'situational', value: 10 }]) });
   });
   it('VS5: slipping away from a foe fighting you within VANISH_NEAR_M takes a tier shift; one only aware of you, or farther off, does not', () => {
     const shifts = (engaged: boolean, m: number) => {

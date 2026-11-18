@@ -251,6 +251,8 @@ export type ZoneKind = {
   size: import('../scales').ZoneSizeKey; edge: string;
   /** FR2: furniture every zone of this kind gets unless a layout or the Weaver gives its own */
   furniture?: PlanFurniture[];
+  /** CV4: how high its cover stands, in metres (a bar counter, trees); a body taller than this and a person loses cover */
+  coverM?: number;
   /** long side ÷ short side of the zone's rectangle (1 = square) */
   aspect: number;
   /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */

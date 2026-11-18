@@ -1,12 +1,13 @@
 // Every place a roll modifier comes from, by modifier type, so the library viewer's Stacking tab can show what feeds
 // each type. Values are read from CONFIG and the library, so they follow the code. tests/unit/mod-sources.test.ts
 // checks that each place in src that makes a typed modifier has exactly one entry here (same file, same type).
-import { modeName } from './gear';
+import { coverMod, modeName } from './gear';
+import { HUMANOID_SIZE } from '../library/bodySize';
 import { D100_MEAN } from '../rng';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
 import { lightMod } from '../time';
-import { ATTENTION, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
+import { ATTENTION, COVER, FATIGUE_LEVELS, GRADE_LEVELS, HEALTH_LEVELS, LIGHT, MORALE_LEVELS, NOISE, PART_STATES, type AttentionKey, type MoraleLevel, type NoiseKey, type PartStateKey } from '../scales';
 import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
@@ -50,6 +51,8 @@ const itemRollMods = (lib: Library, eventRoll: boolean): ModFeed[] => Object.val
   .filter((e) => e.kind === 'rollMod' && (e.roll === 'event') === eventRoll)
   .map((e) => ({ table: 'items' as const, id: i.id, name: i.name, value: `${sg(e.value)} ${e.roll} rolls · when ${e.active}` })));
 
+/** CV6: the cover modifier for a standing person at each level */
+const COVER_PERSON = COVER.keys.map((k) => `${COVER.name(k)} ${sg(coverMod(1 - (CONFIG.COVER_HIDDEN[k] ?? 0)))}`).join(' · ');
 export const MOD_SOURCES: ModSource[] = [
   // achievement
   { type: 'achievement', roll: 'skill', source: 'Bane (race and body type)', at: 'src/ruleset/bane.ts',
@@ -108,6 +111,10 @@ export const MOD_SOURCES: ModSource[] = [
   // situational
   { type: 'situational', roll: 'skill', source: 'Light', at: 'src/ruleset/gear.ts', when: 'Rolls whose skill has a light tag (sight, stealth …): the tag\'s sign × the light where the action is.',
     value: LIGHT.keys.map((k) => `${LIGHT.name(k)} ${sg(lightMod(k))}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'Cover', at: 'src/ruleset/gear.ts', when: `Rolls with a hide tag (the Stealth skills, stashing), by what shows of the roller in its zone's cover: ${CONFIG.COVER_HALVING_MOD} for each halving (CV6, CV7). A small body shows less (its height ÷ ${HUMANOID_SIZE.heightM} m); a body taller than a person and than what the zone's cover stands shows more. Values here for a standing person.`,
+    value: COVER_PERSON },
+  { type: 'situational', roll: 'skill', source: 'Cover (shot)', at: 'src/ruleset/index.ts', when: `Ranged attacks at a target in cover: the same number as a minus, by what shows of the target (Past the Cover counts ${2 ** CONFIG.PAST_THE_COVER_HALVINGS} times as much showing). Melee never takes it.`,
+    value: COVER_PERSON.replace(/\+/g, '−') },
   { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by the distance to the target as a share of the weapon\'s reach (both from real metres).',
     value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile near enough to strike or grab the shooter: within ${CONFIG.HOSTILE_NEAR_STEP_M} m (a step) plus its own melee reach, between bodies (Point Blank removes it).`,

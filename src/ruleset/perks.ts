@@ -6,7 +6,7 @@ import type { Actor, AttackKind, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
-import { COVER, LIGHT } from '../scales';
+import { LIGHT } from '../scales';
 import { PK } from '../library/perkIds';
 import { AURA_SKILLS } from '../library/auras';
 import { syncPerkLinks } from './perkLinks';
@@ -188,9 +188,10 @@ export function undoPerk(s: GameState, a: Actor, perkId: string): void {
   syncPerkLinks(a, s.turn);
 }
 
-/** A19 Melt Away: a zone with some cover or more, or light dim or darker, lets the owner vanish in place */
-export const meltAwayHere = (cover: string | undefined, light: string | undefined): boolean =>
-  COVER.pos(COVER.keyOf(cover) ?? 'none') >= COVER.pos('some') || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= LIGHT.pos('dim');
+/** A19 Melt Away: where at most as much of the owner shows as of a person in some cover (CV8), or the light is dim or
+ * darker, the owner can vanish in place. `shown` is coverShown's share (1 = in the open) */
+export const meltAwayHere = (shown: number, light: string | undefined): boolean =>
+  shown <= 1 - (CONFIG.COVER_HIDDEN.some ?? 0) || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= LIGHT.pos('dim');
 
 /** CN3 a: the pieces a payoff perk counts: owned perks with the theme tag (or quirks), whatever their source, each counted
  * once. Dormant perks count for now (D-307). */

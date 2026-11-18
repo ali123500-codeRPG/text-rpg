@@ -2,8 +2,8 @@
 import { ageMult } from './age';
 import type { Actor, AugmentKind, AugmentWhen, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
 import { lightMod, zoneLight } from '../time';
-import { COVER, LIGHT } from '../scales';
-import { coverSteps } from '../library/bodySize';
+import { LIGHT } from '../scales';
+import { HUMANOID_SIZE } from '../library/bodySize';
 import { CONFIG } from '../config';
 import { powerStack } from './stacking';
 import { actorBody, getLibrary, itemDef, npcTemplate } from '../library';
@@ -143,24 +143,31 @@ export const rollTags = (skill: string, add: SituationTag[] = []): SituationTag[
 /** the summed sign a situational table gives a roll's tags (+ helps the roll's owner) */
 export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number => tags.reduce((n, t) => n + (CONFIG.SITUATION_TAGS[table][t] ?? 0), 0);
 
-/** SZ12: the cover a body has in a zone: the zone's cover is set for a person; a body gains a step for each halving of its
- * height below a person's and loses one for each doubling above, never past heavy; a zone with no cover gives none */
-export function coverFor(state: GameState, body: Actor | undefined, zone: Zone): Zone['cover'] {
-  if (!body || zone.cover === 'none') return zone.cover;
-  return COVER.at(Math.max(0, Math.min(COVER.keys.length - 1, COVER.pos(zone.cover) + coverSteps(actorBody(state, body).size))));
+/** CV3, CV4: the share of a body that shows in a zone's cover (1 = all of it). The level is set for a standing person
+ * (COVER_HIDDEN); a smaller body shows less in proportion to its height, with no top; a taller one shows more, but only
+ * for its height above what the cover stands (the zone kind's coverM: trees still hide a giant). No cover gives none. */
+export function coverShown(state: GameState, body: Actor | undefined, zone: Zone): number {
+  const hidden = CONFIG.COVER_HIDDEN[zone.cover] ?? 0;
+  if (hidden <= 0) return 1;
+  const h = body ? actorBody(state, body).size.heightM : HUMANOID_SIZE.heightM;
+  const standsM = Math.max(HUMANOID_SIZE.heightM, (zone.kind ? getLibrary().zoneKinds?.[zone.kind]?.coverM : undefined) ?? 0);
+  const grow = h <= HUMANOID_SIZE.heightM ? h / HUMANOID_SIZE.heightM : Math.max(1, h / standsM);
+  return Math.min(1, (1 - hidden) * grow);
 }
+/** CV6, CV7: how much cover counts on a roll: COVER_HALVING_MOD for each halving of what shows (0 when all of it shows) */
+export const coverMod = (shown: number): number => Math.round(CONFIG.COVER_HALVING_MOD * Math.log2(1 / Math.max(shown, 1e-9)));
 
-/** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover tier
- * shift (the roller's zone; SZ12: by the size of the `body` it hides, when one does) for one roll. A ranged attack's cover
- * is a gap shift instead (ruleset attack). */
+/** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover modifier
+ * (the roller's zone; CV7: by what shows of the `body` it hides, when one does) for one roll. A ranged attack's cover is
+ * the target's, added in ruleset attack(). */
 export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor; body?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
   // All-50 Child of Night: light reads ten times darker for the owner's stealth rolls (LT2)
   // All-50 Night Eyes: light reads ten times brighter for the owner's Eyesight rolls
   const brighter = (skill === SK.eyesight && hasPerk(at.actor, PK.night_eyes) ? 1 : 0) - (tags.includes('stealth') && hasPerk(at.actor, PK.child_of_night) ? 1 : 0);
   const light = at.light ? tagSign('light', tags) * lightMod(zoneLight(state, at.light), brighter) : 0;
-  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[coverFor(state, at.body, at.cover)] ?? 0) : 0;
-  return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
+  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * coverMod(coverShown(state, at.body, at.cover)) : 0;
+  return { modifiers: [...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []), ...(cover ? [{ source: 'cover', type: 'situational' as const, value: cover }] : [])], tierShifts: [] };
 }
 
 /** a skill's final efficiency multiplier from its tier (1 for an unknown skill) */

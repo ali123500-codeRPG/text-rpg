@@ -162,7 +162,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     story: "Shadow and clutter are enough. With cover or shade around you, you can vanish right where you stand.",
     rules: { kind: "Always on",
       trigger: "The owner sneaks and stays put this turn.",
-      conditions: ["The owner's zone has some or heavy cover, or its light is dim or dark."],
+      conditions: ["The zone's cover hides at least half of the owner (some cover or heavier for a person; a smaller body needs less), or its light is dim or darker."],
       effect: "Observers who see the owner still roll against its Vanishing, as when it moves (VS2). One who loses drops to suspicious at that zone. It uses no action.",
       lasts: "That turn." } },
   { id: PK.slip_the_blow, ref: "A20", name: "Slip the Blow", skill: SK.light_armor, place: "20",

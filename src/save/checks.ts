@@ -2,12 +2,13 @@
 import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, GameState, HiddenPage, ItemDef, Library, Place, ZoneLink } from '../types';
 import { resolveAlias } from '../library';
 import type { Pages } from './pages';
-import { COVER, TACTICS, TIERS } from '../scales';
+import { TACTICS, TIERS } from '../scales';
 import { ageYears, bornDayFor, youngestAge } from '../ruleset/age';
 import { tierAt } from '../ruleset';
 import { gripSlot, gripsOf } from '../ruleset/slots';
-/** v2 saves numbered zone light by the three levels of that time (LT1 added more) */
+/** v2 saves numbered zone light and cover by the three levels of that time (LT1 and CV1 added more) */
 const V2_LIGHT = ['bright', 'dim', 'dark'] as const;
+const V2_COVER = ['none', 'some', 'heavy'] as const;
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
@@ -54,7 +55,7 @@ export function levelsToKeys(v: unknown): void {
   if (typeof o.tier === 'number' && !isPerk) Object.assign(o, tierAt(o.tier + 3));
   for (const k of ['minTier', 'playerTier']) if (typeof o[k] === 'number') o[k] = TIERS.at((o[k] as number) + 3);
   if (typeof o.light === 'number') o.light = V2_LIGHT[o.light]; // v2 numbered the three light levels of that time
-  if (typeof o.cover === 'number') o.cover = COVER.at(o.cover);
+  if (typeof o.cover === 'number') o.cover = V2_COVER[o.cover]; // and its three cover levels
   if (typeof o.tacticsLevel === 'number') { o.tactics = TACTICS.at(o.tacticsLevel - 1); delete o.tacticsLevel; }
   Object.values(o).forEach(levelsToKeys);
 }

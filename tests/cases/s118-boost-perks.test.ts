@@ -152,6 +152,6 @@ describe('118 darkness and hearing (P14)', () => {
     s.turn += 1;
     resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
     const [mine, theirs] = calls.find(([, b]) => b.actorId === 'trader')!;
-    expect(mine.modifiers).toEqual(theirs.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 22 }] : []);
+    expect(mine.modifiers.filter((m) => m.source === 'light')).toEqual(theirs.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 22 }] : []);
   });
 });

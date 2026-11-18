@@ -25,5 +25,3 @@ export function seenAreaM2(s: BodySize, lookDown = 0): number {
  * the range a thing is made out at grows with its size across). No cap; the horizon caps it outdoors. */
 export const sightFactor = (s: BodySize, lookDown = 0): number => Math.sqrt(seenAreaM2(s, lookDown) / seenAreaM2(HUMANOID_SIZE));
 
-/** SZ12: cover steps a body gains from its height: one for each halving below a person's, one lost for each doubling above */
-export const coverSteps = (s: BodySize): number => -Math.round(Math.log2(s.heightM / HUMANOID_SIZE.heightM));
