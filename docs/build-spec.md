@@ -1563,7 +1563,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 
 **Defaults filled before validation.** A trigger inside an NPC plan with no ownerId belongs to the plan's owner; a trigger with no once fires once; a place with no parent (missing or null) is top-level, and a new place may name another new place as its parent; a plan with no steps gets an empty list. Validator errors are listed once each, with a hint where the Weaver mixes fields up (a stance in an awareness field; a secret in knows). The repair retry sends the rejected plan back with its errors and asks for only those fixes.
 
-**Failed stage plan.** A plan that fails validation gets one repair retry with the validator's errors. If it fails again, or the call fails, or (scenario start only) it passes WEAVER\_TIMEOUT (config), code builds a fallback stage: the place's saved zones, or one empty zone per frontier label; no new cast; grades none/none. The fallback is flagged so it cannot be missed:
+**Failed stage plan.** A plan that fails validation gets one repair retry with the validator's errors. If it fails again, or the call fails, or (scenario start only) it passes WEAVER\_TIMEOUT (config; on a new world's first story it starts once the first region is drawn, which has its own REGION\_TIMEOUT, BG-311), code builds a fallback stage: the place's saved zones, or one empty zone per frontier label; no new cast; grades none/none. The fallback is flagged so it cannot be missed:
 
 1. The stage record carries fallback: { reason, turn } until the next scenario start.
 2. The turn record logs weaver\_fallback with the validator's errors.
@@ -3939,6 +3939,7 @@ The game files a report at `bugs/new-<time>` (status new) for every bug code it 
 | BG-307 | Zone review (PZ15): a goal step "wait until X arrives" ended only when X stood in the same zone, so X talking from across the counter had not arrived and X 60 m off in the same square had. Same zone used as near | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | Arrived = X is near enough to talk: the waiter hears X's normal voice clearly (hearsClearly). PR #1054 |
 | BG-308 | Zone review (PZ15): an NPC leading someone (BF4) waited at the end until they stood in its zone, so one in the doorway beside it still kept it waiting. Same zone used as near | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | It waits until the one it leads hears its normal voice clearly (hearsClearly), in any zone. PR #1054 |
 | BG-309 | Zone review (PZ15): stepping up to be heard (approachMove) only happened when the listener was in the same zone or one sight link away, so someone two open ways off and out of earshot was never walked toward. Same zone used as near | 18/11/2026 | fixed (Ali OK'd the fix, PZ15 a) | Anyone with a sight line to the speaker (seeingM) is stepped toward when out of earshot. PR #1054 |
+| BG-311 | In-game report (18/11/2026, turn 0): a new story on a new world opened on the fallback stage (weaver\_timeout). The first region call and the Weaver's opening plan shared one WEAVER\_TIMEOUT, so a slow region call (55 s in the stray story's copy) left the Weaver too little time | 18/11/2026 | open | The region call gets its own wait (REGION\_TIMEOUT\_MS), and the Weaver's wait starts once the land is drawn. PR pending Ali's OK |
 
 ## Check on release
 

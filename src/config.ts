@@ -1073,6 +1073,7 @@ const DEFAULTS = {
   BACKGROUND_WINDOW_MS: 8_000, // Q2 (D-39)
   DIALOGUE_WINDOW_MS: 10_000, // Q2
   WEAVER_TIMEOUT_MS: 120_000, // Q2
+  REGION_TIMEOUT_MS: 120_000, // BG-311: a new world's first region call at story start (placeholder); the Weaver's wait starts after it
   NPC_BUILDS_PER_TURN: 1, // NW3: background builds NPCs waiting at unbuilt frontiers may start per turn
   GUIDED_COIN_SHARE: 0.25, // GA9: the guided agent asks before spending more than this share of the coin in one go
   AUTOPILOT_INFO_EVERY: 8, // BG-25: the autopilot looks at /stats, /inv or /quests at most once in this many moves
