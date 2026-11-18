@@ -407,7 +407,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'draw_seen_through') out.push(`${who} sees through ${by}'s false opening`);
     if (f.kind === 'aura_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by} and gives up` : `${who} falters before ${by}`); // NT14 auras: Dread Presence; MR4 Overwhelm
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
-    if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
+    if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s ${f.data.perk === PK.rally ? 'call' : 'roar'}`); // the roarer's own rally goes untold; TC39 a Rally
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
       const d = f.data as { metres: number; minutes: number; night: boolean; stop: string };
       const km = distText(d.metres);

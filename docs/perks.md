@@ -823,6 +823,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The attack is never an ambush: the owner takes no unaware penalty to its defense and does not act last for being unaware. Hidden Strike and Ghost Blade don't apply.
 - **Lasts:** Until the engagement ends.
 
+### Rally (Command) · TC39
+
+*Story:* "Hold together! With me!" Once per fight, you spend your turn on a call that steadies your side. Every ally who hears it, or stands near enough, gets nerve back, and one who broke can come back to the fight.
+
+- **Kind:** Move (projected aura)
+- **Trigger:** The owner uses the move. It takes the turn's action (1 s, all-out effort).
+- **Effect:** A Loud call. Each ally who perceives it at any level, or stands within 2 × the aura reach, makes the rally roll: its morale check plus 50% of the owner's Command (augment equation). It gets 10 morale back for each tier above Near Miss and, if it got any, is Rallied (+5 on every roll) for the rest of the fight. A broken ally whose morale lost falls back under its max stops being broken; a spoken surrender stays.
+- **Lasts:** The morale is kept; Rallied lasts until the fight ends.
+- **Cooldown:** Once per engagement.
+
 ## Banked, no milestone yet
 
 ### Go to Ground (Sneaking) · D9

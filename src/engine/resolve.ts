@@ -38,7 +38,7 @@ import { UNREACHABLE } from '../minds/routines';
 import { alertOrders, brokenHolds, brokenOrder, nerveHolds, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, searchSecrets, markAgainst, gripOn, openToGrip, revealItems, letSearch, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, drawIn, spendBluff, expireMarks, slowed } from './perkMarks';
-import { battleCry, engagementAuras, sightDread } from './auras';
+import { battleCry, engagementAuras, rallyCall, sightDread } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
@@ -85,7 +85,7 @@ import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
+  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
   way: ['quiet', 'normal'], pick: ['hushed', 'slight'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper, made out only up close (Slight)
   stash: ['hushed', 'low'], // SE9: tucking something away
@@ -2204,6 +2204,8 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry && tooSpent(a, actionRow(DU.battle_cry)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' }); // FT10
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
+  if (pm.perk === PK.rally && tooSpent(a, actionRow(DU.rally)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' });
+  if (pm.perk === PK.rally) return doRally(ctx, a);
   if (pm.perk === PK.draw_them_in) return doDrawThemIn(ctx, a);
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
@@ -2228,6 +2230,18 @@ function doDrawThemIn(ctx: Ctx, a: Actor): void {
     ev.effects.push({ kind: drawn ? 'drawn_in' : 'draw_seen_through', actorId: x.id, data: { by: a.id, perk: PK.draw_them_in } });
   }
   emit(ctx, ev);
+}
+
+/** TC39 a Rally (Command 100): the main action, once a fight; a Loud call, and each ally it reaches makes the rally roll
+ * with the owner's Command (rallyCall in auras.ts) */
+function doRally(ctx: Ctx, a: Actor): void {
+  const { state, rng } = ctx;
+  countPerkMove(state, a, PK.rally, null);
+  useMain(ctx, a, { row: actionRow(DU.rally) });
+  const ev = mk(ctx, a, 'rally');
+  ev.perception = computePerception(ev, state, rng);
+  emit(ctx, ev, undefined, true);
+  for (const r of rallyCall(state, a, ev, rng)) ev.effects.push({ kind: r.tiers ? 'rallied' : 'rally_unmoved', actorId: r.target.id, data: { by: a.id, perk: PK.rally, tiers: r.tiers } });
 }
 
 /** I9 Battle Cry: the main action; a Loud roar heard at any level, however far (battleCry in auras.ts) */

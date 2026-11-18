@@ -153,6 +153,22 @@ export function liftBreak(state: GameState, a: Actor): boolean {
   return true;
 }
 
+/** TC37/TC38 b: a projected aura's shout (`ev`) reaches whoever perceives it at any level, or anyone within the projected reach */
+const projectedReaches = (state: GameState, owner: Actor, ev: GameEvent, t: Actor): boolean =>
+  !!(ev.perception[t.id] ?? perceptionOf(ev, state, t)) || withinM(distM(state, owner, t), projectedReachM(owner));
+
+/** TC39 a Rally (Command 100), a projected aura triggered by its move: each ally the call reaches (projectedReaches; not a
+ * foe, not the owner) makes the rally roll with the owner's Command (rallyRoll): morale back per tier above Near Miss, the
+ * Rallied buff, and a break lifted once morale lost is back under max. Returns the tiers each ally got. */
+export function rallyCall(state: GameState, owner: Actor, ev: GameEvent, rng: Rng): { target: Actor; tiers: number }[] {
+  const out: { target: Actor; tiers: number }[] = [];
+  for (const t of allActors(state)) {
+    if (t === owner || !isActive(t) || wary(state, t, owner) || !cryAlly(state, t, owner) || !projectedReaches(state, owner, ev, t)) continue;
+    out.push({ target: t, tiers: rally(state, t, owner, SK.command, rng) });
+  }
+  return out;
+}
+
 /** I9/MB27 Battle Cry (Intimidation 140), a projected aura triggered by its move: the owner's roar (`ev`, a Loud event)
  * reaches everyone who perceives it at any level, however far, and anyone within the projected reach (projectedReachM),
  * heard or not. Each foe (opposed or hostile to the owner) rolls its
@@ -166,7 +182,7 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
   out.push({ target: owner, rallied: true });
   for (const t of allActors(state)) {
     if (t === owner || !isActive(t)) continue;
-    if (!(ev.perception[t.id] ?? perceptionOf(ev, state, t)) && !withinM(distM(state, owner, t), projectedReachM(owner))) continue;
+    if (!projectedReaches(state, owner, ev, t)) continue;
     if (wary(state, t, owner)) {
       const { contest, took, ow } = auraContest(state, owner, t, SK.intimidation, rng);
       if (took) fear(t, FR.battle_cry, contest.gap, ow);
