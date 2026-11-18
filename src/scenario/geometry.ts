@@ -58,6 +58,11 @@ function boxAll(rs: Rect[]): Rect | null {
 /** how far along a wall placement steps a zone, in whole metres each way, and how many free spots it weighs before it
  *  takes the best so far (a 30 km road has 15 000 metres of side) */
 const STEPS_ALONG = 60, SPOTS_TRIED = 80;
+/** two footprints share at least 1 m of wall (they touch along a side, not just at a corner) */
+const touches = (a: Rect, b: Rect): boolean => {
+  const gx = Math.abs(a.x - b.x) - (a.w + b.w) / 2, gy = Math.abs(a.y - b.y) - (a.d + b.d) / 2;
+  return (Math.abs(gx) < 1e-6 && gy <= -1 + 1e-6) || (Math.abs(gy) < 1e-6 && gx <= -1 + 1e-6);
+};
 /** a story's first zone, or one with no link to anything placed, starts this many metres east of everything */
 const START_GAP_M = 20;
 
@@ -159,15 +164,19 @@ export function placeZones(state: GameState, todo: PlaceInput[], joins: PlaceJoi
         });
         const most = wants.reduce((n, x) => n + x.w, 0);
         const room = (c: Rect) => { rects.set(z.id, c); const n = wants.reduce((t, x) => t + (along(x.u, c, x.side).some((q) => free(x.u, q)) ? x.w : 0), 0); rects.delete(z.id); return n; };
+        // a spot that touches more of the placed titles it joins wins first (a yard between the lane and the back yard
+        // touches both, so neither way needs a long connector); then the room it leaves
+        const mates = linked.filter((o) => sameFloor(o, z));
+        const touching = (c: Rect) => mates.filter((o) => touches(c, R(o))).length;
         let bestN = -1, tried = 0;
         search: for (const a of anchors) {
           const d0 = a === near ? dir : dirOf(a, z);
           const sides = d0 ? [sideOf(d0), ...ALL.filter((x) => x !== sideOf(d0))] : ALL;
           for (const side of sides) for (const c of along(z, R(a), side)) {
             if (!free(z, c)) continue;
-            const n = wants.length ? room(c) : 0;
+            const t = touching(c), n = (wants.length ? room(c) : 0) + t * (most + 1);
             if (n > bestN) { best = c; bestN = n; }
-            if (n === most || ++tried >= SPOTS_TRIED) break search;
+            if ((t === mates.length && n - t * (most + 1) === most) || ++tried >= SPOTS_TRIED) break search;
           }
         }
         if (!best) {
