@@ -31,7 +31,7 @@ describe('34 Fallback is flagged', () => {
     // the flags stay until the next scenario start
     weave.mockResolvedValue(null as never);
     weave.mockResolvedValueOnce({ ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
-      zones: [{ key: 'snug', place: 'tavern', kind: ZK.room, name: 'the snug', look: 'a cramped side room', cover: 'some', light: 'dim', links: [{ to: 'tav_common', label: 'the common room', sight: true }] }] });
+      zones: [{ key: 'snug', place: 'tavern', kind: ZK.room, name: 'the snug', look: 'a cramped side room', light: 'dim', ways: [{ to: 'tav_common', label: 'the common room' }] }] });
     s.turn = 9;
     await d.startScenario(s, createRng(s.rngState));
     expect(s.stage.fallback).toBeUndefined();

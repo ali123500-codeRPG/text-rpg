@@ -4,10 +4,10 @@
 // weapon needs close in on the move slot when the action comes (one approach table, NEEDS).
 import { expect, it } from 'vitest';
 import type { Barrier, GameState } from '../../src/types';
-import { makeVillage } from '../harness';
+import { COUNTER_SHAPE, lay, makeVillage, putBarrier } from '../harness';
+import { middle } from '../../src/plan/where';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
-import { distM, placeAll, wayPoint } from '../../src/engine/position';
+import { distM, wayPoint } from '../../src/engine/position';
 import { gripReachM, withinGrip } from '../../src/engine/gear';
 import { heldBy, zoneById } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
@@ -16,21 +16,8 @@ import { BT } from '../../src/library/raceIds';
 import { IT } from '../../src/library/itemIds';
 
 /** the village laid out in metres, the player in the common room */
-function laidOut(): GameState {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
-  const zs = s.places.flatMap((p) => p.zones);
-  for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, zs);
-  placeAll(s);
-  return s;
-}
-const door = (s: GameState): Barrier => {
-  const b: Barrier = { id: 'front_door', kind: BK.door, grade: 'minor' };
-  (s.barriers ??= {})[b.id] = b;
-  zoneById(s, 'tav_common')!.links.find((l) => l.to === 'street_door')!.barrier = b.id;
-  zoneById(s, 'street_door')!.links.find((l) => l.to === 'tav_common')!.barrier = b.id;
-  return b;
-};
+const laidOut = (): GameState => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
+const door = (s: GameState): Barrier => putBarrier(s, 'tav_common', 'street_door', { id: 'front_door', kind: BK.door, grade: 'minor' });
 
 it('FR2: grip reach comes from the body: an arm 0.625 m (SZ8); a dragon takes things in its jaws (0.8 m past its nose, SZ9); a slime has no grip', () => {
   const s = laidOut();
@@ -45,7 +32,8 @@ it('BG-86/AT19: a door out of reach is walked to on move time and opened with th
   const s = laidOut();
   const b = door(s);
   const dp = { zone: 'tav_common', pos: wayPoint(s, 'tav_common', 'street_door', s.player)! };
-  s.player.pos = { x: dp.pos.x + (zoneById(s, 'tav_common')!.rect!.x - dp.pos.x) * 0.8, y: dp.pos.y + (zoneById(s, 'tav_common')!.rect!.y - dp.pos.y) * 0.8 };
+  const mid = middle(zoneById(s, 'tav_common')!);
+  s.player.pos = { x: dp.pos.x + (mid.x - dp.pos.x) * 0.8, y: dp.pos.y + (mid.y - dp.pos.y) * 0.8 };
   expect(withinGrip(s, s.player, dp)).toBe(false);
   // busy with something else: the walk to the door leaves move time, and a door takes 1 s of it (AT11, AT19)
   play(s, { intent: intent({ way: { toZone: 'street_door', op: 'open' }, action: { type: 'observe', target: null } }) });
@@ -55,7 +43,7 @@ it('BG-86/AT19: a door out of reach is walked to on move time and opened with th
   // from across the room with nothing else to do: walk over, then open it on the main action, in one turn
   const t = laidOut();
   const tb = door(t);
-  t.player.pos = { x: dp.pos.x + (zoneById(t, 'tav_common')!.rect!.x - dp.pos.x) * 0.8, y: dp.pos.y + (zoneById(t, 'tav_common')!.rect!.y - dp.pos.y) * 0.8 };
+  t.player.pos = { x: dp.pos.x + (mid.x - dp.pos.x) * 0.8, y: dp.pos.y + (mid.y - dp.pos.y) * 0.8 };
   const ev = play(t, { intent: intent({ way: { toZone: 'street_door', op: 'open' } }) });
   expect(tb.open).toBe(true);
   expect(ev.some((e) => e.kind === 'hold' && e.actorId === t.player.id)).toBe(false);
@@ -63,15 +51,15 @@ it('BG-86/AT19: a door out of reach is walked to on move time and opened with th
 
 it('BG-85: a pick-up is within grip reach of where the item lies: a few steps away it is walked to first; across a street it is not reached', () => {
   const s = laidOut();
-  const room = zoneById(s, 'tav_common')!;
-  s.player.pos = { x: room.rect!.x - 2, y: room.rect!.y };
-  room.groundItems.push({ id: 'cup', itemId: IT.curio, at: { x: room.rect!.x + 2, y: room.rect!.y } });
+  const room = middle(zoneById(s, 'tav_common')!);
+  s.player.pos = { x: room.x - 2, y: room.y };
+  lay(s, 'tav_common', { id: 'cup', itemId: IT.curio }, { x: room.x + 2, y: room.y });
   play(s, { intent: intent({ gear: [{ op: 'pick_up', item: 'cup' }] }) });
   expect(s.player.core.inventory.some((i) => i.id === 'cup')).toBe(true);
   expect(s.player.core.inventory.find((i) => i.id === 'cup')!.at).toBeUndefined();
   const street = zoneById(s, 'field_n') ?? zoneById(s, 'street_square')!;
-  street.groundItems.push({ id: 'far', itemId: IT.curio, at: { x: street.rect!.x, y: street.rect!.y } });
-  expect(distM(s, s.player, { zone: street.id, pos: street.groundItems.at(-1)!.at })).toBeGreaterThan(CONFIG.ZONE_SIZE_M2.room ** 0.5);
+  const far = lay(s, street.id, { id: 'far', itemId: IT.curio });
+  expect(distM(s, s.player, { zone: street.id, pos: far.at })).toBeGreaterThan(CONFIG.ZONE_SIZE_M2.room ** 0.5);
   play(s, { intent: intent({ gear: [{ op: 'pick_up', item: 'far' }] }) });
   expect(s.player.core.inventory.some((i) => i.id === 'far')).toBe(false);
 });
@@ -81,13 +69,11 @@ it('BG-85: something dropped lies where its owner stood', async () => {
   const s = laidOut();
   s.player.core.inventory.push({ id: 'cup', itemId: IT.curio });
   dropToGround(s, s.player, 'cup', s.player.zone);
-  expect(zoneById(s, s.player.zone)!.groundItems.find((i) => i.id === 'cup')!.at).toEqual(s.player.pos);
+  expect(s.ground.find((i) => i.id === 'cup')!.at).toEqual({ ...s.player.pos, floor: 0 });
 });
 
 it('BG-104: a hold stands while the held one is within the holder\'s grip reach, not merely in the same zone', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
-  const room = zoneById(s, 'tav_common')!;
-  room.rect = { x: 0, y: 0, w: 10, d: 10 };
   const p = s.actors.find((a) => a.id === 'patron_1')!;
   p.zone = 'tav_common'; s.player.zone = 'tav_common';
   s.player.pos = { x: 0, y: 0 }; p.pos = { x: 0.5, y: 0 };
@@ -98,11 +84,7 @@ it('BG-104: a hold stands while the held one is within the holder\'s grip reach,
 });
 
 it('FR4: a give from across the room closes in on the move slot to the player\'s side of the counter, then hands it over the counter', async () => {
-  const { EK } = await import('../../src/library/tableIds');
-  const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-  const z = (id: string) => zoneById(s, id)!;
-  z('tav_common').rect = { x: 0, y: 0, w: 8, d: 8 }; z('tav_common').edges = { n: EK.low, e: EK.wall, s: EK.wall, w: EK.wall };
-  z('tav_counter').rect = { x: 0, y: 5.5, w: 3, d: 3 }; z('tav_counter').edges = { n: EK.wall, e: EK.wall, s: EK.low, w: EK.wall };
+  const s = makeVillage({ without: ['slime_1', 'slime_2'], shape: COUNTER_SHAPE });
   const trader = s.actors.find((a) => a.id === 'trader')!;
   trader.pos = { x: 0, y: 4.6 };
   s.player.zone = 'tav_common'; s.player.pos = { x: 0, y: -3 };
@@ -114,14 +96,10 @@ it('FR4: a give from across the room closes in on the move slot to the player\'s
 });
 
 it('mute buyer: someone who cannot speak points at the ware and pays in person, within both grip reaches, walking over first', async () => {
-  const { EK } = await import('../../src/library/tableIds');
   const { SV } = await import('../../src/library/serviceIds');
   const { canSpeak } = await import('../../src/ruleset/body');
   const { buy } = await import('../../src/engine/trade');
-  const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-  const z = (id: string) => zoneById(s, id)!;
-  z('tav_common').rect = { x: 0, y: 0, w: 8, d: 8 }; z('tav_common').edges = { n: EK.low, e: EK.wall, s: EK.wall, w: EK.wall };
-  z('tav_counter').rect = { x: 0, y: 5.5, w: 3, d: 3 }; z('tav_counter').edges = { n: EK.wall, e: EK.wall, s: EK.low, w: EK.wall };
+  const s = makeVillage({ without: ['slime_1', 'slime_2'], shape: COUNTER_SHAPE });
   const trader = s.actors.find((a) => a.id === 'trader')!;
   trader.pos = { x: 0, y: 4.6 };
   trader.wares = { items: [], services: [SV.drink] };

@@ -11,6 +11,7 @@ import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
+import { lightAll } from '../harness';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const wield = (s: GameState, itemId: string) => {
@@ -144,6 +145,7 @@ describe('118 darkness and hearing (P14)', () => {
     const s = makeVillage();
     place(s, 'player', 'tav_cellar');
     place(s, 'trader', 'tav_cellar');
+    lightAll(s, 'dark'); // no lamp up the cellar steps lights it
     const calls: [RollRequest, RollRequest][] = [];
     const real = ruleset.contested;
     vi.spyOn(ruleset, 'contested').mockImplementation((a, b, st, rng) => { calls.push([a, b]); return { ...real(a, b, st, rng), gap: -1 } as ContestResult; });

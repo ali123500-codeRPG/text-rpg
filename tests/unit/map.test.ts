@@ -6,6 +6,8 @@ import { wayRows } from '../../src/agents/game';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { noteZonesSeen } from '../../src/engine/trail';
 import { zoneById } from '../../src/engine/relations';
+import { waysOut } from '../../src/plan/where';
+import { seesAcross } from '../../src/engine/relations';
 
 const game = async () => {
   const g = createFakeGame({ autoStart: true });
@@ -64,11 +66,12 @@ describe('map', () => {
 
   it('remembers zones seen across sight links', async () => {
     const s = await game();
+    s.barriers!.fb_front.open = true; // every way out of the common room is a shut door or the stairs: open the front door
     s.player.journal!.zonesSeen = [];
     noteZonesSeen(s);
     const seen = s.player.journal!.zonesSeen!;
     expect(seen[0]).toBe(s.player.zone);
-    const sightLinks = zoneById(s, s.player.zone)!.links.filter((l) => l.sight && !l.frontier).map((l) => l.to);
+    const sightLinks = waysOut(s, s.player.zone).filter((l) => seesAcross(s, l) && !l.frontier).map((l) => l.to);
     expect(sightLinks.length).toBeGreaterThan(0);
     for (const z of sightLinks) expect(seen).toContain(z);
   });

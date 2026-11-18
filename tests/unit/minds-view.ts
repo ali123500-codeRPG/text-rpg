@@ -1,8 +1,9 @@
 // Hand-built ActorView for W5 unit tests (the real builder is W3's buildActorView).
 import { now, timeOfDay } from '../../src/time';
 import type { ActorView, GameState } from '../../src/types';
-import { actorById, isActive, hostile, stance } from '../../src/engine/relations';
+import { actorById, isActive, hostile, seesAcross, stance } from '../../src/engine/relations';
 import { fallbackAttackSkill } from '../../src/ruleset';
+import { waysOut } from '../../src/plan/where';
 
 export function fakeView(state: GameState, id: string, self: Partial<ActorView['self']> = {}): ActorView {
   const a = actorById(state, id)!;
@@ -27,7 +28,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
     }),
     perceived: [], told: [], said: [], secrets: [], firedTriggers: [],
     band: { id: a.bandId, name: '', goals: '', temperament: '', relations: {} },
-    map: state.zones.map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
+    map: state.zones.map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}) })) })),
     zones: [], seen: [],
   };
 }

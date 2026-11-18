@@ -5,8 +5,9 @@ import { itemRows } from '../../src/ui/pages';
 import { compareRows, tryOn } from '../../src/ui/compare';
 import { IT } from '../../src/library/itemIds';
 import { zoneById } from '../../src/engine/relations';
-import { makeVillage } from '../harness';
+import { makeVillage, lay } from '../harness';
 import type { GameState } from '../../src/types';
+import { groundIn } from '../../src/engine/ground';
 
 const text = (s: GameState, id: string) => compareRows(s, { id }).map((r) => `${r.k}: ${String(r.v)}`);
 const give = (s: GameState, itemId: string) => { const it = { id: `t_${itemId}`, itemId, qty: 1 }; s.player.core.inventory.push(it); return it; };
@@ -42,11 +43,10 @@ describe('gear compare (P1)', () => {
 
   it('loot on the ground compares as if taken, and stays on the ground', () => {
     const s = makeVillage();
-    const z = zoneById(s, s.player.zone)!;
-    z.groundItems.push({ id: 'g_spec', itemId: IT.spectacles, qty: 1 });
+    lay(s, s.player.zone, { id: 'g_spec', itemId: IT.spectacles, qty: 1 }, s.player.pos);
     expect(tryOn(s, 'g_spec')).not.toBeNull();
     expect(text(s, 'g_spec')[0]).toMatch(/^Compared with: /);
     expect(s.player.core.inventory.some((i) => i.id === 'g_spec')).toBe(false);
-    expect(z.groundItems.some((i) => i.id === 'g_spec')).toBe(true);
+    expect(groundIn(s, s.player.zone).some((i) => i.id === 'g_spec')).toBe(true);
   });
 });

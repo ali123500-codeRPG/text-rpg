@@ -35,8 +35,13 @@ export const DU = {
 } as const;
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;
-/** CO15 edge kinds: what a zone's side is (wall, open, low, window); a new kind is a new row */
-export const EK = { wall: 'EK1', open: 'EK2', low: 'EK3', window: 'EK4' } as const;
+/** PZ2 wall kinds: what a wall on the floor plan is (EK edge kinds are retired with zone sides); open draws no wall; a new
+ * kind is a new row */
+export const WK = { wall: 'WK1', open: 'WK2', low: 'WK3', glazed: 'WK4', fence: 'WK5', arcade: 'WK6' } as const;
+/** PZ2 opening kinds: what a way is (a doorway, a gap, a window, stairs); a new kind is a new row */
+export const OP = { doorway: 'OP1', gap: 'OP2', window: 'OP3', stairs: 'OP4' } as const;
+/** PZ5 light source kinds (D-391); a new kind is a new row */
+export const LS = { candle: 'LS1', oil_lamp: 'LS2', lantern: 'LS3', torch: 'LS4', hearth: 'LS5', lights: 'LS6' } as const;
 /** SD3–SD5 barrier kinds: what stands on a way (door, gate, grate, hatch, rubble); a new kind is a new row */
 export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5', window: 'BK6', arrow_slit: 'BK7', barred_window: 'BK8', large_window: 'BK9' } as const;
 /** FR1 furniture kinds: what a named piece of furniture is (its map icon follows the kind); a new kind is a new row */
@@ -51,7 +56,8 @@ export const RK = { river_valley: 'RK1', forest: 'RK2', upland_moor: 'RK3' } as 
 export const LC = { farmland: 'LC1', pasture: 'LC2', woods: 'LC3', heath: 'LC4', moor: 'LC5', marsh: 'LC6', rock: 'LC7', settlement: 'LC8', water_meadow: 'LC9' } as const;
 /** WZ2 landmark kinds a region brief may ask for (a quarry in the hills, a ruin); seek is where code looks for room */
 export const LM = { quarry: 'LM1', mill: 'LM2', ruin: 'LM3', shrine: 'LM4', tower: 'LM5', mine: 'LM6', standing_stones: 'LM7', camp: 'LM8' } as const;
-export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10', road: 'ZK11' } as const;
+/** title kinds (PZ14 a, drawing templates); ZK11 (road) is retired: a road is its line on the land (PZ9) */
+export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10' } as const;
 export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',
   throw: 'AM11', thrust: 'AM12', unarmed: 'AM13', bite: 'AM14', claw: 'AM15', kick: 'AM16', gore: 'AM17',

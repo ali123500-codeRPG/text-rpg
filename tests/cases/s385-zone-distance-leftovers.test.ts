@@ -2,8 +2,9 @@
 // hearing or sight. BG-303 a bed nearby, BG-304 Fieldcraft's one-move zones, BG-305 the planners' view (s046), BG-306 the
 // code-run attack, BG-307 a step waiting for someone to arrive, BG-308 a leader waiting, BG-309 stepping up to be heard.
 import { describe, expect, it } from 'vitest';
-import type { Zone } from '../../src/types';
-import { actor, createRng, makeVillage, place } from '../harness';
+import type { TitleSpec } from '../../src/types';
+import { drawTitles } from '../../src/plan/draw';
+import { actor, addPiece, createRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
 import { FU } from '../../src/library/tableIds';
 import { withBed } from '../../src/scenario/apply';
@@ -19,20 +20,20 @@ import { act, plannerOut, play } from './w4-kit';
 describe('385 no zone links or same zone as distance', () => {
   it('BG-303: a bed two links off but 70 m away is not one\'s bed; one 8 m off through a doorway is', () => {
     const s = makeVillage();
-    (zoneById(s, 'field_mid')!.furniture ??= []).push({ id: 'cot', kind: FU.bed, name: 'cot' });
+    addPiece(s, 'field_mid', { kind: FU.bed, name: 'cot' }, 'cot');
     expect(withBed(s, 'gate_guard', { post: 'gate_inner' }, 'gate_inner').bed).toBe('gate_inner'); // gate_inner, field_edge, field_mid
-    (zoneById(s, 'tav_common')!.furniture ??= []).push({ id: 'bunk', kind: FU.bed, name: 'bunk' });
+    addPiece(s, 'tav_common', { kind: FU.bed, name: 'bunk' }, 'bunk');
     expect(withBed(s, 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }, 'tav_counter').bed).toBe('tav_common');
     expect(CONFIG.BED_NEAR_M).toBe(30);
   });
 
   it('BG-304: a zone four ways out that one move reaches is a Fieldcraft step-to zone', () => {
     const s = makeVillage({ playerZone: 'tav_common' });
-    const w = slotMetres(s, s.player, 'move') / 6, place0 = s.places.find((p) => p.id === 'tavern')!;
-    const rooms: Zone[] = [0, 1, 2, 3, 4].map((i) => ({ id: `r${i}`, placeId: 'tavern', name: `room ${i}`, look: '', cover: 'none', light: 'bright', outdoor: true,
-      rect: { x: 100 + w * i, y: 100, w, d: 4 }, groundItems: [],
-      links: [...(i ? [{ to: `r${i - 1}`, label: 'west', sight: true }] : []), ...(i < 4 ? [{ to: `r${i + 1}`, label: 'east', sight: true }] : [])] }));
-    place0.zones.push(...rooms); s.zones.push(...rooms);
+    const w = slotMetres(s, s.player, 'move') / 6;
+    const rooms: TitleSpec[] = [0, 1, 2, 3, 4].map((i) => ({ id: `r${i}`, placeId: 'tavern', name: `room ${i}`, look: '', roof: false, light: 'bright',
+      rect: { x: 100 + w * i, y: 100, w, d: 4 },
+      ways: [...(i ? [{ to: `r${i - 1}`, label: 'west', kind: 'open' as const }] : []), ...(i < 4 ? [{ to: `r${i + 1}`, label: 'east', kind: 'open' as const }] : [])] }));
+    drawTitles(s, rooms);
     Object.assign(s.player, { zone: 'r0', pos: { x: 100, y: 100 } });
     expect(oneMoveZones(s, s.player).map((n) => n.zone)).toContain('r4');
   });

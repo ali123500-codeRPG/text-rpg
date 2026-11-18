@@ -2,6 +2,8 @@
 // TRAVEL_LEG_MIN game minutes at the travel speed; every full leg of minutes on a road rolls for an encounter by the road's
 // danger, counted across trips (RE1, BG-291), and an encounter's event roll sets what it is (the next scenario's tier). The trip stops on arrival, at an encounter, or at dusk
 // (unless the trip set off in the dark: then it presses on, more slowly, with a worse event roll and more encounters).
+import { wayTo } from '../plan/where';
+import { alongLine, keepInside, pointAlong } from '../plan/geom';
 import { CONFIG } from '../config';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
 import { moveSpeed } from './speed';
@@ -29,7 +31,8 @@ export type TripMet = { why: string; by: string[] };
  * (minutes walked) everyone else moving on and the check that would stop a rest */
 export type TripWorld<M = unknown> = { stepS(): number; mark(): M; after(minutes: number, mark: M): TripMet | null };
 
-export const isRoad = (z: Zone | undefined) => !!z?.kind && !!getLibrary().zoneKinds?.[z.kind]?.road;
+/** PZ9: a road is a title drawn along a line */
+export const isRoad = (z: Zone | undefined) => !!z?.line?.length;
 /** dusk and night are dark enough to stop a trip (TV5) */
 export const darkOut = (t: number) => CONFIG.ROAD_DARK.includes(timeOfDay(t));
 
@@ -43,10 +46,10 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
   if (a !== state.player || !o.move || o.type !== 'hold' || o.perkMove || o.moveAfter || state.mode === 'tactical' || isEngaged(state, a)) return null;
   if (allActors(state).some((x) => x !== a && isActive(x) && hostile(state, x, a) && atLeast(x.mind?.knowledge?.[a.id]?.status, 'suspicious'))) return null;
   const here = zoneById(state, a.zone);
-  const link = here?.links.find((l) => l.to === o.move);
+  const link = here ? wayTo(state, here.id, o.move) : undefined;
   if (link?.frontier) {
-    if (!isRoad(here) || !here!.rect) return null;
-    return { goal: { zone: here!.id, pos: frontierPoint(here!, link.label, spotOf(state, a).pos ?? { x: here!.rect.x, y: here!.rect.y }) }, frontier: o.move };
+    const at = isRoad(here) ? frontierPoint(state, here!.id, o.move) : null;
+    return at ? { goal: { zone: here!.id, pos: at }, frontier: o.move } : null;
   }
   const path = shortestPath(state, a.zone, o.move);
   if (!path || ![a.zone, ...path].some((id) => isRoad(zoneById(state, id)))) return null;
@@ -136,10 +139,12 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
 /** RE6: where an encounter stands: where it is first glimpsed (ENCOUNTER_VISIBILITY's glimpse range) on along the road from
  * `p`, the way the player was walking, kept on the road */
 function ahead(z: Zone, p: Pos, from?: Pos): Pos {
-  const r = z.rect!;
-  const dx = from ? p.x - from.x : 0, dy = from ? p.y - from.y : 0, len = Math.hypot(dx, dy) || 1;
   const m = CONFIG.SIGHT_M[CONFIG.ENCOUNTER_VISIBILITY]?.[1] ?? 0;
-  const q = { x: p.x + (dx / len) * m, y: p.y + (dy / len) * m };
-  return { x: Math.max(r.x - r.w / 2, Math.min(r.x + r.w / 2, q.x)), y: Math.max(r.y - r.d / 2, Math.min(r.y + r.d / 2, q.y)) };
+  if (z.line?.length) { // PZ9: on along the road's line, the way the player walks it
+    const here = alongLine(z.line, p).m, back = from ? alongLine(z.line, from).m : here;
+    return pointAlong(z.line, here + (here >= back ? m : -m));
+  }
+  const dx = from ? p.x - from.x : 0, dy = from ? p.y - from.y : 0, len = Math.hypot(dx, dy) || 1;
+  return keepInside({ x: p.x + (dx / len) * m, y: p.y + (dy / len) * m }, z.outline, 0);
 }
 

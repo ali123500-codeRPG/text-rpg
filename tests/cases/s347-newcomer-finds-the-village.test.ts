@@ -31,7 +31,7 @@ const plan = (view: WeaverView, more: Partial<StagePlan>): StagePlan => ({
 /** the copy the bug made: the inn and its common room declared again */
 const again = (view: WeaverView) => plan(view, {
   places: [{ key: 'tavern', name: 'The Crooked Kettle', kind: 'place', parent: 'village' }],
-  zones: [{ key: 'tav_common', place: 'tavern', kind: ZK.yard, name: 'common room', look: 'tables and a hearth', links: [{ to: 'street_door', label: 'the door', sight: false }] }],
+  zones: [{ key: 'tav_common', place: 'tavern', kind: ZK.yard, name: 'common room', look: 'tables and a hearth', ways: [{ to: 'street_door', label: 'the door', kind: 'door' }] }],
 });
 
 describe('347 BG-273: a newcomer finds the village as it was left', () => {
@@ -65,7 +65,7 @@ describe('347 BG-273: a newcomer finds the village as it was left', () => {
     expect(codes(plan(view, { arriveAt: 'nowhere' }))).toContain('bad_arrival');
     expect(codes(plan(view, { arriveAt: 'tav_common' }))).not.toEqual(expect.arrayContaining(['arrive_needs_spot', 'bad_arrival']));
     const fresh = plan(view, { places: [{ key: 'shrine', name: 'the reed shrine', kind: 'place', parent: 'village' }],
-      zones: [{ key: 'shrine_yard', place: 'shrine', kind: ZK.yard, name: 'shrine yard', look: 'reeds round a stone', links: [{ to: 'street_door', label: 'the lane to the street', sight: true }] }] });
+      zones: [{ key: 'shrine_yard', place: 'shrine', kind: ZK.yard, name: 'shrine yard', look: 'reeds round a stone', ways: [{ to: 'street_door', label: 'the lane to the street' }] }] });
     expect(codes(fresh)).not.toEqual(expect.arrayContaining(['arrive_needs_spot', 'place_exists', 'zone_exists']));
   });
 });

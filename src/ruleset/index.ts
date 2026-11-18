@@ -1,5 +1,6 @@
 // W2 — Ruleset and gear maths. Part 1 §3–4, Part 3, Part 5 §2–6.
 // Contract: the eight Ruleset methods plus the helpers below. Every number comes from CONFIG.
+import { dropOnGround } from '../engine/ground';
 import { DU, RL } from '../library/tableIds';
 import { D100_MEAN } from '../rng';
 import { actionRow, actionSeconds } from './actionTime';
@@ -531,12 +532,11 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     if (to === 'destroyed' && from !== 'destroyed') {
       destroyedEssential = part.impact === 'essential';
       if (part.roles.includes(RL.grip)) {
-        const zone = zoneById(state, T.zone);
         for (const inst of T.core.inventory.filter((i) => gripsOf(i).includes(part.id))) {
           if (inst.soulbound) { delete inst.equippedIn; continue; } // HF18: soulbound gear never leaves its owner
           T.core.inventory = T.core.inventory.filter((i) => i !== inst);
           const { equippedIn: _, ...loose } = inst;
-          zone?.groundItems.push(T.pos ? { ...loose, at: { ...T.pos } } : loose); // FR2: it falls where they stand
+          dropOnGround(state, T, loose); // FR2: it falls where they stand
           out.push({ kind: 'item_dropped', actorId: T.id, data: { itemId: inst.id, zone: T.zone, part: part.id } });
         }
       }

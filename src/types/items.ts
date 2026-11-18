@@ -111,7 +111,7 @@ export type ItemInstance = {
    * no Threadbound item's one of a kind (HF19), and it fades when its owner dies */
   soulbound?: true;
   usedAt?: Record<string, number>; // D-218: game minute each active ability last fired, by perk id
-  at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
+  at?: import('./core').Pt3; // FR2, PZ11: where it lies on the ground (a point and its floor); absent while carried
   hiddenAt?: import('./core').TierRoll; // SE8/SE9: lying hidden: a search must beat this outcome tier to find it (a tie gives a hint)
   knownTo?: string[]; // SE8: who knows where a hidden item lies (its stasher, anyone who saw it stashed or found it)
   hiderSkill?: number; // SE25 a: the stasher's true stealth skill when it was stashed: a search learns against it

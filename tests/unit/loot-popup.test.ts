@@ -12,6 +12,7 @@ import { actorById, zoneById } from '../../src/engine/relations';
 import { newInstanceId } from '../../src/library/spawn';
 import { IT } from '../../src/library/itemIds';
 import type { GameState } from '../../src/types';
+import { layAll } from '../harness';
 
 const src = (f: string): string => readFileSync(`src/ui/${f}`, 'utf8');
 
@@ -22,8 +23,7 @@ function lootHere(s: GameState) {
   const add = (itemId: string) => { const it = { id: newInstanceId(), itemId, qty: 1 }; npc.core.inventory.push(it); return it; };
   const found = [add(IT.bandage), add(IT.key)];
   p.journal = { ...p.journal!, revealed: [...(p.journal?.revealed ?? []), ...found.map((i) => `item:${i.id}`)] };
-  const z = zoneById(s, p.zone)!;
-  z.groundItems.push({ id: 'chest_1', itemId: IT.chest, open: true, contents: [{ id: 'picks_1', itemId: IT.lockpicks }] } as never, { id: 'sack_1', itemId: IT.sack } as never);
+  layAll(s, p.zone, { id: 'chest_1', itemId: IT.chest, open: true, contents: [{ id: 'picks_1', itemId: IT.lockpicks }] }, { id: 'sack_1', itemId: IT.sack });
   return { found, npc };
 }
 

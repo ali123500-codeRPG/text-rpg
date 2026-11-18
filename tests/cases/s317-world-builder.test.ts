@@ -9,6 +9,7 @@ import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
 import { headTo } from '../../src/minds';
 import { FIXED } from '../../src/agents/prompts';
 import { applyCheckinPlan } from '../../src/scenario/checkin';
+import { waysOut } from '../../src/plan/where';
 
 const idle: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 /** the guard waits at the field's far edge, heading into the unbuilt woods: its wait asks for the ground beyond */
@@ -47,7 +48,7 @@ describe('317 the World builder (WB1-WB4)', () => {
   it('WB3: a frontier the Weaver adds in a check-in keeps its brief for the World builder', () => {
     const s = waiting();
     applyCheckinPlan(s, { as: 'continue', frontiers: [{ zone: s.zones[0].id, key: 'trapdoor', label: 'a trapdoor', brief: 'the smugglers\' cellar' }] } as never, createRng(1));
-    const id = s.zones.flatMap((z) => z.links).find((l) => l.label === 'a trapdoor')!.to;
+    const id = s.zones.flatMap((z) => waysOut(s, z.id)).find((l) => l.label === 'a trapdoor')!.to;
     expect(s.hidden.frontierBriefs?.[id]).toBe('the smugglers\' cellar');
   });
 

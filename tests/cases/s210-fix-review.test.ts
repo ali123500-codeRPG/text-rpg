@@ -17,6 +17,7 @@ import { CONFIG } from '../../src/config';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { intent, play } from './w4-kit';
+import { waysOut } from '../../src/plan/where';
 
 it('BG-83: the player\'s words in a conversation are said, and heard, at the volume chosen', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -32,10 +33,8 @@ it('BG-83: the player\'s words in a conversation are said, and heard, at the vol
 });
 
 it('BG-84: a named listener answers only if they hear the player from where the words are said; a voice alone moves no one', () => {
-  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
+  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'], shape: { tav_common: { rect: { x: 0, y: 0, w: 60, d: 8 } } } });
   s.clocks.time = CONFIG.TIME_OF_DAY_FROM.evening; // BF68: the patron sleeps through the morning; in the evening it drinks at its seat
-  const room = s.zones.find((x) => x.id === 'tav_common')!;
-  room.rect = { x: 0, y: 0, w: 60, d: 8 };
   const p = place(s, 'patron_1', 'tav_common');
   s.player.zone = 'tav_common';
   const ask = () => intent({ action: { type: 'persuade', skill: SK.persuasion, target: p.id }, spoken: 'A word.', addressees: [p.id] });
@@ -58,9 +57,8 @@ it('BG-84: a named listener answers only if they hear the player from where the 
 });
 
 it('BG-87: stepping up to someone in view through a doorway ends beside them, not at the door', () => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-  const lane = s.zones.find((z) => z.id === 'tav_common')!.links.find((l) => l.to === 'street_door')!;
-  lane.sight = true;
+  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'], shape: { // the front is open to the street
+    tav_common: { ways: [{ to: 'tav_counter', label: 'behind the bar', kind: 'open' }, { to: 'street_door', label: 'out the front', kind: 'open' }] } } });
   const w = place(s, 'patron_1', 'street_door');
   expect(approachMove(s, s.player, { type: 'talk', target: w.id, volume: 'whisper' }, null)).toMatchObject({ toZone: 'street_door', spot: { near: w.id } });
   expect(approachMove(s, s.player, { type: 'give', target: w.id }, { toZone: 'street_door' })).toMatchObject({ toZone: 'street_door', spot: { near: w.id } });
@@ -68,8 +66,7 @@ it('BG-87: stepping up to someone in view through a doorway ends beside them, no
 
 it('BG-88: one "hears it clearly" rule: Keen Ear counts for orders and answers as it does for perception', () => {
   const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-  const room = s.zones.find((x) => x.id === 'tav_common')!;
-  CONFIG.HEARING_FLOOR_DB = 30; room.rect = { x: 0, y: 0, w: 8, d: 8 };
+  CONFIG.HEARING_FLOOR_DB = 30; // the common room is 8 × 8 m
   const p = place(s, 'patron_1', 'tav_common');
   s.player.zone = 'tav_common';
   s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 }; // 8.1 m: a normal voice is not clear

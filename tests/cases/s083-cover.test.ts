@@ -3,12 +3,14 @@ import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { zoneById } from '../../src/engine/relations';
 import { IT } from '../../src/library/itemIds';
+import { LC } from '../../src/library/tableIds';
+import { landUnder } from '../harness';
 
 describe('83 Cover', () => {
   it('CV6: a ranged attack takes −10 for each halving of what shows of the target: a 0.3 m slime in heavy cover shows 4%', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    zoneById(s, 'field_mid')!.cover = 'heavy';
+    landUnder(s, zoneById(s, 'field_mid')!.outline, LC.woods);
     for (const i of s.player.core.inventory) delete i.equippedIn;
     s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50]));

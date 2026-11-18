@@ -1,6 +1,7 @@
 // Scenario orchestration: scenario start (event roll, Weaver, repair retry, WEAVER_TIMEOUT), background stage
 // extensions held in memory per frontier, crossing (waits for a late extension), saved-zone re-entry.
 // The pipeline (W7) injects `weave`, which wraps the real Agent Weaver call and logs it.
+import { wayTo } from '../plan/where';
 import { placeAll } from '../engine/position';
 import { noteLeft } from '../engine/trail';
 import { noteCrossing } from '../engine/chase';
@@ -345,8 +346,8 @@ export class ScenarioDirector {
 
   private extension(state: GameState, key: string, ahead = false): Held {
     // the frontier's edge: the player's zone when it links there, else (NW3) the zone the NPC waits in
-    const edge = [zoneById(state, state.player.zone), ...state.zones].find((z) => z?.links.some((l) => l.to === key));
-    const link = edge?.links.find((l) => l.to === key);
+    const edge = [zoneById(state, state.player.zone), ...state.zones].find((z) => !!z && !!wayTo(state, z.id, key));
+    const link = edge ? wayTo(state, edge.id, key) : undefined;
     const placeId = ahead && edge ? edge.placeId : state.player.placeId;
     // WB1/WB2: the World builder builds it, with no tier: what is really there, not what luck brings
     const ctx: PlanContext = { tier: state.stage.tier, kind: 'extension', frontierKey: key, placeId, world: true, ...(ahead ? { ahead: true as const } : {}) };

@@ -2,7 +2,7 @@
 // world clock walks what the turn's move time left, and stops it like any stretch. A walk not yet at its goal (stopped on
 // the way, or in a fight's short turn) carries on next turn by itself, until the player orders a move or an action.
 import { describe, expect, it } from 'vitest';
-import { createRng, makeVillage, place } from '../harness';
+import { createRng, makeVillage, makeVillageResized, place } from '../harness';
 import { fillSpeech, resolveSpeech, selectSpokespeople } from '../../src/engine';
 import { buildPlayerView } from '../../src/views';
 import { intent, play } from './w4-kit';
@@ -10,6 +10,7 @@ import { now } from '../../src/time';
 import { distM } from '../../src/engine/position';
 import { moveSpeed } from '../../src/engine/speed';
 import { SK } from '../../src/library/skillIds';
+import { boxOf } from '../../src/plan/geom';
 
 const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
 const go = (toZone: string) => intent({ move: { toZone } });
@@ -27,13 +28,12 @@ describe('273 walks', () => {
     expect((now(s) - t) * 60).toBeLessThan((metres / moveSpeed(s, s.player).walk) * 1.5 + 60);
   });
   it('BG-159: a way out 1.2 km along one long zone is walked in one turn, at a walk', () => {
-    const s = quiet();
-    const z = s.zones.find((x) => x.id === 'field_far')!, mid = s.zones.find((x) => x.id === 'field_mid')!;
-    const dir = Math.sign(z.rect!.x - mid.rect!.x);
-    z.rect!.x += dir * 580; // field_far grows 1160 m longer, away from field_mid
-    z.rect!.w += 1160;
+    const q = quiet(), dir = Math.sign(boxOf(q.zones.find((x) => x.id === 'field_far')!.outline).x - boxOf(q.zones.find((x) => x.id === 'field_mid')!.outline).x);
+    // field_far grows 1160 m longer, away from field_mid
+    const s = makeVillageResized({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] }, 'field_far', (r) => ({ ...r, x: r.x + dir * 580, w: r.w + 1160 }), ['field_mid']);
+    const z = s.zones.find((x) => x.id === 'field_far')!;
     place(s, 'player', 'field_far');
-    s.player.pos = { x: z.rect!.x + dir * (z.rect!.w / 2 - 1), y: z.rect!.y };
+    s.player.pos = { x: boxOf(z.outline).x + dir * (boxOf(z.outline).w / 2 - 1), y: boxOf(z.outline).y };
     const metres = distM(s, s.player, { zone: 'field_mid' });
     expect(metres).toBeGreaterThan(1000);
     const t = now(s);

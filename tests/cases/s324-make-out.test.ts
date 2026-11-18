@@ -5,7 +5,7 @@
 // it learns like a check (PG7 a, PG2 a); only Show rolls shows it (PG9 a). PG2 a: a passed check teaches however hard.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameEvent, GameState, RollResult, Tier } from '../../src/types';
-import { createRng, makeVillage } from '../harness';
+import { createRng, lightAll, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { faintness, noteSightings, perceptionOf } from '../../src/perception';
 import { buildNarrationView, buildPlayerView, seesClearlyNow } from '../../src/views';
@@ -22,7 +22,7 @@ function setUp(zone = 'field_mid') {
   const g = s.actors.find((a) => a.id === 'guard_1')!;
   g.zone = zone; g.placeId = s.player.placeId;
   if (zone === 'field_mid') { s.player.pos = { x: 91, y: Y }; g.pos = { x: 126, y: Y }; } // 35 m apart
-  else { g.pos = s.player.pos ? { ...s.player.pos, x: s.player.pos.x + 1 } : undefined; }
+  else { g.pos = s.player.pos ? { ...s.player.pos, x: s.player.pos.x + 1 } : undefined; lightAll(s, 'dark'); } // no lamp up the steps lights the cellar
   delete s.player.core.skills[SK.eyesight]; delete s.player.core.skills[SK.earshot];
   s.player.progression!.marks = []; s.player.progression!.markCounts = {};
   return { s, g };

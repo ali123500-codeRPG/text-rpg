@@ -10,16 +10,17 @@ import { validateStagePlan } from '../../src/scenario/validate';
 import { grovePlan } from '../../src/scenario/fixtures';
 import { zoneById } from '../../src/engine/relations';
 import { ZK } from '../../src/library/tableIds';
+import { waysOut } from '../../src/plan/where';
 
 const ctx = { kind: 'extension' as const, tier: 'success' as const, placeId: 'field', frontierKey: 'woods' };
-const glade = (more: Partial<StagePlan['zones'][number]> = {}): StagePlan => ({ ...grovePlan(), zones: [{ key: 'glade', place: 'field', kind: ZK.yard, name: 'the glade', look: 'a glade', links: [{ to: 'street_square', label: 'a path round to the square', sight: true }], ...more }] });
+const glade = (more: Partial<StagePlan['zones'][number]> = {}): StagePlan => ({ ...grovePlan(), zones: [{ key: 'glade', place: 'field', kind: ZK.yard, name: 'the glade', look: 'a glade', ways: [{ to: 'street_square', label: 'a path round to the square' }], ...more }] });
 
 it('a plan may link to built ground: no bad link, and that ground gets its way back, with no copy', () => {
   const s = makeVillage({ playerZone: 'field_far' });
   expect(validateStagePlan(s, glade(), ctx).map((e) => e.code)).not.toContain('bad_link');
   applyStagePlan(s, glade(), ctx, { entry: 'open' }, createRng(1));
   const g = s.zones.find((z) => z.name === 'the glade')!;
-  expect(zoneById(s, 'street_square')!.links.some((l) => l.to === g.id && !l.frontier)).toBe(true); // its way back
+  expect(waysOut(s, 'street_square').some((l) => l.to === g.id && !l.frontier)).toBe(true); // its way back
   expect(s.places.flatMap((p) => p.zones).filter((z) => z.name === zoneById(s, 'street_square')!.name)).toHaveLength(1); // no copy
 });
 

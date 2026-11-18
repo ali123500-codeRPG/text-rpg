@@ -2,7 +2,7 @@
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
 import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { beside, createRng, makeVillage, place } from '../harness';
+import { beside, createRng, makeVillage, place, putBarrier } from '../harness';
 import { CONFIG } from '../../src/config';
 import { resolveTurn } from '../../src/engine';
 import { ruleset } from '../../src/ruleset';
@@ -12,9 +12,11 @@ import type { ContestResult, GameState, Intent, RollRequest } from '../../src/ty
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
-import { FU } from '../../src/library/tableIds';
+import { BK, FU } from '../../src/library/tableIds';
 import { zoneById } from '../../src/engine/relations';
 import { coverMod, coverShown } from '../../src/ruleset/gear';
+import { boxOf } from '../../src/plan/geom';
+import { makeFurniture } from '../../src/engine/furniture';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
@@ -149,8 +151,9 @@ describe('117 stealth', () => {
     place(s, 'player', 'tav_cellar');
     const t = place(s, 'trader', 'tav_cellar');
     // PC1, PC2: barrels in the middle of the cellar, the player crouched just past them from the trader
-    const z = zoneById(s, 'tav_cellar')!, c = { x: z.rect!.x, y: z.rect!.y };
-    z.furniture = [{ id: 'tav_cellar.fu1', kind: FU.barrels, name: 'barrels' }];
+    putBarrier(s, 'tav_counter', 'tav_cellar', { id: 'hatch', kind: BK.hatch, grade: 'minor' }); // its hatch shut: no lamplight from the bar
+    const z = zoneById(s, 'tav_cellar')!, c = { x: boxOf(z.outline).x, y: boxOf(z.outline).y };
+    s.furniture = s.furniture.filter((f) => f.zone !== z.id).concat(makeFurniture(s, z, [{ kind: FU.barrels, name: 'barrels' }]));
     s.player.pos = { x: c.x, y: c.y + 0.7 }; t.pos = { x: c.x, y: c.y - 3 };
     s.player.core.condition.parts.left_leg = -30;
     const cover = coverMod(coverShown(s, s.player, z, t));

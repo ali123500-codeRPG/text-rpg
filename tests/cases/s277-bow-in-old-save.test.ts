@@ -36,7 +36,7 @@ it('MG2: a save older than OLDEST_SAVE_SCHEMA is refused with its reason', async
   await saveTurn(st, old, { storyId: old.storyId, turn: 0, libraryVersion: old.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
   resetConfig();
   const err = await loadStory(st, old.storyId, getLibrary()).catch((e) => e);
-  expect(String(err.message)).toContain('made before the land');
+  expect(String(err.message)).toContain(`made ${CONFIG.OLDEST_SAVE_REASON}`);
 });
 
 it('BG-186: an attack with a weapon that is not in hand comes to nothing and says why, with no walk up for a punch', () => {

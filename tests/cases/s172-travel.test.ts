@@ -2,9 +2,9 @@
 // one pace (SR5); it stops on arrival, at dusk (setting off in the dark presses on, slower, with a worse event roll), or at an
 // encounter, whose event roll becomes the next scenario's tier. Each hour of it adds strain to the long-term bar (SR5).
 import { describe, expect, it } from 'vitest';
-import { makeVillage } from '../harness';
+import { makeVillage, withRoad } from '../harness';
+import { middle } from '../../src/plan/where';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scenario/geometry';
 import { roadShape } from '../../src/scenario/apply';
 import { placeAll } from '../../src/engine/position';
 import { travelSpeed } from '../../src/engine/travel';
@@ -17,29 +17,6 @@ import { now, timeOfDay } from '../../src/time';
 import { fatigueOf } from '../../src/ruleset/fatigue';
 import type { GameState, Zone } from '../../src/types';
 
-/** the test village laid out on the map, with a road north out of the gate to Ashford (or to a frontier) */
-function withRoad(km: number, danger: 'safe' | 'quiet' | 'wild' | 'dangerous' = 'safe', frontier = false): GameState {
-  const s = makeVillage({ playerZone: 'gate_inner' });
-  s.actors = s.actors.filter((a) => !a.id.startsWith('slime')); // the field's slimes would notice the player on the way
-  const gate = s.places.flatMap((p) => p.zones).find((z) => z.id === 'gate_inner')!;
-  const road: Zone = { id: 'north_road', placeId: 'gate', kind: ZK.road, name: 'the north road', look: 'a cart track', links: [{ to: 'gate_inner', label: 'back to the gate, south', sight: true }], cover: 'none', light: 'dark', outdoor: true, groundItems: [], ...roadShape(km, danger) };
-  gate.links.push({ to: 'north_road', label: 'the north road', sight: true });
-  const zones = [road];
-  if (frontier) road.links.push({ to: 'onward', label: 'onward, north', sight: false, frontier: true });
-  else {
-    const ash: Zone = { id: 'ashford_gate', placeId: 'gate', kind: ZK.gate, name: 'Ashford gate', look: 'a stone arch', links: [{ to: 'north_road', label: 'the road south', sight: true }], cover: 'none', light: 'dark', outdoor: true, area: 100, groundItems: [] };
-    road.links.push({ to: 'ashford_gate', label: 'Ashford, north', sight: true });
-    zones.push(ash);
-  }
-  s.places.find((p) => p.id === 'gate')!.zones.push(...zones);
-  s.zones.push(...zones);
-  const all = s.places.flatMap((p) => p.zones);
-  for (const z of all) if (!z.area) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, all);
-  placeAll(s);
-  s.clocks.time = 7 * 60; // day 1, morning
-  return s;
-}
 const trip = (s: GameState) => s.log.find((l) => l.code === 'travelled')?.detail as { metres: number; minutes: number; night: boolean; stop: string; companions: string[] } | undefined;
 const go = (s: GameState, to: string, seed = 1) => play(s, { intent: intent({ move: { toZone: to } }) }, seed);
 
@@ -77,7 +54,7 @@ describe('172 travel', () => {
     expect(s.player.zone).toBe('north_road');
     expect(timeOfDay(now(s))).toBe('dusk');
     expect(trip(s)!.minutes).toBe(30);
-    go(s, 'ashford_gate');
+    go(s, 'ashford_gate', 2); // a seed with no encounter on the night road
     expect(trip(s)!).toMatchObject({ night: true, stop: 'arrived' });
     expect(trip(s)!.metres / (trip(s)!.minutes * 60)).toBeCloseTo(travelSpeed(s, s.player, true), 1); // walked slower in the dark
     expect(s.player.zone).toBe('ashford_gate');
@@ -154,7 +131,7 @@ describe('172 travel', () => {
     const s = withRoad(9);
     const x = s.actors.find((a) => a.id === 'patron_1')!;
     const road = s.zones.find((z) => z.id === 'north_road')!;
-    x.zone = 'north_road'; x.placeId = 'gate'; x.pos = { x: road.rect!.x, y: road.rect!.y };
+    x.zone = 'north_road'; x.placeId = 'gate'; x.pos = middle(road);
     const t0 = now(s);
     const ev = go(s, 'ashford_gate');
     const d = trip(s)!;

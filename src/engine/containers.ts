@@ -4,6 +4,7 @@
 // item out is a pick-up (CT3). A locked one opens with a key naming it or a Lockpicking roll, as a lock on a way (BA2).
 // CT4/CT5: opening or taking from a container its owner is up to guard (active and not yielded to the taker) is theft:
 // opening it, picking its lock or taking from it is then filching (src/engine/filch.ts).
+import { groundZoneOf } from './ground';
 import type { Actor, GameState, ItemInstance } from '../types';
 import { itemDef } from '../library';
 import { actorById, allActors, isActive, stance } from './relations';
@@ -18,10 +19,8 @@ export const wornPack = (i: ItemInstance): boolean => !!i.equippedIn?.includes('
 /** a container by instance id: standing or lying in a zone, or carried by someone (where they stand) */
 export function findContainer(state: GameState, id: string | null | undefined): Found | null {
   if (!id) return null;
-  for (const z of state.zones) {
-    const inst = z.groundItems.find((i) => i.id === id);
-    if (inst && isContainer(state, inst)) return { inst, at: { zone: z.id, ...(inst.at ? { pos: inst.at } : {}) } };
-  }
+  const inst = state.ground.find((i) => i.id === id), z = inst && groundZoneOf(state, inst);
+  if (inst && z && isContainer(state, inst)) return { inst, at: { zone: z, ...(inst.at ? { pos: inst.at } : {}) } };
   for (const a of allActors(state)) {
     const inst = a.core.inventory.find((i) => i.id === id);
     if (inst && isContainer(state, inst)) return { inst, at: a, holder: a };
@@ -63,7 +62,7 @@ export function openContainer(state: GameState, a: Actor, c: Found, filched = fa
 /** CT3: an item inside an open container `a` may take from, with the list it sits in and the container */
 export function inContainer(state: GameState, a: Actor, itemId: string): { list: ItemInstance[]; c: Found } | null {
   const cs: Found[] = [
-    ...state.zones.flatMap((z) => z.groundItems.filter((i) => isContainer(state, i)).map((inst) => ({ inst, at: { zone: z.id, ...(inst.at ? { pos: inst.at } : {}) } }))),
+    ...state.ground.filter((i) => isContainer(state, i)).flatMap((inst) => { const z = groundZoneOf(state, inst); return z ? [{ inst, at: { zone: z, ...(inst.at ? { pos: inst.at } : {}) } }] : []; }),
     ...a.core.inventory.filter((i) => isContainer(state, i) && !wornPack(i)).map((inst) => ({ inst, at: a, holder: a })),
   ];
   for (const c of cs) {

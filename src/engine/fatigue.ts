@@ -3,6 +3,7 @@
 // too (SR4), and travel pays by the hour straight into it (SR5). Hours awake add sleep debt; only sleep
 // clears the long term. All stamina recovery goes through recoverLine and recoverDebt, one per layer, from the library
 // recovery table (RV), as healing and composure go through applyHealing and calm.
+import { furnitureIn } from './furniture';
 import type { Actor, DurationDef, GameState } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary } from '../library';
@@ -100,7 +101,7 @@ export function recoverDebt(a: Actor, sourceId: string, pct: number): number {
 }
 /** FT8: sleep's speed here: in a bed or elsewhere, × the worn armour's weight, × the owner's sleepClear perks (SS14) */
 export const sleepMult = (state: GameState, a: Actor): number =>
-  CONFIG.SLEEP_SPOT_MULT[zoneById(state, a.zone)?.furniture?.some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * sleepArmorMult(state, a) * perkSleepMult(a, 'sleepClear');
+  CONFIG.SLEEP_SPOT_MULT[furnitureIn(state, a.zone).some((f) => f.kind === FU.bed) ? 'bed' : 'elsewhere'] * sleepArmorMult(state, a) * perkSleepMult(a, 'sleepClear');
 
 /** FT7: a rest that ran `share` of its hour refills the line; with Catnap (SS1) it also clears the sleep debt CATNAP_SLEEP_HOURS
  * of sleep would here. Both rest paths call this */

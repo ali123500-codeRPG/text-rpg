@@ -10,9 +10,7 @@ import { SK } from '../../src/library/skillIds';
 import { act, intent, play } from './w4-kit';
 
 it('BG-111: a spokesperson answering in a whisper from too far steps up beside the player first, and is heard', async () => {
-  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
-  const room = s.zones.find((x) => x.id === 'tav_common')!;
-  room.rect = { x: 0, y: 0, w: 12, d: 8 };
+  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'], shape: { tav_common: { rect: { x: 0, y: 0, w: 12, d: 8 } } } });
   CONFIG.HEARING_FLOOR_DB = 25; // a busy room: a whisper is clear only within about a metre
   const p = place(s, 'patron_1', 'tav_common');
   s.player.zone = 'tav_common';

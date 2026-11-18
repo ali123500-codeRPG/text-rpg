@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { COVER } from '../../src/scales';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
-import { LC, ZK } from '../../src/library/tableIds';
+import { LC } from '../../src/library/tableIds';
 import { coverMod } from '../../src/ruleset/gear';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 
@@ -18,10 +18,10 @@ describe('382 cover levels (CV1-CV8)', () => {
     expect(CONFIG.COVER_HALVING_MOD).toBe(10);
   });
 
-  it('CV2: a street and a heath give light cover', () => {
+  it('CV2, PZ6: a heath gives light cover (clutter comes from the land, never a title\'s kind)', () => {
     const lib = getLibrary();
-    expect(lib.zoneKinds![ZK.street].cover).toBe('light');
     expect(lib.landCovers![LC.heath].cover).toBe('light');
+    for (const k of Object.values(lib.zoneKinds!)) expect('cover' in k, k.name).toBe(false);
   });
 
   it('the roll modifiers list shows the cover row for a person', () => {

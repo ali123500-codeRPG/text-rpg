@@ -4,14 +4,15 @@
 // the target. So a shooter on a wall or an upper floor sees over a low wall, and a piece right in front of the shooter
 // hides nothing far off. With no viewer (hiding with nobody in particular to hide from), the tallest piece within
 // CONFIG.OBJECT_COVER_M of the body hides its own height.
-import type { Actor, Furniture, GameState, Zone } from '../types';
+import type { Actor, Furniture, GameState, Opening, Pt, Zone } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary } from '../library';
 import { furnitureIn, furniturePos } from '../engine/furniture';
-import { spotOf, wayPoint, type Pos } from '../engine/position';
+import { spotOf, type Pos } from '../engine/position';
 import { heightOf } from '../scenario/heights';
-import { openingOf, seesAcross, shortestPath, zoneById } from '../engine/relations';
-import { barrierOn } from '../engine/barriers';
+import { zoneById } from '../engine/relations';
+import { crossings, openingsOn, seesNow } from '../plan/line';
+import { dist } from '../plan/geom';
 
 type Box = { lo: Pos; hi: Pos; h: number };
 
@@ -22,7 +23,7 @@ export function pieceBox(state: GameState, zone: Zone, f: Furniture): Box | unde
   const p = size && furniturePos(state, zone.id, f);
   if (!size || !p) return undefined;
   const [len, wid, h] = size;
-  const alongY = f.at === 'e' || f.at === 'w';
+  const alongY = f.side === 'e' || f.side === 'w';
   const hx = (alongY ? wid : len) / 2, hy = (alongY ? len : wid) / 2;
   return { lo: { x: p.x - hx, y: p.y - hy }, hi: { x: p.x + hx, y: p.y + hy }, h };
 }
@@ -71,28 +72,29 @@ export function objectHidden(state: GameState, body: Actor, zone: Zone, from?: A
 }
 
 /** PC3: the share of `body` that shows to `from` through the opening it is seen through (a window, a doorway, a gate): the
- * way into its zone on the line of sight. The opening's sill and top, carried along the sight line to the target, frame a
+ * last opening on the line of sight. The opening's sill and top, carried along the sight line to the target, frame a
  * band of its height, and its width carried on the same way bounds how much of the target's width shows (an archer at
  * an arrow slit sees the whole field; a target behind one shows a strip). 1 when it is seen in the
  * same zone or across open ground. */
 export function openingShown(state: GameState, body: Actor, zone: Zone, from?: Actor): number {
   if (!from || from.zone === zone.id) return 1;
-  const path = shortestPath(state, from.zone, zone.id, true);
-  if (!path) return 1;
-  const prev = path.length >= 2 ? path[path.length - 2] : from.zone;
-  const link = zoneById(state, prev)?.links.find((l) => l.to === zone.id && seesAcross(state, l));
-  const o = link && openingOf(state, link, prev);
-  const w = o && !o.vertical ? wayPoint(state, prev, zone.id, from) : null;
   const t = spotOf(state, body).pos, v = spotOf(state, from).pos;
-  if (!o || !w || !t || !v) return 1;
-  const dP = Math.hypot(w.x - v.x, w.y - v.y), dT = Math.hypot(t.x - v.x, t.y - v.y);
-  if (dP <= 0 || dT <= dP) return 1;
-  const size = actorBody(state, body).size, h = size.heightM;
-  const floorT = heightOf(zone);
-  const inside = zone.outdoor ? zoneById(state, prev) : zone; // the sill stands on the inside floor
-  const sill = heightOf(inside) + (getLibrary().barrierKinds?.[barrierOn(state, link)?.kind ?? '']?.sillM ?? 0);
+  if (!t || !v) return 1;
+  const floorT = heightOf(zone), size = actorBody(state, body).size, h = size.heightM;
   const eye = heightOf(zoneById(state, from.zone)) + actorBody(state, from).size.heightM * CONFIG.EYE_SHARE;
+  // PZ3: the last opening seen through that the sight line to the target passes, at whatever height (the frame below
+  // shows how much of the target it lets through)
+  let o: Opening | undefined, c: { at: Pt } | undefined;
+  for (const x of crossings(state, { ...v, z: eye }, { ...t, z: eye })) {
+    if (x.kind !== 'wall') continue;
+    const hit = openingsOn(state, x.wall).find((q) => dist(q.at, x.at) <= q.widthM / 2 + 1e-6 && seesNow(state, q));
+    if (hit) { o = hit; c = x; }
+  }
+  if (!o || !c) return 1;
+  const w = c.at, dP = Math.hypot(w.x - v.x, w.y - v.y), dT = Math.hypot(t.x - v.x, t.y - v.y);
+  if (dP <= 0 || dT <= dP) return 1;
+  const sill = o.floor + (o.sillM ?? 0);
   const at = (y: number) => eye + (y - eye) * dT / dP - floorT; // a height on the opening, carried on to the target
-  const band = Math.max(0, Math.min(h, at(sill + o.h)) - Math.max(0, at(sill))) / h;
-  return band * Math.min(1, (o.w * dT / dP) / size.widthM); // the opening's width, carried on to the target as its height is
+  const band = Math.max(0, Math.min(h, at(sill + o.heightM)) - Math.max(0, at(sill))) / h;
+  return band * Math.min(1, (o.widthM * dT / dP) / size.widthM); // the opening's width, carried on to the target as its height is
 }

@@ -200,7 +200,8 @@ export type Progression = {
   charges?: Record<string, number>;
   /** skills the player has rolled, on the sheet or not, so the sheet and /stats can show an off-sheet skill in use (fists: Strike) */
   used?: LibraryRef[];
-  zonesSeen?: string[]; // zones the player has entered
+  zonesSeen?: string[]; // PZ13: titles the player has entered
+  cellsStood?: string[]; // PZ17: the land cells (REGION_CELL_M squares, '<x>:<y>' on the world's grid) the player has stood in
   placesSeen?: string[]; // TM14: places the player has stood in, or that held where they stood (counted per kind)
   /** AS1–AS11: foes the player struck while seeing them surrendered or broken, each counted once */
   gaveUpStruck?: { surrendered: string[]; broken: string[] };
@@ -370,8 +371,8 @@ export type Journal = {
   /** BG-28: where the player last saw or heard each actor (any perception of it, a sound included); never forgotten by an
    * unseen move, so lastSeen still names someone heard running off */
   lastKnown?: Record<ActorId, string>;
-  /** BG-125: the point in that zone where the player last perceived each actor, when the event had one */
-  lastSpot?: Record<ActorId, { x: number; y: number }>;
+  /** BG-125: the point (and floor) where the player last perceived each actor, when the event had one */
+  lastSpot?: Record<ActorId, import('./core').Pt3>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
   /** WN2/WN11: the tricks the player saw through or was warned of, by whose (engine/warnings.ts); as NPCs' ruse facts */
@@ -380,10 +381,14 @@ export type Journal = {
   pointed?: Record<ActorId, Turn>;
   /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */
   trail?: { zone: string; left: Turn }[];
-  /** the Map page: every zone the player has stood in or seen across a sight link, oldest first */
+  /** PZ13: every title the player has stood in or looked into (its name is known), oldest first */
   zonesSeen?: string[];
-  /** the Map page (MAP-33): every zone the player has stood in, oldest first; a save made before it starts from the trail */
+  /** the Map page (MAP-33): every title the player has stood in, oldest first */
   zonesVisited?: string[];
+  /** PZ12 a, the Map's fog: the ground the player has seen, in squares (1 m under a roof, FOG_OPEN_SQUARE_M in the open
+   * where no land lies under it) per floor: chunks of FOG_CHUNK squares a side, keyed '<floor>:<size>:<cx>:<cy>', one bit
+   * per square, base64 (src/plan/fog.ts); in the open over the land, landSeen */
+  seenSquares?: Record<string, string>;
   /** WZ4 the land the player has made out, per region id: one bit per grid cell, base64 (src/land/sight.ts) */
   landSeen?: Record<string, string>;
 };

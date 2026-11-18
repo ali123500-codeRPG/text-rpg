@@ -2,36 +2,19 @@
 // one zone (RoadNode.zone), a settlement site as one place (Site.placeId). When one is built it takes over every way to
 // new ground keyed by it, is joined to each land neighbour already built, and gets a way to new ground (a frontier keyed
 // by the land id, labelled from the land) toward each one that is not. Planners write only the ways the land does not
-// draw. WI5 a: every way between two zones is joined by joinWay, which writes both ends or keeps an end already there.
-import type { GameState, Place, Pt, Region, RoadLine, RoadNode, Zone, ZoneLink } from '../types';
+// draw. WI5 a: every way between two titles is joined by joinWay (plan/draw), one opening, or the one already there.
+import type { GameState, Place, Pt, Region, RoadLine, RoadNode, Zone } from '../types';
 import { OPP_SIDE, SIDE_STEP, SIDE_WORD } from '../types';
 import { CONFIG } from '../config';
 import { ZK } from '../library/tableIds';
 import { zoneById } from '../engine/relations';
 import { topPlace } from './stage';
+import { addFrontier, frontierTo, joinFrontier, joinWay } from '../plan/draw';
+import { roofed, waysOut } from '../plan/where';
+export { joinFrontier, joinWay };
 
-/** WI5 a: the one way to join two zones: each end that is missing is added, an end already there is kept */
-export function joinWay(state: GameState, a: Zone, b: Zone, opts: { label?: string; back?: string; sight?: boolean } = {}): void {
-  if (a === b) return;
-  const sight = opts.sight ?? true;
-  if (!a.links.some((l) => l.to === b.id)) a.links.push({ to: b.id, label: opts.label ?? b.name, sight });
-  if (!b.links.some((l) => l.to === a.id)) b.links.push({ to: a.id, label: opts.back ?? a.name, sight });
-}
-
-/** a way to new ground keyed `key` is built: every link into it now leads to `to` (a zone that already had a way there
- * keeps that one), joined both ways. NW2: anyone heading for it now heads for the zone. */
-export function joinFrontier(state: GameState, key: string, to: Zone): void {
-  for (const z of state.zones) if (z.links.some((l) => l.frontier && l.to === key)) wayBuilt(state, z, key, to);
-  for (const a of state.actors) if (a.mind?.slots?.dest === key) a.mind.slots.dest = to.id;
-}
-/** zone `z`'s way to new ground `key` now leads to `to`, joined both ways (dropped if `z` already has a way there) */
-function wayBuilt(state: GameState, z: Zone, key: string, to: Zone): void {
-  const i = z.links.findIndex((l) => l.frontier && l.to === key);
-  const l = z.links[i];
-  if (z === to || z.links.some((x) => x !== l && x.to === to.id)) z.links.splice(i, 1);
-  else { l.to = to.id; delete l.frontier; }
-  if (z !== to) joinWay(state, z, to, { sight: l.sight });
-}
+/** the titles `z`'s ways lead to (frontier keys too) */
+const leadsTo = (s: GameState, z: Zone): string[] => waysOut(s, z.id).map((w) => w.to);
 
 // ---- the land's records ----
 const regions = (s: GameState) => s.regions ?? [];
@@ -82,9 +65,9 @@ const junctionOf = (s: GameState, z: Zone) => regions(s).flatMap((r) => r.nodes)
 function gateOf(s: GameState, p: Place, road: string | undefined): Zone | undefined {
   const zs = settlementZones(s, p);
   const line = road ? landRoad(s, road)?.line : undefined;
-  return zs.find((z) => z.links.some((l) => l.to === road || (line?.zone && l.to === line.zone)))
+  return zs.find((z) => leadsTo(s, z).some((to) => to === road || (!!line?.zone && to === line.zone)))
     ?? [ZK.gate, ZK.square, ZK.street].map((k) => zs.find((z) => z.kind === k)).find(Boolean)
-    ?? zs.find((z) => z.outdoor) ?? zs[0];
+    ?? zs.find((z) => !roofed(s, z)) ?? zs[0];
 }
 
 /** WI2 a: the built zone of land item `key` (a road's zone, a junction's zone, the settlement on a site, where `road`
@@ -149,7 +132,7 @@ export function makeLandWays(s: GameState, zones: Zone[], sited: Place[]): void 
   }
   // first every way to new ground keyed by what was built leads to it, then each built item reaches its neighbours
   for (const b of built) for (const k of b.keys) {
-    for (const z of s.zones.filter((x) => x.links.some((l) => l.frontier && l.to === k))) wayBuilt(s, z, k, landZone(s, k, z.road) ?? b.zone);
+    for (const o of s.openings.filter((x) => x.frontier && x.joins[1] === k)) frontierTo(s, o, landZone(s, k, zoneById(s, o.joins[0])?.road) ?? b.zone);
     for (const a of s.actors) if (a.mind?.slots?.dest === k) a.mind.slots.dest = b.zone.id;
   }
   for (const b of built) {
@@ -158,9 +141,9 @@ export function makeLandWays(s: GameState, zones: Zone[], sited: Place[]): void 
       const there = landZone(s, n.key, n.road ?? b.zone.road);
       if (there) {
         const theirs = group(s, there);
-        if (!mine.some((z) => z.links.some((l) => theirs.some((t) => t.id === l.to)))) joinWay(s, b.zone, there, { label: n.label });
-      } else if (!mine.some((z) => z.links.some((l) => l.to === n.key))) {
-        b.zone.links.push({ to: n.key, label: n.label, sight: true, frontier: true } satisfies ZoneLink);
+        if (!mine.some((z) => leadsTo(s, z).some((to) => theirs.some((t) => t.id === to)))) joinWay(s, b.zone, there, { label: n.label });
+      } else if (!mine.some((z) => leadsTo(s, z).includes(n.key))) {
+        addFrontier(s, b.zone, n.key, n.label, { kind: 'open' });
       }
     }
   }
@@ -209,71 +192,6 @@ export function openSideWay(s: GameState, roadId: string, at: Pt, toward?: strin
   return jn.id;
 }
 
-/** a string anywhere in `v` (not a key) equal to `from` becomes `to` */
-function renameIn(v: unknown, from: string, to: string): void {
-  if (Array.isArray(v)) v.forEach((x, i) => (x === from ? (v[i] = to) : renameIn(x, from, to)));
-  else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) x === from ? ((v as Record<string, unknown>)[k] = to) : renameIn(x, from, to);
-}
-
-/** WI7 a: a world built before WI2 is mended once, at load (each step does nothing on a world that needs none):
- * 1. a junction with no zone takes the built zone that the zones of two or more of its roads lead into;
- * 2. a road zone whose one way to new ground leads toward the one end it is not joined to: built, that way becomes a
- *    plain way to it; unbuilt, the way is keyed by that end's land id;
- * 3. a second zone on a road folds into the first: its ways, the people and things in it and every mention of it move
- *    over, and the road points at the first. Returns what it mended. */
-export function mendLandWays(s: GameState): string[] {
-  const out: string[] = [];
-  const named = new Set<ZoneLink>(); // ways back this mend added, named after their zone: a folded copy's own words replace them
-  for (const r of regions(s)) for (const n of r.nodes) {
-    if (n.kind !== 'junction' || (n.zone && zoneById(s, n.zone))) continue;
-    const roadZones = roadsAt(r, n.id).flatMap((l) => s.zones.filter((z) => z.road === l.id));
-    const hub = s.zones.find((z) => !z.road && new Set(roadZones.filter((rz) => z.links.some((l) => l.to === rz.id)).map((rz) => rz.road)).size >= 2);
-    if (hub) { n.zone = hub.id; out.push(`junction ${n.id} is ${hub.id}`); }
-  }
-  for (const z of s.zones) {
-    const rd = z.road ? landRoad(s, z.road) : undefined;
-    if (!rd) continue;
-    const mine = group(s, z);
-    const open = rd.line.ends.filter((e) => { const t = landZone(s, e, rd.line.id); return !t || !mine.some((m) => m.links.some((l) => group(s, t).some((g) => g.id === l.to))); });
-    const own = z.links.filter((l) => l.frontier && !landTarget(s, l.to));
-    if (open.length !== 1 || own.length !== 1) continue;
-    const t = landZone(s, open[0], rd.line.id);
-    if (t) { const had = t.links.find((l) => l.to === z.id); wayBuilt(s, z, own[0].to, t); const back = t.links.find((l) => l.to === z.id); if (back && back !== had) named.add(back); out.push(`the way from ${z.id} toward ${open[0]} leads to ${t.id}`); }
-    else { out.push(`the way from ${z.id} toward ${open[0]} is keyed by it (was ${own[0].to})`); own[0].to = open[0]; }
-  }
-  for (const r of regions(s)) for (const line of r.roads) {
-    const on = s.zones.filter((z) => z.road === line.id);
-    const keep = on[0];
-    for (const copy of on.filter((z) => z !== keep)) {
-      for (const l of copy.links) {
-        const other = zoneById(s, l.to);
-        if (other) {
-          const back = other.links.find((b) => b.to === copy.id);
-          other.links = other.links.filter((b) => b.to !== copy.id);
-          if (other !== keep) joinWay(s, keep, other, { label: l.label, back: back?.label, sight: l.sight });
-          const had = other.links.find((x) => x.to === keep.id);
-          if (had && back && named.has(had)) had.label = back.label;
-        } else if (l.frontier && !keep.links.some((b) => b.to === l.to)) keep.links.push({ ...l });
-      }
-      for (const o of s.zones) if (o.links.some((b) => b.to === copy.id)) {
-        const b = o.links.find((x) => x.to === copy.id)!, had = o.links.find((x) => x.to === keep.id);
-        o.links = o.links.filter((x) => x.to !== copy.id);
-        if (had && named.has(had)) had.label = b.label;
-        else if (o !== keep) joinWay(s, o, keep, { label: b.label, sight: b.sight });
-      }
-      keep.groundItems.push(...copy.groundItems);
-      for (const a of [s.player, ...s.actors]) if (a.zone === copy.id) { a.zone = keep.id; a.placeId = keep.placeId; delete a.pos; }
-      for (const v of [s.actors, s.player, s.hidden, s.stage, s.quests, s.scratch]) renameIn(v, copy.id, keep.id);
-      const p = s.places.find((x) => x.id === copy.placeId);
-      if (p) p.zones = p.zones.filter((x) => x !== copy);
-      s.zones = s.zones.filter((x) => x !== copy);
-      out.push(`${copy.id} folded into ${keep.id}, road ${line.id}`);
-    }
-    if (keep && line.zone !== keep.id) line.zone = keep.id;
-  }
-  return out;
-}
-
 /** WI9 a / WI10 a: the world check. Each broken rule is one line in plain words, naming what broke:
  * - a road of the land has at most one area, the one it records;
  * - a junction's area exists and is outdoors and no road's own area; a site's settlement exists and is a top place, and
@@ -296,7 +214,7 @@ export function worldCheck(s: GameState): string[] {
       if (n.kind === 'junction' && n.zone) {
         const z = zoneById(s, n.zone);
         if (!z) out.push(`junction ${n.id} records area ${n.zone}, which does not exist`);
-        else if (!z.outdoor || z.road) out.push(`junction ${n.id}'s area ${z.id} is ${z.road ? `road ${z.road}'s own area` : 'indoors'}`);
+        else if (roofed(s, z) || z.road) out.push(`junction ${n.id}'s area ${z.id} is ${z.road ? `road ${z.road}'s own area` : 'indoors'}`);
       }
       if (n.kind === 'site') {
         const site = r.sites.find((x) => x.id === n.site), p = site?.placeId ? s.places.find((x) => x.id === site.placeId) : undefined;
@@ -309,12 +227,12 @@ export function worldCheck(s: GameState): string[] {
         const rz = line.zone ? zoneById(s, line.zone) : undefined;
         if (!rz) continue;
         const t = landZone(s, n.id, line.id);
-        if (t) { if (!group(s, rz).some((z) => z.links.some((l) => group(s, t).some((g) => g.id === l.to)))) out.push(`road ${line.id}'s area ${rz.id} does not lead into ${t.id}, built at its end ${n.id}`); }
-        else if (!rz.links.some((l) => l.frontier && l.to === n.id)) out.push(`road ${line.id}'s area ${rz.id} has no way on toward its unbuilt end ${n.id}`);
+        if (t) { if (!group(s, rz).some((z) => leadsTo(s, z).some((to) => group(s, t).some((g) => g.id === to)))) out.push(`road ${line.id}'s area ${rz.id} does not lead into ${t.id}, built at its end ${n.id}`); }
+        else if (!waysOut(s, rz.id).some((l) => l.frontier && l.to === n.id)) out.push(`road ${line.id}'s area ${rz.id} has no way on toward its unbuilt end ${n.id}`);
       }
     }
   }
-  for (const z of s.zones) for (const l of z.links) {
+  for (const z of s.zones) for (const l of waysOut(s, z.id)) {
     const built = l.frontier && landTarget(s, l.to) ? landZone(s, l.to, z.road) : undefined;
     if (built) out.push(`${z.id}'s way "${l.label}" is new ground, but ${l.to} is already built as ${built.id}`);
     else if (!l.frontier && !zoneById(s, l.to)) out.push(`${z.id}'s way "${l.label}" leads to ${l.to}, which is no area`);

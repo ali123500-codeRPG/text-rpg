@@ -33,13 +33,13 @@ export const TURN_CHECK: TurnCheckMode = (g.turnCheck ??= { strict: false, skip:
 const fin = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
 const inZone = (s: GameState, a: Actor) => {
   const z = zoneById(s, a.zone);
-  return !z?.rect || !a.pos || inside(z, a.pos);
+  return !z?.outline?.length || !a.pos || inside(z, a.pos);
 };
 function items(s: GameState): ItemInstance[] {
   const out: ItemInstance[] = [];
   const add = (list: ItemInstance[] = []) => list.forEach((it) => { out.push(it); add(it.contents); });
   allActors(s).forEach((a) => add(a.core.inventory));
-  s.places.forEach((p) => p.zones.forEach((z) => add(z.groundItems)));
+  add(s.ground);
   return out;
 }
 /** a view entry for someone clearly seen (by id, else by the name or label it shows) whose actor has pronouns carries them;
@@ -58,9 +58,9 @@ const RULES: Record<string, (c: Ctx) => string[]> = {
     ...s.places.flatMap((p) => p.zones).filter((z) => !s.zones.includes(z)).map((z) => `built zone ${z.id} is not live`),
     ...allActors(s).filter((a) => zoneById(s, a.zone)?.placeId !== a.placeId).map((a) => `${a.id} in ${a.zone} (place ${a.placeId})`),
   ],
-  /** ZR8: every zone on stage has a rectangle, and everyone's point lies inside their zone's */
+  /** PZ1: every title on stage has a footprint, and everyone's point lies inside their title's */
   inside_zone: ({ s }) => [
-    ...s.zones.filter((z) => !z.rect).map((z) => `zone ${z.id} has no rectangle`),
+    ...s.zones.filter((z) => !z.outline?.length).map((z) => `title ${z.id} has no outline`),
     ...allActors(s).filter((a) => (a.pos && !(fin(a.pos.x) && fin(a.pos.y))) || !inZone(s, a)).map((a) => `${a.id} at ${JSON.stringify(a.pos)} outside ${a.zone}`),
   ],
   /** a zone change always shows as a move (fromZone), travel, or a logged silent catch-up; a new scenario places everyone */

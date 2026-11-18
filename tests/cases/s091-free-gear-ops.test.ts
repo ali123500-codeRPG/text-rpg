@@ -7,6 +7,7 @@ import { IT } from '../../src/library/itemIds';
 import { DU } from '../../src/library/tableIds';
 import { actionRow } from '../../src/ruleset/actionTime';
 import { lineUsed } from '../../src/ruleset/fatigue';
+import { layAll } from '../harness';
 
 const MAIN = new Set(['attack', 'wasted', 'equip', 'hold', 'speak', 'give', 'rest']);
 
@@ -14,7 +15,7 @@ it('91 Free gear ops', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
   beside(s, 'patron_1'); // within a dagger's reach, so it is stabbed, not thrown
   s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger });
-  s.zones.find((z) => z.id === 'tav_common')!.groundItems.push({ id: 'dg2', itemId: IT.dagger });
+  layAll(s, 'tav_common', { id: 'dg2', itemId: IT.dagger });
   const ev = play(s, { intent: intent({
     gear: [{ op: 'pick_up', item: 'dg2' }, { op: 'stow', item: `player_${IT.round_shield}_2` }, { op: 'draw', item: 'dg' }, { op: 'swap', item: 'dg2' }],
     action: { type: 'attack', target: 'patron_1', skill: SK.melee_light },

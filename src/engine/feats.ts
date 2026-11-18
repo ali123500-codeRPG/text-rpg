@@ -24,6 +24,11 @@ export function turnFeats(state: GameState, events: GameEvent[]): void {
   if (!pr) return;
   const seen = (pr.zonesSeen ??= []);
   if (!seen.includes(p.zone)) { seen.push(p.zone); tally(state, 'zones', { to: seen.length }); }
+  // PZ17: new ground, each land cell (REGION_CELL_M square on the world's grid) the player stands in, counted once
+  if (p.pos) {
+    const cell = `${Math.floor(p.pos.x / CONFIG.REGION_CELL_M)}:${Math.floor(p.pos.y / CONFIG.REGION_CELL_M)}`, cells = (pr.cellsStood ??= []);
+    if (!cells.includes(cell)) { cells.push(cell); tally(state, 'ground', { to: cells.length }); }
+  }
   placeFeats(state);
   tally(state, 'days', { to: dayOf(now(state)) - 1 });
   logFight(state, events);

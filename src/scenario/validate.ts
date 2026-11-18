@@ -1,5 +1,6 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
-import type { EndCheck, GameState, Grade, StagePlan, Tier } from '../types';
+import { WAY_KINDS } from '../plan/draw';
+import type { EndCheck, GameState, Grade, StagePlan, Tier, WayKind } from '../types';
 import { GRADES, PLAN_ENDINGS } from '../types';
 import { triggerErrors } from './triggers';
 import { holdsInner, scaleFor } from '../engine/scenarioEnd';
@@ -21,6 +22,7 @@ import { zoneById } from '../engine/relations';
 import { landNode, landTarget, landZone, worldCheck } from './ways';
 import { applyStagePlan } from './apply';
 import { createRng } from '../rng';
+
 
 /** what the Weaver may say a cast member knows of the player or a band: AWARENESS up to aware (tracking and up are code's) */
 const BELIEFS: string[] = AWARENESS.keys.slice(0, AWARENESS.pos('aware') + 1);
@@ -63,12 +65,14 @@ export function gradesFitText(): string {
   }).join('; ');
 }
 
-/** frontier ids currently on the stage (links marked frontier) */
+/** frontier keys currently on the stage (ways to ground not built yet) */
 export function stageFrontiers(state: GameState): Set<string> {
   const out = new Set<string>();
-  for (const z of state.zones) for (const l of z.links) if (l.frontier) out.add(l.to);
+  for (const o of state.openings) if (o.frontier) out.add(o.joins[1]);
   return out;
 }
+/** the ways out of built titles, as plan links read them: each title's id, where it leads, and whether to a frontier */
+const builtWays = (state: GameState) => state.openings.flatMap((o) => o.frontier ? [{ from: o.joins[0], to: o.joins[1], frontier: true }] : [{ from: o.joins[0], to: o.joins[1], frontier: false }, { from: o.joins[1], to: o.joins[0], frontier: false }]);
 
 /** trim hidden-only text to NOTE_CAP at a word boundary (V6) */
 function trimNote(v: unknown): unknown {
@@ -92,9 +96,9 @@ export function expandLayouts(plan: StagePlan): void {
     if (!l || !Array.isArray(plan.zones) || plan.zones.some((z) => z?.key === `${p.key}.${l.entry}`)) continue;
     for (const z of l.zones) plan.zones.push({
       key: `${p.key}.${z.key}`, place: p.key, kind: z.kind, name: p.names?.[z.key] ?? z.name, look: p.looks?.[z.key] ?? z.look,
-      ...(z.size ? { size: z.size } : {}), ...(z.edges ? { edges: { ...z.edges } } : {}), fromLayout: true,
+      ...(z.size ? { size: z.size } : {}), ...(z.walls ? { walls: { ...z.walls } } : {}), fromLayout: true,
       ...(p.furniture?.[z.key] ?? z.furniture ? { furniture: (p.furniture?.[z.key] ?? z.furniture)!.map((x) => ({ ...x })) } : {}), // FR2
-      links: z.links.map(([to, label, sight]) => ({ to: `${p.key}.${to}`, label, sight })),
+      ways: z.ways.map(([to, label, kind]) => ({ to: `${p.key}.${to}`, label, kind })),
     });
   }
 }
@@ -207,6 +211,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const castKeys = dupes('cast', cast.map((c) => c.key));
   const stageZones = new Set(state.zones.map((z) => z.id)); // WI8 a: every built zone
   const existingFrontiers = stageFrontiers(state);
+  const ways = builtWays(state);
   const placeIds = new Set(state.places.map((p) => p.id));
   const bandIds = new Set(state.bands.map((b) => b.id));
   const actorIds = new Set([state.player.id, ...state.actors.map((a) => a.id)]);
@@ -245,7 +250,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     const t = landTarget(state, key);
     const top = (k: string): typeof places[number] | undefined => { const p = places.find((x) => x.key === k); return p?.parent ? top(p.parent) : p; };
     if (!t || ('road' in t && z.road === t.road) || ('junction' in t && z.node === t.junction) || ('site' in t && top(z.place)?.site === t.site)) continue;
-    err('land_entry', 'road' in t ? `zone ${z.key} builds ${key}, the land's road ${t.road}: make it that road's zone (kind road, "road": "${t.road}")`
+    err('land_entry', 'road' in t ? `zone ${z.key} builds ${key}, the land's road ${t.road}: make it that road's title (no kind, "road": "${t.road}")`
       : 'junction' in t ? `zone ${z.key} builds ${key}, the land's junction ${t.junction}: make it that junction's zone ("node": "${t.junction}")`
       : `zone ${z.key} builds ${key}, the way into the land's site ${t.site}: make it a zone of the settlement you build on that site (its top-level place has "site": "${t.site}")`);
   }
@@ -309,12 +314,12 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const neighbours = (key: string) => {
     const n = new Set<string>();
     const z = zones.find((x) => x.key === key);
-    for (const l of arr(z?.links)) if (l.to !== key) n.add(l.to);
-    for (const o of zones) if (o.key !== key && arr(o.links).some((l) => l.to === key)) n.add(o.key);
-    for (const o of state.zones) if (o.links.some((l) => !l.frontier && l.to === key)) n.add(o.id);
-    if (ctx.frontierKey && zones[0]?.key === key) for (const o of state.zones) if (o.links.some((l) => l.frontier && l.to === ctx.frontierKey)) n.add(o.id);
-    // BG-286 (BF93 a): a zone keyed as a frontier on the stage is that way, built: it touches the zones leading into it
-    if (existingFrontiers.has(key)) for (const o of state.zones) if (o.links.some((l) => l.frontier && l.to === key)) n.add(o.id);
+    for (const l of arr(z?.ways)) if (l.to !== key) n.add(l.to);
+    for (const o of zones) if (o.key !== key && arr(o.ways).some((l) => l.to === key)) n.add(o.key);
+    for (const w of ways) if (!w.frontier && w.to === key) n.add(w.from);
+    if (ctx.frontierKey && zones[0]?.key === key) for (const w of ways) if (w.frontier && w.to === ctx.frontierKey) n.add(w.from);
+    // BG-286 (BF93 a): a title keyed as a frontier on the stage is that way, built: it touches the titles leading into it
+    if (existingFrontiers.has(key)) for (const w of ways) if (w.frontier && w.to === key) n.add(w.from);
     return n;
   };
   for (const z of zones) {
@@ -322,14 +327,14 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`zone ${z.key} look`, z.look, true);
     if (!isPlace(z.place)) err('unresolved_place', `zone ${z.key}: place ${z.place} unknown`);
     const kinds = Object.values(getLibrary().zoneKinds ?? {});
-    if (!kinds.some((k) => k.id === z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.map((k) => `${k.id} (${k.name})`).join(', ')}`);
-    if (z.height !== undefined && (typeof z.height !== 'number' || !Number.isFinite(z.height) || Math.abs(z.height) > 500)) err('bad_zone', `zone ${z.key}: height is metres above the ground, a number from -500 to 500`);
+    // PZ9: a road is a title with no kind, drawn along its line (a land road's, or a straight one its length long)
+    const road = !z.kind && (z.road !== undefined || z.length !== undefined || z.danger !== undefined);
+    if (!road && !kinds.some((k) => k.id === z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.map((k) => `${k.id} (${k.name})`).join(', ')}; a road has no kind and gives "road" (a land road) or "length" and "danger"`);
     if (z.size !== undefined && !ZONE_SIZES.has(z.size)) err('bad_zone', `zone ${z.key}: size is ${ZONE_SIZES.list()}`);
-    const road = getLibrary().zoneKinds?.[z.kind]?.road;
-    // BG-141: a length or danger on a zone that is not a road kind is dropped (a repair), never the whole plan
+    // BG-141: a length or danger on a title that is not a road is dropped (a repair), never the whole plan
     if (!road && (z.length !== undefined || z.danger !== undefined)) {
       delete z.length; delete z.danger;
-      errs.push({ code: 'road_fields_dropped', message: `zone ${z.key}: not a road kind, so its length and danger were dropped`, routineOnly: false, repaired: true });
+      errs.push({ code: 'road_fields_dropped', message: `zone ${z.key}: not a road (it has a kind), so its length and danger were dropped`, routineOnly: false, repaired: true });
     }
     // BG-223: the Weaver is told road lengths in words ("an hour's walk"): they read as their keys, and "2 km" as km
     if (typeof z.length === 'string') {
@@ -341,38 +346,39 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     // WZ1: a road zone runs along a road of the land that no other road zone holds yet
     if (z.road !== undefined) {
       const line = (state.regions ?? []).flatMap((r) => r.roads).find((x) => x.id === z.road);
-      if (!road) err('bad_zone', `zone ${z.key}: only a road kind runs along a region road`);
+      if (!road) err('bad_zone', `zone ${z.key}: only a road (no kind) runs along a region road`);
       else if (!line) err('bad_zone', `zone ${z.key}: road is a road id from target.region.roads`);
       else if (line.zone && line.zone !== z.key) err('bad_zone', `zone ${z.key}: road ${z.road} is already the zone ${line.zone}`);
     }
     if (z.node !== undefined) {
       const jn = landNode(state, z.node)?.node;
       if (jn?.kind !== 'junction') err('bad_zone', `zone ${z.key}: node is a junction id from land.junctions`);
-      else if (z.road !== undefined || !getLibrary().zoneKinds?.[z.kind]?.outdoor) err('bad_zone', `zone ${z.key}: a junction's zone is outdoors and runs along no road (the roads meeting there are their own zones)`);
+      else if (z.road !== undefined || !!getLibrary().zoneKinds?.[z.kind ?? '']?.roof) err('bad_zone', `zone ${z.key}: a junction's zone is outdoors and runs along no road (the roads meeting there are their own zones)`);
       else if (zones.some((o) => o !== z && o.node === z.node)) err('bad_zone', `zone ${z.key}: junction ${z.node} is one zone`);
     }
     if (z.sideWay !== undefined) { // RE8 a
       const r = state.stage.encounter ? state.regions?.find((x) => x.roads.some((l) => l.id === zoneById(state, state.stage.encounter!.zone)?.road)) : undefined;
       const to = z.sideWay?.toward;
       if (!r) err('bad_zone', `zone ${z.key}: sideWay is only for a road encounter on a road of the land (target.encounter)`);
-      else if (z.road !== undefined || z.node !== undefined || !getLibrary().zoneKinds?.[z.kind]?.outdoor) err('bad_zone', `zone ${z.key}: a side way's zone is outdoors, beside the road, with no road or node of its own`);
+      else if (z.road !== undefined || z.node !== undefined || !!getLibrary().zoneKinds?.[z.kind ?? '']?.roof) err('bad_zone', `zone ${z.key}: a side way's zone is outdoors, beside the road, with no road or node of its own`);
       else if (zones.filter((o) => o.sideWay).length > 1) err('bad_zone', `zone ${z.key}: an encounter opens one side way at most`);
       else if (to !== undefined && !r.sites.some((x) => x.id === to) && !r.features.some((f) => f.id === to || f.name.toLowerCase() === String(to).toLowerCase()))
         err('bad_zone', `zone ${z.key}: sideWay.toward is a site id from land.sites or a landmark name from land.landmarks, or left out`);
       else if (z.sideWay?.name !== undefined) text(`zone ${z.key} sideWay name`, z.sideWay.name, true);
     }
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
-    const edgeKinds = getLibrary().edgeKinds ?? {};
-    for (const [side, ek] of Object.entries(z.edges ?? {})) {
-      if (!SIDES.includes(side as never) || !edgeKinds[ek as string]) err('bad_zone', `zone ${z.key}: edges are n, e, s or w, each an edge kind id from catalogs.edgeKinds (${Object.values(edgeKinds).map((k) => `${k.id} ${k.name}`).join(', ')})`);
+    const wallKinds = getLibrary().wallKinds ?? {};
+    for (const [side, wk] of Object.entries(z.walls ?? {})) {
+      if (!SIDES.includes(side as never) || !wallKinds[wk as string]) err('bad_zone', `zone ${z.key}: walls are n, e, s or w, each a wall kind id from catalogs.wallKinds (${Object.values(wallKinds).map((k) => `${k.id} ${k.name}`).join(', ')})`);
     }
-    if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
+    if (z.light !== undefined && !LIGHT.has(z.light)) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}`);
     // NW4: an onward kind (a street, square, gate, field, woods or road) links somewhere besides the way in
-    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && !z.road && !z.node && !z.sideWay && neighbours(z.key).size < 2) // WI2 a: code makes a land zone's ways
-      err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind]?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
-    for (const l of arr(z.links)) {
-      text(`zone ${z.key} link label`, l.label, true);
-      if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, a built zone, or a frontier`);
+    if (getLibrary().zoneKinds?.[z.kind ?? '']?.onward && !z.fromLayout && !z.road && !z.node && !z.sideWay && neighbours(z.key).size < 2) // WI2 a: code makes a land zone's ways
+      err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind ?? '']?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
+    for (const l of arr(z.ways)) {
+      text(`zone ${z.key} way label`, l.label, true);
+      if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: way to ${l.to} is not a zone in the plan, a built zone, or a frontier`);
+      if (l.kind !== undefined && !WAY_KINDS.includes(l.kind as WayKind)) err('bad_link', `zone ${z.key}: a way's kind is ${WAY_KINDS.join(', ')}`);
       // SD3–SD5: a barrier on the way
       const b = l.barrier;
       if (b) {
@@ -384,7 +390,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         }
         if (b.barredFrom !== undefined && b.barredFrom !== z.key && b.barredFrom !== l.to) err('bad_link', `zone ${z.key}: barredFrom is the zone the bolt is on: ${z.key} or ${l.to}`);
         if (isFrontier(l.to)) err('bad_link', `zone ${z.key}: a barrier goes on a way between two zones, never on a way to a frontier`);
-        else if (k && !!l.drop !== !!k.window) err('bad_link', `zone ${z.key}: ${k.window ? `${k.name} goes only on a drop (a window)` : 'a barrier on a drop is a window (a window barrier kind)'}`); // PC3
+        else if (k && (l.kind === 'window') !== !!k.window) err('bad_link', `zone ${z.key}: ${k.window ? `${k.name} goes only on a drop (a window)` : 'a barrier on a drop is a window (a window barrier kind)'}`); // PC3
         for (const key of arr(b.keys)) if (!isActor(key)) err('bad_link', `zone ${z.key}: key holder ${key} is not in the cast or on the stage`);
       }
     }
@@ -414,9 +420,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     adj.get(a)!.add(b);
     adj.get(b)!.add(a);
   };
-  for (const z of zones) for (const l of arr(z.links)) if (isZone(l.to)) edge(z.key, l.to);
-  for (const z of state.zones) for (const l of z.links) if (!l.frontier && stageZones.has(l.to)) edge(z.id, l.to);
-  for (const z of state.zones) for (const l of z.links) if (l.frontier && zoneKeys.has(l.to)) edge(z.id, l.to); // BG-286: a frontier built as a plan zone
+  for (const z of zones) for (const l of arr(z.ways)) if (isZone(l.to)) edge(z.key, l.to);
+  for (const w of ways) if (!w.frontier && stageZones.has(w.to)) edge(w.from, w.to);
+  for (const w of ways) if (w.frontier && zoneKeys.has(w.to)) edge(w.from, w.to); // BG-286: a frontier built as a plan zone
   const reach = (from: string) => {
     const seen = new Set([from]);
     const q = [from];

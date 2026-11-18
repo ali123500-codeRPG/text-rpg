@@ -39,7 +39,7 @@ export const inWorld = (state: GameState, itemId: string): boolean => itemHolder
 
 /** every place an item instance can be: each actor's inventory and each zone's ground, in every place */
 export function itemHolders(state: GameState): ItemInstance[][] {
-  return [...[state.player, ...state.actors].map((a) => a.core.inventory), ...state.places.flatMap((p) => p.zones.map((z) => z.groundItems))];
+  return [...[state.player, ...state.actors].map((a) => a.core.inventory), state.ground];
 }
 
 /** TB6: the actor's bound Threadbound items it is not carrying */

@@ -19,6 +19,8 @@ import { TIERS } from '../../src/scales';
 import { CONFIG } from '../../src/config';
 import { TP } from '../../src/library/templateIds';
 import { ago, tick, turnsFor } from '../harness/time';
+import { waysOut } from '../../src/plan/where';
+import { drawTitles } from '../../src/plan/draw';
 
 /** a running scenario whose ground is `ground` (no endings of its own) */
 const scenario = (s: GameState, ground: string[]) => {
@@ -166,10 +168,7 @@ describe('190 chases and free roam', () => {
 
   it('CH6: a pursuer that saw the crossing knows where it leads (code-run only at range far); one still hunting that reaches it follows', () => {
     const s = makeVillage({ playerZone: 'field_far', without: ['slime_2'] });
-    const grove = { id: 'grove', placeId: 'field', name: 'a grove', look: '', links: [{ to: 'field_far', label: 'back', sight: true }], cover: 'some' as const, light: 'bright' as const, groundItems: [] };
-    s.zones.push(grove);
-    s.places.find((p) => p.id === 'field')!.zones.push(grove);
-    s.zones.push(grove);
+    const [grove] = drawTitles(s, [{ id: 'grove', placeId: 'field', name: 'a grove', look: '', roof: false, ways: [{ to: 'field_far', label: 'back', kind: 'open' }] }]);
     s.player.zone = 'grove';
     const slime = hunts(s, 'slime_1', s.turn, 'field_far');
     const wim = hunts(s, 'patron_1', s.turn, 'field_far');
@@ -228,7 +227,7 @@ describe('190 chases and free roam', () => {
     expect(s.stage.scenarioNumber).toBe(before);
     expect(s.stage.roam).toBeDefined();
     expect(s.stage.scenario).toBeUndefined();
-    expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.to === 'grove')?.frontier).toBeUndefined();
+    expect(waysOut(s, 'field_far').find((l) => l.to === 'grove')?.frontier).toBeUndefined();
   });
 
   it('CH5: the Weaver may give a band a chase range from the table', () => {

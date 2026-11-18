@@ -1,67 +1,39 @@
-// FR1–FR4: furnished rooms. A zone lists named furniture with where it stands (a compass side or corner, or the middle).
-// It is colour first (FR1): a move can end beside a piece, and search and stash work where one stands; it never blocks a
-// walk, but it hides what is behind it (PC1, PC2: its kind's sizeM; ruleset/objectCover). FR2: a zone gets its kind's defaults unless a layout or the Weaver lists its own. FR4: a piece on an edge
-// (a counter, a rail) is one record on one zone and shows on the far side of that edge too.
-import type { Furniture, GameState, PlanFurniture, Side, Zone } from '../types';
-import { GRADES, OPP_SIDE } from '../types';
-import { getLibrary } from '../library';
-import { FU } from '../library/tableIds';
-import { compassOf, edgeToward } from '../scenario/geometry';
+// FR1–FR4, PZ2: furnished rooms. Each piece of furniture stands at a point on the floor plan (GameState.furniture), named
+// and listed with the title it was drawn in, where it stands there (a compass side or corner, or the middle). It is
+// colour first (FR1): a move can end beside a piece, and search and stash work where one stands; it never blocks a walk,
+// but it hides what is behind it (PC1, PC2: its kind's sizeM; ruleset/objectCover). FR2: a title gets its kind's defaults
+// unless a layout or the Weaver lists its own. FR4: a piece on an edge (a counter, a rail) stands on that edge and shows
+// in the title on its far side too.
+import type { Furniture, GameState, Side } from '../types';
+import { OPP_SIDE } from '../types';
 import { zoneById } from './relations';
+import { inTitle } from '../plan/where';
+export { makeFurniture } from '../plan/draw';
 
 const WORDS: Record<string, string> = { n: 'north', ne: 'north east', e: 'east', se: 'south east', s: 'south', sw: 'south west', w: 'west', nw: 'north west' };
-/** how far in from the wall a piece on a side stands, in metres */
-const INSET_M = 0.5;
 
-/** FR2: a zone's furniture from a list (unknown kinds count as "other"), with ids `${zone}.fu${n}` */
-export const makeFurniture = (zoneId: string, list: PlanFurniture[]): Furniture[] => list.filter((x) => x?.name).map((x, i) => ({
-  id: `${zoneId}.fu${i + 1}`, kind: getLibrary().furnitureKinds?.[x.kind] ? x.kind : FU.other, name: x.name,
-  ...(x.at && WORDS[x.at.toLowerCase()] || x.at && compassOf(x.at) ? { at: x.at.toLowerCase() } : {}), ...(x.edge && x.at ? { edge: true as const } : {}),
-  ...(x.grade && GRADES.includes(x.grade) ? { grade: x.grade } : {}),
-}));
-
-/** the side of zone `from` that faces `to` (by their centres) */
-function facing(from: Zone, to: Zone): Side | null {
-  if (!from.rect || !to.rect) return null;
-  const dx = to.rect.x - from.rect.x, dy = to.rect.y - from.rect.y;
-  if (!dx && !dy) return null;
-  return Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'e' : 'w') : dy > 0 ? 'n' : 's';
-}
-
-/** FR4: everything that stands in a zone: its own pieces, and the edge pieces of the zones it links to across their edge */
+/** FR4: everything that stands in a title: its own pieces, and the edge pieces of other titles on its edge */
 export function furnitureIn(state: GameState, zoneId: string): Furniture[] {
   const z = zoneById(state, zoneId);
   if (!z) return [];
-  const out = [...(z.furniture ?? [])];
-  for (const l of z.links) {
-    const b = l.frontier ? undefined : zoneById(state, l.to);
-    const side = b && facing(b, z);
-    for (const f of b?.furniture ?? []) if (f.edge && side && f.at === side && !out.some((x) => x.id === f.id)) out.push({ ...f, at: OPP_SIDE[side] });
-  }
-  return out;
+  return state.furniture.filter((f) => f.zone === zoneId || (f.edge && Math.abs(f.floor - z.floor) < 0.01 && inTitle(z, f.pos, 0.05)));
 }
 
-/** where a piece stands in its zone's frame: on its side, INSET_M in from the edge; the middle when it names no side */
-export function furniturePos(state: GameState, zoneId: string, f: Furniture): { x: number; y: number } | undefined {
-  const r = zoneById(state, zoneId)?.rect;
-  if (!r) return undefined;
-  const d = f.at ? compassOf(WORDS[f.at] ?? f.at) : null;
-  if (!d) return { x: r.x, y: r.y };
-  const p = edgeToward(r, d), dx = r.x - p.x, dy = r.y - p.y, len = Math.hypot(dx, dy), m = f.edge ? 0 : Math.min(INSET_M, len);
-  return len ? { x: p.x + (dx / len) * m, y: p.y + (dy / len) * m } : p;
-}
+/** where a piece stands */
+export const furniturePos = (_state: GameState, _zoneId: string, f: Furniture): { x: number; y: number } => f.pos;
 
-/** a piece in a zone by id (its own or an edge piece seen from this side) */
+/** a piece in a title by id (its own or an edge piece seen from this side) */
 export const furnitureById = (state: GameState, zoneId: string, id: string): Furniture | undefined => furnitureIn(state, zoneId).find((f) => f.id === id);
 
-/** the stored record of a piece by id (`${zone}.fu${n}`), not a copy seen across an edge: where its grade is kept (OD3) */
-export function furnitureRecord(state: GameState, id: string): Furniture | undefined {
-  const i = id.lastIndexOf('.fu');
-  return i > 0 ? zoneById(state, id.slice(0, i))?.furniture?.find((f) => f.id === id) : undefined;
-}
+/** the stored record of a piece by id: where its grade is kept (OD3) */
+export const furnitureRecord = (state: GameState, id: string): Furniture | undefined => state.furniture.find((f) => f.id === id);
 
-/** a piece's place in words: "north side", "south-west corner", "middle" */
-export function furnitureWhere(f: Furniture): string {
-  const w = f.at ? WORDS[f.at] ?? f.at : '';
+/** the side across from a side or corner (OPP_SIDE, each letter of a corner turned) */
+const opposite = (side: string): string => side.split('').map((c) => OPP_SIDE[c as Side] ?? c).join('');
+/** a piece's place in words: "north side", "south-west corner", "middle"; FR4: an edge piece seen from the title on its far
+ * side (`from`) stands on that title's opposite side */
+export function furnitureWhere(f: Furniture, from?: string): string {
+  const side = f.side && f.edge && from && from !== f.zone ? opposite(f.side) : f.side;
+  const w = side ? WORDS[side] ?? side : '';
   return !w ? 'middle' : w.includes(' ') ? `${w.replace(' ', '-')} corner` : `${w} side`;
 }

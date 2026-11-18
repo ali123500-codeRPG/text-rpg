@@ -4,9 +4,10 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { doorway, placeZones } from '../../src/scenario/geometry';
+import { inTitle, middle, wayTo } from '../../src/plan/where';
+import { boxOf, sharedSides } from '../../src/plan/geom';
 import { verticalOf } from '../../src/scenario/heights';
-import { distM, placeAll, sightDistM } from '../../src/engine/position';
+import { distM, sightDistM } from '../../src/engine/position';
 import { perceptionOf } from '../../src/perception';
 import { ruleset } from '../../src/ruleset';
 import { forcedRng } from '../harness';
@@ -16,15 +17,10 @@ import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
 import type { GameEvent, GameState } from '../../src/types';
 
-/** the test village with real zone sizes laid out on the map: rooms 60 m², streets 400 m², fields 1600 m² (40 m across) */
-function mapped(playerZone?: string): GameState {
-  const s = makeVillage(playerZone ? { playerZone } : {});
-  const zs = s.places.flatMap((p) => p.zones);
-  for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
-  placeZones(s, zs);
-  placeAll(s);
-  return s;
-}
+/** the test village drawn on its floor plan: rooms 64 m², streets 400 m², fields 1600 m² (40 m across) */
+const mapped = (playerZone?: string): GameState => makeVillage(playerZone ? { playerZone } : {});
+/** the point of the way from title a to title b */
+const doorway = (s: GameState, a: string, b: string) => wayTo(s, a, b)!.opening.at;
 const r = (n: number) => Math.round(n * 10) / 10;
 const zoneOf = (s: GameState, id: string) => s.places.flatMap((p) => p.zones).find((z) => z.id === id)!;
 
@@ -36,26 +32,18 @@ describe('171 positions', () => {
     expect(verticalOf('the stairs up')).toBe(1);
   });
 
-  it('BG-7: linked zones that don\'t touch are walked across edge to edge, never leaving the walker between them', () => {
+  it('BG-7: a walk from the far wall reaches the next title through its door, never stopping between them', () => {
     const s = mapped('tav_common');
-    const zs = s.places.flatMap((p) => p.zones);
-    const room = zs.find((z) => z.id === 'tav_common')!, street = zs.find((z) => z.id === 'street_door')!;
-    street.rect = { ...street.rect!, x: room.rect!.x + room.rect!.w / 2 + 30 + street.rect!.w / 2, y: room.rect!.y }; // a 30 m gap, no doorway
+    const room = boxOf(zoneOf(s, 'tav_common').outline);
     s.actors = s.actors.filter((a) => a.zone !== 'tav_common' && a.zone !== 'street_door');
-    s.player.pos = { x: room.rect!.x - room.rect!.w / 2 + 0.5, y: room.rect!.y }; // the far wall: more than one slot away
-    expect(distM(s, s.player, { zone: 'street_door' })).toBeLessThan(room.rect!.w + street.rect!.w / 2 + 1); // to the street's middle; the gap isn't counted
+    s.player.pos = { x: room.x, y: room.y + room.d / 2 - 0.5 }; // the far wall: more than one slot from the door
     for (let i = 0; i < 3 && s.player.zone !== 'street_door'; i++) play(s, { intent: intent({ move: { toZone: 'street_door' }, action: { type: 'wait' } as never }) });
     expect(s.player.zone).toBe('street_door');
   });
 
-  it('BG-7: a zone whose exit names no direction touches the zone it leads from on a free side, not across a gap', () => {
+  it('BG-7: a title whose way names no direction touches the title it leads from on a free side, not across a gap', () => {
     const s = mapped();
-    const zs = s.places.flatMap((p) => p.zones);
-    const room = zs.find((z) => z.id === 'tav_common')!, street = zs.find((z) => z.id === 'street_door')!;
-    expect(street.rect && room.rect).toBeTruthy();
-    const gapX = Math.abs(street.rect!.x - room.rect!.x) - (street.rect!.w + room.rect!.w) / 2;
-    const gapY = Math.abs(street.rect!.y - room.rect!.y) - (street.rect!.d + room.rect!.d) / 2;
-    expect(Math.max(gapX, gapY)).toBeLessThan(0.01);
+    expect(sharedSides(zoneOf(s, 'tav_common').outline, zoneOf(s, 'street_door').outline).length).toBeGreaterThan(0);
   });
 
   it('ZP1: code places everyone inside their zone, an arm\'s length apart', () => {
@@ -63,7 +51,7 @@ describe('171 positions', () => {
     const z = s.places.flatMap((p) => p.zones).find((x) => x.id === 'tav_common')!;
     const here = [s.player, ...s.actors].filter((a) => a.zone === 'tav_common');
     expect(here.length).toBeGreaterThan(1);
-    for (const a of here) expect(Math.abs(a.pos!.x - z.rect!.x)).toBeLessThanOrEqual(z.rect!.w / 2);
+    for (const a of here) expect(inTitle(z, a.pos!)).toBe(true);
     expect(distM(s, here[0], here[1])).toBeGreaterThanOrEqual(CONFIG.PLACE_GAP_M - 0.01);
   });
 
@@ -80,8 +68,8 @@ describe('171 positions', () => {
 
   it('ZP2: a move walks 8.4 m toward its zone, a dash runs 21.6 m more, and a move to a zone stops a step past its edge', () => {
     const s = mapped('field_edge');
-    const fe = zoneOf(s, 'field_edge'), fm = zoneOf(s, 'field_mid'), door = doorway(fe, fm)!;
-    const c = { x: fe.rect!.x, y: fe.rect!.y }; // the field's centre: 20 m from field_mid
+    const door = doorway(s, 'field_edge', 'field_mid');
+    const c = middle(zoneOf(s, 'field_edge')); // the field's centre: 20 m from field_mid
     expect(r(Math.hypot(door.x - c.x, door.y - c.y))).toBe(20);
     s.player.pos = { ...c };
     const ev = play(s, { intent: intent({ move: { toZone: 'field_mid' }, action: { type: 'wait' } }) }); // the main slot is busy: no dash
@@ -109,7 +97,7 @@ describe('171 positions', () => {
 
   it('BG-255: still out of reach after closing in, the blow becomes a run at them, as far as a dash', () => {
     const s = mapped('field_edge');
-    s.player.pos = { x: zoneOf(s, 'field_edge').rect!.x, y: zoneOf(s, 'field_edge').rect!.y };
+    s.player.pos = middle(zoneOf(s, 'field_edge'));
     const dash = structuredClone(s);
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1', skill: SK.melee_medium } }) });
     const moves = ev.filter((e) => e.actorId === 'player' && e.kind === 'move');
@@ -136,8 +124,8 @@ describe('171 positions', () => {
 
   it('PR 2: sight is measured in metres from where the event happened', () => {
     const s = mapped('field_edge');
-    const fe = zoneOf(s, 'field_edge'), fm = zoneOf(s, 'field_mid'), door = doorway(fe, fm)!;
-    const at = { x: fm.rect!.x + (door.x - fm.rect!.x) * 0.7, y: fm.rect!.y + (door.y - fm.rect!.y) * 0.7 }; // 6 m inside field_mid
+    const door = doorway(s, 'field_edge', 'field_mid'), m = middle(zoneOf(s, 'field_mid'));
+    const at = { x: m.x + (door.x - m.x) * 0.7, y: m.y + (door.y - m.y) * 0.7 }; // 6 m inside field_mid
     const u = { x: (door.x - at.x) / Math.hypot(door.x - at.x, door.y - at.y), y: (door.y - at.y) / Math.hypot(door.x - at.x, door.y - at.y) };
     const seen = (d: number, visibility: GameEvent['visibility']) => {
       place(s, 'player', d > 6 ? 'field_edge' : 'field_mid').pos = { x: at.x + u.x * d, y: at.y + u.y * d };

@@ -3,25 +3,24 @@
 // the gap between their bodies, so reach is measured edge to edge; nobody is placed inside anybody else.
 import { expect, it } from 'vitest';
 import type { Actor, GameState } from '../../src/types';
-import { forcedRng, makeVillage, place } from '../harness';
+import { forcedRng, landUnder, makeVillage, place } from '../harness';
+import { middle, wayTo } from '../../src/plan/where';
 import { CONFIG } from '../../src/config';
 import { actorBody, actorVolumeM3, getLibrary } from '../../src/library';
 import { BT, RC } from '../../src/library/raceIds';
-import { AM, ZK } from '../../src/library/tableIds';
+import { AM, LC } from '../../src/library/tableIds';
 import { entryPoint, floorGap, placeAll, seeingM, seenSizeFactor, withinM } from '../../src/engine/position';
 import { sightFactor } from '../../src/library/bodySize';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
 import { knownMap } from '../../src/ui/mapData';
-import { fitsThrough, openingOf, wayPath, zoneById } from '../../src/engine/relations';
+import { fitsThrough, wayPath, zoneById } from '../../src/engine/relations';
 import { coverMod, coverShown, hostileNearM, meleeReachM, usableModes } from '../../src/ruleset/gear';
 import { gripReachM } from '../../src/ruleset/body';
 
 const OGRE = 'test_ogre';
 const room = () => {
-  const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
-  s.zones.find((x) => x.id === 'tav_common')!.rect = { x: 0, y: 0, w: 20, d: 20 };
-  return s;
+  return makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'], shape: { tav_common: { rect: { x: 0, y: 0, w: 20, d: 20 } } } });
 };
 const horse = (s: GameState): Actor => {
   const h = s.actors.find((a) => a.id === 'patron_1')!;
@@ -126,25 +125,22 @@ it('SZ11: a body is seen as far as √(its seen area ÷ a person\'s); looking do
 });
 
 it('SZ12, CV3, CV4: cover is set for a person; a smaller body shows less by its height, with no top; a taller one more, except under tall cover', () => {
-  const s = room();
-  const z = s.zones.find((x) => x.id === 'tav_common')!;
-  const p = s.actors.find((a) => a.id === 'patron_1')!;
-  z.outdoor = true; // PC1: only a zone under the sky keeps a clutter level
-  z.cover = 'some';
+  const s = makeVillage({ playerZone: 'field_mid', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
+  const z = s.zones.find((x) => x.id === 'field_mid')!; // PZ6 a: clutter is the land's under the open sky
+  const p = place(s, 'patron_1', 'field_mid');
+  landUnder(s, z.outline, LC.marsh); // reed beds: some cover, 2 m high
   expect(coverShown(s, s.player, z)).toBe(0.5);
   expect(coverMod(coverShown(s, s.player, z))).toBe(10); // CV6: one halving
   p.core.bodyTypeId = BT.amorphous; p.core.raceId = s.actors.find((a) => a.id === 'slime_1')?.core.raceId ?? RC.slime;
   expect(coverShown(s, p, z)).toBeCloseTo(0.5 * 0.3 / 1.75); // a slime 0.3 m high
   expect(coverMod(coverShown(s, p, z))).toBe(35);
-  z.cover = 'dense';
-  expect(coverMod(coverShown(s, p, z))).toBe(55); // past the top level it keeps going
-  z.cover = 'some';
   getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 7 / 1.75 } };
   const giant = { ...s.player, core: { ...s.player.core, raceId: OGRE } };
   expect(coverShown(s, giant, z)).toBe(1); // 7 m tall behind a 1.1 m counter: nothing hidden
-  z.cover = 'heavy'; z.kind = ZK.woods;
+  landUnder(s, z.outline, LC.woods);
   expect(coverShown(s, giant, z)).toBe(0.25); // among 20 m trees: hidden like a person
-  z.cover = 'none';
+  expect(coverMod(coverShown(s, p, z))).toBeGreaterThan(35); // the more it hides, the more it counts
+  landUnder(s, z.outline, LC.farmland);
   expect(coverShown(s, p, z)).toBe(1); // no cover to hide in
   delete getLibrary().races![OGRE];
 });
@@ -155,8 +151,8 @@ it('SZ13: the range penalty reads the shot\'s metres ÷ the target\'s size facto
   for (const i of s.player.core.inventory) delete i.equippedIn;
   s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
   const t = s.actors.find((a) => a.id === 'slime_1')!;
-  const r = s.zones.find((z) => z.id === 'field_mid')!.rect!;
-  s.player.pos = { x: r.x, y: r.y - r.d / 2 + 1 }; t.pos = { x: r.x, y: s.player.pos.y + 20 }; // a shortbow reaches 50 m
+  const r = middle(s.zones.find((z) => z.id === 'field_mid')!);
+  s.player.pos = { x: r.x, y: r.y - 19 }; t.pos = { x: r.x, y: s.player.pos.y + 20 }; // a shortbow reaches 50 m
   const range = () => ruleset.attack({ attackerId: 'player', targetId: t.id, weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50])).attack.modifiers.find((m) => m.source === 'range')?.value ?? 0;
   const slime = range();
   t.core.bodyTypeId = BT.quadruped; t.core.raceId = RC.horse;
@@ -167,18 +163,17 @@ it('SZ13: the range penalty reads the shot\'s metres ÷ the target\'s size facto
 
 it('SZ7: a body goes through a doorway sideways and ducking; too big a body takes another way or none', () => {
   const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-  const street = zoneById(s, 'street_door')!, link = street.links.find((l) => l.to === 'tav_common')!;
+  const link = wayTo(s, 'street_door', 'tav_common')!;
   const h = horse(s);
-  expect(openingOf(s, link, street.id)).toEqual({ w: CONFIG.DOORWAY_M[0], h: CONFIG.DOORWAY_M[1], vertical: false });
-  expect(fitsThrough(s, s.player, link, street.id)).toBe(true);
-  expect(fitsThrough(s, h, link, street.id)).toBe(true); // nose first: 0.65 m wide, 1.6 m ducks to 0.8
+  expect(link.opening).toMatchObject({ widthM: CONFIG.DOORWAY_M[0], heightM: CONFIG.DOORWAY_M[1] });
+  expect(fitsThrough(s, s.player, link)).toBe(true);
+  expect(fitsThrough(s, h, link)).toBe(true); // nose first: 0.65 m wide, 1.6 m ducks to 0.8
   getLibrary().races![OGRE] = { ...getLibrary().races![s.player.core.raceId!], id: OGRE, sizeMult: { length: 2, width: 2, height: 6 / 1.75 } };
   const giant = { ...s.player, zone: 'street_door', core: { ...s.player.core, raceId: OGRE } };
-  expect(fitsThrough(s, giant, link, street.id)).toBe(false); // 1 m wide, and 6 m ducks only to 3
+  expect(fitsThrough(s, giant, link)).toBe(false); // 1 m wide, and 6 m ducks only to 3
   expect(wayPath(s, 'street_door', 'tav_common', giant)).toBeNull();
   expect(wayPath(s, 'street_door', 'tav_common', s.player)).toEqual(['tav_common']);
-  for (const id of ['field_edge', 'field_mid']) zoneById(s, id)!.outdoor = true;
-  expect(openingOf(s, zoneById(s, 'field_edge')!.links.find((l) => l.to === 'field_mid')!, 'field_edge')).toBeNull(); // open ground
+  expect(fitsThrough(s, giant, wayTo(s, 'field_edge', 'field_mid')!)).toBe(true); // open ground: as wide as the ground they share
   delete getLibrary().races![OGRE];
 });
 

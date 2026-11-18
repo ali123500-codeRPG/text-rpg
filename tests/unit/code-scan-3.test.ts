@@ -6,6 +6,7 @@ import { loadHistory, memoryStore, saveHistory, saveTurn } from '../../src/save'
 import { CONFIG, resetConfig } from '../../src/config';
 import { clockText, durationText } from '../../src/time';
 import type { GameState, TurnRecord } from '../../src/types';
+import { setBarrier } from '../harness';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
@@ -92,7 +93,9 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     const { now, startClock } = await import('../../src/time');
     const { IT } = await import('../../src/library/itemIds');
     const { BK } = await import('../../src/library/tableIds');
-    const s = makeVillage({ playerZone: opts.playerZone ?? 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'] });
+    const { WK } = await import('../../src/library/tableIds');
+    // the gate's palisade on the square side, so the door in it is the only way through
+    const s = makeVillage({ playerZone: opts.playerZone ?? 'tav_cellar', without: ['slime_1', 'slime_2', 'patron_1'], shape: { gate_inner: { walls: { w: WK.wall } } } });
     startClock(s, 'morning');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
     g.zone = 'gate_inner';
@@ -102,8 +105,7 @@ describe('CS11: NPCs use their own keys while time skips', () => {
     const b = { id: 'gate_door', kind: BK.door, grade: 'minor' as const, lock: { locked: true },
       ...(opts.bar ? { bar: { drawn: true, side: 'gate_inner' } } : {}) };
     (s.barriers ??= {})[b.id] = b;
-    zoneById(s, 'gate_inner')!.links.find((l) => l.to === 'street_square')!.barrier = b.id;
-    zoneById(s, 'street_square')!.links.find((l) => l.to === 'gate_inner')!.barrier = b.id;
+    setBarrier(s, 'gate_inner', 'street_square', b.id);
     if (opts.key !== false) g.core.inventory.push({ id: 'key_g', itemId: IT.key, opens: [b.id] });
     return { s, g, b };
   }

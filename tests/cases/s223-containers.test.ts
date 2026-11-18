@@ -12,11 +12,13 @@ import { IT } from '../../src/library/itemIds';
 import { starterKit } from '../../src/library/spawn';
 import { checkParserLegality } from '../../src/agents/legality';
 import { tidyContainers, tidyRewards } from '../../src/scenario/validate';
+import { layAll } from '../harness';
+import { groundIn } from '../../src/engine/ground';
 
 const village = (): GameState => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
 const chest = (s: GameState, extra: object = {}) => {
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, contents: [{ id: 'cup', itemId: IT.curio }], ...extra });
-  return zoneById(s, 'tav_common')!.groundItems.find((i) => i.id === 'box')!;
+  layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, contents: [{ id: 'cup', itemId: IT.curio }], ...extra });
+  return groundIn(s, 'tav_common').find((i) => i.id === 'box')!;
 };
 const boxView = (s: GameState) => buildPlayerView(s).zone.groundItems.find((g) => g.id === 'box')!.container!;
 

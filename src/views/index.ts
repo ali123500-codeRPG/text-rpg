@@ -1,4 +1,6 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { middle, waysOut, wayTo, type Way } from '../plan/where';
+import { groundIn } from '../engine/ground';
 import { landTarget } from '../scenario/ways';
 import { landView } from '../land/brief';
 import { encounterPeople, withRosters } from '../land/roster';
@@ -12,7 +14,7 @@ import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PerkMoveView, PlayerView, RollResult, SeenActor, SeenGearView,
-  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneLink, ZoneView,
+  NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
@@ -102,23 +104,23 @@ export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 10
 /** a zone as `viewer` knows it (SD3–SD5: a barrier on a way shows what the viewer can tell of it); with no viewer (the
  * Weaver), every barrier in full */
 export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
-  const way = (l: ZoneLink) => {
+  const way = (l: Way) => {
     const b = barrierOn(state, l);
     if (!b) return {};
     return { way: viewer ? barrierView(b, viewer, z.id) : { kind: barrierName(b), grade: b.grade, ...(b.lock ? { lock: b.lock.locked ? 'locked' : 'unlocked' } : {}),
       ...(b.bar ? { bar: `${b.bar.drawn ? 'drawn' : 'open'}, bolt on the ${b.bar.side === z.id ? 'this' : 'far'} side` } : {}), ...(b.blocked ? { blocked: true as const } : {}), ...(b.guarded ? { guarded: true as const } : {}) } };
   };
   return {
-    id: z.id, name: z.name, look: z.look, cover: COVER.name(clutterCover(z)), light: LIGHT.name(zoneLight(state, z)), // PC1: indoors, furniture gives the cover
-    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
-    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
+    id: z.id, name: z.name, look: z.look, cover: COVER.name(clutterCover(state, z, viewer?.zone === z.id ? viewer.pos : undefined)), light: LIGHT.name(zoneLight(state, z, viewer?.zone === z.id ? viewer.pos : undefined)), // PC1: indoors, furniture gives the cover
+    links: waysOut(state, z.id).map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })), // PZ10: the ways out, read from this side
+    groundItems: groundIn(state, z.id).filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: pieceName(state, i), ...containerOf(state, i, viewer) })), // SE8
     ...furnitureView(state, z.id, viewer),
   };
 }
 /** FR1/FR5: what furniture stands in a zone and where; OD12: its grade once the viewer has tried it (always for the Weaver) */
 function furnitureView(state: GameState, zoneId: string, viewer?: Actor): { furniture?: ZoneView['furniture'] } {
   const fs = furnitureIn(state, zoneId);
-  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f), ...(f.grade && (!viewer || f.graded?.includes(viewer.id)) ? { grade: f.grade } : {}) })) } : {};
+  return fs.length ? { furniture: fs.map((f) => ({ id: f.id, name: f.name, where: furnitureWhere(f, zoneId), ...(f.grade && (!viewer || f.graded?.includes(viewer.id)) ? { grade: f.grade } : {}) })) } : {};
 }
 /** HF2: an echo's hidden past, for the Narrator only */
 const echoOf = (state: GameState, id: string): { echo?: string } => {
@@ -142,7 +144,7 @@ const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perc
 function whereLabel(state: GameState, from: string, to: string): string | undefined {
   if (from === to) return zoneById(state, from)?.name;
   const path = shortestPath(state, from, to);
-  return path?.length ? zoneById(state, from)?.links.find((l) => l.to === path[0])?.label : undefined;
+  return path?.length ? wayTo(state, from, path[0])?.label : undefined;
 }
 
 /** what `viewerId` calls `id`: the player by 'player'; anyone else by the name the viewer has for them (nameFor), else by label */
@@ -295,7 +297,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     // Q17/BG-252 (PG11 a): someone the player saw clearly (by distance, a look or a make-out roll) stays seen while they
     // stay put and can still be glimpsed (sight is not null here); anyone made out by sight this turn is seen clearly
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone || madeOutBySight(state, viewer.id, a.id);
-    const dark = isDark(zoneLight(state, zoneById(state, a.zone))) && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
+    const dark = isDark(zoneLight(state, zoneById(state, a.zone), a.pos)) && !(sight === 'full' && seenClearly(state, viewer.id, a.id));
     const level = keptSight ? 'full' : sight === 'partial' || dark ? 'partial' : 'full';
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place, ...lying }); continue; }
@@ -356,7 +358,7 @@ function knowsStep(state: GameState, viewer: Actor, e: GameEvent): boolean {
 function missingOf(state: GameState, a: Actor): { missing?: { id: string; name: string }[] } {
   const all = (xs: ItemInstance[]): ItemInstance[] => xs.flatMap((i) => [i, ...all(i.contents ?? [])]);
   const mine = new Set(all(a.core.inventory));
-  const gone = all([...allActors(state).flatMap((x) => x.core.inventory), ...state.zones.flatMap((z) => z.groundItems)])
+  const gone = all([...allActors(state).flatMap((x) => x.core.inventory), ...state.ground])
     .filter((i) => i.owner === a.id && !mine.has(i) && !itemDef(state, i.itemId).container);
   return gone.length ? { missing: gone.map((i) => ({ id: i.id, name: itemName(state, i.id) ?? itemDef(state, i.itemId).name })) } : {};
 }
@@ -684,7 +686,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', relations: {} },
     // BA7: code paths treat a way shut to this actor (no key, the far side of the bar, rubble) as no way
-    map: nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
+    map: nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: waysOut(state, z.id).map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
     zones: perceivedZones(state, a.zone, a),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
@@ -805,10 +807,7 @@ export function findInstance(state: GameState, instanceId: string): ItemInstance
     const i = find(a.core.inventory);
     if (i) return i;
   }
-  for (const z of state.places.flatMap((pl) => pl.zones)) { // every place's zones, not only the stage's
-    const i = find(z.groundItems);
-    if (i) return i;
-  }
+  return find(state.ground); // PZ11: everything on the ground, anywhere
   return undefined;
 }
 /** the library item of an item instance anyone carries or that lies on the ground anywhere, or one inside a container there (BK2) */
@@ -1077,7 +1076,7 @@ export function buildWorldView(state: GameState, target: WeaverTarget): WorldVie
 export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
   // WI8 a: the ground around the player and the target (the frontier's edge too), not the whole world
-  const edges = target.frontierKey ? state.zones.filter((z) => z.links.some((l) => l.to === target.frontierKey)).map((z) => z.id) : [];
+  const edges = target.frontierKey ? state.openings.filter((o) => o.frontier && o.joins[1] === target.frontierKey).map((o) => o.joins[0]) : [];
   const near = nearbyZones(state, [state.player.zone, ...edges], [target.placeId, state.player.placeId]);
   const stage = new Set(near.map((z) => z.id));
   const onStage = state.actors.filter((a) => stage.has(a.zone));
@@ -1105,7 +1104,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
         ...encounterPeople(state, zoneById(state, state.stage.encounter.zone)?.road, state.stage.encounter.at, timeOfDay(now(state)) === 'night') } } : {}),
       ...((target.kind === 'scenario' || target.kind === 'window') && state.stage.cause ? { cause: structuredClone(state.stage.cause) } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
-    ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const r = zoneById(state, state.player.zone)?.rect; return r ? { x: r.x, y: r.y } : undefined; })())),
+    ...((land) => (land ? { land } : {}))(landView(state, state.player.pos ?? (() => { const z = zoneById(state, state.player.zone); return z?.outline?.length ? middle(z) : undefined; })())),
     places: weaverPlaces(state, near, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
@@ -1138,7 +1137,8 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       skills: Object.keys(lib.skills).map((id) => ({ id, name: skillName(id) })),
       personality: { nerve: Object.keys(NERVE_LINES), types: Object.values(lib.personalityTypes ?? {}).map((t) => ({ id: t.id, name: t.name, hint: t.hint })), values: Object.values(lib.values ?? {}).map((v) => ({ id: v.id, name: v.name })) },
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
-      edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
+      wallKinds: Object.values(lib.wallKinds ?? {}).map((k) => ({ ...k })),
+      openingKinds: Object.values(lib.openingKinds ?? {}).map((k) => ({ ...k })),
       furnitureKinds: Object.values(lib.furnitureKinds ?? {}).map((k) => ({ ...k })),
       barrierKinds: Object.values(lib.barrierKinds ?? {}).map((k) => ({ ...k })),
       layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name, ...(z.furniture?.length ? { furniture: z.furniture.map((f) => f.name) } : {}) })) })),

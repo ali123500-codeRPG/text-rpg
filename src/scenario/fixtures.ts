@@ -3,7 +3,7 @@
 import { ZK } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import { SV } from '../library/serviceIds';
-import type { Clock, GameState, Grade, StagePlan, Tier } from '../types';
+import type { Clock, GameState, Grade, StagePlan, Tier, WayKind } from '../types';
 import { IT } from '../library/itemIds';
 
 /** a challenge/gain pair that fits each tier (Agent Weaver: grades table) */
@@ -18,7 +18,7 @@ export const FITTING_GRADES: Record<Tier, { challenge: Grade; gain: Grade }> = {
 
 /** Story start: Brookmere's tavern, the street and gate, the slime field, a frontier into the woods. */
 export function villageStagePlan(tier: Tier = 'success'): StagePlan {
-  const L = (to: string, label: string, sight = true) => ({ to, label, sight });
+  const L = (to: string, label: string, kind?: WayKind) => ({ to, label, ...(kind ? { kind } : {}) });
   return {
     event: { summary: 'slimes from a nest in the woods have started raiding the field', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.success) },
     places: [
@@ -28,20 +28,20 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
       { key: 'field', name: 'the east field', kind: 'place', parent: 'village' },
     ],
     zones: [
-      { key: 'tav_common', place: 'tavern', kind: ZK.room, name: 'common room', look: 'a low smoky room of benches and tables', cover: 'none', light: 'dim',
-        links: [L('tav_counter', 'behind the bar'), L('street_door', 'out the front door', false)] },
-      { key: 'tav_counter', place: 'tavern', kind: ZK.room, name: 'behind the bar', look: 'a scarred counter with kegs behind it', cover: 'some', light: 'dim',
-        links: [L('tav_common', 'the common room'), L('tav_cellar', 'down the cellar steps', false)] },
-      { key: 'tav_cellar', place: 'tavern', kind: ZK.cellar, name: 'cellar', look: 'a damp cellar of barrels', cover: 'some', light: 'dark',
-        links: [L('tav_counter', 'up the cellar steps', false)] },
-      { key: 'street_door', place: 'street', kind: ZK.street, name: 'outside the tavern', look: 'a muddy street before the tavern door', cover: 'none',
-        links: [L('tav_common', 'inside the tavern', false), L('gate_inner', 'toward the gate')] },
-      { key: 'gate_inner', place: 'street', kind: ZK.gate, name: 'the gate', look: 'a timber gate in the palisade', cover: 'none',
-        links: [L('street_door', 'back toward the tavern'), L('field_mid', 'through the gate')] },
-      { key: 'field_mid', place: 'field', kind: ZK.field, name: 'the open field', look: 'wet grass streaked with slime trails', cover: 'none',
-        links: [L('gate_inner', 'back toward the gate'), L('field_far', 'the far side of the field')] },
-      { key: 'field_far', place: 'field', kind: ZK.field, name: 'far side of the field', look: 'long grass by a line of trees', cover: 'some',
-        links: [L('field_mid', 'back across the field'), L('woods', 'into the woods', false)] },
+      { key: 'tav_common', place: 'tavern', kind: ZK.room, name: 'common room', look: 'a low smoky room of benches and tables', light: 'dim',
+        ways: [L('tav_counter', 'behind the bar'), L('street_door', 'out the front door', 'door')] },
+      { key: 'tav_counter', place: 'tavern', kind: ZK.room, name: 'behind the bar', look: 'a scarred counter with kegs behind it', light: 'dim',
+        ways: [L('tav_common', 'the common room'), L('tav_cellar', 'down the cellar steps', 'down')] },
+      { key: 'tav_cellar', place: 'tavern', kind: ZK.cellar, name: 'cellar', look: 'a damp cellar of barrels', light: 'dark',
+        ways: [L('tav_counter', 'up the cellar steps', 'up')] },
+      { key: 'street_door', place: 'street', kind: ZK.street, name: 'outside the tavern', look: 'a muddy street before the tavern door',
+        ways: [L('tav_common', 'inside the tavern', 'door'), L('gate_inner', 'toward the gate')] },
+      { key: 'gate_inner', place: 'street', kind: ZK.gate, name: 'the gate', look: 'a timber gate in the palisade',
+        ways: [L('street_door', 'back toward the tavern'), L('field_mid', 'through the gate')] },
+      { key: 'field_mid', place: 'field', kind: ZK.field, name: 'the open field', look: 'wet grass streaked with slime trails',
+        ways: [L('gate_inner', 'back toward the gate'), L('field_far', 'the far side of the field')] },
+      { key: 'field_far', place: 'field', kind: ZK.field, name: 'far side of the field', look: 'long grass by a line of trees',
+        ways: [L('field_mid', 'back across the field'), L('woods', 'into the woods')] },
     ],
     frontiers: [{ key: 'woods', label: 'the woods' }],
     bands: [
@@ -82,7 +82,7 @@ export function grovePlan(tier: Tier = 'success'): StagePlan {
     event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.success) },
     scenario: { question: 'what is in the grove?', stake: 'whatever hides there gets away', scale: 'moment', endings: [
       { when: { kind: 'judged' }, as: 'resolved', text: 'the grove is explored' }, { when: { kind: 'judged' }, as: 'left', text: 'the player walks on' }] },
-    zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove of birches', cover: 'some', links: [{ to: 'field_far', label: 'back to the field', sight: true }, { to: 'deep_woods', label: 'deeper into the woods', sight: false }] }],
+    zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove of birches', ways: [{ to: 'field_far', label: 'back to the field' }, { to: 'deep_woods', label: 'deeper into the woods' }] }],
   };
 }
 
@@ -91,6 +91,7 @@ export function toStoryStart(state: GameState, placeId = 'tavern'): GameState {
   state.turn = 0;
   state.places = [];
   state.zones = [];
+  Object.assign(state, { walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [] }); // PZ2: no floor plan yet
   state.actors = [];
   state.bands = state.bands.filter((b) => b.id === state.player.bandId).map((b) => ({ ...b, relations: {} }));
   state.stage = { tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 };

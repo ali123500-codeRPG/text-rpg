@@ -94,10 +94,4 @@ export const isDark = (light: Light): boolean => LIGHT.pos(light) >= LIGHT.pos(C
 /** LT1: in pitch black nothing is seen */
 export const pitchBlack = (light: Light): boolean => (CONFIG.LIGHT_LUX[light] ?? 0) <= 0;
 
-/** T3a: an outdoor zone is lit by the sky or its own lamps, whichever is brighter; indoors only its own light counts */
-export function zoneLight(state: GameState, z: Pick<Zone, 'light' | 'outdoor'> | undefined): Light {
-  const own = z?.light ?? 'bright';
-  if (!z?.outdoor) return own;
-  const sky = CONFIG.SKY_LIGHT[timeOfDay(now(state))] as Light;
-  return LIGHT.pos(sky) < LIGHT.pos(own) ? sky : own;
-}
+export { zoneLight } from './plan/light';

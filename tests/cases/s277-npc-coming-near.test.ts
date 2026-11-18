@@ -11,6 +11,7 @@ import { DU } from '../../src/library/tableIds';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import type { Actor, GameEvent, GameState } from '../../src/types';
+import { boxOf } from '../../src/plan/geom';
 
 const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
 const guard = (s: GameState) => s.actors.find((a) => a.id === 'guard_1')!;
@@ -24,7 +25,7 @@ const bandaging = (s: GameState, g: Actor, done: number, watch?: Record<string, 
 describe('277 NPCs and the coming-near check', () => {
   it('AT47/AT67: an NPC at a long action whose check fires (words to it, someone rushing at it) is asked again next turn; the alert is spent', () => {
     const s = makeVillage({ without: ['slime_1', 'slime_2'] });
-    const field = s.zones.find((z) => z.id === 'field_far')!.rect!;
+    const field = boxOf(s.zones.find((z) => z.id === 'field_far')!.outline);
     const g = guard(s);
     place(s, 'player', 'field_far');
     place(s, 'guard_1', 'field_far');

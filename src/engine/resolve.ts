@@ -1,4 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { roofed, wayTo } from '../plan/where';
 import { checkScenarioEnd, closeScenario, noteIdle } from './scenarioEnd';
 import { checkRoam, updateChase } from './chase';
 import { noticeGoals, runSteps } from './goals';
@@ -14,7 +15,7 @@ import { bestReward } from '../ruleset/achRewards';
 import { isHeld, parryItem, rollFnSkills } from '../ruleset/gear';
 import { freeGrips, levelMaxPct } from '../ruleset/body';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ZoneLink, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, Grade, RollResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Intent, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { GRADED_ACTS } from '../types';
 import { barrierOn, broken, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, attackRowIds, reactSeconds, timeFactor } from '../ruleset/actionTime';
@@ -429,7 +430,7 @@ function landImpact(ctx: Ctx, t: Actor, ev: GameEvent, res: AttackResult, struck
   const { state } = ctx;
   const armored = !!pieceOn(state, t, res.location);
   const hit = struck(res.outcome);
-  const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || !zoneById(state, t.zone)?.outdoor); // blocked or parried: on a shield or weapon
+  const hard = res.location === 'shield' || (hit ? armored : met(res.outcome) || roofed(state, zoneById(state, t.zone))); // blocked or parried: on a shield or weapon
   const kind = hard ? 'hard' as const : 'soft' as const;
   const s = mk(ctx, t, 'impact', { impact: kind, noise: CONFIG.IMPACT_NOISE[kind], visibility: 'normal', ...(ev.spar ? { spar: true as const } : {}) });
   s.perception = computePerception(s, state, ctx.rng);
@@ -507,7 +508,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
-  const link = zoneById(state, a.zone)?.links.find((l) => l.to === goal.zone);
+  const link = wayTo(state, a.zone, goal.zone);
   if (link?.frontier) {
     if (a.kind !== 'player') {
       // NW3/NW8: an NPC waits at the edge with its move spent. If the player crosses this frontier this turn it follows
@@ -525,13 +526,13 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   }
   // SD7: a jump down a window or ledge: straight into the zone below, with a landing roll and flat fall damage
   if (o.jump && link?.drop && a.kind === 'player') {
-    const shutters = barrierOn(state, link); // PC3: a window's shutters must be open, and the body must fit the opening
-    if ((shutters && !shutters.open && !broken(shutters)) || !fitsThrough(state, a, link, a.zone)) return null;
+    const shutters = barrierOn(state, link.opening); // PC3: a window's shutters must be open, and the body must fit the opening
+    if ((shutters && !shutters.open && !broken(shutters)) || !fitsThrough(state, a, link)) return null;
     const up = zoneById(state, a.zone)!, down = zoneById(state, goal.zone)!;
     const drop = Math.max(0, heightOf(up) - heightOf(down)), was = a.pos && { ...a.pos };
     a.zone = down.id;
     a.placeId = down.placeId;
-    delete a.pos;
+    if (link.opening.to) a.pos = { x: link.opening.to.x, y: link.opening.to.y }; else delete a.pos; // PZ2: it lands below the window
     noteLeft(state, up.id);
     const f = landFall(state, a, drop, ctx.rng);
     const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });
@@ -557,7 +558,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
 
 /** BG-148: the way straight into `goal` that the walker knows is shut, when its walk goes round it instead: never silent */
 function roundShut(state: GameState, a: Actor, goal: string): { way: string; shut: 'blocked' | 'barred' | 'locked' } | undefined {
-  const l = zoneById(state, a.zone)?.links.find((x) => x.to === goal), b = barrierOn(state, l);
+  const l = wayTo(state, a.zone, goal), b = l && barrierOn(state, l.opening);
   if (!l || !b || passage(b, a, a.zone) !== 'shut' || !knowsShut(state, b, a, a.zone) || wayPath(state, a.zone, goal, a)?.[0] === goal) return undefined;
   return { way: l.label, shut: shutBy(b, a.zone) };
 }
@@ -1424,11 +1425,11 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const kind = o.type === 'idle' ? 'idle' : o.type;
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   // BG-65: checking a door or other way out of the zone says what holds it: open, shut but theirs to open, or locked/barred/blocked
-  const link = o.type === 'interact' && o.target ? zoneById(state, a.zone)?.links.find((l) => l.to === o.target) : undefined;
+  const link = o.type === 'interact' && o.target ? wayTo(state, a.zone, o.target) : undefined;
   const person = o.target ? actorById(state, o.target) : undefined;
   if (link && !atDoor(state, a, link.to)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   if (link) {
-    const b = barrierOn(state, link), pass = b ? passage(b, a, a.zone) : 'open';
+    const b = barrierOn(state, link.opening), pass = b ? passage(b, a, a.zone) : 'open';
     if (b && pass === 'shut') noteTried(b, a);
     ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a.zone)}` as WayDid) };
   }
@@ -1502,7 +1503,7 @@ function tierResult(ctx: Ctx, a: Actor, o: Order, ev: GameEvent, r: RollResult, 
 }
 
 /** OD2: what an act acts on that can carry a grade: a piece of furniture, a container, or the barrier on the way checked */
-function gradedThing(state: GameState, o: Order, link: ZoneLink | undefined): { grade?: Grade; graded?: string[]; beyond?: Record<string, number> } | undefined {
+function gradedThing(state: GameState, o: Order, link: { barrier?: string } | undefined): { grade?: Grade; graded?: string[]; beyond?: Record<string, number> } | undefined {
   if (!o.target) return undefined;
   if (link) return barrierOn(state, link);
   return furnitureRecord(state, o.target) ?? findContainer(state, o.target)?.inst;
@@ -1563,7 +1564,7 @@ function doStash(ctx: Ctx, a: Actor, o: Order): void {
 
 /** the barrier on the way from `a`'s zone to `to`, and that link */
 const barrierTo = (state: GameState, a: Actor, to: string | null | undefined): Barrier | undefined =>
-  to ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === to)) : undefined;
+  to ? barrierOn(state, wayTo(state, a.zone, to)?.opening) : undefined;
 
 /** BG-144: why a way op came to nothing, in the words a wasted event carries */
 const WAY_DROP_WORDS: Record<string, string> = { no_move: 'no_time_left', no_barrier: 'nothing_to_work', fixed: 'nothing_to_work', no_bar: 'nothing_to_work', no_lock: 'nothing_to_work', already: 'already_done', far_side: 'from_the_wrong_side', no_key: 'no_key' };
@@ -2320,7 +2321,7 @@ const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { c
  * reach; with none, the first item to pick up out of reach. null: nothing to close in on. */
 function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number; toward?: string; ok: () => boolean } | null {
   const door = (to: string | null | undefined): Located | null => {
-    if (!to || !zoneById(state, a.zone)?.links.some((l) => l.to === to)) return null;
+    if (!to || !wayTo(state, a.zone, to)) return null;
     const p = wayPoint(state, a.zone, to, a);
     return { zone: a.zone, ...(p ? { pos: p } : {}) };
   };

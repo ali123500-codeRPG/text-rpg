@@ -9,6 +9,8 @@ import { PLANNER_SHAPE, VOICE_SHAPE } from '../../src/agents/prompts';
 import { NPC_ACTIONS } from '../../src/types';
 import { IT } from '../../src/library/itemIds';
 import { checkPlanner } from '../../src/agents/schema';
+import { layAll } from '../harness';
+import { groundIn } from '../../src/engine/ground';
 
 it('an NPC can open a chest, and every NPC action is in the prompts', () => {
   expect(checkPlanner({ action: act('open', 'box'), dialogue: null, gear: null, stance: null, planUpdate: null }).errors).toEqual([]);
@@ -16,8 +18,8 @@ it('an NPC can open a chest, and every NPC action is in the prompts', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
   const wim = actorById(s, 'patron_1')!;
   wim.mind!.control = 'agent';
-  zoneById(s, 'tav_common')!.groundItems.push({ id: 'box', itemId: IT.chest, at: { x: s.player.pos!.x + 2, y: s.player.pos!.y }, contents: [{ id: 'roll', itemId: IT.bandage }] } as never);
+  layAll(s, 'tav_common', { id: 'box', itemId: IT.chest, at: { x: s.player.pos!.x + 2, y: s.player.pos!.y }, contents: [{ id: 'roll', itemId: IT.bandage }] } as never);
   beside(s, 'patron_1', 'player', 2.3);
   play(s, { intent: intent(), agentOutputs: [plannerOut('patron_1', act('open', 'box'))] });
-  expect(zoneById(s, 'tav_common')!.groundItems.find((g) => g.id === 'box')!.open).toBe(true);
+  expect(groundIn(s, 'tav_common').find((g) => g.id === 'box')!.open).toBe(true);
 });

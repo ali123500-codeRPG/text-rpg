@@ -4,12 +4,13 @@ import { freshId } from '../ids';
 import { expireOffers } from '../engine/essence';
 import { frameOf, holdForInner, holdsInner } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
-import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, NpcTemplate, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
+import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, NpcTemplate, Place, Rng, StagePlan, Tier, TitleSpec, WayKind, WaySpec, Zone, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { LIFE_STAGES, TALENTS, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY, SCENARIO_SCALES } from '../scales';
-import { SIDES } from '../types';
-import { inferHeights } from './heights';
-import { placeZones } from './geometry';
+import { WAY_KINDS, addTitles, drawPlan, drawTitles } from '../plan/draw';
+import { dropOnGround } from '../engine/ground';
+import { furnitureIn } from '../engine/furniture';
+
 import { FU, ZK } from '../library/tableIds';
 import { distOrNull, entryPoint, placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
@@ -28,7 +29,6 @@ import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
 import { joinFrontier, joinWay, landNode, landRoad, landTarget, landZone, makeLandWays, openSideWay } from './ways';
 import { wornPack } from '../engine/containers';
-import { makeFurniture } from '../engine/furniture';
 import { requirement } from '../ruleset/requirements';
 import { maxMorale, isBrokenLevel, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
@@ -70,32 +70,18 @@ function moveTo(state: GameState, a: Actor, zoneId: string): void {
   a.placeId = z.placeId;
 }
 
-/** every link between zones runs both ways (the validator reads the graph undirected): a link without its way back
- * gets one, labelled with the zone's name. The plan's own links among its new zones count too (run: a yard whose only
- * links were the ways in, so the player found no exit). */
-function ensureBackLinks(state: GameState, newZones: Zone[]): void {
-  for (const z of newZones) for (const l of z.links) addBackLink(state, z, l);
-  for (const s of state.zones) for (const l of s.links) if (newZones.some((z) => z.id === l.to)) addBackLink(state, s, l);
-}
-function addBackLink(state: GameState, from: Zone, l: ZoneLink): void {
-  const other = l.frontier ? undefined : zoneById(state, l.to);
-  if (other) joinWay(state, from, other, { sight: l.sight }); // WI5 a
-}
-
 /** SD3–SD5: the plan's barriers on ways, one record for both sides of each (a way the Weaver barred twice keeps the first);
- * returns each with the key holders it names */
-function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) => string): { b: Barrier; keys: string[] }[] {
-  const out: { b: Barrier; keys: string[] }[] = [];
+ * returns each with the key holders it names, and each by the way it is on (`from>to`, plan keys) */
+function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) => string): { list: { b: Barrier; keys: string[] }[]; byWay: Map<string, Barrier> } {
+  const list: { b: Barrier; keys: string[] }[] = [], byWay = new Map<string, Barrier>();
   const taken = new Set(Object.keys(state.barriers ?? {}));
-  for (const z of plan.zones) for (const l of z.links) {
+  for (const z of plan.zones) for (const l of z.ways) {
     const spec = l.barrier;
-    const from = zoneById(state, zoneRef(z.key)), to = zoneById(state, zoneRef(l.to));
     const k = spec && getLibrary().barrierKinds?.[spec.kind];
-    if (!spec || !k || !from || !to) continue;
-    const there = from.links.find((x) => x.to === to.id), back = to.links.find((x) => x.to === from.id);
-    if (!there || there.barrier || back?.barrier) continue;
+    if (!spec || !k || byWay.has(`${z.key}>${l.to}`) || byWay.has(`${l.to}>${z.key}`)) continue;
+    const from = zoneRef(z.key), to = zoneRef(l.to);
     const b: Barrier = {
-      id: freshId(`way_${from.id}_${to.id}`, taken), kind: k.id, grade: spec.grade ?? 'minor', scenario: state.stage.scenarioNumber,
+      id: freshId(`way_${from}_${to}`, taken), kind: k.id, grade: spec.grade ?? 'minor', scenario: state.stage.scenarioNumber,
       ...(k.lock && spec.locked ? { lock: { locked: true } } : {}),
       ...(k.bar && spec.barredFrom ? { bar: { side: zoneRef(spec.barredFrom), drawn: true } } : {}),
       ...(k.blocked ? { blocked: true as const } : {}),
@@ -104,11 +90,10 @@ function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) =>
     // BA3: a door with keys but not locked now still has a lock
     if (!b.lock && k.lock && spec.keys?.length) b.lock = { locked: false };
     (state.barriers ??= {})[b.id] = b;
-    there.barrier = b.id;
-    if (back) back.barrier = b.id;
-    out.push({ b, keys: spec.keys ?? [] });
+    byWay.set(`${z.key}>${l.to}`, b);
+    list.push({ b, keys: spec.keys ?? [] });
   }
-  return out;
+  return { list, byWay };
 }
 
 /** the player crosses into the placed `entry` (NW3: not when it was built ahead for an NPC). BG-226: they stand a step
@@ -207,7 +192,7 @@ function endYields(state: GameState): void {
 
 /** TV3/TV4: a road is one long zone, ROAD_WIDTH_M wide, its length from the Weaver's word or km (an hour's walk when
  * left out), with a danger (quiet when left out) */
-export function roadShape(length: string | number | undefined, danger: string | undefined): Pick<Zone, 'area' | 'aspect' | 'danger'> {
+export function roadShape(length: string | number | undefined, danger: string | undefined): { area: number; aspect: number; danger: NonNullable<Zone['danger']> } {
   const km = typeof length === 'number' ? length : CONFIG.ROAD_LENGTH_KM[ROAD_LENGTHS.has(length) ? length : 'hour'];
   const m = km * 1000, w = CONFIG.ROAD_WIDTH_M;
   return { area: m * w, aspect: Math.max(1, m / w), danger: ROAD_DANGERS.has(danger) ? danger : 'quiet' };
@@ -273,39 +258,39 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const enc = state.stage.encounter, encRoad = enc ? zoneById(state, enc.zone) : undefined;
   const side = encRoad?.road ? plan.zones.find((z) => z.sideWay && !z.node && !z.road) : undefined;
   if (side) { const jn = openSideWay(state, encRoad!.road!, enc!.at, side.sideWay!.toward, side.sideWay!.name); if (jn) side.node = jn; }
-  const newZones: Zone[] = [];
+  // SD3–SD5: the plan's barriers, one record for both sides of each way (a way the Weaver barred twice keeps the first)
+  const barriers = makeBarriers(state, plan, zoneRef);
+  const specs: TitleSpec[] = [];
   for (const z of plan.zones) {
-    const links: ZoneLink[] = z.links.map((l) => {
+    const ways: WaySpec[] = z.ways.map((l) => {
+      const kind = l.kind && WAY_KINDS.includes(l.kind) ? { kind: l.kind } : {};
+      const barrier = barriers.byWay.get(`${z.key}>${l.to}`) ?? barriers.byWay.get(`${l.to}>${z.key}`);
       const land = landRef(l.to);
-      if (land !== undefined && land !== l.to) return { to: land, label: l.label, sight: l.sight };
+      if (land !== undefined && land !== l.to) return { to: land, label: l.label, ...kind };
       const fr = frontierMap.get(l.to) ?? (!isZoneRef(l.to) ? l.to : undefined);
-      return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight, ...(l.drop ? { drop: true as const } : {}) };
+      return fr !== undefined ? { to: fr, label: l.label, ...kind, frontier: true as const } : { to: zoneRef(l.to), label: l.label, ...kind, ...(barrier ? { barrier: barrier.id } : {}) };
     });
-    const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
-    // WZ1: a road along a road of the land takes its real length and its danger from it
-    const line = k.road && z.road ? state.regions?.flatMap((r) => r.roads).find((x) => x.id === z.road) : undefined;
-    const road = line ? { ...roadShape(line.length / 1000, line.danger), road: line.id } : k.road ? roadShape(z.length, z.danger) : {};
-    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), kind: z.kind, name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}),
-      area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), ...(k.aspect > 1 ? { aspect: k.aspect } : {}), ...road, groundItems: [] };
-    const furn = z.furniture ?? k.furniture; // FR2
-    if (furn?.length) zone.furniture = makeFurniture(zone.id, furn);
-    if (line) line.zone = zone.id;
+    const k = getLibrary().zoneKinds?.[z.kind ?? '']; // the validator checked it (a road has none)
+    // WZ1: a road along a road of the land takes its real length and its danger from it, and is drawn along its line (PZ9)
+    const line = z.road ? state.regions?.flatMap((r) => r.roads).find((x) => x.id === z.road) : undefined;
+    const road = line ? { danger: line.danger, road: line.id, line: line.pts.map((q) => ({ ...q })) } : z.length !== undefined || z.danger !== undefined ? roadShape(z.length, z.danger) : {};
+    specs.push({
+      id: zoneMap.get(z.key)!, placeId: placeRef(z.place), ...(z.kind ? { kind: z.kind } : {}), name: z.name, look: z.look,
+      ...(z.light ? { light: z.light } : {}), area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k?.size ?? 'room'], ...road,
+      ...(z.walls ? { walls: z.walls } : {}), ...(z.furniture ? { furniture: z.furniture } : {}), ways, // FR2: the kind's furniture when left out
+    });
+    if (line) line.zone = zoneMap.get(z.key)!;
     const jn = z.node ? landNode(state, z.node)?.node : undefined;
-    if (jn?.kind === 'junction') jn.zone = zone.id; // WI2 a: a junction is built once and keeps its zone
-    state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
-    putOnStage(state, zone);
-    newZones.push(zone);
+    if (jn?.kind === 'junction') jn.zone = zoneMap.get(z.key)!; // WI2 a: a junction is built once and keeps its title
   }
-  // an extension's entry: joined before placing (BG-225), and before the ways back are added (BG-285: a way back added
-  // first, then the frontier turned into a second way to the same zone)
+  // PZ14 a: the titles and their ways, then (an extension's entry joined first, BG-225, BG-285) the land's ways, then the plan
+  const draft = addTitles(state, specs);
+  const newZones = draft.titles;
   if (ctx.frontierKey && newZones[0]) joinFrontier(state, ctx.frontierKey, newZones[0]);
   for (const key of builtFrontiers) joinFrontier(state, key, newZones.find((z) => z.id === key)!);
-  ensureBackLinks(state, newZones);
   if (side?.node) { const z = zoneById(state, zoneMap.get(side.key)!); if (z) joinWay(state, encRoad!, z); } // RE8: beside the road
   makeLandWays(state, newZones, sited.map((id) => state.places.find((p) => p.id === id)!)); // WI2 a
-  const barriers = makeBarriers(state, plan, zoneRef);
-  inferHeights(state, newZones);
-  placeZones(state, newZones); // after heights: stairs stack zones straight above or below
+  drawPlan(state, draft);
   const firstZone = newZones[0]?.id;
   const startZone = state.player.zone; // CH1: the zone the player stood in when the scenario began is ground
   if (ctx.frontierKey && newZones[0] && !ctx.ahead) enterFrontier(state, newZones[0]);
@@ -434,7 +419,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   for (const sp of plan.spars ?? []) startSpar(state, sp.sides.map((x) => x.map(actorRef)), !!sp.cruel, 'weaver');
 
   // BA3: keys to the plan's barriers, carried by the actors it names
-  for (const { b, keys } of barriers) for (const k of keys) {
+  for (const { b, keys } of barriers.list) for (const k of keys) {
     const holder = actorById(state, actorRef(k));
     if (holder) holder.core.inventory.push({ id: `key_${b.id}_${holder.id}`, itemId: IT.key, opens: [b.id] });
   }
@@ -451,7 +436,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (holder) {
       if (itemDef(state, c.item).container?.worn && !holder.core.inventory.some(wornPack)) inst.equippedIn = ['pack'];
       holder.core.inventory.push(inst);
-    } else zoneById(state, zoneRef(pl.groundIn!))!.groundItems.push(inst);
+    } else dropOnGround(state, { zone: zoneRef(pl.groundIn!) }, inst);
     boxes.set(c.key, { inst, ...(holder ? { holder } : {}) });
     for (const k of c.locked?.keys ?? []) {
       const kh = actorById(state, actorRef(k));
@@ -481,7 +466,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     // CT7: what goes into a worn pack is its wearer's stowed gear; into any other container, its contents
     if (box) { if (box.holder && wornPack(box.inst)) box.holder.core.inventory.push(...insts); else (box.inst.contents ??= []).push(...insts); }
     else if (pl.carriedBy !== undefined) actorById(state, actorRef(pl.carriedBy))!.core.inventory.push(...insts);
-    else zoneById(state, zoneRef(pl.groundIn!))!.groundItems.push(...insts.map((x) => (pl.hiddenAt ? { ...x, hiddenAt: { tier: pl.hiddenAt }, knownTo: [] } : x))); // SE8
+    else dropOnGround(state, { zone: zoneRef(pl.groundIn!) }, ...insts.map((x) => (pl.hiddenAt ? { ...x, hiddenAt: { tier: pl.hiddenAt }, knownTo: [] } : x))); // SE8
   });
 
   // ---- hidden stage, note, cast notes ----
@@ -517,7 +502,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (!st.outer && holdsInner(st.scenario.scale)) st.between = { since: turn, sinceMin: now(state) };
   }
   // CH1: the ground: the start zone, every zone this scenario's plans build, and the stage zones they name (links, slots)
-  const named = [...plan.zones.flatMap((z) => z.links.map((l) => l.to)), ...plan.cast.flatMap((c) => Object.values(c.slots ?? {}).flat())]
+  const named = [...plan.zones.flatMap((z) => z.ways.map((l) => l.to)), ...plan.cast.flatMap((c) => Object.values(c.slots ?? {}).flat())]
     .filter((r): r is string => typeof r === 'string' && stageZones.has(r));
   const ground = [...(ctx.kind === 'scenario' && !ctx.wake ? [startZone] : []), ...newZones.map((z) => z.id), ...named].filter((z) => zoneById(state, z));
   if (ctx.kind === 'scenario' && state.stage.scenario) {
@@ -565,32 +550,31 @@ export function ensurePlace(state: GameState, placeId: string): Place {
   return place;
 }
 
-/** BG-126: the fallback's empty ground is open ground with a kind, a size and a rectangle like any built zone (ZR8) */
-function bareZone(id: string, placeId: string, name: string): Zone {
+/** BG-126: the fallback's empty ground is open ground with a kind and a size, drawn like any title */
+function bareZone(id: string, placeId: string, name: string, ways: WaySpec[] = []): TitleSpec {
   const k = getLibrary().zoneKinds![ZK.field];
-  return { id, placeId, kind: ZK.field, name, look: '', links: [], cover: 'none', light: 'bright', ...(k.outdoor ? { outdoor: true as const } : {}),
-    area: CONFIG.ZONE_SIZE_M2[k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, k.edge])), groundItems: [] };
+  return { id, placeId, kind: ZK.field, name, look: '', area: CONFIG.ZONE_SIZE_M2[k.size], ways };
 }
 
 export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: string, errors: PlanError[]): void {
   const place = ensurePlace(state, ctx.placeId);
   const startZone = state.player.zone;
   if (ctx.frontierKey) {
-    // one empty zone per frontier label: the crossed frontier's label (from the first link that names it)
-    const link = state.zones.flatMap((z) => z.links).find((l) => l.frontier && l.to === ctx.frontierKey);
+    // one empty title per frontier label: the crossed frontier's label (from the first way that names it)
+    const link = state.openings.find((o) => o.frontier && o.joins[1] === ctx.frontierKey);
     const taken = new Set([...state.places.flatMap((p) => p.zones.map((z) => z.id)), ...stageFrontiers(state)]);
     taken.delete(ctx.frontierKey);
-    const zone = bareZone(freshId(ctx.frontierKey, taken), ctx.placeId, link?.label ?? ctx.frontierKey);
+    const spec = bareZone(freshId(ctx.frontierKey, taken), ctx.placeId, link?.labels[0] ?? ctx.frontierKey);
     // WI2 a: new ground the land draws is that road or junction, even empty, so it is never built a second time
     const land = landTarget(state, ctx.frontierKey);
     const line = land && 'road' in land ? landRoad(state, land.road)?.line : undefined;
-    if (line) { Object.assign(zone, { kind: ZK.road, ...roadShape(line.length / 1000, line.danger), road: line.id }); line.zone = zone.id; }
-    if (land && 'junction' in land) landNode(state, land.junction)!.node.zone = zone.id;
-    place?.zones.push(zone);
-    putOnStage(state, zone);
+    if (line) { Object.assign(spec, { kind: undefined, danger: line.danger, road: line.id, line: line.pts.map((q) => ({ ...q })) }); delete spec.kind; line.zone = spec.id; }
+    if (land && 'junction' in land) landNode(state, land.junction)!.node.zone = spec.id;
+    const draft = addTitles(state, [spec]);
+    const zone = draft.titles[0];
     joinFrontier(state, ctx.frontierKey, zone);
     makeLandWays(state, [zone], []);
-    placeZones(state, [zone]);
+    drawPlan(state, draft);
     if (!ctx.ahead) enterFrontier(state, zone);
     if (state.stage.scenario?.ground && ctx.kind === 'extension') state.stage.scenario.ground.push(zone.id); // CH1
   } else {
@@ -598,10 +582,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     else if (place) {
       // a scenario start at a place with no saved zones and no frontier gets one empty zone named after the place (CS2)
       const taken = new Set(state.places.flatMap((p) => p.zones.map((z) => z.id)));
-      const zone = bareZone(freshId(`${place.id}_area`, taken), place.id, place.names.current);
-      place.zones.push(zone);
-      putOnStage(state, zone);
-      placeZones(state, [zone]);
+      drawTitles(state, [bareZone(freshId(`${place.id}_area`, taken), place.id, place.names.current)]);
     }
     if (place?.zones[0] && !zoneById(state, state.player.zone)) moveTo(state, state.player, place.zones[0].id);
   }
@@ -683,7 +664,7 @@ export function withBed(state: GameState, setId: string, slots: Record<string, s
   const set = routineSet(setId);
   if (!set?.slots.bed || (slots.bed !== undefined && [slots.bed].flat().length)) return slots;
   const own = Object.entries(slots).filter(([k]) => k !== 'bed').flatMap(([, v]) => [v].flat());
-  const beds = new Set(state.zones.filter((z) => z.furniture?.some((f) => f.kind === FU.bed)).map((z) => z.id));
+  const beds = new Set(state.zones.filter((z) => furnitureIn(state, z.id).some((f) => f.kind === FU.bed)).map((z) => z.id));
   // the nearest bed by the walking path from its own spots (and where it starts), within BED_NEAR_M
   const from = [...new Set([...own, start])].filter((z) => zoneById(state, z));
   const away = (b: string) => Math.min(...from.map((z) => distOrNull(state, { zone: z }, { zone: b }) ?? Infinity));

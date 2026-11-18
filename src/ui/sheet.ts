@@ -4,6 +4,7 @@ import { AM } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { Actor, CreationBuild, DefenseKind, GameState } from '../types';
 import { CONFIG, defaultSettings } from '../config';
+import { rectOutline } from '../plan/geom';
 import { getLibrary } from '../library';
 import { createPlayer, spawnNpc } from '../library/spawn';
 import { defaultMode, defaultStandingDefense, effectiveSkill, modeSkill, ruleset, totalHp } from '../ruleset';
@@ -25,10 +26,11 @@ function duelState(build: CreationBuild): GameState {
 }
 
 function duelBase(build: CreationBuild): GameState {
-  const zone = { id: 'duel', placeId: 'duel', name: 'field', look: 'open grass', links: [], cover: 'none' as const, light: 'bright' as const, groundItems: [] };
+  // PZ1: an open field 20 m across under the sky, with nothing on its plan
+  const zone = { id: 'duel', placeId: 'duel', name: 'field', look: 'open grass', outline: rectOutline({ x: 0, y: 0, w: 20, d: 20 }), floor: 0, top: CONFIG.OPEN_AIR_TOP_M };
   const settings = defaultSettings();
   return {
-    storyId: 'preview', turn: 0, mode: 'tactical', zones: [zone], player: playerFromBuild(build),
+    storyId: 'preview', turn: 0, mode: 'tactical', zones: [zone], walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [], player: playerFromBuild(build),
     actors: [spawnNpc(null, TP.slime, { id: 'slime', zone: 'duel', placeId: 'duel', bandId: 'slimes', storyId: 'preview' })],
     bands: [], hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: 1, rngState: 1, pending: { turn: 0, mode: 'tactical', engaged: [], fired: [] },
