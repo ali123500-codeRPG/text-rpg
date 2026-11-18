@@ -148,7 +148,7 @@ function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void
 }
 
 // ---------- Side panel ----------
-export type PanelRow = { k: string; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */ };
+export type PanelRow = { k: string; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */; tone?: string /* a class for the value, e.g. tone-good */; split?: true /* starts a new block of rows, set apart by a rule */ };
 let panelHost: HTMLElement | null = null;
 export function setPanelHost(el: HTMLElement) { panelHost = el; }
 export function closePanel() { if (panelHost) { panelHost.hidden = true; panelHost.replaceChildren(); } }
@@ -157,7 +157,7 @@ export function openPanel(title: string, rows: PanelRow[], note?: string, head?:
   panelHost.hidden = false;
   panelHost.replaceChildren(
     h('div', { class: 'hs-panel-head' }, h('span', {}, title), head ?? null, h('button', { class: 'hs-icon-btn', type: 'button', 'aria-label': 'Close', title: 'Close', onclick: closePanel }, '×')),
-    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.picked ? ' picked' : '') }, h('span', { class: 'k' }, r.k), h('span', {}, r.v))),
+    ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.picked ? ' picked' : '') }, h('span', { class: 'k' }, r.k), h('span', { class: r.tone }, r.v))),
     note ? h('p', { class: 'hs-note', style: 'padding-top:12px' }, note) : '',
   );
   (panelHost.querySelector('.picked input') as HTMLInputElement | null)?.focus();
