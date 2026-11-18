@@ -16,7 +16,7 @@ it('BG-225/226: a road built at a frontier touches the zone it leads from, and t
   const roadKind = Object.entries(getLibrary().zoneKinds ?? {}).find(([, k]) => k.road)![0];
   const p: StagePlan = grovePlan();
   // as the Weaver wrote it: the road names only the ways on; the way back to the field is added by code
-  p.zones = [{ key: 'east_road', place: 'field', kind: roadKind, name: 'the east road', look: 'a cart road', length: 2, links: [{ to: 'deep_woods', label: 'on toward the market town', sight: true }] }];
+  p.zones = [{ key: 'east_road', place: 'field', kind: roadKind, name: 'the east road', look: 'a cart road', length: 2, ways: [{ to: 'deep_woods', label: 'on toward the market town' }] }];
   const from = zoneById(s, 'field_far')!.rect!;
   applyStagePlan(s, p, { kind: 'extension', tier: 'success', placeId: 'field', frontierKey: 'woods' }, { entry: 'open' }, createRng(1));
   const road = s.zones.find((z) => z.name === 'the east road')!;

@@ -171,8 +171,9 @@ export function walkPath(state: GameState, A: Pt3, B: Pt3, w: Walker = {}): Walk
       if (done.has(j) || !ok(through, here.p, here.floor)) return;
       // an opening node is gone through, not just reached: its own way must let the walker by
       if (j < S && g.nodes[j].o && !g.nodes[j].o!.to && !passes(state, g.nodes[j].o!, w, here.p, here.floor)) return;
-      const c = c0 + m;
-      if (c < (best.get(j)?.cost ?? Infinity)) { best.set(j, { cost: c, prev: cur, through }); open.add(j); }
+      const c = c0 + m, o = j < S ? g.nodes[j].o : undefined;
+      // a walk that stops on an opening's own point goes through it (the segments to it end there, so never cross it)
+      if (c < (best.get(j)?.cost ?? Infinity)) { best.set(j, { cost: c, prev: cur, through: o ? [...through, o] : through }); open.add(j); }
     };
     for (const e of out) relax(e.j, e.m, e.through);
     if (cur !== S) { const tg = toGoal.get(cur); if (tg) relax(T, tg.m, tg.through); }

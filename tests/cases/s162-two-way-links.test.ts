@@ -28,11 +28,11 @@ describe('162 two-way links', () => {
   it('a saved one-way link is repaired on load', () => {
     const zone = (id: string, links: { to: string; label: string; sight: boolean }[]) => ({ id, placeId: 'p', name: `the ${id}`, look: '', links, cover: 'none', light: 'dim', groundItems: [] });
     const place = { id: 'p', storyId: 's', kind: 'tavern', names: { current: 'P', past: [] }, parentId: null, headlines: [], state: {},
-      zones: [zone('common', [{ to: 'yard', label: 'the back door', sight: false }]), zone('yard', [])] } as unknown as Place;
+      zones: [zone('common', [{ to: 'yard', label: 'the back door', kind: 'door' }]), zone('yard', [])] } as unknown as Place;
     const pages = { 'place.p': place } as never;
     const r = newReport();
     repairReferences(pages, getLibrary(), r);
-    expect(place.zones[1].links).toEqual([{ to: 'common', label: 'the common', sight: false }]);
+    expect(place.zones[1].links).toEqual([{ to: 'common', label: 'the common', kind: 'door' }]);
     expect(r.changed.has('place.p')).toBe(true);
   });
 });

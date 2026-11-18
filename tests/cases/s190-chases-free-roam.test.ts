@@ -166,7 +166,7 @@ describe('190 chases and free roam', () => {
 
   it('CH6: a pursuer that saw the crossing knows where it leads (code-run only at range far); one still hunting that reaches it follows', () => {
     const s = makeVillage({ playerZone: 'field_far', without: ['slime_2'] });
-    const grove = { id: 'grove', placeId: 'field', name: 'a grove', look: '', links: [{ to: 'field_far', label: 'back', sight: true }], cover: 'some' as const, light: 'bright' as const, groundItems: [] };
+    const grove = { id: 'grove', placeId: 'field', name: 'a grove', look: '', ways: [{ to: 'field_far', label: 'back' }], cover: 'some' as const, light: 'bright' as const, groundItems: [] };
     s.zones.push(grove);
     s.places.find((p) => p.id === 'field')!.zones.push(grove);
     s.zones.push(grove);

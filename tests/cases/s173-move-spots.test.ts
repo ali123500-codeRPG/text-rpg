@@ -117,9 +117,9 @@ describe('173 a level tunnel off the cellar is laid beside it (run 36)', () => {
     inferHeights(s, zs);
     placeZones(s, zs);
     const cellar = zoneOf(s, 'tav_cellar');
-    cellar.links.push({ to: 'cellar_tunnel', label: 'the low tunnel', sight: false });
+    cellar.links.push({ to: 'cellar_tunnel', label: 'the low tunnel', kind: 'door' });
     const tunnel = { id: 'cellar_tunnel', placeId: 'tavern', name: 'tunnel', look: 'a low tunnel', cover: 'none', light: 'dark', groundItems: [],
-      links: [{ to: 'tav_cellar', label: 'back up into the cellar', sight: false }] } as GameState['places'][number]['zones'][number];
+      ways: [{ to: 'tav_cellar', label: 'back up into the cellar', kind: 'door' }] } as GameState['places'][number]['zones'][number];
     s.places.find((p) => p.id === 'tavern')!.zones.push(tunnel);
     inferHeights(s, [tunnel]);
     placeZones(s, [tunnel]);

@@ -33,7 +33,7 @@ it('an arrival zone keyed as a frontier builds that frontier: one way in, the fr
   const d = new ScenarioDirector({ clock: new VirtualClock(), weave: async (view, errs) => {
     errors.push((errs ?? []).map((e) => e.code));
     expect(view.places.flatMap((p) => p.areas).flatMap((a) => a.links).some((l) => l.to === 'woods' && l.frontier)).toBe(true); // the Weaver sees the way
-    return plan(view, { arriveAt: 'woods', zones: [{ key: 'woods', place: 'field', kind: ZK.yard, name: 'the woods path', look: 'a path under the trees', links: [{ to: 'field_far', label: 'back out to the field', sight: true }] }] });
+    return plan(view, { arriveAt: 'woods', zones: [{ key: 'woods', place: 'field', kind: ZK.yard, name: 'the woods path', look: 'a path under the trees', ways: [{ to: 'field_far', label: 'back out to the field' }] }] });
   } });
   await d.startScenario(s, forcedRng([50, 50, 50, 50]));
   expect(errors).toEqual([[]]); // accepted at once

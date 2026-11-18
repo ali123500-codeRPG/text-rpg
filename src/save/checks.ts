@@ -49,6 +49,8 @@ const SHAPES: Record<string, Record<string, Kind>> = {
   facts: { storyId: 'string', placeId: 'string', facts: 'array' },
   blueprint: { storyId: 'string', id: 'string', kind: 'string', data: 'object' },
   region: { id: 'string', storyId: 'string', kind: 'string', heights: 'array', cover: 'string', waters: 'array', roads: 'array', nodes: 'array', sites: 'array', features: 'array' },
+  plan: { storyId: 'string', placeId: 'string', walls: 'array', openings: 'array', roofs: 'array', lights: 'array', furniture: 'array' }, // PZ16
+  ground: { storyId: 'string', items: 'array' },
 };
 const kindOf = (key: string) => key.split('.')[0];
 

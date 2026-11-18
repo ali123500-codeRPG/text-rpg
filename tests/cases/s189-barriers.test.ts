@@ -114,8 +114,8 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
   });
   it('a walk goes round a shut way when there is another, and rubble passes no one', () => {
     const s = quiet();
-    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', sight: false });
-    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', sight: false });
+    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', kind: 'door' });
+    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', kind: 'door' });
     put(s, 'tav_common', 'street_door', { kind: BK.rubble, blocked: true });
     expect(shortestPath(s, 'tav_common', 'street_door', false, s.player)).toEqual(['tav_counter', 'tav_cellar', 'street_square', 'street_door']);
     expect(shortestPath(s, 'tav_common', 'street_door')).toEqual(['street_door']); // sound and distance ignore it
@@ -151,8 +151,8 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
   });
   it('BG-69: the player walks to a door barred out of sight and tries it, never round it unseen; once tried, round it', () => {
     const s = quiet('street_door');
-    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', sight: false });
-    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', sight: false });
+    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', kind: 'door' });
+    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', kind: 'door' });
     const b = put(s, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
     expect(shortestPath(s, 'street_door', 'tav_common', false, s.player)).toEqual(['tav_common']);
     const ev = turn(s, go('tav_common'));
@@ -162,8 +162,8 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
   });
   it('FR5: an NPC knows the bolts of a place it lives or works in; a visitor learns by trying, as the player does', () => {
     const s = quiet('street_door');
-    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', sight: false });
-    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', sight: false });
+    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', kind: 'door' });
+    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', kind: 'door' });
     const b = put(s, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
     const npc = s.actors.find((a) => a.id === 'trader')!;
     npc.mind = { ...npc.mind!, slots: { post: 'gate_inner' } }; // works somewhere else: a visitor here
@@ -243,7 +243,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
   describe('the Weaver puts barriers on ways', () => {
     const plan = (barrier: object, drop = false): StagePlan => ({
       event: { summary: 's', challenge: 'minor', gain: 'minor' }, places: [], frontiers: [], bands: [], rewards: [], hiddenTerms: [], weaverNote: '',
-      zones: [{ key: 'shed', place: 'street', kind: 'ZK1', name: 'the shed', look: 'a shed', links: [{ to: 'street_square', label: 'the shed door', sight: false, ...(drop ? { drop: true } : {}), barrier: barrier as never }] }],
+      zones: [{ key: 'shed', place: 'street', kind: 'ZK1', name: 'the shed', look: 'a shed', ways: [{ to: 'street_square', label: 'the shed door', sight: false, ...(drop ? { drop: true } : {}), barrier: barrier as never }] }],
       cast: [], seeds: { plans: [], triggers: [], secrets: [] },
     });
     it('one record for both sides, keys handed to the holders it names', () => {

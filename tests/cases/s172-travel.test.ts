@@ -22,13 +22,13 @@ function withRoad(km: number, danger: 'safe' | 'quiet' | 'wild' | 'dangerous' = 
   const s = makeVillage({ playerZone: 'gate_inner' });
   s.actors = s.actors.filter((a) => !a.id.startsWith('slime')); // the field's slimes would notice the player on the way
   const gate = s.places.flatMap((p) => p.zones).find((z) => z.id === 'gate_inner')!;
-  const road: Zone = { id: 'north_road', placeId: 'gate', kind: ZK.road, name: 'the north road', look: 'a cart track', links: [{ to: 'gate_inner', label: 'back to the gate, south', sight: true }], cover: 'none', light: 'dark', outdoor: true, groundItems: [], ...roadShape(km, danger) };
-  gate.links.push({ to: 'north_road', label: 'the north road', sight: true });
+  const road: Zone = { id: 'north_road', placeId: 'gate', kind: ZK.road, name: 'the north road', look: 'a cart track', ways: [{ to: 'gate_inner', label: 'back to the gate, south' }], cover: 'none', light: 'dark', outdoor: true, groundItems: [], ...roadShape(km, danger) };
+  gate.links.push({ to: 'north_road', label: 'the north road' });
   const zones = [road];
   if (frontier) road.links.push({ to: 'onward', label: 'onward, north', sight: false, frontier: true });
   else {
-    const ash: Zone = { id: 'ashford_gate', placeId: 'gate', kind: ZK.gate, name: 'Ashford gate', look: 'a stone arch', links: [{ to: 'north_road', label: 'the road south', sight: true }], cover: 'none', light: 'dark', outdoor: true, area: 100, groundItems: [] };
-    road.links.push({ to: 'ashford_gate', label: 'Ashford, north', sight: true });
+    const ash: Zone = { id: 'ashford_gate', placeId: 'gate', kind: ZK.gate, name: 'Ashford gate', look: 'a stone arch', ways: [{ to: 'north_road', label: 'the road south' }], cover: 'none', light: 'dark', outdoor: true, area: 100, groundItems: [] };
+    road.links.push({ to: 'ashford_gate', label: 'Ashford, north' });
     zones.push(ash);
   }
   s.places.find((p) => p.id === 'gate')!.zones.push(...zones);

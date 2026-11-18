@@ -21,8 +21,8 @@ function house(open = true, kind: string = BK.window): GameState {
   inside.rect = { x: 0, y: 0, w: 6, d: 6 }; out.rect = { x: 0, y: -10.5, w: 10, d: 15 };
   inside.height = 0; out.height = 0;
   s.barriers = { ...(s.barriers ?? {}), win1: { id: 'win1', kind, grade: 'minor', ...(open ? { open: true as const } : {}) } };
-  inside.links = inside.links.filter((l) => l.to !== 'street_door').concat({ to: 'street_door', label: 'the window, south', sight: false, drop: true, barrier: 'win1' });
-  out.links = out.links.filter((l) => l.to !== 'tav_common').concat({ to: 'tav_common', label: 'the window', sight: false, drop: true, barrier: 'win1' });
+  inside.links = inside.links.filter((l) => l.to !== 'street_door').concat({ to: 'street_door', label: 'the window, south', kind: 'window', barrier: 'win1' });
+  out.links = out.links.filter((l) => l.to !== 'tav_common').concat({ to: 'tav_common', label: 'the window', kind: 'window', barrier: 'win1' });
   const g = place(s, 'guard_1', 'tav_common'); g.pos = { x: 0, y: -1 };
   place(s, 'player', 'street_door'); s.player.pos = { x: 0, y: -16 };
   return s;

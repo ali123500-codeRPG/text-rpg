@@ -30,13 +30,13 @@ describe('46 Built ground stays live', () => {
     const near = nearbyZones(s, ['tav_common'], ['tavern']).map((z) => z.id);
     expect(near).toEqual(expect.arrayContaining(['tav_common', 'street_square', 'field_far'])); // the whole village
     // field_far spans x 130 to 170: the road runs on east of it, 60 m, then its end 40 m (metres decide, BG-305)
-    const far = { ...structuredClone(zoneById(s, 'field_far')!), id: 'far_road', placeId: 'far_place', rect: { x: 200, y: -14, w: 60, d: 40 }, links: [{ to: 'field_far', label: 'back', sight: true }] };
+    const far = { ...structuredClone(zoneById(s, 'field_far')!), id: 'far_road', placeId: 'far_place', rect: { x: 200, y: -14, w: 60, d: 40 }, ways: [{ to: 'field_far', label: 'back' }] };
     s.places.push({ ...structuredClone(s.places.find((p) => p.id === 'field')!), id: 'far_place', parentId: null, zones: [far] });
     s.zones.push(far);
-    const end = { ...structuredClone(far), id: 'far_end', rect: { x: 250, y: -14, w: 40, d: 40 }, links: [{ to: 'far_road', label: 'back', sight: true }] };
+    const end = { ...structuredClone(far), id: 'far_end', rect: { x: 250, y: -14, w: 40, d: 40 }, ways: [{ to: 'far_road', label: 'back' }] };
     s.places.find((p) => p.id === 'far_place')!.zones.push(end); s.zones.push(end);
-    far.links.push({ to: 'far_end', label: 'on', sight: true });
-    zoneById(s, 'field_far')!.links.push({ to: 'far_road', label: 'the far road', sight: true });
+    far.links.push({ to: 'far_end', label: 'on' });
+    zoneById(s, 'field_far')!.links.push({ to: 'far_road', label: 'the far road' });
     expect(nearbyZones(s, ['field_far'], ['field']).map((z) => z.id)).toEqual(expect.arrayContaining(['far_road', 'far_end'])); // within 200 m by the walk
     expect(nearbyZones(s, ['tav_common'], ['tavern']).map((z) => z.id)).not.toContain('far_end'); // about 250 m away
   });

@@ -99,12 +99,12 @@ describe('validateStagePlan', () => {
   });
   it('links point to a plan zone, a stage zone or a frontier', () => {
     const p = villageStagePlan();
-    p.zones[0].links.push({ to: 'nowhere', label: 'a door', sight: true });
+    p.zones[0].links.push({ to: 'nowhere', label: 'a door' });
     expect(codes(fresh(), p)).toContain('bad_link');
     // a stage zone and an existing frontier are fine
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }] };
     expect(validateStagePlan(s, ext, { ...ctx, kind: 'extension', frontierKey: 'woods', placeId: 'field' })).toEqual([]);
   });
   it('Z2: every zone names a known kind', () => {
@@ -217,7 +217,7 @@ describe('validateStagePlan', () => {
   });
   it('bound zones must reach each other', () => {
     const p = villageStagePlan();
-    p.zones.push({ key: 'island', place: 'field', kind: ZK.yard, name: 'an island', look: 'reeds', cover: 'none', light: 'bright', links: [] });
+    p.zones.push({ key: 'island', place: 'field', kind: ZK.yard, name: 'an island', look: 'reeds', cover: 'none', light: 'bright', ways: [] });
     p.cast[3].slots = { route: ['field_mid', 'field_far'], post: 'island' };
     expect(validateStagePlan(fresh(), p, ctx)).toEqual([expect.objectContaining({ code: 'unreachable_zone', castKey: 'slime_1', routineOnly: true })]);
   });
@@ -300,7 +300,7 @@ describe('applyStagePlan', () => {
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
       bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', lethal: undefined as never, relations: { player_band: 'hostile' } }],
-      zones: [{ key: 'field_mid', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }],
+      zones: [{ key: 'field_mid', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }],
       cast: [{ template: TP.slime, key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.zones.map((z) => z.id)).toContain('field_mid_2');
@@ -308,7 +308,7 @@ describe('applyStagePlan', () => {
     const a = s.actors.find((x) => x.id === 'slime_1_2')!;
     expect(a.mind!.slots).toEqual({ route: ['field_mid_2', 'field_far'], post: 'field_mid_2' });
     // the crossed frontier now leads to the entry zone, with a way back, and the player stands there
-    expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.label === 'into the woods')).toEqual({ to: 'field_mid_2', label: 'into the woods', sight: false });
+    expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.label === 'into the woods')).toEqual({ to: 'field_mid_2', label: 'into the woods', kind: 'door' });
     expect(s.player.zone).toBe('field_mid_2');
   });
   it('degrade: routine-error actors get idle_here; four flags', () => {
@@ -342,7 +342,7 @@ describe('applyFallbackStage', () => {
     applyFallbackStage(s, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, 'call_failed', []);
     const z = s.zones.find((x) => x.id === 'woods')!;
     expect(z.name).toBe('into the woods');
-    expect(z.links).toEqual([{ to: 'field_far', label: 'far side of the field', sight: false }]);
+    expect(z.links).toEqual([{ to: 'field_far', label: 'far side of the field', kind: 'door' }]);
     expect(s.player.zone).toBe('woods');
     expect(s.actors).toHaveLength(n);
     expect(s.stage.fallback!.reason).toBe('call_failed');
@@ -400,7 +400,7 @@ describe('ScenarioDirector', () => {
     const clock = new VirtualClock();
     const s = makeVillage({ playerZone: 'field_far' });
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', ways: [{ to: 'field_far', label: 'back' }, { to: 'woods', label: 'deeper', kind: 'door' }] }] };
     const weave = vi.fn(() => clock.sleep(5000).then(() => ext));
     const spy = vi.spyOn(ruleset, 'eventRoll');
     const d = new ScenarioDirector({ weave, clock });

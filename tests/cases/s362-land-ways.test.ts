@@ -1,5 +1,5 @@
 // 362 WI2 a (BG-286, BG-288, BG-289): the land's ways are made by code, once. A road of the land is one zone, a junction
-// is one zone and a site is one settlement; when one is built, code joins it to the land next to it (built ground by a
+// is one title and a site is one settlement; when one is built, code joins it to the land next to it (built ground by a
 // plain way, the rest as new ground keyed by the land's id and labelled from the land). Crossing that new ground builds
 // that road, junction or settlement and nothing else in its place. WI5 a: one join function writes both ends of a way.
 import { describe, expect, it } from 'vitest';
@@ -9,21 +9,22 @@ import { landed } from '../harness/land';
 import { applyFallbackStage, applyStagePlan } from '../../src/scenario/apply';
 import { validateStagePlan } from '../../src/scenario/validate';
 import { grovePlan } from '../../src/scenario/fixtures';
-import { joinWay, landTarget, makeLandWays, mendLandWays } from '../../src/scenario/ways';
-import type { Zone, ZoneLink } from '../../src/types';
+import { joinWay, landTarget, makeLandWays } from '../../src/scenario/ways';
+import { waysOut } from '../../src/plan/where';
 import { zoneById } from '../../src/engine/relations';
 import { ZK } from '../../src/library/tableIds';
 
 const ext = (frontierKey: string, placeId = 'field') => ({ kind: 'extension' as const, tier: 'success' as const, placeId, frontierKey });
 type PZ = StagePlan['zones'][number];
 const plan = (zones: PZ[], places: StagePlan['places'] = []): StagePlan => ({ ...grovePlan(), frontiers: [], places, zones });
-const zone = (key: string, more: Partial<PZ> = {}): PZ => ({ key, place: 'field', kind: ZK.road, name: key, look: 'a rutted road', links: [], ...more });
+/** a road (no kind) unless more gives a kind */
+const zone = (key: string, more: Partial<PZ> = {}): PZ => ({ key, place: 'field', name: key, look: 'a rutted road', ways: [], ...more });
 const build = (s: GameState, key: string, p: StagePlan, placeId?: string) => {
   const errors = validateStagePlan(s, p, ext(key, placeId));
   applyStagePlan(s, p, ext(key, placeId), { entry: 'open' }, createRng(1));
   return errors.map((e) => e.code);
 };
-const ways = (s: GameState, id: string) => zoneById(s, id)!.links.map((l) => `${l.to}${l.frontier ? ' (new)' : ''}: ${l.label}`);
+const ways = (s: GameState, id: string) => waysOut(s, id).map((l) => `${l.to}${l.frontier ? ' (new)' : ''}: ${l.label}`);
 const built = (s: GameState) => s.places.flatMap((p) => p.zones);
 
 describe('362 the land\'s ways are made by code, once', () => {
@@ -41,7 +42,7 @@ describe('362 the land\'s ways are made by code, once', () => {
     expect(s.regions![0].roads[0].zone).toBe('lane');
     expect(ways(s, 'gate_inner')).toContain('lane: the road north-west, toward a fork in the road');
     expect(ways(s, 'lane')).toEqual(['gate_inner: the gate', 'rg_n2 (new): the road north-west, toward a fork in the road']);
-    expect(validateStagePlan(s, plan([zone('lane2', { road: 'rg_r1', links: [{ to: 'lane', label: 'on', sight: true }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }).map((e) => e.code)).toContain('road_built');
+    expect(validateStagePlan(s, plan([zone('lane2', { road: 'rg_r1', ways: [{ to: 'lane', label: 'on' }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }).map((e) => e.code)).toContain('road_built');
   });
 
   it('a junction is built once and keeps its zone; the roads meeting there join it', () => {
@@ -52,7 +53,7 @@ describe('362 the land\'s ways are made by code, once', () => {
     expect(s.regions![0].nodes[1].zone).toBe('fork');
     expect(ways(s, 'lane')).toContain('fork: the road north-west, toward a fork in the road');
     expect(ways(s, 'fork')).toEqual(['lane: lane', 'rg_r2 (new): the road west, toward Ashwell', 'rg_r3 (new): the road north, toward Hob End']);
-    expect(validateStagePlan(s, plan([zone('fork2', { kind: ZK.field, node: 'rg_n2', links: [{ to: 'fork', label: 'on', sight: true }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }).map((e) => e.code)).toContain('road_built');
+    expect(validateStagePlan(s, plan([zone('fork2', { kind: ZK.field, node: 'rg_n2', ways: [{ to: 'fork', label: 'on' }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }).map((e) => e.code)).toContain('road_built');
   });
 
   it('a settlement built at a road\'s end stands on the site and is joined to the road already built, with no second way', () => {
@@ -62,17 +63,17 @@ describe('362 the land\'s ways are made by code, once', () => {
     build(s, 'rg_r2', plan([zone('west', { road: 'rg_r2' })]));
     const ash = [{ key: 'ashwell', kind: 'settlement', parent: '', name: 'Ashwell', site: 'rg_s2' }];
     expect(validateStagePlan(s, plan([zone('ash_gate', { kind: ZK.yard })]), ext('rg_n3')).map((e) => e.code)).toContain('land_entry');
-    expect(build(s, 'rg_n3', plan([zone('ash_gate', { place: 'ashwell', kind: ZK.gate, links: [{ to: 'ash_square', label: 'into the village', sight: true }] }), zone('ash_square', { place: 'ashwell', kind: ZK.square, links: [{ to: 'ash_gate', label: 'the gate', sight: true }, { to: 'ash_lane', label: 'a lane', sight: true }] }), zone('ash_lane', { place: 'ashwell', kind: ZK.yard })], ash), 'ashwell')).not.toContain('land_entry');
+    expect(build(s, 'rg_n3', plan([zone('ash_gate', { place: 'ashwell', kind: ZK.gate, ways: [{ to: 'ash_square', label: 'into the village' }] }), zone('ash_square', { place: 'ashwell', kind: ZK.square, ways: [{ to: 'ash_gate', label: 'the gate' }, { to: 'ash_lane', label: 'a lane' }] }), zone('ash_lane', { place: 'ashwell', kind: ZK.yard })], ash), 'ashwell')).not.toContain('land_entry');
     expect(s.regions![0].sites[1].placeId).toBe('ashwell');
     expect(ways(s, 'west')).toContain('ash_gate: the road west, toward Ashwell');
     // the way in that was built is the one way between the village and the road: code adds no second one
-    expect(built(s).filter((z) => z.placeId === 'ashwell').flatMap((z) => z.links).filter((l) => l.to === 'west')).toHaveLength(1);
+    expect(built(s).filter((z) => z.placeId === 'ashwell').flatMap((z) => waysOut(s, z.id)).filter((l) => l.to === 'west')).toHaveLength(1);
   });
 
   it('a plan\'s link to a land road\'s id reaches its zone once built, else new ground keyed by it', () => {
     const s = landed();
     build(s, 'rg_r1', plan([zone('lane', { road: 'rg_r1' })]));
-    applyStagePlan(s, plan([zone('shed', { kind: ZK.yard, links: [{ to: 'rg_r1', label: 'out to the road', sight: true }, { to: 'rg_r3', label: 'the far road', sight: true }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }, { entry: 'open' }, createRng(1));
+    applyStagePlan(s, plan([zone('shed', { kind: ZK.yard, ways: [{ to: 'rg_r1', label: 'out to the road' }, { to: 'rg_r3', label: 'the far road' }] })]), { kind: 'scenario', tier: 'success', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(ways(s, 'shed')).toEqual(['lane: out to the road', 'rg_r3 (new): the far road']);
     expect(built(s).filter((z) => z.road === 'rg_r1')).toHaveLength(1);
   });
@@ -82,7 +83,8 @@ describe('362 the land\'s ways are made by code, once', () => {
     applyFallbackStage(s, ext('rg_r1'), 'call_failed', []);
     const line = s.regions![0].roads[0];
     const z = zoneById(s, line.zone!)!;
-    expect(z).toMatchObject({ kind: ZK.road, road: 'rg_r1' });
+    expect(z).toMatchObject({ road: 'rg_r1' });
+    expect(z.kind).toBeUndefined();
     expect(ways(s, z.id)).toContain('rg_n2 (new): the road north-west, toward a fork in the road');
   });
 
@@ -102,58 +104,7 @@ describe('362 the land\'s ways are made by code, once', () => {
     const a = zoneById(s, 'field_mid')!, b = zoneById(s, 'tav_cellar')!;
     joinWay(s, a, b, { label: 'a tunnel' });
     joinWay(s, b, a, { label: 'again' });
-    expect(a.links.filter((l) => l.to === b.id).map((l) => l.label)).toEqual(['a tunnel']);
-    expect(b.links.filter((l) => l.to === a.id).map((l) => l.label)).toEqual([a.name]);
-  });
-});
-
-// WI7 a: run 17's world was built before WI2: two zones on one road (nwroad, nwroad_2), a crossroads with no junction
-// record, and ways to new ground with made-up keys along the land's roads. Mended once, at load.
-describe('362 a world built before WI2 is mended once', () => {
-  const way = (to: string, label: string, frontier = false): ZoneLink => ({ to, label, sight: true, ...(frontier ? { frontier: true as const } : {}) });
-  const add = (s: GameState, id: string, name: string, links: ZoneLink[], more: Partial<Zone> = {}) => {
-    const z: Zone = { id, placeId: 'field', kind: ZK.road, name, look: '', links, cover: 'none', light: 'bright', groundItems: [], ...more };
-    s.places.find((p) => p.id === 'field')!.zones.push(z);
-    s.zones.push(z);
-  };
-  function oldWorld(): GameState {
-    const s = landed();
-    const gate = zoneById(s, 'gate_inner')!;
-    gate.links = gate.links.filter((l) => !l.frontier).concat(way('lane', 'the north-west road'), way('lane2', 'the road north-west again'));
-    add(s, 'lane', 'the north-west road', [way('gate_inner', 'back to the gate'), way('f_fork', 'up the road to the crossroads', true)], { road: 'rg_r1' });
-    add(s, 'lane2', 'the north-west road', [way('gate_inner', 'back to the gate'), way('fork', 'on to the crossroads')], { road: 'rg_r1', groundItems: [{ id: 'i1', itemId: 'IT1', qty: 1 }] as never });
-    add(s, 'fork', 'the crossroads', [way('lane2', 'back down the road to Brookmere'), way('west', 'the west road')], { kind: ZK.field });
-    add(s, 'west', 'the west road', [way('fork', 'back to the crossroads'), way('f_ash', 'on west to Ashwell', true)], { road: 'rg_r2' });
-    s.regions![0].roads[0].zone = 'lane2';
-    s.regions![0].roads[1].zone = 'west';
-    s.actors[0].zone = 'lane2';
-    s.actors[0].placeId = 'field';
-    (s.hidden as unknown as Record<string, unknown>).note = { at: 'lane2' };
-    return s;
-  }
-
-  it('the copy folds into the first, the crossroads becomes the junction, and the made-up ways take the land\'s keys', () => {
-    const s = oldWorld();
-    const who = s.actors[0].id;
-    expect(mendLandWays(s)).toEqual([
-      'junction rg_n2 is fork', 'the way from lane toward rg_n2 leads to fork', 'the way from west toward rg_n3 is keyed by it (was f_ash)', 'lane2 folded into lane, road rg_r1']);
-    expect(zoneById(s, 'lane2')).toBeUndefined();
-    expect(s.places.flatMap((p) => p.zones).some((z) => z.id === 'lane2')).toBe(false);
-    expect(s.regions![0].roads[0].zone).toBe('lane');
-    expect(ways(s, 'gate_inner').filter((w) => w.startsWith('lane'))).toEqual(['lane: the north-west road']); // one way, not two
-    expect(ways(s, 'lane')).toEqual(['gate_inner: back to the gate', 'fork: up the road to the crossroads']);
-    expect(ways(s, 'fork')).toEqual(['west: the west road', 'lane: back down the road to Brookmere']);
-    expect(ways(s, 'west')).toContain('rg_n3 (new): on west to Ashwell');
-    expect(s.actors.find((a) => a.id === who)!.zone).toBe('lane');
-    expect(zoneById(s, 'lane')!.groundItems.map((i) => i.id)).toEqual(['i1']);
-    expect((s.hidden as unknown as Record<string, { at: string }>).note.at).toBe('lane');
-    expect(mendLandWays(s)).toEqual([]); // once
-  });
-
-  it('a world built with WI2 needs no mending', () => {
-    const s = landed();
-    build(s, 'rg_r1', plan([zone('lane', { road: 'rg_r1' })]));
-    build(s, 'rg_n2', plan([zone('fork', { kind: ZK.field, node: 'rg_n2' })]));
-    expect(mendLandWays(s)).toEqual([]);
+    expect(waysOut(s, a.id).filter((l) => l.to === b.id).map((l) => l.label)).toEqual(['a tunnel']);
+    expect(waysOut(s, b.id).filter((l) => l.to === a.id).map((l) => l.label)).toEqual([a.name]);
   });
 });

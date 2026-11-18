@@ -12,7 +12,7 @@ import { zoneById } from '../../src/engine/relations';
 import { ZK } from '../../src/library/tableIds';
 
 const ctx = { kind: 'extension' as const, tier: 'success' as const, placeId: 'field', frontierKey: 'woods' };
-const glade = (more: Partial<StagePlan['zones'][number]> = {}): StagePlan => ({ ...grovePlan(), zones: [{ key: 'glade', place: 'field', kind: ZK.yard, name: 'the glade', look: 'a glade', links: [{ to: 'street_square', label: 'a path round to the square', sight: true }], ...more }] });
+const glade = (more: Partial<StagePlan['zones'][number]> = {}): StagePlan => ({ ...grovePlan(), zones: [{ key: 'glade', place: 'field', kind: ZK.yard, name: 'the glade', look: 'a glade', ways: [{ to: 'street_square', label: 'a path round to the square' }], ...more }] });
 
 it('a plan may link to built ground: no bad link, and that ground gets its way back, with no copy', () => {
   const s = makeVillage({ playerZone: 'field_far' });

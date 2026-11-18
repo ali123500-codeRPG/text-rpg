@@ -11,8 +11,8 @@ import { BK } from '../../src/library/tableIds';
 it('going round a known locked way is said', () => {
   const s = makeVillage({ playerZone: 'tav_counter', without: ['slime_1', 'slime_2', 'guard_1', 'trader', 'patron_1'] });
   s.barriers = { gate: { id: 'gate', kind: BK.door, grade: 'minor', lock: { locked: true }, tried: ['player'] } };
-  zoneById(s, 'tav_counter')!.links.push({ to: 'street_door', label: 'the yard gate', sight: false, barrier: 'gate' });
-  zoneById(s, 'street_door')!.links.push({ to: 'tav_counter', label: 'the yard gate', sight: false, barrier: 'gate' });
+  zoneById(s, 'tav_counter')!.links.push({ to: 'street_door', label: 'the yard gate', kind: 'door', barrier: 'gate' });
+  zoneById(s, 'street_door')!.links.push({ to: 'tav_counter', label: 'the yard gate', kind: 'door', barrier: 'gate' });
   const ev = play(s, { intent: intent({ move: { toZone: 'street_door' } }) });
   const first = ev.find((e) => e.actorId === 'player' && e.kind === 'move')!;
   expect(first.round).toEqual({ way: 'the yard gate', shut: 'locked' });

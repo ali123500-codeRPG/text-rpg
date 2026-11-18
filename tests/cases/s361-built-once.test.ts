@@ -11,7 +11,7 @@ import { ZK } from '../../src/library/tableIds';
 const ctx = { kind: 'extension' as const, tier: 'success' as const, placeId: 'field', frontierKey: 'woods' };
 const codes = (s: GameState, plan: StagePlan) => validateStagePlan(s, plan, ctx).map((e) => e.code);
 /** a new zone keyed `key`, linked to the field */
-const declare = (key: string): StagePlan => ({ ...grovePlan(), zones: [{ key, place: 'field', kind: ZK.yard, name: 'a yard', look: 'a yard', links: [{ to: 'field_far', label: 'back to the field', sight: true }] }] });
+const declare = (key: string): StagePlan => ({ ...grovePlan(), zones: [{ key, place: 'field', kind: ZK.yard, name: 'a yard', look: 'a yard', ways: [{ to: 'field_far', label: 'back to the field' }] }] });
 
 it('an extension that declares an area already built is refused', () => {
   const s = makeVillage({ playerZone: 'field_far' });

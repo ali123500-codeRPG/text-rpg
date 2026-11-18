@@ -17,7 +17,7 @@ function upstairs(): GameState {
   const s = makeVillage({ playerZone: 'tav_counter', without: ['slime_1', 'slime_2'] });
   zoneById(s, 'tav_counter')!.height = 7;
   zoneById(s, 'street_square')!.height = 0;
-  zoneById(s, 'tav_counter')!.links.push({ to: 'street_square', label: 'the window, down to the square', sight: true, drop: true });
+  zoneById(s, 'tav_counter')!.links.push({ to: 'street_square', label: 'the window, down to the square', kind: 'window' });
   return s;
 }
 const jump = (to: string, j = true): Intent => ({ move: { toZone: to, ...(j ? { jump: true } : {}) }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null });
@@ -74,7 +74,7 @@ describe('186 window and ledge drops (SD7)', () => {
   it('the Parser may say jump, and the Weaver may mark a link as a drop', () => {
     expect(checkIntent({ move: { toZone: 'z', jump: true }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null }).value.move).toMatchObject({ jump: true });
     const v = checkStagePlan({ event: { summary: 's', challenge: 'none', gain: 'none' }, places: [], frontiers: [], bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '',
-      zones: [{ key: 'z', place: 'p', kind: 'k', name: 'n', look: 'l', links: [{ to: 'y', label: 'the window', sight: true, drop: true }] }] });
+      zones: [{ key: 'z', place: 'p', kind: 'k', name: 'n', look: 'l', ways: [{ to: 'y', label: 'the window', kind: 'window' }] }] });
     expect(v.value.zones[0].links[0]).toMatchObject({ drop: true });
   });
 });

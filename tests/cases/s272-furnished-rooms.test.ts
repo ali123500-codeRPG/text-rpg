@@ -26,7 +26,7 @@ it('FR2: zones get their kind\'s furniture, a layout zone its layout\'s, and the
   const plan = villageStagePlan();
   plan.places.push({ key: 'inn', name: 'The Bent Nail', kind: 'place', parent: 'village', layout: LY.tavern, names: { common: 'Nail common room' },
     furniture: { kitchen: [{ kind: FU.table, name: 'bloodstained table' }] } });
-  plan.zones.find((z) => z.key === 'street_door')!.links.push({ to: 'inn.common', label: 'the inn, east', sight: false });
+  plan.zones.find((z) => z.key === 'street_door')!.links.push({ to: 'inn.common', label: 'the inn, east', kind: 'door' });
   expect(validateStagePlan(s, plan, ctx)).toEqual([]);
   applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
   expect(zoneOf(s, 'cellar')!.furniture?.map((f) => f.name)).toEqual(['barrels', 'sacks']); // a cellar's defaults

@@ -20,7 +20,7 @@ import { getLibrary } from '../../src/library';
 const ext = (frontierKey: string) => ({ kind: 'extension' as const, tier: 'success' as const, placeId: 'field', frontierKey });
 type PZ = StagePlan['zones'][number];
 const plan = (zones: PZ[]): StagePlan => ({ ...grovePlan(), frontiers: [], places: [], zones });
-const lane = (more: Partial<PZ> = {}): PZ => ({ key: 'lane', place: 'field', kind: ZK.road, name: 'the north-west road', look: 'a rutted road', links: [], road: 'rg_r1', ...more });
+const lane = (more: Partial<PZ> = {}): PZ => ({ key: 'lane', place: 'field', kind: ZK.road, name: 'the north-west road', look: 'a rutted road', ways: [], road: 'rg_r1', ...more });
 const build = (s: GameState) => applyStagePlan(s, plan([lane()]), ext('rg_r1'), { entry: 'open' }, createRng(1));
 
 describe('363 the world check', () => {
@@ -28,7 +28,7 @@ describe('363 the world check', () => {
     const s = landed();
     build(s);
     expect(worldCheck(s)).toEqual([]);
-    zoneById(s, 'tav_common')!.links.push({ to: 'street_door', label: 'the side door', sight: false });
+    zoneById(s, 'tav_common')!.links.push({ to: 'street_door', label: 'the side door', kind: 'door' });
     expect(worldCheck(s)).toEqual([]);
   });
 

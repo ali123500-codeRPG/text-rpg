@@ -91,6 +91,7 @@ export function toStoryStart(state: GameState, placeId = 'tavern'): GameState {
   state.turn = 0;
   state.places = [];
   state.zones = [];
+  Object.assign(state, { walls: [], openings: [], roofs: [], lights: [], furniture: [], ground: [] }); // PZ2: no floor plan yet
   state.actors = [];
   state.bands = state.bands.filter((b) => b.id === state.player.bandId).map((b) => ({ ...b, relations: {} }));
   state.stage = { tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 };

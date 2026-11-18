@@ -16,7 +16,7 @@ it('a built frontier whose entry names the way back leaves one way in, named as 
   const s = makeVillage({ playerZone: 'field_far' });
   const kind = Object.keys(getLibrary().zoneKinds ?? {})[0];
   const p: StagePlan = grovePlan();
-  p.zones = [{ key: 'glade', place: 'field', kind, name: 'the glade', look: 'a glade', links: [{ to: 'field_far', label: 'back to the field', sight: true }] }];
+  p.zones = [{ key: 'glade', place: 'field', kind, name: 'the glade', look: 'a glade', ways: [{ to: 'field_far', label: 'back to the field' }] }];
   const label = zoneById(s, 'field_far')!.links.find((l) => l.to === 'woods')!.label;
   applyStagePlan(s, p, { kind: 'extension', tier: 'success', placeId: 'field', frontierKey: 'woods' }, { entry: 'open' }, createRng(1));
   const glade = s.zones.find((z) => z.name === 'the glade')!;
@@ -29,7 +29,7 @@ it('a save with a second way to the same zone, added by code, keeps only the nam
   const s = makeVillage({ playerZone: 'field_far' });
   const far = zoneById(s, 'field_far')!, mid = zoneById(s, 'field_mid')!;
   const named = far.links.find((l) => l.to === 'field_mid')!;
-  far.links.push({ to: 'field_mid', label: mid.name, sight: true });
+  far.links.push({ to: 'field_mid', label: mid.name });
   const pages = toPages(s);
   const r = { repairs: [] as string[], changed: new Set<string>() };
   repairReferences(pages, getLibrary(), r as never);

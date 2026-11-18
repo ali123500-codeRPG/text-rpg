@@ -61,7 +61,7 @@ describe('315 land first', () => {
     const d = new ScenarioDirector({ clock: new VirtualClock(), weave: async (view) => ({
       ...villageStagePlan(TIERS.keyOf(view.tier)!),
       places: [{ key: 'way', name: 'the vale road', kind: 'road', parent: '' }],
-      zones: [{ key: 'vale_road', place: 'way', kind: ZK.road, name: 'the vale road', look: 'a cart track', road: line.id, links: [{ to: s.player.zone, label: 'back', sight: true }, { to: 'beyond', label: 'on', sight: true }] }],
+      zones: [{ key: 'vale_road', place: 'way', kind: ZK.road, name: 'the vale road', look: 'a cart track', road: line.id, ways: [{ to: s.player.zone, label: 'back' }, { to: 'beyond', label: 'on' }] }],
       frontiers: [{ key: 'beyond', label: 'on' }], cast: [], bands: [],
     }) });
     s.stage.breakCause = 'scenario_end';
