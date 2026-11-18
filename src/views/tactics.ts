@@ -1,6 +1,6 @@
 // D-17: the facts a code-run NPC's fight rows read (TacticsView), built only from what it perceives. The rows themselves
 // (what each one does) live in minds/routines.ts tacticsOrder; their skills and minimums in library/fightRules.ts.
-import type { Actor, ActorView, GameState, Tactics, TacticsView, TacticsWalk } from '../types';
+import type { Actor, ActorView, GameState, Tactics, TacticsView, TacticsWalk, Zone } from '../types';
 import type { Located, Pos } from '../engine/position';
 import { FIGHT_RULES } from '../library/fightRules';
 import { SK } from '../library/skillIds';
@@ -58,16 +58,14 @@ export const rowUsedThisFight = (a: Actor, rule: string): boolean => {
 type Near = TacticsWalk & { pos: Pos; m: number };
 /** TC18 a: the zones `a` can step into within one move (its move slot in metres, by its own walk through the ways it
  * knows), nearest first; each with the point a step inside the doorway it comes in by */
-function oneMoveZones(state: GameState, a: Actor): Near[] {
+export function oneMoveZones(state: GameState, a: Actor): Near[] {
   const oneMove = slotMetres(state, a, 'move'), from: Located = { zone: a.zone, ...(a.pos ? { pos: a.pos } : {}) };
   const out: Near[] = [];
-  // the zones a few ways out (CONFIG.FIELD_WAYS_OUT): a move never crosses more, and the world holds every built zone
-  const ids = new Set([a.zone]);
-  let ring = [a.zone];
-  for (let i = 0; i < CONFIG.FIELD_WAYS_OUT; i++) ring = ring.flatMap((id) => (zoneById(state, id)?.links ?? []).map((l) => l.to)).filter((id) => !ids.has(id) && !!ids.add(id));
-  for (const id of [...ids].sort()) {
-    const z = zoneById(state, id);
-    if (!z || z.id === a.zone) continue;
+  // BG-304: every zone whose rectangle lies within one move in a straight line (the walk is never shorter), then by the walk
+  const p = a.pos ?? zoneById(state, a.zone)?.rect;
+  const near = (r: NonNullable<Zone['rect']>) => !p || Math.hypot(Math.max(0, Math.abs(p.x - r.x) - r.w / 2), Math.max(0, Math.abs(p.y - r.y) - r.d / 2)) <= oneMove;
+  for (const z of [...state.zones].sort((x, y) => x.id.localeCompare(y.id))) {
+    if (z.id === a.zone || !z.rect || !near(z.rect)) continue;
     try {
       const r = walkRoute(state, from, { zone: z.id }, a);
       if (!r || !r.path.length) continue;

@@ -295,10 +295,11 @@ function fightList(view: ActorView, rng: Rng): Order {
   const row = tacticsOrder(view);
   if (row) return row;
   // 2. Attack
-  const here = view.beliefs
-    .filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
-    .map((b) => b.about)
-    .sort();
+  // BG-306: the foes it knows of that a move and a blow reach this turn, else the foes it sees (an attack closes in and runs
+  // on, BG-255); never "in my zone"
+  const foes = view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware'));
+  const near = foes.filter((b) => s.withinStrike?.includes(b.about));
+  const here = (near.length ? near : foes.filter((b) => view.seen?.some((x) => x.id === b.about))).map((b) => b.about).sort();
   if (here.length) {
     const target = s.lastHitBy && here.includes(s.lastHitBy) ? s.lastHitBy
       : here.includes('player') ? 'player'

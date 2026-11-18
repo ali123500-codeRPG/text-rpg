@@ -11,7 +11,7 @@ import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
 import { FU, ZK } from '../library/tableIds';
-import { entryPoint, placeAll, startAtDoor } from '../engine/position';
+import { distOrNull, entryPoint, placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine, routineSet } from '../library';
 import { composeTemplate, roleMissing, presetPersonality, spawnNpc } from '../library/spawn';
@@ -678,20 +678,17 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
 }
 
 /** BF68: everyone whose set has a bed slot gets somewhere to sleep when the plan left it out: a real bed within
- * BED_NEAR_HOPS links of its own spots (nearest first), else its refuge (home or a doorway), else its work spot */
+ * BED_NEAR_M metres of its own spots by the walking path (nearest first; BG-303), else its refuge (home or a doorway), else its work spot */
 export function withBed(state: GameState, setId: string, slots: Record<string, string | string[]>, start: string): Record<string, string | string[]> {
   const set = routineSet(setId);
   if (!set?.slots.bed || (slots.bed !== undefined && [slots.bed].flat().length)) return slots;
   const own = Object.entries(slots).filter(([k]) => k !== 'bed').flatMap(([, v]) => [v].flat());
   const beds = new Set(state.zones.filter((z) => z.furniture?.some((f) => f.kind === FU.bed)).map((z) => z.id));
-  // breadth first from its own spots (and where it starts) out to BED_NEAR_HOPS links
-  let ring = [...new Set([...own, start])];
-  const seen = new Set(ring);
-  for (let hop = 0; hop <= CONFIG.BED_NEAR_HOPS && ring.length; hop++) {
-    const found = ring.find((z) => beds.has(z));
-    if (found) return { ...slots, bed: found };
-    ring = ring.flatMap((z) => zoneById(state, z)?.links.map((l) => l.to) ?? []).filter((z) => !seen.has(z) && !!zoneById(state, z) && (seen.add(z), true));
-  }
+  // the nearest bed by the walking path from its own spots (and where it starts), within BED_NEAR_M
+  const from = [...new Set([...own, start])].filter((z) => zoneById(state, z));
+  const away = (b: string) => Math.min(...from.map((z) => distOrNull(state, { zone: z }, { zone: b }) ?? Infinity));
+  const found = [...beds].map((b) => ({ b, m: away(b) })).filter((x) => x.m <= CONFIG.BED_NEAR_M).sort((x, y) => x.m - y.m || x.b.localeCompare(y.b))[0];
+  if (found) return { ...slots, bed: found.b };
   const refuge = [slots.refuge ?? []].flat()[0];
   const work = ['work', 'post', 'counter', 'seat', 'route'].map((k) => [slots[k] ?? []].flat()[0]).find(Boolean);
   const bed = refuge ?? work ?? start;

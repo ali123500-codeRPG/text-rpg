@@ -7,14 +7,14 @@ import { SPEECH_ACTIONS } from '../types';
 import { VOLUME_NOISE } from '../perception/noise';
 import { hearsClearly } from '../perception';
 import { alertOrders, brokenHolds, brokenOrder, fallbackOrder, followMove, routineOrder, staying } from '../minds';
-import { actorById, isActive, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
+import { actorById, isActive, isEngaged, reachesAcross } from './relations';
 import { drawnTo, spendDrawn } from './perkMarks';
 import { fooledBy } from './playDead';
 import { codePerkMove } from './npcPerkMoves';
 import { codeWarn } from './warnings';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
-import { M_EPS, distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
+import { M_EPS, distM, gateAhead, seeingM, spotPoint, walkLeg, withinM, type Located } from './position';
 import { canSpeak } from '../ruleset/body';
 import { withTactics } from '../views/tactics';
 
@@ -45,7 +45,7 @@ export function approachMove(state: GameState, actor: Actor, act: { type: string
   const t = actorById(state, act.target), here = actor.zone;
   if (!t || t.id === actor.id || need === 'weapon') return m; // a foe is closed in on when the blow comes (resolve.ts closeIn)
   const noise: NoiseKey = TRADE_KINDS.includes(act.type) ? CONFIG.ORDER_NOISE : VOLUME_NOISE[act.volume ?? 'normal'];
-  const inView = t.zone === here || !!zoneById(state, here)?.links.some((l) => l.to === t.zone && seesAcross(state, l));
+  const inView = seeingM(state, actor, t) !== null; // BG-309: a sight line between them, not the same zone
   if (!m && !act.way && need === 'voice' && inView && !hearsClearly(state, actor, t, noise)) m = { toZone: t.zone };
   if (!m || m.after || m.jump || act.way) return m;
   if (t.zone === here) {
