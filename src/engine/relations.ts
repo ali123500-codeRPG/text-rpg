@@ -142,7 +142,10 @@ export function zoneById(state: GameState, id: string) {
 }
 
 /** BG-70: sight passes this link: a sight link, or a way whose door stands open */
-export const seesAcross = (state: GameState, l: ZoneLink): boolean => l.sight || !!barrierOn(state, l)?.open;
+export const seesAcross = (state: GameState, l: ZoneLink): boolean => { // PC4: bars and slits are always seen through
+  const b = barrierOn(state, l);
+  return l.sight || !!b?.open || (!!b && !!getLibrary().barrierKinds?.[b.kind]?.seeThrough);
+};
 
 /** own zone plus zones linked to it with sight (no frontiers): what a viewer in `zoneId` perceives */
 export function perceivedZoneIds(state: GameState, zoneId: string): string[] {

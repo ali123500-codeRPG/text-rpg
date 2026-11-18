@@ -10,15 +10,17 @@ import { BK } from '../../src/library/tableIds';
 import { coverMod, coverShown } from '../../src/ruleset/gear';
 import { openingShown } from '../../src/ruleset/objectCover';
 import { resolveTurn } from '../../src/engine';
+import { seesAcross } from '../../src/engine/relations';
+import { wayOp } from '../../src/engine/barriers';
 
 /** the common room (6 × 6 m) with a window in its south wall onto the street; the guard 2 m inside, the player out in
  * the street 13 m from the window */
-function house(open = true): GameState {
+function house(open = true, kind: string = BK.window): GameState {
   const s = makeVillage({ without: ['slime_1', 'slime_2'] });
   const inside = zoneById(s, 'tav_common')!, out = zoneById(s, 'street_door')!;
   inside.rect = { x: 0, y: 0, w: 6, d: 6 }; out.rect = { x: 0, y: -10.5, w: 10, d: 15 };
   inside.height = 0; out.height = 0;
-  s.barriers = { ...(s.barriers ?? {}), win1: { id: 'win1', kind: BK.window, grade: 'minor', ...(open ? { open: true as const } : {}) } };
+  s.barriers = { ...(s.barriers ?? {}), win1: { id: 'win1', kind, grade: 'minor', ...(open ? { open: true as const } : {}) } };
   inside.links = inside.links.filter((l) => l.to !== 'street_door').concat({ to: 'street_door', label: 'the window, south', sight: false, drop: true, barrier: 'win1' });
   out.links = out.links.filter((l) => l.to !== 'tav_common').concat({ to: 'tav_common', label: 'the window', sight: false, drop: true, barrier: 'win1' });
   const g = place(s, 'guard_1', 'tav_common'); g.pos = { x: 0, y: -1 };
@@ -68,5 +70,41 @@ describe('384 windows: the frame works one way', () => {
     // the guard looks out from right at the window; the player is 13 m out in the street
     g.pos = { x: 0, y: -2.6 };
     expect(openingShown(s, s.player, zoneById(s, 'street_door')!, g)).toBe(1);
+  });
+});
+
+describe('384 window kinds (PC4)', () => {
+  it('four kinds, by real size; a slit and bars are always seen through and never open or shut', () => {
+    const k = getLibrary().barrierKinds!;
+    expect([BK.window, BK.arrow_slit, BK.barred_window, BK.large_window].map((id) => [k[id].name, k[id].openingM, k[id].sillM, !!k[id].fixed])).toEqual([
+      ['Shuttered window', [0.6, 1], 0.9, false], ['Arrow slit', [0.1, 1.2], 1, true], ['Barred window', [0.6, 1], 0.9, true], ['Large window', [1.2, 1.5], 0.6, false]]);
+    const s = house(false, BK.arrow_slit);
+    expect(seesAcross(s, zoneById(s, 'street_door')!.links.find((l) => l.to === 'tav_common')!)).toBe(true);
+    expect(wayOp(s.barriers!.win1, s.player, 'street_door', 'open')).toBe('fixed');
+  });
+
+  it('a person 2 m behind each, shot from 15 m: the hub examples', () => {
+    const at = (kind: string, open: boolean) => {
+      const s = house(open, kind);
+      const g = s.actors.find((a) => a.id === 'guard_1')!, z = zoneById(s, 'tav_common')!;
+      return coverMod(coverShown(s, g, z, s.player));
+    };
+    expect(at(BK.window, true)).toBe(9);
+    expect(at(BK.arrow_slit, false)).toBe(32);
+    expect(at(BK.barred_window, false)).toBe(9);
+    expect(at(BK.large_window, true)).toBe(4);
+  });
+
+  it('nobody jumps through bars or a slit; a large window open is jumped through', () => {
+    const tryJump = (kind: string, open: boolean) => {
+      const s = house(open, kind);
+      place(s, 'player', 'tav_common'); s.player.pos = { x: 0, y: -2 };
+      s.turn += 1;
+      resolveTurn(s, { intent: { move: { toZone: 'street_door', jump: true }, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null }, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
+      return s.player.zone;
+    };
+    expect(tryJump(BK.barred_window, false)).toBe('tav_common');
+    expect(tryJump(BK.arrow_slit, false)).toBe('tav_common');
+    expect(tryJump(BK.large_window, true)).toBe('street_door');
   });
 });

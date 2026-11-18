@@ -384,7 +384,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         }
         if (b.barredFrom !== undefined && b.barredFrom !== z.key && b.barredFrom !== l.to) err('bad_link', `zone ${z.key}: barredFrom is the zone the bolt is on: ${z.key} or ${l.to}`);
         if (isFrontier(l.to)) err('bad_link', `zone ${z.key}: a barrier goes on a way between two zones, never on a way to a frontier`);
-        else if (k && !!l.drop !== !!k.window) err('bad_link', `zone ${z.key}: ${k.window ? `${k.name} goes only on a drop (a window)` : 'a barrier on a drop is a window\'s shutters (the Window barrier kind)'}`); // PC3
+        else if (k && !!l.drop !== !!k.window) err('bad_link', `zone ${z.key}: ${k.window ? `${k.name} goes only on a drop (a window)` : 'a barrier on a drop is a window (a window barrier kind)'}`); // PC3
         for (const key of arr(b.keys)) if (!isActor(key)) err('bad_link', `zone ${z.key}: key holder ${key} is not in the cast or on the stage`);
       }
     }

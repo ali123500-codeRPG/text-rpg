@@ -38,7 +38,7 @@ export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', g
 /** CO15 edge kinds: what a zone's side is (wall, open, low, window); a new kind is a new row */
 export const EK = { wall: 'EK1', open: 'EK2', low: 'EK3', window: 'EK4' } as const;
 /** SD3–SD5 barrier kinds: what stands on a way (door, gate, grate, hatch, rubble); a new kind is a new row */
-export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5', window: 'BK6' } as const;
+export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5', window: 'BK6', arrow_slit: 'BK7', barred_window: 'BK8', large_window: 'BK9' } as const;
 /** FR1 furniture kinds: what a named piece of furniture is (its map icon follows the kind); a new kind is a new row */
 export const FU = {
   counter: 'FU1', hearth: 'FU2', table: 'FU3', bench: 'FU4', bed: 'FU5', barrels: 'FU6', shelves: 'FU7', crates: 'FU8', sacks: 'FU9',

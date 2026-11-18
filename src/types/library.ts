@@ -264,7 +264,8 @@ export type ZoneKind = {
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
 export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string;
   /** SZ7: the opening in metres, [width, height] (a hatch: [width, length], walked through upright) */ openingM?: [number, number]; vertical?: true;
-  /** PC3: a window's shutters: it goes only on a drop (seen, shot and jumped through, never walked); sillM = how high its sill stands above the inside floor */ window?: true; sillM?: number };
+  /** PC3: a window's shutters: it goes only on a drop (seen, shot and jumped through, never walked); sillM = how high its sill stands above the inside floor */ window?: true; sillM?: number;
+  /** PC4: nothing to open or shut (an arrow slit, bars): it stays as it is until broken */ fixed?: true };
 /** FR1/FR2: furniture as a layout, a zone kind or the Weaver writes it: a kind from catalogs.furnitureKinds, its name, where it stands */
 export type PlanFurniture = { kind: string; name: string; at?: string; edge?: boolean; grade?: import('./core').Grade };
 /** PC1: sizeM = [length, width, height] in metres (placeholders): it hides what is behind it (ruleset/objectCover) */

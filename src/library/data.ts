@@ -1391,10 +1391,15 @@ export function prototypeLibrary(): Library {
       [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.', CONFIG.DOORWAY_M],
       [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.', [0.7, 0.7], true],
       [BK.rubble, 'Rubble', false, false, true, false, 'wall', 'A cave-in or fallen stone: no way through until it is cleared.'],
-      // PC3: a common casement window about 0.6 × 1 m with its sill 0.9 m up (placeholders); shutters shut, nothing passes
-      [BK.window, 'Window', true, true, false, false, 'window', 'Wooden shutters over a window: you see, shoot and jump through it only while they are open; they may be locked, or barred from inside.', [0.6, 1], undefined, 0.9],
-    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?, number?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical, sillM]) =>
-      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}), ...(sillM !== undefined ? { window: true as const, sillM } : {}) }])),
+      // PC3, PC4: windows, each only on a drop (placeholders). A common casement about 0.6 × 1 m, sill 0.9 m, behind shutters;
+      // an arrow slit (medieval arrow loops: 5-10 cm wide, 1-1.5 m tall) always open and too narrow to climb; bars over a
+      // casement, seen and shot through, never climbed unless broken; a hall's or shop's large window behind shutters
+      [BK.window, 'Shuttered window', true, true, false, false, 'window', 'Wooden shutters over a window: you see, shoot and jump through it only while they are open; they may be locked, or barred from inside.', [0.6, 1], undefined, 0.9],
+      [BK.arrow_slit, 'Arrow slit', false, false, false, true, 'window', 'A narrow slit in thick stone, splayed wide inside: an archer behind it sees the whole field, but only a strip of the archer shows, and no one fits through.', [0.1, 1.2], undefined, 1, true],
+      [BK.barred_window, 'Barred window', false, false, false, true, 'window', 'Iron bars over a window: you see and shoot through it, but no one climbs through until the bars are broken.', [0.6, 1], undefined, 0.9, true],
+      [BK.large_window, 'Large window', true, true, false, false, 'window', 'A tall window of a hall or a shop front behind shutters: open, it shows most of a room and is easy to climb through; they may be locked, or barred from inside.', [1.2, 1.5], undefined, 0.6],
+    ] as [string, string, boolean, boolean, boolean, boolean, import('../scales').SoundLossKey, string, [number, number]?, true?, number?, true?][]).map(([id, name, lock, bar, blocked, seeThrough, sound, text, openingM, vertical, sillM, fixed]) =>
+      [id, { id, name, lock, bar, blocked, seeThrough, sound, text, ...(openingM ? { openingM } : {}), ...(vertical ? { vertical } : {}), ...(sillM !== undefined ? { window: true as const, sillM } : {}), ...(fixed ? { fixed } : {}) }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',
