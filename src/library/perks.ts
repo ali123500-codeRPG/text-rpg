@@ -15,8 +15,9 @@ import { payoffShare } from '../ruleset/stacking';
 // numbers in the rules text come from config, so the text can't drift from the code
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
 const standInK = (skill: string, fn: string) => CONFIG.SUBSTITUTES[skill]?.find((t) => t.fn === fn)?.k ?? CONFIG.SUBSTITUTE_EFFICIENCY;
-const ladder = (kind: 'dodge' | 'block' | 'parry') => { const l = CONFIG.GAP_LADDER[kind], g = CONFIG.HIT_GAPS;
-  return `${l[g.heavy]}× at ${signed(g.heavy)}, ${l[g.crushing]}× at ${signed(g.crushing)}`; };
+/** Turn Aside's change on one defense column: heavy and crushing multipliers before and after its gap shift */
+const ladder = (kind: 'dodge' | 'block' | 'parry') => { const l = CONFIG.GAP_LADDER[kind], g = CONFIG.HIT_GAPS, up = (x: number) => Math.min(0, x + CONFIG.TURN_ASIDE_GAP);
+  return `${l[g.heavy]}× → ${l[up(g.heavy)]}× at ${signed(g.heavy)}, ${l[g.crushing]}× → ${l[up(g.crushing)]}× at ${signed(g.crushing)}`; };
 
 export const PERK_WRITEUPS: PerkWriteup[] = [
   { id: PK.hidden_strike, ref: "A1", name: "Hidden Strike", skill: SK.melee_light, place: "20",
@@ -183,11 +184,11 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       lasts: "Always." } },
   { id: PK.turn_aside, ref: "A22", name: "Turn Aside", skill: SK.heavy_armor, place: "20",
     ladder: { skill: SK.heavy_armor, milestone: 20 }, effect: "defense",
-    story: "Plate takes the worst out of any blow. A heavy or crushing hit on a part your heavy armor covers lands as a plain full hit.",
+    story: "Heavy armor taught you to take the worst out of a blow. A heavy or crushing hit lands softer, whatever you wear.",
     rules: { kind: "Always on",
       trigger: "An attack hits the owner.",
-      conditions: [`The hit is a heavy hit or a crushing hit (gap ${signed(CONFIG.HIT_GAPS.heavy)} or worse).`, "The owner wears heavy armor that covers the struck part."],
-      effect: `The hit counts as a full hit: damage multiplier 1× instead of the gap ladder's (on a dodge ${ladder('dodge')}, on a block ${ladder('block')}, on a parry ${ladder('parry')}, more past that).`,
+      conditions: [`The hit is a heavy hit or a crushing hit (gap ${signed(CONFIG.HIT_GAPS.heavy)} or worse).`],
+      effect: `The gap counts ${signed(CONFIG.TURN_ASIDE_GAP)}, never past 0 (on a dodge ${ladder('dodge')}; on a block ${ladder('block')}; on a parry ${ladder('parry')}; the same two steps past that).`,
       lasts: "That hit." } },
   { id: PK.in_and_out, ref: "A23", name: "In and Out", skill: SK.combat_stealth, place: "20",
     ladder: { skill: SK.combat_stealth, milestone: 20 }, effect: "stealth",
