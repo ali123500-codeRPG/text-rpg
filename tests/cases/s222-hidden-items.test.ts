@@ -66,7 +66,7 @@ describe('222 hidden items', () => {
     const s = makeVillage({ playerZone: 'street_square' });
     const t = spawnNpc(null, TP.thief, { id: 'thief_1', zone: 'street_square', placeId: 'street', bandId: 'thieves', name: 'Tam', storyId: 'test' });
     s.actors.push(t);
-    s.bands.push({ id: 'thieves', name: 'thieves', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} });
+    s.bands.push({ id: 'thieves', name: 'thieves', goals: '', temperament: '', lethal: true, relations: {} });
     beside(s, 'thief_1', 'player', 0.5);
     t.core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['grip:left_arm'] }, { id: 'stow_1', itemId: IT.dagger });
     const gear = () => buildPlayerView(s).actors.find((a) => a.id === 'thief_1')?.gear?.map((g) => g.id) ?? [];

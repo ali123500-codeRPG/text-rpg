@@ -1508,7 +1508,7 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
   const settings = defaultSettings();
   return {
     storyId, turn: 0, mode: 'explore', zones: [], player, actors: [],
-    bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} }],
+    bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', lethal: true, relations: {} }],
     hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: seed, rngState: seed,
     pending: { turn: 0, mode: 'explore', engaged: [], fired: [] },

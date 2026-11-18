@@ -40,6 +40,7 @@ import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
+import { tacticsWord } from './tactics';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { itemHolders, summonableThreadboundItems } from '../ruleset/threadboundItems';
 import { beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
@@ -558,7 +559,7 @@ export function buildPlayerView(state: GameState): PlayerView {
 }
 
 // ---------- ActorView / OppositionView / DialogueView ----------
-type BaseView = Omit<ActorView, 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
+type BaseView = Omit<ActorView, 'tacticsWord' | 'tactics' | 'plan' | 'goals' | 'steps' | 'thinkWhy' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
 
 /** everything an NPC view holds that is not in state.hidden */
 function baseView(state: GameState, actorId: string): BaseView {
@@ -628,8 +629,8 @@ function baseView(state: GameState, actorId: string): BaseView {
     personality: personalityText(state, a, moraleWord(a)),
     ...(rolledTitle(state, a) ? { title: rolledTitle(state, a) } : {}),
     band: band
-      ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
-      : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
+      ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, relations: { ...band.relations } }
+      : { id: a.bandId, name: '', goals: '', temperament: '', relations: {} },
     // BA7: code paths treat a way shut to this actor (no key, the far side of the bar, rubble) as no way
     map: nearbyZones(state, [a.zone], [a.placeId]).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
     zones: perceivedZones(state, a.zone, a),
@@ -679,6 +680,7 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
   const plan = h.plans[actorId];
   return {
     ...base,
+    tacticsWord: tacticsWord(need(state, actorId)),
     ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
     ...goalView(h.drives?.[actorId]),
     ...(h.memory[actorId]?.length ? { memory: h.memory[actorId].map((m, i) => ({ n: i + 1, turn: m.turn, text: m.text })) } : {}),

@@ -8,7 +8,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
   const a = actorById(state, id)!;
   const m = a.mind!;
   return {
-    turn: state.turn,
+    turn: state.turn, tacticsWord: 'simple',
     time: { day: 1, timeOfDay: 'Morning' },
     personality: '',
     self: {
@@ -26,7 +26,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
       return { about, status: b.status, lastKnownZone: b.lastKnownZone, lastSeenTurn: b.lastSeenTurn, source: b.source, revealed: [], stance: stance(state, a, o), hostile: hostile(state, a, o), active: isActive(o), label: o.label };
     }),
     perceived: [], told: [], said: [], secrets: [], firedTriggers: [],
-    band: { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
+    band: { id: a.bandId, name: '', goals: '', temperament: '', relations: {} },
     map: state.zones.map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
     zones: [], seen: [],
   };

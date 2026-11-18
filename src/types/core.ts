@@ -38,7 +38,6 @@ export type Band = {
   name: string; // public
   goals: string; // hidden text (Weaver)
   temperament: string; // hidden text (Weaver)
-  tactics: Tactics;
   lethal: boolean;
   relations: Record<string, Stance>;
   /** CH5: how far its code-run members chase the player (none: the template's, else CONFIG.CHASE_RANGE_DEFAULT) */

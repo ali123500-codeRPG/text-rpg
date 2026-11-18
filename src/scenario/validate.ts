@@ -5,7 +5,7 @@ import { triggerErrors } from './triggers';
 import { holdsInner, scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { AWARENESS, CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, TALENTS, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { AWARENESS, CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, TALENTS, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
@@ -394,7 +394,6 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`band ${b.key} name`, b.name, true);
     text(`band ${b.key} goals`, b.goals, false);
     text(`band ${b.key} temperament`, b.temperament, false);
-    if (!TACTICS.has(b.tactics)) err('bad_band', `band ${b.key}: tactics is ${TACTICS.list()}`);
     if (b.lethal !== undefined && typeof b.lethal !== 'boolean') err('bad_band', `band ${b.key}: lethal is true or false`);
     if (b.chase !== undefined && !CHASE_RANGES.has(b.chase)) err('bad_band', `band ${b.key}: chase is ${CHASE_RANGES.list()}`); // CH5
     for (const [other, st] of Object.entries(b.relations ?? {})) {

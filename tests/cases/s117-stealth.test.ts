@@ -178,6 +178,7 @@ describe('117 stealth', () => {
       const s = makeVillage();
       place(s, 'player', 'gate_inner');
       const g = beside(s, 'guard_1', 'player', m);
+      delete g.core.skills[SK.battle_sense]; // its Reaction (Battle Sense) would close in before the slip, so the metres stay as set
       aware(s, 'guard_1', 'gate_inner');
       if (engaged) { g.mind!.knowledge.player!.status = 'engaged'; g.mind!.overrides = { player: 'hostile' }; }
       const calls = rig({ guard_1: -1 });

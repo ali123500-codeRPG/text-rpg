@@ -13,7 +13,7 @@ export function formatPlayerView(text: string, view: PlayerView, answering?: Ans
 
 /** CHARACTER: who the actor is (name, role, personality, band, band goals, temperament, tactics word), from its own view */
 function character(view: OppositionView) {
-  return { ...voiceCharacter(view), ...(view.title ? { name: `${view.self.name}, ${view.title}` } : {}), personality: view.personality, bandGoals: view.band.goals, temperament: view.band.temperament, tactics: TACTICS.name(view.band.tactics) };
+  return { ...voiceCharacter(view), ...(view.title ? { name: `${view.self.name}, ${view.title}` } : {}), personality: view.personality, bandGoals: view.band.goals, temperament: view.band.temperament, tactics: TACTICS.name(view.tacticsWord) };
 }
 
 /** the Voice is player-side: goals and temperament are the Weaver's hidden text, so only id, name, role and band name (Q1) */
@@ -23,7 +23,7 @@ function voiceCharacter(view: OppositionView | DialogueView) {
 
 /** OppositionView minus the band block (it is in CHARACTER); fired triggers are shown as "already happened" */
 function opposition(view: OppositionView) {
-  const { band: _band, personality: _p, title: _t, firedTriggers, ...rest } = view;
+  const { band: _band, personality: _p, title: _t, tacticsWord: _w, firedTriggers, ...rest } = view; // the tactics word goes in CHARACTER
   return { ...rest, alreadyHappened: firedTriggers };
 }
 

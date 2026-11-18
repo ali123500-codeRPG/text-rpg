@@ -17,7 +17,7 @@ const setup = () => {
   return s;
 };
 const riders = (zone: string): CheckinAnswer['arrivals'] => ({
-  bands: [{ key: 'riders', name: 'the riders', goals: 'find the stranger', temperament: 'hard', tactics: 'competent', lethal: true, relations: {} }],
+  bands: [{ key: 'riders', name: 'the riders', goals: 'find the stranger', temperament: 'hard', lethal: true, relations: {} }],
   cast: [{ template: TP.guard, key: 'rider_1', label: 'a rider', name: 'Hal', appearance: 'a rider in a dusty cloak', band: 'riders', routineSetId: 'gate_guard',
     slots: { post: zone }, awarenessOfPlayer: 'unaware', motive: 'paid to bring the stranger back' }],
   seeds: { plans: [], triggers: [], secrets: [] },

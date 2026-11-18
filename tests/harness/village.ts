@@ -48,7 +48,7 @@ export function villagePlaces(storyId = 'test'): Place[] {
 
 export function villageBands(): Band[] {
   const B = (id: string, name: string, relations: Band['relations'], lethal = true): Band =>
-    ({ id, name, goals: '', temperament: '', tactics: 'simple', lethal, relations });
+    ({ id, name, goals: '', temperament: '', lethal, relations });
   return [
     B('player_band', 'the player', { slimes: 'hostile' }),
     B('village_watch', 'the village watch', { slimes: 'hostile' }),

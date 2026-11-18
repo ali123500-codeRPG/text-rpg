@@ -58,7 +58,7 @@ describe('NPC generation by rank, role and theme (NG1–NG9)', () => {
     expect([s[SK.melee_medium].raw, s[SK.block].raw]).toEqual([50, 50]);
     expect([s[SK.medium_armor].raw, s[SK.endurance].raw, s[SK.eyesight].raw]).toEqual([40, 40, 40]);
     expect([s[SK.parry].raw, s[SK.earshot].raw]).toEqual([30, 30]); // earshot: a common skill (NG8)
-    expect(Object.entries(s).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium].sort());
+    expect(Object.entries(s).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium, SK.battle_sense].sort());
     expect(s[SK.melee_light]).toBeUndefined(); // no spill into the tree
     expect(s[SK.barter]).toBeUndefined();
   });
