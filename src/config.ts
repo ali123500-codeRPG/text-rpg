@@ -198,7 +198,6 @@ const DEFAULTS = {
   PROJECTED_AURA_MULT: 2,
   /** TC50 a: S3 feigned flight ends after this many seconds of game time with no lone follower (three fight turns) [placeholder] */
   FEINT_S: 18,
-  FIELD_WAYS_OUT: 3, // TC18 a: how many ways out a Fieldcraft row looks for a zone within one move (a move never crosses more)
   /** TC41 a: Rallied, from any rally: this bonus on every roll for the rest of the fight; a second rally adds nothing */
   RALLIED_MOD: 5,
   /** TC43 a: a rally roll is the rallied one's morale check plus this share of the rallier's rallying skill (augment equation) [placeholder] */
@@ -469,7 +468,7 @@ const DEFAULTS = {
   WAKE_CONTACT: ['attack'] as string[], // NW14: a blow wakes the one it is aimed at, hit or miss
   /** NW19: the difficulty of a light sleeper's hearing check against someone moving openly, by their noise (louder is easier) */
   WAKE_GRADE: { faint: 'extreme', hushed: 'major', quiet: 'moderate', murmur: 'minor', normal: 'none', raised: 'none', loud: 'none', blaring: 'none', deafening: 'none' } as Record<string, import('./scales').GradeLevel>,
-  BED_NEAR_HOPS: 2, // BF68: a real bed this many zone links or fewer from one's own spots is one's bed when none was given (placeholder)
+  BED_NEAR_M: 30, // BF68, BG-303: a real bed this many metres or less away by the walking path from one's own spots is one's bed when none was given (placeholder: about across a house and up its stairs)
   FALL_ASLEEP_MIN: 30, // NW20: an NPC woken falls asleep again by its routine no sooner than this
   NIGHT_MAX_MIN: 12 * 60, // NW22 b: a night shared out in watches lasts at most 12 hours
   SLEEP_STEP_MIN: 10, // NW12: a sleep is stepped this many minutes at a time, to stop when someone hostile arrives
@@ -747,8 +746,9 @@ const DEFAULTS = {
   /** ZR12: how far past the edge of the scenario's ground, by the walking path, a pursuer with chase range near follows the
    * player before it turns back (placeholder: about a village street or two; a game number, not a real-world reference) */
   CHASE_NEAR_M: 200,
-  /** WI8 a: a planner's or NPC agent's view holds the zones within this many ways of where it looks (placeholder) */
-  PLAN_VIEW_WAYS: 2,
+  /** WI8 a, BG-305: a planner's or NPC agent's view holds the zones within this many metres of where it looks, by the walking
+   * path (placeholder: about a village street or two, as CHASE_NEAR_M) */
+  PLAN_VIEW_M: 200,
   IMPROVISED_HIT_ADJ: -10,
   /** RD7 worn armor's slowing by weight: flat m/s off the body type's speeds, then a share off what is left (an armor item's
    * own `speed` overrides). Placeholders: no study gives speed loss directly; heavy is about a fifth, as asked */

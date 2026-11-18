@@ -8,7 +8,8 @@ import { CONFIG } from '../config';
 import { now, secondsSince, timeOfDay, zoneLight } from '../time';
 import { routine as getRoutine, routineSet } from '../library';
 import { actorById, allActors, atLeast, isActive, isAsleep, isEngaged, sparring, wary, zoneById } from '../engine/relations';
-import { beliefStatus, computePerception, inLookReach, perceptionOf, updateBeliefs } from '../perception';
+import { beliefStatus, computePerception, hearsClearly, inLookReach, perceptionOf, updateBeliefs } from '../perception';
+import { VOLUME_NOISE } from '../perception/noise';
 import { markUse, ruleset, situational, fnRoller, tierLevel, toContest, usableModes, fallbackAttackSkill, modeSkill, effectiveSkill } from '../ruleset';
 import { coverShown, rollFnSkills } from '../ruleset/gear';
 import { rewardSum } from '../ruleset/achRewards';
@@ -99,7 +100,9 @@ export function headArrivals(state: GameState): void {
     const dest = m.slots?.dest;
     if ((Array.isArray(dest) ? dest[0] : dest) !== a.zone) continue;
     // BF4: leading someone, it waits there until they come or LEAD_WAIT_S pass
-    if (m.leading && actorById(state, m.leading.id)?.zone !== a.zone && secondsSince(state, m.leading.since ??= state.turn) < CONFIG.LEAD_WAIT_S) continue;
+    // BG-308: it waits until the one it leads is near enough to talk (hears a normal voice), not until it is in the same zone
+    const led = m.leading && actorById(state, m.leading.id);
+    if (m.leading && (!led || !hearsClearly(state, led, a, VOLUME_NOISE.normal)) && secondsSince(state, m.leading.since ??= state.turn) < CONFIG.LEAD_WAIT_S) continue;
     delete m.leading;
     if (m.headBack) m.routine = m.headBack;
     else delete m.routine;

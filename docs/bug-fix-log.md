@@ -6,6 +6,62 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-309
+
+**What was wrong:** Stepping up to be heard (approachMove) only happened when the listener was in the same zone or one sight link away, so someone two open ways off and out of earshot was never walked toward.
+
+**What was done:** Anyone with a sight line to the speaker (seeingM) is stepped toward when out of earshot.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-308
+
+**What was wrong:** An NPC leading someone (BF4) waited at the end until they stood in its zone, so one in the doorway beside it still kept it waiting.
+
+**What was done:** It waits until the one it leads hears its normal voice clearly (hearsClearly), in any zone.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-307
+
+**What was wrong:** A goal step "wait until X arrives" ended only when X stood in the same zone, so X talking from across the counter had not arrived and X 60 m off in the same square had.
+
+**What was done:** Arrived = X is near enough to talk: the waiter hears X's normal voice clearly (hearsClearly).
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-306
+
+**What was wrong:** The code-run fight list attacked only foes it believed in its own zone, so a foe a step away across a field's edge or a doorway was walked toward (one zone) instead of struck.
+
+**What was done:** It attacks the foes it knows of that one move and its melee reach would reach this turn (ActorView self.withinStrike, metres), else the foes it sees (an attack closes in and runs on, BG-255).
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-305
+
+**What was wrong:** A planner's or NPC agent's view held the zones within 2 ways of where it looks (PLAN_VIEW_WAYS), so a 3 km road counted as near and three small rooms did not.
+
+**What was done:** PLAN_VIEW_M (200 m, placeholder) by the walking path.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-304
+
+**What was wrong:** Fieldcraft rows (Out of sight, Into cover, Into the dark) looked for zones only up to 3 ways off (FIELD_WAYS_OUT), so a zone four small rooms off that one move reaches was never offered.
+
+**What was done:** Every zone one move reaches by the walk (slotMetres), however many ways off; FIELD_WAYS_OUT removed.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
+## BG-303
+
+**What was wrong:** A bed a code-run NPC gets when its plan gave none was any bed within 2 zone links of its own spots (BED_NEAR_HOPS), so a bed 70 m off across two fields counted and one up a corridor of three small rooms did not.
+
+**What was done:** BED_NEAR_M (30 m, placeholder) by the walking path, nearest first.
+
+**Fixed by:** [PR #1054](https://github.com/ali123500-codeRPG/text-rpg/pull/1054)
+
 ## BG-297
 
 **What was wrong:** The turn check flagged a hold only when holder and held were in different zones, so a grip across a doorway was flagged and one from 30 m in the same zone was not.

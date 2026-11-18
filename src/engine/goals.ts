@@ -10,6 +10,8 @@ import { HEAD_TO } from '../minds/routines';
 import { actorById, isActive, zoneById } from './relations';
 import { logCode } from './effects';
 import { buildActorView } from '../views';
+import { hearsClearly } from '../perception';
+import { VOLUME_NOISE } from '../perception/noise';
 
 /** the shared routine a wait step runs: it stays where it stands (slot 'here') */
 const WAIT = 'wait';
@@ -88,7 +90,8 @@ const stepDone = (state: GameState, a: Actor, d: Drive): boolean => {
   const s = d.steps[0];
   if (now(state) >= (d.endsAt ?? Infinity)) return true;
   if (s.go) return a.mind?.routine?.id !== HEAD_TO; // headArrivals ended the walk
-  return !!s.until?.arrival && actorById(state, s.until.arrival)?.zone === a.zone;
+  const who = s.until?.arrival ? actorById(state, s.until.arrival) : undefined;
+  return !!who && hearsClearly(state, who, a, VOLUME_NOISE.normal); // BG-307: arrived = near enough to talk, not the same zone
 };
 
 /** UG16: each goal holder's step that is over gives way to the next; runs at the end of a turn and inside long turns */

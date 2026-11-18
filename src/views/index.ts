@@ -22,7 +22,7 @@ import { charLevel, power, wornTitle } from '../engine/xp';
 import { presetAgeFloor, presetTalent, rankName, rankRow, spawnNpc } from '../library/spawn';
 import { uniqueInWorld } from '../library/echo';
 import { distOrNull, seeingM, sideFrom, sightDistM, spotPoint } from '../engine/position';
-import { moveSpeed } from '../engine/speed';
+import { moveSpeed, slotMetres } from '../engine/speed';
 import { hiddenFrom } from '../engine/gear';
 import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
@@ -60,7 +60,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { cap, listWords, mentions, r1, theOf } from '../words';
-import { clutterCover, gripsOf, isAccSlot, isGripSlot, isHeld, modeName, pieceName, usableModes } from '../ruleset/gear';
+import { clutterCover, gripsOf, isAccSlot, isGripSlot, isHeld, meleeReachM, modeName, pieceName, usableModes } from '../ruleset/gear';
 import { usableGrips } from '../ruleset/body';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -260,6 +260,15 @@ const seemingHealth = (viewer: Actor, a: Actor): HealthLevel => (fooledBy(viewer
 /** actors the viewer perceives now: in its own or a sight-linked zone, made out by the sight table in metres (ZR6): full
  * within clear sight, 'someone' within a glimpse, beyond that not at all; dark zones give partial. NPCs perceive the player
  * only once aware. */
+
+/** BG-306: the people `a` is aware of and perceived this turn or last (seen or heard) whom one move and its melee reach
+ * would bring a blow to this turn: metres by the walking path, in any zone */
+function withinStrike(state: GameState, a: Actor): { withinStrike?: string[] } {
+  const reach = slotMetres(state, a, 'move') + meleeReachM(state, a), k = a.mind?.knowledge ?? {};
+  const ids = allActors(state).filter((x) => x !== a && atLeast(k[x.id]?.status, 'aware') && (k[x.id]?.lastSeenTurn ?? -Infinity) >= state.turn - 1
+    && (distOrNull(state, a, x) ?? Infinity) <= reach).map((x) => x.id).sort();
+  return ids.length ? { withinStrike: ids } : {};
+}
 
 function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state.events): SeenActor[] {
   if (viewer.asleep) return []; // NW12/NW20: asleep, it sees no one
@@ -663,6 +672,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...((o) => o ? { standDownOffer: { from: callName(state, a.id, o.from), landed: OFFER_WORDS[o.landed], ...(o.coin ? { coin: coinWords(o.coin) } : {}), ...(o.demand ? { demand: o.demand } : {}) } } : {})(offersTo(state, a)[0]), // TF15, TF19
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
+      ...withinStrike(state, a),
       ...(a.mind?.suspects && Object.keys(a.mind.suspects).length ? { suspects: Object.entries(a.mind.suspects).map(([id, s]) => ({ id, name: callName(state, a.id, id), item: `a locked ${boxName(state, s.box)}` })) } : {}), // GD3
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),
     },
