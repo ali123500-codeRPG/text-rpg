@@ -16,7 +16,7 @@ export type Suggestion = { action: DeckAction; choice: Choice; reason: string; s
 export function suggestions(groups: ReturnType<typeof deck>, ctx: DeckCtx): Suggestion[] {
   const { pv, s } = ctx;
   const W = CONFIG.SUGGEST;
-  const all = groups.flatMap((g) => g.actions);
+  const all = groups.flatMap((g) => g.actions).filter((a) => !a.limit); // A3: a used or waiting move is never suggested
   const find = (kind: DeckAction['kind']) => all.find((a) => a.kind === kind);
   const out: Suggestion[] = [];
   const put = (kind: DeckAction['kind'], choice: Choice, score: number, reason: string) => { const action = find(kind); if (action) out.push({ action, choice, reason, score }); };

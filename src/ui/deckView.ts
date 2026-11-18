@@ -90,7 +90,8 @@ export function deckView(api: GameApi, o: {
   const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label' }, 'Stance'), h('span', { class: 'dk-seg', role: 'group', 'aria-label': 'Stance' }, ...stanceBtns));
   const cols = h('div', { class: 'dk-groups' });
   const el = h('div', { class: 'deck' }, mods, cols);
-  let html = '';
+  let html = '', wasLimited = new Set<string>();
+  const actOf = (b: HTMLElement) => groups[Array.from(cols.children).indexOf(b.closest('.dk-col')!)]?.actions[Number(b.dataset.i)];
 
   function repaint() {
     aimBtn.setAttribute('aria-pressed', String(aim));
@@ -107,17 +108,21 @@ export function deckView(api: GameApi, o: {
     groups = ctx ? deck(ctx) : [];
     if (sayMode && !groups.some((g) => g.actions.some((a) => a.kind === sayMode!.action.kind))) setSay(null);
     const kids = groups.map((g) => h('div', { class: `dk-col g-${g.group}` }, h('p', { class: 'dk-h' }, g.name),
-      ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : ''), 'data-kind': a.kind, 'data-i': String(i) },
-        h('span', { class: 't' }, a.label), a.note ? h('span', { class: 'n' }, a.note) : null))));
+      ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : '') + (a.limit ? ' dk-lim' : ''), 'data-kind': a.kind, 'data-i': String(i),
+        ...(a.limit ? { 'aria-disabled': 'true', title: a.limit.tip, 'aria-label': `${a.label}, ${a.limit.tip}` } : {}) },
+        h('span', { class: 't' }, limitMark(a), a.label), a.note ? h('span', { class: 'n' }, a.note) : null))));
     const now = kids.map((k) => k.outerHTML).join('');
     if (now === html && !force) return;
     html = now;
     cols.replaceChildren(...kids);
+    // A3: a move whose limit ran out since the last redraw pulses once
+    const limited = new Set(groups.flatMap((g) => g.actions.filter((a) => a.limit).map(keyOf)));
+    cols.querySelectorAll<HTMLButtonElement>('.dk-act:not(.dk-lim)').forEach((b) => { const a = actOf(b); if (a && wasLimited.has(keyOf(a))) b.classList.add('dk-ready'); });
+    wasLimited = limited;
     // the buttons find their action by group and place, so a rebuilt list never keeps a stale handler
     cols.querySelectorAll<HTMLButtonElement>('.dk-act').forEach((b) => {
-      const gi = Array.from(cols.children).indexOf(b.closest('.dk-col')!);
-      const a = groups[gi]?.actions[Number(b.dataset.i)];
-      if (a) b.onclick = () => run(a, {}, b);
+      const a = actOf(b);
+      if (a && !a.limit) b.onclick = () => run(a, {}, b);
     });
     lock();
   }
@@ -141,6 +146,14 @@ export function deckView(api: GameApi, o: {
     },
     cancelSay() { setSay(null); },
   };
+}
+
+const keyOf = (a: DeckAction) => `${a.kind}|${a.label}`;
+/** A3: a used move's hollow mark with a slash; a waiting one's ring, filled by the share of the wait gone */
+function limitMark(a: DeckAction): HTMLElement | null {
+  if (!a.limit) return null;
+  return 'used' in a.limit ? h('span', { class: 'dk-mark used', 'aria-hidden': 'true' })
+    : h('span', { class: 'dk-mark wait', 'aria-hidden': 'true', style: `--share:${+a.limit.share.toFixed(2)}` });
 }
 
 const safePv = (s: GameState): PlayerView | null => { try { return buildPlayerView(s); } catch { return null; } };

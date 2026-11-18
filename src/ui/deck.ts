@@ -21,6 +21,7 @@ import { lootSources } from './loot';
 import { AGAINST_NATURE, pullOf, type IdeaGroup, type IdeaKind } from './ideaLeans';
 import { healItems, partName } from './healing';
 import { cap, r1, theItem } from '../words';
+import { now, secondsSince } from '../time';
 
 export const DECK_GROUPS = ['getaway', 'fight', 'talk', 'move', 'stealth', 'use', 'perks'] as const;
 export type DeckGroup = (typeof DECK_GROUPS)[number];
@@ -33,8 +34,11 @@ export type StepKey = 'target' | 'item' | 'part' | 'time';
 /** a step asks one thing: a pick (from a list made from what was chosen before), or words typed in the Say box */
 export type Step = { key: StepKey; title: string; picks: (c: Choice) => Pick[] } | { key: 'words'; title: string };
 export type Order = { intent: Intent; line: string };
+/** A3: a move with a limit that can't be used now: used this fight, or waiting (share: how much of the wait is gone, 0-1).
+ * It stays in its group, shown by a mark, not words; the words are its tip */
+export type DeckLimit = { used: true; tip: string } | { share: number; tip: string };
 export type DeckAction = {
-  kind: DeckKind; group: DeckGroup; label: string; note?: string; hot?: true;
+  kind: DeckKind; group: DeckGroup; label: string; note?: string; hot?: true; limit?: DeckLimit;
   steps: Step[]; play(c: Choice): Order;
 };
 export type DeckCtx = { pv: PlayerView; s?: GameState; stance?: 'careful' | 'normal' | 'reckless'; aim?: boolean; broken?: boolean; cowering?: boolean; self?: Personality }; // cowering: BF79, below Broken
@@ -109,9 +113,11 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   const zoneName = (id: string) => pv.zones.find((z) => z.id === id)?.name ?? pv.known?.find((z) => z.id === id)?.name ?? pv.zone.links.find((l) => l.to === id)?.label ?? id;
   const containers = pv.zone.groundItems.filter((g) => g.container);
   const fight = !!s && s.mode === 'tactical';
+  /** A3: a wait that has run `gone` of `of` (seconds or game minutes) */
+  const waiting = (gone: number, of: number, unit: 's' | 'min'): DeckLimit => ({ share: Math.max(0, Math.min(1, gone / of)), tip: `Ready in ${Math.max(1, Math.ceil(of - gone))} ${unit}` });
 
   const A: DeckAction[] = [];
-  const add = (kind: DeckKind, group: DeckGroup, label: string, steps: Step[], play: (c: Choice) => Order, extra: { note?: string; hot?: true } = {}) =>
+  const add = (kind: DeckKind, group: DeckGroup, label: string, steps: Step[], play: (c: Choice) => Order, extra: { note?: string; hot?: true; limit?: DeckLimit } = {}) =>
     A.push({ kind, group, label, steps, play, ...extra });
 
   // ---- Fight (MB12/BF37: a broken nerve allows no attack; words, a yield, sneaking and a walk away (BF79) still work) ----
@@ -136,7 +142,9 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
       if (full.length) add('restrain', 'fight', 'Restrain', [who('Hold back whom?', full)], (c) => order(`Restrain ${them(c)}`, { action: act('restrain', { target: c.target! }) }), { note: 'hold them back unhurt' });
     }
     // SY1: in a fight, above Broken and not within its cooldown: one morale roll as the action
-    if (s && cantSteady(s, s.player) === null) add('steady', 'fight', 'Steady yourself', [], () => order('Steady yourself', { action: act('steady') }), { note: 'your action · a morale roll' });
+    const why = s ? cantSteady(s, s.player) : 'not_in_fight';
+    if (why === null || why === 'too_soon') add('steady', 'fight', 'Steady yourself', [], () => order('Steady yourself', { action: act('steady') }), { note: 'your action · a morale roll',
+      ...(why === 'too_soon' ? { limit: waiting(secondsSince(s!, s!.player.core.condition.steadiedTurn!), CONFIG.STEADY_COOLDOWN_S, 's') } : {}) });
     const down = seen.filter((a) => a.level === 'full' && a.health && isDownLevel(a.health));
     const extractable = s ? down.filter((a) => cantExtract(s, s.player, s.actors.find((x) => x.id === a.id)) === null) : [];
     if (extractable.length) add('extract', 'fight', 'Pull the Thread', [who('From whom?', extractable)], (c) => order(`Pull the essence from ${them(c)}`, { action: act('extract', { target: c.target! }) }), { note: 'take their essence' });
@@ -274,7 +282,8 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   if (!fight) {
     add('wait', 'use', 'Wait', [{ key: 'time', title: 'Wait until?', picks: () => [{ id: '', label: 'A moment', note: 'see what happens' }, { id: 'someone', label: 'Someone comes' }, ...['dawn', 'morning', 'afternoon', 'dusk', 'evening', 'night'].map((t) => ({ id: t, label: cap(t) }))] }],
       (c) => c.time ? order(c.time === 'someone' ? 'Wait for someone to come' : `Wait until ${c.time}`, { action: act('wait', { target: c.time }) }) : order('Wait and see', {}));
-    add('rest', 'use', 'Rest', [], () => order('Rest a while', { action: act('rest') }), { note: 'a short rest' });
+    const rested = s?.clocks[`rest:${s.player.id}`], since = s && rested !== undefined ? now(s) - rested : Infinity;
+    add('rest', 'use', 'Rest', [], () => order('Rest a while', { action: act('rest') }), { note: 'a short rest', ...(since < CONFIG.REST_COOLDOWN_MIN ? { limit: waiting(since, CONFIG.REST_COOLDOWN_MIN, 'min') } : {}) });
     add('sleep', 'use', 'Sleep', [], () => order('Sleep', { action: act('sleep') }));
   }
 
@@ -282,7 +291,8 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
   for (const m of pv.player.perkMoves ?? []) {
     const label = PERK_LABEL[m.id] ?? m.name;
     const note = `${m.name} · ${m.action ? 'your action' : 'free'}`;
-    if (!m.inRange) add('perk', 'perks', label, [], () => order(label, { perkMove: { perk: m.id, target: null } }), { note });
+    if (m.used) add('perk', 'perks', label, [], () => order(label, { perkMove: { perk: m.id, target: null } }), { note, limit: { used: true, tip: 'Used this fight' } });
+    else if (!m.inRange) add('perk', 'perks', label, [], () => order(label, { perkMove: { perk: m.id, target: null } }), { note });
     else if (m.inRange.length) add('perk', 'perks', label, [who(`${label}: whom?`, up.filter((a) => m.inRange!.includes(a.id)))], (c) => order(`${label}: ${them(c)}`, { perkMove: { perk: m.id, target: c.target! } }), { note });
   }
 
@@ -301,6 +311,6 @@ const PERK_LABEL: Record<string, string> = { [PK.dirt_in_the_eyes]: 'Throw dirt 
 
 /** the actions of one deck that can be done to or with this person (AD14: clicking someone), with the target already chosen */
 export function actionsOn(groups: ReturnType<typeof deck>, id: string): DeckAction[] {
-  return groups.flatMap((g) => g.actions).filter((a) => a.steps[0]?.key === 'target' && (a.steps[0] as { picks: (c: Choice) => Pick[] }).picks({}).some((p) => p.id === id));
+  return groups.flatMap((g) => g.actions).filter((a) => !a.limit && a.steps[0]?.key === 'target' && (a.steps[0] as { picks: (c: Choice) => Pick[] }).picks({}).some((p) => p.id === id));
 }
 

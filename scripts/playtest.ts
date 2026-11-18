@@ -132,6 +132,7 @@ function deckMenu(st: GameState): { items: MenuItem[]; suggested: string } {
   const groups = deck(ctx);
   const items: MenuItem[] = [];
   for (const g of groups) for (const a of g.actions) {
+    if (a.limit) continue; // A3: used or waiting, it can't be picked
     if (a.kind === 'loot') {
       const src = lootSources(pv), all = new Set(src.flatMap((x) => x.items.map((i) => i.id)));
       const line = lootOrder(src, all);
