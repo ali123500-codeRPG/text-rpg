@@ -140,6 +140,7 @@ export type PlannerOutput = {
   lead?: string | null; // BF4: who it takes along on that walk; it waits there for them
   goals?: GoalOps | null; // UG5: a goal holder's goals met, failed or added
   steps?: import('./hidden').GoalStep[] | null; // UG16: a goal holder's next steps, in order (replaces its queue)
+  perkMove?: { perk: string; target: string | null } | null; // TC49: one of self.perkMoves, as the player's
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {

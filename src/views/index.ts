@@ -11,7 +11,7 @@ import { personalityText } from '../ruleset/personality';
 import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PerkMoveView, PlayerView, RollResult, SeenActor, SeenGearView,
   NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -522,6 +522,16 @@ function bodyAttacks(state: GameState, a: Actor): { bodyAttacks?: BodyAttackView
   return l.length ? { bodyAttacks: l } : {};
 }
 
+/** AE8/TC49: the perk moves an actor owns, for its Parser or its agent; inRange lists the seen people it could aim each at */
+function perkMovesOf(state: GameState, a: Actor, seen: { id: string }[]): { perkMoves?: PerkMoveView[] } {
+  const ids = ownPerkMoves(a);
+  if (!ids.length) return {};
+  return { perkMoves: ids.map((id) => ({
+    id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }),
+    ...(PERK_MOVES[id].untargeted ? {} : { inRange: seen.filter((x) => perkMoveBlock(state, a, id, x.id) !== 'no_target').map((x) => x.id) }),
+  })) };
+}
+
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
   const actors = seenActors(state, p);
@@ -538,7 +548,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...reachesOf(state, p),
       ...bodyAttacks(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
-      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
+      ...perkMovesOf(state, p, actors),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
@@ -618,7 +628,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a), fatigue: fatigueWord(a),
       ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', ...(m.moraleState === 'broken' && isCoweringLevel(moraleLevel(a)) ? { cowering: true as const } : {}), surrendered: m.moraleState === 'surrendered', ...fallBackView(state, a),
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
-      gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a),
+      gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a), ...perkMovesOf(state, a, seenActors(state, a)),
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn, elapsed: Math.max(0, now(state) - (m.routine.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {}),
       routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),
