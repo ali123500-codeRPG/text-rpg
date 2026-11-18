@@ -100,6 +100,7 @@ export function essencesBody(api: GameApi, s: GameState, after: () => void): (No
   return [
     h('p', { class: 'ess-meta' }, slotsText(p)),
     h('p', { class: 'hs-note' }, 'An essence is a package of true skill points you take into a slot. They are offered by beaten foes and by scenarios you end well. You get one more slot every few character levels.'),
+    !held.length && !offers.length ? h('p', { class: 'empty' }, 'No essences yet. A foe you defeat can offer one.') : null, // G4
     h('div', { class: 'ess-grid' },
       ...held.map((e) => tile(e)),
       ...Array.from({ length: Math.max(0, slots - held.length) }, () => h('div', { class: 'ess-tile ess-empty' }, h('span', {}, 'Empty slot')))),

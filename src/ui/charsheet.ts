@@ -27,7 +27,7 @@ import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES,
 import { isBrokenLevel, isCoweringLevel, maxMorale, moraleLevel, moraleLostPct, moralePenalty } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
-import { cap, r1, theName } from '../words';
+import { cap, r1, termAttrs, theName } from '../words';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -304,7 +304,7 @@ export function skillFacts(p: Actor, id: string) {
 
 export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null): void {
   const f = skillFacts(p, id);
-  const line = (label: string, v: string, cls = '') => h('div', { class: 'sk-line ' + cls }, h('span', {}, label), h('b', {}, v));
+  const line = (label: string, v: string, cls = '', tip: Record<string, string> = {}) => h('div', { class: 'sk-line ' + cls }, h('span', tip, label), h('b', {}, v));
   const tagged = p.core.skills[id]?.state === 'tagged', flawed = p.core.skills[id]?.state === 'flawed';
   openPop({ title: skillName(id), cls: 'sk-pop', opener, body: [
     h('div', { class: 'sk-top' }, h('b', { class: 'sk-v' }, whole(f.value)), h('span', {}, f.value === f.raw ? 'Skill' : `True skill · raw ${f.raw}`),
@@ -320,7 +320,7 @@ export function openSkillPop(p: Actor, id: string, opener?: HTMLElement | null):
       line('Learns from', winText(f.window)),
       flawed ? line('Flawed', `learns slower, stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}`, 'sk-bad') : null,
       // BU3 b: shown only once Burden is above 0, and only here
-      f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad') : null,
+      f.burden.by > 0 ? line('Burden', `−${f.burden.by} to improve`, 'sk-bad', termAttrs('Burden')) : null,
       f.burden.by > 0 ? h('p', { class: 'hs-note' }, `Your skills add up to ${whole(f.burden.total)} (a tag counts 0, each tag in a group takes ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in it and each flaw adds ${CONFIG.FLAW_BURDEN_GROUP_PCT}%), past your Potential of ${f.burden.potential}. Every ${CONFIG.K} points past it makes each untagged skill 1 harder to improve. Tagged skills carry no Burden.`) : null,
       f.groupBonus > 0 ? line('Tagged group-mates', `+${whole(f.groupBonus)} to improve`) : null,
       line('Next perk milestone', `${f.next} · ${whole(f.toNext)} to go`)),
