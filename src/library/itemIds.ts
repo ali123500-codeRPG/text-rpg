@@ -29,4 +29,7 @@ export const IT = {
   // IR25-IR29: gauntlets, an unarmed weapon held in both grips, one pair per level
   leather_gloves: 'IT82', mail_mittens: 'IT83', plate_gauntlets: 'IT84', peerless_gauntlets: 'IT85',
   war_spear: 'IT86', // IC6 a: the two-handed spear beside the one-handed one
+  sledgehammer: 'IT87', pick: 'IT88', // BW22 a: breaking tools
 } as const;
+/** BW22 a: the tag that makes an item a breaking tool (a sledgehammer, a pick) */
+export const BREAK_TOOL_TAG = 'break_tool';
