@@ -111,6 +111,18 @@ function planUpdateFor(view: OppositionView, v: { planUpdate: PlannerOutput['pla
   v.planUpdate.triggers = v.planUpdate.triggers.map((t) => ({ ...t, ownerId: view.self.id }));
 }
 
+/** TC49: a perk move must be one it owns, aimed at someone it could reach with it (or at no one when it is aimed at no one);
+ * anything else is dropped (invalid_perk_move). One that is the turn's main action takes the turn: its other action is dropped */
+function perkMoveFor(view: OppositionView, v: { perkMove?: PlannerOutput['perkMove']; action: NpcAction }, errors: string[]): void {
+  const pm = v.perkMove;
+  if (!pm) return;
+  const m = view.self.perkMoves?.find((x) => x.id === pm.perk || x.name.toLowerCase() === pm.perk.trim().toLowerCase());
+  const aimOk = !m ? false : m.inRange ? pm.target !== null && m.inRange.includes(pm.target) : true;
+  if (!m || !aimOk) { errors.push('invalid_perk_move'); v.perkMove = null; return; }
+  v.perkMove = { perk: m.id, target: m.inRange ? pm.target : null };
+  if (m.action && v.action.type !== 'hold') v.action = { ...v.action, type: 'hold', target: null, skill: null, item: null, mode: null };
+}
+
 export type PlannerCallOpts = { signal?: AbortSignal; world: Set<string> };
 
 /** OppositionView. null = no usable order (the engine runs the type's combat list). */
@@ -121,6 +133,7 @@ export async function callPlanner(view: OppositionView, ctx: AgentCtx, opts: Pla
     if (leg.orderError) return { kind: 'fail', errors: [leg.orderError, ...leg.errors] };
     const errors = [...leg.errors];
     planUpdateFor(view, v, errors);
+    perkMoveFor(view, v, errors);
     pending = errors;
     return { kind: 'ok', value: v };
   };
@@ -171,6 +184,7 @@ export async function callResponder(
       v.reveals = [...v.reveals, ...unlisted];
     }
     planUpdateFor(view, v, extra);
+    perkMoveFor(view, v, extra);
     return { kind: 'ok', value: v };
   };
   const run = await runAgent(ctx, {

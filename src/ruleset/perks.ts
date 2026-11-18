@@ -44,6 +44,8 @@ export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number;
   // TC39 a: the turn's main action, once per engagement, aimed at no one, like Battle Cry
   [PK.rally]: { free: false, perEngagement: 1, untargeted: true, does: 'shout to steady your side ("Hold together!", "With me!")' },
   [PK.draw_them_in]: { free: true, perEngagement: 1, untargeted: true, does: 'show a false opening to lure foes in (drop your guard, step into the open, turn as if to look away)' },
+  // TC44 a: the turn's main action, open the turn a blow leaves you Wounded or worse (not Down) and the next
+  [PK.play_dead]: { free: false, untargeted: true, does: 'drop as if knocked out or dead after a bad blow, and lie still' },
   [PK.bluff]: { free: true, perEngagement: 1, perFoe: true, does: 'a quick lie or false warning at a foe, to make it look away or hesitate ("Behind you!", "Your boot\'s untied", pointing at nothing)' },
 };
 /** the perk moves an actor owns (shown to the Parser and in Commands) */

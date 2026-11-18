@@ -308,6 +308,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** The drawn foe's next turn; the owner's opening until it is used or the fight ends.
 - **Cooldown:** Once per engagement.
 
+### Play Dead (Guile) · TC32
+
+*Story:* A bad blow, and you go down like a sack of grain. Right after you are badly hurt, you can spend your turn dropping as if knocked out. Foes who fall for it leave you be, and your first blow when you rise catches them off guard.
+
+- **Kind:** Move
+- **Trigger:** The owner uses the move. It takes the turn's action (1 s, light effort). It can be used only on the turn a blow leaves the owner Wounded or worse (not Down), and on its next turn.
+- **Effect:** Each foe that sees the owner clearly rolls its answer to a lie (Insight) against the owner's Guile. Unless the foe wins outright, it takes the owner for Down: it stops attacking it and turns to other foes. A foe that first sees the owner clearly later rolls the same way, and a fooled foe that comes within grip reach rolls again, once a turn. Each foe judges on its own. The owner's first attack on a foe that still believed it counts as on an unaware foe (Hidden Strike and ambush rules apply).
+- **Lasts:** Until the owner acts, moves, speaks or defends against a blow: then it is over for every foe.
+- **Open:** Whether foes share what they see through goes to "Foes share what they notice" (WN13). Code-run NPCs wait on TC58 and TC59.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1

@@ -32,6 +32,7 @@ export const DU = {
   armor_heavy_on: 'DU34', armor_heavy_off: 'DU35', wait: 'DU36', break_open: 'DU37', from_pack: 'DU38',
   blow_unarmed: 'DU39', blow_medium: 'DU40', blow_heavy: 'DU41', // blows by class (DU6 blow is the light weapon blow)
   rally: 'DU43', // TC39 a Rally (DU42 is held by another thread)
+  play_dead: 'DU44', // TC44 a Play Dead
 } as const;
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;

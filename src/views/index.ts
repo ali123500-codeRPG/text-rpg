@@ -11,7 +11,7 @@ import { personalityText } from '../ruleset/personality';
 import { ageText, lifeStage, stageName, stageOf } from '../ruleset/age';
 import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, Drive, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, BodyAttackView, ContainerView, ItemInstance, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PerkMoveView, PlayerView, RollResult, SeenActor, SeenGearView,
   NpcTemplate, SparView, StaminaView, WalkingView, FollowingView, WayDid, WeaverView, WorldView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -40,6 +40,7 @@ import { furnitureIn, furnitureWhere } from '../engine/furniture';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { perkMoveBlock } from '../engine/perkMoves';
+import { fooledBy, playDeadOpen } from '../engine/playDead';
 import { tacticsWord } from './tactics';
 import { fallBackOwner } from '../engine/nerve';
 import { PERK_MOVES, fallbackAttackSkill, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
@@ -251,9 +252,13 @@ function foeOf(state: GameState, viewer: Actor, a: Actor): { strikes?: string } 
 const personVisibility = (a: Actor, events: GameEvent[]): VisibilityKey =>
   events.filter((e) => e.actorId === a.id).reduce<VisibilityKey>((v, e) => (VISIBILITY.pos(e.visibility) > VISIBILITY.pos(v) ? e.visibility : v), 'low');
 
+/** TC32 a Play Dead: a foe fooled by it sees the owner Down (incapacitated) */
+const seemingHealth = (viewer: Actor, a: Actor): HealthLevel => (fooledBy(viewer, a) ? 'incapacitated' : healthLevel(a));
+
 /** actors the viewer perceives now: in its own or a sight-linked zone, made out by the sight table in metres (ZR6): full
  * within clear sight, 'someone' within a glimpse, beyond that not at all; dark zones give partial. NPCs perceive the player
  * only once aware. */
+
 function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state.events): SeenActor[] {
   if (viewer.asleep) return []; // NW12/NW20: asleep, it sees no one
   const zones = perceivedZoneIds(state, viewer.zone);
@@ -272,7 +277,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
     };
     // BG-278: one half seen who lies still (down, dead or asleep) says so, though not which of the three
-    const lying = isDownLevel(healthLevel(a)) || isAsleep(a) ? { lying: true as const } : {};
+    const lying = isDownLevel(seemingHealth(viewer, a)) || isAsleep(a) ? { lying: true as const } : {};
     if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place, ...lying }); continue; }
     // P3: in a dark zone someone is half seen, unless within clear sight and the viewer perceived them fully this scenario
     // (spoke face to face, say): then they stay seen
@@ -284,7 +289,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     // CS7: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place, ...lying }); continue; }
     const name = nameFor(state, viewer, a);
-    const h = healthLevel(a);
+    const h = seemingHealth(viewer, a);
     const parts = partStates(state, a);
     const crippled = parts.filter((p) => p.state === 'crippled').map((p) => p.id);
     const destroyed = parts.filter((p) => p.state === 'destroyed').map((p) => p.id);
@@ -405,6 +410,10 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'bluff_seen_through') out.push(`${who} doesn't fall for ${by}'s bluff`);
     if (f.kind === 'drawn_in') out.push(`${who} takes ${by}'s false opening and comes at ${by}`); // TC31 a Draw Them In
     if (f.kind === 'draw_seen_through') out.push(`${who} sees through ${by}'s false opening`);
+    // TC32 a Play Dead: one fooled is never told it was fooled; the owner and onlookers are
+    if (f.kind === 'play_dead_fooled' && !own) out.push(`${who} takes ${by} for down`);
+    if (f.kind === 'play_dead_seen_through') out.push(own ? `${who} see ${by} is only playing dead` : `${who} sees ${by} is only playing dead`);
+    if (f.kind === 'play_dead_ends') out.push(`${who} ${own ? 'are' : 'is'} up again, the act over`);
     if (f.kind === 'aura_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by} and gives up` : `${who} falters before ${by}`); // NT14 auras: Dread Presence; MR4 Overwhelm
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
     if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s ${f.data.perk === PK.rally ? 'call' : 'roar'}`); // the roarer's own rally goes untold; TC39 a Rally
@@ -523,11 +532,16 @@ function bodyAttacks(state: GameState, a: Actor): { bodyAttacks?: BodyAttackView
 }
 
 /** AE8: one owned perk move as the view shows it; used (A3): spent for this engagement (an aimed one: on everyone in range) */
-function perkMoveOf(state: GameState, p: Actor, id: string, actors: { id: string }[]) {
+function perkMoveOf(state: GameState, p: Actor, id: string, actors: { id: string }[]): PerkMoveView {
   const def = PERK_MOVES[id];
   const inRange = def.untargeted ? undefined : actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id);
   const used = inRange ? inRange.length > 0 && inRange.every((x) => perkMoveBlock(state, p, id, x) === 'used_this_engagement') : perkMoveBlock(state, p, id, null) === 'used_this_engagement';
   return { id, name: getLibrary().perks[id]?.name ?? id, does: def.does, ...(def.free ? {} : { action: true as const }), ...(inRange ? { inRange } : {}), ...(used ? { used: true as const } : {}) };
+}
+/** TC49: the perk moves an actor owns, for its Parser or its agent (Play Dead only while open, TC44 a) */
+function perkMovesOf(state: GameState, a: Actor, seen: { id: string }[]): { perkMoves?: PerkMoveView[] } {
+  const ids = ownPerkMoves(a).filter((id) => id !== PK.play_dead || playDeadOpen(state, a));
+  return ids.length ? { perkMoves: ids.map((id) => perkMoveOf(state, a, id, seen)) } : {};
 }
 
 export function buildPlayerView(state: GameState): PlayerView {
@@ -546,7 +560,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...reachesOf(state, p),
       ...bodyAttacks(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
-      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => perkMoveOf(state, p, id, actors)) } : {}),
+      ...perkMovesOf(state, p, actors), ...(p.playingDead ? { playingDead: true as const } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
@@ -606,7 +620,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       source: b.source, revealed: [...b.revealed],
       stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
       ...(chaseLost(b) ? { lost: true as const } : {}),
-      active: isActive(other), label: callName(state, a.id, about),
+      active: isActive(other) && !fooledBy(a, other), label: callName(state, a.id, about), // TC32 a: one fooled by Play Dead takes it for Down
       ...(about === state.player.id && nameFor(state, a, other) ? { name: nameFor(state, a, other)! } : {}), // BG-95: the player's name, once heard (NM3: or the false one believed)
       ...(other.pronouns ? { pronouns: other.pronouns } : {}), // BG-60: so an NPC speaks of someone out of sight as they are
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
@@ -626,7 +640,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a), fatigue: fatigueWord(a),
       ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', ...(m.moraleState === 'broken' && isCoweringLevel(moraleLevel(a)) ? { cowering: true as const } : {}), surrendered: m.moraleState === 'surrendered', ...fallBackView(state, a),
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
-      gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a),
+      gear: ownGear(state, a), attackSkill, ...bodyAttacks(state, a), ...perkMovesOf(state, a, seenActors(state, a)), ...(a.playingDead ? { playingDead: true as const } : {}),
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn, elapsed: Math.max(0, now(state) - (m.routine.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {}),
       routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),
@@ -814,7 +828,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds)
       ?? (e.actorId === me && actorById(state, e.target) ? 'someone' : undefined) : undefined;
     out.push({
-      id: e.id, kind: e.kind, level: per.level, cue: per.cue,
+      id: e.id, kind: e.kind === 'play_dead' && fooledBy(p, actorById(state, e.actorId)) ? 'collapse' : e.kind, level: per.level, cue: per.cue, // TC32 a: the fooled see a fall
       ...(full ? { actor: callName(state, me, e.actorId) } : {}),
       ...(full && e.actorId !== me && actorById(state, e.actorId)?.pronouns ? { pronouns: actorById(state, e.actorId)!.pronouns } : {}),
       ...(target ? { target } : {}),

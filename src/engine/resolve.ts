@@ -32,6 +32,7 @@ import { makeOut } from './makeOut';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, perceptionOf, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView, seesClearlyNow } from '../views';
 import { neverFlatFooted, noteSeen } from './flatFooted';
+import { endPlayDead, fooledBy, openPlayDead, playDeadChecks, startPlayDead } from './playDead';
 import { withTactics } from '../views/tactics';
 import { markReaction } from './tacticsMarks';
 import { UNREACHABLE } from '../minds/routines';
@@ -85,14 +86,14 @@ import { pieceOn, stackCost, wornPieces } from '../ruleset/worn';
 /** CS5: how loud and how visible each engine-made event is (the spec's event noise and sight table); a kind not listed is quiet
  * and normal. Placeholders to tune. */
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], alarm: ['deafening', 'high'],
+  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], rally: ['loud', 'high'], play_dead: ['quiet', 'normal'], body_checked: ['silent', 'low'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], put_in: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
   way: ['quiet', 'normal'], pick: ['hushed', 'slight'], break_open: [VOLUME_NOISE.shout, 'high'], // BF31: breaking a lock is heard like a shout // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper, made out only up close (Slight)
   stash: ['hushed', 'low'], // SE9: tucking something away
   filch: ['hushed', 'slight'], // a filch's own contest sets both (src/engine/filch.ts)
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
-const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);
+const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'play_dead', 'break_free', 'restrain', 'pick_up']);
 /** first build: checks only change beliefs (OQ-22). */
 const CHECK_TYPES = new Set<string>(GRADED_ACTS);
 
@@ -235,6 +236,8 @@ type Ctx = {
   /** speakers whose main action was their words in the exchange: their turn in order still runs gear, defence and move */
   spoke: Set<string>;
   surprised: Set<string>;
+  /** TC32 a Play Dead: an owner that got up this turn, and the foes that still believed it (its first blow on one is unaware) */
+  risen: Map<string, string[]>;
   defenses: Map<string, number>;
   /** D-337: parry strike-backs and Counters used, keyed by kind, roundKey and (with Every Answer) the attacker */
   strikeBacks: Map<string, number>;
@@ -787,6 +790,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (!t || t === a) return wasted('no_target'); // BG-149: always a reason
   if (healthLevel(t) === 'dead') return wasted('already_dead');
   if (t === state.player && !isActive(t)) return wasted('already_down'); // a downed player's fate is the survival roll's (D-54)
+  if (a !== state.player && fooledBy(a, t)) return wasted('already_down'); // TC32 a: an NPC fooled by Play Dead leaves the "body" be
   if (a === state.player && isBrokenLevel(moraleLevel(a))) { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
   if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
   if (truceBars(state, a, t)) { logCode(state, 'truce_no_attack', { actorId: a.id, target: t.id }); return wasted('truce'); } // TF16
@@ -819,6 +823,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
     surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, { zone: ev.zone, pos: ev.pos }, ev.noise) && !neverFlatFooted(t, a);
     if (surprised) ctx.surprised.add(t.id);
   }
+  // TC32 a Play Dead: the owner's first blow on a foe that took it for Down lands as on an unaware foe
+  if (!surprised && ctx.risen.get(a.id)?.includes(t.id)) { surprised = true; ctx.surprised.add(t.id); ctx.risen.delete(a.id); }
   if (shows) stealthEnd(state, a);
   if (inAndOut) updateBeliefs(state, { kind: 'detection', observerId: t.id, aboutId: a.id, status: 'aware', event: ev });
   // A11 Cover Ally: a friend in the zone steps into the path of a ranged attack and defends in the target's place
@@ -848,9 +854,12 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
       context: { defenderUnaware: surprised, ...(fromHiding ? { fromHiding } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
     state, rng,
   );
+  // TC45 a: defending gives the act away to every foe
+  if (res.defense && !helpless && t.playingDead) { endPlayDead(t); ev.effects.push({ kind: 'play_dead_ends', actorId: t.id, data: { why: 'defends' } }); }
   if (res.defense && !helpless) { ctx.defenses.set(roundKey(ctx, t.id), (ctx.defenses.get(roundKey(ctx, t.id)) ?? 0) + 1); payStrain(state, t, CONFIG.DEFENSE_EFFORT); } // FT5: a dodge, block or parry
   ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
   afterAttack(state, a, t, res, m.mode.tree === 'ranged', modeSkill(m.mode), oneTwo); // perk marks (A2, A5, A10, B15, LR2)
+  if (met(res.outcome)) openPlayDead(state, t); // TC44 a
   const hold = applyHold(a, t, res, modeSkill(m.mode)); // A8 Hold
   if (hold) ev.effects.push(hold);
   ruleset.recordUse(a, res.attack.skill, res, state);
@@ -1881,6 +1890,11 @@ function step(ctx: Ctx, id: string): void {
   if (!a || !isActive(a)) return; // downed: order dropped
   ctx.acted.add(id);
   const o = ctx.orders.get(id)!;
+  // TC32 a: lying still is a hold with no move, words, gear or way; anything else gets the owner up, for every foe
+  if (a.playingDead && !(o.type === 'hold' && !o.move && !o.line && !o.gear?.length && !o.perkMove && !o.way)) {
+    ctx.risen.set(id, endPlayDead(a));
+    emit(ctx, mk(ctx, a, 'perk_move', { effects: [{ kind: 'play_dead_ends', actorId: a.id, data: { why: 'acts' } }] }));
+  }
   if (o.defense) a.core.standingDefense = o.defense;
   if (o.rule && a.mind) (a.mind.rowsUsed ??= {})[o.rule] = state.turn; // D-17: a fight row used (B1 calls for help once a fight)
   // FR2: a pick-up out of grip reach waits for the walk over to it (closeIn); the rest are free, before the action
@@ -2207,8 +2221,18 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   if (pm.perk === PK.rally && tooSpent(a, actionRow(DU.rally)?.effort)) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: 'spent' });
   if (pm.perk === PK.rally) return doRally(ctx, a);
   if (pm.perk === PK.draw_them_in) return doDrawThemIn(ctx, a);
+  if (pm.perk === PK.play_dead) return doPlayDead(ctx, a);
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
+}
+
+/** TC44 a Play Dead (Guile 20): the turn's main action; the owner drops as if Down and each foe that sees it clearly rolls */
+function doPlayDead(ctx: Ctx, a: Actor): void {
+  useMain(ctx, a, { row: actionRow(DU.play_dead) });
+  const ev = mk(ctx, a, 'play_dead');
+  ev.effects.push(...startPlayDead(ctx.state, a, ctx.rng));
+  ev.perception = computePerception(ev, ctx.state, ctx.rng);
+  emit(ctx, ev, undefined, true);
 }
 
 /** TC31 a Draw Them In: free, once a fight; each foe that sees the owner clearly rolls Insight against its Stratagem, and one
@@ -2517,7 +2541,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), defenses: new Map(), strikeBacks: new Map(), exchangeEvents: [],
+    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), risen: new Map(), defenses: new Map(), strikeBacks: new Map(), exchangeEvents: [],
     turnS: state.mode === 'tactical' ? turnSeconds(state, playerOrder) : CONFIG.FIGHT_TURN_S, clock: new Map(), at: 0, finished: new Set(), stopped: new Set(), spoke: new Set(),
   };
   // Dreaded on Sight: whoever first sees the owner pays its fear and turns colder, before anyone acts
@@ -2682,6 +2706,13 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
   noteSeen(state); // TC35 b: who each Never Flat-Footed owner has seen this fight
+  // TC46 a, TC47 a: newcomers and believers close up roll against a Play Dead
+  for (const c of playDeadChecks(state, rng)) for (const f of c.effects) {
+    const x = actorById(state, f.actorId)!;
+    const ev = mk(ctx, x, 'body_checked', { target: c.owner.id, effects: [f] });
+    ev.perception = computePerception(ev, state, rng);
+    emit(ctx, ev);
+  }
   if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight, ctx.events);
   turnFeats(state, ctx.events);

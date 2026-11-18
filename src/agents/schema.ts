@@ -148,7 +148,8 @@ const acceptYield = yields;
 const letsSearch = (v: unknown, p: string, e: string[]) => (v === undefined ? undefined : nul(str)(v, p, e)) as string | null; // BF16
 const spare = yields; // D-239
 const standDown = yields; // TF15
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead', 'goals', 'steps'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'standDown' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps')[];
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'letsSearch', 'acceptYield', 'standDown', 'spare', 'headTo', 'lead', 'goals', 'steps', 'perkMove'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'letsSearch' | 'acceptYield' | 'standDown' | 'spare' | 'headTo' | 'lead' | 'goals' | 'steps' | 'perkMove')[];
+const npcPerkMove = nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })); // TC49
 const headTo = nStr; // NW2
 // UG5/UG16: a goal holder's goals met, failed or added, and its next steps
 const goalOps = nul(obj<GoalOps>({
@@ -161,9 +162,9 @@ const goalStep = obj<GoalStep>({ go: str, lead: str, routine: str, wait: (v, p, 
 const steps = nul(arr(goalStep));
 const lead = nStr; // BF4
 const npcMove = nul(obj<{ toZone: string; after?: boolean; speakAt?: 'end' }>({ toZone: str, after: bool, speakAt: oneOf(['end'] as const) }, ['after', 'speakAt']));
-const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps }, ['move', ...MEMORY_KEYS]);
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, letsSearch, acceptYield, standDown, spare, headTo, lead, goals: goalOps, steps, perkMove: npcPerkMove,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({

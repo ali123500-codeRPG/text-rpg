@@ -43,6 +43,7 @@ export const PK = {
   any_road_will_do: 'PK158', // UL1: Unwritten Legend's level 1 perk
   press_the_opening: 'PK159', fall_back_on_me: 'PK160', hug_the_cover: 'PK161', draw_them_in: 'PK162', // Tactics tree 20 perks (TC28 a, TC36 c, TC30 a, TC31 a)
   never_flat_footed: 'PK163', rally: 'PK164', // Battle Sense 100 (TC35 b), Command 100 (TC39 a)
+  play_dead: 'PK165', // Guile 20 (TC32 a, TC44-TC49)
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

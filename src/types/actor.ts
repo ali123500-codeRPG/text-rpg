@@ -33,6 +33,11 @@ export type Actor = {
   journal?: Journal;
   engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
   perkMarks?: PerkMark[]; // short-lived perk effects this actor carries (src/engine/perkMarks.ts)
+  /** TC44 a Play Dead: the turn a blow left it Wounded or worse (not Down); the move is open that turn and the next */
+  playDeadOpen?: number;
+  /** TC32 a Play Dead (engine/playDead.ts): lying as if Down. believers: the foes who take it for Down (each on its own,
+   * TC48 a, so a sharing rule can take ids out); judged: every foe that has rolled against it */
+  playingDead?: { believers: string[]; judged: string[] };
   /** NW12/NW20: asleep since this game minute; `until` ends a planned sleep (the player's, a night watch); none: a
    * routine's sleep, which ends with its time. Asleep, an actor perceives nothing and is an unaware target. */
   asleep?: { since: number; until?: number };

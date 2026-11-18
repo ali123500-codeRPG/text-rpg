@@ -307,7 +307,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
 }
 
 /** perk moves that read better as a deed than by the perk's name */
-const PERK_LABEL: Record<string, string> = { [PK.dirt_in_the_eyes]: 'Throw dirt in the eyes', [PK.bluff]: 'Bluff "Behind you!"', [PK.battle_cry]: 'Let out a battle cry', [PK.rally]: 'Rally your side' };
+const PERK_LABEL: Record<string, string> = { [PK.dirt_in_the_eyes]: 'Throw dirt in the eyes', [PK.bluff]: 'Bluff "Behind you!"', [PK.battle_cry]: 'Let out a battle cry', [PK.rally]: 'Rally your side', [PK.play_dead]: 'Play dead' };
 
 /** the actions of one deck that can be done to or with this person (AD14: clicking someone), with the target already chosen */
 export function actionsOn(groups: ReturnType<typeof deck>, id: string): DeckAction[] {

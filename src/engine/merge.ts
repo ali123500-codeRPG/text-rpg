@@ -9,6 +9,7 @@ import { hearsClearly } from '../perception';
 import { alertOrders, brokenHolds, brokenOrder, fallbackOrder, followMove, routineOrder, staying } from '../minds';
 import { actorById, isActive, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import { drawnTo, spendDrawn } from './perkMarks';
+import { fooledBy } from './playDead';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
 import { M_EPS, distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
@@ -171,7 +172,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   const agent = new Map<string, Order>();
   for (const o of usableAgentOutputs(input)) {
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
-    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o) });
+    const pm = o.agent !== 'voice' && o.output.perkMove ? { perkMove: o.output.perkMove } : {}; // TC49: an agent's perk move, as the player's
+    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o), ...pm });
     // BG-34: a follower out of a fight walks after the player beside the action its agent gave
     const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, actorById(state, o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
     agent.set(o.actorId, follow ? { ...order, move: follow } : order);
@@ -207,6 +209,11 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     if (!t || !isActive(t) || v.self.broken || v.self.surrendered) continue;
     const was = out.get(id);
     out.set(id, { actorId: id, type: 'attack', target: to, skill: v.self.attackSkill, intent: 'drawn in', source: was?.source ?? 'fallback', targetPart: null, aimed: false, ...(was?.line ? { line: was.line } : {}) });
+  }
+  // TC32 a Play Dead: a foe that takes someone for Down stops attacking it, whatever chose the blow, and fights on by its list
+  for (const id of ids) {
+    const o = out.get(id)!, a = actorById(state, id)!;
+    if (o.type === 'attack' && o.target && fooledBy(a, actorById(state, o.target))) out.set(id, { ...fallbackOrder(withTactics(state, a, views.get(id)!), rng), ...(o.line ? { line: o.line } : {}) });
   }
   // BF37/BF79: a broken nerve takes away any attack or perk move (and a walk toward a foe, where it runs); with nothing
   // allowed left the actor flees, or cowers when cornered or at Cowering
