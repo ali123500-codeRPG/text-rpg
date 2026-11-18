@@ -105,7 +105,7 @@ export function classTree(p: Actor): { nodes: ClassNode[]; links: ClassLink[] } 
 }
 
 const statusText = (n: ClassNode): string =>
-  n.shown === 'next' ? 'Not open yet'
+  n.shown === 'next' ? 'Locked' // P5: a known requirement not met; the node shows where it opens from
     : n.level >= n.top ? `Level ${n.level} · its top level`
       : `Level ${n.level} of ${n.top}${n.state === 'current' ? ' · current' : n.state === 'previous' ? ' · left behind' : ''}`;
 

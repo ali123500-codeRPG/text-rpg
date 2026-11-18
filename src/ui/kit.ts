@@ -148,6 +148,16 @@ function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void
 }
 
 // ---------- Side panel ----------
+/** A6: a choice that can't be undone asks once, in place: `host`'s contents give way to a row saying what is lost, with
+ *  the choice and a way back that restores them. Never a browser dialog, never hold-to-confirm; focus goes to the way back */
+export function askInPlace(host: HTMLElement, lost: string, yes: string, onYes: () => void, no = 'Cancel'): void {
+  const before = Array.from(host.childNodes);
+  const back = h('button', { type: 'button', class: 'hs-btn-text', onclick: () => host.replaceChildren(...before) }, no);
+  host.replaceChildren(h('div', { class: 'ask-row', role: 'group', 'aria-label': yes }, h('span', { class: 'ask-what' }, lost),
+    h('button', { type: 'button', class: 'hs-btn-main ask-yes', onclick: onYes }, yes), back));
+  back.focus();
+}
+
 export type PanelRow = { k: string; v: string | Node; picked?: boolean /* the field the player clicked, highlighted */; tone?: string /* a class for the value, e.g. tone-good */; split?: true /* starts a new block of rows, set apart by a rule */ };
 let panelHost: HTMLElement | null = null;
 export function setPanelHost(el: HTMLElement) { panelHost = el; }
