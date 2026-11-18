@@ -8,23 +8,24 @@ import { hasPerk } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { hearsClearly } from '../perception';
 import { VOLUME_NOISE } from '../perception/noise';
+import { perceivesNow } from './yield';
 
 /** broken: the bar at Broken or below, or an NPC whose break still holds (it lasts the scenario, BG-199) */
 export const nerveBroken = (a: Actor): boolean => a.mind?.moraleState === 'broken' || (!a.mind?.moraleState && isBrokenLevel(moraleLevel(a)));
 /** at Cowering: not even a walk away */
 export const nerveCowers = (a: Actor): boolean => nerveBroken(a) && isCoweringLevel(moraleLevel(a));
 
-/** the foes a broken actor fears on a walk to `goal`: those still in the fight who are its foes, or whom it yielded to, in
- * the zone it stands in or the one it walks to */
-export function fearedFoes(state: GameState, a: Actor, goal: Located): Actor[] {
-  return allActors(state).filter((x) => x !== a && countsInFight(x) && (x.zone === a.zone || x.zone === goal.zone)
+/** the foes a broken actor fears on a walk: those still in the fight who are its foes, or whom it yielded to, that it
+ * perceives now, wherever they stand (BG-294: never by zone) */
+export function fearedFoes(state: GameState, a: Actor): Actor[] {
+  return allActors(state).filter((x) => x !== a && countsInFight(x) && perceivesNow(state, a, x, 'faint')
     && (foe(state, x, a) || foe(state, a, x) || stance(state, a, x) === 'yielded'));
 }
 
 /** a walk that ends farther from every feared foe than where the walker stands now (where a distance can't be told, as
  * on an old map with no rectangles, it does not count against the walk) */
 export function walksAway(state: GameState, a: Actor, goal: Located): boolean {
-  return fearedFoes(state, a, goal).every((f) => {
+  return fearedFoes(state, a).every((f) => {
     const now = distOrNull(state, a, f), then = distOrNull(state, goal, f);
     return now === null || then === null || then > now + M_EPS;
   });

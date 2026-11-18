@@ -1035,10 +1035,6 @@ function restRow(state: GameState, a: Actor): string {
   return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? HL.rest;
 }
 
-/** an active hostile shares the zone with `a` (what blocks a rest) */
-export const threatHere = (state: GameState, a: Actor): boolean =>
-  allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
-
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
  * Either can always be started (AT8): a wait runs on the world clock at the end of the turn and stops when the clock
  * pauses (runStretch); in a fight the clock is already paused, so it does nothing. A time skip never ends the scenario. */
@@ -1063,10 +1059,11 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
     if (o.type === 'sleep') {
-      // NW12/NW15: the night: alone, until rested (FT9) or the time named; with companions, one watch each. "Sleep" again
+      // NW12/NW15: the night: alone, until rested (FT9) or the time named; with companions, one watch each (BG-295: those who
+      // would hear the sleeper shout, WAKE_NOISE, wherever they stand). "Sleep" again
       // during a night that was stopped (on watch, or after someone came and went) carries it on.
       const sleepMin = named ? minutesUntil(t, named) : sleepMinutes(state, a);
-      if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
+      if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && hears(state, x, a, CONFIG.WAKE_NOISE) && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
       logCode(state, 'night_started', { actorId: a.id, end: state.night.end, watches: state.night.watches });
       runNight(ctx);
     } else {

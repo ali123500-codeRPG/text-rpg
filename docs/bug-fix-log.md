@@ -6,6 +6,46 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-297
+
+**What was wrong:** The turn check flagged a hold only when holder and held were in different zones, so a grip across a doorway was flagged and one from 30 m in the same zone was not.
+
+**What was done:** The check now flags a hold whose holder is out of grip reach (withinGrip).
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-296
+
+**What was wrong:** The loot list only offered downed bodies in the player's zone, so a body just through a doorway was missing and one across a 100 m square was listed.
+
+**What was done:** The list offers every downed body the player sees clearly; taking from one out of reach walks there, as picking up from the ground does.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-295
+
+**What was wrong:** Sleeping companions shared watches only in the sleeper's zone: one 3 m away in the next room kept no watch, one 90 m across a field did.
+
+**What was done:** Band companions who would hear the sleeper shout (WAKE_NOISE) share the watches, wherever they stand.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-294
+
+**What was wrong:** A broken actor's walk only weighed foes in its own zone or the zone it walked to, so a foe a step away through a doorway did not count.
+
+**What was done:** Every foe it perceives now counts, whatever its zone.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
+## BG-293
+
+**What was wrong:** Essence removal and swaps needed no hostile in the zone, so one 100 m across a square blocked them and one a step away through a doorway did not.
+
+**What was done:** At rest is now out of any fight only, as rests have needed since BG-107; threatHere is gone.
+
+**Fixed by:** [PR #1043](https://github.com/ali123500-codeRPG/text-rpg/pull/1043)
+
 ## BG-302
 
 **What was wrong:** On Play, a few button texts showed in Arial instead of the game font: the hint under every action-deck entry ("hold them back unhurt"), the quick-use healing slot's count and the pin button on the map card. Browsers give buttons their own font, and these three set none.
