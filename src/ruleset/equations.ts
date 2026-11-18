@@ -153,7 +153,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['Each part is its own effective skill: it takes its own stand-ins and only the gear that boosts it (the weapon\'s kit bonus goes to its own skill). Both skills that rolled can learn. The thrown item lands where the target stands, hit or miss.'] },
       { name: 'Gap', at: 'attack · src/ruleset/index.ts',
         formula: `gap = defense tier − attack tier + gap shifts, at most ${sg(CONFIG.GAP_MAX)}`,
-        terms: [['gap shifts', `heavy weapon vs block or parry ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)} (not against a parry with Against the Grain), Slip the Blow +1 on a tie`]] },
+        terms: [['gap shifts', `heavy weapon vs block or parry ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)} (not against a parry with Against the Grain), Turn Aside ${sg(CONFIG.TURN_ASIDE_GAP)} on a heavy or crushing hit (never past 0), Slip the Blow +1 on a tie`]] },
       { name: 'Damage multiplier', at: 'ladder · src/ruleset/index.ts',
         formula: 'multiplier = GAP_LADDER[dodge, block or parry][gap]',
         table: { head: ['Gap', 'Dodge', 'Block', 'Parry'], rows: Array.from({ length: CONFIG.GAP_MAX - CONFIG.GAP_MIN + 1 }, (_, i) => CONFIG.GAP_MIN + i).map((g) => [sg(g), `×${n(ladder('dodge', g))}`, `×${n(ladder('block', g))}`, `×${n(ladder('parry', g))}`]) },

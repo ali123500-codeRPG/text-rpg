@@ -145,6 +145,7 @@ const DEFAULTS = {
   } as Record<string, { damage: number; hit: number }>,
   UNARMED_PROFILE: { damage: 15, hit: 10 },
   HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
+  TURN_ASIDE_GAP: 2, // A22 Turn Aside: a heavy or crushing hit on the owner counts this much better, never past gap 0 (placeholder)
   CLEAN_GAP: 2, // A2 Turn the Blade, A10 Make Them Stumble: a parry or dodge at this gap or better is clean (the whole blow stopped)
   PARRY_STRIKE_GAP: 3, // PA4: a full parry, at this gap or better, earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
