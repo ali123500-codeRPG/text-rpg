@@ -24,11 +24,19 @@ numbers are never here: a file names the setting and where it lives.
   between foes, containers and filching.
 - [history-clock-and-action-time.md](history-clock-and-action-time.md): context. The clock, action time, split
   turns, talk time, the order queue.
+- [history-perk-system.md](history-perk-system.md): context. Perks on ladders, the early perk rounds, linked
+  perks, perk names from the library.
+- [history-perk-rounds.md](history-perk-rounds.md): context. Stamina, high, link and payoff perks; the missing
+  20 and 40 perks.
+- [history-classes-and-starts.md](history-classes-and-starts.md): context. Classes, capstones, learning from
+  use, Starts.
+- [history-skill-trees.md](history-skill-trees.md): context. Functions and groups, tree access, Fortitude, the
+  Tactics tree, Falsehood and Guile.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
 - [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
 
 The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
-which PR built it. They move here from the Claude project's in-app memory slice by slice; two slices are in
-(world and places; senses, stealth and action time). Until a topic's slice moves, the spec's "Deferred items"
-table and the merged PRs on GitHub are its record.
+which PR built it. They move here from the Claude project's in-app memory slice by slice; three slices are
+in (world and places; senses, stealth and action time; perks, classes and skill trees). Until a topic's slice
+moves, the spec's "Deferred items" table and the merged PRs on GitHub are its record.
