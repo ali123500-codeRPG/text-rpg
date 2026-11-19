@@ -1,4 +1,4 @@
-// 403 Missing 20 and 40 perks, round 2 (LG1-LG22, D-395; BG-254: the ladder gate stays, the gaps get perks). Deflect and
+// 403 Missing 20 and 40 perks, round 2 (LG1-LG22, D-397; BG-254: the ladder gate stays, the gaps get perks). Deflect and
 // In the Thick of It are tested beside parry (s153) and slipping away (s117). Here: where each perk sits, Unseen Strike's
 // awareness table, Deep Reserves on the three bars, Fear Bites Deeper, Hear Me Out, Deeper Soak and Grit Your Teeth.
 import { describe, expect, it } from 'vitest';
