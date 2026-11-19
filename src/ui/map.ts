@@ -1,17 +1,16 @@
-// Map page: the zones your character knows, drawn as a map of the place you pick. Zones are tiles joined by their
-// exits (solid: you can see across; dashed: a door or a turn hides the far side); exits you never took end in an
-// "unexplored" stub. Tiles are laid out by a small force layout that leans on compass words in exit names, and keep
-// their spots between turns. Drag to pan, wheel or the buttons to zoom. Clicking a zone shows it in the side column.
+// Map page: the floor plan your character has seen (PZ12 a, BG-313), drawn to scale for the place you pick: each title's
+// floor, walls, doorways and furniture only where the fog says you have seen, titles named on their outlines, and every
+// way out you have not taken an arrow from its own doorway. The World shows each place you know at its real extent,
+// joined by the roads you know. Drag to pan, wheel or the buttons to zoom. Clicking a zone shows it in the side column.
 import type { GameApi, WalkingView } from '../types';
 import { h } from './kit';
-import { verticalOf } from '../scenario/heights';
 import { furnIcon, furnKey } from './furnitureIcons';
 import { CONFIG } from '../config';
 import { buildPlayerView, distText } from '../views';
 import { walkLeft } from './doing';
 import { landLayer, landLabels, type LandLabel } from './landSvg';
 import { lineLength } from '../land/generate';
-import { worldTiles, compassOf, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPerson, type MapPlace, type MapWay, type MapZone } from './mapData';
+import { worldTiles, knownMap, pointAlong, rootPlace, type KnownMap, type MapLink, type MapPerson, type MapPlace, type MapWay, type MapZone } from './mapData';
 import { cap, theName } from '../words';
 import { MAX_K, PX_PER_M, TEXT, checkReach, checkStage, planScene, roughMeasure, type Measure, type Scene } from './mapPlan';
 import { checkMap } from './mapCheck';
@@ -35,11 +34,17 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
   return e;
 };
 
-const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
+/** PZ12 a, BG-313: the fog as a clip path: the squares the character has seen of each title, in the map's screen pixels at
+ *  `pxPerM` (y down), each a hair wider so the walls on a seen edge keep their whole stroke. A title with no fog record
+ *  (none yet kept) shows whole. Clipping also stops a click on ground never seen. */
+export function fogClip(id: string, zones: MapZone[], pxPerM: number): SVGElement {
+  const pad = 1.5, rects = zones.flatMap((z) => (z.seen ?? (z.rect ? [{ x0: z.rect.x - z.rect.w / 2, x1: z.rect.x + z.rect.w / 2, y0: z.rect.y - z.rect.d / 2, y1: z.rect.y + z.rect.d / 2 }] : []))
+    .map((r) => s('rect', { x: r.x0 * pxPerM - pad, y: -r.y1 * pxPerM - pad, width: (r.x1 - r.x0) * pxPerM + 2 * pad, height: (r.y1 - r.y0) * pxPerM + 2 * pad })));
+  return s('clipPath', { id, clipPathUnits: 'userSpaceOnUse' }, ...rects);
+}
+let fogIds = 0;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
-/** the most people dots a tile shows; the rest are a "+n" */
-const MAX_DOTS = 6;
 /** SZ16: a body bigger than its token draws its footprint to scale beneath it: a capsule (its narrower side round), its
  * length along the way it faces; none for a body the token already covers, or one not seen at its own point */
 export function footprintMark(cx: number, cy: number, r: number, who: MapPerson, pxPerM: number): SVGElement | null {
@@ -60,9 +65,6 @@ const mode = (xs: number[]) => { const c = new Map<number, number>(); for (const
 /** the `world` key of the World view (every top-level place as one tile) */
 const WORLD = '*world*';
 type Pt = { x: number; y: number };
-type Node2 = Pt & { id: string; w: number; h: number; vx: number; vy: number; pinned: boolean };
-const tileW = (z: MapZone) => Math.max(132, Math.min(260, z.name.length * 8.4 + 40));
-const tileH = (z: MapZone) => (z.people.length || z.along ? TILE_H_PEOPLE : TILE_H);
 
 /** a barrier on an exit in words: "door, locked", "gate, locked: you hold its key", "door, standing open" */
 export function wayWords(w: MapWay): string {
@@ -86,82 +88,6 @@ export function doorGlyph(x: number, y: number, kind: 'door' | 'opening', dir: '
 /** a barrier badge for the map's key */
 const wayKey = (cls: string) => s('svg', { class: `k-way map-way ${cls}`, width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' },
   s('circle', { cx: 0, cy: 0, r: 9 }), ...wayGlyph(0, 0, cls.split(' ')[0] as NonNullable<MapWay['shut']>));
-
-/** deterministic force layout; zones laid out before keep their spots (they still settle a little) */
-export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): Map<string, Pt> {
-  const byPlace = new Map<string, string[]>(), place = new Map(zones.map((z) => [z.id, z.placeId]));
-  // floors: zones at another height sit right above or below the zone their stairs reach, and never push each other
-  const height = new Map(zones.map((z) => [z.id, z.height]));
-  const level = (a: string, b: string) => height.get(a) === height.get(b);
-  for (const z of zones) byPlace.set(z.placeId, [...(byPlace.get(z.placeId) ?? []), z.id]);
-  const ids = new Set(zones.map((z) => z.id));
-  const nodes = new Map<string, Node2>();
-  const edges: { a: string; b: string; dir: [number, number] | null; stairs?: true }[] = [];
-  for (const z of zones) for (const l of z.links) if (ids.has(l.to) && z.id < l.to || (ids.has(l.to) && !zones.find((q) => q.id === l.to)?.links.some((m) => m.to === z.id)))
-    edges.push(!level(z.id, l.to) ? { a: z.id, b: l.to, dir: null, stairs: true } : { a: z.id, b: l.to, dir: compassOf(l.label) ?? (() => { const back = zones.find((q) => q.id === l.to)?.links.find((m) => m.to === z.id); const d = back ? compassOf(back.label) : null; return d ? [-d[0], -d[1]] as [number, number] : null; })() });
-  // first spots: old ones kept; new zones placed breadth-first from where you are, each beside a placed neighbour,
-  // on the side its exit's compass word names (else spread by the golden angle), so the forces start near the answer
-  const spot = new Map<string, Pt>(prev);
-  const taken = (p: Pt, id: string) => [...spot.entries()].some(([o, q]) => level(o, id) && Math.abs(q.x - p.x) < 150 && Math.abs(q.y - p.y) < 90);
-  const order = [ids.has(start) ? start : zones[0].id];
-  for (let i = 0; i < order.length; i++) for (const e of edges) { const o = e.a === order[i] ? e.b : e.b === order[i] ? e.a : null; if (o && !order.includes(o)) order.push(o); }
-  for (const z of zones) if (!order.includes(z.id)) order.push(z.id);
-  order.forEach((id, i) => {
-    if (spot.has(id)) return;
-    const e = edges.find((x) => (x.a === id && spot.has(x.b)) || (x.b === id && spot.has(x.a)));
-    if (!e) { spot.set(id, spot.size ? { x: (i % 4) * LINK_LEN * 1.4, y: (Math.floor(i / 4) + 1) * LINK_LEN * 1.4 } : { x: 0, y: 0 }); return; }
-    const from = spot.get(e.a === id ? e.b : e.a)!;
-    if (e.stairs && !taken(from, id)) { spot.set(id, { ...from }); return; } // straight above or below
-    const dir = e.dir ? (e.a === id ? [-e.dir[0], -e.dir[1]] : e.dir) : null;
-    let p: Pt = { x: 0, y: 0 };
-    for (let k = 0; k < 12; k++) {
-      const ang = dir ? Math.atan2(dir[1], dir[0]) + (k ? (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.45 : 0) : i * 2.399963 + k * 0.7;
-      p = { x: from.x + Math.cos(ang) * LINK_LEN, y: from.y + Math.sin(ang) * LINK_LEN };
-      if (!taken(p, id)) break;
-    }
-    spot.set(id, p);
-  });
-  for (const z of zones) { const p = spot.get(z.id)!; nodes.set(z.id, { id: z.id, x: p.x, y: p.y, vx: 0, vy: 0, w: tileW(z), h: tileH(z), pinned: prev.has(z.id) }); }
-  const list = [...nodes.values()];
-  const steps = prev.size ? 160 : 420;
-  for (let it = 0; it < steps; it++) {
-    const cool = 1 - it / steps;
-    for (const n of list) { n.vx = 0; n.vy = 0; }
-    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
-      const a = list[i], b = list[j];
-      if (!level(a.id, b.id)) continue;
-      let dx = b.x - a.x, dy = b.y - a.y;
-      if (!dx && !dy) { dx = 1; dy = 0.5; }
-      const d = Math.hypot(dx, dy);
-      const f = 52000 / (d * d) * (place.get(a.id) === place.get(b.id) ? 1 : 2.5); // different places push apart harder
-      a.vx -= dx / d * f; a.vy -= dy / d * f; b.vx += dx / d * f; b.vy += dy / d * f;
-      // tiles never overlap: push apart by the overlap of their boxes plus a margin
-      const ox = (a.w + b.w) / 2 + 36 - Math.abs(dx), oy = (a.h + b.h) / 2 + 36 - Math.abs(dy);
-      if (ox > 0 && oy > 0) { if (ox < oy) { const s2 = Math.sign(dx) * ox / 2; a.vx -= s2 * 4; b.vx += s2 * 4; } else { const s2 = Math.sign(dy) * oy / 2; a.vy -= s2 * 4; b.vy += s2 * 4; } }
-    }
-    for (const e of edges) {
-      const a = nodes.get(e.a)!, b = nodes.get(e.b)!;
-      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
-      const f = (d - (e.stairs ? 0 : LINK_LEN)) * 0.06;
-      a.vx += dx / d * f; a.vy += dy / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f;
-      if (e.dir) { // "north gate": b sits north of a
-        const tx = a.x + e.dir[0] * LINK_LEN, ty = a.y + e.dir[1] * LINK_LEN;
-        b.vx += (tx - b.x) * 0.05; b.vy += (ty - b.y) * 0.05; a.vx -= (tx - b.x) * 0.05; a.vy -= (ty - b.y) * 0.05;
-      }
-    }
-    // a place's zones keep together, so each place reads as one area of the map
-    for (const ids2 of byPlace.values()) {
-      if (ids2.length < 2) continue;
-      const c = ids2.reduce((acc, id) => ({ x: acc.x + nodes.get(id)!.x / ids2.length, y: acc.y + nodes.get(id)!.y / ids2.length }), { x: 0, y: 0 });
-      for (const id of ids2) { const n = nodes.get(id)!; n.vx += (c.x - n.x) * 0.012; n.vy += (c.y - n.y) * 0.012; }
-    }
-    for (const n of list) {
-      const k = (n.pinned ? 0.15 : 1) * Math.max(0.05, cool);
-      n.x += Math.max(-40, Math.min(40, n.vx * k)); n.y += Math.max(-40, Math.min(40, n.vy * k));
-    }
-  }
-  return new Map(list.map((n) => [n.id, { x: Math.round(n.x), y: Math.round(n.y) }]));
-}
 
 /** where the segment from a box's centre toward `to` leaves the box */
 function edgeOf(c: Pt, w: number, hh: number, to: Pt): Pt {
@@ -190,24 +116,15 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   /** what makes an unexplored exit clickable: the zone it leaves and its words */
   const exitAttrs = (zoneId: string, label: string) => ({ 'data-exit': label, 'data-exit-from': zoneId, tabindex: 0, role: 'button', 'aria-label': `${label}: unexplored, click for Move to here` });
   const spots = new Map<string, Map<string, Pt>>(); // per world
-  const separated = new WeakSet<Map<string, Pt>>(); // layouts already pushed apart (separate)
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
   let cur: KnownMap | null = null, world = '';
   let walk: WalkingView | undefined; // AT49: the zone the player's walk is still headed for
-  /** the key lists the barrier marks only once the map shows one */
-  const anyShut = () => !!cur?.places.some((p) => p.zones.some((z) => z.links.some((l) => l.way?.shut)));
-  /** FR5: the key shows the furniture mark once the plan draws some */
-  const anyFurniture = () => planned() && !!cur?.places.some((p) => p.zones.some((z) => z.furniture?.length));
   const floors = new Map<string, number>(); // per world: the height shown
-  // To scale (CO1, CO9): each zone, and in World each place, as its own rectangle at its real position in metres, so
-  // neighbours touch along x and y; the default whenever code has placed every zone. ▦ switches to the exit diagram.
-  let plan = true;
-  const plannedLast = new Set<string>(); // worlds whose spots are the to-scale ones
-  const planned = () => plan && worldZones().length > 0 && worldZones().every((z) => z.rect);
-  /** a place's own map drawn to scale: the rpg-map stage map */
-  const planMap = () => world !== WORLD && planned();
-  const tw = (z: MapZone) => (planned() && z.rect ? z.rect.w * PX_PER_M : tileW(z));
-  const th = (z: MapZone) => (planned() && z.rect ? z.rect.d * PX_PER_M : tileH(z));
+  // To scale (CO1, CO9, BG-313): each title, and in World each place, at its real position and size in metres
+  /** a place's own map: the rpg-map stage map, laid out by mapPlan */
+  const planMap = () => world !== WORLD;
+  const tw = (z: MapZone) => (z.rect ? z.rect.w * PX_PER_M : 0);
+  const th = (z: MapZone) => (z.rect ? z.rect.d * PX_PER_M : 0);
 
   const svg = s('svg', { class: 'map-svg', role: 'img' }) as SVGSVGElement;
   const vp = s('g', { class: 'map-vp' }) as SVGGElement;
@@ -233,21 +150,18 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   // notes on one layer in screen pixels, so no label or mark covers another at any zoom; panning only moves it
   const planLayer = s('g', { class: 'map-plan' }) as SVGGElement;
   let scene: Scene | null = null, sceneK = 0;
+  const fogId = `map-fog-${++fogIds}`;
   svg.append(defs, vp, planLayer, nameLayer, youLayer);
   const stage = h('div', { class: 'map-stage' });
   const side = h('aside', { class: 'map-side', 'aria-label': 'Map details' });
   const crumbs = h('nav', { class: 'map-crumbs', 'aria-label': 'Place' });
-  const compass = h('div', { class: 'map-compass', 'aria-hidden': 'true', title: 'North, from the exits’ compass words' }, 'N');
   const empty = h('p', { class: 'map-empty' });
   const zoomBtn = (label: string, title: string, f: () => void) => h('button', { type: 'button', class: 'map-btn', title, 'aria-label': title, onclick: f }, label);
   const tools = h('div', { class: 'map-tools' },
     zoomBtn('+', 'Zoom in', () => zoomBy(1.25)), zoomBtn('−', 'Zoom out', () => zoomBy(0.8)),
     zoomBtn('◎', 'Find me', () => findMe()), zoomBtn('⤢', 'Show the whole map', () => fit(world)));
-  const planBtn = h('button', { type: 'button', class: 'map-btn map-plan-btn', title: 'Draw to scale (off: the exit diagram)', 'aria-label': 'Draw to scale', 'aria-pressed': 'true',
-    onclick: () => { plan = !plan; planBtn.setAttribute('aria-pressed', String(plan)); draw(); requestAnimationFrame(() => fit(focus || world)); } }, '▦');
-  tools.append(planBtn);
   const floorBar = h('nav', { class: 'map-floors', 'aria-label': 'Floor' });
-  stage.append(svg, crumbs, compass, tools, floorBar, empty);
+  stage.append(svg, crumbs, tools, floorBar, empty);
 
   const placeOf = (id: string) => cur?.places.find((p) => p.id === id);
   // RD2: a road is only a line on the World map, never a map of its own; a place along it (a waystation) is its own map
@@ -275,12 +189,12 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   /** how far out the map zooms: to scale the World can span kilometres (a day's road is 30 km), so it may zoom out until
    *  the whole World fits */
   const minK = () => {
-    if (!(planned() && world === WORLD)) return 0.2;
+    if (world !== WORLD) return 0.2;
     const b = bounds(WORLD), r = svg.getBoundingClientRect();
     return b && r.width ? Math.min(0.005, fitK(b, r) * 0.8) : 0.005;
   };
   /** to scale, the World's names run right from each place's north-west corner at a fixed size: room kept for them */
-  const nameRoom = () => (planned() && world === WORLD ? 160 : 0);
+  const nameRoom = () => (world === WORLD ? 160 : 0);
   /** the zoom that fits a box in the stage, below the crumbs */
   const fitK = (b: { x0: number; y0: number; x1: number; y1: number }, r: DOMRect) => Math.min((r.width - 48 - nameRoom()) / (b.x1 - b.x0), (r.height - 130) / (b.y1 - b.y0));
   const apply = () => {
@@ -349,7 +263,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     const zs = floorZones().filter((z) => placeId === WORLD || inside(z.placeId, placeId));
     if (!zs.length || !sp) return null;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const z of zs) { const p = sp.get(z.id); if (!p) continue; const w = tw(z) / 2 + STUB, hh = th(z) / 2 + STUB; x0 = Math.min(x0, p.x - w); x1 = Math.max(x1, p.x + w); y0 = Math.min(y0, p.y - hh); y1 = Math.max(y1, p.y + hh); }
+    for (const z of zs) { const p = sp.get(z.id); if (!p) continue; const w = tw(z) / 2, hh = th(z) / 2; x0 = Math.min(x0, p.x - w); x1 = Math.max(x1, p.x + w); y0 = Math.min(y0, p.y - hh); y1 = Math.max(y1, p.y + hh); }
     return { x0, y0, x1, y1 };
   }
   function fit(placeId: string) {
@@ -414,157 +328,49 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
 
   // ---------- drawing
   type Box = { x0: number; y0: number; x1: number; y1: number };
-  /** an inner place's outline: its known zones' tiles plus a margin that grows for outer places, and a strip on top for its name */
-  function areaBox(p: { depth: number }, zs: MapZone[], sp: Map<string, Pt>, maxDepth: number): Box | null {
-    if (!zs.length) return null;
-    const pad = planned() ? 0 : 30 + (maxDepth - p.depth) * 18;
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const z of zs) { const c = sp.get(z.id); if (!c) continue; x0 = Math.min(x0, c.x - tw(z) / 2); x1 = Math.max(x1, c.x + tw(z) / 2); y0 = Math.min(y0, c.y - th(z) / 2); y1 = Math.max(y1, c.y + th(z) / 2); }
-    return x0 === Infinity ? null : { x0: x0 - pad, y0: y0 - pad - (planned() ? 0 : 22), x1: x1 + pad, y1: y1 + pad };
-  }
-  /** the free layout knows zones, not places, so two places' outlines (or a place and a loose zone) can overlap. Push
-   *  apart every pair of groups that overlap: each top place below the map's root with its zones, and each zone that
-   *  sits in no inner place. The group holding the player stays put; the other moves the short way out, plus a gap. */
-  function separate(sp: Map<string, Pt>, every: MapZone[]) {
-    const GAP = 28;
-    const inner = (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world);
-    const maxDepth = Math.max(0, ...inner.map((p) => p.depth));
-    const tops = inner.filter((p) => !p.parentId || p.parentId === world || !inner.some((q) => q.id === p.parentId));
-    const groups = [
-      ...tops.map((p) => ({ zs: every.filter((z) => inside(z.placeId, p.id)), box: () => areaBox(p, every.filter((z) => inside(z.placeId, p.id)), sp, maxDepth) })),
-      ...every.filter((z) => !tops.some((p) => inside(z.placeId, p.id))).map((z) => ({ zs: [z], box: (): Box | null => { const c = sp.get(z.id); return c ? { x0: c.x - tw(z) / 2, y0: c.y - th(z) / 2, x1: c.x + tw(z) / 2, y1: c.y + th(z) / 2 } : null; } })),
-    ].filter((g) => g.zs.length);
-    const anchored = (g: { zs: MapZone[] }) => g.zs.some((z) => z.id === cur?.zoneId);
-    for (let pass = 0; pass < 12; pass++) {
-      let moved = false;
-      for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
-        const a = groups[i].box(), b = groups[j].box();
-        if (!a || !b) continue;
-        const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) + GAP, oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) + GAP;
-        if (ox <= 0 || oy <= 0) continue;
-        const [still, ms] = anchored(groups[j]) ? [b, groups[i]] as const : [a, groups[j]] as const;
-        const mBox = ms.box()!, sx = (mBox.x0 + mBox.x1) / 2 - (still.x0 + still.x1) / 2, sy = (mBox.y0 + mBox.y1) / 2 - (still.y0 + still.y1) / 2;
-        const d = ox < oy ? { x: (sx < 0 ? -1 : 1) * ox, y: 0 } : { x: 0, y: (sy < 0 ? -1 : 1) * oy };
-        for (const z of ms.zs) { const c = sp.get(z.id); if (c) sp.set(z.id, { x: c.x + d.x, y: c.y + d.y }); }
-        moved = true;
-      }
-      if (!moved) break;
-    }
-  }
-
   function drawMap() {
-    const every = worldZones(), zones = floorZones();
-    const prev = spots.get(world) ?? new Map<string, Pt>();
-    let sp = prev;
-    if (planned()) { sp = new Map(every.map((z) => [z.id, { x: z.rect!.x * PX_PER_M, y: -z.rect!.y * PX_PER_M }])); spots.set(world, sp); }
-    else if ([...prev.keys()].sort().join('|') !== every.map((z) => z.id).sort().join('|') || plannedLast.has(world)) { sp = layout(every, world === WORLD ? rootOf(cur!.placeId) : cur!.zoneId, plannedLast.has(world) ? new Map() : prev); spots.set(world, sp); }
-    if (planned()) plannedLast.add(world); else plannedLast.delete(world);
-    if (!planned() && world !== WORLD && !separated.has(sp)) { separate(sp, every); separated.add(sp); }
+    // every map is to scale (BG-313): each title, or in the World each place, at its real spot in metres
+    const every = worldZones().filter((z) => z.rect), zones = floorZones().filter((z) => z.rect);
+    const sp = new Map(every.map((z) => [z.id, { x: z.rect!.x * PX_PER_M, y: -z.rect!.y * PX_PER_M }]));
+    spots.set(world, sp);
     if (planMap()) {
-      // to scale, the layer above draws it all at the zoom shown (apply → renderPlan)
+      // the layer above draws it all at the zoom shown (apply → renderPlan)
       vp.replaceChildren(bg); scene = null;
       drawFloors();
-      compass.hidden = !zones.some((z) => z.links.some((l) => compassOf(l.label)));
       const here = zones.find((z) => z.here && z.you);
       youAt = here ? { x: here.you!.x * PX_PER_M, y: -here.you!.y * PX_PER_M, title: here.along ? alongText(here.along) : 'You are here' } : null;
       svg.setAttribute('aria-label', `Map of ${placeOf(world)?.name ?? 'this place'}: ${zones.length} zone${zones.length === 1 ? '' : 's'} known`);
       return;
     }
-    // RD1: to scale, the World shows you at your own point, on a road or in a village
+    // RD1: the World shows you at your own point, on a road or in a village
     const hz = hereZone();
-    if (world === WORLD && planned() && hz?.you && hz.rect) {
+    if (hz?.you && hz.rect) {
       // on a road bound to the land, at your point along its line
       const at = hz.line && hz.along ? pointAlong(hz.line, hz.along.m) : hz.you;
       youAt = { x: at.x * PX_PER_M, y: -at.y * PX_PER_M, title: hz.along ? `You: ${alongText(hz.along)}` : 'You are here' };
     }
-    landG = world === WORLD && planned() ? drawLand() : null; landPx = 0;
+    landG = drawLand(); landPx = 0;
     const byId = new Map(zones.map((z) => [z.id, z]));
-    const centroid = zones.reduce((a, z) => ({ x: a.x + sp.get(z.id)!.x / zones.length, y: a.y + sp.get(z.id)!.y / zones.length }), { x: 0, y: 0 });
-    const areas = s('g', { class: 'map-areas' }), links = s('g', { class: 'map-links' }), tiles = s('g', { class: 'map-tiles' }), labels = s('g', { class: 'map-labels' });
-    // areas: every inner place with known zones, outer places first so inner ones sit on top
-    const inner = (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth);
-    const maxDepth = Math.max(0, ...inner.map((p) => p.depth));
-    for (const p of inner) {
-      const zs = zones.filter((z) => inside(z.placeId, p.id));
-      const b = areaBox(p, zs, sp, maxDepth);
-      if (!b) continue;
-      const on = p.id === focus, mine = inside(cur!.placeId, p.id);
-      // to scale the outline is the place's real extent: square corners, its name on a tab above its north side
-      const real = planned();
-      areas.append(s('g', { class: `map-area${on ? ' on' : ''}${mine ? ' mine' : ''}${real ? ' real' : ''}`, 'data-area': p.id, tabindex: 0, role: 'button', 'aria-label': `${p.name}, ${zs.length} zones known` },
-        s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, rx: real ? 0 : 18 }),
-        s('text', { x: b.x0 + (real ? 4 : 16), y: real ? b.y0 - 8 : b.y0 + 20, class: 'map-area-name' }, p.name)));
-    }
+    const links = s('g', { class: 'map-links' }), tiles = s('g', { class: 'map-tiles' }), labels = s('g', { class: 'map-labels' });
     const done = new Set<string>();
-    const stairs: { z: MapZone; l: MapZone['links'][number]; up: boolean; other?: MapZone }[] = [];
-    let compassUsed = false;
     for (const z of zones) {
       const a = sp.get(z.id)!;
-      z.links.forEach((l, i) => {
-        if (compassOf(l.label)) compassUsed = true;
-        const hot = z.id === selected || l.to === selected;
+      for (const l of z.links) {
         const to = byId.get(l.to);
-        if (to) { // both ends on this map
-          const key = [z.id, l.to].sort().join('>');
-          if (done.has(key)) return;
-          done.add(key);
-          if (planned() && world !== WORLD) return; // to scale, neighbouring zones touch: their shared wall is the exit
-          const b = sp.get(l.to)!;
-          const p1 = edgeOf(a, tw(z), th(z), b), p2 = edgeOf(b, tw(to), th(to), a);
-          const road = world === WORLD;
-          links.append(s('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: road ? 'map-link road' : `map-link${l.sight ? '' : ' hidden-view'}${hot ? ' hot' : ''}` },
-            s('title', {}, road ? `${l.label}: ${z.name} ↔ ${to.name}` : `${l.label}: ${z.name} ↔ ${to.name}${l.sight ? ' · you can see across' : ' · the far side is out of sight'}`)));
-          // a barrier you know stops you sits on the middle of its line; the exit's name then sits just above it
-          const shut = [l, to.links.find((m) => m.to === z.id)].find((x) => x?.way?.shut);
-          if (shut && !road) labels.append(wayMark((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, shut, z.name, to.name));
-          const lab = z.id === selected ? l.label : to.links.find((m) => m.to === z.id)?.label ?? l.label;
-          // the exit's name sits on the line only where the line is long enough to hold it; its tooltip always has it
-          if ((hot || road) && Math.hypot(p2.x - p1.x, p2.y - p1.y) > Math.min(lab.length * 6.6 + 18, Math.abs(p2.y - p1.y) > Math.abs(p2.x - p1.x) ? 60 : lab.length * 6.6 + 40)) labels.append(pill((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - (shut && !road ? 24 : 0), lab));
-          return;
-        }
-        // stairs: a badge on the tile, never a line across the floor; a known far end opens its floor
-        const other = every.find((x) => x.id === l.to);
-        if ((other && other.height !== z.height) || (!l.known && verticalOf(l.label))) { stairs.push({ z, l, up: other ? other.height > z.height : verticalOf(l.label) > 0, other }); return; }
-        // an exit to a zone you don't know: a short stub with an arrow
-        let dx = a.x - centroid.x, dy = a.y - centroid.y;
-        const dir = compassOf(l.label);
-        if (dir) [dx, dy] = dir;
-        if (!dx && !dy) { dx = Math.cos(i * 2.4); dy = Math.sin(i * 2.4); }
-        const n = Math.hypot(dx, dy), ang = Math.atan2(dy / n, dx / n) + (dir ? 0 : (i % 3 - 1) * 0.35);
-        const far = { x: a.x + Math.cos(ang) * (tw(z) / 2 + STUB), y: a.y + Math.sin(ang) * (th(z) / 2 + STUB) };
-        const p1 = edgeOf(a, tw(z), th(z), far);
-        // a known zone on another map (another village, say): the stub says where it goes and clicking it opens that map
-        const away = l.known ? allZones().find((x) => x.id === l.to) : undefined;
-        const awayName = away ? placeOf(rootOf(away.placeId))?.name ?? away.name : '';
-        const text = away ? `${l.label} · to ${awayName}` : `${l.label} · unexplored`;
-        links.append(s('line', { x1: p1.x, y1: p1.y, x2: far.x, y2: far.y, class: `map-stub${away ? ' away' : ''}${hot ? ' hot' : ''}`, 'marker-end': 'url(#map-arrow)', ...(away ? { 'data-goto': away.id } : exitAttrs(z.id, l.label)) },
-          s('title', {}, away ? `${l.label}: to ${away.name} (${awayName}) · click to open that map` : `${l.label}: unexplored`)));
-        if (l.way?.shut) labels.append(wayMark((p1.x + far.x) / 2, (p1.y + far.y) / 2, l, z.name, away?.name ?? ''));
-        if (hot || away) {
-          const pl = pill(far.x + Math.cos(ang) * 14, far.y + Math.sin(ang) * 14, text, away ? 'away' : 'unknown', Math.cos(ang));
-          if (away) pl.setAttribute('data-goto', away.id); else for (const [k, v] of Object.entries(exitAttrs(z.id, l.label))) pl.setAttribute(k, String(v));
-          labels.append(pl);
-        }
-      });
+        if (!to) continue; // a place known by word only has no extent to draw
+        const key = [z.id, l.to].sort().join('>');
+        if (done.has(key)) continue;
+        done.add(key);
+        const b = sp.get(l.to)!, p1 = edgeOf(a, tw(z), th(z), b), p2 = edgeOf(b, tw(to), th(to), a);
+        links.append(s('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: 'map-link road' }, s('title', {}, `${l.label}: ${z.name} ↔ ${to.name}`)));
+        if (Math.hypot(p2.x - p1.x, p2.y - p1.y) > l.label.length * 6.6 + 40) labels.append(pill((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, l.label));
+      }
     }
-    for (const z of zones) tiles.append(tile(z, sp.get(z.id)!, world === WORLD ? (z.here ? 'You are here' : z.look) : undefined));
-    // to scale, people's discs go over every tile, so a neighbouring zone drawn later never hides one near its wall
-    tiles.append(...Array.from(tiles.querySelectorAll('.plan-who')));
-    // stair badges at the tile's left edge: up at the top corner, down at the bottom, side by side when there are several
-    const nth = new Map<string, number>();
-    for (const st of stairs) {
-      const c = sp.get(st.z.id)!, w = tw(st.z), hh = th(st.z), key = `${st.z.id}${st.up}`, i = nth.get(key) ?? 0;
-      nth.set(key, i + 1);
-      const x = c.x - w / 2 + 14 + i * 26, y = st.up ? c.y - hh / 2 : c.y + hh / 2;
-      const gone = st.other ? `${st.up ? 'up' : 'down'} to ${st.other.name} (${floorName(st.other.height)})` : 'unexplored';
-      tiles.append(s('g', { class: `map-stair${st.other ? '' : ' unknown'}${st.z.id === selected ? ' hot' : ''}`, ...(st.other ? { 'data-goto': st.other.id, tabindex: 0, role: 'button' } : exitAttrs(st.z.id, st.l.label)), 'aria-label': `${st.l.label}: ${gone}` },
-        s('circle', { cx: x, cy: y, r: 11 }), s('text', { x, y: y + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, `${st.l.label}: ${gone}`)));
-    }
+    for (const z of zones) tiles.append(worldPlanTile(z, sp.get(z.id)!, z.here ? 'You are here' : z.look));
     drawFloors();
-    compass.hidden = !compassUsed;
-    if (planned()) labels.append(scaleBar(zones, sp));
-    vp.replaceChildren(bg, ...(landG ? [landG] : []), areas, links, tiles, labels);
-    svg.setAttribute('aria-label', world === WORLD ? `The world as you know it: ${zones.length} place${zones.length === 1 ? '' : 's'}` : `Map of ${placeOf(world)?.name ?? 'this place'}: ${zones.length} zone${zones.length === 1 ? '' : 's'} known`);
+    labels.append(scaleBar(zones, sp));
+    vp.replaceChildren(bg, ...(landG ? [landG] : []), links, tiles, labels);
+    svg.setAttribute('aria-label', `The world as you know it: ${zones.length} place${zones.length === 1 ? '' : 's'}`);
   }
   /** WZ4: the land you have made out, each region's markup from its cache; and its settlements and landmarks for the name
    *  layer, less those drawn as a World tile */
@@ -598,7 +404,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   const sceneAt = (k: number) => planScene({ zones: floorZones(), every: worldZones(), places: innerPlaces(floorZones()), k, measure, visits: new Set(cur?.visited ?? []),
     awayName: (id) => { const z = allZones().find((x) => x.id === id); return z ? placeOf(rootOf(z.placeId))?.name : undefined; } });
   /** the scale bar under the map, in screen pixels: 10 m and its paces */
-  const barOf = (sc: Scene, k: number) => ({ x: sc.bounds.x0, y: sc.bounds.y1 + 22, len: 10 * PX_PER_M * k });
+  // the scale bar ends under the drawing's right edge, clear of the Height panel at the bottom left
+  const barOf = (sc: Scene, k: number) => ({ x: Math.max(sc.bounds.x0, sc.bounds.x1 - 10 * PX_PER_M * k - 120), y: sc.bounds.y1 + 22, len: 10 * PX_PER_M * k });
   function fitPlan(placeId: string) {
     const r = svg.getBoundingClientRect();
     if (!r.width) return;
@@ -623,7 +430,9 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
   function renderPlan(k: number) {
     const sc = sceneAt(k);
     scene = sc; sceneK = k;
-    const zoneG = s('g', { class: 'map-zones' }), marks = s('g', { class: 'map-marks' });
+    // BG-313: floors and walls only where the fog says the character has seen
+    const fog = fogClip(fogId, sc.zones.map((x) => x.z), PX_PER_M * k);
+    const zoneG = s('g', { class: 'map-zones', 'clip-path': `url(#${fogId})` }), marks = s('g', { class: 'map-marks' });
     const zoneById = new Map(sc.zones.map((x) => [x.z.id, x]));
     const areas = sc.places.map((p) => {
       const on = p.id === focus, mine = !!cur && inside(cur.placeId, p.id);
@@ -631,7 +440,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
         s('rect', { x: p.box.x0, y: p.box.y0, width: p.box.x1 - p.box.x0, height: p.box.y1 - p.box.y0, 'data-role': 'place', 'data-id': p.id }));
     });
     for (const x of sc.zones) zoneG.append(planZone(x.z, x.box, x.state));
-    const links = sc.connectors.map((c) => s('line', { x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, class: `map-link${c.sight ? '' : ' hidden-view'}${c.a === selected || c.b === selected ? ' hot' : ''}` }, s('title', {}, c.title)));
     // MZ2: each zone's name behind every mark, in bold letters sized to its box (data-layer back: marks may sit on it)
     const names = s('g', { class: 'map-names', 'aria-hidden': 'true' }, ...sc.labels.map((l) => {
       const x = (l.x0 + l.x1) / 2, first = (l.y0 + l.y1) / 2 - ((l.lines.length - 1) * l.line) / 2 + l.size * 0.36; // centred on the box
@@ -669,7 +477,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     const bar = barOf(sc, k);
     const scale = s('g', { class: 'map-scale' }, s('line', { x1: bar.x, y1: bar.y, x2: bar.x + bar.len, y2: bar.y }), s('line', { x1: bar.x, y1: bar.y - 5, x2: bar.x, y2: bar.y + 5 }),
       s('line', { x1: bar.x + bar.len, y1: bar.y - 5, x2: bar.x + bar.len, y2: bar.y + 5 }), s('text', { x: bar.x + bar.len + 8, y: bar.y + 4 }, `${distText(10)} · ${Math.round(10 / CONFIG.PACE_M)} paces`));
-    planLayer.replaceChildren(...areas, zoneG, names, ...links, marks, scale);
+    planLayer.replaceChildren(fog, ...areas, zoneG, names, marks, scale);
     drawLegend();
     scheduleCheck();
   }
@@ -689,12 +497,11 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     g.append(s('title', {}, `${z.name}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²), ${said}`));
     return g;
   }
-  /** a door on the wall two zones share: plain, an opening between two outdoor zones, or its barrier's mark (locked, barred,
-   *  blocked: MAP-33 shows locked on the door, not the zone); several on one wall as one badge with their count */
+  /** a doorway where it stands on the floor plan (BG-313): a door's leaf, a gap with no door, or its barrier's mark (locked,
+   *  barred, blocked: MAP-33 shows locked on the door, not the zone) */
   function doorMark(d: Scene['doors'][number]) {
     const r = d.x1 - d.cx, attrs = { 'data-role': 'icon', 'data-id': d.id, role: 'img', 'aria-label': d.title };
     if (d.way?.shut) return s('g', { class: `map-way ${d.way.shut}${d.way.key ? ' key' : ''}`, ...attrs }, s('circle', { cx: d.cx, cy: d.cy, r }), ...wayGlyph(d.cx, d.cy, d.way.shut), s('title', {}, d.title));
-    if (d.kind === 'group') return s('g', { class: 'map-door group', ...attrs }, s('circle', { cx: d.cx, cy: d.cy, r }), s('text', { x: d.cx, y: d.cy + 4, 'text-anchor': 'middle' }, String(d.count)), s('title', {}, d.title));
     return s('g', { class: `map-door ${d.kind}`, ...attrs }, ...doorGlyph(d.cx, d.cy, d.kind, d.dir), s('title', {}, d.title));
   }
   /** the key (MAP-30): every mark the map shows now, and nothing it doesn't */
@@ -713,10 +520,8 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       ...item('place', h('i', { class: 'k-area' }), 'A building or place inside this one'),
       ...item('door', svgKey(s('line', { x1: -10, y1: 0, x2: 10, y2: 0, class: 'map-edge wall' }), s('g', { class: 'map-door door' }, ...doorGlyph(0, 0, 'door'))), 'Door in a wall'),
       ...item('opening', svgKey(s('g', { class: 'map-door opening' }, ...doorGlyph(0, 0, 'opening'))), 'Way through, no door'),
-      ...item('group', svgKey(s('g', { class: 'map-door group' }, s('circle', { cx: 0, cy: 0, r: 9 }), s('text', { x: 0, y: 4, 'text-anchor': 'middle' }, '4'))), 'Several doors on one wall'),
       ...item('way:locked', wayKey('locked'), 'Locked'), ...item('way:locked-key', wayKey('locked key'), 'Locked, you hold its key'),
       ...item('way:barred', wayKey('barred'), 'Barred'), ...item('way:blocked', wayKey('blocked'), 'Blocked'),
-      ...item('link', h('i', { class: 'k-line' }), 'Way between zones apart, you can see across'), ...item('link-hidden', h('i', { class: 'k-line dashed' }), 'Way between zones apart, far side hidden'),
       ...item('exit', h('i', { class: 'k-line stub' }), 'Exit you have not taken, and where it goes'), ...item('exit-away', h('i', { class: 'k-line away' }), 'Way to another map: click to open it'),
       ...item('stairs-up', h('i', { class: 'k-stair' }, '▲'), 'Stairs up: click to change floor'), ...item('stairs-down', h('i', { class: 'k-stair' }, '▼'), 'Stairs down: click to change floor'),
       ...item('furniture', furnKey(), 'Furniture: point at one for its name'),
@@ -740,35 +545,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
       else console.info('[map-check] 0 findings');
     }), 120);
   }
-  /** To scale: the zone's floor, each side drawn as its edge kind (wall solid, low dashed, window double, open faint) */
-  function planTile(z: MapZone, p: Pt) {
-    const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
-    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
-    const m2 = Math.round(z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
-    const fm = floorMarks(z, PX_PER_M, p.x - z.rect!.x * PX_PER_M, p.y + z.rect!.y * PX_PER_M);
-    const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${m2} m²${z.here ? ', you are here' : z.id === walk?.toZone ? ', you are heading here' : ''}` },
-      fm.floor ? s('polygon', { points: fm.floor, class: 'map-tile-box' }) : s('rect', { x, y, width: w, height: hh, class: 'map-tile-box' }), ...fm.walls);
-    // FR5: the furniture at its own points, under the zone's name and people; hover names it
-    for (const f of z.furniture ?? []) {
-      const pad = 11, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
-      const fx = clamp(f.x * PX_PER_M, x + pad, x + w - pad), fy = clamp(-f.y * PX_PER_M, y + pad, y + hh - pad); // the disc stays inside its walls
-      const mid = Math.abs(fx - p.x) < 16 && Math.abs(fy - p.y) < 16; // a piece in the middle steps below the name and people
-      g.append(furnIcon(f.kind, cap(f.name), fx, mid ? p.y + (z.people.length ? 30 : 20) : fy));
-    }
-    // people in full sight stand at their own points; the rest (heard, glimpsed, last seen) sit in a row under the name
-    const placed = z.people.filter((who) => who.at), row = z.people.filter((who) => !who.at);
-    g.append(s('text', { x: p.x, y: p.y - (row.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
-      s('title', {}, `${z.name}: about ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²)`));
-    row.slice(0, MAX_DOTS).forEach((who, i, all) => g.append(whoDot(who, z.id, p.x + (i - (all.length - 1) / 2) * 16, p.y + 14, who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`)));
-    for (const who of placed) {
-      const pad = 7, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
-      g.append(whoDot(who, z.id, clamp(who.at!.x * PX_PER_M, x + pad, x + w - pad), clamp(-who.at!.y * PX_PER_M, y + pad, y + hh - pad), who.name, who.id));
-    }
-    // to scale you stand at your own point (Actor.pos), on a road too (TV7); with no position yet, at the corner
-    if (z.here && z.you) youAt = { x: z.you.x * PX_PER_M, y: -z.you.y * PX_PER_M, title: z.along ? alongText(z.along) : 'You are here' };
-    else if (z.here) g.append(pin(x + w - 2, y + 2));
-    return g;
-  }
   /** To scale: a 10 m bar under the plan, with the same length in paces */
   function scaleBar(zs: MapZone[], sp: Map<string, Pt>) {
     let x0 = Infinity, y1 = -Infinity;
@@ -783,45 +559,6 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     const w = text.length * 6.6 + 18;
     const x0 = lean > 0.3 ? x : lean < -0.3 ? x - w : x - w / 2;
     return s('g', { class: `map-pill ${tone}` }, s('rect', { x: x0, y: y - 11, width: w, height: 22, rx: 11 }), s('text', { x: x0 + w / 2, y: y + 4, 'text-anchor': 'middle' }, text));
-  }
-  /** a barrier you know stops you, as a small badge on its exit: a padlock (locked; green when you hold its key), a door with
-   *  its bolt across (barred) or a cross (blocked) */
-  function wayMark(x: number, y: number, l: MapLink, from: string, to: string) {
-    const w = l.way!, shut = w.shut!;
-    const said = `${l.label}: ${wayWords(w)}${to ? ` · ${from} to ${to}` : ''}`;
-    return s('g', { class: `map-way ${shut}${w.key ? ' key' : ''}`, role: 'img', 'aria-label': said }, s('circle', { cx: x, cy: y, r: 10 }), ...wayGlyph(x, y, shut), s('title', {}, said));
-  }
-  function tile(z: MapZone, p: Pt, sub?: string) {
-    if (planned() && z.rect && world !== WORLD) return planTile(z, p);
-    if (planned() && z.rect) return worldPlanTile(z, p, sub ?? '');
-    const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
-    const cls = ['map-tile', world === WORLD ? 'world-place' : '', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
-    const status = sub && !z.along ? sub : z.along ? `${distText(z.along.m)} of ${distText(z.along.len)}` : z.here ? 'You are here' : z.id === walk?.toZone ? `Heading here${Number.isFinite(walk.metres) ? ' · ' + distText(walk.metres) : ''}` : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
-    const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${status}` },
-      s('rect', { x, y, width: w, height: hh, rx: planned() ? 0 : 10, class: 'map-tile-box' }),
-      s('text', { x: p.x, y: y + 24, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
-      s('text', { x: p.x, y: y + 42, 'text-anchor': 'middle', class: 'map-tile-sub' }, status));
-    if (z.along) g.append(roadTrack(z.along, x, y + hh - 18, w)); // TV7: you, at your point along the road
-    else if (z.people.length) {
-      const shown = z.people.slice(0, MAX_DOTS), r = 10, gap = 6, total = shown.length * (2 * r) + (shown.length - 1) * gap + (z.people.length > MAX_DOTS ? 30 : 0);
-      let cx = p.x - total / 2 + r;
-      for (const who of shown) {
-        g.append(s('g', { class: `map-who${who.now ? '' : ' last'}` }, s('circle', { cx, cy: y + 64, r }),
-          s('text', { x: cx, y: y + 68, 'text-anchor': 'middle' }, whoInitial(who.name)),
-          s('title', {}, who.now ? `${who.name} · here now` : `${who.name} · last seen here`)));
-        cx += 2 * r + gap;
-      }
-      if (z.people.length > MAX_DOTS) g.append(s('text', { x: cx + 4, y: y + 68, class: 'map-tile-sub' }, `+${z.people.length - MAX_DOTS}`));
-    }
-    if (z.here && !z.along) g.append(pin(x + w - 2, y + 2));
-    return g;
-  }
-  /** to scale, a person as a small disc with the initial of what you know them by; pointing at it shows the full name or
-   *  description beside it */
-  function whoDot(who: MapZone['people'][number], zoneId: string, cx: number, cy: number, title: string, id?: string) {
-    return s('g', { class: `map-who plan-who${who.now ? '' : ' last'}${who.at ? ' at' : ''}`, 'data-zone': zoneId, ...(id ? { 'data-who': id } : {}) },
-      s('circle', { cx, cy, r: 7 }), s('text', { x: cx, y: cy + 3, 'text-anchor': 'middle' }, whoInitial(who.name)),
-      s('text', { x: cx + 11, y: cy + 4, class: 'map-who-label' }, who.name), s('title', {}, title));
   }
   /** CO9, World to scale: a place as its real extent; its name goes on the fixed-size name layer */
   function worldPlanTile(z: MapZone, p: Pt, sub: string) {
@@ -854,13 +591,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     if (title) g.append(s('title', {}, title));
     return g;
   }
-  /** TV7: a road drawn as a line from end to end with you at your point along it */
-  function roadTrack(a: NonNullable<MapZone['along']>, x: number, y: number, w: number) {
-    const x0 = x + 26, x1 = x + w - 26, at = x0 + (a.len ? a.m / a.len : 0) * (x1 - x0);
-    return s('g', { class: 'map-road-track' }, s('line', { x1: x0, y1: y, x2: x1, y2: y }),
-      s('text', { x: x0 - 8, y: y + 4, 'text-anchor': 'end' }, a.from[0].toUpperCase()), s('text', { x: x1 + 8, y: y + 4 }, a.to[0].toUpperCase()),
-      pin(at, y, alongText(a)));
-  }
+
 
   function drawCrumbs() {
     const chain: MapPlace[] = [];
@@ -954,18 +685,12 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
         h('span', { class: 'n' }, p.name),
         h('span', { class: 'c' }, count(p) ? `${count(p)} zone${count(p) === 1 ? '' : 's'}` : 'no zones known'))))));
     const facts = pl?.facts.length ? h('section', {}, h('p', { class: 'hs-label' }, `What you know about ${pl.name}`), h('ul', { class: 'map-facts' }, pl.facts.map((f) => h('li', {}, f)))) : '';
+    // the World's key: places, roads, and the land once some is made out
     const legend = h('section', { class: 'map-legend' }, h('p', { class: 'hs-label' }, 'Key'),
       h('ul', {},
-        h('li', {}, h('i', { class: 'k-tile outdoor' }), 'Outdoors'), h('li', {}, h('i', { class: 'k-tile indoor' }), 'Indoors'),
-        h('li', {}, h('i', { class: 'k-tile remembered' }), 'Out of sight now'),
-        h('li', {}, h('i', { class: 'k-line' }), 'You can see across'), h('li', {}, h('i', { class: 'k-line dashed' }), 'The far side is hidden'),
-        h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'), h('li', {}, h('i', { class: 'k-stair' }, '▲'), 'Stairs up or down: click to change floor'),
-        ...(planned() ? [h('li', {}, h('i', { class: 'k-edge wall' }), 'Wall'), h('li', {}, h('i', { class: 'k-edge low' }), 'Counter or fence'), h('li', {}, h('i', { class: 'k-edge window' }), 'Window'), h('li', {}, h('i', { class: 'k-edge open' }), 'Open side')] : []),
-        ...(anyShut() ? [h('li', {}, wayKey('locked'), 'Locked'), h('li', {}, wayKey('locked key'), 'Locked, you hold its key'), h('li', {}, wayKey('barred'), 'Barred'), h('li', {}, wayKey('blocked'), 'Blocked')] : []),
-        ...(anyFurniture() ? [h('li', {}, furnKey(), 'Furniture: point at one for its name')] : []),
-        h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there'),
-        // WZ4: the land, on the World to scale once you have made some out
-        ...(world === WORLD && planned() && cur?.land?.length ? [h('li', {}, h('i', { class: 'k-land' }), 'Land you have seen: fields, woods…'), h('li', {}, h('i', { class: 'k-land-water' }), 'River or stream'),
+        h('li', {}, h('i', { class: 'k-area' }), 'A place you know: click to open its map'), h('li', {}, h('i', { class: 'k-line away' }), 'Road: click for where it goes'),
+        // WZ4: the land once you have made some out
+        ...(cur?.land?.length ? [h('li', {}, h('i', { class: 'k-land' }), 'Land you have seen: fields, woods…'), h('li', {}, h('i', { class: 'k-land-water' }), 'River or stream'),
           h('li', {}, h('i', { class: 'k-land-road' }), 'Road or track on the land'), h('li', {}, h('i', { class: 'k-site' }), 'Village or hamlet'),
           h('li', {}, h('i', { class: 'k-site faint' }), 'Known by word, not seen'), h('li', {}, h('i', { class: 'k-mark' }), 'Landmark')] : [])));
     side.replaceChildren(card, planMap() ? legendSlot : legend, facts, placeList);
@@ -1033,7 +758,7 @@ export function mapPage(api: GameApi, onMove?: (order: string) => void) {
     if (world !== WORLD && !placeOf(world)) { empty.hidden = false; empty.textContent = 'You know no places yet.'; vp.replaceChildren(bg); return; }
     drawCrumbs();
     drawSide();
-    if (!worldZones().length) { vp.replaceChildren(bg); empty.hidden = false; empty.textContent = world === WORLD ? 'You know no places yet.' : `You know of ${placeOf(world)!.name}, but none of its zones yet.`; compass.hidden = true; return; }
+    if (!worldZones().length) { vp.replaceChildren(bg); empty.hidden = false; empty.textContent = world === WORLD ? 'You know no places yet.' : `You know of ${placeOf(world)!.name}, but none of its zones yet.`; return; }
     empty.hidden = true;
     drawMap();
     apply();

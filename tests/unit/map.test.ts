@@ -1,7 +1,7 @@
-// The Map page: only what the character knows, and a layout that follows the exits' compass words.
+// The Map page: only what the character knows, drawn from the floor plan (BG-313).
 import { describe, it, expect } from 'vitest';
-import { compassOf, knownMap, worldTiles } from '../../src/ui/mapData';
-import { layout, wayWords } from '../../src/ui/map';
+import { knownMap, worldTiles } from '../../src/ui/mapData';
+import { wayWords } from '../../src/ui/map';
 import { wayRows } from '../../src/agents/game';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { noteZonesSeen } from '../../src/engine/trail';
@@ -16,15 +16,6 @@ const game = async () => {
 };
 
 describe('map', () => {
-  it('reads compass words from exit labels', () => {
-    expect(compassOf('the kitchen door, west')).toEqual([-1, 0]);
-    // up and down are heights, never north or south
-    expect(compassOf('the stairs up')).toBeNull();
-    expect(compassOf('down to the cellar')).toBeNull();
-    expect(compassOf('the northeast tower')![0]).toBeCloseTo(Math.SQRT1_2);
-    expect(compassOf('the green door')).toBeNull();
-  });
-
   it('shows only known zones, and light, cover, people and items only for zones in view', async () => {
     const s = await game();
     const m = knownMap(s);
@@ -97,16 +88,5 @@ describe('map', () => {
     expect(w.find((t) => t.id === 'village')!.links.map((l) => l.to)).toEqual(['west_road', 'mill_road']);
     expect(w.find((t) => t.id === 'ashford')!.links.map((l) => l.to)).toEqual(['west_road']);
     expect(w.find((t) => t.id === 'west_road')!.links.map((l) => l.to).sort()).toEqual(['ashford', 'village']);
-  });
-
-  it('places a zone on the side its exit names', async () => {
-    const s = await game();
-    const tav = knownMap(s).places.find((p) => p.id === 'tavern')!;
-    const at = layout(tav.zones, 'tav_common', new Map());
-    const c = at.get('tav_common')!;
-    // the landing is straight above the common room, on its own floor
-    expect(at.get('tav_upstairs')).toEqual(c);
-    expect(at.get('tav_kitchen')!.x).toBeLessThan(c.x);
-    expect(at.get('tav_yard')!.x).toBeGreaterThan(c.x);
   });
 });

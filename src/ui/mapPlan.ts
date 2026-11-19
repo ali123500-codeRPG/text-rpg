@@ -5,12 +5,14 @@
 // Marks inside a zone keep one spot at every zoom (BG-216): each is placed once, at the widest of a few set zooms with room
 // for it, and every zoom reuses that spot as a share of the zone. No DOM: map.ts draws the scene, and a measure function gives text widths (the browser's
 // own in the page, an estimate in tests).
-import { compassOf, type MapLink, type MapPerson, type MapWay, type MapZone } from './mapData';
+import { type MapLink, type MapPerson, type MapWay, type MapZone } from './mapData';
+import { seenIn, type SeenRun } from '../plan/fog';
 import { verticalOf } from '../scenario/heights';
-import { OPP_SIDE, type Side } from '../types';
 
 /** screen pixels per metre before zoom; the scale bar is drawn from it too (MAP-10) */
 export const PX_PER_M = 12;
+/** the gap between an exit arrow's tip and its note, in screen pixels */
+const NOTE_GAP = 9;
 /** the closest the map zooms (screen pixels per map pixel) */
 export const MAX_K = 2.5;
 /** BG-216: the zooms marks inside zones are placed at, widest view first; a mark takes its spot at the first that has room
@@ -26,8 +28,8 @@ export type TextKind = 'label' | 'title' | 'note';
 /** font size, box height and side padding of each text style, in screen pixels */
 export const TEXT: Record<TextKind, { size: number; weight: number; h: number; pad: number; line: number }> = {
   label: { size: 12, weight: 700, h: 18, pad: 6, line: 14 },
-  title: { size: 11, weight: 800, h: 16, pad: 5, line: 13 },
-  note: { size: 11, weight: 600, h: 18, pad: 7, line: 13 },
+  title: { size: 13, weight: 800, h: 18, pad: 5, line: 15 }, // as styles.css draws them (13 px, LK6 a)
+  note: { size: 13, weight: 600, h: 20, pad: 7, line: 15 },
 };
 /** the width of a text in a style, in screen pixels */
 export type Measure = (text: string, kind: TextKind) => number;
@@ -41,14 +43,13 @@ export type SPlace = { id: string; name: string; box: Box; title: SText };
 export type SText = Box & { text: string; full: string; cut: boolean; lines: string[] };
 /** a zone's name, drawn behind every mark inside its zone at `size` px (MZ2) */
 export type SLabel = SText & { zoneId: string; placement: 'inside'; size: number; line: number };
-export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening' | 'group'; way?: MapWay; count?: number; title: string; zones: string[] };
-export type SConnector = { id: string; a: string; b: string; x1: number; y1: number; x2: number; y2: number; sight: boolean; title: string };
+export type SDoor = Box & { id: string; cx: number; cy: number; dir: 'h' | 'v'; kind: 'door' | 'opening'; way?: MapWay; title: string; zones: string[] };
 export type SExit = { id: string; zoneId: string; target: string; state: string; x1: number; y1: number; x2: number; y2: number; note: SText; goto?: string; way?: MapWay; title: string };
 export type SStair = Box & { id: string; zoneId: string; cx: number; cy: number; up: boolean; goto?: string; title: string; label: string };
 export type SFurn = Box & { id: string; zoneId: string; kind: string; name: string; cx: number; cy: number };
 export type SToken = Box & { id: string; zoneId: string; cx: number; cy: number; r: number; you?: true; who?: MapPerson; title: string };
 export type Scene = {
-  zones: SZone[]; places: SPlace[]; labels: SLabel[]; doors: SDoor[]; connectors: SConnector[]; exits: SExit[];
+  zones: SZone[]; places: SPlace[]; labels: SLabel[]; doors: SDoor[]; exits: SExit[];
   stairs: SStair[]; furniture: SFurn[]; tokens: SToken[];
   /** furniture and stairs with no free spot at this zoom: hidden in place, listed in the zone's card */
   dropped: string[];
@@ -77,16 +78,13 @@ export type PlanInput = {
 };
 
 const WAY_R = 8, STAIR_R = 10, FURN_R = 9, PIN_R = 9, WHO_R = 7;
-/** gap between a mark and anything near it, a label and its zone's walls (MAP-20), a connector and a zone (MAP-14) */
-const GAP = 2, PAD = 7, LINK_GAP = 6; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits inside its walls
+/** gap between a mark and anything near it, a label and its zone's walls (MAP-20) */
+const GAP = 2, PAD = 7; // PAD: 6 px (MAP-20) plus the hair the drawn zone sits inside its walls
 const ARROWS = [22, 40, 60, 84, 112, 144, 180];
 const hit = (a: Box, b: Box, m = 0) => a.x0 < b.x1 + m && b.x0 < a.x1 + m && a.y0 < b.y1 + m && b.y0 < a.y1 + m;
-const within = (a: Box, b: Box, pad = 0) => a.x0 >= b.x0 + pad - 1e-6 && a.x1 <= b.x1 - pad + 1e-6 && a.y0 >= b.y0 + pad - 1e-6 && a.y1 <= b.y1 - pad + 1e-6;
 const disc = (cx: number, cy: number, r: number): Box => ({ x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r });
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const union = (bs: Box[]): Box => bs.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }), { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
-/** a compass word's side on screen (y down): [east, south] */
-const sideOf = (d: [number, number]): Side => (Math.abs(d[0]) >= Math.abs(d[1]) ? (d[0] >= 0 ? 'e' : 'w') : d[1] >= 0 ? 's' : 'n');
 /** a shut way's entry in the map key */
 const wayKey = (w: MapWay) => `way:${w.shut}${w.key ? '-key' : ''}`;
 /** a barrier in a few words, for exit notes */
@@ -190,73 +188,30 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   };
   /** you and people are never hidden: their own spot when it is free, else the nearest free one, only when zoomed far out */
   const keep = (p: { cx: number; cy: number } | undefined, r: number, zb: Box) => (!p ? undefined : free(disc(p.cx, p.cy, r)) ? p : nearFree(p.cx, p.cy, r, zb) ?? outsideNear(p.cx, p.cy, r));
-  // ---- doors (MAP-14, MAP-31): a gap drawn in the wall two linked zones share, at its middle (stepped along it only to keep
-  // clear of you or another door); zones that don't touch get a connector
-  const doors: SDoor[] = [], connectors: SConnector[] = [];
-  const pairs = new Map<string, { a: SZone; b: SZone; links: MapLink[] }>();
-  for (const a of zones) for (const l of a.z.links) {
-    const b = byId.get(l.to);
-    if (!b || b === a) continue;
-    const key = [a.z.id, b.z.id].sort().join('|');
-    const p = pairs.get(key) ?? { a: a.z.id < b.z.id ? a : b, b: a.z.id < b.z.id ? b : a, links: [] };
-    p.links.push(l); pairs.set(key, p);
-  }
-  type Wall = { d: SDoor; side: string; lo: number; hi: number };
-  const walls: Wall[] = [];
-  for (const [key, { a, b, links }] of pairs) {
-    const way = links.find((l) => l.way?.shut)?.way ?? links.find((l) => l.way)?.way;
+  // ---- doors (MAP-14, BG-313): each doorway the character has seen, drawn where it stands on the floor plan (Opening.at),
+  // across the wall it is in: a door's leaf, a gap between posts for a way with no door, or its barrier's mark. Both titles
+  // of a doorway read the same opening, drawn once.
+  const doors: SDoor[] = [];
+  const px = (q: { x: number; y: number }) => ({ x: r2(q.x * PX_PER_M * k), y: r2(-q.y * PX_PER_M * k) });
+  /** BG-313: the character has seen this doorway from title x: the fog holds the floor just inside it */
+  const doorSeen = (x: SZone, l: MapLink) => !l.at || !x.z.seen || seenIn(x.z.seen, l.out ? { x: l.at.x - l.out[0] * 0.3, y: l.at.y - l.out[1] * 0.3 } : l.at);
+  const drawnDoor = new Map<string, SDoor>();
+  for (const x of zones) for (const l of x.z.links) {
+    if (!l.at || !l.out || l.stairs || !doorSeen(x, l)) continue;
+    const other = byId.get(l.to);
+    if (other && other.z.height !== x.z.height) continue;
+    const key = l.opening ?? `${x.z.id}>${l.to}`;
+    if (drawnDoor.has(key)) continue;
+    const back = other?.z.links.find((m) => m.opening === l.opening);
+    const way = l.way?.shut ? l.way : back?.way?.shut ? back.way : l.way ?? back?.way;
+    const c = px(l.at), dir: 'h' | 'v' = Math.abs(l.out[1]) >= Math.abs(l.out[0]) ? 'h' : 'v';
+    const kind = way ? 'door' as const : 'opening' as const;
+    const title = `${l.label}: ${x.z.name} ↔ ${other?.z.name ?? l.label}${way ? ` · ${shutWord(way) || way.kind}` : ''}`;
+    const d: SDoor = { id: `door:${key}`, cx: c.x, cy: c.y, ...doorBox(c.x, c.y, dir, way), dir, kind, ...(way ? { way } : {}), title, zones: [x.z.id, ...(other ? [other.z.id] : [])] };
+    drawnDoor.set(key, d); doors.push(d); take(d, 'icon');
+    used.add(way?.shut ? 'door' : kind);
     if (way?.shut) used.add(wayKey(way));
-    const A = a.box, B = b.box;
-    const x0 = Math.max(A.x0, B.x0), x1 = Math.min(A.x1, B.x1), y0 = Math.max(A.y0, B.y0), y1 = Math.min(A.y1, B.y1);
-    const vWall = Math.abs(x1 - x0) < 0.5 && y1 - y0 >= 1, hWall = Math.abs(y1 - y0) < 0.5 && x1 - x0 >= 1;
-    const title = `${links[0].label}: ${a.z.name} ↔ ${b.z.name}${way ? ` · ${shutWord(way) || way.kind}` : ''}`;
-    if (vWall || hWall) {
-      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, dir = hWall ? 'h' as const : 'v' as const;
-      const kind = way?.shut ? 'door' as const : !way && a.z.outdoor && b.z.outdoor ? 'opening' as const : 'door' as const;
-      used.add(way?.shut ? 'door' : kind);
-      const d: SDoor = { id: `door:${key}`, cx, cy, ...doorBox(cx, cy, dir, way), dir, kind, ...(way ? { way } : {}), title, zones: [a.z.id, b.z.id] };
-      // the wall it sits on, named by the smaller zone's side, for MAP-31's count badge
-      const small = (A.x1 - A.x0) * (A.y1 - A.y0) <= (B.x1 - B.x0) * (B.y1 - B.y0) ? a : b;
-      const side = vWall ? (Math.abs(small.box.x0 - cx) < 1 ? 'w' : 'e') : Math.abs(small.box.y0 - cy) < 1 ? 'n' : 's';
-      walls.push({ d, side: `${small.z.id}:${side}`, lo: hWall ? x0 : y0, hi: hWall ? x1 : y1 });
-    } else {
-      // the line between the two zones' nearest sides, kept 6 px off each (MAP-14)
-      const ca = { x: (A.x0 + A.x1) / 2, y: (A.y0 + A.y1) / 2 }, cb = { x: (B.x0 + B.x1) / 2, y: (B.y0 + B.y1) / 2 };
-      const exitAt = (bx: Box, c: { x: number; y: number }, to: { x: number; y: number }) => {
-        const dx = to.x - c.x, dy = to.y - c.y;
-        const t = Math.min(Math.abs((bx.x1 - bx.x0) / 2 / (dx || 1e-9)), Math.abs((bx.y1 - bx.y0) / 2 / (dy || 1e-9)));
-        const len = Math.hypot(dx, dy) || 1;
-        return { x: c.x + dx * t + (dx / len) * LINK_GAP, y: c.y + dy * t + (dy / len) * LINK_GAP };
-      };
-      const p1 = exitAt(A, ca, cb), p2 = exitAt(B, cb, ca);
-      connectors.push({ id: `link:${key}`, a: a.z.id, b: b.z.id, x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, sight: links.some((l) => l.sight), title });
-      used.add(links.some((l) => l.sight) ? 'link' : 'link-hidden');
-      if (way?.shut) { const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2; const d: SDoor = { id: `door:${key}`, cx, cy, ...disc(cx, cy, WAY_R), dir: 'h', kind: 'door', way, title, zones: [a.z.id, b.z.id] }; doors.push(d); take(d, 'icon'); used.add('door'); }
-    }
   }
-  const wallsOf = new Map<string, Wall[]>();
-  for (const w of walls) wallsOf.set(w.side, [...(wallsOf.get(w.side) ?? []), w]);
-  for (const [sk, ws] of wallsOf) {
-    if (ws.length > 3) {
-      // more than three on one wall: one badge with the count (MAP-31)
-      const cx = ws.reduce((n, w) => n + w.d.cx, 0) / ws.length, cy = ws.reduce((n, w) => n + w.d.cy, 0) / ws.length;
-      const d: SDoor = { id: `doors:${sk}`, cx, cy, ...disc(cx, cy, WAY_R), dir: ws[0].d.dir, kind: 'group', count: ws.length, title: ws.map((w) => w.d.title).join('\n'), zones: [...new Set(ws.flatMap((w) => w.d.zones))] };
-      doors.push(d); take(d, 'icon'); used.add('group');
-      continue;
-    }
-    for (const { d, lo, hi } of ws) {
-      // the middle of the shared wall, else the nearest step along it that is clear, never past its ends
-      const half = d.dir === 'h' ? (d.x1 - d.x0) / 2 : (d.y1 - d.y0) / 2;
-      for (const t of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6].map((n) => n * (half + GAP + 1))) {
-        const c = (d.dir === 'h' ? d.cx : d.cy) + t;
-        if (c - half < lo + 3 || c + half > hi - 3) continue; // MAP-31: clear of the wall's corners
-        const cx = d.dir === 'h' ? c : d.cx, cy = d.dir === 'h' ? d.cy : c, b = doorBox(cx, cy, d.dir, d.way);
-        if (free(b)) { Object.assign(d, { cx, cy }, b); break; }
-      }
-      doors.push(d); take(d, 'icon');
-    }
-  }
-
   // ---- you (MAP-23: first of the marks; only the walls' doors, fixed to their walls, come before), at your own point
   const here = zones.find((x) => x.z.here);
   if (here) {
@@ -267,30 +222,35 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     used.add('you');
   }
 
-  // the exits that leave this map, sorted out before the labels so a label keeps off the side its zone's arrows leave by
-  const all = union(zones.map((x) => x.box)), mid = { x: (all.x0 + all.x1) / 2, y: (all.y0 + all.y1) / 2 };
+  // the exits that leave this map (BG-313): each from its doorway, if the character has seen it, straight out of the wall
   const everyById = new Map(inp.every.map((z) => [z.id, z]));
   const stairList: { x: SZone; l: MapLink; up: boolean; other?: MapZone }[] = [];
-  const stubs: { x: SZone; l: MapLink; side: Side; sides: Side[]; away?: string; other?: MapZone }[] = [];
+  const stubs: { x: SZone; l: MapLink; door?: SDoor; away?: string; other?: MapZone }[] = [];
   for (const x of zones) for (const l of x.z.links) {
-    if (byId.has(l.to)) continue;
+    if (byId.has(l.to) || (l.at && !doorSeen(x, l))) continue;
     const other = everyById.get(l.to);
-    if ((other && other.height !== x.z.height) || (!other && !l.known && verticalOf(l.label))) { stairList.push({ x, l, up: other ? other.height > x.z.height : verticalOf(l.label) > 0, other }); continue; }
-    const dir = compassOf(l.label);
-    const c = { x: (x.box.x0 + x.box.x1) / 2, y: (x.box.y0 + x.box.y1) / 2 };
+    if (l.stairs || (other && other.height !== x.z.height)) { stairList.push({ x, l, up: l.up ?? (other ? other.height > x.z.height : verticalOf(l.label) > 0), other }); continue; }
     const away = l.known && !other ? inp.awayName(l.to) : undefined;
-    // with no compass word: the side facing away from the map's middle, else the side with the most open floor beyond it
-    const fallback: Side = Math.abs(c.x - mid.x) >= Math.abs(c.y - mid.y) && (c.x !== mid.x) ? (c.x > mid.x ? 'e' : 'w') : c.y !== mid.y ? (c.y > mid.y ? 's' : 'n') : 'e';
-    // the sides to try: the named one (then the two beside it), or with no compass word every side, the open one first
-    const named = dir ? sideOf(dir) : fallback, near: Record<Side, Side[]> = { n: ['e', 'w'], s: ['w', 'e'], e: ['s', 'n'], w: ['n', 's'] };
-    stubs.push({ x, l, side: named, sides: dir ? [named, ...near[named]] : [named, ...near[named], OPP_SIDE[named]], ...(away ? { away } : {}), ...(other ? { other } : {}) });
+    stubs.push({ x, l, ...(l.opening && drawnDoor.has(l.opening) ? { door: drawnDoor.get(l.opening) } : {}), ...(away ? { away } : {}), ...(other ? { other } : {}) });
   }
   // ---- zone names (MZ2, MZ3, MAP-20): bold letters inside the zone, centred and as large as fit its box with 6 px to spare,
   // over up to three lines; a background layer the marks may sit on, so a name takes no room and pushes no mark (BG-216).
   // A zone too small even for the smallest letters shows its name in its tooltip only.
   const labels: SLabel[] = [];
+  /** BG-313: the biggest seen rectangle of a title (its seen rows of one width stacked), on screen: its name sits there */
+  const seenBox = (runs: SeenRun[]): Box | undefined => {
+    const rects: SeenRun[] = [];
+    for (const r of [...runs].sort((a, b) => a.x0 - b.x0 || a.x1 - b.x1 || a.y0 - b.y0)) {
+      const last = rects.at(-1);
+      if (last && last.x0 === r.x0 && last.x1 === r.x1 && Math.abs(last.y1 - r.y0) < 1e-9) last.y1 = r.y1;
+      else rects.push({ ...r });
+    }
+    const best = rects.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0))[0];
+    return best && { x0: r2(best.x0 * PX_PER_M * k), x1: r2(best.x1 * PX_PER_M * k), y0: r2(-best.y1 * PX_PER_M * k), y1: r2(-best.y0 * PX_PER_M * k) };
+  };
   for (const x of zones) {
-    const zb = x.box, full = x.z.name, room = { w: zb.x1 - zb.x0 - 2 * PAD, h: zb.y1 - zb.y0 - 2 * PAD };
+    if (x.z.seen && !x.z.seen.length) continue; // BG-313: a title the character has seen none of shows no name
+    const zb = x.z.seen ? seenBox(x.z.seen) ?? x.box : x.box, full = x.z.name, room = { w: zb.x1 - zb.x0 - 2 * PAD, h: zb.y1 - zb.y0 - 2 * PAD };
     for (let px = NAME_PX.max; px >= NAME_PX.min; px -= 0.5) {
       const m: Measure = (t, kd) => (measure(t, kd) * px) / TEXT.label.size, line = Math.round(px * 1.2 * 100) / 100;
       // no plate round a name, so none of the plate's padding; the letters' dark edge instead
@@ -308,9 +268,11 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   const places: SPlace[] = [];
   for (const p of inp.places) {
     const zs = zones.filter((x) => p.zones.some((z) => z.id === x.z.id));
-    if (!zs.length) continue;
+    // BG-313: a place's box goes round only the ground seen in it, so it never tells how far an unseen yard runs
+    const seenBoxes = zs.flatMap((x) => (x.z.seen ? x.z.seen.map((r) => ({ x0: r2(r.x0 * PX_PER_M * k), x1: r2(r.x1 * PX_PER_M * k), y0: r2(-r.y1 * PX_PER_M * k), y1: r2(-r.y0 * PX_PER_M * k) })) : [x.box]));
+    if (!zs.length || !seenBoxes.length) continue;
     // padded on each side only as far as it stays off zones of somewhere else (MAP-12: a street is never drawn inside a building)
-    const pad = 6 + 4 * Math.max(0, 3 - p.depth), fb = union(zs.map((x) => x.box)), others = zones.filter((x) => !zs.includes(x));
+    const pad = 6 + 4 * Math.max(0, 3 - p.depth), fb = union(seenBoxes), others = zones.filter((x) => !zs.includes(x));
     const box = { ...fb };
     for (const [key, sign] of [['x0', -1], ['y0', -1], ['x1', 1], ['y1', 1]] as const) {
       for (const q of [pad, pad / 2, 0]) { const t = { ...box, [key]: fb[key] + sign * q }; if (q === 0 || !others.some((o) => hit(o.box, t))) { box[key] = t[key]; break; } }
@@ -318,6 +280,8 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     const full = p.name.toUpperCase(), { w, h } = textBox(full, 'title');
     const spots: Box[] = [];
     for (let dx = 0; dx <= Math.max(0, box.x1 - box.x0 - w); dx += 12) spots.push({ x0: box.x0 + dx, y0: box.y0 - h - 3, x1: box.x0 + dx + w, y1: box.y0 - 3 });
+    // a title wider than its place may run out past its left corner, up to ending at the right one
+    for (let dx = 12; dx < w - (box.x1 - box.x0) + 12; dx += 12) { const x0 = Math.max(box.x1 - w, box.x0 - dx); spots.push({ x0, y0: box.y0 - h - 3, x1: x0 + w, y1: box.y0 - 3 }); }
     for (const dy of [h + 3, 2 * (h + 3)]) spots.push({ x0: box.x0, y0: box.y0 - h - 3 - dy, x1: box.x0 + w, y1: box.y0 - 3 - dy });
     spots.push({ x0: box.x0, y0: box.y1 + 3, x1: box.x0 + w, y1: box.y1 + 3 + h });
     const pick = spots.find((b) => free(b) && !overZone(b));
@@ -359,66 +323,49 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
     return { cx, cy };
   }
 
-  // ---- exits to zones not on this map (MAP-24, MAP-32): an arrow out of the wall the exit's compass word names (else the
-  // side facing away from the map's middle), ending at a note that names where it goes: "→ the plank gate · unexplored"
+  // ---- exits to zones not on this map (MAP-24, MAP-32, BG-313): an arrow straight out of the wall from the exit's own
+  // doorway (turned a little either way only when that is taken), ending at a note that names where it goes:
+  // "→ the plank gate · unexplored"
   const exits: SExit[] = [], stairs: SStair[] = [], lost: string[] = [], dropped: string[] = [];
-  const bySide = new Map<string, typeof stubs>();
-  for (const st of stubs) bySide.set(`${st.x.z.id}:${st.side}`, [...(bySide.get(`${st.x.z.id}:${st.side}`) ?? []), st]);
-  for (const group of bySide.values()) group.forEach((st, i) => {
-    const zb = st.x.box, l = st.l, n = group.length;
+  for (const st of stubs) {
+    const l = st.l, id = `exit:${st.x.z.id}:${l.to}`;
+    if (!l.at || !l.out) { lost.push(id); continue; }
     const state = [st.away ? `to ${st.away}` : st.other ? 'known' : 'unexplored', shutWord(l.way)].filter(Boolean).join(', ');
     const full = `→ ${l.label} · ${state}`;
-    // a barrier on the way out sits on the wall where the arrow leaves (MAP-33: locked shows on the door)
-    const mark = l.way ? (l.way.shut ? WAY_R : 6) : 0;
-    const fr = [(i + 1) / (n + 1), ...[0.5, 0.3, 0.7, 0.15, 0.85].filter((f) => n === 1 || f !== 0.5)];
-    let horiz = false;
+    const c = px(l.at), foot = st.door ? Math.max(st.door.x1 - st.door.cx, st.door.y1 - st.door.cy) + 2 : 2;
+    const base = Math.atan2(-l.out[1], l.out[0]); // screen y runs down
     const tryAll = (avoidZones: boolean, lines: string[]) => {
       const { w: tw, h } = linesBox(lines, 'note');
-      // the barrier's mark on the wall itself, else just outside it at the arrow's foot when the wall is crowded
-      for (const side of st.sides) for (const out of mark ? [0, mark + 1] : [0]) for (const len of ARROWS) for (const f of fr) {
-        horiz = side === 'n' || side === 's';
-        const dx = side === 'e' ? 1 : side === 'w' ? -1 : 0, dy = side === 's' ? 1 : side === 'n' ? -1 : 0;
-        const x1 = horiz ? zb.x0 + (zb.x1 - zb.x0) * f : side === 'e' ? zb.x1 : zb.x0;
-        const y1 = horiz ? (side === 'n' ? zb.y0 : zb.y1) : zb.y0 + (zb.y1 - zb.y0) * f;
-        const mx0 = x1 + dx * out, my0 = y1 + dy * out;
-        const doorAt = mark ? (l.way!.shut ? disc(mx0, my0, WAY_R) : doorBox(mx0, my0, horiz ? 'h' : 'v')) : null;
-        if (doorAt && !within(horiz ? { ...doorAt, y0: zb.y0 + 3, y1: zb.y1 - 3 } : { ...doorAt, x0: zb.x0 + 3, x1: zb.x1 - 3 }, zb, 3)) continue; // clear of the corners (MAP-31)
-        const sx = x1 + dx * (out + mark + 2), sy = y1 + dy * (out + mark + 2), x2 = sx + dx * len, y2 = sy + dy * len;
-        const nb: Box = horiz ? { x0: x2 - tw / 2, y0: dy < 0 ? y2 - 4 - h : y2 + 4, x1: x2 + tw / 2, y1: dy < 0 ? y2 - 4 : y2 + 4 + h }
-          : { x0: dx > 0 ? x2 + 4 : x2 - 4 - tw, y0: y2 - h / 2, x1: dx > 0 ? x2 + 4 + tw : x2 - 4, y1: y2 + h / 2 };
+      for (const turn of [0, 0.4, -0.4, 0.8, -0.8]) for (const len of ARROWS) {
+        const dx = Math.cos(base + turn), dy = Math.sin(base + turn), side = Math.abs(dx) >= Math.abs(dy);
+        const sx = c.x + dx * foot, sy = c.y + dy * foot, x2 = sx + dx * len, y2 = sy + dy * len;
+        // the note stands NOTE_GAP clear of the arrow's tip, so the arrowhead never runs into its words
+        const nb: Box = side ? { x0: dx > 0 ? x2 + NOTE_GAP : x2 - NOTE_GAP - tw, y0: y2 - h / 2, x1: dx > 0 ? x2 + NOTE_GAP + tw : x2 - NOTE_GAP, y1: y2 + h / 2 }
+          : { x0: x2 - tw / 2, y0: dy < 0 ? y2 - NOTE_GAP - h : y2 + NOTE_GAP, x1: x2 + tw / 2, y1: dy < 0 ? y2 - NOTE_GAP : y2 + NOTE_GAP + h };
         const shaft: Box = { x0: Math.min(sx, x2) - 3, y0: Math.min(sy, y2) - 3, x1: Math.max(sx, x2) + 3, y1: Math.max(sy, y2) + 3 };
-        if (!free(nb) || !free(shaft) || (doorAt && !free(doorAt)) || (avoidZones && (overZone(nb) || overZone(shaft, st.x.z.id)))) continue;
-        return { x1: sx, y1: sy, x2, y2, nb, lines, doorAt, horiz };
+        if (!free(nb) || taken.some((t) => t.box !== st.door && hit(t.box, shaft, GAP)) || (avoidZones && (overZone(nb) || overZone(shaft, st.x.z.id)))) continue;
+        return { x1: sx, y1: sy, x2, y2, nb, lines };
       }
       return null;
     };
     const wrapped = wrap(full, 'note', 230, 2, measure) ?? [full];
     const got = tryAll(true, wrapped) ?? tryAll(false, wrapped) ?? (() => { const t = cut(full, 'note', 200, measure); return tryAll(false, [t]); })();
-    if (!got) { lost.push(`exit:${st.x.z.id}:${l.to}`); return; }
-    const made: SExit = { id: `exit:${st.x.z.id}:${l.to}`, zoneId: st.x.z.id, target: st.other ? l.to : l.label, state, x1: got.x1, y1: got.y1, x2: got.x2, y2: got.y2,
+    if (!got) { lost.push(id); continue; }
+    const made: SExit = { id, zoneId: st.x.z.id, target: st.other ? l.to : l.label, state, x1: got.x1, y1: got.y1, x2: got.x2, y2: got.y2,
       note: { ...got.nb, text: got.lines.join(' '), lines: got.lines, full, cut: got.lines.join(' ') !== full }, ...(st.away || st.other ? { goto: l.to } : {}), ...(l.way ? { way: l.way } : {}), title: `${l.label}: ${state}` };
     exits.push(made);
     take(made.note, 'exit');
     take({ x0: Math.min(made.x1, made.x2) - 3, y0: Math.min(made.y1, made.y2) - 3, x1: Math.max(made.x1, made.x2) + 3, y1: Math.max(made.y1, made.y2) + 3 }, 'exit');
-    if (got.doorAt) {
-      const cx = (got.doorAt.x0 + got.doorAt.x1) / 2, cy = (got.doorAt.y0 + got.doorAt.y1) / 2;
-      const d: SDoor = { id: `door:${made.id}`, cx, cy, ...got.doorAt, dir: got.horiz ? 'h' : 'v', kind: 'door', way: l.way, title: made.title, zones: [st.x.z.id] };
-      doors.push(d); take(d, 'icon'); used.add('door');
-    }
     used.add(st.away ? 'exit-away' : 'exit');
-    if (l.way?.shut) used.add(wayKey(l.way));
-  });
+  }
 
-  // ---- stairs (icons): inside their zone, clear of its corners; just outside when the zone has no room
+  // ---- stairs (icons, BG-313): at the stairs' own end on this floor, nudged only to keep clear of another mark
   for (const st of stairList) {
     const zb = st.x.box, inset = STAIR_R + 4, id = `stair:${st.x.z.id}:${st.l.to}`;
     const kept = spotOf(id, zb, inset);
     if (final && (!kept || !free(disc(kept.cx, kept.cy, STAIR_R)))) { dropped.push(id); continue; } // zoomed out: hidden in its own spot
-    const spots = [[zb.x0 + inset, zb.y1 - inset], [zb.x1 - inset, zb.y1 - inset], [zb.x0 + inset, zb.y0 + inset], [zb.x1 - inset, zb.y0 + inset],
-      [zb.x0 + inset, (zb.y0 + zb.y1) / 2], [zb.x1 - inset, (zb.y0 + zb.y1) / 2], [(zb.x0 + zb.x1) / 2, zb.y1 - inset]];
-    let p: { cx: number; cy: number } | null = kept ?? null;
-    for (const [cx, cy] of spots) if (!p && within(disc(cx, cy, STAIR_R), zb) && free(disc(cx, cy, STAIR_R))) p = { cx, cy };
-    p ??= nearFree((zb.x0 + zb.x1) / 2, zb.y1 - inset, STAIR_R, zb) ?? outsideNear(zb.x0 - STAIR_R - 6, zb.y1 - STAIR_R, STAIR_R);
+    const at = st.l.at ? px(st.l.at) : { x: (zb.x0 + zb.x1) / 2, y: zb.y1 - inset };
+    const p = kept ?? nearFree(at.x, at.y, STAIR_R, zb, inset) ?? outsideNear(at.x, at.y, STAIR_R);
     const gone = st.other ? `${st.up ? 'up' : 'down'} to ${st.other.name}` : `${st.up ? 'up' : 'down'}, unexplored`;
     stairs.push({ id, zoneId: st.x.z.id, ...p, ...disc(p.cx, p.cy, STAIR_R), up: st.up, ...(st.other ? { goto: st.other.id } : {}), title: `${st.l.label}: ${gone}`, label: st.l.label });
     take(disc(p.cx, p.cy, STAIR_R), 'icon');
@@ -428,6 +375,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   // ---- furniture (icons, last to place): at its own point, nudged clear of everything else; left off when its zone is full
   const furniture: SFurn[] = [];
   for (const x of zones) for (const f of x.z.furniture ?? []) {
+    if (x.z.seen && !seenIn(x.z.seen, f)) continue; // BG-313: furniture only where the character has seen
     const kept = spotOf(`furn:${f.id}`, x.box, FURN_R + 3);
     const p = final ? (kept && free(disc(kept.cx, kept.cy, FURN_R)) ? kept : null) : kept ?? nearFree(f.x * PX_PER_M * k, -f.y * PX_PER_M * k, FURN_R, x.box, FURN_R + 3);
     if (!p) { dropped.push(f.id); continue; }
@@ -437,7 +385,7 @@ function layout(inp: PlanInput, ref: Scene | undefined, final: boolean): Scene {
   }
 
   const bounds = union([...zones.map((x) => x.box), ...places.flatMap((p) => [p.box, p.title]), ...taken.map((t) => t.box)]);
-  return { zones, places, labels, doors, connectors, exits, stairs, furniture, tokens, dropped, lost, used, bounds };
+  return { zones, places, labels, doors, exits, stairs, furniture, tokens, dropped, lost, used, bounds };
 }
 
 /** checks the drawn checker can't make from boxes alone, run beside it in dev views: MAP-10 every zone on the 1 m grid, and

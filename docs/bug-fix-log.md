@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-313
+
+**What was wrong:** The Map and the minimap disagreed about the same back yard. The Map had never been moved to the floor plan: it still drew titles as tiles joined by their links, laid out an exit diagram with a force layout that guessed from compass words, put doors in the middle of a shared box edge, and pointed exits by their compass word. None of it read the fog, so it showed ground the character had never seen and moved things away from where they really are.
+
+**What was done:** The Map and the minimap now draw every title where it lies on the floor plan, with its walls, doorways and furniture, and only where the fog says the character has seen. Each door sits at its own point on its wall, and each exit arrow leaves from its own doorway. A title seen none of has no name; a name sits in the biggest seen part of its title, and a place's outline goes round only the ground seen in it. The exit diagram, its toggle, the force layout, the compass guessing and the shared-edge doors are gone. The fog is now also marked when a plan is applied, so the map is not dark before the first turn. While checking the screenshots, exit notes and place titles were found measured at 11 px but drawn at 13 px (the 13 px text floor); they are now measured as drawn, so a note's words stay inside its outline.
+
+**Fixed by:** [PR #1096](https://github.com/ali123500-codeRPG/text-rpg/pull/1096)
+
 ## BG-316
 
 **What was wrong:** When people walk about on their own between turns, a walker whose way is shut by a door opens it as a quiet background step only if the player can't see that door; a door in view stops them, so the opening happens as a move you can see. "Can't see it" was judged the zone way: the player standing in neither title beside the door. So someone could unlock and open a door in plain view across the street as a background step, with nothing shown.
