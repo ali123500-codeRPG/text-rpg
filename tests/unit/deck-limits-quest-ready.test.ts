@@ -63,7 +63,7 @@ describe('A3b limited moves on the deck', () => {
 
   it('the deck draws it dimmed and unclickable, with the ring or the slash mark, and pulses once when it is ready', () => {
     const v = src('ui/deckView.ts'), css = src('ui/styles.css');
-    expect(v).toMatch(/'aria-disabled': 'true', title: a\.limit\.tip/);
+    expect(v).toMatch(/'aria-disabled': 'true'.*title: \[a\.limit\?\.tip, a\.time\]/); // the limit's words, then how long it takes
     expect(v).toMatch(/if \(a && !a\.limit\) b\.onclick/);
     expect(v).toMatch(/dk-mark used/);
     expect(v).toMatch(/dk-mark wait.*--share/);

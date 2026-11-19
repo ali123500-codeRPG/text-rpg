@@ -389,12 +389,9 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
   // segments by % left: Bruised 85–100, Hurt 70–85 … Critical 0–25 (Unhurt is only the full bar, Incapacitated the empty one)
   const track = SHOWN_LEVELS();
   const segs = track.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
-  // each segment's level named mid-segment, alternating one above the bar and one below; Unhurt (the full bar) and
-  // Incapacitated (the empty one) are not named
   // the Unhurt section is the bar's 7th section, on the right; the six damage sections share the rest by their % ranges
   // (a separate box read as detached)
   const scale = (100 - UNHURT_SECTION) / 100;
-  const marks = [...segs].reverse().map((x) => ({ l: x.l, at: ((x.from + x.to) / 2) * scale }));
   const fill = level === 'unhurt' ? 100 : left * scale;
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
@@ -406,17 +403,13 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
         h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
         h('span', { class: 'w' + (st === 'healthy' ? '' : ' bad') }, PART_STATES.name(st)));
     })) ?? []);
-  const sideSteps = (odd: 0 | 1) => h('span', { class: 'cs-hpsteps' }, marks.map((x, i) => (i % 2 === odd
-    ? h('span', { class: x.l === level ? 'now' : '', style: `left:${x.at}%` }, HEALTH_LEVELS.name(x.l)) : null)));
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
-    // the current level sits beside the HP number, as on the character card
-    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, h('span', { 'data-m': 'hp-level' }, HEALTH_LEVELS.name(level)), ' · ', h('span', { 'data-m': 'hp' }, whole(hp)), ' HP')),
-    sideSteps(0),
+    // the condition sheet names no health level, on the button or the track: the HP and the bar say it
+    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, h('span', { 'data-m': 'hp' }, whole(hp)), ' HP')),
     // the 7th section lights only when Unhurt, so a full Bruised bar can't be read as Unhurt
-    h('span', { class: 'cs-hptrack', title: 'Health track, Unhurt on the right', 'data-m': 'hp-track' }, h('b', { style: `width:${fill}%` }),
-      [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))),
-    sideSteps(1));
+    h('span', { class: 'cs-hptrack', title: 'Health track, full on the right', 'data-m': 'hp-track' }, h('b', { style: `width:${fill}%` }),
+      [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))));
   btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health ${partOpen.on ? '⌄' : '›'}`; });
   return [btn, partChips(s, p), parts];
 }

@@ -38,4 +38,5 @@ export function pullOf(key: IdeaKind | IdeaGroup, p: Personality): number {
   return Math.abs(sum) < CONFIG.PERSONALITY_LEAN ? 0 : sum;
 }
 
-export const AGAINST_NATURE = 'against your nature';
+/** the tooltip and screen-reader name of the action deck's against-your-nature mark (a cracked mask) */
+export const AGAINST_NATURE = 'Against your nature';

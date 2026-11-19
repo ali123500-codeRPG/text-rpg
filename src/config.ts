@@ -315,7 +315,7 @@ const DEFAULTS = {
   PERSONALITY_LEAN: 20,
   /** the action deck: a held value pulls toward its actions by this many points, as a trait would */
   IDEA_VALUE_PULL: 50,
-  /** the action deck: an action the character is pulled away from by this many points or more says "against your nature" */
+  /** the action deck: an action the character is pulled away from by this many points or more gets the against-your-nature mark */
   IDEA_AGAINST_NATURE: 50,
   /** AD9 the suggested action: base score of each kind of suggestion (higher wins); leanShare: points per point of the
    * character's pull toward it; healInFight: taken off treating wounds while a fight runs. [placeholder] */

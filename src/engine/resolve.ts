@@ -188,7 +188,7 @@ function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
 }
 /** AT11: the Action times row an order's action uses, and its seconds (a crossbow's shot includes its spanning until
  * spanning is an action of its own); undefined when the order names no row (it takes the turn's main time) */
-function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; seconds: number } | undefined {
+export function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; seconds: number } | undefined {
   const f = timeFactor(a); // VS8: sneaking multiplies the time
   const of = (id: string | undefined, extra = 0) => { const row = id ? actionRow(id) : undefined; return row ? { row, seconds: actionSeconds(row, undefined, f) + extra } : undefined; };
   const inv = (ref: string | null | undefined) => (ref ? a.core.inventory.find((i) => i.id === ref || i.itemId === ref) : undefined);
