@@ -9,7 +9,7 @@ import type { ShareRule } from '../engine/nonCombat';
 import { powerParts } from '../engine/xp';
 import { r1 } from '../words';
 import { h } from './kit';
-import { skillName } from './creation';
+import { gmView, skillName } from './creation';
 import { openPop } from './pop';
 
 /** one line of the breakdown: what it is, how it is worked out, what it adds (or, for a rating, its value), and the lines under it */
@@ -26,7 +26,7 @@ export function powerLines(s: GameState, p: Actor): { total: number; lines: Powe
   const parts = powerParts(s, p);
   const lines: PowerLine[] = [
     { label: `Level ${parts.level}`, how: `${CONFIG.LEVEL_RATING_SHARE * 100}% of the XP it takes to reach it`, adds: parts.levelAdds },
-    { label: `Combat level ${r1(parts.combatLevel)}`, how: 'fights a reference fighter of this level evenly (placeholder)', adds: parts.combatAdds },
+    { label: `Combat level ${r1(parts.combatLevel)}`, how: `fights a reference fighter of this level evenly${gmView() ? ' (placeholder)' : ''}`, adds: parts.combatAdds },
     ...parts.nonCombat.sort((a, b) => b.adds - a.adds).map((g) => ({
       label: `${groupName(g.group)} skills`, how: `rating ${r1(g.rating)}; ${pct(g.share)} ${SHARE_WORDS[g.rule]}`, adds: g.adds,
     })),
@@ -60,11 +60,12 @@ export function powerFigure(s: GameState, p: Actor): HTMLElement {
 
 export function openPowerPop(s: GameState, p: Actor, opener?: HTMLElement | null): void {
   const { total, lines } = powerLines(s, p);
-  openPop({ title: 'Power', cls: 'pw-pop', opener, body: [
-    h('p', { class: 'hs-note' }, 'How strong you are, the same measure foes are judged by: it sets the XP a defeat pays and which foes count as stronger. Your level, how you fight (the level of a reference fighter you beat as often as it beats you), and what your sneaking, spotting, filching, healing and talking settle without a fight.'),
-    h('div', { class: 'pw-list' }, ...lines.map((l) => line(l, 0))),
+  const pop = openPop({ title: 'Power', cls: 'pw-pop', opener, body: [    h('div', { class: 'pw-list' }, ...lines.map((l) => line(l, 0))),
     h('div', { class: 'pw-line pw-total' }, h('span', { class: 'pw-what' }, h('b', {}, 'Power')), h('span', { class: 'pw-adds' }, String(r1(total)))),
-    h('details', { class: 'pw-group pw-ratings' }, h('summary', {}, h('div', { class: 'pw-line' }, h('span', { class: 'pw-what' }, h('b', {}, 'Ratings'), h('span', {}, 'each skill group and stat as one number in skill points; open to see them')))),
+    // the disclosure triangle says it opens; what the ratings are is the summary's tip
+    h('details', { class: 'pw-group pw-ratings' }, h('summary', { title: 'Each skill group and stat as one number, in skill points' }, h('div', { class: 'pw-line' }, h('span', { class: 'pw-what' }, h('b', {}, 'Ratings')))),
       ...ratingLines(s, p).map((l) => line(l, 1))),
   ] });
+  // SD4: what Power is, as the heading's tip
+  pop.querySelector('.dpop-head .hs-label')?.setAttribute('title', 'How strong you are, the same measure foes are judged by: it sets the XP a defeat pays and which foes count as stronger. Your level, how you fight (the level of a reference fighter you beat as often as it beats you), and what your sneaking, spotting, filching, healing and talking settle without a fight.');
 }

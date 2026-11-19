@@ -66,8 +66,7 @@ export function personalityPicker(st: { p: Personality }, actor: () => Actor): {
       r.fill.style.left = `${50 + Math.min(0, v) / 2}%`;
       r.fill.style.width = `${Math.abs(v) / 2}%`;
       const w = traitWord(r.a.id, v);
-      r.word.textContent = w ?? 'no lean';
-      r.word.classList.toggle('none', !w);
+      r.word.textContent = w ?? ''; // SD3: no lean is the normal case and shows nothing
     }
     valueBtns.forEach((b) => {
       const on = st.p.values.includes(b.dataset.value!);
@@ -80,7 +79,6 @@ export function personalityPicker(st: { p: Personality }, actor: () => Actor): {
   const el = h('section', { class: 'pe', 'aria-label': 'Personality' },
     h('div', { class: 'grp-h' }, h('h2', { class: 'hs-section' }, 'Personality'),
       h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { st.p = blankPersonality(); refresh(); } }, 'Clear')),
-    h('p', { class: 'pe-note' }, 'Shown on your sheet. It never stops you doing anything; perks, classes and achievements can shift it later.'),
     h('div', { class: 'pe-top' },
       h('div', { class: 'pe-nerve' }, h('span', { class: 'hs-label' }, 'Nerve'), h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Nerve line' }, lines),
         h('span', { class: 'pe-tierline', title: `Your tier on the line comes from raw Resolve (${CONFIG.NERVE_TIER_FROM.join(', ')})` }, 'Now ', tierOut, ', rising with Resolve')),
@@ -109,8 +107,6 @@ export function signaturesBox(a: Actor, save: (lines: string[]) => void): HTMLEl
   const boxes = Array.from({ length: CONFIG.SIGNATURES_MAX }, (_, i) => h('input', { type: 'text', class: 'hs-input pe-sign', value: had[i] ?? '',
     maxlength: CONFIG.SIGNATURE_MAX_CHARS, 'aria-label': `Signature ${i + 1}`, placeholder: SIGN_HINTS[i] ?? '',
     onchange: () => save(boxes.map((b) => b.value)) }));
-  return h('div', { class: 'pe-signs' }, h('p', { class: 'hs-label' }, 'Signatures'),
-    h('p', { class: 'hs-note' }, `How you always act or talk, one in each box, up to ${CONFIG.SIGNATURE_MAX_CHARS} characters. The narrator and an agent playing in character use them.`),
-    ...boxes);
+  return h('div', { class: 'pe-signs' }, h('p', { class: 'hs-label' }, 'Signatures'), ...boxes);
 }
 const SIGN_HINTS = ['e.g. Never draws first, but never stops once drawn.', 'e.g. Calls everyone "friend", even foes.'];

@@ -5,7 +5,6 @@ import type { FreeWorld } from '../save';
 import { threadboundStartBlocked } from '../ruleset/threadboundItems';
 import { CONFIG } from '../config';
 import { burdenTotal } from '../ruleset/burdenTotal';
-import { FLAW_MARK } from '../ruleset';
 import { getLibrary } from '../library';
 import { classFloors, classlessStart, creationCap, defaultClass, createPlayer, playableRaces, raceStartBlock, randomIdentity, creationAge, creationAgeRange, creationPoints, buildState, newPlayer, recommendedBuild, startGives, startLevel } from '../library/spawn';
 import { blessedClass, blessingGods } from '../ruleset/blessings';
@@ -15,13 +14,21 @@ import { createRng } from '../rng';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
-import { startIcon } from './itemIcons';
+import { ICONS, startIcon, type IconName } from './itemIcons';
 import { preview } from './sheet';
 import { SK } from '../library/skillIds';
 import { ST } from '../library/startIds';
 import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
+/** an icon from ICONS as a mark, its meaning in its tip and its accessible name */
+export function markIcon(name: IconName, label: string, cls = 'mk-i'): HTMLElement {
+  const el = h('span', { class: cls, role: 'img', title: label, 'aria-label': label });
+  el.innerHTML = ICONS[name];
+  return el;
+}
+/** the GM debug view is on (the rail's GM switch, src/ui/app.ts) */
+export const gmView = (): boolean => { try { return localStorage.getItem('rpg.gmDebug') === '1'; } catch { return false; } };
 export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.stamina]: 'sets stamina', [SK.riposte]: 'adds to Parry', [SK.blade_dance]: 'adds to Dodge' };
 
 /** layout B's tree order and colours */
@@ -98,8 +105,6 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(k), st.v[k] + left(), Math.round(n))); render(); };
 
   const tilesHost = h('div');
-  const how = h('p', { class: 'how', hidden: true });
-  const src = h('p', { class: 'subline' });
   const msg = h('p', { class: 'msg', role: 'status' });
   const rows = new Map<string, HTMLElement>();
   const sums = new Map<string, HTMLElement>();
@@ -112,7 +117,18 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     const sec = h('section', {}, h('div', { class: 'grp-h' }, h('i', { class: 'hs-sq', style: `background:var(--${t.c})` }), h('h2', { class: 'hs-section' }, name),
       classTree(def?.access) ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
     for (const k of (def?.skills ?? []).filter((k) => open.includes(k))) {
-      const nm = h('div', { class: 'nm' }, h('b', {}, skillName(k)), SKILL_SUB[k] ? h('small', {}, SKILL_SUB[k]) : null, floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
+      // the tag and flaw toggles sit right after the name: dim until set, then lit
+      const tg = (act: 'tag' | 'flaw') => { const b = h('button', { class: `tg-btn tg-${act}`, type: 'button', 'data-act': act, 'aria-pressed': 'false' }); b.innerHTML = ICONS[act === 'flaw' ? 'flawed' : 'tagged']; return b; };
+      const marks = h('span', { class: 'tagc', onclick: (e: Event) => {
+        const b = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null;
+        if (!b || b.disabled) return;
+        const fit = () => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(st.v[k], cap(k))); }; // untagged or flawed: back down to its cap
+        if (b.dataset.act === 'flaw') { if (st.flaws.has(k)) st.flaws.delete(k); else { st.flaws.add(k); fit(); } }
+        else if (st.tags.has(k)) { st.tags.delete(k); fit(); } else st.tags.add(k);
+        render();
+      } }, tg('tag'), tg('flaw'));
+      const nm = h('div', { class: 'nm' }, h('span', { class: 'nm-l' }, h('b', SKILL_SUB[k] ? { title: SKILL_SUB[k][0].toUpperCase() + SKILL_SUB[k].slice(1) } : {}, skillName(k)), marks),
+        floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
       const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,
         h('div', { class: 'bar' }, h('div', { class: 'tr' }, h('i', { class: 's' }), h('i', { class: 'f' })),
@@ -120,15 +136,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         h('div', { class: 'step' },
           h('button', { class: 'hs-icon-btn mi', type: 'button', title: `Lower by ${STEP} (Ctrl+click: by 1)`, 'aria-label': `Lower ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] - stepOf(e)) }, '−'),
           h('span', { class: 'val hs-num' }),
-          h('button', { class: 'hs-icon-btn pl', type: 'button', title: `Raise by ${STEP} (Ctrl+click: by 1)`, 'aria-label': `Raise ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] + stepOf(e)) }, '+')),
-        h('div', { class: 'tagc', onclick: (e: Event) => {
-          const b = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null;
-          if (!b || b.disabled) return;
-          const fit = () => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(st.v[k], cap(k))); }; // untagged or flawed: back down to its cap
-          if (b.dataset.act === 'flaw') { if (st.flaws.has(k)) st.flaws.delete(k); else { st.flaws.add(k); fit(); } }
-          else if (st.tags.has(k)) { st.tags.delete(k); fit(); } else st.tags.add(k);
-          render();
-        } }));
+          h('button', { class: 'hs-icon-btn pl', type: 'button', title: `Raise by ${STEP} (Ctrl+click: by 1)`, 'aria-label': `Raise ${skillName(k)}`, onclick: (e: MouseEvent) => setVal(k, st.v[k] + stepOf(e)) }, '+')));
       rows.set(k, row);
       sec.append(row);
     }
@@ -152,7 +160,7 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
     const dash = (n: number | null, d = 0) => (n === null ? '—' : n.toFixed(d));
     const tiles: Readout[] = [
       { label: 'Points left', value: String(L), unit: `of ${total()}`, sub: L ? 'Spend them all to begin' : 'All spent', tone: L ? 'warn' : 'ok',
-        how: `You have ${total()} points for the open skills. An untagged skill goes up to ${CONFIG.CREATION_MAX_UNTAGGED} at creation, a tagged one up to ${CONFIG.CREATION_MAX_TAGGED} and a flawed one up to ${CONFIG.CREATION_MAX_FLAWED}, and the class floors are the minimums.` },
+        how: `Spend ${total()} points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} and a flawed one ${CONFIG.CREATION_MAX_FLAWED}, and you tag ${maxTags()} skills and flaw ${maxFlaws()}.` },
       { label: 'HP', value: dash(p.hp), unit: 'HP', sub: `${CONFIG.HP_BASE} + endurance`, how: 'Total HP from the ruleset: the base plus endurance, times the body’s HP multiplier.' },
       { label: 'Attack', value: dash(p.attack), unit: 'skill', sub: p.weapon ? `${p.weapon.skill} · ${p.weapon.name}` : '—',
         how: 'Effective skill of your starting attack: the first weapon in your starting kit, or bare hands when the kit has none (raw skill plus gear).' },
@@ -161,14 +169,15 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         how: 'The highest of effective block (needs a starting shield), parry (needs a starting melee weapon) and dodge.' },
       { label: 'Vs one slime', value: p.swingsToKill === null ? '—' : '≈ ' + dash(p.swingsToKill, 1), unit: 'swings to kill',
         sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
-        how: `Estimated: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, from ${st.swings} practice swings with the game’s attack rules.` },
+        how: `≈ an estimate from ${st.swings} practice swings each way with the game’s attack rules: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing.` },
       { label: 'Potential', value: String(CONFIG.POTENTIAL), unit: 'pts',
         sub: `StartingTotal ${+burdenTotal(Object.fromEntries(open.map((k) => [k, { raw: st.v[k], state: buildState(b, k) }]))).toFixed(2)} · ${st.tags.size} of ${maxTags()} tagged · ${st.flaws.size} of ${maxFlaws()} flawed`,
         how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. Flawed: ${[...st.flaws].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your skills when the story starts, each tag taking ${CONFIG.TAG_BURDEN_GROUP_PCT}% off every skill in its group (a lone tag counts 0) and each flaw adding ${CONFIG.FLAW_BURDEN_GROUP_PCT}% to every skill in its group. Tagged skills ignore Burden. A flawed skill learns slower and stops at ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY}.` },
     ];
-    tilesHost.replaceChildren(readouts(tiles, how));
-    src.replaceChildren('≈ Vs one slime is an estimate from ', h('b', {}, `${st.swings} practice swings`), ' each way with the game’s attack rules · ',
-      h('button', { class: 'hs-btn-text', type: 'button', onclick: editSwings, style: 'min-height:0' }, 'Change the estimate'));
+    tilesHost.replaceChildren(readouts(tiles));
+    // HS6: the estimate's input is set here, by its tile
+    tilesHost.querySelectorAll('.hs-readout')[tiles.findIndex((t) => t.label === 'Vs one slime')]?.append(
+      h('button', { class: 'hs-btn-text swings', type: 'button', onclick: editSwings }, 'Change the estimate'));
     for (const k of open) {
       const row = rows.get(k)!, v = st.v[k], f = floors[k] ?? 0, on = st.tags.has(k), bad = st.flaws.has(k);
       row.querySelector('.val')!.textContent = String(v);
@@ -179,12 +188,16 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
       (row.querySelector('.pl') as HTMLButtonElement).disabled = v >= cap(k) || L <= 0;
       (row.querySelector('.tk.cap') as HTMLElement).style.left = cap(k) + '%'; // a tagged skill's cap is higher, a flawed one's lower
       row.classList.toggle('flawed', bad);
-      const noFlaw = st.flaws.size >= maxFlaws() ? `${maxFlaws()} skills are flawed already` : f > CONFIG.CREATION_MAX_FLAWED ? `Its class floor is above ${CONFIG.CREATION_MAX_FLAWED}` : '';
-      row.querySelector('.tagc')!.replaceChildren(...(on
-        ? [h('button', { class: 'hs-tg cap', style: '--tg:var(--c15)', title: 'Untag', type: 'button' }, 'Tagged')]
-        : bad ? [h('button', { class: 'hs-tg cap flaw', 'data-act': 'flaw', title: 'Take the flaw off', type: 'button' }, FLAW_MARK, ' Flawed')]
-        : [h('button', { class: 'hs-btn-text', type: 'button', disabled: st.tags.size >= maxTags(), title: st.tags.size >= maxTags() ? `${maxTags()} skills are tagged already` : 'Tag this skill' }, 'Tag'),
-          h('button', { class: 'hs-btn-text', type: 'button', 'data-act': 'flaw', disabled: !!noFlaw, title: noFlaw || `Flaw this skill: it starts at most ${CONFIG.CREATION_MAX_FLAWED} and learns slower` }, 'Flaw')]));
+      const noTag = bad ? 'A flawed skill can’t be tagged' : st.tags.size >= maxTags() ? `${maxTags()} skills are tagged already` : '';
+      const noFlaw = on ? 'A tagged skill can’t be flawed' : st.flaws.size >= maxFlaws() ? `${maxFlaws()} skills are flawed already` : f > CONFIG.CREATION_MAX_FLAWED ? `Its class floor is above ${CONFIG.CREATION_MAX_FLAWED}` : '';
+      // a set one is lit; the other one steps out of sight (it keeps its place, so nothing moves)
+      const toggle = (b: HTMLButtonElement, set: boolean, word: string, unword: string, no: string, other: boolean) => {
+        b.setAttribute('aria-pressed', String(set)); b.disabled = !set && !!no; b.classList.toggle('away', other);
+        b.title = set ? unword : no || word; b.setAttribute('aria-label', `${set ? unword : word} ${skillName(k)}`);
+      };
+      const tb = row.querySelectorAll<HTMLButtonElement>('.tg-btn');
+      toggle(tb[0], on, 'Tag', 'Untag', noTag, bad);
+      toggle(tb[1], bad, 'Flaw', 'Remove flaw', noFlaw, on);
     }
     for (const t of view) {
       const ks = (lib.trees[t.id]?.skills ?? []).filter((k) => open.includes(k));
@@ -300,25 +313,24 @@ function startScreen(api: GameApi, onStarted: () => void, startId: string, switc
         start?.story ?? cls?.story ? h('p', { class: 'story-line' }, start?.story ?? cls?.story) : null,
         start?.blessing ? h('p', {}, `You begin with ${facts.perks[0]}, in that god’s Blessed class${facts.classes.length ? `: ${facts.classes.map((c) => `${lib.classes[c].name} (${CLASS_TIERS.name(lib.classes[c].tier)})`).join(' or ')}` : ''}.`)
           : classlessStart(startId) ? h('p', {}, `You begin with no class, at level 0. ${lib.classes[defaultClass() ?? '']?.name ?? 'The default class'} is open to pick, and your levels wait until you pick a class.`)
-          : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null,
-        h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, an untagged skill starts at most ${CONFIG.CREATION_MAX_UNTAGGED}, a tagged one ${CONFIG.CREATION_MAX_TAGGED} and a flawed one ${CONFIG.CREATION_MAX_FLAWED}, and you tag ${maxTags()} skills and flaw ${maxFlaws()}.`)),
+          : facts.perks.length ? h('p', {}, `Class perk at level 1: ${facts.perks.join(', ')}.`) : null),
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); recommended(); afterKey = buildKey(); render(); } }, 'Use recommended build'),
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { snap(); reset(); afterKey = buildKey(); render(); } }, 'Reset'),
         undoBtn,
         h('button', { class: 'hs-btn-main', type: 'button', id: 'btn-go', onclick: go, disabled: !!stopped, title: stopped ? 'The story can’t start until Claude and the save database are available' : null }, 'Begin the story'))),
-    h('div', { class: 'sec' }, tilesHost, src, how),
+    h('div', { class: 'sec' }, tilesHost),
     msg, groups,
     h('div', { class: 'key', 'aria-label': 'Colour key' },
       h('span', {}, h('i', { class: 'sw', style: 'background:var(--accent)' }), 'Points you spent'),
       h('span', {}, h('i', { class: 'sw', style: 'background:var(--faint)' }), 'Class floor'),
       h('span', {}, h('i', { class: 'tick' }), '50 = average fighter'),
       h('span', {}, h('i', { class: 'tick cap' }), `Creation cap ${CONFIG.CREATION_MAX_UNTAGGED}, tagged ${CONFIG.CREATION_MAX_TAGGED}, flawed ${CONFIG.CREATION_MAX_FLAWED}`),
-      h('span', {}, h('span', { class: 'hs-tg cap', style: '--tg:var(--c15)' }, 'Tagged'), ' tagged skill'),
-      h('span', {}, h('span', { class: 'hs-tg cap flaw' }, FLAW_MARK, ' Flawed'), ' flawed skill'),
+      h('span', {}, markIcon('tagged', 'Tagged', 'mk-i tag'), 'Tagged skill'),
+      h('span', {}, markIcon('flawed', 'Flawed', 'mk-i flaw'), 'Flawed skill'),
       h('span', {}, h('i', { class: 'hs-sq', style: 'background:var(--c5)' }), 'Class tree')),
     picker.el,
-    h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
+    !gmView() ? null : h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
       `${total()} points, cap ${CONFIG.CREATION_MAX_UNTAGGED} (tagged ${CONFIG.CREATION_MAX_TAGGED}, flawed ${CONFIG.CREATION_MAX_FLAWED}), floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, ${maxFlaws()} flaws, Potential fixed at ${CONFIG.POTENTIAL}. `
       + `Figures use the starting kit this build gets. Odds use the game’s attack rules against the library’s slime.`)));
   return root;

@@ -17,7 +17,7 @@ import { ROLLED_SKILL } from '../library/skillIds';
 import { skillName } from '../library/skillNames';
 import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
-import { essencesBody, essencesSummary } from './essences';
+import { ESSENCE_ABOUT, essencesBody, essencesSummary } from './essences';
 import { chainCard, chainViews, foldAll, type ChainView } from './achievementThreads';
 import { tipOff, tipOn, boxOf, closePanel, groupedTable, playDraft, type PanelRow, h, viewSize, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile, safe } from './kit';
 import { charCard, charFocus, gearNote, invFocus, treeBars } from './charsheet';
@@ -113,7 +113,8 @@ export function characterPage(api: GameApi) {
     if (!s) return;
     // after Take it or Let it go the page redraws, and the pop-up opens again on what is left
     const again = () => { update(); if (api.state()?.player.progression?.essences?.length || api.state()?.player.progression?.essenceOffers?.length) openEss(tileOf('essences')); };
-    openPop({ title: 'Essences', tone: 'essence', cls: 'ess-pop ess-all', opener, body: essencesBody(api, s, () => { closePop(); again(); }) });
+    const pop = openPop({ title: 'Essences', tone: 'essence', cls: 'ess-pop ess-all', opener, body: essencesBody(api, s, () => { closePop(); again(); }) });
+    pop.querySelector('.dpop-head .hs-label')?.setAttribute('title', ESSENCE_ABOUT); // SD4: what an essence is, as the heading's tip
   };
   const openPerks = (opener?: HTMLElement | null) => { openFull({ label: 'Perks', cls: 'pk-full', opener, body: [perks] }); refreshPerks(); };
   // the class tree, full screen from the card's class line; choosing a class there redraws the page under it
@@ -123,9 +124,8 @@ export function characterPage(api: GameApi) {
     if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const p = s.player;
     el.replaceChildren(
-      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats. Click a skill, the body or a tile for more.'))),
-      h('div', { class: 'cs-split' }, charCard(s, p, openClasses), h('div', { class: 'cs-right' }, treeBars(p),
-        h('p', { class: 'hs-note cs-foot' }, `✦ marks a tagged skill. Bars fill at ${CONFIG.SKILL_CAP}, the training cap; a skill can go past it.`))),
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'))),
+      h('div', { class: 'cs-split' }, charCard(s, p, openClasses), h('div', { class: 'cs-right' }, treeBars(p))),
       charTiles(s, { essences: openEss, perks: openPerks, sign: (lines) => api.setSignatures(lines) }));
     if (fullOpen()?.contains(perks)) refreshPerks();
     const go = charFocus.open;
@@ -140,7 +140,6 @@ function openGearPop(s: GameState, opener?: HTMLElement | null): void {
   const on = s.player.core.inventory.filter((i) => i.equippedIn?.length);
   const name = (i: ItemInstance) => cap(safe(() => pieceName(s, i)) ?? i.itemId);
   openPop({ title: 'Gear', cls: 'gear-pop', opener, body: on.length ? [
-    h('p', { class: 'hs-note' }, 'What you hold and wear. Click a piece for its stats.'),
     h('div', { class: 'gp-list' }, on.map((i) => {
       const n = gearNote(s, i);
       return h('button', { type: 'button', class: 'gp-row', 'data-gear': i.id, onclick: () => openItemPop(s, i, opener) },
@@ -172,8 +171,9 @@ function charTiles(s: GameState, open: { essences: (b: HTMLElement) => void; per
     return b;
   };
   return h('nav', { class: 'cs-tiles', 'aria-label': 'Character sections' },
-    tile('essences', 'Essences', ess.used, ess.waiting ? h('span', { class: 'ess-waiting' }, `◆ ${ess.waiting} on offer`) : 'slots used', open.essences, false, !!ess.waiting),
-    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : `perk${owned === 1 ? '' : 's'} taken`, open.perks, true, pts > 0),
+    // SD3: a sub-line only for the exception (an offer waiting, a point to spend), never a unit that restates the number
+    tile('essences', 'Essences', ess.used, ess.waiting ? h('span', { class: 'ess-waiting' }, `◆ ${ess.waiting} on offer`) : '', open.essences, false, !!ess.waiting),
+    tile('perks', 'Perks', pts ? `✦ ${pts}` : String(owned), pts ? `point${pts === 1 ? '' : 's'} to spend` : '', open.perks, true, pts > 0),
     tile('gear', 'Gear', String(gear.length), gear.length ? gear.map((i) => cap(safe(() => pieceName(s, i)) ?? i.itemId)).join(', ') : 'nothing held or worn', (b) => openGearPop(s, b)),
     tile('personality', 'Personality', archetypeOf(pe).name, `${nerveTier(p, pe)} · ${cap(nerveLine(pe))} nerve`, (b) => openPop({ title: 'Personality', cls: 'pe-pop', opener: b, body: [personalityBlock(p), signaturesBox(p, open.sign)] })),
   );
