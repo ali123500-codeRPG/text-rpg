@@ -533,9 +533,6 @@ main.cs-page { height: var(--vh); box-sizing: border-box; grid-template-rows: au
 .cs-yield .yr { display: flex; justify-content: space-between; gap: var(--space-3); }
 .cs-yield .yr span { color: var(--muted); }
 .cs-yield .yr.refused b { color: var(--danger); }
-.cs-hpsteps { position: relative; display: block; height: 17px; font-size: 13px; color: var(--faint); }
-.cs-hpsteps span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
-.cs-hpsteps .now { color: var(--text); font-weight: 700; }
 .cs-parts { display: grid; gap: 6px; padding: 8px 0 4px; border-block: 1px solid var(--border); }
 .cs-part { display: grid; grid-template-columns: 80px minmax(0, 1fr) 70px; gap: 8px; align-items: center; font-size: 13px; }
 .cs-part .cs-bar b { background: var(--ok); }
@@ -1586,6 +1583,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .dk-act:disabled { opacity: .5; cursor: default; background: none; }
 .dk-act .t { font: 600 14px var(--font-round); }
 .dk-act .n { font-size: 13px; color: var(--faint); }
+.dk-mk { display: inline-block; width: 14px; height: 14px; margin-left: 6px; vertical-align: -2px; color: var(--faint); }
+.dk-free { color: var(--accent); }
+.dk-mk svg { width: 100%; height: 100%; display: block; }
 .dk-act.hot .t::after { content: " •"; color: var(--warn); }
 /* A3: a move with a limit stays in its group, dimmed; its mark says why (the words are its tip): a ring filled by the share
    of the wait gone, or a hollow circle with a slash once used this fight. One pulse the turn it is ready again. */

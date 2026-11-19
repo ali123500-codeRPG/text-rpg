@@ -13,7 +13,8 @@ import { h, safe } from './kit';
 import { closePop, openPop } from './pop';
 import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
-import { instanceIcon } from './itemIcons';
+import { ICONS, instanceIcon } from './itemIcons';
+import { AGAINST_NATURE } from './ideaLeans';
 import type { MinimapPoint } from './minimap';
 
 export type SayMode = { action: DeckAction; choice: Choice; to: string };
@@ -136,8 +137,8 @@ export function deckView(api: GameApi, o: {
     if (sayMode && !groups.some((g) => g.actions.some((a) => a.kind === sayMode!.action.kind))) setSay(null);
     const kids = groups.map((g) => h('div', { class: `dk-col g-${g.group}` }, h('p', { class: 'dk-h' }, g.name),
       ...g.actions.map((a, i) => h('button', { type: 'button', class: 'dk-act' + (a.hot ? ' hot' : '') + (a.limit ? ' dk-lim' : ''), 'data-kind': a.kind, 'data-i': String(i),
-        ...(a.limit ? { 'aria-disabled': 'true', title: a.limit.tip, 'aria-label': `${a.label}, ${a.limit.tip}` } : {}) },
-        h('span', { class: 't' }, limitMark(a), a.label), a.note ? h('span', { class: 'n' }, a.note) : null))));
+        ...(a.limit ? { 'aria-disabled': 'true', 'aria-label': `${a.label}, ${a.limit.tip}` } : {}), title: [a.limit?.tip, a.time].filter(Boolean).join(' · ') },
+        h('span', { class: 't' }, limitMark(a), a.label, freeMark(a), natureMark(a)), a.note ? h('span', { class: 'n' }, a.note) : null))));
     const now = kids.map((k) => k.outerHTML).join('');
     if (now === html && !force) return;
     html = now;
@@ -177,6 +178,22 @@ export function deckView(api: GameApi, o: {
 
 const keyOf = (a: DeckAction) => `${a.kind}|${a.label}`;
 /** A3: a used move's hollow mark with a slash; a waiting one's ring, filled by the share of the wait gone */
+/** a lightning bolt after the name of a free action (beside your action, not instead of it): only free ones are marked */
+function freeMark(a: DeckAction): HTMLElement | null {
+  if (!a.free) return null;
+  const el = h('span', { class: 'dk-mk dk-free', role: 'img', 'aria-label': 'Free' });
+  el.innerHTML = ICONS.free_action;
+  return el;
+}
+
+/** a cracked mask after the name of an action the character is pulled away from; its name says so on hover and to a screen reader */
+function natureMark(a: DeckAction): HTMLElement | null {
+  if (!a.against) return null;
+  const el = h('span', { class: 'dk-mk', role: 'img', title: AGAINST_NATURE, 'aria-label': AGAINST_NATURE });
+  el.innerHTML = ICONS.against_nature;
+  return el;
+}
+
 function limitMark(a: DeckAction): HTMLElement | null {
   if (!a.limit) return null;
   return 'used' in a.limit ? h('span', { class: 'dk-mark used', 'aria-hidden': 'true' })

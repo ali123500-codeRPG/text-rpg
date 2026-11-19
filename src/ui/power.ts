@@ -54,7 +54,7 @@ function line(l: PowerLine, depth: number): HTMLElement {
 export function powerFigure(s: GameState, p: Actor): HTMLElement {
   const { total } = powerLines(s, p);
   const btn: HTMLElement = h('button', { type: 'button', class: 'cs-power', 'aria-haspopup': 'dialog', title: 'What your power is made of',
-    onclick: () => openPowerPop(s, p, btn) }, h('b', {}, String(r1(total))), h('span', {}, 'Power · click for its parts'));
+    onclick: () => openPowerPop(s, p, btn) }, h('b', {}, String(r1(total))), h('span', {}, 'Power'));
   return btn;
 }
 

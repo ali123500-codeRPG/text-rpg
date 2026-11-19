@@ -43,7 +43,7 @@ export const SKILL_PARTS: Record<string, string> = {
 
 /** each skill's part at each All-X step: All-50 parts above; none at 100 or 150 yet */
 export const STEP_PARTS: Record<number, Record<string, string>> = {
-  50: SKILL_PARTS, 100: {},
+  50: SKILL_PARTS, 100: { [SK.resolve]: PK.mind_over_body },
   150: { [SK.eyesight]: PK.one_sense, [SK.earshot]: PK.one_sense }, // one part shared by both senses: either at 150 brings it
 };
 
@@ -138,6 +138,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     rules: { kind: 'Always on', trigger: 'The owner makes a Resolve roll (a morale roll, or an answer to an aura).', conditions: ['The Fortitude tree is open to the owner.'],
       effect: `Endurance augments Resolve: the roll adds the owner's true Endurance × ${CONFIG.GRIT_SHARE} (CONFIG.GRIT_SHARE, placeholder) × its tier, the way a skill augment does, and Endurance can learn from the roll the same way.`, lasts: 'Always.' },
     augments: [{ from: SK.endurance, skill: SK.resolve, share: CONFIG.GRIT_SHARE }] }),
+  part(TR.fortitude, { id: PK.mind_over_body, ref: 'T4-100r', name: 'Mind Over Body', effect: 'health',
+    story: 'A hard mind makes a hard body. A quarter of your Resolve adds to your health the way Endurance does, and whenever Endurance learns, Resolve learns too.',
+    rules: { kind: 'Always on', trigger: 'Always: max health, and every time Endurance is marked for training.', conditions: ['Resolve\'s All-100 part: granted with the Fortitude All-100 when Resolve is at 100.'],
+      effect: `Max health adds Resolve (raw) × ${CONFIG.MIND_OVER_BODY_SHARE} (CONFIG.MIND_OVER_BODY_SHARE, placeholder) × HP_PER_END, before the body's and prefix's multipliers, the same way Endurance adds. Whenever Endurance is marked for training, Resolve is marked too.`, lasts: 'Always.' } }),
   part(TR.fortitude, { id: PK.second_breath, ref: 'SS8', name: 'Second Breath', effect: 'health',
     story: 'Just when your lungs give out, they find more. Once a fight, when your breath runs out, half of it comes back at once.',
     rules: { kind: 'Automatic', trigger: 'A strain cost would empty the owner\'s short-term line.', conditions: ['Once per engagement.', 'The owner is in an engagement.'],
@@ -180,10 +184,10 @@ export const ALL_PARTS: PerkWriteup[] = [
       effect: 'Tier shift +1 on that roll, so it counts as a Success. Only Failure or worse is heard.', lasts: 'That roll.',
       open: 'Renamed from the doc\'s "Light Feet", which is already a 40 perk.' } }),
   part(TR.stealth, { id: PK.misdirection, ref: 'T6e', name: 'Misdirection', effect: 'stealth',
-    story: '"Look over there!" and you are gone. A quarter of your Falsehood adds to every Vanishing roll, and both skills learn from it.',
+    story: 'A glance over their shoulder, a pointed finger, and you are gone. A quarter of your Guile adds to every Vanishing roll, and both skills learn from it.',
     rules: { kind: 'Always on', trigger: 'The owner makes a Vanishing roll.', conditions: ['The Trickery tree is open to the owner.'],
-      effect: `Falsehood augments Vanishing: the roll adds the owner's true Falsehood × ${CONFIG.MISDIRECTION_SHARE} (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Falsehood can learn from the roll the same way.`, lasts: 'Always.' },
-    augments: [{ from: SK.lying, skill: SK.vanishing, share: CONFIG.MISDIRECTION_SHARE }] }),
+      effect: `Guile augments Vanishing: the roll adds the owner's true Guile × ${CONFIG.MISDIRECTION_SHARE} (CONFIG.MISDIRECTION_SHARE, placeholder) × its tier, the way a skill augment does, and Guile can learn from the roll the same way.`, lasts: 'Always.' },
+    augments: [{ from: SK.guile, skill: SK.vanishing, share: CONFIG.MISDIRECTION_SHARE }] }),
   // Fade Back is parked (D-232): no skill carries it in SKILL_PARTS and it is not built, so it is never granted
   part(TR.stealth, { id: PK.fade_back, ref: 'T6f', name: 'Fade Back', effect: 'stealth',
     story: 'The blow passes where you were, and so do you. Once a fight, a clean dodge lets you vanish on the spot.',

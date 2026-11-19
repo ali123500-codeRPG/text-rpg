@@ -79,6 +79,25 @@ describe('153 Parry', () => {
     expect(ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50])).defenseType).toBe('dodge');
   });
 
+  it('Deflect (Parry 20, LG1): with a melee weapon in hand a shot can be parried, never answered with a strike back', () => {
+    const s = setup();
+    s.player.core.standingDefense = 'parry';
+    const p = npc(s, 'patron_1');
+    hold(p, [IT.shortbow]);
+    s.player.zone = s.zones.find((z) => waysOut(s, z.id).length && z.id !== p.zone && waysOut(s, p.zone).some((l) => l.to === z.id))?.id ?? s.player.zone;
+    hold(s.player, [IT.arming_sword]);
+    const shoot = (d: number) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false }, s, forcedRng([60, d, 50, 50]));
+    expect(shoot(100).defenseType).toBe('dodge'); // without the perk: no parry against a missile
+    give(s.player, PK.deflect);
+    for (const d of DICE) {
+      const r = shoot(d);
+      expect(r.defenseType).toBe('parry');
+      expect(r.strikeBack).toBeFalsy();
+    }
+    hold(s.player, []); // no weapon in hand: nothing to deflect with
+    expect(shoot(100).defenseType).toBe('dodge');
+  });
+
   it('a heavy weapon is −1 gap against a parry', () => {
     const s = setup();
     const p = npc(s, 'patron_1');
@@ -145,6 +164,33 @@ describe('153 Parry', () => {
     expect(strikeBackLimit(npc(setup(), 'patron_1'))).toBe(CONFIG.STRIKE_BACK_LIMIT);
     expect(strikeBackLimit(guard.p)).toBe(CONFIG.CEASELESS_GUARD_LIMIT);
     expect(strikeBackLimit(both.p)).toBe(Infinity);
+  });
+
+  it('Sharp Answer (Parry 40, LG2): the strike back after a parry, and only it, deals ×SHARP_ANSWER_MULT damage', () => {
+    const s = setup();
+    const p = npc(s, 'patron_1');
+    hold(p, [IT.arming_sword]);
+    p.core.standingDefense = 'parry';
+    hold(s.player, []);
+    const marked: boolean[] = [];
+    const real = ruleset.attack;
+    vi.spyOn(ruleset, 'attack').mockImplementation((req, st) => {
+      const r = real(req, st, forcedRng([50, 50, 50, 50]));
+      if (req.attackerId === 'patron_1') marked.push(!!req.context?.strikeBack);
+      return req.targetId === 'patron_1' ? { ...r, defenseType: 'parry', gap: 3, outcome: 'parried', multiplier: 0, damage: 0, location: null, strikeBack: true } as AttackResult
+        : { ...r, outcome: 'missed', multiplier: 0, damage: 0, location: null } as AttackResult;
+    });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.unarmed_strike } }) });
+    vi.restoreAllMocks();
+    expect(marked.length).toBeGreaterThan(0);
+    expect(marked.every(Boolean)).toBe(true); // every blow back: the engine tells the attack it is a strike back
+    s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
+    const blow = (back: boolean) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'patron_1_h0', targetPart: null, aimed: false, ...(back ? { context: { strikeBack: true } } : {}) }, s, forcedRng([95, 5, 50, 50])).damage;
+    const plain = blow(true);
+    expect(plain).toBeGreaterThan(0);
+    give(p, PK.sharp_answer);
+    expect(blow(true)).toBeCloseTo(plain * CONFIG.SHARP_ANSWER_MULT, 6);
+    expect(blow(false)).toBeCloseTo(plain, 6); // any other blow: unchanged
   });
 
   it('Every Answer (Riposte 20) counts the limit per attacker; parry strike-backs and Counters count apart (D-337)', () => {

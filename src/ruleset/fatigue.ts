@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { SK } from '../library/skillIds';
 import { getLibrary } from '../library';
 import { PK } from '../library/perkIds';
-import { hasPerk } from './perks';
+import { hasPerk, reservesMult } from './perks';
 import { FATIGUE_LEVELS, type FatigueLevel } from '../scales';
 import { skillOpen } from './access';
 import { stackCost, wornPieces } from './worn';
@@ -18,7 +18,7 @@ export function staminaSkill(a: Actor): number {
   return s && !s.dormant && skillOpen(a, SK.stamina) ? s.raw : 0;
 }
 /** FT2: the bar's size (both layers) */
-export const barMax = (a: Actor): number => CONFIG.STAMINA_BASE + CONFIG.STAMINA_PER_POINT * staminaSkill(a);
+export const barMax = (a: Actor): number => CONFIG.STAMINA_BASE + CONFIG.STAMINA_PER_POINT * reservesMult(a) * staminaSkill(a); // LG8 Deep Reserves
 export const fatigueOf = (a: Actor): { debt: number; line: number } => a.core.condition.fatigue ?? { debt: 0, line: 0 };
 /** share of the long-term bar used, in % */
 export const debtPct = (a: Actor): number => (100 * fatigueOf(a).debt) / barMax(a);
