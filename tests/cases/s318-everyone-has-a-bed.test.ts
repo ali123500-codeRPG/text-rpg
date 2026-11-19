@@ -16,7 +16,7 @@ import { fatigueOf } from '../../src/ruleset/fatigue';
 
 const act = (type: ParserActionType): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target: null, item: null, targetPart: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target: null, item: null, targetPart: null, mode: null, approach: '' },
 });
 const turn = (s: GameState) => { s.turn += 1; return resolveTurn(s, { intent: act('observe'), aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 

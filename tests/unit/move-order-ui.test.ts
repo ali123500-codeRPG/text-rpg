@@ -31,7 +31,7 @@ describe('AT49 the move order on the play screen', () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     const s = g.game.state()!;
     s.player.walking = { toZone: 'street_square' };
-    await g.turn(intent({ action: { type: 'wait', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } }), 'I stop and wait here');
+    await g.turn(intent({ action: { type: 'wait', skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' } }), 'I stop and wait here');
     expect(s.player.zone).toBe('tav_common');
     expect(buildPlayerView(s).player.walking).toBeUndefined();
   });

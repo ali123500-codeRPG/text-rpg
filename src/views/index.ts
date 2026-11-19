@@ -916,7 +916,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   return {
     style: { tone: state.settings.tone || CONFIG.STYLE.tone, length: lengthText(state, 'normal') }, // the turn's own band is set by narrationBand
     time: timeView(state),
-    ...(a ? { approach: a.approach, stance: a.stance } : {}),
+    ...(a ? { approach: a.approach } : {}),
     events: out,
     player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), fatigue: fatigueWord(p), ...steadyOf(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(state, p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)

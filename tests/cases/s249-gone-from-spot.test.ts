@@ -17,7 +17,7 @@ it('words to someone gone from the spot where they were last seen: the view and 
   await g.turn(intent());
   expect(g.state.player.journal?.lastKnown?.patron_1).toBe('tav_common');
   place(g.state, 'patron_1', 'street_square'); // he slips out while nobody looks
-  await g.turn(intent({ action: { type: 'talk', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, spoken: 'Wim, give it back.', addressees: ['patron_1'] }));
+  await g.turn(intent({ action: { type: 'talk', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' }, spoken: 'Wim, give it back.', addressees: ['patron_1'] }));
   const parse = g.claude.callsFor('parser').at(-1)!;
   const pv = viewOf(parse as never, 'PLAYER_VIEW');
   expect(pv.lastSeen.find((x: { id: string }) => x.id === 'patron_1')?.gone).toBe(true);

@@ -21,7 +21,7 @@ import { setTitleLight } from '../../src/plan/draw';
 
 const act = (type: ParserActionType, target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: '', target, targetPart: null, item: null, mode: null, approach: '' },
 });
 const turn = (s: GameState, intent: Intent) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const zone = (s: GameState, id: string) => s.zones.find((z) => z.id === id)!;

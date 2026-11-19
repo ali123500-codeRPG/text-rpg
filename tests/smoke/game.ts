@@ -8,7 +8,7 @@ import { createDirector } from '../../src/agents/director';
 import { memoryStore } from '../../src/save/store';
 
 const intent = (p: Partial<Intent>): Intent => ({ move: null, action: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...p });
-const observe = { type: 'observe' as const, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' as const };
+const observe = { type: 'observe' as const, skill: '', target: null, targetPart: null, item: null, mode: null, approach: '' };
 
 function parse(req: ClaudeRequest): Intent {
   const text = req.input.at(-1)?.content ?? '';

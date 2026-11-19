@@ -9,7 +9,7 @@ describe('the strike card', () => {
   it('whole turn: the player attacks someone next to them and the line carries the strike', async () => {
     const g = wholeTurn({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
     place(g.game.state()!, 'patron_1', 'tav_common');
-    const atk = { type: 'attack' as const, skill: SK.melee_medium, target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' as const };
+    const atk = { type: 'attack' as const, skill: SK.melee_medium, target: 'patron_1', targetPart: null, item: null, mode: null, approach: '' };
     await g.turn(intent({ action: atk }), 'I hit the patron');
     const line = g.game.lines().filter((l) => l.kind === 'narration').at(-1)!;
     expect(line.check?.kind).toBe('attack');

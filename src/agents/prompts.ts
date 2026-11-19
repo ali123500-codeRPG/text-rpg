@@ -9,7 +9,7 @@ import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scenario/validate';
 import { tierName } from '../ruleset';
-import { ATTACK_STANCES, GEAR_OPS, GRADED_ACTS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, OFFERED_GOAL_KINDS, ORDER_TYPES, PARSER_ACTIONS, PLAN_ENDINGS, PRONOUNS } from '../types';
+import { GEAR_OPS, GRADED_ACTS, GRADES, IMPROVISED_BASES, NPC_ACTIONS, OFFERED_GOAL_KINDS, ORDER_TYPES, PARSER_ACTIONS, PLAN_ENDINGS, PRONOUNS } from '../types';
 import { CHASE_RANGES, FRAGILITY, HEALTH_LEVELS, LIFE_STAGES, TALENTS, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 import { WAY_KINDS } from '../plan/draw';
 import { WORLD_LORE } from './worldLore';
@@ -153,7 +153,7 @@ const PLAN_UPDATE =
 export const PARSER_SHAPE = `{"move":{"toZone":zone_id,"after"?:true,"spot"?:{"near":actor_id|zone_id}|{"awayFrom":actor_id|zone_id}|{"side":compass_word},"jump"?:true,"behind"?:true}|null,
  "action":{"type":${PARSER_ACTIONS.map((t) => `"${t}"`).join('|')},
    "skill":skill_id,"target":actor_id|zone_id|item_id|furniture_id|null,"targetPart":part_id|null,"aimed"?:true,"item":item_instance_id|ware_id|null,"qty":number|null,"for":actor_id|null,"mode":mode_id|null,
-   "approach":short phrase,"stance":${ATTACK_STANCES.map((t) => `"${t}"`).join('|')},
+   "approach":short phrase,
    "improvised":{"base":${IMPROVISED_BASES.map((t) => `"${t}"`).join('|')},"name":short phrase}|null,"demand"?:"yield"|null,"noSkillFits"?:true,"grade"?:${GRADES.map((t) => `"${t}"`).join('|')},"fall"?:metres}|null,
  "perkMove":{"perk":perk_id,"target":actor_id|null}|null,"warn"?:actor_id|null,
  "way"?:{"toZone":zone_id,"op":${WAY_OPS.map((t) => `"${t}"`).join('|')}}|null,
