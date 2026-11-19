@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-319
+
+**What was wrong:** In the Play deck, the action that takes an essence from someone Down was still called "Pull the Thread", the perk's name before it was renamed Extract Essence. The deck had the name typed in by hand, so the rename never reached it. Sixteen other places (mostly the perk names in roll breakdowns) were typed by hand the same way; one of them, Hunter's Mark, was spelled with a different apostrophe.
+
+**What was done:** Every place in the code that shows a perk's name now reads it from the perk's own library row, so renaming a perk changes it everywhere at once. A guard test fails if anyone types a perk's name into the code again.
+
+**Fixed by:** [PR #1082](https://github.com/ali123500-codeRPG/text-rpg/pull/1082)
+
 ## BG-311
 
 **What was wrong:** A new story on a brand-new world opened on the plain fallback stage instead of the Weaver's planned opening. The story start first asks the World builder to draw the region, then asks the Weaver for the opening plan, and both shared one 2-minute limit, so a slow region call left the Weaver too little time.
