@@ -269,7 +269,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       const land = landRef(l.to);
       if (land !== undefined && land !== l.to) return { to: land, label: l.label, ...kind };
       const fr = frontierMap.get(l.to) ?? (!isZoneRef(l.to) ? l.to : undefined);
-      return fr !== undefined ? { to: fr, label: l.label, ...kind, frontier: true as const } : { to: zoneRef(l.to), label: l.label, ...kind, ...(barrier ? { barrier: barrier.id } : {}) };
+      return fr !== undefined ? { to: fr, label: l.label, ...kind, frontier: true as const } : { to: zoneRef(l.to), label: l.label, ...kind, ...(barrier ? { barrier: barrier.id } : {}), ...(l.doorless ? { doorless: true as const } : {}) };
     });
     const k = getLibrary().zoneKinds?.[z.kind ?? '']; // the validator checked it (a road has none)
     // WZ1: a road along a road of the land takes its real length and its danger from it, and is drawn along its line (PZ9)

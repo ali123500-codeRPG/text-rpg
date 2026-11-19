@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-312
+
+**What was wrong:** Standing just inside the tavern, you couldn't make out the words of someone 0.7 m away just outside the front doorway unless you had Keen Ear. That doorway had no door in it, but when zones became titles it kept the old zone links' fixed "you can't see through this" flag. So sight and sound treated it as a door that was always shut (30 dB lost, no sight), while people walked through it freely and nobody could ever open it.
+
+**What was done:** Every doorway the game draws now holds a real wooden door, shut and unlocked, unless its way is marked doorless (an open doorway into a hall, or a curtain). The door opens and shuts with the open and shut actions, and sight and sound follow it: shut it muffles a voice and hides the far side, open it doesn't. An empty doorway is seen and heard through like a gap. The fixed flag is gone. Saves move to schema 11: a doorway that the old flag kept shut gets its door, so an existing world plays as before until someone opens one.
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-311
 
 **What was wrong:** A new story on a brand-new world opened on the plain fallback stage instead of the Weaver's planned opening. The story start first asks the World builder to draw the region, then asks the Weaver for the opening plan, and both shared one 2-minute limit, so a slow region call left the Weaver too little time.

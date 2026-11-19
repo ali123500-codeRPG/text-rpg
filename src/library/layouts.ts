@@ -1,6 +1,7 @@
 // CO7/CO17, PZ14 a: prebuilt layouts, small floor plans: a common building's titles, sizes, walls and ways, ready made so
 // the Weaver only picks one by id (and may rename its titles). Way labels carry compass words, so code places the titles
-// (src/scenario/geometry.ts); a way's kind (up, down) sets floors. A building type can have several layouts; add a row.
+// (src/scenario/geometry.ts); a way's kind (up, down) sets floors; a 'door' way holds a plain door unless marked 'doorless'
+// (BG-312: a curtain or an open doorway). A building type can have several layouts; add a row.
 import type { LayoutDef } from '../types';
 import { FU, LY, WK, ZK } from './tableIds';
 import type { PlanFurniture } from '../types';
@@ -39,10 +40,10 @@ export const LAYOUTS: Record<string, LayoutDef> = Object.fromEntries(([
   { id: LY.cottage, name: 'Cottage', building: 'house', entry: 'main', zones: [
     { key: 'main', kind: ZK.room, name: 'main room', look: 'A hearth, a table and a bench in one low room.', size: 'small', walls: { s: WK.glazed },
       furniture: [f(FU.hearth, 'hearth', 'n'), f(FU.table, 'table'), f(FU.bench, 'bench', 'w')],
-      ways: [['bed', 'the curtain, north', 'door'], ['garden', 'the back door, east', 'door']] },
+      ways: [['bed', 'the curtain, north', 'door', 'doorless'], ['garden', 'the back door, east', 'door']] },
     { key: 'bed', kind: ZK.room, name: 'sleeping nook', look: 'A straw bed and a chest behind a curtain.', size: 'cramped',
       furniture: [f(FU.bed, 'straw bed', 'n')],
-      ways: [['main', 'the curtain, south', 'door']] },
+      ways: [['main', 'the curtain, south', 'door', 'doorless']] },
     { key: 'garden', kind: ZK.yard, name: 'garden', look: 'Rows of cabbages and beans behind a wattle fence.', size: 'small', walls: { n: WK.fence, e: WK.fence, s: WK.fence },
       furniture: [],
       ways: [['main', 'the back door, west', 'door']] },

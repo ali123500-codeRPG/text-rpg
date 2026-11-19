@@ -221,7 +221,7 @@ export function deck(ctx: DeckCtx): { group: DeckGroup; name: string; actions: D
     };
     const doors = pv.zone.links.filter((l) => wayOps(l).length);
     if (doors.length) add('way', g, 'Door, gate or bar', [{ key: 'target', title: 'Which way?', picks: () => doors.map((l) => ({ id: l.to, label: cap(l.label), note: wayNote(l) })) },
-      { key: 'item', title: 'Do what?', picks: (c) => wayOps(doors.find((l) => l.to === c.target)!).map((op) => ({ id: op, label: cap(op) })) }],
+      { key: 'item', title: 'Do what?', picks: (c) => { const d = doors.find((l) => l.to === c.target); return d ? wayOps(d).map((op) => ({ id: op, label: cap(op) })) : []; } }],
       (c) => order(`${cap(c.item!)} ${doors.find((l) => l.to === c.target)?.label ?? 'the way'}`, { way: { toZone: c.target!, op: c.item as WayOp } }), { note: 'takes your move' });
   }
 

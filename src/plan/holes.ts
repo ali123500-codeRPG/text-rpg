@@ -72,7 +72,7 @@ export function cutHole(state: GameState, w: Wall, at: Pt, from: Zone, crack: bo
   const o: Opening = {
     id, placeId: w.placeId, kind: OP.gap, at: { ...at }, floor: w.floor, wall: w.id, widthM: CONFIG.BREAK_HOLE_M[0], heightM,
     joins: [from.id, behind?.id ?? `${id}.beyond`], labels: [behind ? `a hole broken through to ${behind.name}` : 'a hole broken through the wall', `a hole broken through to ${from.name}`],
-    seeThrough: true, ...(behind ? {} : { frontier: true as const }), ...(crack ? { crack: true as const } : {}),
+    ...(behind ? {} : { frontier: true as const }), ...(crack ? { crack: true as const } : {}),
   };
   state.openings.push(o);
   return o;

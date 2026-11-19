@@ -206,6 +206,7 @@ export function putBarrier(state: GameState, a: string, b: string, rec: Barrier)
   (state.barriers ??= {})[rec.id] = rec;
   const o = state.openings.find((x) => (x.joins[0] === a && x.joins[1] === b) || (x.joins[0] === b && x.joins[1] === a));
   if (!o) throw new Error(`no way between ${a} and ${b}`);
+  if (o.barrier && o.barrier !== rec.id) delete state.barriers[o.barrier]; // BG-312: it takes the plain door's place
   o.barrier = rec.id;
   fitBarrier(state, o);
   return rec;
