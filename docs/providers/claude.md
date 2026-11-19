@@ -82,6 +82,20 @@ Links to `claude.ai/artifact/...` open only for the owner and for Claude session
   another account never sees it.
 - **Other agents:** cannot press it. Say in the PR that the pages need a republish; the owner presses the button.
 
+## Claude on another account
+
+The owner also works from a second Claude account. A session there cannot save to the Questions hub above or reach
+its database, and cannot publish the game page or the library viewer. That is expected, not a bug.
+
+- **Its own Questions hub:** https://claude.ai/artifact/Ldhfi7SenB4mkRHXyiwCYu, published 19/11/2026 as
+  `tools/questions-hub/README.md` "Publishing a new hub" says. On that account it takes the place of the hub link in
+  "Questions" above; everything else there applies. Never pass the other account's hub link to a publish.
+- The publish refuses a page that does not begin with `<!DOCTYPE html>`, and `hub.html` does not. This hub was
+  published with that one line added in front. It puts the page in standards mode: about 5 px more space around
+  each question's kind pill, nothing else.
+- **Merges from that account:** say in the PR and the report which pages need a republish; the owner presses the
+  game's Republish button.
+
 ## Bug numbers
 
 - Claude threads take the next BG number from a counter in the game page's database (`bugs_meta/counter`), with a

@@ -3,6 +3,8 @@
 Dated changes to the working rules and the skills only: `AGENTS.md`, `docs/instructions.md`, `docs/providers/` and
 `.agents/skills/`. Newest first. Game changes are in the merged PRs, `docs/build-spec.md` and `docs/bug-fix-log.md`.
 
+- 19/11/2026: `docs/providers/claude.md`: new section "Claude on another account", with the second account's own
+  Questions hub link.
 - 19/11/2026: Added Codex provider notes covering the private questionnaire, verified setup and Claude handoffs.
 - 19/11/2026: `docs/providers/claude.md`: new section "Republish button". The game's rail button starts a saved
   task that republishes the game page and the library viewer from `main`; the viewer's "refresh is manual" line and
