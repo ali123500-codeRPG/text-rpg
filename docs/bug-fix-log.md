@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A search now covers its circle around the searcher in a clear line, whatever title anyone stands in: a wall stops it, a title's edge doesn't. Items on the ground are found the same way. SE20's "own area" rule is dropped. (Finding people by sound is being worked out separately.)
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1089](https://github.com/ali123500-codeRPG/text-rpg/pull/1089)
 
 ## BG-318
 
