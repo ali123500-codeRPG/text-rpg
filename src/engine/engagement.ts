@@ -10,7 +10,8 @@ import { M_EPS, distM } from './position';
 import { calm } from './heal';
 import { CP } from '../library/tableIds';
 import { yieldAllTaken } from './yield';
-import { secondsSince } from '../time';
+import { dayOf, now as clockNow, secondsSince } from '../time';
+import { keepHaggles } from './trade';
 import { engagementEndS } from '../ruleset/actionTime';
 import { notePower } from './xp';
 
@@ -120,7 +121,9 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
     state.yielding!.ended = true;
     for (const id of state.yielding!.accepted) { const b = actorById(state, id)?.mind?.knowledge?.[state.player.id]; if (b && atLeast(b.status, 'hunting')) b.status = 'tracking'; }
   }
+  const today = dayOf(clockNow(state));
   for (const a of allActors(state)) {
+    let ended = false;
     if (brk) delete a.auraChecks; // a scenario break ends every engagement, and the auras check afresh
     const kinds = yielded && a === state.player ? undefined : now.get(a.id);
     const e = a.engagement;
@@ -135,7 +138,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
       notePower(state, a); // GR44: power is taken when it joins a fight
     } else if (e && (brk || (yielded && a === state.player) || secondsSince(state, e.last) >= engagementEndS())) {
       delete a.engagement;
-      delete a.haggle; // PY6: haggled prices last until the engagement ends
+      ended = true; // PY6: a bad haggle lasts until the engagement ends (keepHaggles below)
       delete a.pressure; // OQ-29: Shaken and Swayed last until the engagement ends
       delete a.speechTries; // NT3: repeat tries count within one engagement
       delete a.auraChecks; // I4: each aura checks once per engagement
@@ -143,6 +146,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
       logCode(state, 'engagement_ended', { actorId: a.id, start: e.start, kinds: e.kinds });
       if (a === state.player) playerEnded = true;
     }
+    keepHaggles(a, today, ended); // LG13 b: a won haggle holds for the rest of the day
   }
   return playerEnded;
 }
