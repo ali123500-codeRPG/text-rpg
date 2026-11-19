@@ -7,6 +7,22 @@ fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 we
 words it, or, where the log only names a PR, that PR's title.
 
 <<<<<<< HEAD
+## BG-318
+
+**What was wrong:** The Journal's Places section said "The Map page draws their zones", but the map stopped being a page when it became a pop-up from the Play header, so the note sent the player looking for something that doesn't exist.
+
+**What was done:** The note is gone (the show-dont-tell pass cut every Journal section note), and a test now fails if any player-facing text in the game's screens mentions a "Map page" or "Map tab".
+
+**Fixed by:** [PR #1085](https://github.com/ali123500-codeRPG/text-rpg/pull/1085)
+
+## BG-317
+
+**What was wrong:** In the library viewer, table cells could break a word anywhere, so a narrow column split words mid-word ("Mundan" / "e"). The side rail also borrowed the game rail's capitals and wide letter spacing, so long names (THREADBOUND, COMPOSURE, Achievements) ran past its edge.
+
+**What was done:** Table cells now break only between words, so a column is always at least as wide as its longest word. The library rail uses names in sentence case without the extra spacing, on a slightly wider rail (96 px). A smoke test checks both at 1440 px wide.
+
+**Fixed by:** [PR #1085](https://github.com/ali123500-codeRPG/text-rpg/pull/1085)
+
 ## BG-312
 
 **What was wrong:** Standing just inside the tavern, you couldn't make out the words of someone 0.7 m away just outside the front doorway unless you had Keen Ear. That doorway had no door in it, but when zones became titles it kept the old zone links' fixed "you can't see through this" flag. So sight and sound treated it as a door that was always shut (30 dB lost, no sight), while people walked through it freely and nobody could ever open it.
