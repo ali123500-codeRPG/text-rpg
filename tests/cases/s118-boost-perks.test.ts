@@ -49,7 +49,7 @@ describe('118 40/80/120 perks', () => {
       expect(d.functionBoost).toBe(1);
       expect(d.built).toBe(true);
       expect(d.rules?.conditions).toEqual([]);
-      expect(!!d.numbers !== !!d.trueSkillTo).toBe(true); // exactly one more number
+      expect([d.numbers, d.trueSkillTo, d.ownRule].filter(Boolean)).toHaveLength(1); // exactly one more number
     }
   });
   it('true skill: +5 in the skill, +1 in it and in skills sharing its function, and the synergic pick', () => {

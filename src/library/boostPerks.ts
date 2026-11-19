@@ -1,7 +1,7 @@
 // 40 perks: the 40 milestone of each skill ("40 milestone perks: options" F1–F5, P1–P19). Every 40
 // perk gives +5 true skill in its own skill, +1 true skill in its own skill and every other skill sharing one of its
 // groups (docs/skill-tags.md; the group, not the function: LF1), so +6 in its own skill, and ONE more number: a number of the skill itself (`numbers`), or +10 true skill spent on
-// skills that work well with it (`trueSkillTo`). 40/80/120 perks have no conditions. The 20/60/100/140 perks carry the
+// skills that work well with it (`trueSkillTo`), or a config number code reads by the perk's id (`ownRule`). 40/80/120 perks have no conditions. The 20/60/100/140 perks carry the
 // rules changes. Names are placeholders. Story and Rules are written from the same row, so they always match.
 import type { AttackKind, BoostNumbers, PerkEffect, PerkWriteup, SkillGroup } from '../types';
 import { GROUP_NAMES, groupName } from './functionNames';
@@ -18,7 +18,7 @@ type Row = {
   milestone?: 40 | 80 | 120;
   /** display name of the skill, and its group key: every skill of that group, itself included, gets +1 */
   group: SkillGroup;
-  extra: { story: string; rule: string; numbers?: BoostNumbers; numbersFor?: string[]; numbersForAttack?: AttackKind; trueSkillTo?: Record<string, number> };
+  extra: { story: string; rule: string; numbers?: BoostNumbers; numbersFor?: string[]; numbersForAttack?: AttackKind; trueSkillTo?: Record<string, number>; ownRule?: string };
 };
 /** what "a melee attack" and "a ranged attack" cover, for perks whose numbers work with one kind of attack (numbersForAttack) */
 const MELEE_ATTACK = 'melee attack (a weapon, unarmed or improvised blow, or a natural attack such as a bite)';
@@ -61,31 +61,31 @@ const ROWS: Row[] = [
     extra: { story: 'You breathe deeper than other people: your short-term stamina is half again as large.', rule: `The owner's short-term line is ×${CONFIG.DEEP_LUNGS_LINE} its size (CONFIG.DEEP_LUNGS_LINE, placeholder), before the fatigue level bands shrink it.` } },
   { id: PK.bottomless, ref: 'SS6', skill: SK.stamina, group: GR.stamina, name: 'Bottomless', effect: 'health', milestone: 120,
     extra: { story: 'Effort that would empty anyone else barely touches you: every strain you pay is halved.', rule: `Every strain cost the owner pays is ×${CONFIG.BOTTOMLESS_STRAIN} (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.` } },
-  // Missing 40 perks (LG4-LG19). Ali picked a +10 for some; the rest change one of the skill's own rule numbers (placeholders)
+  // Missing 40 perks (LG4-LG19): some give +10 to a related skill; the rest change one of the skill's own rule numbers (placeholders)
   { id: PK.guarded_answer, ref: 'LG4', skill: SK.riposte, group: GR.defense, name: 'Guarded Answer', effect: 'defense',
     extra: { story: `Every answer starts with a guard: +10 ${skillName(SK.parry)}.`, rule: `+10 true skill in ${skillName(SK.parry)}.`, trueSkillTo: { [SK.parry]: 10 } } },
   { id: PK.dancers_feet, ref: 'LG6', skill: SK.blade_dance, group: GR.defense, name: "Dancer's Feet", effect: 'defense',
     extra: { story: `The dance is mostly not being there: +10 ${skillName(SK.dodge)}.`, rule: `+10 true skill in ${skillName(SK.dodge)}.`, trueSkillTo: { [SK.dodge]: 10 } } },
   { id: PK.deep_reserves, ref: 'LG8', skill: SK.resolve, group: GR.will, name: 'Deep Reserves', effect: 'health',
-    extra: { story: `There is more of you to wear down: your ${skillName(SK.endurance)}, ${skillName(SK.stamina)} and ${skillName(SK.resolve)} each count a fifth more toward health, stamina and morale.`,
+    extra: { ownRule: 'DEEP_RESERVES_MULT', story: `There is more of you to wear down: your ${skillName(SK.endurance)}, ${skillName(SK.stamina)} and ${skillName(SK.resolve)} each count a fifth more toward health, stamina and morale.`,
       rule: `Each point of ${skillName(SK.endurance)}, ${skillName(SK.stamina)} and ${skillName(SK.resolve)} counts ×${CONFIG.DEEP_RESERVES_MULT} toward the bar it fills: health (HP_PER_END), the stamina bar (STAMINA_PER_POINT) and max morale (MORALE_PER_RESOLVE). DEEP_RESERVES_MULT, placeholder.` } },
   { id: PK.silver_tongue, ref: 'LG10', skill: SK.persuasion, group: GR.influence, name: 'Silver Tongue', effect: 'speech',
     extra: { story: `Convincing and deceiving are the same craft: +10 ${skillName(SK.lying)}.`, rule: `+10 true skill in ${skillName(SK.lying)}.`, trueSkillTo: { [SK.lying]: 10 } } },
   { id: PK.unseen_strike, ref: 'LG11', skill: SK.combat_stealth, group: GR.stealth, name: 'Unseen Strike', effect: 'attack',
-    extra: { story: 'Whoever does not see you coming barely defends: a target unaware of you defends at −20, and one only suspicious of you at −10.',
+    extra: { ownRule: 'AWARENESS_DEFENSE', story: 'Whoever does not see you coming barely defends: a target unaware of you defends at −20, and one only suspicious of you at −10.',
       rule: `A defense roll against the owner's attack takes the awareness modifier one step further on its table (AWARENESS_DEFENSE ${CONFIG.AWARENESS_DEFENSE.join(', ')}): ${CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.unaware + 1]} when the defender is unaware of the owner, ${CONFIG.AWARENESS_DEFENSE[CONFIG.AWARENESS_STEP.suspicious + 1]} when it is only suspicious. Never Flat-Footed still cancels it.` } },
   { id: PK.fear_bites_deeper, ref: 'LG12', skill: SK.intimidation, group: GR.influence, name: 'Fear Bites Deeper', effect: 'speech',
-    extra: { story: 'Whatever fear you cause sinks in further: others lose a fifth more morale to you.',
+    extra: { ownRule: 'FEAR_BITES_MULT', story: 'Whatever fear you cause sinks in further: others lose a fifth more morale to you.',
       rule: `Morale others lose to the owner (its auras, Battle Cry, Dreaded on Sight) is ×${CONFIG.FEAR_BITES_MULT} (FEAR_BITES_MULT, placeholder).` } },
   { id: PK.shadow_work, ref: 'LG14', skill: SK.sneaking, group: GR.stealth, name: 'Shadow Work', effect: 'stealth',
     extra: { story: `Getting close unseen is half the job: +5 ${skillName(SK.combat_stealth)}, +5 ${skillName(SK.vanishing)}.`, rule: `+5 true skill in ${skillName(SK.combat_stealth)} and +5 in ${skillName(SK.vanishing)}.`, trueSkillTo: { [SK.combat_stealth]: 5, [SK.vanishing]: 5 } } },
   { id: PK.thick_of_it, ref: 'LG15', skill: SK.vanishing, group: GR.stealth, name: 'In the Thick of It', effect: 'stealth',
-    extra: { story: 'You can slip away from someone trading blows with you as easily as from anyone else.',
+    extra: { ownRule: 'VANISH_NEAR_SHIFT', story: 'You can slip away from someone trading blows with you as easily as from anyone else.',
       rule: `Vanishing within ${CONFIG.VANISH_NEAR_M} m of a foe fighting the owner takes no ${CONFIG.VANISH_NEAR_SHIFT} tier shift (VANISH_NEAR_SHIFT).` } },
   { id: PK.free_movement, ref: 'LG16', skill: SK.light_armor, group: GR.defense, name: 'Free Movement', effect: 'defense',
     extra: { story: `Light armor moves with you: +10 ${skillName(SK.dodge)}.`, rule: `+10 true skill in ${skillName(SK.dodge)}.`, trueSkillTo: { [SK.dodge]: 10 } } },
   { id: PK.deeper_soak, ref: 'LG18', skill: SK.heavy_armor, group: GR.defense, name: 'Deeper Soak', effect: 'defense',
-    extra: { story: 'You know how to let plate take the blow: your heavy armor stops half again as much of every hit.',
+    extra: { ownRule: 'DEEPER_SOAK_MULT', story: 'You know how to let plate take the blow: your heavy armor stops half again as much of every hit.',
       rule: `Worn heavy armor's flat soak (its reduction per hit) is ×${CONFIG.DEEPER_SOAK_MULT} on the owner (DEEPER_SOAK_MULT, placeholder); its multiplier is unchanged.` } },
   { id: PK.honest_face, ref: 'LG19', skill: SK.lying, group: GR.influence, name: 'Honest Face', effect: 'speech',
     extra: { story: `People believe a face like yours, whatever it says: +10 ${skillName(SK.persuasion)}.`, rule: `+10 true skill in ${skillName(SK.persuasion)}.`, trueSkillTo: { [SK.persuasion]: 10 } } },
@@ -108,7 +108,7 @@ export const BOOST_PERKS: PerkWriteup[] = ROWS.map((r) => ({
   id: r.id, ref: r.ref, name: r.name, skill: r.skill, place: '40',
   ladder: { skill: r.skill, milestone: r.milestone ?? 40 }, effect: r.effect,
   ...(r.milestone === 120 ? { shareOwn: CONFIG.HIGH_PERK_SHARE, shareGroup: CONFIG.HIGH_PERK_SPREAD } : { trueSkill: 5, functionBoost: 1 }),
-  ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.numbersFor ? { numbersFor: r.extra.numbersFor } : {}), ...(r.extra.numbersForAttack ? { numbersForAttack: r.extra.numbersForAttack } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
+  ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.numbersFor ? { numbersFor: r.extra.numbersFor } : {}), ...(r.extra.numbersForAttack ? { numbersForAttack: r.extra.numbersForAttack } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}), ...(r.extra.ownRule ? { ownRule: r.extra.ownRule } : {}),
   story: `${own(r).short}. ${r.extra.story}`,
   rules: {
     kind: 'Always on', trigger: 'Always.', conditions: [],

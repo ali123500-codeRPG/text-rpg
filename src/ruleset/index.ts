@@ -318,9 +318,6 @@ export function restricted(state: GameState, D: Actor, type: DefenseKind, g: num
   const impact = actorBody(state, D).parts.find((p) => p.id === location)?.impact;
   return !!impact && ((rule === 'no_essential' && impact === 'essential') || (rule === 'non_essential_only' && impact !== 'non_essential'));
 }
-/** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
- * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
- * blow (its pool takes it in applyEffects). Dice and the ratings' fight model both call it. */
 /** LG11: the defense modifier for a defender unaware or only suspicious of the attacker (CONFIG.AWARENESS_DEFENSE by step;
  * Unseen Strike, the attacker's Combat Stealth 40, moves it one step on) */
 export function awarenessMod(A: Actor, awareness: 'unaware' | 'suspicious' | undefined): Mod | undefined {
@@ -329,6 +326,9 @@ export function awarenessMod(A: Actor, awareness: 'unaware' | 'suspicious' | und
   const value = t[Math.min(step, t.length - 1)];
   return value ? { source: awareness, type: 'situational', value } : undefined;
 }
+/** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
+ * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
+ * blow (its pool takes it in applyEffects). Dice and the ratings' fight model both call it. */
 export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMode, location: string, multiplier: number, openArm: string | null): { damage: number; generalShare: number } {
   const ct = actorBody(state, D), skill = modeSkill(mode), ranged = mode.tree === 'ranged';
   const kind: AttackKind = ranged ? 'ranged' : 'melee';

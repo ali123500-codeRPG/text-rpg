@@ -339,6 +339,8 @@ export type PerkDef = {
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
+  /** a 40 perk's one extra when code reads it by the perk's id: the config number it changes (Deeper Soak: DEEPER_SOAK_MULT) */
+  ownRule?: string;
   /** the skills a ladder perk's `numbers` work with (Keen Edge: every melee weapon skill); none = the perk's own skill */
   numbersFor?: string[];
   /** the kind of attack its numbers work with instead of skills: 'melee' (melee and unarmed attacks, natural ones included)

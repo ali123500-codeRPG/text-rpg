@@ -6,6 +6,7 @@ import type { TitleSpec } from '../../src/types';
 import { drawTitles } from '../../src/plan/draw';
 import { actor, addPiece, createRng, makeVillage, place } from '../harness';
 import { CONFIG } from '../../src/config';
+import { PK } from '../../src/library/perkIds';
 import { FU } from '../../src/library/tableIds';
 import { withBed } from '../../src/scenario/apply';
 import { oneMoveZones } from '../../src/views/tactics';
@@ -58,6 +59,8 @@ describe('385 no zone links or same zone as distance', () => {
   it('BG-308: a leader stops waiting once the one it leads is near enough to talk, in any zone', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1'] });
     const m = actor(s, 'trader');
+    // the trader rolled Keen Ear when this was written; pinned so other perk rolls don't change what it hears (BG-312)
+    if (!m.core.perks.some((p) => p.perkId === PK.keen_ear)) m.core.perks.push({ perkId: PK.keen_ear, source: 'level', gainedTurn: 0 });
     m.mind!.control = 'agent';
     play(s, { agentOutputs: [plannerOut(m.id, act('hold'), { headTo: 'street_door', lead: s.player.id })] });
     m.mind!.control = 'code';

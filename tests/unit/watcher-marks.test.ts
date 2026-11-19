@@ -5,14 +5,15 @@ import { makeVillage, createRng } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
 import { stealthDetect } from '../../src/minds/state';
 import { SK } from '../../src/library/skillIds';
+import { trueSkill } from '../../src/ruleset/perks';
 import type { GameEvent } from '../../src/types';
 
 describe('the watcher learns', () => {
   it('a thief sneaking in sight marks the player\'s Eyesight when the thief is near its level', () => {
     const s = makeVillage(), p = s.player;
-    p.core.skills[SK.eyesight] = { raw: 45, state: 'normal' };
     p.progression!.marks = [];
     const t = spawnNpc(s, TP.thief, { id: 'thief_1', zone: p.zone, placeId: p.placeId, bandId: 'thieves', name: 'Sly', storyId: 'test' });
+    p.core.skills[SK.eyesight] = { raw: Math.round(trueSkill(t, SK.sneaking)) - 10, state: 'normal' }; // near the thief's level, whatever perks it rolled
     t.posture = 'stealthy';
     s.actors.push(t);
     const ev = { id: 'e1', turn: s.turn, actorId: t.id, kind: 'wait', zone: p.zone, effects: [], noise: 'silent', visibility: 'normal' } as unknown as GameEvent;
