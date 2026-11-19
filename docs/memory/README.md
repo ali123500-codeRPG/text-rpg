@@ -58,13 +58,23 @@ numbers are never here: a file names the setting and where it lives.
   foe down, speech in character, paying and selling.
 - [history-personality-and-uniques.md](history-personality-and-uniques.md): context. Flavor voice, personality
   lines, what provokes, heroes into NPCs, goal-driven uniques, voice acting.
+- [history-scenarios-and-quests.md](history-scenarios-and-quests.md): context. Quests, the event roll, scenes
+  becoming scenarios, free roam, stakes and Episodes.
+- [history-agent-play-and-tone.md](history-agent-play-and-tone.md): context. The autoplay agent, guided mode,
+  tone, land and the power ladder, the rank preset check.
+- [history-items-and-loot.md](history-items-and-loot.md): context. Loot and Boon, Threadbound items, accessories,
+  the items deep dive, the loot pop-up.
+- [history-essences.md](history-essences.md): context. Passing essences on, template essences, bested foes and
+  extraction, an essence for every NPC.
+- [history-play-screen-and-motion.md](history-play-screen-and-motion.md): context. First displays, the play
+  screen review, motion, the Character page, the action deck.
+- [history-look-viewer-sound-and-lore.md](history-look-viewer-sound-and-lore.md): context. The library viewer,
+  class flavor and lore, narration length, icons, sound, the look, show don't tell.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
 - [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
 
 The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
-which PR built it. They move here from the Claude project's in-app memory slice by slice; nine slices are
-in (world and places; senses, stealth and action time; perks, classes and skill trees; XP, growth and
-ratings; achievements; morale, yielding and fatigue; stance, fights, defense and gear; bodies, size and age;
-NPCs, speech and personality). Until a topic's slice moves, the spec's "Deferred items" table and the merged
-PRs on GitHub are its record.
+which PR built it. They moved here from the Claude project's in-app memory in eleven slices. What stays in
+that memory is provider-only: page links, thread names, publishing notes and study notes on novels. Where a
+topic has no history entry, the spec's "Deferred items" table and the merged PRs on GitHub are its record.
