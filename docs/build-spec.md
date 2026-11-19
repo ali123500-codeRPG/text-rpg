@@ -1766,7 +1766,7 @@ These are the game's own design rules (Rules kept only because of HISAB, HS6 to 
 
 These design rules are binding for every play screen:
 
-- **Platform:** one self-contained page for PC only (no phone rules), no network calls except the game's own Claude and database capabilities. One dark theme, no theme switcher, no picture credit (personal use). No max width, 32px gutters, 1.3× zoom at 2400px and wider. Text size (B4): the browser's zoom is the text-size setting; every page still works at 125% zoom on a 1920×1080 screen, with nothing clipped or overlapping (checked 18/11/2026 on creation and every rail page; the personality axes were the one overflow, fixed).
+- **Platform:** one self-contained page for PC only (no phone rules), no network calls except the game's own Claude and database capabilities and the owner's connectors it names (RPG Voice; Claude Code Remote for the Republish button). One dark theme, no theme switcher, no picture credit (personal use). No max width, 32px gutters, 1.3× zoom at 2400px and wider. Text size (B4): the browser's zoom is the text-size setting; every page still works at 125% zoom on a 1920×1080 screen, with nothing clipped or overlapping (checked 18/11/2026 on creation and every rail page; the personality axes were the one overflow, fixed).
 - **Type:** HISAB Round for all UI text (look study LK4, 17/11/2026: its letters stay readable at small sizes); story text in Literata (SIL OFL, embedded). Tabular figures everywhere.
 - **Look (LK4 b, 17/11/2026):** Graphite, picked in the look study (hub page "Choose the game's own look"): a neutral graphite ground (--bg, --surface, --field darker for text boxes) so the game's own colours (skill groups, perk series, essence, health) stand out; one light-blue accent (--accent) for links, the active pill and main buttons; main buttons are the light accent with dark text (--btn-fill, --on-btn); borders are faint see-through lines; placeholders, selection, caret and scrollbars take the theme.
 - **Text size floor (LK6 a, 18/11/2026):** no UI text is smaller than 13px; the only exception is the step numbers inside the perk ladder's diamonds and circles. Small capital labels keep their capitals with .06em letter spacing. A perk name beside the ladder wraps to a second line rather than being cut short. A styles test keeps the floor.
@@ -1839,6 +1839,7 @@ These design rules are binding for every play screen:
 * **Keyboard order:** Tab runs input, tool row, side sheet, then the rail (the rail is last in the page and placed in the first column by CSS). Rail names show in tips, so none has to fit the rail.
 * **"You fell" screen:** shown when a lethal fight incapacitates the player and no foe spared them (D-54, D-239), offering /undo or reset. Undo goes back to the turn the foes decide, so the next turn asks them again.
 * **GM debug view toggle** (Leak prevention, validation and failure handling).
+* **Republish button** (Ali, 19/11/2026, hub page "Repo home set-up", RH13 and RH19 c): a cloud-upload icon in the rail's foot, above the GM switch, named "Republish from main" in its tip. It opens a small pop-up with one main button, Republish from main, which starts the owner's saved task through the Claude Code Remote connector (fire_trigger, once per press, never retried). The task builds the latest `main`, runs the smoke tests and republishes the game page and the library viewer in a new project thread, which says when both are up. The pop-up shows Starting… while the call runs, then a plain result: Started, or why it didn't start and what to do (reconnect or add the connector, allow it for the page; no answer says it may have started). The task's id sits in the page's database (ops/republish), never in the code. The button shows only where the page reaches the connector's fire_trigger and that document names a task, so a viewer from another account never sees it (src/ui/republish.ts). It touches no save.
 
 ### Play screen motion
 
@@ -2683,6 +2684,7 @@ stories/<storyId>/pages/<key>@<turn>  one page version, e.g. actor.rook@41
 stories/<storyId>/turns/<turn>        one turn record
 stories/<storyId>/backups/<turn>      one in-database backup (section 11)
 stories/<storyId>/history/<n>         story text for turns n×HISTORY_CHUNK_TURNS onward
+ops/republish                         the Republish button's saved task id (Play screen, Republish button)
 ```
 
 Page keys: engine, hidden, actor.\<id>, place.\<id>, facts.\<placeId>.\<n>, blueprint.\<id>.

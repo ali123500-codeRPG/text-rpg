@@ -75,6 +75,10 @@ html { caret-color: var(--accent); scrollbar-color: var(--rule) var(--bg); }
 .hs-rail a[aria-current="page"] { background: var(--accent); color: var(--on-pill); }
 .hs-rail a[aria-disabled="true"] { opacity: .55; cursor: default; }
 .hs-rail .foot { margin-top: auto; }
+/* RH19 c: the Republish pop-up: its one button, then the plain result */
+.rp-pop .hs-btn-main { display: inline-flex; align-items: center; gap: var(--space-2); }
+.rp-note { max-width: 32ch; color: var(--muted); }
+.rp-note.bad { color: var(--danger); }
 /* the game's rail shows icons only; each name is in a tip on hover or focus (and stays for screen readers) */
 .icon-rail { --rail-w: 60px; }
 .icon-rail .hs-rail a, .icon-rail .hs-rail button { height: 52px; }
