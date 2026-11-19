@@ -6,7 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
-<<<<<<< HEAD
+## BG-314
+
+**What was wrong:** A search only ever looked inside the title the searcher stood in. Someone hiding 1.6 m away, in plain line, but standing just over a title's edge (the next part of the same yard, say) could never be found. That was the zone-era rule "search your own area" (SE20): titles are only names on the floor plan now, so the rule cut a search off at an invisible line.
+
+**What was done:** A search now covers its circle around the searcher in a clear line, whatever title anyone stands in: a wall stops it, a title's edge doesn't. Items on the ground are found the same way. SE20's "own area" rule is dropped. (Finding people by sound is being worked out separately.)
+
+**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+
 ## BG-318
 
 **What was wrong:** The Journal's Places section said "The Map page draws their zones", but the map stopped being a page when it became a pop-up from the Play header, so the note sent the player looking for something that doesn't exist.
@@ -30,7 +37,7 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Every doorway the game draws now holds a real wooden door, shut and unlocked, unless its way is marked doorless (an open doorway into a hall, or a curtain). The door opens and shuts with the open and shut actions, and sight and sound follow it: shut it muffles a voice and hides the far side, open it doesn't. An empty doorway is seen and heard through like a gap. The fixed flag is gone. Saves move to schema 11: a doorway that the old flag kept shut gets its door, so an existing world plays as before until someone opens one.
 
 **Fixed by:** [PR #1081](https://github.com/ali123500-codeRPG/text-rpg/pull/1081)
-=======
+
 ## BG-319
 
 **What was wrong:** In the Play deck, the action that takes an essence from someone Down was still called "Pull the Thread", the perk's name before it was renamed Extract Essence. The deck had the name typed in by hand, so the rename never reached it. Sixteen other places (mostly the perk names in roll breakdowns) were typed by hand the same way; one of them, Hunter's Mark, was spelled with a different apostrophe.
@@ -38,7 +45,6 @@ words it, or, where the log only names a PR, that PR's title.
 **What was done:** Every place in the code that shows a perk's name now reads it from the perk's own library row, so renaming a perk changes it everywhere at once. A guard test fails if anyone types a perk's name into the code again.
 
 **Fixed by:** [PR #1082](https://github.com/ali123500-codeRPG/text-rpg/pull/1082)
->>>>>>> origin/main
 
 ## BG-311
 
