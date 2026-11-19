@@ -956,6 +956,7 @@ export function createGame(deps: GameDeps): Game {
     abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) { amend((x) => { abandonQuest(x, id); }); emit(); } },
     pinQuest(id) { if (state && !busy) { pinQuest(state, id); amend((x) => pinQuest(x, id)); emit(); } },
     setSignatures(lines) { if (state && !busy) { setSignatures(state.player, lines); amend((x) => setSignatures(x.player, lines)); emit(); } },
+    setDefense(kind) { if (state && !busy) { state.player.core.standingDefense = kind; amend((x) => { x.player.core.standingDefense = kind; }); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;

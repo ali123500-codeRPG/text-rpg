@@ -170,4 +170,6 @@ export interface GameApi {
   pinQuest(questId: string): void;
   /** the player character's signatures, one per line (setSignatures cleans them); saved at once */
   setSignatures(lines: string[]): void;
+  /** the deck's Defense row: the player's standing defense from now on (free, no turn); saved at once */
+  setDefense(kind: import('./actor').DefenseKind): void;
 }
