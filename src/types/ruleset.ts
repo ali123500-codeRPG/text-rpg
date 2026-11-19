@@ -104,11 +104,13 @@ export type AttackRequest = {
   /** situational context computed by the engine */
   context?: {
     defenderUnaware?: boolean; // ambush surprise: unaware modifier on the defense
+    defenderSuspicious?: boolean; // LG11: the defender only suspects the attacker (matters with Unseen Strike)
     helpless?: 'down' | 'asleep' | 'held'; // BG-207 (BF30): the defender can't defend: its defense roll fails outright (Critical Failure, no dice)
     defensesThisTurn?: number; // defenses the target already made this turn (outnumbered)
     attackerMods?: Mod[];
     defenderMods?: Mod[];
     fromHiding?: boolean; // the attacker was stealthy as it struck (CN6 Patient Knife)
+    strikeBack?: boolean; // the free blow back after a parry (PA4); Sharp Answer (Parry 40) adds damage to it
     attackerShifts?: TierShift[]; // engine-side shifts on the attack roll (All-50 Opening Strike)
     defenderShifts?: TierShift[]; // engine-side shifts on the defense roll (All-50 Unerring)
   };

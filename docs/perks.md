@@ -238,6 +238,35 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The strike-back limit (1 per round, STRIKE_BACK_LIMIT) counts for each attacker separately instead of for all attackers together. Parry strike-backs and Counters keep separate counts.
 - **Lasts:** Always. Merges with Ceaseless Guard into Endless Answer.
 
+### Deflect (Parry) · LG1
+
+*Story:* Arrows are only fast blades. With a weapon in your hand you can turn a shot or a thrown weapon aside, as you would a sword.
+
+- **Kind:** Always on
+- **Trigger:** A ranged attack is made at the owner: a shot or a throw, whatever weapon makes it.
+- **Conditions:** The owner holds a melee weapon to parry with (not an open hand).
+- **Effect:** The owner may parry it, on the normal parry ladder. A parry against a ranged attack earns no free strike back: the shooter is out of reach.
+- **Lasts:** Each ranged attack.
+
+### Grit Your Teeth (Resolve) · LG7
+
+*Story:* Fear comes, and you have already started pushing it back. The first time in a fight it gets to you, you steady yourself at once; after that, you do it without stopping what you are doing.
+
+- **Kind:** Always on, and a free move
+- **Trigger:** A morale loss leaves the owner Rattled or worse (GRIT_AUTO_FROM), or the owner uses the move.
+- **Conditions:** In a fight. The steadying cooldown has passed (STEADY_COOLDOWN_S), and the owner is not Broken.
+- **Effect:** The first time in each fight a morale loss leaves the owner Rattled or worse, it steadies itself at once, free. Steadying yourself is also a free move instead of the main action. Either way it is the normal steadying roll, with its risk, and it starts the cooldown.
+- **Lasts:** Each steadying.
+
+### Hear Me Out (Persuasion) · LG9
+
+*Story:* You make stopping sound like the sensible thing. Anyone you talk to in a fight listens as if they had already had enough.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an offer to stop fighting by persuasion (TF13).
+- **Effect:** The listener counts as shaken (hurt or uneasy) for the offer: a win by 2 tiers convinces it instead of 3 (OFFER_WIN_TIERS_SHAKEN, OFFER_WIN_TIERS).
+- **Lasts:** Each offer.
+
 ### Bluff (Falsehood) · LI1c
 
 *Story:* Half a second of doubt is all a knife needs. "Behind you!" Once per foe in a fight, and without giving up your action, you throw a lie at a foe near enough to hear it clearly. If it believes you, it hesitates and acts last next turn.
@@ -471,6 +500,114 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** Always.
 - **Effect:** +5% of the owner's true Stamina (HIGH_PERK_SHARE, placeholder) as true skill in Stamina. +1% of the owner's true Stamina (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Stamina. Shares read true skill without shares; several on one skill add in full. Every strain cost the owner pays is ×0.5 (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.
+- **Lasts:** Always.
+
+### Sharp Answer (Parry) · LG2
+
+*Story:* +5 Parry, +1 Defense. A parry is there to earn the strike, and you make the strike count: the free blow back after a parry hits a quarter harder.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Parry. +1 true skill in every skill of group Defense. The free strike back after the owner's parry deals ×1.25 damage, before armor (SHARP_ANSWER_MULT, placeholder). Other free attacks, Riposte's counters among them, are unchanged.
+- **Lasts:** Always.
+
+### Guarded Answer (Riposte) · LG4
+
+*Story:* +5 Riposte, +1 Defense. Every answer starts with a guard: +10 Parry.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Riposte. +1 true skill in every skill of group Defense. +10 true skill in Parry.
+- **Lasts:** Always.
+
+### Dancer's Feet (Blade Dance) · LG6
+
+*Story:* +5 Blade Dance, +1 Defense. The dance is mostly not being there: +10 Dodge.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Blade Dance. +1 true skill in every skill of group Defense. +10 true skill in Dodge.
+- **Lasts:** Always.
+
+### Deep Reserves (Resolve) · LG8
+
+*Story:* +5 Resolve, +1 Will. There is more of you to wear down: your Endurance, Stamina and Resolve each count a fifth more toward health, stamina and morale.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Resolve. +1 true skill in every skill of group Will. Each point of Endurance, Stamina and Resolve counts ×1.2 toward the bar it fills: health (HP_PER_END), the stamina bar (STAMINA_PER_POINT) and max morale (MORALE_PER_RESOLVE). DEEP_RESERVES_MULT, placeholder.
+- **Lasts:** Always.
+
+### Silver Tongue (Persuasion) · LG10
+
+*Story:* +5 Persuasion, +1 Influence. Convincing and deceiving are the same craft: +10 Falsehood.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Persuasion. +1 true skill in every skill of group Influence. +10 true skill in Falsehood.
+- **Lasts:** Always.
+
+### Unseen Strike (Combat Stealth) · LG11
+
+*Story:* +5 Combat Stealth, +1 Stealth. Whoever does not see you coming barely defends: a target unaware of you defends at −20, and one only suspicious of you at −10.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Combat Stealth. +1 true skill in every skill of group Stealth. A defense roll against the owner's attack takes the awareness modifier one step further on its table (AWARENESS_DEFENSE 0, -10, -20): -20 when the defender is unaware of the owner, -10 when it is only suspicious. Never Flat-Footed still cancels it.
+- **Lasts:** Always.
+
+### Fear Bites Deeper (Intimidation) · LG12
+
+*Story:* +5 Intimidation, +1 Influence. Whatever fear you cause sinks in further: others lose a fifth more morale to you.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Intimidation. +1 true skill in every skill of group Influence. Morale others lose to the owner (its auras, Battle Cry, Dreaded on Sight) is ×1.2 (FEAR_BITES_MULT, placeholder).
+- **Lasts:** Always.
+
+### Shadow Work (Sneaking) · LG14
+
+*Story:* +5 Sneaking, +1 Stealth. Getting close unseen is half the job: +5 Combat Stealth, +5 Vanishing.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Sneaking. +1 true skill in every skill of group Stealth. +5 true skill in Combat Stealth and +5 in Vanishing.
+- **Lasts:** Always.
+
+### In the Thick of It (Vanishing) · LG15
+
+*Story:* +5 Vanishing, +1 Stealth. You can slip away from someone trading blows with you as easily as from anyone else.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Vanishing. +1 true skill in every skill of group Stealth. Vanishing within 5 m of a foe fighting the owner takes no -1 tier shift (VANISH_NEAR_SHIFT).
+- **Lasts:** Always.
+
+### Free Movement (Light Armor) · LG16
+
+*Story:* +5 Light Armor, +1 Defense. Light armor moves with you: +10 Dodge.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Light Armor. +1 true skill in every skill of group Defense. +10 true skill in Dodge.
+- **Lasts:** Always.
+
+### Deeper Soak (Heavy Armor) · LG18
+
+*Story:* +5 Heavy Armor, +1 Defense. You know how to let plate take the blow: your heavy armor stops half again as much of every hit.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Heavy Armor. +1 true skill in every skill of group Defense. Worn heavy armor's flat soak (its reduction per hit) is ×1.5 on the owner (DEEPER_SOAK_MULT, placeholder); its multiplier is unchanged.
+- **Lasts:** Always.
+
+### Honest Face (Falsehood) · LG19
+
+*Story:* +5 Falsehood, +1 Influence. People believe a face like yours, whatever it says: +10 Persuasion.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Falsehood. +1 true skill in every skill of group Influence. +10 true skill in Persuasion.
 - **Lasts:** Always.
 
 ### Chorus (Intimidation) · CN8
@@ -711,7 +848,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner has at least one quirk.
 - **Effect:** Resolve adds to its own rolls its true skill × the payoff share × its tier, the share being 5% × quirks owned^0.8 (CONFIG.PAYOFF_SHARE, PAYOFF_EXP, placeholders): 5% for one quirk, 8.7% for two.
 - **Lasts:** Always.
-- **Open:** Placed on Resolve 140 because Overwhelm holds Resolve 100.
 
 ## Very high milestone
 

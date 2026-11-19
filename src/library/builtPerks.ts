@@ -83,4 +83,14 @@ export const BUILT_PERKS = new Set<string>([
   PK.iron_lungs, PK.deep_lungs, PK.bottomless, // SS2/SS4/SS6: deep_lungs lineMax() in src/ruleset/fatigue.ts, bottomless payStrain() in src/engine/fatigue.ts
   // Stamina ladder and part (SS1, SS5, SS8): src/engine/fatigue.ts restRecover(), payStrain(); perkSleepMult() in src/ruleset/fatigue.ts
   PK.catnap, PK.sleepless, PK.second_breath, PK.overdrive, PK.patient_knife, PK.protagonist_mentality, PK.chorus,
+  PK.deflect, // LG1: src/ruleset/gear.ts canDefend()
+  PK.grit_your_teeth, // LG7: src/engine/resolve.ts gritAuto() and doPerkMove(); PERK_MOVES
+  PK.hear_me_out, // LG9: src/engine/offer.ts landed()
+  PK.guarded_answer, PK.dancers_feet, PK.silver_tongue, PK.shadow_work, PK.free_movement, PK.honest_face, // 40 perks with +true skill (boostPerks.ts)
+  PK.deep_reserves, // LG8: reservesMult() in src/ruleset/perks.ts (totalHp, barMax, maxMorale)
+  PK.unseen_strike, // LG11: awarenessMod() in src/ruleset/index.ts
+  PK.fear_bites_deeper, // LG12: fearMult() in src/engine/auras.ts
+  PK.thick_of_it, // LG15: stealthDetect() in src/minds/state.ts
+  PK.deeper_soak, // LG18: blowDamage() in src/ruleset/index.ts
+  PK.sharp_answer, // LG2: attack() in src/ruleset/index.ts, on a strike back (context.strikeBack from parryStrike)
 ]);

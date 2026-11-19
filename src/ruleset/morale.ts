@@ -7,7 +7,7 @@ import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, TIERS, type HealthLevelKey, type MoraleLevel, type PartStateKey } from '../scales';
 import { skillOpen } from './access';
-import { hasPerk } from './perks';
+import { hasPerk, reservesMult } from './perks';
 import { healthLevel } from './body';
 import { PK } from '../library/perkIds';
 import { achievementMaxMorale, chainRewards, currentAchievements } from './achRewards';
@@ -17,8 +17,9 @@ import { achievementMaxMorale, chainRewards, currentAchievements } from './achRe
 export function maxMorale(a: Actor, parts?: FigPart[]): number {
   const r = a.core.skills[SK.resolve];
   const raw = r && !r.dormant && skillOpen(a, SK.resolve) ? r.raw : 0, ach = achievementMaxMorale(a);
-  parts?.push({ label: 'Base', adds: CONFIG.MORALE_BASE }, { label: `Resolve ${raw} × ${CONFIG.MORALE_PER_RESOLVE}`, adds: CONFIG.MORALE_PER_RESOLVE * raw }, ...(ach ? [{ label: 'Achievements', adds: ach }] : []));
-  return CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * raw + ach;
+  const per = CONFIG.MORALE_PER_RESOLVE * reservesMult(a); // LG8 Deep Reserves
+  parts?.push({ label: 'Base', adds: CONFIG.MORALE_BASE }, { label: `Resolve ${raw} × ${per}`, adds: per * raw }, ...(ach ? [{ label: 'Achievements', adds: ach }] : []));
+  return CONFIG.MORALE_BASE + per * raw + ach;
 }
 export const moraleLost = (a: Actor): number => a.core.condition.moraleLost ?? 0;
 /** share of max morale lost, in % */

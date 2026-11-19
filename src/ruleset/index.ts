@@ -318,6 +318,14 @@ export function restricted(state: GameState, D: Actor, type: DefenseKind, g: num
   const impact = actorBody(state, D).parts.find((p) => p.id === location)?.impact;
   return !!impact && ((rule === 'no_essential' && impact === 'essential') || (rule === 'non_essential_only' && impact !== 'non_essential'));
 }
+/** LG11: the defense modifier for a defender unaware or only suspicious of the attacker (CONFIG.AWARENESS_DEFENSE by step;
+ * Unseen Strike, the attacker's Combat Stealth 40, moves it one step on) */
+export function awarenessMod(A: Actor, awareness: 'unaware' | 'suspicious' | undefined): Mod | undefined {
+  if (!awareness) return undefined;
+  const t = CONFIG.AWARENESS_DEFENSE, step = CONFIG.AWARENESS_STEP[awareness] + (hasPerk(A, PK.unseen_strike) ? 1 : 0);
+  const value = t[Math.min(step, t.length - 1)];
+  return value ? { source: awareness, type: 'situational', value } : undefined;
+}
 /** the damage step (Part 5 §6): a blow's health lost on `location` at this gap multiplier, through the perks on both sides,
  * worn and natural armor (D-368: the share first, then the flat soak) and Fighter's Frame. On the shield it is the raw
  * blow (its pool takes it in applyEffects). Dice and the ratings' fight model both call it. */
@@ -328,7 +336,9 @@ export function blowDamage(state: GameState, A: Actor, D: Actor, mode: AttackMod
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     const nat = ct.naturalArmor && { ...ct.naturalArmor, reduction: naturalReduction(state, D, ct.naturalArmor) };
-    for (const a of [pieceOn(state, D, at)?.armor, nat]) if (a?.covers.includes(at)) d = d * a.multiplier - Math.max(0, a.reduction - pierce); // D-368: the share first, then the flat soak
+    const worn = pieceOn(state, D, at)?.armor;
+    const soak = (a: unknown) => (a === worn && worn?.weight === 'heavy' && hasPerk(D, PK.deeper_soak) ? CONFIG.DEEPER_SOAK_MULT : 1); // LG18 Deeper Soak
+    for (const a of [worn, nat]) if (a?.covers.includes(at)) d = d * a.multiplier - Math.max(0, a.reduction * soak(a) - pierce); // D-368: the share first, then the flat soak
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
@@ -402,7 +412,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // never outnumbered: B19 Blade Wall (Parry 60), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
   const noCrowd = (type === 'parry' && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
   if ((req.context?.defensesThisTurn ?? 0) >= 1 && !noCrowd) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
-  if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
+  const aware = awarenessMod(A, req.context?.defenderUnaware ? 'unaware' : req.context?.defenderSuspicious ? 'suspicious' : undefined);
+  if (aware) dm.push(aware);
   dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)
   dm.push(...defenseOwnMods(state, D, type, ranged));
   dm.push(...(req.context?.defenderMods ?? []));
@@ -468,7 +479,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   }
 
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
-  const { damage, generalShare } = blowDamage(state, A, D, mode, location, multiplier, openArm);
+  const answer = req.context?.strikeBack && hasPerk(A, PK.sharp_answer) ? CONFIG.SHARP_ANSWER_MULT : 1; // LG2 Sharp Answer (Parry 40)
+  const { damage, generalShare } = blowDamage(state, A, D, mode, location, multiplier * answer, openArm);
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
     && !!ct.parts.find((p) => p.id === location)?.roles.includes(RL.move);

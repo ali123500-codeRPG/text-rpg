@@ -26,7 +26,7 @@ import { moveSpeed, slotMetres } from './speed';
 import { companions, travel, travelSpeed, tripGoal, type TripWorld } from './travel';
 import { M_EPS, closeInM, distM, faceToward, floorGap, distOrNull, gateAhead, placeAll, reachesM, roomAround, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, calm, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { FOCUS, HEALTH_LEVELS, TIERS, type BodyPoseKey } from '../scales';
+import { FOCUS, HEALTH_LEVELS, MORALE_LEVELS, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, gradeMods, obstacleGate, trueSkill, pickSeconds, pickTool, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markUse, markEndurance, modeSkill, partStates, roleOff, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { makeOut } from './makeOut';
@@ -479,7 +479,7 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   const { state } = ctx;
   { const f = getLibrary().fears?.[id]; if (f?.rolled && !f.unengaged && !isEngaged(state, a)) return; } // the player too (MB11): isEngaged reads who is fighting them
   const r = payFear(state, ctx.rng, a, id, o);
-  if (!r) return;
+  if (!r) return gritAuto(ctx, a);
   // SP5: in a spar with no real foe, a surrender or a break just yields the spar
   if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && (hostile(state, a, x) || hostile(state, x, a)))) { yieldSpar(state, a); return; }
   if (a === state.player) { tally(state, 'morale_breaks'); return; } // MB12: you keep control but cannot attack (doAttack)
@@ -488,6 +488,25 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) { const v = buildActorView(state, a.id); ctx.orders.set(a.id, v.self.broken && !v.self.surrendered ? brokenHolds(v, ctx.orders.get(a.id)!) : brokenOrder(v)); }
   // MB23: bandmates who perceived it are frightened too
   for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
+}
+
+/** SY1 steadying yourself: the event, the roll, and a loss through fear() (which applies a break). `o` carries the words said
+ * with it; the free move (Grit Your Teeth) and its automatic steady have none */
+function doSteady(ctx: Ctx, a: Actor, o?: Order): void {
+  const ev = mk(ctx, a, 'steady', {});
+  emit(ctx, o ? bark(ev, o) : ev);
+  const r = steady(ctx.state, a, ctx.rng, (cost) => fear(ctx, a, FR.steady_slipped, { cost }));
+  Object.assign(ev, { tier: r.roll.tier, roll: r.roll, steady: { points: Math.round(r.points), ...(r.buff ? { buff: true } : {}) } });
+}
+
+/** LG7 Grit Your Teeth (Resolve 20): the first time in a fight a morale loss leaves the owner at GRIT_AUTO_FROM or worse, it
+ * steadies itself at once, free, with the normal roll, cooldown and risk */
+function gritAuto(ctx: Ctx, a: Actor): void {
+  const key = `${PK.grit_your_teeth}:auto`;
+  if (!hasPerk(a, PK.grit_your_teeth) || MORALE_LEVELS.pos(moraleLevel(a)) < MORALE_LEVELS.pos(CONFIG.GRIT_AUTO_FROM)) return;
+  if (!a.engagement || !usableThisEngagement(a, key) || cantSteady(ctx.state, a)) return;
+  useThisEngagement(a, key);
+  doSteady(ctx, a);
 }
 
 // ---------- actions ----------
@@ -887,7 +906,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (flurry) opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Flurry', value: -1 }]; // AT79: one tier less sure
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
-      context: { defenderUnaware: surprised, ...(fromHiding ? { fromHiding } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
+      context: { defenderUnaware: surprised, ...(!surprised && !neverFlatFooted(t, a) && beliefStatus(state, t, a) === 'suspicious' ? { defenderSuspicious: true } : {}), ...(fromHiding ? { fromHiding } : {}), ...(o.intent === PARRY_STRIKE ? { strikeBack: true } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
     state, rng,
   );
   // TC45 a: defending gives the act away to every foe
@@ -1870,11 +1889,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'steady': { // SY1: steadying yourself (engine/steady.ts); a loss goes through fear(), which applies a break
       const why = cantSteady(state, a);
       if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: why }), o));
-      const ev = mk(ctx, a, 'steady', {});
-      emit(ctx, bark(ev, o));
-      const r = steady(state, a, ctx.rng, (cost) => fear(ctx, a, FR.steady_slipped, { cost }));
-      Object.assign(ev, { tier: r.roll.tier, roll: r.roll, steady: { points: Math.round(r.points), ...(r.buff ? { buff: true } : {}) } });
-      return;
+      return doSteady(ctx, a, o);
     }
     case 'search':
       return doSearch(ctx, a, o);
@@ -2290,6 +2305,7 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   if (pm.perk === PK.rally) return doRally(ctx, a);
   if (pm.perk === PK.draw_them_in) return doDrawThemIn(ctx, a);
   if (pm.perk === PK.play_dead) return doPlayDead(ctx, a);
+  if (pm.perk === PK.grit_your_teeth) return doSteady(ctx, a); // LG7: steadying as a free move
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
 }
@@ -2353,7 +2369,7 @@ function doBattleCry(ctx: Ctx, a: Actor): void {
   const ev = mk(ctx, a, 'battle_cry');
   ev.perception = computePerception(ev, state, rng);
   emit(ctx, ev, undefined, true);
-  for (const r of battleCry(state, a, ev, rng, (t, id, gap, overwhelm) => fear(ctx, t, id, { ...(gap === undefined ? {} : { gap }), ...(overwhelm ? { overwhelm } : {}) }))) {
+  for (const r of battleCry(state, a, ev, rng, (t, id, gap, overwhelm, mult) => fear(ctx, t, id, { ...(gap === undefined ? {} : { gap }), ...(overwhelm ? { overwhelm } : {}), ...(mult && mult !== 1 ? { mult } : {}) }))) {
     ev.effects.push({ kind: r.rallied ? 'rallied' : r.took ? 'cry_took' : 'cry_resisted', actorId: r.target.id, data: { by: a.id, perk: PK.battle_cry, ...(r.overwhelmed ? { overwhelmed: true } : {}) } });
   }
 }
@@ -2623,9 +2639,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     turnS: state.mode === 'tactical' ? turnSeconds(state, playerOrder) : CONFIG.FIGHT_TURN_S, clock: new Map(), at: 0, finished: new Set(), stopped: new Set(), spoke: new Set(),
   };
   // Dreaded on Sight: whoever first sees the owner pays its fear and turns colder, before anyone acts
-  for (const c of sightDread(state, (a, id) => fear(ctx, a, id))) logCode(state, 'dreaded_on_sight', { actorId: c.target.id, by: c.owner.id, perk: c.perk });
+  for (const c of sightDread(state, (a, id, _g, _o, mult) => fear(ctx, a, id, mult && mult !== 1 ? { mult } : {}))) logCode(state, 'dreaded_on_sight', { actorId: c.target.id, by: c.owner.id, perk: c.perk });
   // NT14/I4: engagement auras check each newly qualifying target before anyone acts
-  for (const c of engagementAuras(state, rng, (a, id, gap, overwhelm) => fear(ctx, a, id, { gap, ...(overwhelm ? { overwhelm } : {}) }))) {
+  for (const c of engagementAuras(state, rng, (a, id, gap, overwhelm, mult) => fear(ctx, a, id, { gap, ...(overwhelm ? { overwhelm } : {}), ...(mult && mult !== 1 ? { mult } : {}) }))) {
     emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk, ...(c.overwhelmed ? { overwhelmed: true } : {}) } }] }), c.contest);
   }
   // LI5b Gut Feeling: a hunch of a hidden watcher, from its zone; the owner turns suspicious of it there

@@ -186,8 +186,9 @@ describe('117 stealth', () => {
     expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.vanishing, tierShifts: [] });
   });
   it('VS5: slipping away from a foe fighting you within VANISH_NEAR_M takes a tier shift; one only aware of you, or farther off, does not', () => {
-    const shifts = (engaged: boolean, m: number) => {
+    const shifts = (engaged: boolean, m: number, thick = false) => {
       const s = makeVillage();
+      if (thick) s.player.core.perks.push({ perkId: PK.thick_of_it, source: 'level', gainedTurn: 0 }); // LG15 In the Thick of It (Vanishing 40)
       place(s, 'player', 'gate_inner');
       const g = beside(s, 'guard_1', 'player', m);
       delete g.core.skills[SK.battle_sense]; // its Reaction (Battle Sense) would close in before the slip, so the metres stay as set
@@ -202,6 +203,7 @@ describe('117 stealth', () => {
     expect(shifts(true, 1)).toEqual([{ source: 'foe close by', value: CONFIG.VANISH_NEAR_SHIFT }]);
     expect(shifts(false, 1)).toEqual([]);
     expect(shifts(true, CONFIG.VANISH_NEAR_M + 2)).toEqual([]);
+    expect(shifts(true, 1, true)).toEqual([]); // In the Thick of It: no shift for its owner
   });
   it('an observer with Unblinking who loses a Vanishing roll must also lose a stealth contest (ST23)', () => {
     const s = makeVillage();
