@@ -324,7 +324,7 @@ const senseSkill = (state: GameState, a: Actor, sense: Sense): number => effecti
  * searchArea %, + SEARCH_M2_PER_FIGHT_M m² per metre of searchReach (perks and achievements; every source adds up) */
 export const searchAreaM2 = (a: Actor, skill: number): number =>
   Math.max(0, CONFIG.SEARCH_AREA_M2 * skill / CONFIG.SEARCH_AREA_SKILL_BASE * (1 + rewardSum(a, 'searchArea') / 100) + rewardSum(a, 'searchReach') * CONFIG.SEARCH_M2_PER_FIGHT_M);
-/** SE1, PZ11 a, BG-314 (BF83 b): `h` is in what a search by `a` covers: the search area's circle round the searcher (a fight
+/** SE1, PZ11 a, BG-314 (BF100 b): `h` is in what a search by `a` covers: the search area's circle round the searcher (a fight
  * turn only area ÷ SEARCH_M2_PER_FIGHT_M metres, SA8 b), in a clear line, whatever title either stands in */
 function inSearch(state: GameState, a: Actor, h: Located, area: number): boolean {
   return searchSees(state, a, h, state.mode === 'tactical' ? area / CONFIG.SEARCH_M2_PER_FIGHT_M : Math.sqrt(area / Math.PI));

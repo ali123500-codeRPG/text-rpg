@@ -1,4 +1,4 @@
-// BG-314 (BF83 b, PZ11 a): a search covers the search area's circle round the searcher in a clear line, whatever title the
+// BG-314 (BF100 b, PZ11 a): a search covers the search area's circle round the searcher in a clear line, whatever title the
 // hidden person or thing is in; a title's edge stops nothing, a wall does.
 import { describe, expect, it, vi } from 'vitest';
 import { makeVillage, actor, place, createRng } from '../harness';
