@@ -9,7 +9,7 @@ in `src/config.ts`. Question IDs name the owner's answers on the Questions hub.
   the planner to make a story hang together: what the planner is told gets fixed. Built in #541, #544, #547,
   #555, #559, #574 and #578: the planner sees the world by place, NPCs walk and never jump, routines run on the
   clock by six times of day, and people sleep and keep watch. Parked: alarm systems (D-230). Light Sleeper
-  became a perk of its own (D-190, built).
+  was first a perk and then became everyone's rule (D-190); the perk's place is parked (D-324).
 - **Travel (11/11/2026; TV1-TV9).** A road is one long place with a length and a danger, and a trip along a known
   road is travel mode (#399, #400). The situation roll was renamed the event roll (#398). An encounter can be
   good or bad: the roll's tier decides which, and the road's danger decides only how often. Parked: mounts

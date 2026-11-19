@@ -18,11 +18,17 @@ numbers are never here: a file names the setting and where it lives.
   encounters, carrying a world on.
 - [history-doors-cover-walls-map.md](history-doors-cover-walls-map.md): context. Doors, obstacle grades, cover,
   light, breaking walls, the Map.
+- [history-senses-and-search.md](history-senses-and-search.md): context. Noise and sight scales, hearing in
+  metres, search, senses that grow unasked.
+- [history-stealth-and-theft.md](history-stealth-and-theft.md): context. The Stealth tree, Vanish, warnings
+  between foes, containers and filching.
+- [history-clock-and-action-time.md](history-clock-and-action-time.md): context. The clock, action time, split
+  turns, talk time, the order queue.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
 - [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
 
 The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
-which PR built it. They move here from the Claude project's in-app memory slice by slice; the world and places
-slice is in. Until a topic's slice moves, the spec's "Deferred items" table and the merged PRs on GitHub are its
-record.
+which PR built it. They move here from the Claude project's in-app memory slice by slice; two slices are in
+(world and places; senses, stealth and action time). Until a topic's slice moves, the spec's "Deferred items"
+table and the merged PRs on GitHub are its record.
