@@ -16,9 +16,10 @@ import { markForRounds } from './perkMarks';
 import { TRICK, sawThrough, warnedShift } from './ruses';
 import { playDeadOpen } from './playDead';
 import { SK } from '../library/skillIds';
+import { CONTEST } from '../library/contests';
 import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
-import { answerRoll, answerSkill } from './speech';
+import { answerRoll, answerSkill, speechSkill } from './speech';
 import { hearsClearly } from '../perception';
 import { sightDistM, withinM } from './position';
 import { CONFIG } from '../config';
@@ -68,7 +69,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
   countPerkMove(state, a, perk, targetId);
   if (perk === PK.dirt_in_the_eyes) {
     const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
-    const c = ruleset.contested(req(a.id, SK.unarmed_improvised), req(t.id, SK.dodge), state, rng);
+    const c = ruleset.contested(req(a.id, CONTEST.dirt_in_the_eyes.roll), req(t.id, CONTEST.dirt_in_the_eyes.against), state, rng);
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c); // N4c
     markUse(state, t, c.b.skill, c);
@@ -77,7 +78,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   if (perk === PK.bluff) {
-    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng, warnedShift(t, a.id, TRICK.bluff)));
+    const c = toContest(ruleset.roll({ actorId: a.id, skill: speechSkill('deceive'), modifiers: [], tierShifts: [], against: t.id, contest: true }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng, warnedShift(t, a.id, TRICK.bluff)));
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c);
     markUse(state, t, c.b.skill, c);

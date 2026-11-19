@@ -8,6 +8,7 @@ import { holdStrength } from '../ruleset/ratings';
 import { hasPerk, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { heldBy, isActive } from './relations';
 import { SK } from '../library/skillIds';
+import { CONTEST } from '../library/contests';
 import { PK } from '../library/perkIds';
 import { perkName } from '../library';
 import { contestFeat } from './feats';
@@ -47,8 +48,8 @@ export function breakFree(state: GameState, a: Actor, rng: Rng): { free: boolean
  * restrainer's grapple against the target's better of grapple and dodge; it holds on a win (the target wins ties), with
  * no damage and no hostility. A held target's next move is its break-free try (breakFree): failing it loses that move. */
 export function restrain(state: GameState, A: Actor, D: Actor, rng: Rng): { held: boolean; contest: ContestResult; effect: Effect } {
-  const best = [GRAPPLE, SK.dodge].reduce((b, sk) => (effectiveSkill(state, D, sk).value > effectiveSkill(state, D, b).value ? sk : b));
-  const r = ruleset.contested({ actorId: A.id, skill: GRAPPLE, modifiers: [], tierShifts: [] }, { actorId: D.id, skill: best, modifiers: [], tierShifts: [] }, state, rng);
+  const best = (CONTEST.restrain.against as readonly string[]).reduce((b, sk) => (effectiveSkill(state, D, sk).value > effectiveSkill(state, D, b).value ? sk : b));
+  const r = ruleset.contested({ actorId: A.id, skill: CONTEST.restrain.roll, modifiers: [], tierShifts: [] }, { actorId: D.id, skill: best, modifiers: [], tierShifts: [] }, state, rng);
   contestFeat(state, r); // N4c
   const held = r.winner === 'a';
   if (held) D.heldBy = A.id;

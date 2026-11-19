@@ -80,6 +80,7 @@ import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, WAIT_SOMEONE, type NoiseKey } from '../scales';
 import type { ExchangeSpeech, TurnInput } from './types';
 import { SK } from '../library/skillIds';
+import { CONTEST } from '../library/contests';
 import { PK } from '../library/perkIds';
 import { met, struck } from '../ruleset/hits';
 import { busyCheck, checkNear, contact, inSenses, startWatch, stepS, type NearStop } from './comingNear';
@@ -2337,7 +2338,7 @@ function doDrawThemIn(ctx: Ctx, a: Actor): void {
   const watchers = allActors(state).filter((x) => x !== a && !!x.mind && countsInFight(x) && (foe(state, x, a) || foe(state, a, x)) && seesClearlyNow(state, x, a.id))
     .sort((x, y) => x.id.localeCompare(y.id));
   for (const x of watchers) {
-    const c = ruleset.contested(req(a.id, SK.stratagem), { ...req(x.id, SK.insight), tierShifts: warnedShift(x, a.id, TRICK.draw_them_in) }, state, rng); // WN11
+    const c = ruleset.contested(req(a.id, CONTEST.draw_them_in.roll), { ...req(x.id, CONTEST.draw_them_in.against), tierShifts: warnedShift(x, a.id, TRICK.draw_them_in) }, state, rng); // WN11
     markUse(state, a, c.a.skill, c);
     contestFeat(state, c);
     markUse(state, x, c.b.skill, c);
