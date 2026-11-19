@@ -6,6 +6,14 @@ Every thread that fixes a bug adds its entry here in the fixing PR, newest at th
 fixed row in the bug log of docs/build-spec.md has one). Entries up to BG-189 were filled in from that bug log: the fix as the log
 words it, or, where the log only names a PR, that PR's title.
 
+## BG-322
+
+**What was wrong:** On the Play deck's Defense row, the name and figure in each button (Dodge, Parry, Block) sat flush with the top edge instead of in the middle. The buttons are flex boxes lined up by text baseline, which pins the text to the top; the row's 30 px minimum height then left all the spare room below.
+
+**What was done:** The Defense buttons centre their text (align-items: center), the same space above and below.
+
+**Fixed by:** [PR #1086](https://github.com/ali123500-codeRPG/text-rpg/pull/1086)
+
 <<<<<<< HEAD
 ## BG-318
 
