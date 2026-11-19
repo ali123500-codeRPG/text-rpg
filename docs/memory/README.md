@@ -42,12 +42,20 @@ numbers are never here: a file names the setting and where it lives.
   rewards by type, the grant check, personality points.
 - [history-achievement-rounds.md](history-achievement-rounds.md): context. Finds by searching, the novel study
   answers, the trim, the page as threads, XP-only rewards, the level share.
+- [history-morale-and-yield.md](history-morale-and-yield.md): context. The morale bar, auras and Battle Cry,
+  who a yield reaches, the nerve warning, mercy once down.
+- [history-fatigue-and-stamina.md](history-fatigue-and-stamina.md): context. Sleep debt, strain, the Stamina
+  skill, the strain rebalance.
+- [history-stance-and-fights.md](history-stance-and-fights.md): context. The stance scale, sparring, initiative,
+  Dead, wound penalties as percentages.
+- [history-defense-and-gear.md](history-defense-and-gear.md): context. Parry, equip requirements, armor,
+  breaking things open, guards, the defense row.
 - [working-notes-code.md](working-notes-code.md): working note. Traps in the code that tests do not catch.
 - [working-notes-git.md](working-notes-git.md): working note. Branching, merges and pushes in this repo.
 - [working-notes-testing.md](working-notes-testing.md): working note. Checking behaviour, motion and playtests.
 
 The `history-` files are topic histories: which questions each design topic answered, what replaced what, and
-which PR built it. They move here from the Claude project's in-app memory slice by slice; five slices are
+which PR built it. They move here from the Claude project's in-app memory slice by slice; seven slices are
 in (world and places; senses, stealth and action time; perks, classes and skill trees; XP, growth and
-ratings; achievements). Until a topic's slice moves, the spec's "Deferred items" table and the merged PRs on
-GitHub are its record.
+ratings; achievements; morale, yielding and fatigue; stance, fights, defense and gear). Until a topic's slice
+moves, the spec's "Deferred items" table and the merged PRs on GitHub are its record.
