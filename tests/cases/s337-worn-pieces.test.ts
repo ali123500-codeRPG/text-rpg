@@ -41,7 +41,7 @@ describe('337 worn pieces', () => {
     const bare = effectiveSkill(s, p, SK.dodge).value, speed = moveSpeed(s, p).walk;
     equipArmor(s, p, IT.mail_hauberk);
     equipArmor(s, p, IT.kettle_hat);
-    const m = CONFIG.ARMOR_DODGE.medium, slow = CONFIG.ARMOR_SPEED.medium;
+    const m = CONFIG.ARMOR_DEFENSE_COST.medium * CONFIG.EQUIP_NEED.fine, slow = CONFIG.ARMOR_SPEED.medium;
     expect(effectiveSkill(s, p, SK.dodge).value).toBeCloseTo(bare + powerStack([m, m], CONFIG.MOD_STACK_EXP), 9); // −14.1, not −20
     expect(effectiveSkill(s, p, SK.dodge).gear.filter((g) => g.source.startsWith('Armor weight'))).toHaveLength(1);
     const flat = powerStack([slow.flat, slow.flat], CONFIG.MOD_STACK_EXP), pct = powerStack([slow.pct, slow.pct], CONFIG.MOD_STACK_EXP);

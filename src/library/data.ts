@@ -229,7 +229,8 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', grips: 1 | 2) => [
  * a Crude piece (need 0) stops nothing: its multiplier is 1 */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: armorStop(w, CONFIG.EQUIP_NEED[level]), multiplier: armorMultiplier(w, CONFIG.EQUIP_NEED[level]), weight: w });
 const POOL = (level: string) => ({ pool: shieldPool(CONFIG.EQUIP_NEED[level]) });
-const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any', armorWeight: true });
+/** LG23 a: worn armor's cost to Dodge and Parry alike, sized by the piece's weight and need (ruleset/gear effectValue) */
+const WEIGHT = (): ItemEffect[] => [SK.dodge, SK.parry].map((skill) => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', armorWeight: true }));
 /** AX1/AX2: an accessory's skill bonus while worn, sized by the item's equipment level (ruleset/gear effectValue) */
 const ACC = (skill: string): ItemEffect => ({ kind: 'skill', skill, value: 0, active: 'worn', scope: 'any', byLevel: true });
 /** AX4 c: a charmed ring's skill weights by tree (placeholders): fighting and senses most, other common trees next, the rest 1 */
@@ -412,11 +413,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', grips: 1 })] } },
   { id: IT.rusty_knife, edge: true, level: 'crude', gearClass: GC.melee_light, gearType: GT.knife, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, grips: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', grips: 1 })] } },
-  { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'common') } }, // IR8: a padded, sleeved jacket to the hips or thigh (Wikipedia "Gambeson")
-  { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'fine') } }, // IR8: a sleeved mail shirt to mid-thigh (Wikipedia "Hauberk")
-  { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.full_harness, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.full_harness, kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'superior') } },
   { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   // Starter pairs: every gear class but improvised has a Common (need 25) and a Fine (need 50) starter piece;
@@ -437,13 +438,13 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
   { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, gearType: GT.crossbow_stirrup, tags: ['starter'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_stirrup, name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, grips: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
-  { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'fine') } }, // IR8: a cuirass guards the torso only (Wikipedia "Cuirass")
-  { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, gearType: GT.cuirass, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'common') } }, // IR8: a plated cloth garment over the torso (Wikipedia "Brigandine")
-  { id: IT.lamellar_coat, level: 'common', gearClass: GC.armor_heavy, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'lamellar coat', look: 'a coat of laced lamellar plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.lamellar_coat, level: 'common', gearClass: GC.armor_heavy, gearType: GT.coat, tags: ['starter'], kind: 'armor', name: 'lamellar coat', look: 'a coat of laced lamellar plates', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'common') } }, // IR8: a laced-plate coat with shoulder and upper-arm guards; its skirt covers the thigh, not most of the leg (Wikipedia "Lamellar armour")
-  { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.half_suit, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.half_suit, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'fine') } }, // IR8: breastplate with arm and leg plates, as its look says
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, grips: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // IR2 Superior (need 75): the best real pieces. Reach is the blade plus a 0.7 m arm, as the dagger's 1.0 m is.
@@ -455,9 +456,9 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', grips: 2 })] } }, // placeholder: no war range given; its flight records (434 m) pass the English bows' (315 m Finsbury mark) (Wikipedia "Turkish archery", "English longbow")
   { id: IT.warbow, level: 'superior', gearClass: GC.ranged_medium, gearType: GT.warbow, kind: 'weapon', shotTime: DU.bow_medium, name: 'warbow', look: 'a tall yew warbow of enormous draw', bulk: 3, grips: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } }, // Mary Rose bows, 100-185 lbf; Barnabe Rich: 200 paces (153 m) for most archers (Wikipedia "English longbow")
-  { id: IT.jack_of_plates, level: 'superior', gearClass: GC.armor_light, gearType: GT.cuirass, kind: 'armor', name: 'jack of plates', look: 'a canvas jack quilted over small iron plates', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.jack_of_plates, level: 'superior', gearClass: GC.armor_light, gearType: GT.cuirass, kind: 'armor', name: 'jack of plates', look: 'a canvas jack quilted over small iron plates', bulk: 2, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'superior') } }, // IR8: iron squares sewn between canvas, about 7.7 kg, a torso garment (Wikipedia "Jack of plate")
-  { id: IT.coat_of_plates, level: 'superior', gearClass: GC.armor_medium, gearType: GT.coat, kind: 'armor', name: 'coat of plates with mail', look: 'a riveted coat of plates over a sleeved mail shirt', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.coat_of_plates, level: 'superior', gearClass: GC.armor_medium, gearType: GT.coat, kind: 'armor', name: 'coat of plates with mail', look: 'a riveted coat of plates over a sleeved mail shirt', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'superior') } }, // IR8: plates over the torso, worn with mail (Wikipedia "Coat of plates"); the mail's sleeves cover the arms (Wikipedia "Hauberk")
   { id: IT.heater_shield, level: 'superior', gearClass: GC.shield, kind: 'shield', name: 'heater shield', look: 'a flat-topped heater shield', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('superior') }, // smaller and lighter than the kite shield (Wikipedia "Heater shield")
   // IR2 Masterwork (need 100): made past any real smith, so tagged 'fantasy'. Each keeps its real form's reach and coverage;
@@ -474,38 +475,38 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', grips: 2 })] } },
   { id: IT.peerless_crossbow, level: 'masterwork', gearClass: GC.ranged_heavy, gearType: GT.crossbow_heavy, tags: ['fantasy'], kind: 'weapon', shotTime: DU.crossbow_shot, spanTime: DU.span_crossbow, name: 'peerless crossbow', look: 'a steel-bowed crossbow of impossible craft', bulk: 3, grips: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', grips: 2 })] } },
-  { id: IT.peerless_jack, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['fantasy'], kind: 'armor', name: 'peerless jack', look: 'a jack of plates of impossible craft', bulk: 2, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.peerless_jack, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.cuirass, tags: ['fantasy'], kind: 'armor', name: 'peerless jack', look: 'a jack of plates of impossible craft', bulk: 2, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'masterwork') } },
-  { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.peerless_coat_of_plates, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.coat, tags: ['fantasy'], kind: 'armor', name: 'peerless coat of plates', look: 'a coat of plates over mail, of impossible craft', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'masterwork') } },
-  { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.full_harness, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.peerless_plate, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.full_harness, tags: ['fantasy'], kind: 'armor', name: 'peerless plate harness', look: 'a plate harness of impossible craft', bulk: 3, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'masterwork') } },
   { id: IT.peerless_heater, level: 'masterwork', gearClass: GC.shield, tags: ['fantasy'], kind: 'shield', name: 'peerless heater shield', look: 'a heater shield of impossible craft', bulk: 2, grips: 1, effects: [KIT(SK.block)], shield: POOL('masterwork') },
   // IR21: helmets, armor pieces of their weight's class covering the head (type Helmet, or Helmet with neck), worn beside any
   // body piece that leaves those parts bare (IR19). Masterwork ones are tagged 'fantasy' (IR2).
-  { id: IT.arming_cap, level: 'common', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'arming cap', look: 'a quilted linen cap', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.arming_cap, level: 'common', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'arming cap', look: 'a quilted linen cap', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'common') } }, // a padded cap, worn alone or under a helm (Wikipedia "Arming cap")
-  { id: IT.leather_cap, level: 'fine', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'leather cap', look: 'a cap of hardened leather', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.leather_cap, level: 'fine', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'leather cap', look: 'a cap of hardened leather', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'fine') } }, // a hardened-leather skull cap (Wikipedia "Leather helmet")
-  { id: IT.secret, level: 'superior', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'secret', look: 'a soft hat over a hidden iron skull', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.secret, level: 'superior', gearClass: GC.armor_light, gearType: GT.helmet, kind: 'armor', name: 'secret', look: 'a soft hat over a hidden iron skull', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'superior') } }, // an iron skull cap worn under a hat (Wikipedia "Secret (helmet)")
-  { id: IT.peerless_cap, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless cap', look: 'a leather cap of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.peerless_cap, level: 'masterwork', gearClass: GC.armor_light, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless cap', look: 'a leather cap of impossible craft', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('light', 'masterwork') } },
-  { id: IT.mail_coif, level: 'common', gearClass: GC.armor_medium, gearType: GT.helmet_neck, kind: 'armor', name: 'mail coif', look: 'a hood of riveted mail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.mail_coif, level: 'common', gearClass: GC.armor_medium, gearType: GT.helmet_neck, kind: 'armor', name: 'mail coif', look: 'a hood of riveted mail', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'common') } }, // a mail hood over head and neck (Wikipedia "Coif")
-  { id: IT.kettle_hat, level: 'fine', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'kettle hat', look: 'a broad-brimmed steel hat', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.kettle_hat, level: 'fine', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'kettle hat', look: 'a broad-brimmed steel hat', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'fine') } }, // an open, brimmed steel hat (Wikipedia "Kettle hat")
-  { id: IT.sallet, level: 'superior', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'sallet', look: 'a swept steel sallet', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.sallet, level: 'superior', gearClass: GC.armor_medium, gearType: GT.helmet, kind: 'armor', name: 'sallet', look: 'a swept steel sallet', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'superior') } }, // a steel helmet with a long tail over the nape (Wikipedia "Sallet")
-  { id: IT.peerless_sallet, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless sallet', look: 'a sallet of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.peerless_sallet, level: 'masterwork', gearClass: GC.armor_medium, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless sallet', look: 'a sallet of impossible craft', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('medium', 'masterwork') } },
-  { id: IT.nasal_helm, level: 'common', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'nasal helm', look: 'a conical helm with a nose guard', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.nasal_helm, level: 'common', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'nasal helm', look: 'a conical helm with a nose guard', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'common') } }, // a conical steel helm with a nasal bar (Wikipedia "Nasal helmet")
-  { id: IT.bascinet, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.helmet_neck, kind: 'armor', name: 'bascinet', look: 'a visored bascinet with a mail aventail', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.bascinet, level: 'fine', gearClass: GC.armor_heavy, gearType: GT.helmet_neck, kind: 'armor', name: 'bascinet', look: 'a visored bascinet with a mail aventail', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'fine') } }, // a steel bascinet; its mail aventail hangs over the neck (Wikipedia "Bascinet")
-  { id: IT.great_helm, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'great helm', look: 'a flat-topped great helm with eye slits', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.great_helm, level: 'superior', gearClass: GC.armor_heavy, gearType: GT.helmet, kind: 'armor', name: 'great helm', look: 'a flat-topped great helm with eye slits', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'superior') } }, // a closed steel helm over the whole head (Wikipedia "Great helm")
-  { id: IT.peerless_great_helm, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless great helm', look: 'a great helm of impossible craft', bulk: 1, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.peerless_great_helm, level: 'masterwork', gearClass: GC.armor_heavy, gearType: GT.helmet, tags: ['fantasy'], kind: 'armor', name: 'peerless great helm', look: 'a great helm of impossible craft', bulk: 1, slot: 'armor', effects: WEIGHT(),
     armor: { ...ARMOR('heavy', 'masterwork') } },
   // IR25-IR29: gauntlets are an unarmed weapon (gear class Gauntlets, asking Unarmed strike): a pair held in both grips, so a
   // gauntleted hand holds nothing else. A punch with them is still a punch (15 damage, +10 hit); the kit bonus adds to the roll (IR26 b).

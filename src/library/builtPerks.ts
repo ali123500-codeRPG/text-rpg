@@ -16,7 +16,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
   PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
   PK.overheard, // LI5a (Insight 20): src/engine/speech.ts overhearLie(), from doSpeak() and the exchange slot in resolve.ts
-  PK.plain_as_day, // LI2a (Insight 60): src/engine/speech.ts pressedWords() and src/agents/game.ts
+  PK.quick_read, // LG20 b, LG26 a (Insight 60): src/engine/speech.ts quickReads(), at each turn's end in resolve.ts
   PK.read_their_face, // LI2b (Insight 100): src/views/index.ts seenActors()
   PK.battle_cry, // C2/I9 (Intimidation 140): a perk move, src/engine/resolve.ts doBattleCry() and src/engine/auras.ts battleCry()
   PK.overwhelm, // MR2–MR4 (Resolve 100): src/engine/auras.ts overwhelms(), payFear overwhelm in src/engine/morale.ts

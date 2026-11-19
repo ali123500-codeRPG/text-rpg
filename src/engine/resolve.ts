@@ -66,7 +66,7 @@ import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName, r1 } from '../words';
 import { gutFeelings } from './hunches';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, sizeUp, speechSkill as speechSkillOf } from './speech';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest, quickReads, sizeUp, speechSkill as speechSkillOf } from './speech';
 import { bested, growthWaits, notePower, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
@@ -2801,6 +2801,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
   noteSeen(state); // TC35 b: who each Never Flat-Footed owner has seen this fight
+  quickReads(state, rng); // LG26 a: Quick Read sizes up everyone it first sees clearly in a fight
   // TC46 a, TC47 a: newcomers and believers close up roll against a Play Dead
   for (const c of playDeadChecks(state, rng)) for (const f of c.effects) {
     const x = actorById(state, f.actorId)!;

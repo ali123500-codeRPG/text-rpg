@@ -62,16 +62,18 @@ describe('combat level equation (placeholder)', () => {
     const base = Object.fromEntries(CONFIG.MODEL_REF_SKILLS.map((k) => [k, 50]));
     const of = (id: string, kit: string[]) => { const a = sheet(S, id, base, kit); a.core.standingDefense = 'parry'; return a; };
     const bare = of('bare', [IT.arming_sword]), mailed = of('mailed', CONFIG.MODEL_REF_KIT);
-    // the level-50 soldier's blow: attack total 35 (skill 50 + kit 20, × 0.5) on a parry total of 25. Attack tiers Near Miss
-    // 23 %, Success 25 %, Great Success 42 %, Critical Success 5 % (5 % never land); parry tiers 5, 8, 25, 25, 32, 5 %
-    const atk = [[2, 0.23], [3, 0.25], [4, 0.42], [5, 0.05]], par = [[0, 0.05], [1, 0.08], [2, 0.25], [3, 0.25], [4, 0.32], [5, 0.05]];
+    // the level-50 soldier's blow: attack total 35 (skill 50 + kit 20, × 0.5) on a parry total of 25 (bare) or 20 (the Fine
+    // mail costs Parry −10, LG23 a). Attack tiers Near Miss 23 %, Success 25 %, Great Success 42 %, Critical Success 5 % (5 %
+    // never land); parry tiers 5, 8, 25, 25, 32, 5 % bare and 5, 13, 25, 25, 27, 5 % in mail
+    const atk = [[2, 0.23], [3, 0.25], [4, 0.42], [5, 0.05]];
+    const bareParry = [[0, 0.05], [1, 0.08], [2, 0.25], [3, 0.25], [4, 0.32], [5, 0.05]], mailParry = [[0, 0.05], [1, 0.13], [2, 0.25], [3, 0.25], [4, 0.27], [5, 0.05]];
     const sword = 25 * (1 + CONFIG.DAMAGE_NEED_RATE * 50); // a Fine sword: requirement 50
-    const blow = (share: number, soak: number) => atk.reduce((n, [la, pa]) => n + par.reduce((m, [ld, pd]) => m + pa * pd * Math.max(0, ladder('parry', ld - la) * sword * share - soak), 0), 0);
+    const blow = (par: number[][], share: number, soak: number) => atk.reduce((n, [la, pa]) => n + par.reduce((m, [ld, pd]) => m + pa * pd * Math.max(0, ladder('parry', ld - la) * sword * share - soak), 0), 0);
     const mail = itemDef(S, IT.mail_hauberk).armor!;
     const covered = hitTable(S, mailed).reduce((n, r) => n + (mail.covers.includes(r.part) ? (r.to - r.from + 1) / 100 : 0), 0);
     const [open, shut] = [fightAt(S, bare, 50), fightAt(S, mailed, 50)];
     // same health and nerve, so the seconds the soldier needs go as one over its average blow
-    expect(shut.its / open.its).toBeCloseTo(blow(1, 0) / (covered * blow(mail.multiplier, mail.reduction) + (1 - covered) * blow(1, 0)), 9);
+    expect(shut.its / open.its).toBeCloseTo(blow(bareParry, 1, 0) / (covered * blow(mailParry, mail.multiplier, mail.reduction) + (1 - covered) * blow(mailParry, 1, 0)), 9);
     // the mailed sheet is the level-50 soldier: both sides need the same time, at 4 s a blow
     expect(shut.mine).toBeCloseTo(shut.its, 9);
     expect(shut.lead).toBeCloseTo(0, 9);
