@@ -1,6 +1,6 @@
-// 150 Lying and Insight perks (LI1, LI2): Bluff (Lying 20), a free perk move once per foe per engagement: a Lying roll
-// against the foe's answer to a lie; unless the foe wins, it acts last next turn. Takes One to Know One (Lying 60): a lie
-// is answered with the better of Insight and Lying. Plain as Day (Insight 60): a lie seen through is called a lie.
+// 150 Falsehood and Insight perks (LI1, LI2): Bluff (Falsehood 20), a free perk move once per foe per engagement: a Falsehood roll
+// against the foe's answer to a lie; unless the foe wins, it acts last next turn. Takes One to Know One (Falsehood 60): a lie
+// is answered with the better of Insight and Falsehood. Plain as Day (Insight 60): a lie seen through is called a lie.
 // Read Their Face (Insight 100): the stance toward the owner of anyone who spoke to the owner this scenario shows.
 import { tick } from '../harness/time';
 import { CONFIG } from '../../src/config';
@@ -28,11 +28,11 @@ const foe = (s: GameState, id = 'patron_1') => {
   return f;
 };
 
-describe('150 Lying and Insight perks', () => {
-  it('are on the Lying and Insight ladders; Not Born Yesterday is banked', () => {
+describe('150 Falsehood and Insight perks', () => {
+  it('are on the Falsehood and Insight ladders; Not Born Yesterday is banked', () => {
     const perks = getLibrary().perks;
-    expect(perks[PK.bluff]?.ladder).toEqual({ skill: SK.lying, milestone: 20 });
-    expect(perks[PK.takes_one_to_know_one]?.ladder).toEqual({ skill: SK.lying, milestone: 60 });
+    expect(perks[PK.bluff]?.ladder).toEqual({ skill: SK.falsehood, milestone: 20 });
+    expect(perks[PK.takes_one_to_know_one]?.ladder).toEqual({ skill: SK.falsehood, milestone: 60 });
     expect(perks[PK.plain_as_day]?.ladder).toEqual({ skill: SK.insight, milestone: 60 });
     expect(perks[PK.read_their_face]?.ladder).toEqual({ skill: SK.insight, milestone: 100 });
     for (const id of [PK.bluff, PK.takes_one_to_know_one, PK.plain_as_day, PK.read_their_face]) expect(BUILT_PERKS.has(id)).toBe(true);
@@ -58,10 +58,10 @@ describe('150 Lying and Insight perks', () => {
     const s = makeVillage();
     const wim = foe(s);
     give(s.player, PK.bluff);
-    skill(s.player, SK.lying, 40);
+    skill(s.player, SK.falsehood, 40);
     skill(wim, SK.insight, 20);
     const r = resolvePerkMove(s, s.player, PK.bluff, wim.id, forcedRng([95, 5]));
-    expect(r.result?.a.skill).toBe(SK.lying);
+    expect(r.result?.a.skill).toBe(SK.falsehood);
     expect(r.result?.b.skill).toBe(SK.insight);
     expect(r.effects[0].kind).toBe('bluff_believed');
     expect(bluffed(s, wim)).toBe(true);
@@ -87,15 +87,15 @@ describe('150 Lying and Insight perks', () => {
     expect(deck({ pv, s }).find((g) => g.group === 'perks')?.actions.some((a) => a.label === 'Bluff "Behind you!"' && a.steps[0]?.key === 'target')).toBe(true);
   });
 
-  it('Takes One to Know One answers a lie with the better of Insight and Lying', () => {
+  it('Takes One to Know One answers a lie with the better of Insight and Falsehood', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     skill(wim, SK.insight, 5);
-    skill(wim, SK.lying, 60);
-    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).not.toBe(SK.lying);
+    skill(wim, SK.falsehood, 60);
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).not.toBe(SK.falsehood);
     give(wim, PK.takes_one_to_know_one);
-    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.lying);
-    expect(answerRoll(s, wim, SK.persuasion, 'player', forcedRng([50])).skill).not.toBe(SK.lying); // only lies
+    expect(answerRoll(s, wim, SK.insight, 'player', forcedRng([50])).skill).toBe(SK.falsehood);
+    expect(answerRoll(s, wim, SK.persuasion, 'player', forcedRng([50])).skill).not.toBe(SK.falsehood); // only lies
   });
 
   it('Plain as Day says a lie seen through is a lie', () => {

@@ -1,4 +1,4 @@
-// BF97 a (BG-290): sizing someone up with Insight is a contest, the looker's Insight against the other's Lying, never a
+// BF97 a (BG-290): sizing someone up with Insight is a contest, the looker's Insight against the other's Guile (BG-320: the face they keep is a lie told with the body), never a
 // roll against a grade; a win reads their mood, how they feel about the looker and whether they hide something.
 // BF96 a: beats can carry the difficulty of a graded act, and every agent is told which acts take one.
 import { describe, expect, it } from 'vitest';
@@ -17,18 +17,18 @@ import { intent } from './w4-kit';
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'trader'] });
   s.player.core.skills[SK.insight] = { raw: 50, state: 'normal' };
-  wim(s).core.skills[SK.lying] = { raw: 50, state: 'normal' };
+  wim(s).core.skills[SK.guile] = { raw: 50, state: 'normal' };
   return s;
 };
 const wim = (s: GameState) => actorById(s, 'patron_1')!;
 const turn = (s: GameState, i: Intent, d: number[]): GameEvent[] => { s.turn += 1; s.log = []; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, forcedRng([50, ...d])); };
 const lookAt = (s: GameState) => turn(s, intent({ action: { type: 'observe', skill: SK.insight, target: 'patron_1' } }), [60, 40]);
 
-describe('359 sizing someone up is Insight against Lying (BF97 a)', () => {
-  it('a look with Insight at a person rolls a contest against their Lying, with no grade and no grade_gap', () => {
+describe('359 sizing someone up is Insight against Guile (BF97 a, BG-320)', () => {
+  it('a look with Insight at a person rolls a contest against their Guile, with no grade and no grade_gap', () => {
     const s = village();
     const ev = lookAt(s).find((e) => e.kind === 'observe')!;
-    expect(ev.contest).toMatchObject({ a: { actorId: 'player', skill: SK.insight }, b: { actorId: 'patron_1', skill: SK.lying } });
+    expect(ev.contest).toMatchObject({ a: { actorId: 'player', skill: SK.insight }, b: { actorId: 'patron_1', skill: SK.guile } });
     expect(ev.obstacle).toBeUndefined();
     expect(s.log.filter((l) => l.code === 'grade_gap')).toHaveLength(0);
   });
@@ -55,20 +55,21 @@ describe('359 sizing someone up is Insight against Lying (BF97 a)', () => {
     t.events.push({ id: 'lie', turn: t.turn, actorId: 'patron_1', kind: 'deceive', zone: 'tav_common', effects: [], noise: 'normal', visibility: 'normal', perception: {} } as GameEvent);
     expect(sizeUp(t, t.player, wim(t), forcedRng([95, 5]))!.read!.hiding).toBe(true);
   });
-  it('a better liar is read less often', () => {
-    const wins = (lying: number) => {
+  it('a better Guile is read less often; Falsehood (spoken lies) plays no part (BG-320)', () => {
+    const wins = (skill: string, raw: number) => {
       const s = village(), rng = createRng(7);
-      wim(s).core.skills[SK.lying] = { raw: lying, state: 'normal' };
+      wim(s).core.skills[skill] = { raw, state: 'normal' };
       let n = 0;
       for (let i = 0; i < 300; i++) if (sizeUp(s, s.player, wim(s), rng)!.contest.winner === 'a') n++;
       return n;
     };
-    expect(wins(80)).toBeLessThan(wins(0));
+    expect(wins(SK.guile, 80)).toBeLessThan(wins(SK.guile, 0));
+    expect(wins(SK.falsehood, 80)).toBe(wins(SK.falsehood, 0));
   });
   it('an NPC that wins keeps the read on its belief, and its agent sees it', () => {
     const s = village();
     (wim(s).mind!.knowledge.player ??= { status: 'aware', source: 'seen', revealed: [] });
-    s.player.core.skills[SK.lying] = { raw: 0, state: 'normal' };
+    s.player.core.skills[SK.guile] = { raw: 0, state: 'normal' };
     wim(s).core.skills[SK.insight] = { raw: 50, state: 'normal' };
     sizeUp(s, wim(s), s.player, forcedRng([95, 5]));
     expect(buildActorView(s, 'patron_1').beliefs.find((b) => b.about === 'player')!.read).toMatchObject({ turn: s.turn, mood: 'Calm' });

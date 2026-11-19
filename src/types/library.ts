@@ -540,7 +540,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
   skillAdd?: Record<string, number>; // true skill added to these skills
   personality?: PersonalityAdd; // PL15: Nerve or trait points added while current
-  /** AP12: extra points while current, only when earned for this kind (`of`, e.g. a skill id on a by-skill row): Lying wins add Honesty −1 step */
+  /** AP12: extra points while current, only when earned for this kind (`of`, e.g. a skill id on a by-skill row): Falsehood wins add Honesty −1 step */
   personalityByKind?: Record<string, PersonalityAdd>;
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
   maxMorale?: number; // flat points added to the owner's max morale (ordeals pay nerve, never the skill used)

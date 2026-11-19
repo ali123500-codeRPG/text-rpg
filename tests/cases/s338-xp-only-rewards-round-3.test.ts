@@ -23,7 +23,7 @@ describe('338 XP-only rewards, round 3', () => {
     expect(achievementSkill(s.player, SK.persuasion)).toBe(2);
     give(s, ACH.talked_down_10, ACH.talked_down_50);
     expect(achievementSkill(s.player, SK.persuasion)).toBe(6);
-    expect(achievementSkill(s.player, SK.lying)).toBe(0);
+    expect(achievementSkill(s.player, SK.falsehood)).toBe(0);
   });
 
   it('XR39 a: health lost moves only the new-level fear, one level later per level from level II', () => {

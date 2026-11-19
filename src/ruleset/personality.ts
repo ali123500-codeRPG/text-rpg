@@ -31,7 +31,7 @@ export function personalityOf(a: Actor): Personality {
   for (const c of a.core.classes) if (c.state === 'current') add(lib.classes[c.classId]?.personality);
   for (const x of currentAchievements(a)) for (const e of chainRewards(x.d)) {
     if (e.field === 'personality') add(e.from.personality);
-    if (e.field === 'personalityByKind' && x.of) add(e.from.personalityByKind?.[x.of]); // AP12: e.g. speech wins with Lying
+    if (e.field === 'personalityByKind' && x.of) add(e.from.personalityByKind?.[x.of]); // AP12: e.g. speech wins with Falsehood
   }
   return out;
 }

@@ -11,7 +11,7 @@ export const SK = {
   sneaking: 'SK16', combat_stealth: 'SK17', vanishing: 'SK18',
   persuasion: 'SK19', intimidation: 'SK20', barter: 'SK21', riposte: 'SK23', // SK22 (Feint) and SK24 (Disarm) are retired, not reused
   light_armor: 'SK25', medium_armor: 'SK26', heavy_armor: 'SK27', tremor: 'SK28', lockpicking: 'SK29', blade_dance: 'SK30',
-  lying: 'SK31', insight: 'SK32', shrewd_dealing: 'SK33', resolve: 'SK34', parry: 'SK35', filching: 'SK36', stamina: 'SK37',
+  falsehood: 'SK31', insight: 'SK32', shrewd_dealing: 'SK33', resolve: 'SK34', parry: 'SK35', filching: 'SK36', stamina: 'SK37',
   bite: 'SK38', claws: 'SK39', hooves_horns: 'SK40', tail: 'SK41', scent: 'SK42', hide: 'SK43', // AB16, AB18, AB20
   healing: 'SK44', // NR33: the Medicine tree; Heal opens at 50 (NR2, NR34)
   // Tactics tree (TR19, D-17; Tactics skill tree page TC11 d): how well someone fights as a tactician

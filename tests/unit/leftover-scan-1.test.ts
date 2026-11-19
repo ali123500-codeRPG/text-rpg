@@ -278,7 +278,7 @@ describe('leftover scan round 6', () => {
   });
   it('NPC speech rolls are every speech type but plain talk; one speech-skill lookup', () => {
     expect([...PUSH_TYPES].sort()).toEqual(SPEECH_ACTIONS.filter((t) => t !== 'talk').sort());
-    expect(speechSkill('deceive')).toBe(SK.lying);
+    expect(speechSkill('deceive')).toBe(SK.falsehood);
     expect(speechSkill('wave')).toBe(SK.persuasion);
   });
   it('grips, not hands, in code names: a grip passes bars, reaches into a zone, searches someone open to it', () => {
