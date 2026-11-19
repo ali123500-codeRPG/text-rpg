@@ -1,13 +1,15 @@
-// The action deck on Play (AD1–AD16): the Aim toggle, and every action the code allows in
+// The action deck on Play (AD1–AD16): the Aim toggle, the Defense row, and every action the code allows in
 // its groups. Clicking an action asks what it still needs (whom, with what, which part) in a small pop-up, then plays
 // the turn at once with no Parser call (AD6, AD7); a move planned on the minimap rides along (AD12). Actions that need
 // your words wait for the Say box. No keys pick actions (AD10), so typing never plays one by mistake.
-import { type GameApi, type GameState, type PlayerView } from '../types';
+import type { DefenseKind, GameApi, GameState, PlayerView } from '../types';
+import { canDefend, defenseValue, usableDefense } from '../ruleset/gear';
 import { personalityOf } from '../ruleset/personality';
 import { isBrokenLevel, isCoweringLevel, moraleLevel } from '../ruleset/morale';
 import { buildPlayerView, findInstance } from '../views';
+import { cap } from '../words';
 import { hideTip, showTip } from './pages';
-import { h } from './kit';
+import { h, safe } from './kit';
 import { closePop, openPop } from './pop';
 import { deck, actionsOn, type Choice, type DeckAction, type DeckCtx, type Order, type Pick } from './deck';
 import { openLoot } from './loot';
@@ -16,6 +18,14 @@ import { AGAINST_NATURE } from './ideaLeans';
 import type { MinimapPoint } from './minimap';
 
 export type SayMode = { action: DeckAction; choice: Choice; to: string };
+
+/** the Defense row: each standing defense, what it does, and what it needs when it can't be used now */
+const DEFENSES: { kind: DefenseKind; tip: string; lack?: string; needs?: string }[] = [
+  { kind: 'dodge', tip: 'Dodge: get out of the way of every blow and missile' },
+  { kind: 'parry', tip: "Parry: turn melee blows with your weapon. It can't stop missiles: against those you use your best other defense", lack: 'no weapon', needs: 'a melee weapon in hand' },
+  { kind: 'block', tip: 'Block: catch blows and missiles on your shield', lack: 'no shield', needs: 'a shield in hand' },
+];
+const figure = (n: number) => String(+n.toFixed(2)); // fractions shown, as the Character page does
 
 /** the order with the move planned on the minimap first (a way op takes the move itself, so it plays alone) */
 export function withPlanned(o: Order, p: MinimapPoint | null): Order {
@@ -84,7 +94,28 @@ export function deckView(api: GameApi, o: {
 
   // ---- the parts on screen ----
   const aimBtn = h('button', { type: 'button', class: 'dk-tog', 'aria-pressed': 'false', title: 'When on, an attack asks which body part to aim at', onclick: () => { aim = !aim; repaint(); } }, 'Aim');
-  const mods = h('div', { class: 'dk-mods' }, aimBtn);
+  // the Defense row: free, no turn; a choice that can't be used now stays chosen and the note names the fallback
+  const defBtns = DEFENSES.map((d) => h('button', { type: 'button', 'data-def': d.kind, onclick: () => {
+    const s = api.state();
+    if (!disabled && s && canDefend(s, s.player, d.kind)) api.setDefense(d.kind);
+  } }));
+  const defNote = h('span', { class: 'dk-defnote', hidden: true });
+  const mods = h('div', { class: 'dk-mods' }, aimBtn, h('span', { class: 'hs-label', id: 'dk-def-h' }, 'Defense'),
+    h('span', { class: 'dk-seg dk-def', role: 'group', 'aria-labelledby': 'dk-def-h' }, ...defBtns), defNote);
+  function paintDefense(s: GameState) {
+    const p = s.player, chosen = p.core.standingDefense, used = safe(() => usableDefense(s, p, false)) ?? chosen;
+    DEFENSES.forEach((d, i) => {
+      const b = defBtns[i], can = canDefend(s, p, d.kind), v = can ? safe(() => defenseValue(s, p, d.kind)) : null;
+      const text = can ? (v === null ? '' : figure(v)) : d.lack!;
+      b.replaceChildren(h('span', {}, cap(d.kind)), h('span', { class: 'dv' }, text));
+      b.setAttribute('aria-pressed', String(d.kind === chosen));
+      if (can) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
+      b.title = can ? d.tip : `Needs ${d.needs}`;
+    });
+    const why = DEFENSES.find((d) => d.kind === chosen)?.needs;
+    defNote.hidden = used === chosen;
+    defNote.textContent = used === chosen ? '' : `${cap(chosen)} needs ${why}, so you ${used} for now`;
+  }
   const cols = h('div', { class: 'dk-groups' });
   const el = h('div', { class: 'deck' }, mods, cols);
   let html = '', wasLimited = new Set<string>();
@@ -99,6 +130,7 @@ export function deckView(api: GameApi, o: {
   /** rebuilt from the game each redraw; a redraw that changes nothing keeps the old buttons (M-74) */
   function update(force = false) {
     const s = api.state();
+    if (s) paintDefense(s);
     const pv = s ? safePv(s) : null;
     ctx = s && pv ? ctxOf(s, pv) : null;
     groups = ctx ? deck(ctx) : [];
