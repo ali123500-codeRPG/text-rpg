@@ -25,6 +25,7 @@ import { actorById, atLeast, isActive, stance, zoneById } from '../engine/relati
 import { power } from '../engine/xp';
 import { startSpar } from '../engine/spar';
 import { seedGoals } from '../engine/goals';
+import { noteZonesSeen } from '../engine/trail';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
 import { joinFrontier, joinWay, landNode, landRoad, landTarget, landZone, makeLandWays, openSideWay } from './ways';
@@ -539,6 +540,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   }
   placeAll(state); // ZP1: the cast and anyone moved by the scenario get spots in their zones
   if (storyStart) startAtDoor(state, ctx.placeId); // BG-49: the story opens with the player at the door
+  noteZonesSeen(state); // BG-313: what the player sees from where the plan leaves it is on the Map before the first turn
 }
 
 /** At story start the player's place has no node yet (CS2); a bare one is made so the Weaver's plan (and the fallback) can use its id. */
@@ -594,6 +596,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     state.stage.scenario.ground = [...new Set([startZone, state.player.zone, ...(place?.zones ?? []).map((z) => z.id)])].filter((z) => zoneById(state, z));
   }
   placeAll(state); // ZP1, as a built plan: anyone moved onto the fallback ground gets a spot in their zone (BG-150)
+  noteZonesSeen(state); // BG-313, as a built plan
   setFallbackFlags(state, reason, 'weaver_fallback', errors);
 }
 

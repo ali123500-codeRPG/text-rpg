@@ -1,8 +1,8 @@
 // The Map page's data: only what the character knows. Zones it stood in or saw across a sight link (journal.zonesSeen),
+// the squares of them it has seen (the fog, PZ12 a), each way's doorway where it stands (BG-313),
 // what it sees now (PlayerView), its trail, and the places the Journal lists. Never the hidden store: light, cover,
 // people and things on the ground show only for zones in view now; a remembered zone keeps its name, look and exits.
 import { furnitureIn, furniturePos } from '../engine/furniture';
-import { compassOf as geoCompass } from '../scenario/geometry';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
 import { seesAcross, zoneById } from '../engine/relations';
@@ -11,7 +11,9 @@ import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
 import { WK } from '../library/tableIds';
 import { roofed, waysOut } from '../plan/where';
-import { NEAR_M, boxOf, dist, lerp, sidesOf, toSegment } from '../plan/geom';
+import { NEAR_M, boxOf, dist, inOutline, lerp, sidesOf, toSegment } from '../plan/geom';
+import { seenRuns, type SeenRun } from '../plan/fog';
+import { OP } from '../library/tableIds';
 import { barrierOn, barrierView } from '../engine/barriers';
 import { landSeen } from '../land/sight';
 import { plural } from './kit';
@@ -20,7 +22,11 @@ import { actorBody } from '../library';
 /** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
  *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
 export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; open?: true; key?: true };
-export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay };
+/** at (BG-313): the way's doorway on the floor plan (Opening.at, metres), and out: the unit step from this title out
+ *  through it (metres, y up), so the map draws its door and its exit arrow where the doorway really is; opening: its id,
+ *  shared by both titles' links; stairs: a way up or down (OP stairs), up when its other end is higher */
+export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay;
+  at?: Pt; out?: [number, number]; opening?: string; stairs?: true; up?: boolean };
 /** at: where they stand (Actor.pos, metres in the map's frame), only for someone in full sight on a zone with a rectangle;
  * someone only heard or glimpsed, or last seen, has no point: the player can't tell where in the zone they are; body (SZ16):
  * its floor size in metres and the way it faces, for someone seen clearly at their own point */
@@ -45,6 +51,9 @@ export type MapZone = {
   along?: { m: number; len: number; from: Compass; to: Compass };
   /** WZ1: a road bound to a region road line runs along this line, in metres in the world's frame */
   line?: Pt[];
+  /** PZ12 a, BG-313: the parts of the title the character has seen (the fog), in metres: the map draws its floor, walls,
+   *  doors and furniture only there */
+  seen?: SeenRun[];
 };
 type Compass = 'west' | 'east' | 'south' | 'north';
 type Pt = { x: number; y: number };
@@ -89,6 +98,16 @@ export function wallsOn(s: GameState, z: import('../types').Zone): NonNullable<M
 /** how far off a title's side a wall may lie and still stand on it, in metres (the drawn plan's rounding) */
 const WALL_ON_M = 0.05;
 
+/** BG-313: the unit step out of title `z` through an opening at `at` (metres, y up): the normal of the outline side the
+ *  opening stands on, the way that leaves the title */
+export function outOf(z: import('../types').Zone, at: Pt): [number, number] | undefined {
+  let best: { d: number; a: Pt; b: Pt } | undefined;
+  for (const [a, b] of sidesOf(z.outline)) { const d = toSegment(at, a, b).d; if (!best || d < best.d) best = { d, a, b }; }
+  if (!best) return undefined;
+  const dx = best.b.x - best.a.x, dy = best.b.y - best.a.y, l = Math.hypot(dx, dy) || 1, n: [number, number] = [dy / l, -dx / l];
+  const probe = { x: at.x + n[0] * 0.2, y: at.y + n[1] * 0.2 };
+  return inOutline(probe, z.outline, 0.01) ? [-n[0], -n[1]] : n;
+}
 /** WZ1: a point on a road line: metres along it from its first point to the point of the line nearest `at` */
 export function alongLine(pts: Pt[], at: Pt): NonNullable<MapZone['along']> {
   let best = Infinity, m = 0, run = 0;
@@ -147,13 +166,17 @@ export function knownMap(s: GameState): KnownMap {
       const b = barrierOn(s, l), w = b ? barrierView(b, p, z.id) : undefined;
       const way: MapWay | undefined = w && { kind: w.kind, ...(w.blocked ? { shut: 'blocked' as const } : w.barred ? { shut: 'barred' as const } : w.locked ? { shut: 'locked' as const } : {}),
         ...(w.open ? { open: true as const } : {}), ...(w.key ? { key: true as const } : {}) };
-      return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}) };
+      // stairs: drawn at their end on this title's floor; up when the other end is higher
+      const o = l.opening, stairs = o.kind === OP.stairs, hi = Math.max(o.floor, o.to?.floor ?? o.floor);
+      const end = stairs && o.to && Math.abs(o.to.floor - z.floor) < Math.abs(o.floor - z.floor) ? o.to : o.at, out = stairs ? undefined : outOf(z, o.at);
+      return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}),
+        at: { x: end.x, y: end.y }, ...(out ? { out } : {}), opening: o.id, ...(stairs ? { stairs: true as const, up: z.floor < hi - 0.01 } : {}) };
     });
     const placed = !!z.outline?.length, box = placed ? boxOf(z.outline) : undefined;
     const you = id === p.zone && p.pos && placed ? { x: p.pos.x, y: p.pos.y } : undefined;
     const line = z.line; // WZ1, PZ14: a road runs along its line
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !roofed(s, z), here: id === p.zone, inView: !!v, height: heightOf(z),
-      ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id) } : {}), links,
+      ...(box ? { rect: box, outline: z.outline.map((q) => ({ x: q.x, y: q.y })), walls: wallsOn(s, z), ...furnitureOn(s, id), seen: seenRuns(s, z) } : {}), links,
       ...(you ? { you } : {}), ...(line ? { line } : {}),
       ...(you && line ? { along: alongLine(line, you) } : {}),
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
@@ -178,13 +201,6 @@ export function knownMap(s: GameState): KnownMap {
   const land: MapLand[] = (s.regions ?? []).map((r) => ({ region: r, seen: landSeen(s, r.id), faint: new Set(r.sites.filter((x) => x.placeId && ids.has(x.placeId)).map((x) => x.id)),
     key: `${r.id}:${s.player.journal?.landSeen?.[r.id] ?? ''}` }));
   return { placeId: p.placeId, zoneId: p.zone, places: order, visited: visitedZoneIds(s), land };
-}
-
-/** a compass hint from an exit's words ("north gate", "the east road"); null when it names no direction. Up and down are
- *  heights, not directions (src/scenario/heights.ts verticalOf): stairs never push a zone north or south. */
-export function compassOf(label: string): [number, number] | null {
-  const c = geoCompass(label); // the scenario's reading of compass words, flipped to screen (y down)
-  return c ? [c[0], -c[1] || 0] : null;
 }
 
 /** the top-level place a place sits in (itself when it has no known parent). A road is only a line on the World map, so a

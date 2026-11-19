@@ -17,7 +17,7 @@ describe('unexplored exits on the map', () => {
 
   it('every unexplored exit mark (arrow, note, stairs, stub) carries the zone it leaves and its words', () => {
     const src = readFileSync('src/ui/map.ts', 'utf8');
-    expect(src.match(/exitAttrs\(/g)!.length).toBe(5); // the helper, plan arrow and note (shared), plan stairs, diagram stub and pill, diagram stairs
+    expect(src.match(/exitAttrs\(/g)!.length).toBe(2); // the arrow and its note (shared), the stairs (BG-313: no diagram)
     expect(src).toMatch(/onMove\(exitOrder\(x\.label\)\)/);
   });
 

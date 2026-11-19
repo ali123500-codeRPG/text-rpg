@@ -6,13 +6,14 @@
 // ring how far a dash runs (BF91: the move time walked, then the main time run). Only colour and
 // opacity change, on hover (M-70); nothing changes while a turn runs (M-06).
 import { areaOf, inOutline } from '../plan/geom';
+import { seenIn } from '../plan/fog';
 import type { GameApi, GameState } from '../types';
 import { h } from './kit';
 import { CONFIG } from '../config';
 import { knownMap, rootPlace, type KnownMap, type MapZone } from './mapData';
 import { NAME_PX, PX_PER_M, TEXT, checkReach, planScene, wrap, type Box, type Measure } from './mapPlan';
 import { checkMap } from './mapCheck';
-import { floorMarks, doorGlyph, floorName, footprintMark, wayGlyph, wayWords, whoInitial } from './map';
+import { fogClip, floorMarks, doorGlyph, floorName, footprintMark, wayGlyph, wayWords, whoInitial } from './map';
 import { furnIcon } from './furnitureIcons';
 import { moveSpeed, slotMetres } from '../engine/speed';
 import { M_EPS, spotPoint, walkRoute, type Pos } from '../engine/position';
@@ -20,6 +21,7 @@ import { shortestPath } from '../engine/relations';
 import { distText } from '../views';
 import { cap, r1, theName } from '../words';
 
+let fogIds = 0;
 export type MinimapPoint = { zone: string; x: number; y: number; metres: number; seconds: number; turns: number; label: string };
 /** a point's plan: the walk there (its points, in metres) and how it reads on the path; or why there is no way there */
 export type MinimapPlan = (MinimapPoint & { pts: Pos[]; words: string; where: string }) | { why: string };
@@ -78,7 +80,8 @@ export function splitAt(pts: Pos[], m: number): [Pos[], Pos[]] {
 export function zoneAt(zones: MapZone[], q: Pos): MapZone | undefined {
   // PZ1: by its outline (a title can be any shape), the smallest first
   const size = (z: MapZone) => (z.outline?.length ? areaOf(z.outline) : z.rect!.w * z.rect!.d);
-  const hits = zones.filter((z) => z.rect && (z.outline?.length ? inOutline(q, z.outline) : Math.abs(q.x - z.rect.x) <= z.rect.w / 2 && Math.abs(q.y - z.rect.y) <= z.rect.d / 2));
+  // BG-313: only ground the character has seen (the fog) is somewhere to point at
+  const hits = zones.filter((z) => z.rect && (z.outline?.length ? inOutline(q, z.outline) : Math.abs(q.x - z.rect.x) <= z.rect.w / 2 && Math.abs(q.y - z.rect.y) <= z.rect.d / 2) && (!z.seen || seenIn(z.seen, q)));
   return hits.sort((a, b) => size(a) - size(b))[0];
 }
 
@@ -116,8 +119,9 @@ export function minimapPanel(api: GameApi, opts: {
 
   // SD4: how to use it is the map's tip and name, not a line under it
   const svg = s('svg', { class: 'mm-svg', tabindex: 0, role: 'group', 'aria-label': `Minimap. ${HINT}` }) as SVGSVGElement;
-  const world = s('g'), gZones = s('g'), gNames = s('g', { 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g'), gPath = s('g'), gTokens = s('g');
-  world.append(gZones, gNames, gRing, gMarks, gPath, gTokens);
+  const fogId = `mm-fog-${++fogIds}`, gFog = s('defs');
+  const world = s('g'), gZones = s('g', { 'clip-path': `url(#${fogId})` }), gNames = s('g', { 'aria-hidden': 'true' }), gRing = s('g'), gMarks = s('g'), gPath = s('g'), gTokens = s('g');
+  world.append(gFog, gZones, gNames, gRing, gMarks, gPath, gTokens);
   svg.append(s('title', {}, HINT), world);
   const floorEl = h('span', { class: 'mm-floor' });
   const tool = (label: string, title: string, on: () => void) => h('button', { type: 'button', title, 'aria-label': title, onclick: on }, label);
@@ -159,6 +163,7 @@ export function minimapPanel(api: GameApi, opts: {
 
   function render() {
     for (const g of [gZones, gNames, gRing, gMarks, gTokens]) g.replaceChildren();
+    gFog.replaceChildren();
     if (!snap) { gPath.replaceChildren(); foot(); return; }
     const { K, k, o, w, h: hh } = frame();
     svg.setAttribute('viewBox', `0 0 ${w} ${hh}`);
@@ -166,6 +171,7 @@ export function minimapPanel(api: GameApi, opts: {
     const vb: Box = { x0: -o.x, y0: -o.y, x1: w - o.x, y1: hh - o.y }, inView: Box = { x0: vb.x0 + 1, y0: vb.y0 + 1, x1: vb.x1 - 1, y1: vb.y1 - 1 };
     face = getComputedStyle(svg).getPropertyValue('--font-round').trim();
     const scene = planScene({ zones: snap.floor, every: snap.every, places: [], k, measure, visits: new Set(snap.km.visited), awayName: () => undefined });
+    gFog.append(fogClip(fogId, scene.zones.map((x) => x.z), PX_PER_M * k)); // BG-313: only ground the character has seen
     // zones (MAP-33/34): the floor in view is the tagged zone (MAP-50: nothing tagged past the edge); its walls run on
     // past the edge, each side drawn as its edge kind
     for (const x of scene.zones) {
@@ -180,14 +186,13 @@ export function minimapPanel(api: GameApi, opts: {
       if (x.state === 'current') g.append(s('rect', { class: 'mm-here', x: b.x0 + 0.5, y: b.y0 + 0.5, width: b.x1 - b.x0 - 1, height: b.y1 - b.y0 - 1 })); // MAP-33: where you are
       g.append(s('title', {}, `${cap(z.name)}: ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m`));
       gZones.append(g);
-      const n = nameIn(z.name, c);
+      const n = z.seen && !z.seen.length ? null : nameIn(z.name, c); // BG-313: no name on a title never seen
       if (!n) continue;
       const cx = (c.x0 + c.x1) / 2, first = (c.y0 + c.y1) / 2 - ((n.lines.length - 1) * n.line) / 2 + n.size * 0.36;
       gNames.append(s('text', { class: `mm-name${z.here ? ' here' : ''}`, x: cx, y: first, 'text-anchor': 'middle', 'font-size': n.size,
         'data-role': 'label', 'data-layer': 'back', 'data-id': `label:${z.id}`, 'data-for': z.id, 'data-placement': 'inside' },
       ...n.lines.map((line, i) => s('tspan', { x: cx, y: first + i * n.line }, line))));
     }
-    for (const c of scene.connectors) gZones.append(s('line', { x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, class: `map-link${c.sight ? '' : ' hidden-view'}` }, s('title', {}, c.title)));
     // AD9: how far one move slot walks this turn; past the widest zoom it is a note under the map instead
     // BF91: and how far a dash runs, a second, wider ring
     const y = px(snap.you, K);
@@ -198,7 +203,6 @@ export function minimapPanel(api: GameApi, opts: {
       if (!within(d, inView)) continue;
       const r = d.x1 - d.cx, tag = { 'data-role': 'icon', 'data-id': d.id, role: 'img', 'aria-label': d.title };
       gMarks.append(d.way?.shut ? s('g', { class: `map-way ${d.way.shut}${d.way.key ? ' key' : ''}`, ...tag }, s('circle', { cx: d.cx, cy: d.cy, r }), ...wayGlyph(d.cx, d.cy, d.way.shut), s('title', {}, d.title))
-        : d.kind === 'group' ? s('g', { class: 'map-door group', ...tag }, s('circle', { cx: d.cx, cy: d.cy, r }), s('text', { x: d.cx, y: d.cy + 4, 'text-anchor': 'middle' }, String(d.count)), s('title', {}, d.title))
         : s('g', { class: `map-door ${d.kind}`, ...tag }, ...doorGlyph(d.cx, d.cy, d.kind, d.dir), s('title', {}, d.title)));
     }
     for (const st of scene.stairs) if (within(st, inView)) gMarks.append(s('g', { class: `map-stair${st.goto ? '' : ' unknown'}`, 'data-role': 'icon', 'data-id': st.id, role: 'img', 'aria-label': st.title },

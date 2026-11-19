@@ -22,12 +22,13 @@ Load and apply these skills first: `frontend-design` (aesthetic direction), `int
 
 ## 2. Geometry
 
-- **MAP-10** One grid, 1 cell = 1 m. Every zone size and position snaps to it. The scale bar is drawn from the same constant. A zone is only a title: a name plus an outline (any shape) between a floor and a top. The map draws the outline, and the walls and openings come from the floor plan (state.walls, state.openings), never from zone links.
+- **MAP-10** One grid, 1 cell = 1 m. Every zone size and position snaps to it. The scale bar is drawn from the same constant. A zone is only a title: a name plus an outline (any shape) between a floor and a top. The map draws every title where it lies on the floor plan, and its walls, openings and furniture come from the floor plan (state.walls, state.openings), never from zone links. There is no exit diagram and no force layout.
 - **MAP-11** Zones never partially overlap. Only full containment is allowed (a zone inside its parent place). Any partial overlap is a violation.
 - **MAP-12** Outdoor zones (streets, yards, roads) sit beside building footprints and never run through them. A building is one connected footprint.
-- **MAP-13** A place's footprint is the bounding box of its zones plus padding. Its title sits outside the footprint, above the top-left corner.
-- **MAP-14** Linked zones that touch share an edge, and the door sits on that shared edge. Layout places a new title so that it touches every placed title it is linked to, where it can. Linked zones that don't touch get a short connector line with a 6 px gap at each end.
+- **MAP-13** A place's footprint is the bounding box of the seen ground of its zones plus padding, so it never tells how far unseen ground runs. Its title sits outside the footprint, above the top-left corner (a title wider than the place may run out past that corner).
+- **MAP-14** Each doorway, gap, window or stair is drawn once, at its own point (Opening.at) on its wall, never at the middle of a shared edge and never by a compass word. An exit to somewhere not on the map is an arrow straight out of its own doorway, turned a little only when that spot is taken. There are no connector lines between titles.
 - **MAP-15** Every zone is reachable from the player's zone through links (flood fill over the stage data). An unreachable zone is a finding, not a style choice.
+- **MAP-16** Fog (PZ12 a): the map and the minimap draw a title's floor, walls and furniture only where the fog says the player has seen (journal.seenSquares; over the land, the land's cells). Unseen ground stays dark. A title seen none of shows no name; a name sits in the biggest seen part of its title. The minimap uses the same plan and the same fog, and only seen ground can be pointed at.
 
 ## 3. Labels
 
@@ -41,9 +42,9 @@ Load and apply these skills first: `frontend-design` (aesthetic direction), `int
 ## 4. Symbols and states
 
 - **MAP-30** One icon has one meaning. The legend is always available and lists every icon on the current map.
-- **MAP-31** Icons never overlap each other or a wall corner. Doors are centred on their shared edge. More than three icons on one edge are grouped into one badge with a count.
+- **MAP-31** Icons never overlap each other or a wall corner. Doors sit at their own point on their wall (MAP-14).
 - **MAP-32** Every exit arrow names its target. No arrow points at empty space without a note.
-- **MAP-33** Zone states are fixed: current (highlighted), explored, seen-not-visited, unexplored (dashed outline). Locked is shown on the connector or door, not on the zone.
+- **MAP-33** Zone states are fixed: current (highlighted), explored, seen-not-visited, unexplored (dashed outline). Locked is shown on the door, not on the zone.
 - **MAP-34** Every state is readable without colour: outline style plus an icon or text, never colour alone.
 
 ## 5. What the map may show

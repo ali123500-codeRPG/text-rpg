@@ -972,11 +972,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-link { stroke: color-mix(in srgb, var(--faint) 70%, transparent); stroke-width: 2.5; stroke-linecap: round; }
 .map-link.hidden-view { stroke-dasharray: 7 6; stroke: color-mix(in srgb, var(--faint) 55%, transparent); }
 .map-link.hot { stroke: var(--scenario-mark); stroke-width: 3; }
-.map-stub { stroke: color-mix(in srgb, var(--faint) 45%, transparent); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
-.map-stub.hot { stroke: var(--scenario-mark); }
 .map-link.road { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 10 7; }
 .map-tile.world-place .map-tile-name { font-size: 16px; }
-.map-stub.away { stroke: var(--accent); stroke-dasharray: 8 6; cursor: pointer; }
 .map-pill.away { cursor: pointer; pointer-events: auto; }
 .map-pill.away rect { stroke: var(--accent); }
 .map-arrowhead { fill: color-mix(in srgb, var(--faint) 70%, transparent); }
@@ -988,12 +985,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-area rect { fill: color-mix(in srgb, var(--c15) 6%, transparent); stroke: color-mix(in srgb, var(--c15) 40%, transparent); stroke-width: 1.5; stroke-dasharray: 10 6; }
 .map-area.mine rect { fill: color-mix(in srgb, var(--scenario-mark) 6%, transparent); }
 .map-area.on rect, .map-area:hover rect, .map-area:focus-visible rect { stroke: var(--scenario-mark); stroke-dasharray: none; }
-.map-area-name { fill: var(--c15); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .map-area.real rect { fill: none; stroke-dasharray: none; stroke-width: 2; }
 .map-world-names { pointer-events: none; }
 .map-world-name .map-tile-name { font-size: 14px; }
 .map-world-name.here .map-tile-sub { fill: var(--scenario-mark); }
-.map-area.on .map-area-name { fill: var(--scenario-mark); }
 .map-tile { cursor: pointer; outline: none; }
 .map-tile-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
 .map-tile.outdoor .map-tile-box { fill: color-mix(in srgb, var(--c9) 22%, var(--surface)); stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); }
@@ -1066,7 +1061,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-edge.low { border-top-style: dashed; border-top-width: 2px; }
 .k-edge.window { border-top: 1px double var(--text); border-bottom: 1px solid var(--text); height: 3px; }
 .k-edge.open { border-top: 1px dotted var(--muted); }
-.map-plan-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-pill); }
 .map-who text { fill: var(--on-pill); font-size: 13px; font-weight: 800; }
 .map-who.last circle { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }
@@ -1085,9 +1079,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   border-radius: var(--r-pill); padding: 4px 12px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
 .map-crumbs .crumb.on { color: var(--text); border-color: var(--accent); }
 .map-crumbs .sep { color: var(--faint); }
-.map-compass { position: absolute; right: 16px; top: 12px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: start center;
-  border: 1px solid var(--rule); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--scenario-mark); font-weight: 800; font-size: 13px; padding-top: 4px; box-sizing: border-box; }
-.map-compass::after { content: ""; position: absolute; left: 50%; top: 19px; width: 2px; height: 14px; margin-left: -1px; background: linear-gradient(var(--scenario-mark), var(--rule)); }
 .map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
 /* CO9: the height slider, lowest height at the bottom; the stops beside it name each height the map has */
 .map-floors { position: absolute; left: 12px; bottom: 12px; display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3);
@@ -1191,7 +1182,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-note.away rect { stroke: var(--accent); stroke-dasharray: none; }
 .map-note.away text { fill: var(--text); }
 /* an unexplored exit is clickable too: its card has Move to here; the picked one is marked like a picked zone */
-.map-exit.open, .map-note.open, .map-stair.unknown, .map-stub[data-exit], .map-pill.unknown[data-exit] { cursor: pointer; }
+.map-exit.open, .map-note.open, .map-stair.unknown, .map-pill.unknown[data-exit] { cursor: pointer; }
 .map-note.open:hover rect, .map-note.picked rect { stroke: var(--scenario-mark); }
 .map-note.picked text { fill: var(--text); }
 .map-exit.picked line { stroke: var(--scenario-mark); }
@@ -1216,9 +1207,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .skill-up { color: var(--scenario-mark); font-weight: 600; }
 .coin-up { color: var(--scenario-mark); font-weight: 600; }
 .coin-down { color: var(--danger); font-weight: 600; }
-/* TV7: a road tile's track, end to end, with you at your point along it */
-.map-road-track line { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 10 6; }
-.map-road-track text { fill: var(--muted); font-size: 13px; font-weight: 700; }
 /* bugs page (bugs.ts): the report box spans the page; the open list is a full-width table */
 .bug-report { display: grid; gap: var(--space-3); margin-bottom: var(--space-6); }
 .bug-note { width: 100%; min-height: 96px; resize: vertical; font: 15px/1.5 var(--font-ui, inherit); padding: 10px 12px; }
