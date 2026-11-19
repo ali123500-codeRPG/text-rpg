@@ -61,6 +61,9 @@ const ROWS: Row[] = [
     extra: { story: 'You breathe deeper than other people: your short-term stamina is half again as large.', rule: `The owner's short-term line is ×${CONFIG.DEEP_LUNGS_LINE} its size (CONFIG.DEEP_LUNGS_LINE, placeholder), before the fatigue level bands shrink it.` } },
   { id: PK.bottomless, ref: 'SS6', skill: SK.stamina, group: GR.stamina, name: 'Bottomless', effect: 'health', milestone: 120,
     extra: { story: 'Effort that would empty anyone else barely touches you: every strain you pay is halved.', rule: `Every strain cost the owner pays is ×${CONFIG.BOTTOMLESS_STRAIN} (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.` } },
+  { id: PK.sharp_answer, ref: 'LG2', skill: SK.parry, group: GR.defense, name: 'Sharp Answer', effect: 'attack',
+    extra: { ownRule: 'SHARP_ANSWER_MULT', story: 'A parry is there to earn the strike, and you make the strike count: the free blow back after a parry hits a quarter harder.',
+      rule: `The free strike back after the owner's parry deals ×${CONFIG.SHARP_ANSWER_MULT} damage, before armor (SHARP_ANSWER_MULT, placeholder). Other free attacks, Riposte's counters among them, are unchanged.` } },
   // Missing 40 perks (LG4-LG19): some give +10 to a related skill; the rest change one of the skill's own rule numbers (placeholders)
   { id: PK.guarded_answer, ref: 'LG4', skill: SK.riposte, group: GR.defense, name: 'Guarded Answer', effect: 'defense',
     extra: { story: `Every answer starts with a guard: +10 ${skillName(SK.parry)}.`, rule: `+10 true skill in ${skillName(SK.parry)}.`, trueSkillTo: { [SK.parry]: 10 } } },

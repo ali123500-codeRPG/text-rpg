@@ -420,6 +420,7 @@ const DEFAULTS = {
   CATNAP_SLEEP_HOURS: 1, // SS1 Catnap: a full rest clears the sleep debt this many hours of sleep would
   DEEP_RESERVES_MULT: 1.2, // LG8 Deep Reserves (Resolve 40): Endurance, Stamina and Resolve count this many times toward health, stamina and morale
   FEAR_BITES_MULT: 1.2, // LG12 Fear Bites Deeper (Intimidation 40): morale the owner makes others lose
+  SHARP_ANSWER_MULT: 1.25, // LG2 Sharp Answer (Parry 40): damage of the owner's strike back after a parry, before armor
   DEEPER_SOAK_MULT: 1.5, // LG18 Deeper Soak (Heavy Armor 40): worn heavy armor's flat soak
   DEEP_LUNGS_LINE: 1.5, // SS4 Deep Lungs: the owner's short line is this many times its size
   SLEEPLESS_NEED: 0.2, // SS5 Sleepless: sleepNeed multiplier (hours awake add debt this many times as fast)

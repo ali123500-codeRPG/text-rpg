@@ -36,7 +36,7 @@ describe('403 missing 20 and 40 perks', () => {
       [PK.guarded_answer, SK.riposte, 40], [PK.dancers_feet, SK.blade_dance, 40], [PK.deep_reserves, SK.resolve, 40],
       [PK.silver_tongue, SK.persuasion, 40], [PK.unseen_strike, SK.combat_stealth, 40], [PK.fear_bites_deeper, SK.intimidation, 40],
       [PK.shadow_work, SK.sneaking, 40], [PK.thick_of_it, SK.vanishing, 40], [PK.free_movement, SK.light_armor, 40],
-      [PK.deeper_soak, SK.heavy_armor, 40], [PK.honest_face, SK.lying, 40],
+      [PK.deeper_soak, SK.heavy_armor, 40], [PK.honest_face, SK.lying, 40], [PK.sharp_answer, SK.parry, 40],
     ] as const) {
       expect(perks[id]?.ladder, id).toEqual({ skill: sk, milestone: m });
       expect(BUILT_PERKS.has(id), id).toBe(true);

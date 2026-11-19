@@ -906,7 +906,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false
   if (flurry) opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Flurry', value: -1 }]; // AT79: one tier less sure
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
-      context: { defenderUnaware: surprised, ...(!surprised && !neverFlatFooted(t, a) && beliefStatus(state, t, a) === 'suspicious' ? { defenderSuspicious: true } : {}), ...(fromHiding ? { fromHiding } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
+      context: { defenderUnaware: surprised, ...(!surprised && !neverFlatFooted(t, a) && beliefStatus(state, t, a) === 'suspicious' ? { defenderSuspicious: true } : {}), ...(fromHiding ? { fromHiding } : {}), ...(o.intent === PARRY_STRIKE ? { strikeBack: true } : {}), ...(helpless ? { helpless } : {}), defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
     state, rng,
   );
   // TC45 a: defending gives the act away to every foe

@@ -479,7 +479,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   }
 
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
-  const { damage, generalShare } = blowDamage(state, A, D, mode, location, multiplier, openArm);
+  const answer = req.context?.strikeBack && hasPerk(A, PK.sharp_answer) ? CONFIG.SHARP_ANSWER_MULT : 1; // LG2 Sharp Answer (Parry 40)
+  const { damage, generalShare } = blowDamage(state, A, D, mode, location, multiplier * answer, openArm);
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
     && !!ct.parts.find((p) => p.id === location)?.roles.includes(RL.move);

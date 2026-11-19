@@ -502,6 +502,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** +5% of the owner's true Stamina (HIGH_PERK_SHARE, placeholder) as true skill in Stamina. +1% of the owner's true Stamina (HIGH_PERK_SPREAD, placeholder) as true skill in every skill of group Stamina. Shares read true skill without shares; several on one skill add in full. Every strain cost the owner pays is ×0.5 (CONFIG.BOTTOMLESS_STRAIN, placeholder), after worn armour.
 - **Lasts:** Always.
 
+### Sharp Answer (Parry) · LG2
+
+*Story:* +5 Parry, +1 Defense. A parry is there to earn the strike, and you make the strike count: the free blow back after a parry hits a quarter harder.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Parry. +1 true skill in every skill of group Defense. The free strike back after the owner's parry deals ×1.25 damage, before armor (SHARP_ANSWER_MULT, placeholder). Other free attacks, Riposte's counters among them, are unchanged.
+- **Lasts:** Always.
+
 ### Guarded Answer (Riposte) · LG4
 
 *Story:* +5 Riposte, +1 Defense. Every answer starts with a guard: +10 Parry.

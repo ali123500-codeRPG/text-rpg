@@ -91,4 +91,5 @@ export const BUILT_PERKS = new Set<string>([
   PK.fear_bites_deeper, // LG12: fearMult() in src/engine/auras.ts
   PK.thick_of_it, // LG15: stealthDetect() in src/minds/state.ts
   PK.deeper_soak, // LG18: blowDamage() in src/ruleset/index.ts
+  PK.sharp_answer, // LG2: attack() in src/ruleset/index.ts, on a strike back (context.strikeBack from parryStrike)
 ]);

@@ -47,6 +47,7 @@ export const PK = {
   deflect: 'PK166', grit_your_teeth: 'PK167', hear_me_out: 'PK168', // 20 perks: Parry (LG1 a), Resolve (LG7 c), Persuasion (LG9 b)
   guarded_answer: 'PK169', dancers_feet: 'PK170', deep_reserves: 'PK171', silver_tongue: 'PK172', unseen_strike: 'PK173', // 40 perks (LG4, LG6, LG8, LG10, LG11)
   fear_bites_deeper: 'PK174', shadow_work: 'PK175', thick_of_it: 'PK176', free_movement: 'PK177', deeper_soak: 'PK178', honest_face: 'PK179', // 40 perks (LG12, LG14-LG16, LG18, LG19)
+  sharp_answer: 'PK180', // Parry 40 (LG2)
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;
