@@ -39,4 +39,4 @@ oldest first. The rules are in the spec ("### Play screen", "Deferred items") an
 - **Open: orders an NPC is sworn to carry out (13/11/2026).** A voice test showed the responder obeying a
   committed order with no feeling. A fix was tested and a build invited, not started: the responder carries the
   order out as given and voices what it feels against it, and the engine decides obey or refuse for a sworn NPC.
-  The responder's instructions still hold the earlier rule. No D-n row yet.
+  The responder's instructions still hold the earlier rule. Tracked as D-409.

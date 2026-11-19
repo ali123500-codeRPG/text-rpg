@@ -34,7 +34,7 @@ time"; Part 3: "Health track"); every number is in `src/config.ts`.
   through the perk heal function, which a test enforces (#312, #314).
 - **Raw rolls or bands in contests (12/11/2026).** The owner asked what comparing raw roll numbers would gain
   over the gap in tiers. A page recommended steps of fixed size. Its answers were never readable to an agent
-  and nothing was built; the counts behind it predate the extra tiers past both ends (D-211).
+  and nothing was built; the counts behind it predate the extra tiers past both ends (D-211). Open as D-408.
 - **Wound penalties as percentages (15/11/2026; PW1-PW6).** Wound, morale and fatigue penalties were flat
   points. They are now a percentage of the average roll at the actor's effective skill, in one pile; rolls
   show the percentage and its points (#891, #892). A new wound-type penalty follows the same form.

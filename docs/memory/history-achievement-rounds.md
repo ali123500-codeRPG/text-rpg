@@ -6,8 +6,8 @@ rows of the spec, never here.
 
 - **Finds by searching (12/11/2026; SA1-SA15).** A find is a hidden person or item revealed by a search, once
   each; two chains, items and people, with no repeats and no scar. The reward is reach in metres, not a
-  percent, and moves both search fields. The fields exist (#598). The two chains are not in the library and the
-  spec has no row for them.
+  percent, and moves both search fields. The fields exist (#598). The two chains are not in the library;
+  they are tracked as D-407.
 - **Novel study answers (13-14/11/2026; BA1-BA20; D-277 to D-291, D-294, D-295).** Kills are counted apart
   from defeats, with their own chain; ordeals pay max morale; the survival roll has its row (#725). A fight won
   although morale broke has a chain, for those who chase the extraordinary (D-294, #736). The reward lane
