@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** A door now counts as seen when the player has a clear line to it within a walking person's glimpse range, whatever title the player stands in. Only a door the player truly can't see is opened in the background.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #1095](https://github.com/ali123500-codeRPG/text-rpg/pull/1095)
 
 ## BG-315
 
